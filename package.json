@@ -1,0 +1,17 @@
+{
+  "name": "federated-attack-rest-api",
+  "version": "0.0.0",
+  "description": "REST API service for the ATT&CK Workspace.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "compression": "^1.7.4",
+    "express": "^4.17.1",
+    "helmet": "^3.21.2",
+    "morgan": "^1.9.1",
+    "winston": "^3.2.1"
+  }
+}
