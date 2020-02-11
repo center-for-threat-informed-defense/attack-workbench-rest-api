@@ -1,0 +1,231 @@
+openapi: 3.0.2
+info:
+  title: Federated ATT&CK REST API
+  version: 0.0.1
+servers:
+  - url: '{protocol}://{hostname}:{port}/'
+    variables:
+      protocol:
+        default: 'http'
+      hostname:
+        default: '::'
+      port:
+        default: '3000'
+tags:
+  - name: Techniques
+    description: 'Operations on techniques.'
+  - name: Groups
+    description: 'Operations on groups.'
+paths:
+  /api/techniques:
+    get:
+      summary: 'Retrieve techniques'
+      operationId: technique-get-all
+      description: 'This endpoint retrieves multiple technique objects.'
+      tags:
+        - Techniques
+      responses:
+        '200':
+          description: 'A list of techniques.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/technique'
+
+    post:
+      summary: 'Create a technique'
+      operationId: 'technique-create'
+      description: 'This endpoint creates a new technique object.'
+      tags:
+        - Techniques
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/technique'
+      responses:
+        '201':
+          description: 'The technique has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/technique'
+
+  /api/techniques/{id}:
+    get:
+      summary: 'Retrieve a technique'
+      operationId: 'technique-get-one'
+      description: 'The endpoint retrieves a technique using its id.'
+      tags:
+        - Techniques
+      parameters:
+        - name: id
+          in: path
+          description: id of the technique to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The technique with the requested id.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/technique'
+        '404':
+          description: 'The technique with the requested id was not found.'
+
+components:
+  schemas:
+    technique:
+      type: object
+      properties:
+        stix:
+          $ref: '#/components/schemas/stix-attack-pattern'
+
+        # ATT&CK workspace properties
+        domains:
+          type: array
+          description: 'This property replaces x_mitre_collections'
+          items:
+            type: string
+            example: 'enterprise'
+        editor_identity:
+          $ref: '#/components/schemas/editor_identity'
+
+    stix-attack-pattern:
+      type: object
+      properties:
+        # STIX common properties
+        type:
+          type: string
+          pattern: '^attack-pattern$'
+          example: 'attack-pattern'
+        spec_version:
+          type: string
+          pattern: '^2.1$'
+          example: '2.1'
+        id:
+          type: string
+          example: 'attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc'
+        created_by_ref:
+          type: string
+          example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
+        created:
+          type: string
+          format: date-time
+        modified:
+          type: string
+          format: date-time
+        revoked:
+          type: boolean
+          example: false
+        external_references:
+          type: array
+          items:
+            $ref: '#/components/schemas/external_reference'
+        object_marking_refs:
+          type: array
+          items:
+            type: string
+            example: 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'
+
+        # attack-pattern specific properties
+        name:
+          type: string
+          example: 'AppInit DLLs'
+        description:
+          type: string
+        kill_chain_phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/kill_chain_phase'
+
+        # ATT&CK custom properties
+        x_mitre_contributors:
+          type: array
+          items:
+            type: string
+        x_mitre_data_sources:
+          type: array
+          items:
+            type: string
+        x_mitre_deprecated:
+          type: boolean
+          example: false
+        x_mitre_detection:
+          type: string
+        x_mitre_effective_permissions:
+          type: array
+          items:
+            type: string
+            example: 'Administrator'
+        x_mitre_permissions_required:
+          type: array
+          items:
+            type: string
+            example: 'Administrator'
+        x_mitre_platforms:
+          type: array
+          items:
+            type: string
+            example: 'Windows'
+        x_mitre_subtechnique:
+          type: boolean
+          example: false
+        x_mitre_system_requirements:
+          type: array
+          items:
+            type: string
+        x_mitre_version:
+          type: string
+          example: '1.0'
+      required:
+        - type
+        - spec_version
+        - created
+        - modified
+        - name
+
+    editor_identity:
+      type: object
+      description: 'This property replaces mitreId'
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+
+    external_reference:
+      type: object
+      properties:
+        source_name:
+          type: string
+          example: 'mitre-attack'
+        description:
+          type: string
+        url:
+          type: string
+          example: 'https://attack.mitre.org/techniques/T1103'
+        external_id:
+          type: string
+          example: 'T1103'
+      required:
+        - source_name
+
+    kill_chain_phase:
+      type: object
+      properties:
+        kill_chain_name:
+          type: string
+        phase_name:
+          type: string
+      required:
+        - kill_chain_name
+        - phase_name

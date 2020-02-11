@@ -4,14 +4,24 @@
   "description": "REST API service for the ATT&CK Workspace.",
   "main": "index.js",
   "scripts": {
+    "api:generate-md": "widdershins ./app/api/definitions/api.yml -o ./app/api/markdown/api.md --summary",
+    "api:generate-html": "shins --root ./app/api/web -o ./app/api/web/index.html ./app/api/markdown/api.md",
+    "api:generate-all": "npm run api:generate-md && npm run api:generate-html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
     "express": "^4.17.1",
+    "express-openapi-validator": "^3.6.7",
     "helmet": "^3.21.2",
+    "mongoose": "^5.8.10",
     "morgan": "^1.9.1",
+    "uuid": "^3.4.0",
     "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "shins": "^2.4.1-0",
+    "widdershins": "^3.6.7"
   }
 }
