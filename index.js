@@ -33,7 +33,7 @@ app.use(helmet());
 
 // Establish the database connection
 logger.info('Setting up the database connection');
-const dbConnection = require('./app/lib/dbConnection');
+require('./app/lib/dbConnection');
 
 // Only use request logger for development environment
 if (config.app.env === 'development') {

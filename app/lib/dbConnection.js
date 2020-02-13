@@ -8,12 +8,11 @@ var mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 
 // Bootstrap db connection
-var db = mongoose.connect(config.database.url, { useNewUrlParser: true, useUnifiedTopology: true });
 logger.info('Mongoose attempting to connect to ' + config.database.url);
+mongoose.connect(config.database.url, { useNewUrlParser: true, useUnifiedTopology: true });
 
 mongoose.connection.on('connected', function () {
     logger.info('Mongoose connected to ' + config.database.url);
-//    emitter.emit('ready');
 });
 
 mongoose.connection.on('disconnected', function () {
