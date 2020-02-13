@@ -8,6 +8,7 @@
     "api:generate-html": "shins --root ./app/api/web -o ./app/api/web/index.html ./app/api/markdown/api.md",
     "api:generate-all": "npm run api:generate-md && npm run api:generate-html",
     "lint": "eslint .",
+    "snyk": "snyk test --insecure",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
   "devDependencies": {
     "eslint": "^6.8.0",
     "shins": "^2.4.1-0",
+    "snyk": "^1.291.0",
     "widdershins": "^3.6.7"
   }
 }
