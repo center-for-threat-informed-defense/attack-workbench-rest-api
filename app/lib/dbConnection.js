@@ -1,32 +1,31 @@
 'use strict';
 
-var config = require('../config/config');
-var logger = require('./logger');
-var mongoose = require('mongoose');
+exports.initializeConnection = async function() {
+    const config = require('../config/config');
+    const logger = require('./logger');
+    const mongoose = require('mongoose');
 
-// Configure mongoose to use ES6 promises
-mongoose.Promise = global.Promise;
+    // Configure mongoose to use ES6 promises
+    mongoose.Promise = global.Promise;
 
-// Bootstrap db connection
-logger.info('Mongoose attempting to connect to ' + config.database.url);
-mongoose.connect(config.database.url, { useNewUrlParser: true, useUnifiedTopology: true });
-
-mongoose.connection.on('connected', function () {
+    // Bootstrap db connection
+    logger.info('Mongoose attempting to connect to ' + config.database.url);
+    try {
+        await mongoose.connect(config.database.url, {useNewUrlParser: true, useUnifiedTopology: true});
+    } catch (error) {
+        handleError(error);
+    }
     logger.info('Mongoose connected to ' + config.database.url);
-});
 
-mongoose.connection.on('disconnected', function () {
-    logger.info('Mongoose disconnected from ' + config.database.url);
-});
+//    mongoose.connection.on('disconnected', function () {
+//        logger.info('Mongoose disconnected from ' + config.database.url);
+//    });
 
-mongoose.connection.on('error', function (err) {
-    logger.warn('Mongoose connection error: ' + err);
-    logger.warn('Database (mongoose) connection is required. Terminating app.');
+    function handleError(error) {
+        logger.warn('Mongoose connection error: ' + error);
+        logger.warn('Database (mongoose) connection is required. Terminating app.');
 
-    // Delay 1 second for output to finish, then terminate
-    setTimeout(
-        function(){
-            process.exit(1);
-        },
-        1000);
-});
+        // Terminate the app
+        process.exit(1);
+    }
+}

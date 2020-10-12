@@ -2,7 +2,7 @@
 
 const express = require('express');
 const bodyParser = require('body-parser');
-const OpenApiValidator = require('express-openapi-validator').OpenApiValidator;
+const OpenApiValidator = require('express-openapi-validator');
 const techniqueRoutes = require('./technique-routes');
 const errorHandler = require('../lib/error-handler');
 
@@ -13,8 +13,11 @@ router.use('/api', bodyParser.json({limit: '1mb'}));
 router.use('/api', bodyParser.urlencoded({ limit: '1mb', extended: true }));
 
 // Setup request validation
-const validator = new OpenApiValidator({ apiSpec: './app/api/definitions/api.yml' });
-validator.installSync(router);
+router.use(OpenApiValidator.middleware({
+    apiSpec: './app/api/definitions/api.yml',
+    validateRequests: true,
+    validateResponses: false
+}));
 
 // Set up the routes
 router.use('/api', techniqueRoutes);

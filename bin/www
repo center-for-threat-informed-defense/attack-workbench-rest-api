@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+async function runServer() {
+    const app = await require('../app').initializeApp();
+    const config = app.get('config');
+    const logger = app.get('logger');
+
+// Start the server
+    const server = app.listen(config.server.port, function () {
+        const host = server.address().address;
+        const port = server.address().port;
+
+        logger.info(`Listening at http://${host}:${port}`);
+        logger.info('Federated ATT&CK REST API start up complete');
+    })
+}
+
+runServer();
+
