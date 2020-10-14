@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
 async function runServer() {
+    // Configure the logger
+    const logger = require('../app/lib/logger');
+
+    // Establish the database connection
+    logger.info('Setting up the database connection');
+    await require('../app/lib/dbConnection').initializeConnection();
+
+    // Create the app
     const app = await require('../app').initializeApp();
     const config = app.get('config');
-    const logger = app.get('logger');
 
-// Start the server
+    // Start the server
     const server = app.listen(config.server.port, function () {
         const host = server.address().address;
         const port = server.address().port;

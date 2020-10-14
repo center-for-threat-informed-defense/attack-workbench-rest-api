@@ -1,9 +1,7 @@
 'use strict';
 
 exports.initializeApp = async function() {
-    // Configure the logger
     const logger = require('./lib/logger');
-
     logger.info('Federated ATT&CK REST API app starting');
 
     const os = require('os');
@@ -31,10 +29,6 @@ exports.initializeApp = async function() {
     // Set HTTP response headers
     const helmet = require("helmet");
     app.use(helmet());
-
-    // Establish the database connection
-    logger.info('Setting up the database connection');
-    await require('./lib/dbConnection').initializeConnection();
 
     // Only use request logger for development environment
     if (config.app.env === 'development') {

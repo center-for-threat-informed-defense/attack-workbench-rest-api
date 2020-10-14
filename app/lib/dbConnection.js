@@ -1,8 +1,8 @@
 'use strict';
 
 exports.initializeConnection = async function() {
-    const config = require('../config/config');
     const logger = require('./logger');
+    const config = require('../config/config');
     const mongoose = require('mongoose');
 
     // Configure mongoose to use ES6 promises
