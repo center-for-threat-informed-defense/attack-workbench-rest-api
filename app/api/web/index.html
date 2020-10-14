@@ -7,7 +7,7 @@
     <meta charset="utf-8">
     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>Federated ATT&amp;CK REST API</title>
+    <title>Federated ATT&amp;CK REST API v0.0.1</title>
 
     <style>
     </style>
@@ -40,10 +40,16 @@ window.onpopstate = function() {
 
     
     <meta name="theme-color" content="#F3F7F9" />
-<!-- Renderer: Shins v2.4.1-0 -->
+<!-- Renderer: Shins v2.6.0 -->
+<!-- Generator: Widdershins v4.0.1 -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
   </head>
 
-  <body data-languages="[&quot;shell&quot;,&quot;http&quot;,&quot;javascript&quot;,&quot;javascript--nodejs&quot;,&quot;ruby&quot;,&quot;python&quot;,&quot;java&quot;,&quot;go&quot;]">
+  <body data-languages="[&quot;shell&quot;,&quot;http&quot;,&quot;javascript&quot;,&quot;ruby&quot;,&quot;python&quot;,&quot;php&quot;,&quot;java&quot;,&quot;go&quot;]">
     <a href="#" id="nav-button">
       <span>
         NAV
@@ -68,15 +74,15 @@ window.onpopstate = function() {
             
           
             
-              <a href="#" data-language-name="javascript--nodejs">Node.JS</a>
-            
-          
-            
               <a href="#" data-language-name="ruby">Ruby</a>
             
           
             
               <a href="#" data-language-name="python">Python</a>
+            
+          
+            
+              <a href="#" data-language-name="php">PHP</a>
             
           
             
@@ -133,27 +139,27 @@ window.onpopstate = function() {
               <ul class="toc-list-h2">
                 
                   <li>
-                    <a href="#tocstechnique" class="toc-h2 toc-link" data-title="">technique</a>
+                    <a href="#tocs_technique" class="toc-h2 toc-link" data-title="">technique</a>
                     
                   </li>
                 
                   <li>
-                    <a href="#tocsstix-attack-pattern" class="toc-h2 toc-link" data-title="">stix-attack-pattern</a>
+                    <a href="#tocs_stix-attack-pattern" class="toc-h2 toc-link" data-title="">stix-attack-pattern</a>
                     
                   </li>
                 
                   <li>
-                    <a href="#tocseditor_identity" class="toc-h2 toc-link" data-title="">editor_identity</a>
+                    <a href="#tocs_editor_identity" class="toc-h2 toc-link" data-title="">editor_identity</a>
                     
                   </li>
                 
                   <li>
-                    <a href="#tocsexternal_reference" class="toc-h2 toc-link" data-title="">external_reference</a>
+                    <a href="#tocs_external_reference" class="toc-h2 toc-link" data-title="">external_reference</a>
                     
                   </li>
                 
                   <li>
-                    <a href="#tocskill_chain_phase" class="toc-h2 toc-link" data-title="">kill_chain_phase</a>
+                    <a href="#tocs_kill_chain_phase" class="toc-h2 toc-link" data-title="">kill_chain_phase</a>
                     
                   </li>
                 
@@ -202,7 +208,7 @@ window.onpopstate = function() {
 </blockquote>
 <pre class="highlight tab tab-shell"><code><span class="hljs-comment"># You can also use wget</span>
 curl -X GET {protocol}://{hostname}:{port}/api/techniques \
-  -H <span class="hljs-string">'Accept: application/json'</span>
+  -H <span class="hljs-string">&#x27;Accept: application/json&#x27;</span>
 
 </code></pre>
 <pre class="highlight tab tab-http"><code><span class="hljs-keyword">GET</span> <span class="hljs-string">{protocol}://{hostname}:{port}/api/techniques</span> HTTP/1.1
@@ -210,32 +216,14 @@ curl -X GET {protocol}://{hostname}:{port}/api/techniques \
 <span class="http"><span class="hljs-attribute">Accept</span>: application/json
 
 </span></code></pre>
-<pre class="highlight tab tab-javascript"><code><span class="hljs-keyword">var</span> headers = {
-  <span class="hljs-string">'Accept'</span>:<span class="hljs-string">'application/json'</span>
-
-};
-
-$.ajax({
-  <span class="hljs-attr">url</span>: <span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'</span>,
-  <span class="hljs-attr">method</span>: <span class="hljs-string">'get'</span>,
-
-  <span class="hljs-attr">headers</span>: headers,
-  <span class="hljs-attr">success</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
-    <span class="hljs-built_in">console</span>.log(<span class="hljs-built_in">JSON</span>.stringify(data));
-  }
-})
-
-</code></pre>
-<pre class="highlight tab tab-javascript--nodejs"><code><span class="hljs-keyword">const</span> fetch = <span class="hljs-built_in">require</span>(<span class="hljs-string">'node-fetch'</span>);
-
+<pre class="highlight tab tab-javascript"><code>
 <span class="hljs-keyword">const</span> headers = {
-  <span class="hljs-string">'Accept'</span>:<span class="hljs-string">'application/json'</span>
-
+  <span class="hljs-string">&#x27;Accept&#x27;</span>:<span class="hljs-string">&#x27;application/json&#x27;</span>
 };
 
-fetch(<span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'</span>,
+fetch(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques&#x27;</span>,
 {
-  <span class="hljs-attr">method</span>: <span class="hljs-string">'GET'</span>,
+  <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;GET&#x27;</span>,
 
   <span class="hljs-attr">headers</span>: headers
 })
@@ -246,14 +234,14 @@ fetch(<span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'<
 });
 
 </code></pre>
-<pre class="highlight tab tab-ruby"><code><span class="hljs-keyword">require</span> <span class="hljs-string">'rest-client'</span>
-<span class="hljs-keyword">require</span> <span class="hljs-string">'json'</span>
+<pre class="highlight tab tab-ruby"><code><span class="hljs-keyword">require</span> <span class="hljs-string">&#x27;rest-client&#x27;</span>
+<span class="hljs-keyword">require</span> <span class="hljs-string">&#x27;json&#x27;</span>
 
 headers = {
-  <span class="hljs-string">'Accept'</span> =&gt; <span class="hljs-string">'application/json'</span>
+  <span class="hljs-string">&#x27;Accept&#x27;</span> =&gt; <span class="hljs-string">&#x27;application/json&#x27;</span>
 }
 
-result = RestClient.get <span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'</span>,
+result = RestClient.get <span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques&#x27;</span>,
   <span class="hljs-symbol">params:</span> {
   }, <span class="hljs-symbol">headers:</span> headers
 
@@ -262,19 +250,41 @@ p JSON.parse(result)
 </code></pre>
 <pre class="highlight tab tab-python"><code><span class="hljs-keyword">import</span> requests
 headers = {
-  <span class="hljs-string">'Accept'</span>: <span class="hljs-string">'application/json'</span>
+  <span class="hljs-string">&#x27;Accept&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>
 }
 
-r = requests.get(<span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'</span>, params={
+r = requests.get(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques&#x27;</span>, headers = headers)
 
-}, headers = headers)
-
-<span class="hljs-keyword">print</span> r.json()
+print(r.json())
 
 </code></pre>
-<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">"{protocol}://{hostname}:{port}/api/techniques"</span>);
+<pre class="highlight tab tab-php"><code> <span class="hljs-string">&#x27;application/json&#x27;</span>,
+);
+
+$client = <span class="hljs-keyword">new</span> \GuzzleHttp\Client();
+
+<span class="hljs-comment">// Define array of request body.</span>
+$request_body = <span class="hljs-keyword">array</span>();
+
+<span class="hljs-keyword">try</span> {
+    $response = $client-&gt;request(<span class="hljs-string">&#x27;GET&#x27;</span>,<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques&#x27;</span>, <span class="hljs-keyword">array</span>(
+        <span class="hljs-string">&#x27;headers&#x27;</span> =&gt; $headers,
+        <span class="hljs-string">&#x27;json&#x27;</span> =&gt; $request_body,
+       )
+    );
+    print_r($response-&gt;getBody()-&gt;getContents());
+ }
+ <span class="hljs-keyword">catch</span> (\GuzzleHttp\<span class="hljs-built_in">Exception</span>\BadResponseException $e) {
+    <span class="hljs-comment">// handle exception or api errors.</span>
+    print_r($e-&gt;getMessage());
+ }
+
+ <span class="hljs-comment">// ...</span>
+
+</code></pre>
+<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques&quot;</span>);
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-con.setRequestMethod(<span class="hljs-string">"GET"</span>);
+con.setRequestMethod(<span class="hljs-string">&quot;GET&quot;</span>);
 <span class="hljs-keyword">int</span> responseCode = con.getResponseCode();
 BufferedReader in = <span class="hljs-keyword">new</span> BufferedReader(
     <span class="hljs-keyword">new</span> InputStreamReader(con.getInputStream()));
@@ -290,19 +300,18 @@ System.out.println(response.toString());
 <pre class="highlight tab tab-go"><code><span class="hljs-keyword">package</span> main
 
 <span class="hljs-keyword">import</span> (
-       <span class="hljs-string">"bytes"</span>
-       <span class="hljs-string">"net/http"</span>
+       <span class="hljs-string">&quot;bytes&quot;</span>
+       <span class="hljs-string">&quot;net/http&quot;</span>
 )
 
 <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> {
 
     headers := <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>][]<span class="hljs-keyword">string</span>{
-        <span class="hljs-string">"Accept"</span>: []<span class="hljs-keyword">string</span>{<span class="hljs-string">"application/json"</span>},
-        
+        <span class="hljs-string">&quot;Accept&quot;</span>: []<span class="hljs-keyword">string</span>{<span class="hljs-string">&quot;application/json&quot;</span>},
     }
 
     data := bytes.NewBuffer([]<span class="hljs-keyword">byte</span>{jsonReq})
-    req, err := http.NewRequest(<span class="hljs-string">"GET"</span>, <span class="hljs-string">"{protocol}://{hostname}:{port}/api/techniques"</span>, data)
+    req, err := http.NewRequest(<span class="hljs-string">&quot;GET&quot;</span>, <span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques&quot;</span>, data)
     req.Header = headers
 
     client := &amp;http.Client{}
@@ -321,62 +330,62 @@ System.out.println(response.toString());
 </blockquote>
 <pre class="highlight tab tab-json"><code>[
   {
-    <span class="hljs-attr">"stix"</span>: {
-      <span class="hljs-attr">"type"</span>: <span class="hljs-string">"attack-pattern"</span>,
-      <span class="hljs-attr">"spec_version"</span>: <span class="hljs-string">"2.1"</span>,
-      <span class="hljs-attr">"id"</span>: <span class="hljs-string">"attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc"</span>,
-      <span class="hljs-attr">"created_by_ref"</span>: <span class="hljs-string">"identity--6444f546-6900-4456-b3b1-015c88d70dab"</span>,
-      <span class="hljs-attr">"created"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-      <span class="hljs-attr">"modified"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-      <span class="hljs-attr">"revoked"</span>: <span class="hljs-literal">false</span>,
-      <span class="hljs-attr">"external_references"</span>: [
+    <span class="hljs-attr">&quot;stix&quot;</span>: {
+      <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
+      <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
+      <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
+      <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
+      <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+      <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+      <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
+      <span class="hljs-attr">&quot;external_references&quot;</span>: [
         {
-          <span class="hljs-attr">"source_name"</span>: <span class="hljs-string">"mitre-attack"</span>,
-          <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-          <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://attack.mitre.org/techniques/T1103"</span>,
-          <span class="hljs-attr">"external_id"</span>: <span class="hljs-string">"T1103"</span>
+          <span class="hljs-attr">&quot;source_name&quot;</span>: <span class="hljs-string">&quot;mitre-attack&quot;</span>,
+          <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+          <span class="hljs-attr">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://attack.mitre.org/techniques/T1103&quot;</span>,
+          <span class="hljs-attr">&quot;external_id&quot;</span>: <span class="hljs-string">&quot;T1103&quot;</span>
         }
       ],
-      <span class="hljs-attr">"object_marking_refs"</span>: [
-        <span class="hljs-string">"marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"</span>
+      <span class="hljs-attr">&quot;object_marking_refs&quot;</span>: [
+        <span class="hljs-string">&quot;marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168&quot;</span>
       ],
-      <span class="hljs-attr">"name"</span>: <span class="hljs-string">"AppInit DLLs"</span>,
-      <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-      <span class="hljs-attr">"kill_chain_phases"</span>: [
+      <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;AppInit DLLs&quot;</span>,
+      <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+      <span class="hljs-attr">&quot;kill_chain_phases&quot;</span>: [
         {
-          <span class="hljs-attr">"kill_chain_name"</span>: <span class="hljs-string">"string"</span>,
-          <span class="hljs-attr">"phase_name"</span>: <span class="hljs-string">"string"</span>
+          <span class="hljs-attr">&quot;kill_chain_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+          <span class="hljs-attr">&quot;phase_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
         }
       ],
-      <span class="hljs-attr">"x_mitre_contributors"</span>: [
-        <span class="hljs-string">"string"</span>
+      <span class="hljs-attr">&quot;x_mitre_contributors&quot;</span>: [
+        <span class="hljs-string">&quot;string&quot;</span>
       ],
-      <span class="hljs-attr">"x_mitre_data_sources"</span>: [
-        <span class="hljs-string">"string"</span>
+      <span class="hljs-attr">&quot;x_mitre_data_sources&quot;</span>: [
+        <span class="hljs-string">&quot;string&quot;</span>
       ],
-      <span class="hljs-attr">"x_mitre_deprecated"</span>: <span class="hljs-literal">false</span>,
-      <span class="hljs-attr">"x_mitre_detection"</span>: <span class="hljs-string">"string"</span>,
-      <span class="hljs-attr">"x_mitre_effective_permissions"</span>: [
-        <span class="hljs-string">"Administrator"</span>
+      <span class="hljs-attr">&quot;x_mitre_deprecated&quot;</span>: <span class="hljs-literal">false</span>,
+      <span class="hljs-attr">&quot;x_mitre_detection&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+      <span class="hljs-attr">&quot;x_mitre_effective_permissions&quot;</span>: [
+        <span class="hljs-string">&quot;Administrator&quot;</span>
       ],
-      <span class="hljs-attr">"x_mitre_permissions_required"</span>: [
-        <span class="hljs-string">"Administrator"</span>
+      <span class="hljs-attr">&quot;x_mitre_permissions_required&quot;</span>: [
+        <span class="hljs-string">&quot;Administrator&quot;</span>
       ],
-      <span class="hljs-attr">"x_mitre_platforms"</span>: [
-        <span class="hljs-string">"Windows"</span>
+      <span class="hljs-attr">&quot;x_mitre_platforms&quot;</span>: [
+        <span class="hljs-string">&quot;Windows&quot;</span>
       ],
-      <span class="hljs-attr">"x_mitre_subtechnique"</span>: <span class="hljs-literal">false</span>,
-      <span class="hljs-attr">"x_mitre_system_requirements"</span>: [
-        <span class="hljs-string">"string"</span>
+      <span class="hljs-attr">&quot;x_mitre_subtechnique&quot;</span>: <span class="hljs-literal">false</span>,
+      <span class="hljs-attr">&quot;x_mitre_system_requirements&quot;</span>: [
+        <span class="hljs-string">&quot;string&quot;</span>
       ],
-      <span class="hljs-attr">"x_mitre_version"</span>: <span class="hljs-string">"1.0"</span>
+      <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
     },
-    <span class="hljs-attr">"domains"</span>: [
-      <span class="hljs-string">"enterprise"</span>
+    <span class="hljs-attr">&quot;domains&quot;</span>: [
+      <span class="hljs-string">&quot;enterprise&quot;</span>
     ],
-    <span class="hljs-attr">"editor_identity"</span>: {
-      <span class="hljs-attr">"id"</span>: <span class="hljs-string">"string"</span>,
-      <span class="hljs-attr">"name"</span>: <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
+      <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+      <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
     }
   }
 ]
@@ -663,8 +672,8 @@ This operation does not require authentication
 </blockquote>
 <pre class="highlight tab tab-shell"><code><span class="hljs-comment"># You can also use wget</span>
 curl -X POST {protocol}://{hostname}:{port}/api/techniques \
-  -H <span class="hljs-string">'Content-Type: application/json'</span> \
-  -H <span class="hljs-string">'Accept: application/json'</span>
+  -H <span class="hljs-string">&#x27;Content-Type: application/json&#x27;</span> \
+  -H <span class="hljs-string">&#x27;Accept: application/json&#x27;</span>
 
 </code></pre>
 <pre class="highlight tab tab-http"><code><span class="hljs-keyword">POST</span> <span class="hljs-string">{protocol}://{hostname}:{port}/api/techniques</span> HTTP/1.1
@@ -673,92 +682,73 @@ curl -X POST {protocol}://{hostname}:{port}/api/techniques \
 <span class="hljs-attribute">Accept</span>: application/json
 
 </span></code></pre>
-<pre class="highlight tab tab-javascript"><code><span class="hljs-keyword">var</span> headers = {
-  <span class="hljs-string">'Content-Type'</span>:<span class="hljs-string">'application/json'</span>,
-  <span class="hljs-string">'Accept'</span>:<span class="hljs-string">'application/json'</span>
-
-};
-
-$.ajax({
-  <span class="hljs-attr">url</span>: <span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'</span>,
-  <span class="hljs-attr">method</span>: <span class="hljs-string">'post'</span>,
-
-  <span class="hljs-attr">headers</span>: headers,
-  <span class="hljs-attr">success</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
-    <span class="hljs-built_in">console</span>.log(<span class="hljs-built_in">JSON</span>.stringify(data));
-  }
-})
-
-</code></pre>
-<pre class="highlight tab tab-javascript--nodejs"><code><span class="hljs-keyword">const</span> fetch = <span class="hljs-built_in">require</span>(<span class="hljs-string">'node-fetch'</span>);
-<span class="hljs-keyword">const</span> inputBody = <span class="hljs-string">'{
-  "stix": {
-    "type": "attack-pattern",
-    "spec_version": "2.1",
-    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
-    "created": "2020-02-10T21:54:45Z",
-    "modified": "2020-02-10T21:54:45Z",
-    "revoked": false,
-    "external_references": [
+<pre class="highlight tab tab-javascript"><code><span class="hljs-keyword">const</span> inputBody = <span class="hljs-string">&#x27;{
+  &quot;stix&quot;: {
+    &quot;type&quot;: &quot;attack-pattern&quot;,
+    &quot;spec_version&quot;: &quot;2.1&quot;,
+    &quot;id&quot;: &quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;,
+    &quot;created_by_ref&quot;: &quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;,
+    &quot;created&quot;: &quot;2019-08-24T14:15:22Z&quot;,
+    &quot;modified&quot;: &quot;2019-08-24T14:15:22Z&quot;,
+    &quot;revoked&quot;: false,
+    &quot;external_references&quot;: [
       {
-        "source_name": "mitre-attack",
-        "description": "string",
-        "url": "https://attack.mitre.org/techniques/T1103",
-        "external_id": "T1103"
+        &quot;source_name&quot;: &quot;mitre-attack&quot;,
+        &quot;description&quot;: &quot;string&quot;,
+        &quot;url&quot;: &quot;https://attack.mitre.org/techniques/T1103&quot;,
+        &quot;external_id&quot;: &quot;T1103&quot;
       }
     ],
-    "object_marking_refs": [
-      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    &quot;object_marking_refs&quot;: [
+      &quot;marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168&quot;
     ],
-    "name": "AppInit DLLs",
-    "description": "string",
-    "kill_chain_phases": [
+    &quot;name&quot;: &quot;AppInit DLLs&quot;,
+    &quot;description&quot;: &quot;string&quot;,
+    &quot;kill_chain_phases&quot;: [
       {
-        "kill_chain_name": "string",
-        "phase_name": "string"
+        &quot;kill_chain_name&quot;: &quot;string&quot;,
+        &quot;phase_name&quot;: &quot;string&quot;
       }
     ],
-    "x_mitre_contributors": [
-      "string"
+    &quot;x_mitre_contributors&quot;: [
+      &quot;string&quot;
     ],
-    "x_mitre_data_sources": [
-      "string"
+    &quot;x_mitre_data_sources&quot;: [
+      &quot;string&quot;
     ],
-    "x_mitre_deprecated": false,
-    "x_mitre_detection": "string",
-    "x_mitre_effective_permissions": [
-      "Administrator"
+    &quot;x_mitre_deprecated&quot;: false,
+    &quot;x_mitre_detection&quot;: &quot;string&quot;,
+    &quot;x_mitre_effective_permissions&quot;: [
+      &quot;Administrator&quot;
     ],
-    "x_mitre_permissions_required": [
-      "Administrator"
+    &quot;x_mitre_permissions_required&quot;: [
+      &quot;Administrator&quot;
     ],
-    "x_mitre_platforms": [
-      "Windows"
+    &quot;x_mitre_platforms&quot;: [
+      &quot;Windows&quot;
     ],
-    "x_mitre_subtechnique": false,
-    "x_mitre_system_requirements": [
-      "string"
+    &quot;x_mitre_subtechnique&quot;: false,
+    &quot;x_mitre_system_requirements&quot;: [
+      &quot;string&quot;
     ],
-    "x_mitre_version": "1.0"
+    &quot;x_mitre_version&quot;: &quot;1.0&quot;
   },
-  "domains": [
-    "enterprise"
+  &quot;domains&quot;: [
+    &quot;enterprise&quot;
   ],
-  "editor_identity": {
-    "id": "string",
-    "name": "string"
+  &quot;editor_identity&quot;: {
+    &quot;id&quot;: &quot;string&quot;,
+    &quot;name&quot;: &quot;string&quot;
   }
-}'</span>;
+}&#x27;</span>;
 <span class="hljs-keyword">const</span> headers = {
-  <span class="hljs-string">'Content-Type'</span>:<span class="hljs-string">'application/json'</span>,
-  <span class="hljs-string">'Accept'</span>:<span class="hljs-string">'application/json'</span>
-
+  <span class="hljs-string">&#x27;Content-Type&#x27;</span>:<span class="hljs-string">&#x27;application/json&#x27;</span>,
+  <span class="hljs-string">&#x27;Accept&#x27;</span>:<span class="hljs-string">&#x27;application/json&#x27;</span>
 };
 
-fetch(<span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'</span>,
+fetch(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques&#x27;</span>,
 {
-  <span class="hljs-attr">method</span>: <span class="hljs-string">'POST'</span>,
+  <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;POST&#x27;</span>,
   <span class="hljs-attr">body</span>: inputBody,
   <span class="hljs-attr">headers</span>: headers
 })
@@ -769,15 +759,15 @@ fetch(<span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'<
 });
 
 </code></pre>
-<pre class="highlight tab tab-ruby"><code><span class="hljs-keyword">require</span> <span class="hljs-string">'rest-client'</span>
-<span class="hljs-keyword">require</span> <span class="hljs-string">'json'</span>
+<pre class="highlight tab tab-ruby"><code><span class="hljs-keyword">require</span> <span class="hljs-string">&#x27;rest-client&#x27;</span>
+<span class="hljs-keyword">require</span> <span class="hljs-string">&#x27;json&#x27;</span>
 
 headers = {
-  <span class="hljs-string">'Content-Type'</span> =&gt; <span class="hljs-string">'application/json'</span>,
-  <span class="hljs-string">'Accept'</span> =&gt; <span class="hljs-string">'application/json'</span>
+  <span class="hljs-string">&#x27;Content-Type&#x27;</span> =&gt; <span class="hljs-string">&#x27;application/json&#x27;</span>,
+  <span class="hljs-string">&#x27;Accept&#x27;</span> =&gt; <span class="hljs-string">&#x27;application/json&#x27;</span>
 }
 
-result = RestClient.post <span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'</span>,
+result = RestClient.post <span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques&#x27;</span>,
   <span class="hljs-symbol">params:</span> {
   }, <span class="hljs-symbol">headers:</span> headers
 
@@ -786,20 +776,43 @@ p JSON.parse(result)
 </code></pre>
 <pre class="highlight tab tab-python"><code><span class="hljs-keyword">import</span> requests
 headers = {
-  <span class="hljs-string">'Content-Type'</span>: <span class="hljs-string">'application/json'</span>,
-  <span class="hljs-string">'Accept'</span>: <span class="hljs-string">'application/json'</span>
+  <span class="hljs-string">&#x27;Content-Type&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>,
+  <span class="hljs-string">&#x27;Accept&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>
 }
 
-r = requests.post(<span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques'</span>, params={
+r = requests.post(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques&#x27;</span>, headers = headers)
 
-}, headers = headers)
-
-<span class="hljs-keyword">print</span> r.json()
+print(r.json())
 
 </code></pre>
-<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">"{protocol}://{hostname}:{port}/api/techniques"</span>);
+<pre class="highlight tab tab-php"><code> <span class="hljs-string">&#x27;application/json&#x27;</span>,
+    <span class="hljs-string">&#x27;Accept&#x27;</span> =&gt; <span class="hljs-string">&#x27;application/json&#x27;</span>,
+);
+
+$client = <span class="hljs-keyword">new</span> \GuzzleHttp\Client();
+
+<span class="hljs-comment">// Define array of request body.</span>
+$request_body = <span class="hljs-keyword">array</span>();
+
+<span class="hljs-keyword">try</span> {
+    $response = $client-&gt;request(<span class="hljs-string">&#x27;POST&#x27;</span>,<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques&#x27;</span>, <span class="hljs-keyword">array</span>(
+        <span class="hljs-string">&#x27;headers&#x27;</span> =&gt; $headers,
+        <span class="hljs-string">&#x27;json&#x27;</span> =&gt; $request_body,
+       )
+    );
+    print_r($response-&gt;getBody()-&gt;getContents());
+ }
+ <span class="hljs-keyword">catch</span> (\GuzzleHttp\<span class="hljs-built_in">Exception</span>\BadResponseException $e) {
+    <span class="hljs-comment">// handle exception or api errors.</span>
+    print_r($e-&gt;getMessage());
+ }
+
+ <span class="hljs-comment">// ...</span>
+
+</code></pre>
+<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques&quot;</span>);
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-con.setRequestMethod(<span class="hljs-string">"POST"</span>);
+con.setRequestMethod(<span class="hljs-string">&quot;POST&quot;</span>);
 <span class="hljs-keyword">int</span> responseCode = con.getResponseCode();
 BufferedReader in = <span class="hljs-keyword">new</span> BufferedReader(
     <span class="hljs-keyword">new</span> InputStreamReader(con.getInputStream()));
@@ -815,20 +828,19 @@ System.out.println(response.toString());
 <pre class="highlight tab tab-go"><code><span class="hljs-keyword">package</span> main
 
 <span class="hljs-keyword">import</span> (
-       <span class="hljs-string">"bytes"</span>
-       <span class="hljs-string">"net/http"</span>
+       <span class="hljs-string">&quot;bytes&quot;</span>
+       <span class="hljs-string">&quot;net/http&quot;</span>
 )
 
 <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> {
 
     headers := <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>][]<span class="hljs-keyword">string</span>{
-        <span class="hljs-string">"Content-Type"</span>: []<span class="hljs-keyword">string</span>{<span class="hljs-string">"application/json"</span>},
-        <span class="hljs-string">"Accept"</span>: []<span class="hljs-keyword">string</span>{<span class="hljs-string">"application/json"</span>},
-        
+        <span class="hljs-string">&quot;Content-Type&quot;</span>: []<span class="hljs-keyword">string</span>{<span class="hljs-string">&quot;application/json&quot;</span>},
+        <span class="hljs-string">&quot;Accept&quot;</span>: []<span class="hljs-keyword">string</span>{<span class="hljs-string">&quot;application/json&quot;</span>},
     }
 
     data := bytes.NewBuffer([]<span class="hljs-keyword">byte</span>{jsonReq})
-    req, err := http.NewRequest(<span class="hljs-string">"POST"</span>, <span class="hljs-string">"{protocol}://{hostname}:{port}/api/techniques"</span>, data)
+    req, err := http.NewRequest(<span class="hljs-string">&quot;POST&quot;</span>, <span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques&quot;</span>, data)
     req.Header = headers
 
     client := &amp;http.Client{}
@@ -843,62 +855,62 @@ System.out.println(response.toString());
 <p>Body parameter</p>
 </blockquote>
 <pre class="highlight tab tab-json"><code>{
-  <span class="hljs-attr">"stix"</span>: {
-    <span class="hljs-attr">"type"</span>: <span class="hljs-string">"attack-pattern"</span>,
-    <span class="hljs-attr">"spec_version"</span>: <span class="hljs-string">"2.1"</span>,
-    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc"</span>,
-    <span class="hljs-attr">"created_by_ref"</span>: <span class="hljs-string">"identity--6444f546-6900-4456-b3b1-015c88d70dab"</span>,
-    <span class="hljs-attr">"created"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-    <span class="hljs-attr">"modified"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-    <span class="hljs-attr">"revoked"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"external_references"</span>: [
+  <span class="hljs-attr">&quot;stix&quot;</span>: {
+    <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
+    <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
+    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
+    <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
-        <span class="hljs-attr">"source_name"</span>: <span class="hljs-string">"mitre-attack"</span>,
-        <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-        <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://attack.mitre.org/techniques/T1103"</span>,
-        <span class="hljs-attr">"external_id"</span>: <span class="hljs-string">"T1103"</span>
+        <span class="hljs-attr">&quot;source_name&quot;</span>: <span class="hljs-string">&quot;mitre-attack&quot;</span>,
+        <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+        <span class="hljs-attr">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://attack.mitre.org/techniques/T1103&quot;</span>,
+        <span class="hljs-attr">&quot;external_id&quot;</span>: <span class="hljs-string">&quot;T1103&quot;</span>
       }
     ],
-    <span class="hljs-attr">"object_marking_refs"</span>: [
-      <span class="hljs-string">"marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"</span>
+    <span class="hljs-attr">&quot;object_marking_refs&quot;</span>: [
+      <span class="hljs-string">&quot;marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168&quot;</span>
     ],
-    <span class="hljs-attr">"name"</span>: <span class="hljs-string">"AppInit DLLs"</span>,
-    <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"kill_chain_phases"</span>: [
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;AppInit DLLs&quot;</span>,
+    <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;kill_chain_phases&quot;</span>: [
       {
-        <span class="hljs-attr">"kill_chain_name"</span>: <span class="hljs-string">"string"</span>,
-        <span class="hljs-attr">"phase_name"</span>: <span class="hljs-string">"string"</span>
+        <span class="hljs-attr">&quot;kill_chain_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+        <span class="hljs-attr">&quot;phase_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
       }
     ],
-    <span class="hljs-attr">"x_mitre_contributors"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_contributors&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_data_sources"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_data_sources&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_deprecated"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"x_mitre_detection"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"x_mitre_effective_permissions"</span>: [
-      <span class="hljs-string">"Administrator"</span>
+    <span class="hljs-attr">&quot;x_mitre_deprecated&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;x_mitre_detection&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;x_mitre_effective_permissions&quot;</span>: [
+      <span class="hljs-string">&quot;Administrator&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_permissions_required"</span>: [
-      <span class="hljs-string">"Administrator"</span>
+    <span class="hljs-attr">&quot;x_mitre_permissions_required&quot;</span>: [
+      <span class="hljs-string">&quot;Administrator&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_platforms"</span>: [
-      <span class="hljs-string">"Windows"</span>
+    <span class="hljs-attr">&quot;x_mitre_platforms&quot;</span>: [
+      <span class="hljs-string">&quot;Windows&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_subtechnique"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"x_mitre_system_requirements"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_subtechnique&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;x_mitre_system_requirements&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_version"</span>: <span class="hljs-string">"1.0"</span>
+    <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
   },
-  <span class="hljs-attr">"domains"</span>: [
-    <span class="hljs-string">"enterprise"</span>
+  <span class="hljs-attr">&quot;domains&quot;</span>: [
+    <span class="hljs-string">&quot;enterprise&quot;</span>
   ],
-  <span class="hljs-attr">"editor_identity"</span>: {
-    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"name"</span>: <span class="hljs-string">"string"</span>
+  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
+    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 </code></pre>
@@ -930,62 +942,62 @@ System.out.println(response.toString());
 <p>201 Response</p>
 </blockquote>
 <pre class="highlight tab tab-json"><code>{
-  <span class="hljs-attr">"stix"</span>: {
-    <span class="hljs-attr">"type"</span>: <span class="hljs-string">"attack-pattern"</span>,
-    <span class="hljs-attr">"spec_version"</span>: <span class="hljs-string">"2.1"</span>,
-    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc"</span>,
-    <span class="hljs-attr">"created_by_ref"</span>: <span class="hljs-string">"identity--6444f546-6900-4456-b3b1-015c88d70dab"</span>,
-    <span class="hljs-attr">"created"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-    <span class="hljs-attr">"modified"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-    <span class="hljs-attr">"revoked"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"external_references"</span>: [
+  <span class="hljs-attr">&quot;stix&quot;</span>: {
+    <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
+    <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
+    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
+    <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
-        <span class="hljs-attr">"source_name"</span>: <span class="hljs-string">"mitre-attack"</span>,
-        <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-        <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://attack.mitre.org/techniques/T1103"</span>,
-        <span class="hljs-attr">"external_id"</span>: <span class="hljs-string">"T1103"</span>
+        <span class="hljs-attr">&quot;source_name&quot;</span>: <span class="hljs-string">&quot;mitre-attack&quot;</span>,
+        <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+        <span class="hljs-attr">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://attack.mitre.org/techniques/T1103&quot;</span>,
+        <span class="hljs-attr">&quot;external_id&quot;</span>: <span class="hljs-string">&quot;T1103&quot;</span>
       }
     ],
-    <span class="hljs-attr">"object_marking_refs"</span>: [
-      <span class="hljs-string">"marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"</span>
+    <span class="hljs-attr">&quot;object_marking_refs&quot;</span>: [
+      <span class="hljs-string">&quot;marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168&quot;</span>
     ],
-    <span class="hljs-attr">"name"</span>: <span class="hljs-string">"AppInit DLLs"</span>,
-    <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"kill_chain_phases"</span>: [
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;AppInit DLLs&quot;</span>,
+    <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;kill_chain_phases&quot;</span>: [
       {
-        <span class="hljs-attr">"kill_chain_name"</span>: <span class="hljs-string">"string"</span>,
-        <span class="hljs-attr">"phase_name"</span>: <span class="hljs-string">"string"</span>
+        <span class="hljs-attr">&quot;kill_chain_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+        <span class="hljs-attr">&quot;phase_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
       }
     ],
-    <span class="hljs-attr">"x_mitre_contributors"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_contributors&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_data_sources"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_data_sources&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_deprecated"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"x_mitre_detection"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"x_mitre_effective_permissions"</span>: [
-      <span class="hljs-string">"Administrator"</span>
+    <span class="hljs-attr">&quot;x_mitre_deprecated&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;x_mitre_detection&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;x_mitre_effective_permissions&quot;</span>: [
+      <span class="hljs-string">&quot;Administrator&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_permissions_required"</span>: [
-      <span class="hljs-string">"Administrator"</span>
+    <span class="hljs-attr">&quot;x_mitre_permissions_required&quot;</span>: [
+      <span class="hljs-string">&quot;Administrator&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_platforms"</span>: [
-      <span class="hljs-string">"Windows"</span>
+    <span class="hljs-attr">&quot;x_mitre_platforms&quot;</span>: [
+      <span class="hljs-string">&quot;Windows&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_subtechnique"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"x_mitre_system_requirements"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_subtechnique&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;x_mitre_system_requirements&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_version"</span>: <span class="hljs-string">"1.0"</span>
+    <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
   },
-  <span class="hljs-attr">"domains"</span>: [
-    <span class="hljs-string">"enterprise"</span>
+  <span class="hljs-attr">&quot;domains&quot;</span>: [
+    <span class="hljs-string">&quot;enterprise&quot;</span>
   ],
-  <span class="hljs-attr">"editor_identity"</span>: {
-    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"name"</span>: <span class="hljs-string">"string"</span>
+  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
+    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 </code></pre>
@@ -1018,7 +1030,7 @@ This operation does not require authentication
 </blockquote>
 <pre class="highlight tab tab-shell"><code><span class="hljs-comment"># You can also use wget</span>
 curl -X GET {protocol}://{hostname}:{port}/api/techniques/{id} \
-  -H <span class="hljs-string">'Accept: application/json'</span>
+  -H <span class="hljs-string">&#x27;Accept: application/json&#x27;</span>
 
 </code></pre>
 <pre class="highlight tab tab-http"><code><span class="hljs-keyword">GET</span> <span class="hljs-string">{protocol}://{hostname}:{port}/api/techniques/{id}</span> HTTP/1.1
@@ -1026,32 +1038,14 @@ curl -X GET {protocol}://{hostname}:{port}/api/techniques/{id} \
 <span class="http"><span class="hljs-attribute">Accept</span>: application/json
 
 </span></code></pre>
-<pre class="highlight tab tab-javascript"><code><span class="hljs-keyword">var</span> headers = {
-  <span class="hljs-string">'Accept'</span>:<span class="hljs-string">'application/json'</span>
-
-};
-
-$.ajax({
-  <span class="hljs-attr">url</span>: <span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques/{id}'</span>,
-  <span class="hljs-attr">method</span>: <span class="hljs-string">'get'</span>,
-
-  <span class="hljs-attr">headers</span>: headers,
-  <span class="hljs-attr">success</span>: <span class="hljs-function"><span class="hljs-keyword">function</span>(<span class="hljs-params">data</span>) </span>{
-    <span class="hljs-built_in">console</span>.log(<span class="hljs-built_in">JSON</span>.stringify(data));
-  }
-})
-
-</code></pre>
-<pre class="highlight tab tab-javascript--nodejs"><code><span class="hljs-keyword">const</span> fetch = <span class="hljs-built_in">require</span>(<span class="hljs-string">'node-fetch'</span>);
-
+<pre class="highlight tab tab-javascript"><code>
 <span class="hljs-keyword">const</span> headers = {
-  <span class="hljs-string">'Accept'</span>:<span class="hljs-string">'application/json'</span>
-
+  <span class="hljs-string">&#x27;Accept&#x27;</span>:<span class="hljs-string">&#x27;application/json&#x27;</span>
 };
 
-fetch(<span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques/{id}'</span>,
+fetch(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>,
 {
-  <span class="hljs-attr">method</span>: <span class="hljs-string">'GET'</span>,
+  <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;GET&#x27;</span>,
 
   <span class="hljs-attr">headers</span>: headers
 })
@@ -1062,14 +1056,14 @@ fetch(<span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques/{
 });
 
 </code></pre>
-<pre class="highlight tab tab-ruby"><code><span class="hljs-keyword">require</span> <span class="hljs-string">'rest-client'</span>
-<span class="hljs-keyword">require</span> <span class="hljs-string">'json'</span>
+<pre class="highlight tab tab-ruby"><code><span class="hljs-keyword">require</span> <span class="hljs-string">&#x27;rest-client&#x27;</span>
+<span class="hljs-keyword">require</span> <span class="hljs-string">&#x27;json&#x27;</span>
 
 headers = {
-  <span class="hljs-string">'Accept'</span> =&gt; <span class="hljs-string">'application/json'</span>
+  <span class="hljs-string">&#x27;Accept&#x27;</span> =&gt; <span class="hljs-string">&#x27;application/json&#x27;</span>
 }
 
-result = RestClient.get <span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques/{id}'</span>,
+result = RestClient.get <span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>,
   <span class="hljs-symbol">params:</span> {
   }, <span class="hljs-symbol">headers:</span> headers
 
@@ -1078,19 +1072,41 @@ p JSON.parse(result)
 </code></pre>
 <pre class="highlight tab tab-python"><code><span class="hljs-keyword">import</span> requests
 headers = {
-  <span class="hljs-string">'Accept'</span>: <span class="hljs-string">'application/json'</span>
+  <span class="hljs-string">&#x27;Accept&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>
 }
 
-r = requests.get(<span class="hljs-string">'{protocol}://{hostname}:{port}/api/techniques/{id}'</span>, params={
+r = requests.get(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>, headers = headers)
 
-}, headers = headers)
-
-<span class="hljs-keyword">print</span> r.json()
+print(r.json())
 
 </code></pre>
-<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">"{protocol}://{hostname}:{port}/api/techniques/{id}"</span>);
+<pre class="highlight tab tab-php"><code> <span class="hljs-string">&#x27;application/json&#x27;</span>,
+);
+
+$client = <span class="hljs-keyword">new</span> \GuzzleHttp\Client();
+
+<span class="hljs-comment">// Define array of request body.</span>
+$request_body = <span class="hljs-keyword">array</span>();
+
+<span class="hljs-keyword">try</span> {
+    $response = $client-&gt;request(<span class="hljs-string">&#x27;GET&#x27;</span>,<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>, <span class="hljs-keyword">array</span>(
+        <span class="hljs-string">&#x27;headers&#x27;</span> =&gt; $headers,
+        <span class="hljs-string">&#x27;json&#x27;</span> =&gt; $request_body,
+       )
+    );
+    print_r($response-&gt;getBody()-&gt;getContents());
+ }
+ <span class="hljs-keyword">catch</span> (\GuzzleHttp\<span class="hljs-built_in">Exception</span>\BadResponseException $e) {
+    <span class="hljs-comment">// handle exception or api errors.</span>
+    print_r($e-&gt;getMessage());
+ }
+
+ <span class="hljs-comment">// ...</span>
+
+</code></pre>
+<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}&quot;</span>);
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-con.setRequestMethod(<span class="hljs-string">"GET"</span>);
+con.setRequestMethod(<span class="hljs-string">&quot;GET&quot;</span>);
 <span class="hljs-keyword">int</span> responseCode = con.getResponseCode();
 BufferedReader in = <span class="hljs-keyword">new</span> BufferedReader(
     <span class="hljs-keyword">new</span> InputStreamReader(con.getInputStream()));
@@ -1106,19 +1122,18 @@ System.out.println(response.toString());
 <pre class="highlight tab tab-go"><code><span class="hljs-keyword">package</span> main
 
 <span class="hljs-keyword">import</span> (
-       <span class="hljs-string">"bytes"</span>
-       <span class="hljs-string">"net/http"</span>
+       <span class="hljs-string">&quot;bytes&quot;</span>
+       <span class="hljs-string">&quot;net/http&quot;</span>
 )
 
 <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> {
 
     headers := <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>][]<span class="hljs-keyword">string</span>{
-        <span class="hljs-string">"Accept"</span>: []<span class="hljs-keyword">string</span>{<span class="hljs-string">"application/json"</span>},
-        
+        <span class="hljs-string">&quot;Accept&quot;</span>: []<span class="hljs-keyword">string</span>{<span class="hljs-string">&quot;application/json&quot;</span>},
     }
 
     data := bytes.NewBuffer([]<span class="hljs-keyword">byte</span>{jsonReq})
-    req, err := http.NewRequest(<span class="hljs-string">"GET"</span>, <span class="hljs-string">"{protocol}://{hostname}:{port}/api/techniques/{id}"</span>, data)
+    req, err := http.NewRequest(<span class="hljs-string">&quot;GET&quot;</span>, <span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}&quot;</span>, data)
     req.Header = headers
 
     client := &amp;http.Client{}
@@ -1157,62 +1172,62 @@ System.out.println(response.toString());
 <p>200 Response</p>
 </blockquote>
 <pre class="highlight tab tab-json"><code>{
-  <span class="hljs-attr">"stix"</span>: {
-    <span class="hljs-attr">"type"</span>: <span class="hljs-string">"attack-pattern"</span>,
-    <span class="hljs-attr">"spec_version"</span>: <span class="hljs-string">"2.1"</span>,
-    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc"</span>,
-    <span class="hljs-attr">"created_by_ref"</span>: <span class="hljs-string">"identity--6444f546-6900-4456-b3b1-015c88d70dab"</span>,
-    <span class="hljs-attr">"created"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-    <span class="hljs-attr">"modified"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-    <span class="hljs-attr">"revoked"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"external_references"</span>: [
+  <span class="hljs-attr">&quot;stix&quot;</span>: {
+    <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
+    <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
+    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
+    <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
-        <span class="hljs-attr">"source_name"</span>: <span class="hljs-string">"mitre-attack"</span>,
-        <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-        <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://attack.mitre.org/techniques/T1103"</span>,
-        <span class="hljs-attr">"external_id"</span>: <span class="hljs-string">"T1103"</span>
+        <span class="hljs-attr">&quot;source_name&quot;</span>: <span class="hljs-string">&quot;mitre-attack&quot;</span>,
+        <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+        <span class="hljs-attr">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://attack.mitre.org/techniques/T1103&quot;</span>,
+        <span class="hljs-attr">&quot;external_id&quot;</span>: <span class="hljs-string">&quot;T1103&quot;</span>
       }
     ],
-    <span class="hljs-attr">"object_marking_refs"</span>: [
-      <span class="hljs-string">"marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"</span>
+    <span class="hljs-attr">&quot;object_marking_refs&quot;</span>: [
+      <span class="hljs-string">&quot;marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168&quot;</span>
     ],
-    <span class="hljs-attr">"name"</span>: <span class="hljs-string">"AppInit DLLs"</span>,
-    <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"kill_chain_phases"</span>: [
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;AppInit DLLs&quot;</span>,
+    <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;kill_chain_phases&quot;</span>: [
       {
-        <span class="hljs-attr">"kill_chain_name"</span>: <span class="hljs-string">"string"</span>,
-        <span class="hljs-attr">"phase_name"</span>: <span class="hljs-string">"string"</span>
+        <span class="hljs-attr">&quot;kill_chain_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+        <span class="hljs-attr">&quot;phase_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
       }
     ],
-    <span class="hljs-attr">"x_mitre_contributors"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_contributors&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_data_sources"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_data_sources&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_deprecated"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"x_mitre_detection"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"x_mitre_effective_permissions"</span>: [
-      <span class="hljs-string">"Administrator"</span>
+    <span class="hljs-attr">&quot;x_mitre_deprecated&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;x_mitre_detection&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;x_mitre_effective_permissions&quot;</span>: [
+      <span class="hljs-string">&quot;Administrator&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_permissions_required"</span>: [
-      <span class="hljs-string">"Administrator"</span>
+    <span class="hljs-attr">&quot;x_mitre_permissions_required&quot;</span>: [
+      <span class="hljs-string">&quot;Administrator&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_platforms"</span>: [
-      <span class="hljs-string">"Windows"</span>
+    <span class="hljs-attr">&quot;x_mitre_platforms&quot;</span>: [
+      <span class="hljs-string">&quot;Windows&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_subtechnique"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"x_mitre_system_requirements"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_subtechnique&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;x_mitre_system_requirements&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_version"</span>: <span class="hljs-string">"1.0"</span>
+    <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
   },
-  <span class="hljs-attr">"domains"</span>: [
-    <span class="hljs-string">"enterprise"</span>
+  <span class="hljs-attr">&quot;domains&quot;</span>: [
+    <span class="hljs-string">&quot;enterprise&quot;</span>
   ],
-  <span class="hljs-attr">"editor_identity"</span>: {
-    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"name"</span>: <span class="hljs-string">"string"</span>
+  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
+    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 </code></pre>
@@ -1245,65 +1260,68 @@ System.out.println(response.toString());
 This operation does not require authentication
 </aside>
 <h1 id="schemas">Schemas</h1>
-<h2 id="tocstechnique">technique</h2>
-<p><a id="schematechnique"></a></p>
+<h2 id="tocs_technique">technique</h2>
+<p><a id="schematechnique"></a>
+<a id="schema_technique"></a>
+<a id="tocStechnique"></a>
+<a id="tocstechnique"></a></p>
 <pre class="highlight tab tab-json"><code>{
-  <span class="hljs-attr">"stix"</span>: {
-    <span class="hljs-attr">"type"</span>: <span class="hljs-string">"attack-pattern"</span>,
-    <span class="hljs-attr">"spec_version"</span>: <span class="hljs-string">"2.1"</span>,
-    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc"</span>,
-    <span class="hljs-attr">"created_by_ref"</span>: <span class="hljs-string">"identity--6444f546-6900-4456-b3b1-015c88d70dab"</span>,
-    <span class="hljs-attr">"created"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-    <span class="hljs-attr">"modified"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-    <span class="hljs-attr">"revoked"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"external_references"</span>: [
+  <span class="hljs-attr">&quot;stix&quot;</span>: {
+    <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
+    <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
+    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
+    <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
-        <span class="hljs-attr">"source_name"</span>: <span class="hljs-string">"mitre-attack"</span>,
-        <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-        <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://attack.mitre.org/techniques/T1103"</span>,
-        <span class="hljs-attr">"external_id"</span>: <span class="hljs-string">"T1103"</span>
+        <span class="hljs-attr">&quot;source_name&quot;</span>: <span class="hljs-string">&quot;mitre-attack&quot;</span>,
+        <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+        <span class="hljs-attr">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://attack.mitre.org/techniques/T1103&quot;</span>,
+        <span class="hljs-attr">&quot;external_id&quot;</span>: <span class="hljs-string">&quot;T1103&quot;</span>
       }
     ],
-    <span class="hljs-attr">"object_marking_refs"</span>: [
-      <span class="hljs-string">"marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"</span>
+    <span class="hljs-attr">&quot;object_marking_refs&quot;</span>: [
+      <span class="hljs-string">&quot;marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168&quot;</span>
     ],
-    <span class="hljs-attr">"name"</span>: <span class="hljs-string">"AppInit DLLs"</span>,
-    <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"kill_chain_phases"</span>: [
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;AppInit DLLs&quot;</span>,
+    <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;kill_chain_phases&quot;</span>: [
       {
-        <span class="hljs-attr">"kill_chain_name"</span>: <span class="hljs-string">"string"</span>,
-        <span class="hljs-attr">"phase_name"</span>: <span class="hljs-string">"string"</span>
+        <span class="hljs-attr">&quot;kill_chain_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+        <span class="hljs-attr">&quot;phase_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
       }
     ],
-    <span class="hljs-attr">"x_mitre_contributors"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_contributors&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_data_sources"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_data_sources&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_deprecated"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"x_mitre_detection"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"x_mitre_effective_permissions"</span>: [
-      <span class="hljs-string">"Administrator"</span>
+    <span class="hljs-attr">&quot;x_mitre_deprecated&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;x_mitre_detection&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;x_mitre_effective_permissions&quot;</span>: [
+      <span class="hljs-string">&quot;Administrator&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_permissions_required"</span>: [
-      <span class="hljs-string">"Administrator"</span>
+    <span class="hljs-attr">&quot;x_mitre_permissions_required&quot;</span>: [
+      <span class="hljs-string">&quot;Administrator&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_platforms"</span>: [
-      <span class="hljs-string">"Windows"</span>
+    <span class="hljs-attr">&quot;x_mitre_platforms&quot;</span>: [
+      <span class="hljs-string">&quot;Windows&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_subtechnique"</span>: <span class="hljs-literal">false</span>,
-    <span class="hljs-attr">"x_mitre_system_requirements"</span>: [
-      <span class="hljs-string">"string"</span>
+    <span class="hljs-attr">&quot;x_mitre_subtechnique&quot;</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">&quot;x_mitre_system_requirements&quot;</span>: [
+      <span class="hljs-string">&quot;string&quot;</span>
     ],
-    <span class="hljs-attr">"x_mitre_version"</span>: <span class="hljs-string">"1.0"</span>
+    <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
   },
-  <span class="hljs-attr">"domains"</span>: [
-    <span class="hljs-string">"enterprise"</span>
+  <span class="hljs-attr">&quot;domains&quot;</span>: [
+    <span class="hljs-string">&quot;enterprise&quot;</span>
   ],
-  <span class="hljs-attr">"editor_identity"</span>: {
-    <span class="hljs-attr">"id"</span>: <span class="hljs-string">"string"</span>,
-    <span class="hljs-attr">"name"</span>: <span class="hljs-string">"string"</span>
+  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
+    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 
@@ -1343,61 +1361,64 @@ This operation does not require authentication
 </tr>
 </tbody>
 </table>
-<h2 id="tocsstix-attack-pattern">stix-attack-pattern</h2>
-<p><a id="schemastix-attack-pattern"></a></p>
+<h2 id="tocs_stix-attack-pattern">stix-attack-pattern</h2>
+<p><a id="schemastix-attack-pattern"></a>
+<a id="schema_stix-attack-pattern"></a>
+<a id="tocSstix-attack-pattern"></a>
+<a id="tocsstix-attack-pattern"></a></p>
 <pre class="highlight tab tab-json"><code>{
-  <span class="hljs-attr">"type"</span>: <span class="hljs-string">"attack-pattern"</span>,
-  <span class="hljs-attr">"spec_version"</span>: <span class="hljs-string">"2.1"</span>,
-  <span class="hljs-attr">"id"</span>: <span class="hljs-string">"attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc"</span>,
-  <span class="hljs-attr">"created_by_ref"</span>: <span class="hljs-string">"identity--6444f546-6900-4456-b3b1-015c88d70dab"</span>,
-  <span class="hljs-attr">"created"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-  <span class="hljs-attr">"modified"</span>: <span class="hljs-string">"2020-02-10T21:54:45Z"</span>,
-  <span class="hljs-attr">"revoked"</span>: <span class="hljs-literal">false</span>,
-  <span class="hljs-attr">"external_references"</span>: [
+  <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
+  <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
+  <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
+  <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
+  <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+  <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+  <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
+  <span class="hljs-attr">&quot;external_references&quot;</span>: [
     {
-      <span class="hljs-attr">"source_name"</span>: <span class="hljs-string">"mitre-attack"</span>,
-      <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-      <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://attack.mitre.org/techniques/T1103"</span>,
-      <span class="hljs-attr">"external_id"</span>: <span class="hljs-string">"T1103"</span>
+      <span class="hljs-attr">&quot;source_name&quot;</span>: <span class="hljs-string">&quot;mitre-attack&quot;</span>,
+      <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+      <span class="hljs-attr">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://attack.mitre.org/techniques/T1103&quot;</span>,
+      <span class="hljs-attr">&quot;external_id&quot;</span>: <span class="hljs-string">&quot;T1103&quot;</span>
     }
   ],
-  <span class="hljs-attr">"object_marking_refs"</span>: [
-    <span class="hljs-string">"marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"</span>
+  <span class="hljs-attr">&quot;object_marking_refs&quot;</span>: [
+    <span class="hljs-string">&quot;marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168&quot;</span>
   ],
-  <span class="hljs-attr">"name"</span>: <span class="hljs-string">"AppInit DLLs"</span>,
-  <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-  <span class="hljs-attr">"kill_chain_phases"</span>: [
+  <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;AppInit DLLs&quot;</span>,
+  <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+  <span class="hljs-attr">&quot;kill_chain_phases&quot;</span>: [
     {
-      <span class="hljs-attr">"kill_chain_name"</span>: <span class="hljs-string">"string"</span>,
-      <span class="hljs-attr">"phase_name"</span>: <span class="hljs-string">"string"</span>
+      <span class="hljs-attr">&quot;kill_chain_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+      <span class="hljs-attr">&quot;phase_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
     }
   ],
-  <span class="hljs-attr">"x_mitre_contributors"</span>: [
-    <span class="hljs-string">"string"</span>
+  <span class="hljs-attr">&quot;x_mitre_contributors&quot;</span>: [
+    <span class="hljs-string">&quot;string&quot;</span>
   ],
-  <span class="hljs-attr">"x_mitre_data_sources"</span>: [
-    <span class="hljs-string">"string"</span>
+  <span class="hljs-attr">&quot;x_mitre_data_sources&quot;</span>: [
+    <span class="hljs-string">&quot;string&quot;</span>
   ],
-  <span class="hljs-attr">"x_mitre_deprecated"</span>: <span class="hljs-literal">false</span>,
-  <span class="hljs-attr">"x_mitre_detection"</span>: <span class="hljs-string">"string"</span>,
-  <span class="hljs-attr">"x_mitre_effective_permissions"</span>: [
-    <span class="hljs-string">"Administrator"</span>
+  <span class="hljs-attr">&quot;x_mitre_deprecated&quot;</span>: <span class="hljs-literal">false</span>,
+  <span class="hljs-attr">&quot;x_mitre_detection&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+  <span class="hljs-attr">&quot;x_mitre_effective_permissions&quot;</span>: [
+    <span class="hljs-string">&quot;Administrator&quot;</span>
   ],
-  <span class="hljs-attr">"x_mitre_permissions_required"</span>: [
-    <span class="hljs-string">"Administrator"</span>
+  <span class="hljs-attr">&quot;x_mitre_permissions_required&quot;</span>: [
+    <span class="hljs-string">&quot;Administrator&quot;</span>
   ],
-  <span class="hljs-attr">"x_mitre_platforms"</span>: [
-    <span class="hljs-string">"Windows"</span>
+  <span class="hljs-attr">&quot;x_mitre_platforms&quot;</span>: [
+    <span class="hljs-string">&quot;Windows&quot;</span>
   ],
-  <span class="hljs-attr">"x_mitre_subtechnique"</span>: <span class="hljs-literal">false</span>,
-  <span class="hljs-attr">"x_mitre_system_requirements"</span>: [
-    <span class="hljs-string">"string"</span>
+  <span class="hljs-attr">&quot;x_mitre_subtechnique&quot;</span>: <span class="hljs-literal">false</span>,
+  <span class="hljs-attr">&quot;x_mitre_system_requirements&quot;</span>: [
+    <span class="hljs-string">&quot;string&quot;</span>
   ],
-  <span class="hljs-attr">"x_mitre_version"</span>: <span class="hljs-string">"1.0"</span>
+  <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
 }
 
 </code></pre>
-<h3 id="properties">Properties</h3>
+<h3 id="properties-2">Properties</h3>
 <table>
 <thead>
 <tr>
@@ -1565,16 +1586,19 @@ This operation does not require authentication
 </tr>
 </tbody>
 </table>
-<h2 id="tocseditor_identity">editor_identity</h2>
-<p><a id="schemaeditor_identity"></a></p>
+<h2 id="tocs_editor_identity">editor_identity</h2>
+<p><a id="schemaeditor_identity"></a>
+<a id="schema_editor_identity"></a>
+<a id="tocSeditor_identity"></a>
+<a id="tocseditor_identity"></a></p>
 <pre class="highlight tab tab-json"><code>{
-  <span class="hljs-attr">"id"</span>: <span class="hljs-string">"string"</span>,
-  <span class="hljs-attr">"name"</span>: <span class="hljs-string">"string"</span>
+  <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+  <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
 }
 
 </code></pre>
-<p><em>This property replaces mitreId</em></p>
-<h3 id="properties">Properties</h3>
+<p>This property replaces mitreId</p>
+<h3 id="properties-3">Properties</h3>
 <table>
 <thead>
 <tr>
@@ -1602,17 +1626,20 @@ This operation does not require authentication
 </tr>
 </tbody>
 </table>
-<h2 id="tocsexternal_reference">external_reference</h2>
-<p><a id="schemaexternal_reference"></a></p>
+<h2 id="tocs_external_reference">external_reference</h2>
+<p><a id="schemaexternal_reference"></a>
+<a id="schema_external_reference"></a>
+<a id="tocSexternal_reference"></a>
+<a id="tocsexternal_reference"></a></p>
 <pre class="highlight tab tab-json"><code>{
-  <span class="hljs-attr">"source_name"</span>: <span class="hljs-string">"mitre-attack"</span>,
-  <span class="hljs-attr">"description"</span>: <span class="hljs-string">"string"</span>,
-  <span class="hljs-attr">"url"</span>: <span class="hljs-string">"https://attack.mitre.org/techniques/T1103"</span>,
-  <span class="hljs-attr">"external_id"</span>: <span class="hljs-string">"T1103"</span>
+  <span class="hljs-attr">&quot;source_name&quot;</span>: <span class="hljs-string">&quot;mitre-attack&quot;</span>,
+  <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+  <span class="hljs-attr">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://attack.mitre.org/techniques/T1103&quot;</span>,
+  <span class="hljs-attr">&quot;external_id&quot;</span>: <span class="hljs-string">&quot;T1103&quot;</span>
 }
 
 </code></pre>
-<h3 id="properties">Properties</h3>
+<h3 id="properties-4">Properties</h3>
 <table>
 <thead>
 <tr>
@@ -1654,15 +1681,18 @@ This operation does not require authentication
 </tr>
 </tbody>
 </table>
-<h2 id="tocskill_chain_phase">kill_chain_phase</h2>
-<p><a id="schemakill_chain_phase"></a></p>
+<h2 id="tocs_kill_chain_phase">kill_chain_phase</h2>
+<p><a id="schemakill_chain_phase"></a>
+<a id="schema_kill_chain_phase"></a>
+<a id="tocSkill_chain_phase"></a>
+<a id="tocskill_chain_phase"></a></p>
 <pre class="highlight tab tab-json"><code>{
-  <span class="hljs-attr">"kill_chain_name"</span>: <span class="hljs-string">"string"</span>,
-  <span class="hljs-attr">"phase_name"</span>: <span class="hljs-string">"string"</span>
+  <span class="hljs-attr">&quot;kill_chain_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+  <span class="hljs-attr">&quot;phase_name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
 }
 
 </code></pre>
-<h3 id="properties">Properties</h3>
+<h3 id="properties-5">Properties</h3>
 <table>
 <thead>
 <tr>
@@ -1690,7 +1720,13 @@ This operation does not require authentication
 </tr>
 </tbody>
 </table>
-<!-- Renderer: Shins v2.4.1-0 -->
+<!-- Renderer: Shins v2.6.0 -->
+<!-- Generator: Widdershins v4.0.1 -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
       </div>
       <div class="dark-box">
         
@@ -1709,15 +1745,15 @@ This operation does not require authentication
               
             
               
-                <a href="#" data-language-name="javascript--nodejs">Node.JS</a>
-              
-            
-              
                 <a href="#" data-language-name="ruby">Ruby</a>
               
             
               
                 <a href="#" data-language-name="python">Python</a>
+              
+            
+              
+                <a href="#" data-language-name="php">PHP</a>
               
             
               

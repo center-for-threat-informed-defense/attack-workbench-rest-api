@@ -1,6 +1,6 @@
 'use strict';
 
-exports.initializeApp = async function() {
+exports.initializeApp = function() {
     const logger = require('./lib/logger');
     logger.info('Federated ATT&CK REST API app starting');
 

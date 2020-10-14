@@ -1,12 +1,12 @@
 ---
-title: Federated ATT&CK REST API
+title: Federated ATT&CK REST API v0.0.1
 language_tabs:
   - shell: Shell
   - http: HTTP
   - javascript: JavaScript
-  - javascript--nodejs: Node.JS
   - ruby: Ruby
   - python: Python
+  - php: PHP
   - java: Java
   - go: Go
 toc_footers: []
@@ -16,6 +16,8 @@ highlight_theme: darkula
 headingLevel: 2
 
 ---
+
+<!-- Generator: Widdershins v4.0.1 -->
 
 <h1 id="federated-att-and-ck-rest-api">Federated ATT&CK REST API v0.0.1</h1>
 
@@ -56,29 +58,9 @@ Accept: application/json
 ```
 
 ```javascript
-var headers = {
-  'Accept':'application/json'
-
-};
-
-$.ajax({
-  url: '{protocol}://{hostname}:{port}/api/techniques',
-  method: 'get',
-
-  headers: headers,
-  success: function(data) {
-    console.log(JSON.stringify(data));
-  }
-})
-
-```
-
-```javascript--nodejs
-const fetch = require('node-fetch');
 
 const headers = {
   'Accept':'application/json'
-
 };
 
 fetch('{protocol}://{hostname}:{port}/api/techniques',
@@ -117,11 +99,40 @@ headers = {
   'Accept': 'application/json'
 }
 
-r = requests.get('{protocol}://{hostname}:{port}/api/techniques', params={
+r = requests.get('{protocol}://{hostname}:{port}/api/techniques', headers = headers)
 
-}, headers = headers)
+print(r.json())
 
-print r.json()
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/techniques', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
 
 ```
 
@@ -154,7 +165,6 @@ func main() {
 
     headers := map[string][]string{
         "Accept": []string{"application/json"},
-        
     }
 
     data := bytes.NewBuffer([]byte{jsonReq})
@@ -184,8 +194,8 @@ This endpoint retrieves multiple technique objects.
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
-      "created": "2020-02-10T21:54:45Z",
-      "modified": "2020-02-10T21:54:45Z",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
       "revoked": false,
       "external_references": [
         {
@@ -314,34 +324,14 @@ Accept: application/json
 ```
 
 ```javascript
-var headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json'
-
-};
-
-$.ajax({
-  url: '{protocol}://{hostname}:{port}/api/techniques',
-  method: 'post',
-
-  headers: headers,
-  success: function(data) {
-    console.log(JSON.stringify(data));
-  }
-})
-
-```
-
-```javascript--nodejs
-const fetch = require('node-fetch');
 const inputBody = '{
   "stix": {
     "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
-    "created": "2020-02-10T21:54:45Z",
-    "modified": "2020-02-10T21:54:45Z",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
     "revoked": false,
     "external_references": [
       {
@@ -396,7 +386,6 @@ const inputBody = '{
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
-
 };
 
 fetch('{protocol}://{hostname}:{port}/api/techniques',
@@ -437,11 +426,41 @@ headers = {
   'Accept': 'application/json'
 }
 
-r = requests.post('{protocol}://{hostname}:{port}/api/techniques', params={
+r = requests.post('{protocol}://{hostname}:{port}/api/techniques', headers = headers)
 
-}, headers = headers)
+print(r.json())
 
-print r.json()
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('POST','{protocol}://{hostname}:{port}/api/techniques', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
 
 ```
 
@@ -475,7 +494,6 @@ func main() {
     headers := map[string][]string{
         "Content-Type": []string{"application/json"},
         "Accept": []string{"application/json"},
-        
     }
 
     data := bytes.NewBuffer([]byte{jsonReq})
@@ -502,8 +520,8 @@ This endpoint creates a new technique object.
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
-    "created": "2020-02-10T21:54:45Z",
-    "modified": "2020-02-10T21:54:45Z",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
     "revoked": false,
     "external_references": [
       {
@@ -574,8 +592,8 @@ This endpoint creates a new technique object.
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
-    "created": "2020-02-10T21:54:45Z",
-    "modified": "2020-02-10T21:54:45Z",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
     "revoked": false,
     "external_references": [
       {
@@ -660,29 +678,9 @@ Accept: application/json
 ```
 
 ```javascript
-var headers = {
-  'Accept':'application/json'
-
-};
-
-$.ajax({
-  url: '{protocol}://{hostname}:{port}/api/techniques/{id}',
-  method: 'get',
-
-  headers: headers,
-  success: function(data) {
-    console.log(JSON.stringify(data));
-  }
-})
-
-```
-
-```javascript--nodejs
-const fetch = require('node-fetch');
 
 const headers = {
   'Accept':'application/json'
-
 };
 
 fetch('{protocol}://{hostname}:{port}/api/techniques/{id}',
@@ -721,11 +719,40 @@ headers = {
   'Accept': 'application/json'
 }
 
-r = requests.get('{protocol}://{hostname}:{port}/api/techniques/{id}', params={
+r = requests.get('{protocol}://{hostname}:{port}/api/techniques/{id}', headers = headers)
 
-}, headers = headers)
+print(r.json())
 
-print r.json()
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/techniques/{id}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
 
 ```
 
@@ -758,7 +785,6 @@ func main() {
 
     headers := map[string][]string{
         "Accept": []string{"application/json"},
-        
     }
 
     data := bytes.NewBuffer([]byte{jsonReq})
@@ -793,8 +819,8 @@ The endpoint retrieves a technique using its id.
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
-    "created": "2020-02-10T21:54:45Z",
-    "modified": "2020-02-10T21:54:45Z",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
     "revoked": false,
     "external_references": [
       {
@@ -861,9 +887,12 @@ This operation does not require authentication
 
 # Schemas
 
-<h2 id="tocStechnique">technique</h2>
-
+<h2 id="tocS_technique">technique</h2>
+<!-- backwards compatibility -->
 <a id="schematechnique"></a>
+<a id="schema_technique"></a>
+<a id="tocStechnique"></a>
+<a id="tocstechnique"></a>
 
 ```json
 {
@@ -872,8 +901,8 @@ This operation does not require authentication
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
-    "created": "2020-02-10T21:54:45Z",
-    "modified": "2020-02-10T21:54:45Z",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
     "revoked": false,
     "external_references": [
       {
@@ -936,9 +965,12 @@ This operation does not require authentication
 |domains|[string]|false|none|This property replaces x_mitre_collections|
 |editor_identity|[editor_identity](#schemaeditor_identity)|false|none|This property replaces mitreId|
 
-<h2 id="tocSstix-attack-pattern">stix-attack-pattern</h2>
-
+<h2 id="tocS_stix-attack-pattern">stix-attack-pattern</h2>
+<!-- backwards compatibility -->
 <a id="schemastix-attack-pattern"></a>
+<a id="schema_stix-attack-pattern"></a>
+<a id="tocSstix-attack-pattern"></a>
+<a id="tocsstix-attack-pattern"></a>
 
 ```json
 {
@@ -946,8 +978,8 @@ This operation does not require authentication
   "spec_version": "2.1",
   "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
   "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
-  "created": "2020-02-10T21:54:45Z",
-  "modified": "2020-02-10T21:54:45Z",
+  "created": "2019-08-24T14:15:22Z",
+  "modified": "2019-08-24T14:15:22Z",
   "revoked": false,
   "external_references": [
     {
@@ -1021,9 +1053,12 @@ This operation does not require authentication
 |x_mitre_system_requirements|[string]|false|none|none|
 |x_mitre_version|string|false|none|none|
 
-<h2 id="tocSeditor_identity">editor_identity</h2>
-
+<h2 id="tocS_editor_identity">editor_identity</h2>
+<!-- backwards compatibility -->
 <a id="schemaeditor_identity"></a>
+<a id="schema_editor_identity"></a>
+<a id="tocSeditor_identity"></a>
+<a id="tocseditor_identity"></a>
 
 ```json
 {
@@ -1033,7 +1068,7 @@ This operation does not require authentication
 
 ```
 
-*This property replaces mitreId*
+This property replaces mitreId
 
 ### Properties
 
@@ -1042,9 +1077,12 @@ This operation does not require authentication
 |id|string|true|none|none|
 |name|string|true|none|none|
 
-<h2 id="tocSexternal_reference">external_reference</h2>
-
+<h2 id="tocS_external_reference">external_reference</h2>
+<!-- backwards compatibility -->
 <a id="schemaexternal_reference"></a>
+<a id="schema_external_reference"></a>
+<a id="tocSexternal_reference"></a>
+<a id="tocsexternal_reference"></a>
 
 ```json
 {
@@ -1065,9 +1103,12 @@ This operation does not require authentication
 |url|string|false|none|none|
 |external_id|string|false|none|none|
 
-<h2 id="tocSkill_chain_phase">kill_chain_phase</h2>
-
+<h2 id="tocS_kill_chain_phase">kill_chain_phase</h2>
+<!-- backwards compatibility -->
 <a id="schemakill_chain_phase"></a>
+<a id="schema_kill_chain_phase"></a>
+<a id="tocSkill_chain_phase"></a>
+<a id="tocskill_chain_phase"></a>
 
 ```json
 {
