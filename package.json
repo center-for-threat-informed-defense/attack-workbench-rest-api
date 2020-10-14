@@ -17,16 +17,16 @@
     "compression": "^1.7.4",
     "express": "^4.17.1",
     "express-openapi-validator": "^4.2.0",
-    "helmet": "^3.21.2",
-    "mongoose": "^5.8.10",
-    "morgan": "^1.9.1",
-    "uuid": "^3.4.0",
-    "winston": "^3.2.1"
+    "helmet": "^4.1.1",
+    "mongoose": "^5.10.9",
+    "morgan": "^1.10.0",
+    "uuid": "^8.3.1",
+    "winston": "^3.3.3"
   },
   "devDependencies": {
-    "eslint": "^6.8.0",
-    "shins": "^2.4.1-0",
-    "snyk": "^1.291.0",
-    "widdershins": "^3.6.7"
+    "eslint": "^7.11.0",
+    "shins": "^2.6.0",
+    "snyk": "^1.413.3",
+    "widdershins": "^4.0.1"
   }
 }
