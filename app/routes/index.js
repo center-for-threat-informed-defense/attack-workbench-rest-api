@@ -3,7 +3,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const OpenApiValidator = require('express-openapi-validator');
-const techniqueRoutes = require('./technique-routes');
+const techniquesRoutes = require('./techniques-routes');
 const errorHandler = require('../lib/error-handler');
 
 const router = express.Router();
@@ -20,7 +20,7 @@ router.use(OpenApiValidator.middleware({
 }));
 
 // Set up the routes
-router.use('/api', techniqueRoutes);
+router.use('/api', techniquesRoutes);
 
 // Handle errors that haven't otherwise been caught
 router.use(errorHandler.bodyParser);

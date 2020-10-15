@@ -4,15 +4,6 @@ exports.initializeApp = function() {
     const logger = require('./lib/logger');
     logger.info('Federated ATT&CK REST API app starting');
 
-    const os = require('os');
-    logger.info('** hostname = ' + os.hostname());
-    logger.info('** type = ' + os.type());
-    logger.info('** platform = ' + os.platform());
-    logger.info('** arch = ' + os.arch());
-    logger.info('** release = ' + os.release());
-    logger.info('** uptime = ' + os.uptime());
-    logger.info('** versions = ' + JSON.stringify(process.versions));
-
     // Configure the app
     logger.info('Configuring the app');
     const config = require('./config/config');
@@ -32,9 +23,9 @@ exports.initializeApp = function() {
 
     // Only use request logger for development environment
     if (config.app.env === 'development') {
-        logger.info('Enabling request logging');
+        logger.info('Enabling HTTP request logging');
         const morgan = require('morgan');
-        app.use(morgan('dev', {stream: logger.stream}));
+        app.use(morgan('dev', { stream: logger.stream }));
     }
 
     // Set up the static routes

@@ -1,10 +1,10 @@
 'use strict';
 
-const techniqueService = require('../services/technique-service');
+const techniquesService = require('../services/techniques-service');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
-    techniqueService.retrieveAll(function(err, techniques) {
+    techniquesService.retrieveAll(function(err, techniques) {
         if (err) {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get techniques. Server error.');
@@ -16,7 +16,7 @@ exports.retrieveAll = function(req, res) {
 };
 
 exports.retrieveById = function(req, res) {
-    techniqueService.retrieveById(req.params.stixId, function(err, technique) {
+    techniquesService.retrieveById(req.params.stixId, function(err, technique) {
         if (err) {
             if (err.message === techniqueService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -44,7 +44,7 @@ exports.create = function(req, res) {
     const techniqueData = req.body;
 
     // Create the technique
-    techniqueService.create(techniqueData, function(err, technique) {
+    techniquesService.create(techniqueData, function(err, technique) {
         if (err) {
             if (err.message === techniqueService.errors.duplicateId) {
                 logger.warn("Duplicate stix id");
