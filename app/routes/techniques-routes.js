@@ -11,8 +11,8 @@ router.route('/techniques')
 
 router.route('/techniques/:stixId')
     .get(techniquesController.retrieveById)
-//    .put(techniquesController.updateFull)
+    .put(techniquesController.updateFull)
 //    .patch(techniquesController.updatePartial)
-//    .delete(techniquesController.delete);
+    .delete(techniquesController.delete);
 
 module.exports = router;

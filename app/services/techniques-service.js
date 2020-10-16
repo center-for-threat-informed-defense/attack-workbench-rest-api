@@ -78,3 +78,64 @@ exports.create = function(data, callback) {
     });
 };
 
+exports.updateFull = function(stixId, data, callback) {
+    if (stixId) {
+        Technique.findById(stixId, function(err, document) {
+            if (err) {
+                if (err.name === 'CastError') {
+                    var error = new Error(errors.badlyFormattedParameter);
+                    error.parameterName = 'stixId';
+                    return callback(error);
+                }
+                else {
+                    return callback(err);
+                }
+            }
+            else if (!document) {
+                // document not found
+                return callback(null);
+            }
+            else {
+                // Copy data to found document and save
+                Object.assign(document, data);
+                document.save(function(err, savedDocument) {
+                    if (err) {
+                        if (err.name === 'MongoError' && err.code === 11000) {
+                            // 11000 = Duplicate index
+                            var error = new Error(errors.duplicateId);
+                            return callback(error);
+                        }
+                        else {
+                            return callback(err);
+                        }
+                    }
+                    else {
+                        return callback(null, savedDocument);
+                    }
+                });
+            }
+        });
+    }
+    else {
+        var error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+};
+
+exports.delete = function (stixId, callback) {
+    if (stixId) {
+        Technique.findByIdAndRemove(stixId, function (err, technique) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: technique is null if not found
+                return callback(null, technique);
+            }
+        });
+    } else {
+        var error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+};

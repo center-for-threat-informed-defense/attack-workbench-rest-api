@@ -885,6 +885,503 @@ The endpoint retrieves a technique using its id.
 This operation does not require authentication
 </aside>
 
+## Update a technique
+
+<a id="opIdtechnique-update"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{id} \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json'
+
+```
+
+```http
+PUT {protocol}://{hostname}:{port}/api/techniques/{id} HTTP/1.1
+
+Content-Type: application/json
+Accept: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "https://attack.mitre.org/techniques/T1103",
+        "external_id": "T1103"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  },
+  "domains": [
+    "enterprise"
+  ],
+  "editor_identity": {
+    "id": "string",
+    "name": "string"
+  }
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/techniques/{id}',
+{
+  method: 'PUT',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json',
+  'Accept' => 'application/json'
+}
+
+result = RestClient.put '{protocol}://{hostname}:{port}/api/techniques/{id}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+}
+
+r = requests.put('{protocol}://{hostname}:{port}/api/techniques/{id}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('PUT','{protocol}://{hostname}:{port}/api/techniques/{id}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{id}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("PUT");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("PUT", "{protocol}://{hostname}:{port}/api/techniques/{id}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`PUT /api/techniques/{id}`
+
+The endpoint updates a technique using its id.
+
+> Body parameter
+
+```json
+{
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "https://attack.mitre.org/techniques/T1103",
+        "external_id": "T1103"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  },
+  "domains": [
+    "enterprise"
+  ],
+  "editor_identity": {
+    "id": "string",
+    "name": "string"
+  }
+}
+```
+
+<h3 id="update-a-technique-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|id|path|string|true|id of the technique to update|
+|body|body|[technique](#schematechnique)|true|none|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "https://attack.mitre.org/techniques/T1103",
+        "external_id": "T1103"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  },
+  "domains": [
+    "enterprise"
+  ],
+  "editor_identity": {
+    "id": "string",
+    "name": "string"
+  }
+}
+```
+
+<h3 id="update-a-technique-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The technique has been successfully updated.|[technique](#schematechnique)|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested id was not found.|None|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Delete a technique
+
+<a id="opIdtechnique-delete"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X DELETE {protocol}://{hostname}:{port}/api/techniques/{id}
+
+```
+
+```http
+DELETE {protocol}://{hostname}:{port}/api/techniques/{id} HTTP/1.1
+
+```
+
+```javascript
+
+fetch('{protocol}://{hostname}:{port}/api/techniques/{id}',
+{
+  method: 'DELETE'
+
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+result = RestClient.delete '{protocol}://{hostname}:{port}/api/techniques/{id}',
+  params: {
+  }
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+
+r = requests.delete('{protocol}://{hostname}:{port}/api/techniques/{id}')
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('DELETE','{protocol}://{hostname}:{port}/api/techniques/{id}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{id}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("DELETE");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("DELETE", "{protocol}://{hostname}:{port}/api/techniques/{id}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`DELETE /api/techniques/{id}`
+
+The endpoint deletes a technique using its id.
+
+<h3 id="delete-a-technique-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|id|path|string|true|id of the technique to delete|
+
+<h3 id="delete-a-technique-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The technique with the requested id has been deleted.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested id was not found.|None|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
 # Schemas
 
 <h2 id="tocS_technique">technique</h2>

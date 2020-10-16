@@ -77,6 +77,52 @@ paths:
                 $ref: '#/components/schemas/technique'
         '404':
           description: 'The technique with the requested id was not found.'
+    put:
+      summary: 'Update a technique'
+      operationId: 'technique-update'
+      description: 'The endpoint updates a technique using its id.'
+      tags:
+        - Techniques
+      parameters:
+        - name: id
+          in: path
+          description: id of the technique to update
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/technique'
+      responses:
+        '200':
+          description: 'The technique has been successfully updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/technique'
+        '404':
+          description: 'The technique with the requested id was not found.'
+    delete:
+      summary: 'Delete a technique'
+      operationId: 'technique-delete'
+      description: 'The endpoint deletes a technique using its id.'
+      tags:
+        - Techniques
+      parameters:
+        - name: id
+          in: path
+          description: id of the technique to delete
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The technique with the requested id has been deleted.'
+        '404':
+          description: 'The technique with the requested id was not found.'
 
 components:
   schemas:

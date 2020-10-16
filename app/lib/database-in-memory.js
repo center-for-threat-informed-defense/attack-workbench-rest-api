@@ -7,6 +7,12 @@ const mongod = new MongoMemoryServer();
 exports.initializeConnection = async function() {
     const uri = await mongod.getUri();
 
+    // Configure mongoose to use ES6 promises
+    mongoose.Promise = global.Promise;
+
+    // Tell mongoose to use the native mongoDB findOneAndUpdate() function
+    mongoose.set('useFindAndModify', false);
+
     // Bootstrap db connection
     logger.info('Mongoose attempting to connect to in memory database at ' + uri);
     try {

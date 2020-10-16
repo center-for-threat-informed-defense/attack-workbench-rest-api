@@ -10,6 +10,7 @@ exports.retrieveAll = function(req, res) {
             return res.status(500).send('Unable to get techniques. Server error.');
         }
         else {
+            logger.debug("Success: Retrieved techniques");
             return res.status(200).send(techniques);
         }
     });
@@ -30,9 +31,10 @@ exports.retrieveById = function(req, res) {
         else {
             if (!technique) {
                 logger.warn('technique not found');
-                return res.status(404).send('technique not found.');
+                return res.status(404).send('Technique not found.');
             }
             else {
+                logger.debug("Success: Retrieved technique with id " + technique.id);
                 return res.status(200).send(technique);
             }
         }
@@ -56,8 +58,45 @@ exports.create = function(req, res) {
             }
         }
         else {
-            logger.info("Success: Created technique with id " + technique.id);
+            logger.debug("Success: Created technique with id " + technique.id);
             return res.status(201).send(technique);
+        }
+    });
+};
+
+exports.updateFull = function(req, res) {
+    // Get the data from the request
+    const techniqueData = req.body;
+
+    // Create the technique
+    techniquesService.updateFull(req.params.stixId, techniqueData, function(err, technique) {
+        if (err) {
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to update technique. Server error.");
+        }
+        else {
+            if (!technique) {
+                return res.status(404).send('Technique not found.');
+            } else {
+                logger.debug("Success: Updated technique with id " + technique.id);
+                return res.status(200).send(technique);
+            }
+        }
+    });
+};
+
+exports.delete = function(req, res) {
+    techniquesService.delete(req.params.stixId, function (err, technique) {
+        if (err) {
+            logger.error('Delete technique failed. ' + err);
+            return res.status(500).send('Unable to delete technique. Server error.');
+        } else {
+            if (!technique) {
+                return res.status(404).send('Technique not found.');
+            } else {
+                logger.debug("Success: Deleted technique with id " + technique.id);
+                return res.status(204).end();
+            }
         }
     });
 };
