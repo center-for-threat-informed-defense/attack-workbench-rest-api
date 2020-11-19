@@ -24,7 +24,7 @@ exports.retrieveAll = function(callback) {
 
 exports.retrieveById = function(stixId, callback) {
     if (stixId) {
-        Technique.findById(stixId, function(err, technique) {
+        Technique.findOne({ 'stix.id': stixId }, function(err, technique) {
             if (err) {
                 if (err.name === 'CastError') {
                     const error = new Error(errors.badlyFormattedParameter);
@@ -57,8 +57,8 @@ exports.create = function(data, callback) {
     // Create the document
     const technique = new Technique(data);
 
-    technique._id = `attack-pattern--${ uuid.v4()}`;
-    technique.stix.id = technique._id;
+    // Assign a new STIX id
+    technique.stix.id = `attack-pattern--${ uuid.v4()}`;
 
     // Save the document in the database
     technique.save(function(err, savedTechnique) {
@@ -80,7 +80,7 @@ exports.create = function(data, callback) {
 
 exports.updateFull = function(stixId, data, callback) {
     if (stixId) {
-        Technique.findById(stixId, function(err, document) {
+        Technique.findOne({ 'stix.id': stixId }, function(err, document) {
             if (err) {
                 if (err.name === 'CastError') {
                     var error = new Error(errors.badlyFormattedParameter);
@@ -125,7 +125,7 @@ exports.updateFull = function(stixId, data, callback) {
 
 exports.delete = function (stixId, callback) {
     if (stixId) {
-        Technique.findByIdAndRemove(stixId, function (err, technique) {
+        Technique.findOneAndRemove({ 'stix.id': stixId }, function (err, technique) {
             if (err) {
                 return callback(err);
             } else {

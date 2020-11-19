@@ -47,6 +47,8 @@ window.onpopstate = function() {
 <!-- backwards compatibility -->
 <!-- backwards compatibility -->
 <!-- backwards compatibility -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
   </head>
 
   <body data-languages="[&quot;shell&quot;,&quot;http&quot;,&quot;javascript&quot;,&quot;ruby&quot;,&quot;python&quot;,&quot;php&quot;,&quot;java&quot;,&quot;go&quot;]">
@@ -149,6 +151,16 @@ window.onpopstate = function() {
               <ul class="toc-list-h2">
                 
                   <li>
+                    <a href="#tocs_workspace" class="toc-h2 toc-link" data-title="">workspace</a>
+                    
+                  </li>
+                
+                  <li>
+                    <a href="#tocs_stix-common" class="toc-h2 toc-link" data-title="">stix-common</a>
+                    
+                  </li>
+                
+                  <li>
                     <a href="#tocs_technique" class="toc-h2 toc-link" data-title="">technique</a>
                     
                   </li>
@@ -201,7 +213,7 @@ window.onpopstate = function() {
 <p><strong>protocol</strong> -  Default: http</p>
 </li>
 <li>
-<p><strong>hostname</strong> -  Default: ::</p>
+<p><strong>hostname</strong> -  Default: localhost</p>
 </li>
 <li>
 <p><strong>port</strong> -  Default: 3000</p>
@@ -340,13 +352,18 @@ System.out.println(response.toString());
 </blockquote>
 <pre class="highlight tab tab-json"><code>[
   {
+    <span class="hljs-attr">&quot;workspace&quot;</span>: {
+      <span class="hljs-attr">&quot;domains&quot;</span>: [
+        <span class="hljs-string">&quot;attack-enterprise&quot;</span>
+      ]
+    },
     <span class="hljs-attr">&quot;stix&quot;</span>: {
       <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
       <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
       <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
-      <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
       <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
       <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+      <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
       <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
       <span class="hljs-attr">&quot;external_references&quot;</span>: [
         {
@@ -389,13 +406,6 @@ System.out.println(response.toString());
         <span class="hljs-string">&quot;string&quot;</span>
       ],
       <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
-    },
-    <span class="hljs-attr">&quot;domains&quot;</span>: [
-      <span class="hljs-string">&quot;enterprise&quot;</span>
-    ],
-    <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
-      <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
-      <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
     }
   }
 ]
@@ -440,70 +450,161 @@ System.out.println(response.toString());
 <td>none</td>
 </tr>
 <tr>
+<td>» workspace</td>
+<td><a href="#schemaworkspace">workspace</a></td>
+<td>true</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>»» domains</td>
+<td>[string]</td>
+<td>true</td>
+<td>none</td>
+<td>This property replaces x_mitre_collections</td>
+</tr>
+<tr>
 <td>» stix</td>
-<td><a href="#schemastix-attack-pattern">stix-attack-pattern</a></td>
+<td>any</td>
+<td>true</td>
+<td>none</td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<p><em>allOf</em></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Restrictions</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>»» <em>anonymous</em></td>
+<td><a href="#schemastix-common">stix-common</a></td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» type</td>
+<td>»»» type</td>
 <td>string</td>
 <td>true</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» spec_version</td>
+<td>»»» spec_version</td>
 <td>string</td>
 <td>true</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» id</td>
+<td>»»» id</td>
 <td>string</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» created_by_ref</td>
-<td>string</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>»» created</td>
+<td>»»» created</td>
 <td>string(date-time)</td>
 <td>true</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» modified</td>
+<td>»»» modified</td>
 <td>string(date-time)</td>
 <td>true</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» revoked</td>
+<td>»»» created_by_ref</td>
+<td>string</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>»»» revoked</td>
 <td>boolean</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» external_references</td>
+<td>»»» external_references</td>
 <td>[<a href="#schemaexternal_reference">external_reference</a>]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»»» source_name</td>
+<td>»»»» source_name</td>
+<td>string</td>
+<td>true</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>»»»» description</td>
+<td>string</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>»»»» url</td>
+<td>string</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>»»»» external_id</td>
+<td>string</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>»»» object_marking_refs</td>
+<td>[string]</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<p><em>and</em></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Restrictions</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>»» <em>anonymous</em></td>
+<td>object</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>»»» name</td>
 <td>string</td>
 <td>true</td>
 <td>none</td>
@@ -517,156 +618,93 @@ System.out.println(response.toString());
 <td>none</td>
 </tr>
 <tr>
-<td>»»» url</td>
-<td>string</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>»»» external_id</td>
-<td>string</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>»» object_marking_refs</td>
-<td>[string]</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>»» name</td>
-<td>string</td>
-<td>true</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>»» description</td>
-<td>string</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>»» kill_chain_phases</td>
+<td>»»» kill_chain_phases</td>
 <td>[<a href="#schemakill_chain_phase">kill_chain_phase</a>]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»»» kill_chain_name</td>
+<td>»»»» kill_chain_name</td>
 <td>string</td>
 <td>true</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»»» phase_name</td>
+<td>»»»» phase_name</td>
 <td>string</td>
 <td>true</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_contributors</td>
+<td>»»» x_mitre_contributors</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_data_sources</td>
+<td>»»» x_mitre_data_sources</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_deprecated</td>
+<td>»»» x_mitre_deprecated</td>
 <td>boolean</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_detection</td>
+<td>»»» x_mitre_detection</td>
 <td>string</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_effective_permissions</td>
+<td>»»» x_mitre_effective_permissions</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_permissions_required</td>
+<td>»»» x_mitre_permissions_required</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_platforms</td>
+<td>»»» x_mitre_platforms</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_subtechnique</td>
+<td>»»» x_mitre_subtechnique</td>
 <td>boolean</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_system_requirements</td>
+<td>»»» x_mitre_system_requirements</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>»» x_mitre_version</td>
+<td>»»» x_mitre_version</td>
 <td>string</td>
 <td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>» domains</td>
-<td>[string]</td>
-<td>false</td>
-<td>none</td>
-<td>This property replaces x_mitre_collections</td>
-</tr>
-<tr>
-<td>» editor_identity</td>
-<td><a href="#schemaeditor_identity">editor_identity</a></td>
-<td>false</td>
-<td>none</td>
-<td>This property replaces mitreId</td>
-</tr>
-<tr>
-<td>»» id</td>
-<td>string</td>
-<td>true</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>»» name</td>
-<td>string</td>
-<td>true</td>
 <td>none</td>
 <td>none</td>
 </tr>
@@ -693,13 +731,18 @@ curl -X POST {protocol}://{hostname}:{port}/api/techniques \
 
 </span></code></pre>
 <pre class="highlight tab tab-javascript"><code><span class="hljs-keyword">const</span> inputBody = <span class="hljs-string">&#x27;{
+  &quot;workspace&quot;: {
+    &quot;domains&quot;: [
+      &quot;attack-enterprise&quot;
+    ]
+  },
   &quot;stix&quot;: {
     &quot;type&quot;: &quot;attack-pattern&quot;,
     &quot;spec_version&quot;: &quot;2.1&quot;,
     &quot;id&quot;: &quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;,
-    &quot;created_by_ref&quot;: &quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;,
     &quot;created&quot;: &quot;2019-08-24T14:15:22Z&quot;,
     &quot;modified&quot;: &quot;2019-08-24T14:15:22Z&quot;,
+    &quot;created_by_ref&quot;: &quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;,
     &quot;revoked&quot;: false,
     &quot;external_references&quot;: [
       {
@@ -742,13 +785,6 @@ curl -X POST {protocol}://{hostname}:{port}/api/techniques \
       &quot;string&quot;
     ],
     &quot;x_mitre_version&quot;: &quot;1.0&quot;
-  },
-  &quot;domains&quot;: [
-    &quot;enterprise&quot;
-  ],
-  &quot;editor_identity&quot;: {
-    &quot;id&quot;: &quot;string&quot;,
-    &quot;name&quot;: &quot;string&quot;
   }
 }&#x27;</span>;
 <span class="hljs-keyword">const</span> headers = {
@@ -865,13 +901,18 @@ System.out.println(response.toString());
 <p>Body parameter</p>
 </blockquote>
 <pre class="highlight tab tab-json"><code>{
+  <span class="hljs-attr">&quot;workspace&quot;</span>: {
+    <span class="hljs-attr">&quot;domains&quot;</span>: [
+      <span class="hljs-string">&quot;attack-enterprise&quot;</span>
+    ]
+  },
   <span class="hljs-attr">&quot;stix&quot;</span>: {
     <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
     <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
     <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
-    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
     <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
     <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
@@ -914,13 +955,6 @@ System.out.println(response.toString());
       <span class="hljs-string">&quot;string&quot;</span>
     ],
     <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
-  },
-  <span class="hljs-attr">&quot;domains&quot;</span>: [
-    <span class="hljs-string">&quot;enterprise&quot;</span>
-  ],
-  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
-    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
-    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 </code></pre>
@@ -952,13 +986,18 @@ System.out.println(response.toString());
 <p>201 Response</p>
 </blockquote>
 <pre class="highlight tab tab-json"><code>{
+  <span class="hljs-attr">&quot;workspace&quot;</span>: {
+    <span class="hljs-attr">&quot;domains&quot;</span>: [
+      <span class="hljs-string">&quot;attack-enterprise&quot;</span>
+    ]
+  },
   <span class="hljs-attr">&quot;stix&quot;</span>: {
     <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
     <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
     <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
-    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
     <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
     <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
@@ -1001,13 +1040,6 @@ System.out.println(response.toString());
       <span class="hljs-string">&quot;string&quot;</span>
     ],
     <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
-  },
-  <span class="hljs-attr">&quot;domains&quot;</span>: [
-    <span class="hljs-string">&quot;enterprise&quot;</span>
-  ],
-  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
-    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
-    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 </code></pre>
@@ -1027,6 +1059,12 @@ System.out.println(response.toString());
 <td><a href="https://tools.ietf.org/html/rfc7231#section-6.3.2">Created</a></td>
 <td>The technique has been successfully created.</td>
 <td><a href="#schematechnique">technique</a></td>
+</tr>
+<tr>
+<td>400</td>
+<td><a href="https://tools.ietf.org/html/rfc7231#section-6.5.1">Bad Request</a></td>
+<td>Missing or invalid parameters were provided. The technique was not created.</td>
+<td>None</td>
 </tr>
 </tbody>
 </table>
@@ -1153,7 +1191,7 @@ System.out.println(response.toString());
 
 </code></pre>
 <p><code>GET /api/techniques/{id}</code></p>
-<p>The endpoint retrieves a technique using its id.</p>
+<p>The endpoint retrieves a technique using its STIX id.</p>
 <h3 id="retrieve-a-technique-parameters">Parameters</h3>
 <table>
 <thead>
@@ -1171,7 +1209,7 @@ System.out.println(response.toString());
 <td>path</td>
 <td>string</td>
 <td>true</td>
-<td>id of the technique to retrieve</td>
+<td>STIX id of the technique to retrieve</td>
 </tr>
 </tbody>
 </table>
@@ -1182,13 +1220,18 @@ System.out.println(response.toString());
 <p>200 Response</p>
 </blockquote>
 <pre class="highlight tab tab-json"><code>{
+  <span class="hljs-attr">&quot;workspace&quot;</span>: {
+    <span class="hljs-attr">&quot;domains&quot;</span>: [
+      <span class="hljs-string">&quot;attack-enterprise&quot;</span>
+    ]
+  },
   <span class="hljs-attr">&quot;stix&quot;</span>: {
     <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
     <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
     <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
-    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
     <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
     <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
@@ -1231,13 +1274,6 @@ System.out.println(response.toString());
       <span class="hljs-string">&quot;string&quot;</span>
     ],
     <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
-  },
-  <span class="hljs-attr">&quot;domains&quot;</span>: [
-    <span class="hljs-string">&quot;enterprise&quot;</span>
-  ],
-  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
-    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
-    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 </code></pre>
@@ -1261,7 +1297,7 @@ System.out.println(response.toString());
 <tr>
 <td>404</td>
 <td><a href="https://tools.ietf.org/html/rfc7231#section-6.5.4">Not Found</a></td>
-<td>The technique with the requested id was not found.</td>
+<td>The technique with the requested STIX id was not found.</td>
 <td>None</td>
 </tr>
 </tbody>
@@ -1287,13 +1323,18 @@ curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{id} \
 
 </span></code></pre>
 <pre class="highlight tab tab-javascript"><code><span class="hljs-keyword">const</span> inputBody = <span class="hljs-string">&#x27;{
+  &quot;workspace&quot;: {
+    &quot;domains&quot;: [
+      &quot;attack-enterprise&quot;
+    ]
+  },
   &quot;stix&quot;: {
     &quot;type&quot;: &quot;attack-pattern&quot;,
     &quot;spec_version&quot;: &quot;2.1&quot;,
     &quot;id&quot;: &quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;,
-    &quot;created_by_ref&quot;: &quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;,
     &quot;created&quot;: &quot;2019-08-24T14:15:22Z&quot;,
     &quot;modified&quot;: &quot;2019-08-24T14:15:22Z&quot;,
+    &quot;created_by_ref&quot;: &quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;,
     &quot;revoked&quot;: false,
     &quot;external_references&quot;: [
       {
@@ -1336,13 +1377,6 @@ curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{id} \
       &quot;string&quot;
     ],
     &quot;x_mitre_version&quot;: &quot;1.0&quot;
-  },
-  &quot;domains&quot;: [
-    &quot;enterprise&quot;
-  ],
-  &quot;editor_identity&quot;: {
-    &quot;id&quot;: &quot;string&quot;,
-    &quot;name&quot;: &quot;string&quot;
   }
 }&#x27;</span>;
 <span class="hljs-keyword">const</span> headers = {
@@ -1454,18 +1488,23 @@ System.out.println(response.toString());
 
 </code></pre>
 <p><code>PUT /api/techniques/{id}</code></p>
-<p>The endpoint updates a technique using its id.</p>
+<p>The endpoint updates a technique using its STIX id.</p>
 <blockquote>
 <p>Body parameter</p>
 </blockquote>
 <pre class="highlight tab tab-json"><code>{
+  <span class="hljs-attr">&quot;workspace&quot;</span>: {
+    <span class="hljs-attr">&quot;domains&quot;</span>: [
+      <span class="hljs-string">&quot;attack-enterprise&quot;</span>
+    ]
+  },
   <span class="hljs-attr">&quot;stix&quot;</span>: {
     <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
     <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
     <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
-    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
     <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
     <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
@@ -1508,13 +1547,6 @@ System.out.println(response.toString());
       <span class="hljs-string">&quot;string&quot;</span>
     ],
     <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
-  },
-  <span class="hljs-attr">&quot;domains&quot;</span>: [
-    <span class="hljs-string">&quot;enterprise&quot;</span>
-  ],
-  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
-    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
-    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 </code></pre>
@@ -1535,7 +1567,7 @@ System.out.println(response.toString());
 <td>path</td>
 <td>string</td>
 <td>true</td>
-<td>id of the technique to update</td>
+<td>STIX id of the technique to update</td>
 </tr>
 <tr>
 <td>body</td>
@@ -1553,13 +1585,18 @@ System.out.println(response.toString());
 <p>200 Response</p>
 </blockquote>
 <pre class="highlight tab tab-json"><code>{
+  <span class="hljs-attr">&quot;workspace&quot;</span>: {
+    <span class="hljs-attr">&quot;domains&quot;</span>: [
+      <span class="hljs-string">&quot;attack-enterprise&quot;</span>
+    ]
+  },
   <span class="hljs-attr">&quot;stix&quot;</span>: {
     <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
     <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
     <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
-    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
     <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
     <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
@@ -1602,13 +1639,6 @@ System.out.println(response.toString());
       <span class="hljs-string">&quot;string&quot;</span>
     ],
     <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
-  },
-  <span class="hljs-attr">&quot;domains&quot;</span>: [
-    <span class="hljs-string">&quot;enterprise&quot;</span>
-  ],
-  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
-    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
-    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 </code></pre>
@@ -1630,9 +1660,15 @@ System.out.println(response.toString());
 <td><a href="#schematechnique">technique</a></td>
 </tr>
 <tr>
+<td>400</td>
+<td><a href="https://tools.ietf.org/html/rfc7231#section-6.5.1">Bad Request</a></td>
+<td>Missing or invalid parameters were provided. The technique was not updated.</td>
+<td>None</td>
+</tr>
+<tr>
 <td>404</td>
 <td><a href="https://tools.ietf.org/html/rfc7231#section-6.5.4">Not Found</a></td>
-<td>The technique with the requested id was not found.</td>
+<td>The technique with the requested STIX id was not found.</td>
 <td>None</td>
 </tr>
 </tbody>
@@ -1732,7 +1768,7 @@ System.out.println(response.toString());
 
 </code></pre>
 <p><code>DELETE /api/techniques/{id}</code></p>
-<p>The endpoint deletes a technique using its id.</p>
+<p>The endpoint deletes a technique using its STIX id.</p>
 <h3 id="delete-a-technique-parameters">Parameters</h3>
 <table>
 <thead>
@@ -1750,7 +1786,7 @@ System.out.println(response.toString());
 <td>path</td>
 <td>string</td>
 <td>true</td>
-<td>id of the technique to delete</td>
+<td>STIX id of the technique to delete</td>
 </tr>
 </tbody>
 </table>
@@ -1768,13 +1804,13 @@ System.out.println(response.toString());
 <tr>
 <td>204</td>
 <td><a href="https://tools.ietf.org/html/rfc7231#section-6.3.5">No Content</a></td>
-<td>The technique with the requested id has been deleted.</td>
+<td>The technique with the requested STIX id has been deleted.</td>
 <td>None</td>
 </tr>
 <tr>
 <td>404</td>
 <td><a href="https://tools.ietf.org/html/rfc7231#section-6.5.4">Not Found</a></td>
-<td>The technique with the requested id was not found.</td>
+<td>The technique with the requested STIX id was not found.</td>
 <td>None</td>
 </tr>
 </tbody>
@@ -1783,19 +1819,161 @@ System.out.println(response.toString());
 This operation does not require authentication
 </aside>
 <h1 id="schemas">Schemas</h1>
+<h2 id="tocs_workspace">workspace</h2>
+<p><a id="schemaworkspace"></a>
+<a id="schema_workspace"></a>
+<a id="tocSworkspace"></a>
+<a id="tocsworkspace"></a></p>
+<pre class="highlight tab tab-json"><code>{
+  <span class="hljs-attr">&quot;domains&quot;</span>: [
+    <span class="hljs-string">&quot;attack-enterprise&quot;</span>
+  ]
+}
+
+</code></pre>
+<h3 id="properties">Properties</h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Restrictions</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>domains</td>
+<td>[string]</td>
+<td>true</td>
+<td>none</td>
+<td>This property replaces x_mitre_collections</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tocs_stix-common">stix-common</h2>
+<p><a id="schemastix-common"></a>
+<a id="schema_stix-common"></a>
+<a id="tocSstix-common"></a>
+<a id="tocsstix-common"></a></p>
+<pre class="highlight tab tab-json"><code>{
+  <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
+  <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
+  <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
+  <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+  <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+  <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
+  <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
+  <span class="hljs-attr">&quot;external_references&quot;</span>: [
+    {
+      <span class="hljs-attr">&quot;source_name&quot;</span>: <span class="hljs-string">&quot;mitre-attack&quot;</span>,
+      <span class="hljs-attr">&quot;description&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
+      <span class="hljs-attr">&quot;url&quot;</span>: <span class="hljs-string">&quot;https://attack.mitre.org/techniques/T1103&quot;</span>,
+      <span class="hljs-attr">&quot;external_id&quot;</span>: <span class="hljs-string">&quot;T1103&quot;</span>
+    }
+  ],
+  <span class="hljs-attr">&quot;object_marking_refs&quot;</span>: [
+    <span class="hljs-string">&quot;marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168&quot;</span>
+  ]
+}
+
+</code></pre>
+<h3 id="properties-2">Properties</h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Restrictions</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>type</td>
+<td>string</td>
+<td>true</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>spec_version</td>
+<td>string</td>
+<td>true</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>id</td>
+<td>string</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>created</td>
+<td>string(date-time)</td>
+<td>true</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>modified</td>
+<td>string(date-time)</td>
+<td>true</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>created_by_ref</td>
+<td>string</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>revoked</td>
+<td>boolean</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>external_references</td>
+<td>[<a href="#schemaexternal_reference">external_reference</a>]</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>object_marking_refs</td>
+<td>[string]</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
 <h2 id="tocs_technique">technique</h2>
 <p><a id="schematechnique"></a>
 <a id="schema_technique"></a>
 <a id="tocStechnique"></a>
 <a id="tocstechnique"></a></p>
 <pre class="highlight tab tab-json"><code>{
+  <span class="hljs-attr">&quot;workspace&quot;</span>: {
+    <span class="hljs-attr">&quot;domains&quot;</span>: [
+      <span class="hljs-string">&quot;attack-enterprise&quot;</span>
+    ]
+  },
   <span class="hljs-attr">&quot;stix&quot;</span>: {
     <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
     <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
     <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
-    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
     <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+    <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
     <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
     <span class="hljs-attr">&quot;external_references&quot;</span>: [
       {
@@ -1838,18 +2016,11 @@ This operation does not require authentication
       <span class="hljs-string">&quot;string&quot;</span>
     ],
     <span class="hljs-attr">&quot;x_mitre_version&quot;</span>: <span class="hljs-string">&quot;1.0&quot;</span>
-  },
-  <span class="hljs-attr">&quot;domains&quot;</span>: [
-    <span class="hljs-string">&quot;enterprise&quot;</span>
-  ],
-  <span class="hljs-attr">&quot;editor_identity&quot;</span>: {
-    <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>,
-    <span class="hljs-attr">&quot;name&quot;</span>: <span class="hljs-string">&quot;string&quot;</span>
   }
 }
 
 </code></pre>
-<h3 id="properties">Properties</h3>
+<h3 id="properties-3">Properties</h3>
 <table>
 <thead>
 <tr>
@@ -1862,25 +2033,18 @@ This operation does not require authentication
 </thead>
 <tbody>
 <tr>
+<td>workspace</td>
+<td><a href="#schemaworkspace">workspace</a></td>
+<td>true</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
 <td>stix</td>
 <td><a href="#schemastix-attack-pattern">stix-attack-pattern</a></td>
-<td>false</td>
+<td>true</td>
 <td>none</td>
 <td>none</td>
-</tr>
-<tr>
-<td>domains</td>
-<td>[string]</td>
-<td>false</td>
-<td>none</td>
-<td>This property replaces x_mitre_collections</td>
-</tr>
-<tr>
-<td>editor_identity</td>
-<td><a href="#schemaeditor_identity">editor_identity</a></td>
-<td>false</td>
-<td>none</td>
-<td>This property replaces mitreId</td>
 </tr>
 </tbody>
 </table>
@@ -1893,9 +2057,9 @@ This operation does not require authentication
   <span class="hljs-attr">&quot;type&quot;</span>: <span class="hljs-string">&quot;attack-pattern&quot;</span>,
   <span class="hljs-attr">&quot;spec_version&quot;</span>: <span class="hljs-string">&quot;2.1&quot;</span>,
   <span class="hljs-attr">&quot;id&quot;</span>: <span class="hljs-string">&quot;attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc&quot;</span>,
-  <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
   <span class="hljs-attr">&quot;created&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
   <span class="hljs-attr">&quot;modified&quot;</span>: <span class="hljs-string">&quot;2019-08-24T14:15:22Z&quot;</span>,
+  <span class="hljs-attr">&quot;created_by_ref&quot;</span>: <span class="hljs-string">&quot;identity--6444f546-6900-4456-b3b1-015c88d70dab&quot;</span>,
   <span class="hljs-attr">&quot;revoked&quot;</span>: <span class="hljs-literal">false</span>,
   <span class="hljs-attr">&quot;external_references&quot;</span>: [
     {
@@ -1941,7 +2105,8 @@ This operation does not require authentication
 }
 
 </code></pre>
-<h3 id="properties-2">Properties</h3>
+<h3 id="properties-4">Properties</h3>
+<p>allOf</p>
 <table>
 <thead>
 <tr>
@@ -1954,154 +2119,119 @@ This operation does not require authentication
 </thead>
 <tbody>
 <tr>
-<td>type</td>
+<td><em>anonymous</em></td>
+<td><a href="#schemastix-common">stix-common</a></td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<p>and</p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Required</th>
+<th>Restrictions</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>anonymous</em></td>
+<td>object</td>
+<td>false</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>» name</td>
 <td>string</td>
 <td>true</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>spec_version</td>
-<td>string</td>
-<td>true</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>id</td>
+<td>» description</td>
 <td>string</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>created_by_ref</td>
-<td>string</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>created</td>
-<td>string(date-time)</td>
-<td>true</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>modified</td>
-<td>string(date-time)</td>
-<td>true</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>revoked</td>
-<td>boolean</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>external_references</td>
-<td>[<a href="#schemaexternal_reference">external_reference</a>]</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>object_marking_refs</td>
-<td>[string]</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>name</td>
-<td>string</td>
-<td>true</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>description</td>
-<td>string</td>
-<td>false</td>
-<td>none</td>
-<td>none</td>
-</tr>
-<tr>
-<td>kill_chain_phases</td>
+<td>» kill_chain_phases</td>
 <td>[<a href="#schemakill_chain_phase">kill_chain_phase</a>]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_contributors</td>
+<td>» x_mitre_contributors</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_data_sources</td>
+<td>» x_mitre_data_sources</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_deprecated</td>
+<td>» x_mitre_deprecated</td>
 <td>boolean</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_detection</td>
+<td>» x_mitre_detection</td>
 <td>string</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_effective_permissions</td>
+<td>» x_mitre_effective_permissions</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_permissions_required</td>
+<td>» x_mitre_permissions_required</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_platforms</td>
+<td>» x_mitre_platforms</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_subtechnique</td>
+<td>» x_mitre_subtechnique</td>
 <td>boolean</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_system_requirements</td>
+<td>» x_mitre_system_requirements</td>
 <td>[string]</td>
 <td>false</td>
 <td>none</td>
 <td>none</td>
 </tr>
 <tr>
-<td>x_mitre_version</td>
+<td>» x_mitre_version</td>
 <td>string</td>
 <td>false</td>
 <td>none</td>
@@ -2121,7 +2251,7 @@ This operation does not require authentication
 
 </code></pre>
 <p>This property replaces mitreId</p>
-<h3 id="properties-3">Properties</h3>
+<h3 id="properties-5">Properties</h3>
 <table>
 <thead>
 <tr>
@@ -2162,7 +2292,7 @@ This operation does not require authentication
 }
 
 </code></pre>
-<h3 id="properties-4">Properties</h3>
+<h3 id="properties-6">Properties</h3>
 <table>
 <thead>
 <tr>
@@ -2215,7 +2345,7 @@ This operation does not require authentication
 }
 
 </code></pre>
-<h3 id="properties-5">Properties</h3>
+<h3 id="properties-7">Properties</h3>
 <table>
 <thead>
 <tr>
@@ -2245,6 +2375,8 @@ This operation does not require authentication
 </table>
 <!-- Renderer: Shins v2.6.0 -->
 <!-- Generator: Widdershins v4.0.1 -->
+<!-- backwards compatibility -->
+<!-- backwards compatibility -->
 <!-- backwards compatibility -->
 <!-- backwards compatibility -->
 <!-- backwards compatibility -->

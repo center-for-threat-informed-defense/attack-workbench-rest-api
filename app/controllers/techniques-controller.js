@@ -19,7 +19,7 @@ exports.retrieveAll = function(req, res) {
 exports.retrieveById = function(req, res) {
     techniquesService.retrieveById(req.params.stixId, function(err, technique) {
         if (err) {
-            if (err.message === techniqueService.errors.badlyFormattedParameter) {
+            if (err.message === techniquesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
                 return res.status(400).send('Stix id is badly formatted.');
             }
@@ -48,7 +48,7 @@ exports.create = function(req, res) {
     // Create the technique
     techniquesService.create(techniqueData, function(err, technique) {
         if (err) {
-            if (err.message === techniqueService.errors.duplicateId) {
+            if (err.message === techniquesService.errors.duplicateId) {
                 logger.warn("Duplicate stix id");
                 return res.status(409).send('Duplicate stix id');
             }

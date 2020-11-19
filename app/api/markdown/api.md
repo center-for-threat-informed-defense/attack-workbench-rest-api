@@ -29,7 +29,7 @@ Base URLs:
 
     * **protocol** -  Default: http
 
-    * **hostname** -  Default: ::
+    * **hostname** -  Default: localhost
 
     * **port** -  Default: 3000
 
@@ -189,13 +189,18 @@ This endpoint retrieves multiple technique objects.
 ```json
 [
   {
+    "workspace": {
+      "domains": [
+        "attack-enterprise"
+      ]
+    },
     "stix": {
       "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "created": "2019-08-24T14:15:22Z",
       "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "revoked": false,
       "external_references": [
         {
@@ -238,13 +243,6 @@ This endpoint retrieves multiple technique objects.
         "string"
       ],
       "x_mitre_version": "1.0"
-    },
-    "domains": [
-      "enterprise"
-    ],
-    "editor_identity": {
-      "id": "string",
-      "name": "string"
     }
   }
 ]
@@ -263,39 +261,49 @@ Status Code **200**
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |*anonymous*|[[technique](#schematechnique)]|false|none|none|
-|» stix|[stix-attack-pattern](#schemastix-attack-pattern)|false|none|none|
-|»» type|string|true|none|none|
-|»» spec_version|string|true|none|none|
-|»» id|string|false|none|none|
-|»» created_by_ref|string|false|none|none|
-|»» created|string(date-time)|true|none|none|
-|»» modified|string(date-time)|true|none|none|
-|»» revoked|boolean|false|none|none|
-|»» external_references|[[external_reference](#schemaexternal_reference)]|false|none|none|
-|»»» source_name|string|true|none|none|
+|» workspace|[workspace](#schemaworkspace)|true|none|none|
+|»» domains|[string]|true|none|This property replaces x_mitre_collections|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[stix-common](#schemastix-common)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[[external_reference](#schemaexternal_reference)]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
-|»»» url|string|false|none|none|
-|»»» external_id|string|false|none|none|
-|»» object_marking_refs|[string]|false|none|none|
-|»» name|string|true|none|none|
-|»» description|string|false|none|none|
-|»» kill_chain_phases|[[kill_chain_phase](#schemakill_chain_phase)]|false|none|none|
-|»»» kill_chain_name|string|true|none|none|
-|»»» phase_name|string|true|none|none|
-|»» x_mitre_contributors|[string]|false|none|none|
-|»» x_mitre_data_sources|[string]|false|none|none|
-|»» x_mitre_deprecated|boolean|false|none|none|
-|»» x_mitre_detection|string|false|none|none|
-|»» x_mitre_effective_permissions|[string]|false|none|none|
-|»» x_mitre_permissions_required|[string]|false|none|none|
-|»» x_mitre_platforms|[string]|false|none|none|
-|»» x_mitre_subtechnique|boolean|false|none|none|
-|»» x_mitre_system_requirements|[string]|false|none|none|
-|»» x_mitre_version|string|false|none|none|
-|» domains|[string]|false|none|This property replaces x_mitre_collections|
-|» editor_identity|[editor_identity](#schemaeditor_identity)|false|none|This property replaces mitreId|
-|»» id|string|true|none|none|
-|»» name|string|true|none|none|
+|»»» kill_chain_phases|[[kill_chain_phase](#schemakill_chain_phase)]|false|none|none|
+|»»»» kill_chain_name|string|true|none|none|
+|»»»» phase_name|string|true|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_data_sources|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_detection|string|false|none|none|
+|»»» x_mitre_effective_permissions|[string]|false|none|none|
+|»»» x_mitre_permissions_required|[string]|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_subtechnique|boolean|false|none|none|
+|»»» x_mitre_system_requirements|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -325,13 +333,18 @@ Accept: application/json
 
 ```javascript
 const inputBody = '{
+  "workspace": {
+    "domains": [
+      "attack-enterprise"
+    ]
+  },
   "stix": {
     "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "created": "2019-08-24T14:15:22Z",
     "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "revoked": false,
     "external_references": [
       {
@@ -374,13 +387,6 @@ const inputBody = '{
       "string"
     ],
     "x_mitre_version": "1.0"
-  },
-  "domains": [
-    "enterprise"
-  ],
-  "editor_identity": {
-    "id": "string",
-    "name": "string"
   }
 }';
 const headers = {
@@ -515,13 +521,18 @@ This endpoint creates a new technique object.
 
 ```json
 {
+  "workspace": {
+    "domains": [
+      "attack-enterprise"
+    ]
+  },
   "stix": {
     "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "created": "2019-08-24T14:15:22Z",
     "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "revoked": false,
     "external_references": [
       {
@@ -564,13 +575,6 @@ This endpoint creates a new technique object.
       "string"
     ],
     "x_mitre_version": "1.0"
-  },
-  "domains": [
-    "enterprise"
-  ],
-  "editor_identity": {
-    "id": "string",
-    "name": "string"
   }
 }
 ```
@@ -587,13 +591,18 @@ This endpoint creates a new technique object.
 
 ```json
 {
+  "workspace": {
+    "domains": [
+      "attack-enterprise"
+    ]
+  },
   "stix": {
     "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "created": "2019-08-24T14:15:22Z",
     "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "revoked": false,
     "external_references": [
       {
@@ -636,13 +645,6 @@ This endpoint creates a new technique object.
       "string"
     ],
     "x_mitre_version": "1.0"
-  },
-  "domains": [
-    "enterprise"
-  ],
-  "editor_identity": {
-    "id": "string",
-    "name": "string"
   }
 }
 ```
@@ -652,6 +654,7 @@ This endpoint creates a new technique object.
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The technique has been successfully created.|[technique](#schematechnique)|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The technique was not created.|None|
 
 <aside class="success">
 This operation does not require authentication
@@ -800,13 +803,13 @@ func main() {
 
 `GET /api/techniques/{id}`
 
-The endpoint retrieves a technique using its id.
+The endpoint retrieves a technique using its STIX id.
 
 <h3 id="retrieve-a-technique-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|id|path|string|true|id of the technique to retrieve|
+|id|path|string|true|STIX id of the technique to retrieve|
 
 > Example responses
 
@@ -814,13 +817,18 @@ The endpoint retrieves a technique using its id.
 
 ```json
 {
+  "workspace": {
+    "domains": [
+      "attack-enterprise"
+    ]
+  },
   "stix": {
     "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "created": "2019-08-24T14:15:22Z",
     "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "revoked": false,
     "external_references": [
       {
@@ -863,13 +871,6 @@ The endpoint retrieves a technique using its id.
       "string"
     ],
     "x_mitre_version": "1.0"
-  },
-  "domains": [
-    "enterprise"
-  ],
-  "editor_identity": {
-    "id": "string",
-    "name": "string"
   }
 }
 ```
@@ -879,7 +880,7 @@ The endpoint retrieves a technique using its id.
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The technique with the requested id.|[technique](#schematechnique)|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested id was not found.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested STIX id was not found.|None|
 
 <aside class="success">
 This operation does not require authentication
@@ -909,13 +910,18 @@ Accept: application/json
 
 ```javascript
 const inputBody = '{
+  "workspace": {
+    "domains": [
+      "attack-enterprise"
+    ]
+  },
   "stix": {
     "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "created": "2019-08-24T14:15:22Z",
     "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "revoked": false,
     "external_references": [
       {
@@ -958,13 +964,6 @@ const inputBody = '{
       "string"
     ],
     "x_mitre_version": "1.0"
-  },
-  "domains": [
-    "enterprise"
-  ],
-  "editor_identity": {
-    "id": "string",
-    "name": "string"
   }
 }';
 const headers = {
@@ -1093,19 +1092,24 @@ func main() {
 
 `PUT /api/techniques/{id}`
 
-The endpoint updates a technique using its id.
+The endpoint updates a technique using its STIX id.
 
 > Body parameter
 
 ```json
 {
+  "workspace": {
+    "domains": [
+      "attack-enterprise"
+    ]
+  },
   "stix": {
     "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "created": "2019-08-24T14:15:22Z",
     "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "revoked": false,
     "external_references": [
       {
@@ -1148,13 +1152,6 @@ The endpoint updates a technique using its id.
       "string"
     ],
     "x_mitre_version": "1.0"
-  },
-  "domains": [
-    "enterprise"
-  ],
-  "editor_identity": {
-    "id": "string",
-    "name": "string"
   }
 }
 ```
@@ -1163,7 +1160,7 @@ The endpoint updates a technique using its id.
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|id|path|string|true|id of the technique to update|
+|id|path|string|true|STIX id of the technique to update|
 |body|body|[technique](#schematechnique)|true|none|
 
 > Example responses
@@ -1172,13 +1169,18 @@ The endpoint updates a technique using its id.
 
 ```json
 {
+  "workspace": {
+    "domains": [
+      "attack-enterprise"
+    ]
+  },
   "stix": {
     "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "created": "2019-08-24T14:15:22Z",
     "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "revoked": false,
     "external_references": [
       {
@@ -1221,13 +1223,6 @@ The endpoint updates a technique using its id.
       "string"
     ],
     "x_mitre_version": "1.0"
-  },
-  "domains": [
-    "enterprise"
-  ],
-  "editor_identity": {
-    "id": "string",
-    "name": "string"
   }
 }
 ```
@@ -1237,7 +1232,8 @@ The endpoint updates a technique using its id.
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The technique has been successfully updated.|[technique](#schematechnique)|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested id was not found.|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The technique was not updated.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested STIX id was not found.|None|
 
 <aside class="success">
 This operation does not require authentication
@@ -1363,26 +1359,93 @@ func main() {
 
 `DELETE /api/techniques/{id}`
 
-The endpoint deletes a technique using its id.
+The endpoint deletes a technique using its STIX id.
 
 <h3 id="delete-a-technique-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|id|path|string|true|id of the technique to delete|
+|id|path|string|true|STIX id of the technique to delete|
 
 <h3 id="delete-a-technique-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The technique with the requested id has been deleted.|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested id was not found.|None|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The technique with the requested STIX id has been deleted.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested STIX id was not found.|None|
 
 <aside class="success">
 This operation does not require authentication
 </aside>
 
 # Schemas
+
+<h2 id="tocS_workspace">workspace</h2>
+<!-- backwards compatibility -->
+<a id="schemaworkspace"></a>
+<a id="schema_workspace"></a>
+<a id="tocSworkspace"></a>
+<a id="tocsworkspace"></a>
+
+```json
+{
+  "domains": [
+    "attack-enterprise"
+  ]
+}
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|domains|[string]|true|none|This property replaces x_mitre_collections|
+
+<h2 id="tocS_stix-common">stix-common</h2>
+<!-- backwards compatibility -->
+<a id="schemastix-common"></a>
+<a id="schema_stix-common"></a>
+<a id="tocSstix-common"></a>
+<a id="tocsstix-common"></a>
+
+```json
+{
+  "type": "attack-pattern",
+  "spec_version": "2.1",
+  "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+  "created": "2019-08-24T14:15:22Z",
+  "modified": "2019-08-24T14:15:22Z",
+  "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+  "revoked": false,
+  "external_references": [
+    {
+      "source_name": "mitre-attack",
+      "description": "string",
+      "url": "https://attack.mitre.org/techniques/T1103",
+      "external_id": "T1103"
+    }
+  ],
+  "object_marking_refs": [
+    "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+  ]
+}
+
+```
+
+### Properties
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|type|string|true|none|none|
+|spec_version|string|true|none|none|
+|id|string|false|none|none|
+|created|string(date-time)|true|none|none|
+|modified|string(date-time)|true|none|none|
+|created_by_ref|string|false|none|none|
+|revoked|boolean|false|none|none|
+|external_references|[[external_reference](#schemaexternal_reference)]|false|none|none|
+|object_marking_refs|[string]|false|none|none|
 
 <h2 id="tocS_technique">technique</h2>
 <!-- backwards compatibility -->
@@ -1393,13 +1456,18 @@ This operation does not require authentication
 
 ```json
 {
+  "workspace": {
+    "domains": [
+      "attack-enterprise"
+    ]
+  },
   "stix": {
     "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "created": "2019-08-24T14:15:22Z",
     "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "revoked": false,
     "external_references": [
       {
@@ -1442,13 +1510,6 @@ This operation does not require authentication
       "string"
     ],
     "x_mitre_version": "1.0"
-  },
-  "domains": [
-    "enterprise"
-  ],
-  "editor_identity": {
-    "id": "string",
-    "name": "string"
   }
 }
 
@@ -1458,9 +1519,8 @@ This operation does not require authentication
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|stix|[stix-attack-pattern](#schemastix-attack-pattern)|false|none|none|
-|domains|[string]|false|none|This property replaces x_mitre_collections|
-|editor_identity|[editor_identity](#schemaeditor_identity)|false|none|This property replaces mitreId|
+|workspace|[workspace](#schemaworkspace)|true|none|none|
+|stix|[stix-attack-pattern](#schemastix-attack-pattern)|true|none|none|
 
 <h2 id="tocS_stix-attack-pattern">stix-attack-pattern</h2>
 <!-- backwards compatibility -->
@@ -1474,9 +1534,9 @@ This operation does not require authentication
   "type": "attack-pattern",
   "spec_version": "2.1",
   "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
-  "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
   "created": "2019-08-24T14:15:22Z",
   "modified": "2019-08-24T14:15:22Z",
+  "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
   "revoked": false,
   "external_references": [
     {
@@ -1525,30 +1585,30 @@ This operation does not require authentication
 
 ### Properties
 
+allOf
+
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|type|string|true|none|none|
-|spec_version|string|true|none|none|
-|id|string|false|none|none|
-|created_by_ref|string|false|none|none|
-|created|string(date-time)|true|none|none|
-|modified|string(date-time)|true|none|none|
-|revoked|boolean|false|none|none|
-|external_references|[[external_reference](#schemaexternal_reference)]|false|none|none|
-|object_marking_refs|[string]|false|none|none|
-|name|string|true|none|none|
-|description|string|false|none|none|
-|kill_chain_phases|[[kill_chain_phase](#schemakill_chain_phase)]|false|none|none|
-|x_mitre_contributors|[string]|false|none|none|
-|x_mitre_data_sources|[string]|false|none|none|
-|x_mitre_deprecated|boolean|false|none|none|
-|x_mitre_detection|string|false|none|none|
-|x_mitre_effective_permissions|[string]|false|none|none|
-|x_mitre_permissions_required|[string]|false|none|none|
-|x_mitre_platforms|[string]|false|none|none|
-|x_mitre_subtechnique|boolean|false|none|none|
-|x_mitre_system_requirements|[string]|false|none|none|
-|x_mitre_version|string|false|none|none|
+|*anonymous*|[stix-common](#schemastix-common)|false|none|none|
+
+and
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|object|false|none|none|
+|» name|string|true|none|none|
+|» description|string|false|none|none|
+|» kill_chain_phases|[[kill_chain_phase](#schemakill_chain_phase)]|false|none|none|
+|» x_mitre_contributors|[string]|false|none|none|
+|» x_mitre_data_sources|[string]|false|none|none|
+|» x_mitre_deprecated|boolean|false|none|none|
+|» x_mitre_detection|string|false|none|none|
+|» x_mitre_effective_permissions|[string]|false|none|none|
+|» x_mitre_permissions_required|[string]|false|none|none|
+|» x_mitre_platforms|[string]|false|none|none|
+|» x_mitre_subtechnique|boolean|false|none|none|
+|» x_mitre_system_requirements|[string]|false|none|none|
+|» x_mitre_version|string|false|none|none|
 
 <h2 id="tocS_editor_identity">editor_identity</h2>
 <!-- backwards compatibility -->

@@ -14,7 +14,7 @@ router.use('/api', bodyParser.urlencoded({ limit: '1mb', extended: true }));
 
 // Setup request validation
 router.use(OpenApiValidator.middleware({
-    apiSpec: './app/api/definitions/api.yml',
+    apiSpec: './app/api/definitions/openapi.yml',
     validateRequests: true,
     validateResponses: false
 }));

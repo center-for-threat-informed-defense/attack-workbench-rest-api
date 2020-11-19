@@ -5,11 +5,29 @@ const expect = require('expect');
 const logger = require('../../lib/logger');
 logger.level = 'debug';
 
+// modified and created properties will be set before calling REST API
+// stix.id property will be created by REST API
 const object1 = {
+    workspace: {
+        domains: [ 'domain-1']
+    },
     stix: {
-        name: 'mercury',
+        name: 'attack-pattern-1',
         spec_version: '2.1',
-        type: 'attack-pattern'
+        type: 'attack-pattern',
+        external_references: [
+            { source_name: 'source-1', external_id: 's1' }
+        ],
+        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+        created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+        kill_chain_phases: [
+            { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
+        ],
+        x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
+        x_mitre_detection: 'detection text',
+        x_mitre_is_subtechnique: false,
+        x_mitre_impact_type: [ 'impact-1' ],
+        x_mitre_platforms: [ 'platform-1', 'platform-2' ]
     }
 };
 
@@ -47,6 +65,23 @@ describe('Techniques API', function () {
             });
     });
 
+    it('POST /api/techniques does not create an empty technique', function (done) {
+        const body = { };
+        request(app)
+            .post('/api/techniques')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
     let techniqueId;
     it('POST /api/techniques creates a technique', function (done) {
         const timestamp = new Date().toISOString();
@@ -67,7 +102,7 @@ describe('Techniques API', function () {
                     // We expect to get the created technique
                     const technique = res.body;
                     expect(technique).toBeDefined();
-                    techniqueId = technique._id;
+                    techniqueId = technique.stix.id;
                     done();
                 }
             });
@@ -107,14 +142,34 @@ describe('Techniques API', function () {
                 else {
                     // We expect to get the technique
                     object2 = res.body;
+//                    console.log(object1);
+//                    console.log(object2);
                     expect(object2).toBeDefined();
-                    expect(object2._id).toBe(techniqueId);
+                    expect(object2.stix).toBeDefined();
+                    expect(object2.stix.id).toBe(techniqueId);
+                    expect(object2.stix.type).toBe(object1.stix.type);
+                    expect(object2.stix.name).toBe(object1.stix.name);
+                    expect(object2.stix.spec_version).toBe(object1.stix.spec_version);
+                    expect(object2.stix.object_marking_refs).toEqual(expect.arrayContaining(object1.stix.object_marking_refs));
+                    expect(object2.stix.created_by_ref).toBe(object1.stix.created_by_ref);
+                    expect(object2.stix.x_mitre_data_sources).toEqual(expect.arrayContaining(object1.stix.x_mitre_data_sources));
+                    expect(object2.stix.x_mitre_detection).toBe(object1.stix.x_mitre_detection);
+                    expect(object2.stix.x_mitre_is_subtechnique).toBe(object1.stix.x_mitre_is_subtechnique);
+                    expect(object2.stix.x_mitre_impact_type).toEqual(expect.arrayContaining(object1.stix.x_mitre_impact_type));
+                    expect(object2.stix.x_mitre_platforms).toEqual(expect.arrayContaining(object1.stix.x_mitre_platforms));
+
+                    expect(object2.stix.x_mitre_deprecated).not.toBeDefined();
+                    expect(object2.stix.x_mitre_defense_bypassed).not.toBeDefined();
+                    expect(object2.stix.x_mitre_permissions_required).not.toBeDefined();
+                    expect(object2.stix.x_mitre_system_requirements).not.toBeDefined();
+                    expect(object2.stix.x_mitre_tactic_types).not.toBeDefined();
+
                     done();
                 }
             });
     });
 
-    it('PUT /api/techniques creates a technique', function (done) {
+    it('PUT /api/techniques updates a technique', function (done) {
         const timestamp = new Date().toISOString();
         object2.stix.description = 'Closest planet to the sun'
         object2.stix.modified = timestamp;
@@ -133,7 +188,7 @@ describe('Techniques API', function () {
                     // We expect to get the updated technique
                     const technique = res.body;
                     expect(technique).toBeDefined();
-                    techniqueId = technique._id;
+                    expect(technique.stix.id).toBe(techniqueId);
                     done();
                 }
             });

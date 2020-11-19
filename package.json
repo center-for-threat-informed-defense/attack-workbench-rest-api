@@ -4,7 +4,7 @@
   "description": "REST API service for the ATT&CK Workspace.",
   "main": "index.js",
   "scripts": {
-    "api:generate-md": "widdershins ./app/api/definitions/api.yml -o ./app/api/markdown/api.md --summary",
+    "api:generate-md": "widdershins ./app/api/definitions/openapi.yml -o ./app/api/markdown/api.md --summary",
     "api:generate-html": "shins --root ./app/api/web -o ./app/api/web/index.html ./app/api/markdown/api.md",
     "api:generate-all": "npm run api:generate-md && npm run api:generate-html",
     "lint": "eslint .",
