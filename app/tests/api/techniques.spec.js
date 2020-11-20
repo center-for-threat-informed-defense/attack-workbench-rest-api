@@ -48,8 +48,8 @@ describe('Techniques API', function () {
         request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
             .expect(200)
+            .expect('Content-Type', /json/)
             .end(function(err, res) {
                 if (err) {
                     done(err);
@@ -82,7 +82,7 @@ describe('Techniques API', function () {
             });
     });
 
-    let techniqueId;
+    let createdTechnique;
     it('POST /api/techniques creates a technique', function (done) {
         const timestamp = new Date().toISOString();
         object1.stix.created = timestamp;
@@ -92,8 +92,8 @@ describe('Techniques API', function () {
             .post('/api/techniques')
             .send(body)
             .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
             .expect(201)
+            .expect('Content-Type', /json/)
             .end(function(err, res) {
                 if (err) {
                     done(err);
@@ -102,7 +102,7 @@ describe('Techniques API', function () {
                     // We expect to get the created technique
                     const technique = res.body;
                     expect(technique).toBeDefined();
-                    techniqueId = technique.stix.id;
+                    createdTechnique = technique;
                     done();
                 }
             });
@@ -112,8 +112,8 @@ describe('Techniques API', function () {
         request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
             .expect(200)
+            .expect('Content-Type', /json/)
             .end(function(err, res) {
                 if (err) {
                     done(err);
@@ -131,10 +131,10 @@ describe('Techniques API', function () {
 
     it('GET /api/technique returns the added technique', function (done) {
         request(app)
-            .get('/api/techniques/' + techniqueId)
+            .get('/api/techniques/' + createdTechnique.stix.id)
             .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
             .expect(200)
+            .expect('Content-Type', /json/)
             .end(function(err, res) {
                 if (err) {
                     done(err);
@@ -142,11 +142,9 @@ describe('Techniques API', function () {
                 else {
                     // We expect to get the technique
                     object2 = res.body;
-//                    console.log(object1);
-//                    console.log(object2);
                     expect(object2).toBeDefined();
                     expect(object2.stix).toBeDefined();
-                    expect(object2.stix.id).toBe(techniqueId);
+                    expect(object2.stix.id).toBe(createdTechnique.stix.id);
                     expect(object2.stix.type).toBe(object1.stix.type);
                     expect(object2.stix.name).toBe(object1.stix.name);
                     expect(object2.stix.spec_version).toBe(object1.stix.spec_version);
@@ -172,14 +170,13 @@ describe('Techniques API', function () {
     it('PUT /api/techniques updates a technique', function (done) {
         const timestamp = new Date().toISOString();
         object2.stix.description = 'Closest planet to the sun'
-        object2.stix.modified = timestamp;
         const body = object2;
         request(app)
-            .put('/api/techniques/' + techniqueId)
+            .put('/api/techniques/' + createdTechnique.stix.id + '/modified/' + createdTechnique.stix.modified)
             .send(body)
             .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
             .expect(200)
+            .expect('Content-Type', /json/)
             .end(function(err, res) {
                 if (err) {
                     done(err);
@@ -188,7 +185,50 @@ describe('Techniques API', function () {
                     // We expect to get the updated technique
                     const technique = res.body;
                     expect(technique).toBeDefined();
-                    expect(technique.stix.id).toBe(techniqueId);
+                    expect(technique.stix.id).toBe(createdTechnique.stix.id);
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/techniques does not create a technique with the same id and modified date', function (done) {
+        const body = object2;
+        request(app)
+            .post('/api/techniques')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(409)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/techniques should create a technique with a duplicate stix.id but different stix.modified date', function (done) {
+        object2._id = undefined;
+        object2.__t = undefined;
+        object2.__v = undefined;
+        const timestamp = new Date().toISOString();
+        object2.stix.modified = timestamp;
+        const body = object2;
+        request(app)
+            .post('/api/techniques')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created technique
+                    const technique = res.body;
+                    expect(technique).toBeDefined();
                     done();
                 }
             });
@@ -196,7 +236,21 @@ describe('Techniques API', function () {
 
     it('DELETE /api/techniques deletes a technique', function (done) {
         request(app)
-            .delete('/api/techniques/' + techniqueId)
+            .delete('/api/techniques/' + createdTechnique.stix.id + '/modified/' + createdTechnique.stix.modified)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/techniques should delete the second technique', function (done) {
+        request(app)
+            .delete('/api/techniques/' + object2.stix.id + '/modified/' + object2.stix.modified)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -212,8 +266,8 @@ describe('Techniques API', function () {
         request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
-            .expect('Content-Type', /json/)
             .expect(200)
+            .expect('Content-Type', /json/)
             .end(function(err, res) {
                 if (err) {
                     done(err);
@@ -221,6 +275,7 @@ describe('Techniques API', function () {
                 else {
                     // We expect to get an empty array
                     const techniques = res.body;
+                    console.log(techniques);
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
                     expect(techniques.length).toBe(0);

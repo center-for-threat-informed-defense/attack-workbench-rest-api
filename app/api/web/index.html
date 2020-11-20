@@ -896,7 +896,7 @@ System.out.println(response.toString());
 
 </code></pre>
 <p><code>POST /api/techniques</code></p>
-<p>This endpoint creates a new technique object.</p>
+<p>This endpoint creates a new technique object. If <a href="http://stix.id">stix.id</a> is set, creates a new version of an existing technique.</p>
 <blockquote>
 <p>Body parameter</p>
 </blockquote>
@@ -1064,6 +1064,12 @@ System.out.println(response.toString());
 <td>400</td>
 <td><a href="https://tools.ietf.org/html/rfc7231#section-6.5.1">Bad Request</a></td>
 <td>Missing or invalid parameters were provided. The technique was not created.</td>
+<td>None</td>
+</tr>
+<tr>
+<td>409</td>
+<td><a href="https://tools.ietf.org/html/rfc7231#section-6.5.8">Conflict</a></td>
+<td>Duplicate <a href="http://stix.id">stix.id</a> and stix.modified date. The technique was not created.</td>
 <td>None</td>
 </tr>
 </tbody>
@@ -1311,12 +1317,12 @@ This operation does not require authentication
 <p>Code samples</p>
 </blockquote>
 <pre class="highlight tab tab-shell"><code><span class="hljs-comment"># You can also use wget</span>
-curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{id} \
+curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified} \
   -H <span class="hljs-string">&#x27;Content-Type: application/json&#x27;</span> \
   -H <span class="hljs-string">&#x27;Accept: application/json&#x27;</span>
 
 </code></pre>
-<pre class="highlight tab tab-http"><code><span class="hljs-keyword">PUT</span> <span class="hljs-string">{protocol}://{hostname}:{port}/api/techniques/{id}</span> HTTP/1.1
+<pre class="highlight tab tab-http"><code><span class="hljs-keyword">PUT</span> <span class="hljs-string">{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}</span> HTTP/1.1
 
 <span class="http"><span class="hljs-attribute">Content-Type</span>: application/json
 <span class="hljs-attribute">Accept</span>: application/json
@@ -1384,7 +1390,7 @@ curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{id} \
   <span class="hljs-string">&#x27;Accept&#x27;</span>:<span class="hljs-string">&#x27;application/json&#x27;</span>
 };
 
-fetch(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>,
+fetch(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&#x27;</span>,
 {
   <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;PUT&#x27;</span>,
   <span class="hljs-attr">body</span>: inputBody,
@@ -1405,7 +1411,7 @@ headers = {
   <span class="hljs-string">&#x27;Accept&#x27;</span> =&gt; <span class="hljs-string">&#x27;application/json&#x27;</span>
 }
 
-result = RestClient.put <span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>,
+result = RestClient.put <span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&#x27;</span>,
   <span class="hljs-symbol">params:</span> {
   }, <span class="hljs-symbol">headers:</span> headers
 
@@ -1418,7 +1424,7 @@ headers = {
   <span class="hljs-string">&#x27;Accept&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>
 }
 
-r = requests.put(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>, headers = headers)
+r = requests.put(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&#x27;</span>, headers = headers)
 
 print(r.json())
 
@@ -1433,7 +1439,7 @@ $client = <span class="hljs-keyword">new</span> \GuzzleHttp\Client();
 $request_body = <span class="hljs-keyword">array</span>();
 
 <span class="hljs-keyword">try</span> {
-    $response = $client-&gt;request(<span class="hljs-string">&#x27;PUT&#x27;</span>,<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>, <span class="hljs-keyword">array</span>(
+    $response = $client-&gt;request(<span class="hljs-string">&#x27;PUT&#x27;</span>,<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&#x27;</span>, <span class="hljs-keyword">array</span>(
         <span class="hljs-string">&#x27;headers&#x27;</span> =&gt; $headers,
         <span class="hljs-string">&#x27;json&#x27;</span> =&gt; $request_body,
        )
@@ -1448,7 +1454,7 @@ $request_body = <span class="hljs-keyword">array</span>();
  <span class="hljs-comment">// ...</span>
 
 </code></pre>
-<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}&quot;</span>);
+<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&quot;</span>);
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 con.setRequestMethod(<span class="hljs-string">&quot;PUT&quot;</span>);
 <span class="hljs-keyword">int</span> responseCode = con.getResponseCode();
@@ -1478,7 +1484,7 @@ System.out.println(response.toString());
     }
 
     data := bytes.NewBuffer([]<span class="hljs-keyword">byte</span>{jsonReq})
-    req, err := http.NewRequest(<span class="hljs-string">&quot;PUT&quot;</span>, <span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}&quot;</span>, data)
+    req, err := http.NewRequest(<span class="hljs-string">&quot;PUT&quot;</span>, <span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&quot;</span>, data)
     req.Header = headers
 
     client := &amp;http.Client{}
@@ -1487,8 +1493,8 @@ System.out.println(response.toString());
 }
 
 </code></pre>
-<p><code>PUT /api/techniques/{id}</code></p>
-<p>The endpoint updates a technique using its STIX id.</p>
+<p><code>PUT /api/techniques/{id}/modified/{modified}</code></p>
+<p>The endpoint updates a technique using its STIX id and modified date.</p>
 <blockquote>
 <p>Body parameter</p>
 </blockquote>
@@ -1682,14 +1688,14 @@ This operation does not require authentication
 <p>Code samples</p>
 </blockquote>
 <pre class="highlight tab tab-shell"><code><span class="hljs-comment"># You can also use wget</span>
-curl -X DELETE {protocol}://{hostname}:{port}/api/techniques/{id}
+curl -X DELETE {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}
 
 </code></pre>
-<pre class="highlight tab tab-http"><code><span class="hljs-keyword">DELETE</span> <span class="hljs-string">{protocol}://{hostname}:{port}/api/techniques/{id}</span> HTTP/1.1
+<pre class="highlight tab tab-http"><code><span class="hljs-keyword">DELETE</span> <span class="hljs-string">{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}</span> HTTP/1.1
 
 </code></pre>
 <pre class="highlight tab tab-javascript"><code>
-fetch(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>,
+fetch(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&#x27;</span>,
 {
   <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;DELETE&#x27;</span>
 
@@ -1704,7 +1710,7 @@ fetch(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniq
 <pre class="highlight tab tab-ruby"><code><span class="hljs-keyword">require</span> <span class="hljs-string">&#x27;rest-client&#x27;</span>
 <span class="hljs-keyword">require</span> <span class="hljs-string">&#x27;json&#x27;</span>
 
-result = RestClient.delete <span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>,
+result = RestClient.delete <span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&#x27;</span>,
   <span class="hljs-symbol">params:</span> {
   }
 
@@ -1713,12 +1719,12 @@ p JSON.parse(result)
 </code></pre>
 <pre class="highlight tab tab-python"><code><span class="hljs-keyword">import</span> requests
 
-r = requests.delete(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>)
+r = requests.delete(<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&#x27;</span>)
 
 print(r.json())
 
 </code></pre>
-<pre class="highlight tab tab-php"><code>request(<span class="hljs-string">&#x27;DELETE&#x27;</span>,<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}&#x27;</span>, <span class="hljs-keyword">array</span>(
+<pre class="highlight tab tab-php"><code>request(<span class="hljs-string">&#x27;DELETE&#x27;</span>,<span class="hljs-string">&#x27;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&#x27;</span>, <span class="hljs-keyword">array</span>(
         <span class="hljs-string">&#x27;headers&#x27;</span> =&gt; $headers,
         <span class="hljs-string">&#x27;json&#x27;</span> =&gt; $request_body,
        )
@@ -1733,7 +1739,7 @@ print(r.json())
  <span class="hljs-comment">// ...</span>
 
 </code></pre>
-<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}&quot;</span>);
+<pre class="highlight tab tab-java"><code>URL obj = <span class="hljs-keyword">new</span> URL(<span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&quot;</span>);
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 con.setRequestMethod(<span class="hljs-string">&quot;DELETE&quot;</span>);
 <span class="hljs-keyword">int</span> responseCode = con.getResponseCode();
@@ -1758,7 +1764,7 @@ System.out.println(response.toString());
 <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> {
 
     data := bytes.NewBuffer([]<span class="hljs-keyword">byte</span>{jsonReq})
-    req, err := http.NewRequest(<span class="hljs-string">&quot;DELETE&quot;</span>, <span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}&quot;</span>, data)
+    req, err := http.NewRequest(<span class="hljs-string">&quot;DELETE&quot;</span>, <span class="hljs-string">&quot;{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}&quot;</span>, data)
     req.Header = headers
 
     client := &amp;http.Client{}
@@ -1767,8 +1773,8 @@ System.out.println(response.toString());
 }
 
 </code></pre>
-<p><code>DELETE /api/techniques/{id}</code></p>
-<p>The endpoint deletes a technique using its STIX id.</p>
+<p><code>DELETE /api/techniques/{id}/modified/{modified}</code></p>
+<p>The endpoint deletes a technique using its STIX id and modified date.</p>
 <h3 id="delete-a-technique-parameters">Parameters</h3>
 <table>
 <thead>

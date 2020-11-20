@@ -13,6 +13,9 @@ exports.initializeConnection = async function() {
     // Tell mongoose to use the native mongoDB findOneAndUpdate() function
     mongoose.set('useFindAndModify', false);
 
+    // Tell mongoose to use createIndex() instead of ensureIndex()
+    mongoose.set('useCreateIndex', true);
+
     // Bootstrap db connection
     logger.info('Mongoose attempting to connect to in memory database at ' + uri);
     try {

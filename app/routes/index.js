@@ -25,6 +25,7 @@ router.use('/api', techniquesRoutes);
 // Handle errors that haven't otherwise been caught
 router.use(errorHandler.bodyParser);
 router.use(errorHandler.requestValidation);
+router.use(errorHandler.invalidPath);
 router.use(errorHandler.catchAll);
 
 module.exports = router;

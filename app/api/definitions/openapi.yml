@@ -37,7 +37,7 @@ paths:
     post:
       summary: 'Create a technique'
       operationId: 'technique-create'
-      description: 'This endpoint creates a new technique object.'
+      description: 'This endpoint creates a new technique object. If stix.id is set, creates a new version of an existing technique.'
       tags:
         - 'Techniques'
       requestBody:
@@ -55,6 +55,8 @@ paths:
                 $ref: '#/components/schemas/technique'
         '400':
           description: 'Missing or invalid parameters were provided. The technique was not created.'
+        '409':
+          description: 'Duplicate stix.id and stix.modified date. The technique was not created.'
 
   /api/techniques/{id}:
     get:
@@ -79,10 +81,12 @@ paths:
                 $ref: '#/components/schemas/technique'
         '404':
           description: 'The technique with the requested STIX id was not found.'
+
+  /api/techniques/{id}/modified/{modified}:
     put:
       summary: 'Update a technique'
       operationId: 'technique-update'
-      description: 'The endpoint updates a technique using its STIX id.'
+      description: 'The endpoint updates a technique using its STIX id and modified date.'
       tags:
         - 'Techniques'
       parameters:
@@ -112,7 +116,7 @@ paths:
     delete:
       summary: 'Delete a technique'
       operationId: 'technique-delete'
-      description: 'The endpoint deletes a technique using its STIX id.'
+      description: 'The endpoint deletes a technique using its STIX id and modified date.'
       tags:
         - 'Techniques'
       parameters:

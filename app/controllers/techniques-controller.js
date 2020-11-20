@@ -49,8 +49,8 @@ exports.create = function(req, res) {
     techniquesService.create(techniqueData, function(err, technique) {
         if (err) {
             if (err.message === techniquesService.errors.duplicateId) {
-                logger.warn("Duplicate stix id");
-                return res.status(409).send('Duplicate stix id');
+                logger.warn("Duplicate stix.id and stix.modified");
+                return res.status(409).send('Unable to create technique. Duplicate stix.id and stix.modified properties.');
             }
             else {
                 logger.error("Failed with error: " + err);
@@ -69,7 +69,7 @@ exports.updateFull = function(req, res) {
     const techniqueData = req.body;
 
     // Create the technique
-    techniquesService.updateFull(req.params.stixId, techniqueData, function(err, technique) {
+    techniquesService.updateFull(req.params.stixId, req.params.modified, techniqueData, function(err, technique) {
         if (err) {
             logger.error("Failed with error: " + err);
             return res.status(500).send("Unable to update technique. Server error.");
@@ -86,7 +86,7 @@ exports.updateFull = function(req, res) {
 };
 
 exports.delete = function(req, res) {
-    techniquesService.delete(req.params.stixId, function (err, technique) {
+    techniquesService.delete(req.params.stixId, req.params.modified, function (err, technique) {
         if (err) {
             logger.error('Delete technique failed. ' + err);
             return res.status(500).send('Unable to delete technique. Server error.');

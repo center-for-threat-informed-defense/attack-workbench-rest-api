@@ -10,7 +10,9 @@ router.route('/techniques')
     .post(techniquesController.create);
 
 router.route('/techniques/:stixId')
-    .get(techniquesController.retrieveById)
+    .get(techniquesController.retrieveById);
+
+router.route('/techniques/:stixId/modified/:modified')
     .put(techniquesController.updateFull)
 //    .patch(techniquesController.updatePartial)
     .delete(techniquesController.delete);

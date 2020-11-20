@@ -515,7 +515,7 @@ func main() {
 
 `POST /api/techniques`
 
-This endpoint creates a new technique object.
+This endpoint creates a new technique object. If stix.id is set, creates a new version of an existing technique.
 
 > Body parameter
 
@@ -655,6 +655,7 @@ This endpoint creates a new technique object.
 |---|---|---|---|
 |201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The technique has been successfully created.|[technique](#schematechnique)|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The technique was not created.|None|
+|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate stix.id and stix.modified date. The technique was not created.|None|
 
 <aside class="success">
 This operation does not require authentication
@@ -894,14 +895,14 @@ This operation does not require authentication
 
 ```shell
 # You can also use wget
-curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{id} \
+curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified} \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json'
 
 ```
 
 ```http
-PUT {protocol}://{hostname}:{port}/api/techniques/{id} HTTP/1.1
+PUT {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified} HTTP/1.1
 
 Content-Type: application/json
 Accept: application/json
@@ -971,7 +972,7 @@ const headers = {
   'Accept':'application/json'
 };
 
-fetch('{protocol}://{hostname}:{port}/api/techniques/{id}',
+fetch('{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}',
 {
   method: 'PUT',
   body: inputBody,
@@ -994,7 +995,7 @@ headers = {
   'Accept' => 'application/json'
 }
 
-result = RestClient.put '{protocol}://{hostname}:{port}/api/techniques/{id}',
+result = RestClient.put '{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}',
   params: {
   }, headers: headers
 
@@ -1009,7 +1010,7 @@ headers = {
   'Accept': 'application/json'
 }
 
-r = requests.put('{protocol}://{hostname}:{port}/api/techniques/{id}', headers = headers)
+r = requests.put('{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}', headers = headers)
 
 print(r.json())
 
@@ -1031,7 +1032,7 @@ $client = new \GuzzleHttp\Client();
 $request_body = array();
 
 try {
-    $response = $client->request('PUT','{protocol}://{hostname}:{port}/api/techniques/{id}', array(
+    $response = $client->request('PUT','{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}', array(
         'headers' => $headers,
         'json' => $request_body,
        )
@@ -1048,7 +1049,7 @@ try {
 ```
 
 ```java
-URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{id}");
+URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}");
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 con.setRequestMethod("PUT");
 int responseCode = con.getResponseCode();
@@ -1080,7 +1081,7 @@ func main() {
     }
 
     data := bytes.NewBuffer([]byte{jsonReq})
-    req, err := http.NewRequest("PUT", "{protocol}://{hostname}:{port}/api/techniques/{id}", data)
+    req, err := http.NewRequest("PUT", "{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}", data)
     req.Header = headers
 
     client := &http.Client{}
@@ -1090,9 +1091,9 @@ func main() {
 
 ```
 
-`PUT /api/techniques/{id}`
+`PUT /api/techniques/{id}/modified/{modified}`
 
-The endpoint updates a technique using its STIX id.
+The endpoint updates a technique using its STIX id and modified date.
 
 > Body parameter
 
@@ -1247,18 +1248,18 @@ This operation does not require authentication
 
 ```shell
 # You can also use wget
-curl -X DELETE {protocol}://{hostname}:{port}/api/techniques/{id}
+curl -X DELETE {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}
 
 ```
 
 ```http
-DELETE {protocol}://{hostname}:{port}/api/techniques/{id} HTTP/1.1
+DELETE {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified} HTTP/1.1
 
 ```
 
 ```javascript
 
-fetch('{protocol}://{hostname}:{port}/api/techniques/{id}',
+fetch('{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}',
 {
   method: 'DELETE'
 
@@ -1275,7 +1276,7 @@ fetch('{protocol}://{hostname}:{port}/api/techniques/{id}',
 require 'rest-client'
 require 'json'
 
-result = RestClient.delete '{protocol}://{hostname}:{port}/api/techniques/{id}',
+result = RestClient.delete '{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}',
   params: {
   }
 
@@ -1286,7 +1287,7 @@ p JSON.parse(result)
 ```python
 import requests
 
-r = requests.delete('{protocol}://{hostname}:{port}/api/techniques/{id}')
+r = requests.delete('{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}')
 
 print(r.json())
 
@@ -1303,7 +1304,7 @@ $client = new \GuzzleHttp\Client();
 $request_body = array();
 
 try {
-    $response = $client->request('DELETE','{protocol}://{hostname}:{port}/api/techniques/{id}', array(
+    $response = $client->request('DELETE','{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}', array(
         'headers' => $headers,
         'json' => $request_body,
        )
@@ -1320,7 +1321,7 @@ try {
 ```
 
 ```java
-URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{id}");
+URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}");
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 con.setRequestMethod("DELETE");
 int responseCode = con.getResponseCode();
@@ -1347,7 +1348,7 @@ import (
 func main() {
 
     data := bytes.NewBuffer([]byte{jsonReq})
-    req, err := http.NewRequest("DELETE", "{protocol}://{hostname}:{port}/api/techniques/{id}", data)
+    req, err := http.NewRequest("DELETE", "{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}", data)
     req.Header = headers
 
     client := &http.Client{}
@@ -1357,9 +1358,9 @@ func main() {
 
 ```
 
-`DELETE /api/techniques/{id}`
+`DELETE /api/techniques/{id}/modified/{modified}`
 
-The endpoint deletes a technique using its STIX id.
+The endpoint deletes a technique using its STIX id and modified date.
 
 <h3 id="delete-a-technique-parameters">Parameters</h3>
 

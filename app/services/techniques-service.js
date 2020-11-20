@@ -54,11 +54,19 @@ exports.retrieveById = function(stixId, callback) {
 };
 
 exports.create = function(data, callback) {
+    // This function handles two use cases:
+    //   1. stix.id is undefined. Create a new object and generate the stix.id
+    //   2. stix.id is defined. Create a new object with the specified id. This is
+    //      a new version of an existing object.
+    //      TODO: Verify that the object already exists (?)
+
     // Create the document
     const technique = new Technique(data);
 
-    // Assign a new STIX id
-    technique.stix.id = `attack-pattern--${ uuid.v4()}`;
+    if (!technique.stix.id) {
+        // Assign a new STIX id
+        technique.stix.id = `attack-pattern--${uuid.v4()}`;
+    }
 
     // Save the document in the database
     technique.save(function(err, savedTechnique) {
@@ -78,64 +86,75 @@ exports.create = function(data, callback) {
     });
 };
 
-exports.updateFull = function(stixId, data, callback) {
-    if (stixId) {
-        Technique.findOne({ 'stix.id': stixId }, function(err, document) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    var error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
-                }
-                else {
-                    return callback(err);
-                }
-            }
-            else if (!document) {
-                // document not found
-                return callback(null);
+exports.updateFull = function(stixId, stixModified, data, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    if (!stixModified) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'modified';
+        return callback(error);
+    }
+
+    Technique.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function(err, document) {
+        if (err) {
+            if (err.name === 'CastError') {
+                var error = new Error(errors.badlyFormattedParameter);
+                error.parameterName = 'stixId';
+                return callback(error);
             }
             else {
-                // Copy data to found document and save
-                Object.assign(document, data);
-                document.save(function(err, savedDocument) {
-                    if (err) {
-                        if (err.name === 'MongoError' && err.code === 11000) {
-                            // 11000 = Duplicate index
-                            var error = new Error(errors.duplicateId);
-                            return callback(error);
-                        }
-                        else {
-                            return callback(err);
-                        }
+                return callback(err);
+            }
+        }
+        else if (!document) {
+            // document not found
+            return callback(null);
+        }
+        else {
+            // Copy data to found document and save
+            Object.assign(document, data);
+            document.save(function(err, savedDocument) {
+                if (err) {
+                    if (err.name === 'MongoError' && err.code === 11000) {
+                        // 11000 = Duplicate index
+                        var error = new Error(errors.duplicateId);
+                        return callback(error);
                     }
                     else {
-                        return callback(null, savedDocument);
+                        return callback(err);
                     }
-                });
-            }
-        });
-    }
-    else {
-        var error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
+                }
+                else {
+                    return callback(null, savedDocument);
+                }
+            });
+        }
+    });
 };
 
-exports.delete = function (stixId, callback) {
-    if (stixId) {
-        Technique.findOneAndRemove({ 'stix.id': stixId }, function (err, technique) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: technique is null if not found
-                return callback(null, technique);
-            }
-        });
-    } else {
-        var error = new Error(errors.missingParameter);
+exports.delete = function (stixId, stixModified, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
         return callback(error);
     }
+
+    if (!stixModified) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'modified';
+        return callback(error);
+    }
+
+    Technique.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, technique) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: technique is null if not found
+            return callback(null, technique);
+        }
+    });
 };

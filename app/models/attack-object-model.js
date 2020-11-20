@@ -21,6 +21,10 @@ const options = {
 };
 const attackObjectSchema = new mongoose.Schema(attackObjectDefinition, options);
 
+// Add an index on stix.id and stix.modified
+// This improves the efficiency of queries and enforces uniqueness on this combination of properties
+attackObjectSchema.index({ 'stix.id': 1, 'stix.modified': -1 }, { unique: true })
+
 // Create the model
 const attackObjectModel = mongoose.model('AttackObject', attackObjectSchema);
 
