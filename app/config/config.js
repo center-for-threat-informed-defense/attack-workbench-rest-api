@@ -10,5 +10,8 @@ module.exports = {
     },
     database: {
         url: process.env.DATABASE_URL
+    },
+    openApi: {
+        specPath: './app/api/definitions/openapi.yml'
     }
 };

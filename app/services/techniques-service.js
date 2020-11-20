@@ -66,7 +66,7 @@ exports.retrieveById = function(stixId, versions, callback) {
                     return callback(null, [ technique ]);
                 }
                 else {
-                    return callback([]);
+                    return callback(null, []);
                 }
             }
         });

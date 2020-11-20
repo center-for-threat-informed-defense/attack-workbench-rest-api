@@ -21,11 +21,18 @@ exports.initializeApp = function() {
     const helmet = require("helmet");
     app.use(helmet());
 
-    // Only use request logger for development environment
+    // Development Environment
     if (config.app.env === 'development') {
+        // Enable request logging
         logger.info('Enabling HTTP request logging');
         const morgan = require('morgan');
         app.use(morgan('dev', { stream: logger.stream }));
+
+        // Enable Swagger UI
+        const swaggerUi = require('swagger-ui-express');
+        const yaml = require('yamljs');
+        const openApiDoc = yaml.load(config.openApi.specPath);
+        app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
     }
 
     // Set up the static routes
