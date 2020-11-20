@@ -37,7 +37,7 @@ Base URLs:
 
 Operations on techniques.
 
-## Retrieve techniques
+## Get a list of techniques
 
 <a id="opIdtechnique-get-all"></a>
 
@@ -180,7 +180,8 @@ func main() {
 
 `GET /api/techniques`
 
-This endpoint retrieves multiple technique objects.
+This endpoint gets a list of techniques from the workspace.
+The list of techniques may include multiple versions of each technique.
 
 > Example responses
 
@@ -248,13 +249,13 @@ This endpoint retrieves multiple technique objects.
 ]
 ```
 
-<h3 id="retrieve-techniques-responses">Responses</h3>
+<h3 id="get-a-list-of-techniques-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of techniques.|Inline|
 
-<h3 id="retrieve-techniques-responseschema">Response Schema</h3>
+<h3 id="get-a-list-of-techniques-responseschema">Response Schema</h3>
 
 Status Code **200**
 
@@ -515,7 +516,9 @@ func main() {
 
 `POST /api/techniques`
 
-This endpoint creates a new technique object. If stix.id is set, creates a new version of an existing technique.
+This endpoint creates a new technique in the workspace.
+If the `stix.id` property is set, it creates a new version of an existing technique.
+If the `stix.id` property is not set, it creates a new technique, generating a STIX id for it.
 
 > Body parameter
 
@@ -655,27 +658,27 @@ This endpoint creates a new technique object. If stix.id is set, creates a new v
 |---|---|---|---|
 |201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The technique has been successfully created.|[technique](#schematechnique)|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The technique was not created.|None|
-|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate stix.id and stix.modified date. The technique was not created.|None|
+|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The technique was not created.|None|
 
 <aside class="success">
 This operation does not require authentication
 </aside>
 
-## Retrieve a technique
+## Get one or more versions of a technique
 
-<a id="opIdtechnique-get-one"></a>
+<a id="opIdtechnique-get-one-id"></a>
 
 > Code samples
 
 ```shell
 # You can also use wget
-curl -X GET {protocol}://{hostname}:{port}/api/techniques/{id} \
+curl -X GET {protocol}://{hostname}:{port}/api/techniques/{stixId} \
   -H 'Accept: application/json'
 
 ```
 
 ```http
-GET {protocol}://{hostname}:{port}/api/techniques/{id} HTTP/1.1
+GET {protocol}://{hostname}:{port}/api/techniques/{stixId} HTTP/1.1
 
 Accept: application/json
 
@@ -687,7 +690,7 @@ const headers = {
   'Accept':'application/json'
 };
 
-fetch('{protocol}://{hostname}:{port}/api/techniques/{id}',
+fetch('{protocol}://{hostname}:{port}/api/techniques/{stixId}',
 {
   method: 'GET',
 
@@ -709,7 +712,7 @@ headers = {
   'Accept' => 'application/json'
 }
 
-result = RestClient.get '{protocol}://{hostname}:{port}/api/techniques/{id}',
+result = RestClient.get '{protocol}://{hostname}:{port}/api/techniques/{stixId}',
   params: {
   }, headers: headers
 
@@ -723,7 +726,7 @@ headers = {
   'Accept': 'application/json'
 }
 
-r = requests.get('{protocol}://{hostname}:{port}/api/techniques/{id}', headers = headers)
+r = requests.get('{protocol}://{hostname}:{port}/api/techniques/{stixId}', headers = headers)
 
 print(r.json())
 
@@ -744,7 +747,7 @@ $client = new \GuzzleHttp\Client();
 $request_body = array();
 
 try {
-    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/techniques/{id}', array(
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/techniques/{stixId}', array(
         'headers' => $headers,
         'json' => $request_body,
        )
@@ -761,7 +764,7 @@ try {
 ```
 
 ```java
-URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{id}");
+URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{stixId}");
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 con.setRequestMethod("GET");
 int responseCode = con.getResponseCode();
@@ -792,7 +795,7 @@ func main() {
     }
 
     data := bytes.NewBuffer([]byte{jsonReq})
-    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/techniques/{id}", data)
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/techniques/{stixId}", data)
     req.Header = headers
 
     client := &http.Client{}
@@ -802,15 +805,307 @@ func main() {
 
 ```
 
-`GET /api/techniques/{id}`
+`GET /api/techniques/{stixId}`
 
-The endpoint retrieves a technique using its STIX id.
+This endpoint gets a list of one or more versions of a technique from the workspace, identified by their STIX id.
 
-<h3 id="retrieve-a-technique-parameters">Parameters</h3>
+<h3 id="get-one-or-more-versions-of-a-technique-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|id|path|string|true|STIX id of the technique to retrieve|
+|stixId|path|string|true|STIX id of the technique to retrieve|
+|versions|query|string|false|The versions of the technique to retrieve.|
+
+#### Detailed descriptions
+
+**versions**: The versions of the technique to retrieve.
+`all` gets all versions of the technique, `latest` gets only the latest version.
+
+#### Enumerated Values
+
+|Parameter|Value|
+|---|---|
+|versions|all|
+|versions|latest|
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "workspace": {
+      "domains": [
+        "attack-enterprise"
+      ]
+    },
+    "stix": {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "https://attack.mitre.org/techniques/T1103",
+          "external_id": "T1103"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "AppInit DLLs",
+      "description": "string",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "string",
+          "phase_name": "string"
+        }
+      ],
+      "x_mitre_contributors": [
+        "string"
+      ],
+      "x_mitre_data_sources": [
+        "string"
+      ],
+      "x_mitre_deprecated": false,
+      "x_mitre_detection": "string",
+      "x_mitre_effective_permissions": [
+        "Administrator"
+      ],
+      "x_mitre_permissions_required": [
+        "Administrator"
+      ],
+      "x_mitre_platforms": [
+        "Windows"
+      ],
+      "x_mitre_subtechnique": false,
+      "x_mitre_system_requirements": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
+```
+
+<h3 id="get-one-or-more-versions-of-a-technique-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of techniques matching the requested STIX id.|Inline|
+
+<h3 id="get-one-or-more-versions-of-a-technique-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[technique](#schematechnique)]|false|none|none|
+|» workspace|[workspace](#schemaworkspace)|true|none|none|
+|»» domains|[string]|true|none|This property replaces x_mitre_collections|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[stix-common](#schemastix-common)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[[external_reference](#schemaexternal_reference)]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» kill_chain_phases|[[kill_chain_phase](#schemakill_chain_phase)]|false|none|none|
+|»»»» kill_chain_name|string|true|none|none|
+|»»»» phase_name|string|true|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_data_sources|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_detection|string|false|none|none|
+|»»» x_mitre_effective_permissions|[string]|false|none|none|
+|»»» x_mitre_permissions_required|[string]|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_subtechnique|boolean|false|none|none|
+|»»» x_mitre_system_requirements|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Gets the version of a technique matching the STIX id and modified date
+
+<a id="opIdtechnique-get-by-id-and-modified"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified} \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified} HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/techniques/{stixId}/modified/{modified}`
+
+This endpoint gets a single version of a technique from the workspace, identified by its STIX id and modified date.
+
+<h3 id="gets-the-version-of-a-technique-matching-the-stix-id-and-modified-date-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the technique to retrieve|
+|modified|path|string|true|modified date of the technique to retrieve|
 
 > Example responses
 
@@ -876,12 +1171,12 @@ The endpoint retrieves a technique using its STIX id.
 }
 ```
 
-<h3 id="retrieve-a-technique-responses">Responses</h3>
+<h3 id="gets-the-version-of-a-technique-matching-the-stix-id-and-modified-date-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The technique with the requested id.|[technique](#schematechnique)|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested STIX id was not found.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a technique matching the STIX id and modified date.|[technique](#schematechnique)|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A technique with the requested STIX id and modified date was not found.|None|
 
 <aside class="success">
 This operation does not require authentication
@@ -895,14 +1190,14 @@ This operation does not require authentication
 
 ```shell
 # You can also use wget
-curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified} \
+curl -X PUT {protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified} \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json'
 
 ```
 
 ```http
-PUT {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified} HTTP/1.1
+PUT {protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified} HTTP/1.1
 
 Content-Type: application/json
 Accept: application/json
@@ -972,7 +1267,7 @@ const headers = {
   'Accept':'application/json'
 };
 
-fetch('{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}',
+fetch('{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}',
 {
   method: 'PUT',
   body: inputBody,
@@ -995,7 +1290,7 @@ headers = {
   'Accept' => 'application/json'
 }
 
-result = RestClient.put '{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}',
+result = RestClient.put '{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}',
   params: {
   }, headers: headers
 
@@ -1010,7 +1305,7 @@ headers = {
   'Accept': 'application/json'
 }
 
-r = requests.put('{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}', headers = headers)
+r = requests.put('{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}', headers = headers)
 
 print(r.json())
 
@@ -1032,7 +1327,7 @@ $client = new \GuzzleHttp\Client();
 $request_body = array();
 
 try {
-    $response = $client->request('PUT','{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}', array(
+    $response = $client->request('PUT','{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}', array(
         'headers' => $headers,
         'json' => $request_body,
        )
@@ -1049,7 +1344,7 @@ try {
 ```
 
 ```java
-URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}");
+URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}");
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 con.setRequestMethod("PUT");
 int responseCode = con.getResponseCode();
@@ -1081,7 +1376,7 @@ func main() {
     }
 
     data := bytes.NewBuffer([]byte{jsonReq})
-    req, err := http.NewRequest("PUT", "{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}", data)
+    req, err := http.NewRequest("PUT", "{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}", data)
     req.Header = headers
 
     client := &http.Client{}
@@ -1091,9 +1386,9 @@ func main() {
 
 ```
 
-`PUT /api/techniques/{id}/modified/{modified}`
+`PUT /api/techniques/{stixId}/modified/{modified}`
 
-The endpoint updates a technique using its STIX id and modified date.
+This endpoint updates a single version of a technique in the workspace, identified by its STIX id and modified date.
 
 > Body parameter
 
@@ -1161,7 +1456,8 @@ The endpoint updates a technique using its STIX id and modified date.
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|id|path|string|true|STIX id of the technique to update|
+|stixId|path|string|true|STIX id of the technique to update|
+|modified|path|string|true|modified date of the technique to update|
 |body|body|[technique](#schematechnique)|true|none|
 
 > Example responses
@@ -1232,9 +1528,9 @@ The endpoint updates a technique using its STIX id and modified date.
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The technique has been successfully updated.|[technique](#schematechnique)|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The technique was updated.|[technique](#schematechnique)|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The technique was not updated.|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested STIX id was not found.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A technique with the requested STIX id and modified date was not found.|None|
 
 <aside class="success">
 This operation does not require authentication
@@ -1248,18 +1544,18 @@ This operation does not require authentication
 
 ```shell
 # You can also use wget
-curl -X DELETE {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}
+curl -X DELETE {protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}
 
 ```
 
 ```http
-DELETE {protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified} HTTP/1.1
+DELETE {protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified} HTTP/1.1
 
 ```
 
 ```javascript
 
-fetch('{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}',
+fetch('{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}',
 {
   method: 'DELETE'
 
@@ -1276,7 +1572,7 @@ fetch('{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}',
 require 'rest-client'
 require 'json'
 
-result = RestClient.delete '{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}',
+result = RestClient.delete '{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}',
   params: {
   }
 
@@ -1287,7 +1583,7 @@ p JSON.parse(result)
 ```python
 import requests
 
-r = requests.delete('{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}')
+r = requests.delete('{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}')
 
 print(r.json())
 
@@ -1304,7 +1600,7 @@ $client = new \GuzzleHttp\Client();
 $request_body = array();
 
 try {
-    $response = $client->request('DELETE','{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}', array(
+    $response = $client->request('DELETE','{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}', array(
         'headers' => $headers,
         'json' => $request_body,
        )
@@ -1321,7 +1617,7 @@ try {
 ```
 
 ```java
-URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}");
+URL obj = new URL("{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}");
 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 con.setRequestMethod("DELETE");
 int responseCode = con.getResponseCode();
@@ -1348,7 +1644,7 @@ import (
 func main() {
 
     data := bytes.NewBuffer([]byte{jsonReq})
-    req, err := http.NewRequest("DELETE", "{protocol}://{hostname}:{port}/api/techniques/{id}/modified/{modified}", data)
+    req, err := http.NewRequest("DELETE", "{protocol}://{hostname}:{port}/api/techniques/{stixId}/modified/{modified}", data)
     req.Header = headers
 
     client := &http.Client{}
@@ -1358,22 +1654,24 @@ func main() {
 
 ```
 
-`DELETE /api/techniques/{id}/modified/{modified}`
+`DELETE /api/techniques/{stixId}/modified/{modified}`
 
-The endpoint deletes a technique using its STIX id and modified date.
+This endpoint deletes a single version of a technique from the workspace.
+The technique is identified by its STIX id and modified date.
 
 <h3 id="delete-a-technique-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|id|path|string|true|STIX id of the technique to delete|
+|stixId|path|string|true|STIX id of the technique to delete|
+|modified|path|string|true|modified date of the technique to delete|
 
 <h3 id="delete-a-technique-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The technique with the requested STIX id has been deleted.|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The technique with the requested STIX id was not found.|None|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The technique was successfully deleted.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A technique with the requested STIX id and modified date was not found.|None|
 
 <aside class="success">
 This operation does not require authentication
