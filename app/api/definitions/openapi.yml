@@ -19,9 +19,11 @@ tags:
 paths:
   /api/techniques:
     get:
-      summary: 'Retrieve techniques'
+      summary: 'Get a list of techniques'
       operationId: 'technique-get-all'
-      description: 'This endpoint retrieves multiple technique objects.'
+      description: |
+        This endpoint gets a list of techniques from the workspace.
+        The list of techniques may include multiple versions of each technique.
       tags:
         - 'Techniques'
       responses:
@@ -37,7 +39,10 @@ paths:
     post:
       summary: 'Create a technique'
       operationId: 'technique-create'
-      description: 'This endpoint creates a new technique object. If stix.id is set, creates a new version of an existing technique.'
+      description: |
+        This endpoint creates a new technique in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing technique.
+        If the `stix.id` property is not set, it creates a new technique, generating a STIX id for it.
       tags:
         - 'Techniques'
       requestBody:
@@ -56,34 +61,37 @@ paths:
         '400':
           description: 'Missing or invalid parameters were provided. The technique was not created.'
         '409':
-          description: 'Duplicate stix.id and stix.modified date. The technique was not created.'
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The technique was not created.'
 
-  /api/techniques/{id}:
+  /api/techniques/{stixId}:
     get:
-      summary: 'Retrieve the techniques matching a STIX id'
+      summary: 'Get one or more versions of a technique'
       operationId: 'technique-get-one-id'
-      description: 'The endpoint retrieves one or more techniques that have a particular STIX id.'
+      description: |
+        This endpoint gets a list of one or more versions of a technique from the workspace, identified by their STIX id.
       tags:
         - 'Techniques'
       parameters:
-        - name: id
+        - name: stixId
           in: path
           description: 'STIX id of the technique to retrieve'
           required: true
           schema:
             type: string
-        - in: query
-          name: versions
+        - name: versions
+          in: query
+          description: |
+            The versions of the technique to retrieve.
+            `all` gets all versions of the technique, `latest` gets only the latest version.
           schema:
             type: string
             enum:
               - all
               - latest
             default: latest
-          description: 'Which version or versions to retrieve'
       responses:
         '200':
-          description: 'A list of techniques with the requested id.'
+          description: 'A list of techniques matching the requested STIX id.'
           content:
             application/json:
               schema:
@@ -91,15 +99,16 @@ paths:
                 items:
                   $ref: '#/components/schemas/technique'
 
-  /api/techniques/{id}/modified/{modified}:
+  /api/techniques/{stixId}/modified/{modified}:
     get:
-      summary: 'Retrieve the technique matching the STIX id and modified date'
+      summary: 'Gets the version of a technique matching the STIX id and modified date'
       operationId: 'technique-get-by-id-and-modified'
-      description: 'The endpoint retrieves the version of a technique by STIX id and modified date.'
+      description: |
+        This endpoint gets a single version of a technique from the workspace, identified by its STIX id and modified date.
       tags:
         - 'Techniques'
       parameters:
-        - name: id
+        - name: stixId
           in: path
           description: 'STIX id of the technique to retrieve'
           required: true
@@ -113,21 +122,22 @@ paths:
             type: string
       responses:
         '200':
-          description: 'A list of techniques with the requested id.'
+          description: 'The version of a technique matching the STIX id and modified date.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/technique'
         '404':
-          description: 'The technique with the requested STIX id was not found.'
+          description: 'A technique with the requested STIX id and modified date was not found.'
     put:
       summary: 'Update a technique'
       operationId: 'technique-update'
-      description: 'The endpoint updates a technique using its STIX id and modified date.'
+      description: |
+        This endpoint updates a single version of a technique in the workspace, identified by its STIX id and modified date.
       tags:
         - 'Techniques'
       parameters:
-        - name: id
+        - name: stixId
           in: path
           description: 'STIX id of the technique to update'
           required: true
@@ -147,7 +157,7 @@ paths:
               $ref: '#/components/schemas/technique'
       responses:
         '200':
-          description: 'The technique has been successfully updated.'
+          description: 'The technique was updated.'
           content:
             application/json:
               schema:
@@ -155,15 +165,17 @@ paths:
         '400':
           description: 'Missing or invalid parameters were provided. The technique was not updated.'
         '404':
-          description: 'The technique with the requested STIX id was not found.'
+          description: 'A technique with the requested STIX id and modified date was not found.'
     delete:
       summary: 'Delete a technique'
       operationId: 'technique-delete'
-      description: 'The endpoint deletes a technique using its STIX id and modified date.'
+      description: |
+        This endpoint deletes a single version of a technique from the workspace.
+        The technique is identified by its STIX id and modified date.
       tags:
         - 'Techniques'
       parameters:
-        - name: id
+        - name: stixId
           in: path
           description: 'STIX id of the technique to delete'
           required: true
@@ -177,9 +189,9 @@ paths:
             type: string
       responses:
         '204':
-          description: 'The technique with the requested STIX id has been deleted.'
+          description: 'The technique was successfully deleted.'
         '404':
-          description: 'The technique with the requested STIX id was not found.'
+          description: 'A technique with the requested STIX id and modified date was not found.'
 
 components:
   schemas:
