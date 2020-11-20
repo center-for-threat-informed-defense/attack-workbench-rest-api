@@ -7,7 +7,8 @@ const errors = {
     missingParameter: 'Missing required parameter',
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
-    notFound: 'Document not found'
+    notFound: 'Document not found',
+    invalidQueryStringParameter: 'Invalid query string parameter'
 };
 exports.errors = errors;
 
@@ -22,8 +23,32 @@ exports.retrieveAll = function(callback) {
     });
 };
 
-exports.retrieveById = function(stixId, callback) {
-    if (stixId) {
+exports.retrieveById = function(stixId, versions, callback) {
+    // versions=all Retrieve all techniques with the stixId
+    // versions=latest Retrieve the technique with the latest modified date for this stixId
+
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    if (versions === 'all') {
+        Technique.find({'stix.id': stixId}, function (err, techniques) {
+            if (err) {
+                if (err.name === 'CastError') {
+                    const error = new Error(errors.badlyFormattedParameter);
+                    error.parameterName = 'stixId';
+                    return callback(error);
+                } else {
+                    return callback(err);
+                }
+            } else {
+                return callback(null, techniques);
+            }
+        });
+    }
+    else if (versions === 'latest') {
         Technique.findOne({ 'stix.id': stixId }, function(err, technique) {
             if (err) {
                 if (err.name === 'CastError') {
@@ -38,19 +63,58 @@ exports.retrieveById = function(stixId, callback) {
             else {
                 // Note: document is null if not found
                 if (technique) {
-                    return callback(null, technique);
+                    return callback(null, [ technique ]);
                 }
                 else {
-                    return callback();
+                    return callback([]);
                 }
             }
         });
     }
     else {
+        const error = new Error(errors.invalidQueryStringParameter);
+        error.parameterName = 'versions';
+        return callback(error);
+    }
+};
+
+exports.retrieveVersionById = function(stixId, modified, callback) {
+    // Retrieve the versions of the technique with the matching stixId and modified date
+
+    if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
         return callback(error);
     }
+
+    if (!modified) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'modified';
+        return callback(error);
+    }
+
+    Technique.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function(err, technique) {
+        if (err) {
+            if (err.name === 'CastError') {
+                const error = new Error(errors.badlyFormattedParameter);
+                error.parameterName = 'stixId';
+                return callback(error);
+            }
+            else {
+                return callback(err);
+            }
+        }
+        else {
+            // Note: document is null if not found
+            if (technique) {
+                return callback(null, technique);
+            }
+            else {
+                console.log('** NOT FOUND')
+                return callback();
+            }
+        }
+    });
 };
 
 exports.create = function(data, callback) {

@@ -60,9 +60,9 @@ paths:
 
   /api/techniques/{id}:
     get:
-      summary: 'Retrieve a technique'
-      operationId: 'technique-get-one'
-      description: 'The endpoint retrieves a technique using its STIX id.'
+      summary: 'Retrieve the techniques matching a STIX id'
+      operationId: 'technique-get-one-id'
+      description: 'The endpoint retrieves one or more techniques that have a particular STIX id.'
       tags:
         - 'Techniques'
       parameters:
@@ -72,17 +72,54 @@ paths:
           required: true
           schema:
             type: string
+        - in: query
+          name: versions
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+          description: 'Which version or versions to retrieve'
       responses:
         '200':
-          description: 'The technique with the requested id.'
+          description: 'A list of techniques with the requested id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/technique'
+
+  /api/techniques/{id}/modified/{modified}:
+    get:
+      summary: 'Retrieve the technique matching the STIX id and modified date'
+      operationId: 'technique-get-by-id-and-modified'
+      description: 'The endpoint retrieves the version of a technique by STIX id and modified date.'
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: id
+          in: path
+          description: 'STIX id of the technique to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A list of techniques with the requested id.'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/technique'
         '404':
           description: 'The technique with the requested STIX id was not found.'
-
-  /api/techniques/{id}/modified/{modified}:
     put:
       summary: 'Update a technique'
       operationId: 'technique-update'
@@ -93,6 +130,12 @@ paths:
         - name: id
           in: path
           description: 'STIX id of the technique to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique to update'
           required: true
           schema:
             type: string
@@ -123,6 +166,12 @@ paths:
         - name: id
           in: path
           description: 'STIX id of the technique to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique to delete'
           required: true
           schema:
             type: string

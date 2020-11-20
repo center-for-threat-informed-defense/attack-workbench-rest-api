@@ -13,6 +13,7 @@ router.route('/techniques/:stixId')
     .get(techniquesController.retrieveById);
 
 router.route('/techniques/:stixId/modified/:modified')
+    .get(techniquesController.retrieveVersionById)
     .put(techniquesController.updateFull)
 //    .patch(techniquesController.updatePartial)
     .delete(techniquesController.delete);
