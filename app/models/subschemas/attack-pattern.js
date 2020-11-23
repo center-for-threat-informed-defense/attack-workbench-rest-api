@@ -13,7 +13,8 @@ module.exports.attackPattern = {
     x_mitre_platforms: [ String ],
     x_mitre_is_subtechnique: Boolean,
     x_mitre_deprecated: Boolean,
-    x_mitre_version: String
+    x_mitre_version: String,
+    x_mitre_contributors: [ String ]
 };
 
 // Domain specific properties
