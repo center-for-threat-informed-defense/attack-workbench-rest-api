@@ -3,7 +3,7 @@
 // Configure the logger
 const logger = require('./app/lib/logger');
 
-logger.info('Federated ATT&CK REST API app starting');
+logger.info('ATT&CK Workbench REST API app starting');
 
 const os = require('os');
 logger.info('** hostname = ' + os.hostname());
@@ -56,7 +56,7 @@ const server = app.listen(config.server.port, function () {
     const port = server.address().port;
 
     logger.info(`Listening at http://${host}:${port}`);
-    logger.info('Federated ATT&CK REST API start up complete');
+    logger.info('ATT&CK Workbench REST API start up complete');
 });
 
 module.exports = app;
