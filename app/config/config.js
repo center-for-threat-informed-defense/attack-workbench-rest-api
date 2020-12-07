@@ -5,7 +5,7 @@ module.exports = {
         port: process.env.PORT || 3000
     },
     app: {
-        name: 'federated-attack-rest-api',
+        name: 'attack-workbench-rest-api',
         env: process.env.NODE_ENV || 'development'
     },
     database: {

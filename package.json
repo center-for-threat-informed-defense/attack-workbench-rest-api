@@ -1,7 +1,7 @@
 {
-  "name": "federated-attack-rest-api",
+  "name": "attack-workbench-rest-api",
   "version": "0.0.0",
-  "description": "REST API service for the ATT&CK Workspace.",
+  "description": "REST API service for the ATT&CK Workbench.",
   "main": "index.js",
   "scripts": {
     "api:generate-md": "widdershins ./app/api/definitions/api.yml -o ./app/api/markdown/api.md --summary",
