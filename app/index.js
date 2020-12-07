@@ -2,7 +2,7 @@
 
 exports.initializeApp = function() {
     const logger = require('./lib/logger');
-    logger.info('Federated ATT&CK REST API app starting');
+    logger.info('ATT&CK Workbench REST API app starting');
 
     // Configure the app
     logger.info('Configuring the app');

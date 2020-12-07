@@ -28,7 +28,7 @@ async function runServer() {
         const port = server.address().port;
 
         logger.info(`Listening at http://${host}:${port}`);
-        logger.info('Federated ATT&CK REST API start up complete');
+        logger.info('ATT&CK Workbench REST API start up complete');
     })
 }
 

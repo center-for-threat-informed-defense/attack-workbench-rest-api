@@ -1,6 +1,6 @@
 # Workspace Data Model
 
-The Federated ATT&CK workspace supports the following ATT&CK object types
+The ATT&CK Workbench database supports the following ATT&CK object types
 (with the corresponding STIX types where applicable):
 - Collection (x-mitre-collection)
 - Matrix (x-mitre-matrix)

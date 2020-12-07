@@ -1,6 +1,6 @@
 openapi: '3.0.3'
 info:
-  title: 'Federated ATT&CK REST API'
+  title: 'ATT&CK Workbench REST API'
   version: '0.0.1'
 servers:
   - url: '{protocol}://{hostname}:{port}/'

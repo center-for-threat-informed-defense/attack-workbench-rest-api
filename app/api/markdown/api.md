@@ -1,5 +1,5 @@
 ---
-title: Federated ATT&CK REST API v0.0.1
+title: ATT&CK Workbench REST API v0.0.1
 language_tabs:
   - shell: Shell
   - http: HTTP
@@ -19,7 +19,7 @@ headingLevel: 2
 
 <!-- Generator: Widdershins v4.0.1 -->
 
-<h1 id="federated-att-and-ck-rest-api">Federated ATT&CK REST API v0.0.1</h1>
+<h1 id="att-and-ck-workbench-rest-api">ATT&CK Workbench REST API v0.0.1</h1>
 
 > Scroll down for code samples, example requests and responses. Select a language for code samples from the tabs above or the mobile navigation menu.
 
@@ -33,7 +33,7 @@ Base URLs:
 
     * **port** -  Default: 3000
 
-<h1 id="federated-att-and-ck-rest-api-techniques">Techniques</h1>
+<h1 id="att-and-ck-workbench-rest-api-techniques">Techniques</h1>
 
 Operations on techniques.
 
