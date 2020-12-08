@@ -350,6 +350,38 @@ System.out.println(response.toString());
 <p><code>GET /api/techniques</code></p>
 <p>This endpoint gets a list of techniques from the workspace.
 The list of techniques may include multiple versions of each technique.</p>
+<h3 id="get-a-list-of-techniques-parameters">Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>In</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>limit</td>
+<td>query</td>
+<td>number</td>
+<td>false</td>
+<td>The number of techniques to retrieve.</td>
+</tr>
+<tr>
+<td>offset</td>
+<td>query</td>
+<td>number</td>
+<td>false</td>
+<td>The number of techniques to skip.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="detailed-descriptions">Detailed descriptions</h4>
+<p><strong>limit</strong>: The number of techniques to retrieve.
+The default (0) will retrieve all techniques.</p>
+<p><strong>offset</strong>: The number of techniques to skip.</p>
 <blockquote>
 <p>Example responses</p>
 </blockquote>
@@ -1234,7 +1266,7 @@ System.out.println(response.toString());
 </tr>
 </tbody>
 </table>
-<h4 id="detailed-descriptions">Detailed descriptions</h4>
+<h4 id="detailed-descriptions-2">Detailed descriptions</h4>
 <p><strong>versions</strong>: The versions of the technique to retrieve.
 <code>all</code> gets all versions of the technique, <code>latest</code> gets only the latest version.</p>
 <h4 id="enumerated-values">Enumerated Values</h4>

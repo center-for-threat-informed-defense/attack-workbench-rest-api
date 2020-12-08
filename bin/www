@@ -18,7 +18,7 @@ async function runServer() {
     await require('../app/lib/database-connection').initializeConnection();
 
     // Create the app
-    const app = await require('../app').initializeApp();
+    const app = require('../app');
     const config = app.get('config');
 
     // Start the server

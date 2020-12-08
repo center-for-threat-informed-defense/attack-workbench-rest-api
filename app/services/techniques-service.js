@@ -12,15 +12,19 @@ const errors = {
 };
 exports.errors = errors;
 
-exports.retrieveAll = function(callback) {
-    Technique.find(function(err, techniques) {
-        if (err) {
-            return callback(err);
-        }
-        else {
-            return callback(null, techniques);
-        }
-    });
+exports.retrieveAll = function(offset, limit, callback) {
+    Technique.find()
+        .skip(offset)
+        .limit(limit)
+        .lean()
+        .exec(function(err, techniques) {
+            if (err) {
+                return callback(err);
+            }
+            else {
+                return callback(null, techniques);
+            }
+        });
 };
 
 exports.retrieveById = function(stixId, versions, callback) {

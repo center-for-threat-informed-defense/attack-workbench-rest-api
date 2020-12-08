@@ -1,7 +1,8 @@
 const request = require('supertest');
-const database = require('../../lib/database-in-memory')
 const expect = require('expect');
 const _ = require('lodash');
+
+const app = require('../../index');
 
 const logger = require('../../lib/logger');
 logger.level = 'debug';
@@ -33,28 +34,17 @@ const initialObjectData = {
     }
 };
 
-let app;
-before(async function() {
-    // Establish the database connection
-    // Use an in-memory database that we spin up for the test
-    await database.initializeConnection();
-
-    // Create the app
-    app = await require('../../index').initializeApp();
-});
-
-describe('Techniques API', function () {
+describe('Techniques Basic API', function () {
     it('GET /api/techniques returns an empty array of techniques', function (done) {
         request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get an empty array
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
@@ -66,17 +56,16 @@ describe('Techniques API', function () {
     });
 
     it('POST /api/techniques does not create an empty technique', function (done) {
-        const body = { };
+        const body = {};
         request(app)
             .post('/api/techniques')
             .send(body)
             .set('Accept', 'application/json')
             .expect(400)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     done();
                 }
             });
@@ -94,11 +83,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(201)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get the created technique
                     technique1 = res.body;
                     expect(technique1).toBeDefined();
@@ -113,11 +101,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get one technique in an array
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
@@ -134,11 +121,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get one technique in an array
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
@@ -184,11 +170,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get the updated technique
                     const technique = res.body;
                     expect(technique).toBeDefined();
@@ -206,11 +191,10 @@ describe('Techniques API', function () {
             .send(body)
             .set('Accept', 'application/json')
             .expect(409)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     done();
                 }
             });
@@ -231,11 +215,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(201)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get the created technique
                     const technique = res.body;
                     expect(technique).toBeDefined();
@@ -250,11 +233,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get one technique in an array
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
@@ -274,11 +256,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get two techniques in an array
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
@@ -295,11 +276,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get one technique in an array
                     const technique = res.body;
                     expect(technique).toBeDefined();
@@ -317,11 +297,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get one technique in an array
                     const technique = res.body;
                     expect(technique).toBeDefined();
@@ -337,11 +316,10 @@ describe('Techniques API', function () {
         request(app)
             .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified)
             .expect(204)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     done();
                 }
             });
@@ -351,11 +329,10 @@ describe('Techniques API', function () {
         request(app)
             .delete('/api/techniques/' + technique2.stix.id + '/modified/' + technique2.stix.modified)
             .expect(204)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     done();
                 }
             });
@@ -367,11 +344,10 @@ describe('Techniques API', function () {
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
-                }
-                else {
+                } else {
                     // We expect to get an empty array
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
@@ -381,8 +357,4 @@ describe('Techniques API', function () {
                 }
             });
     });
-});
-
-after(async function() {
-    await database.closeConnection();
 });

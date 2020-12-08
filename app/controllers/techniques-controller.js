@@ -4,7 +4,10 @@ const techniquesService = require('../services/techniques-service');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
-    techniquesService.retrieveAll(function(err, techniques) {
+    const offset = req.query.offset || 0;
+    const limit = req.query.limit || 0;
+
+    techniquesService.retrieveAll(offset, limit, function(err, techniques) {
         if (err) {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get techniques. Server error.');

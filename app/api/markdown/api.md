@@ -183,6 +183,20 @@ func main() {
 This endpoint gets a list of techniques from the workspace.
 The list of techniques may include multiple versions of each technique.
 
+<h3 id="get-a-list-of-techniques-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|limit|query|number|false|The number of techniques to retrieve.|
+|offset|query|number|false|The number of techniques to skip.|
+
+#### Detailed descriptions
+
+**limit**: The number of techniques to retrieve.
+The default (0) will retrieve all techniques.
+
+**offset**: The number of techniques to skip.
+
 > Example responses
 
 > 200 Response
