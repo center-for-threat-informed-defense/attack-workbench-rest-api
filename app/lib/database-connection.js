@@ -3,6 +3,14 @@
 exports.initializeConnection = async function() {
     const logger = require('./logger');
     const config = require('../config/config');
+
+    if (!config.database.url) {
+        logger.error('The URL for the MongoDB database must be set in the DATABASE_URL environment variable. Terminating app.');
+
+        // Terminate the app
+        process.exit(1);
+    }
+
     const mongoose = require('mongoose');
 
     // Configure mongoose to use ES6 promises
@@ -28,8 +36,8 @@ exports.initializeConnection = async function() {
 //    });
 
     function handleError(error) {
-        logger.warn('Mongoose connection error: ' + error);
-        logger.warn('Database (mongoose) connection is required. Terminating app.');
+        logger.error('Mongoose connection error: ' + error);
+        logger.error('Database (mongoose) connection is required. Terminating app.');
 
         // Terminate the app
         process.exit(1);
