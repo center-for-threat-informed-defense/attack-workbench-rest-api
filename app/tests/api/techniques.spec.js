@@ -2,10 +2,11 @@ const request = require('supertest');
 const expect = require('expect');
 const _ = require('lodash');
 
-const app = require('../../index');
-
 const logger = require('../../lib/logger');
 logger.level = 'debug';
+
+const database = require('../../lib/database-in-memory')
+const app = require('../../index');
 
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
@@ -35,6 +36,12 @@ const initialObjectData = {
 };
 
 describe('Techniques Basic API', function () {
+    before(async function() {
+        // Establish the database connection
+        // Use an in-memory database that we spin up for the test
+        await database.initializeConnection();
+    });
+
     it('GET /api/techniques returns an empty array of techniques', function (done) {
         request(app)
             .get('/api/techniques')
@@ -356,5 +363,9 @@ describe('Techniques Basic API', function () {
                     done();
                 }
             });
+    });
+
+    after(async function() {
+        await database.closeConnection();
     });
 });

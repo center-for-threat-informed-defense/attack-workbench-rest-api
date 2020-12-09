@@ -12,10 +12,20 @@ const errors = {
 };
 exports.errors = errors;
 
-exports.retrieveAll = function(offset, limit, callback) {
-    Technique.find()
-        .skip(offset)
-        .limit(limit)
+exports.retrieveAll = function(options, callback) {
+    const query = {};
+    if (typeof options.revoked !== 'undefined') {
+        query['stix.revoked'] = options.revoked || { $in: [null, false] };
+    }
+    if (typeof options.deprecated !== 'undefined') {
+        query['stix.x_mitre_deprecated'] = options.deprecated || { $in: [null, false] };
+    }
+    if (typeof options.state !== 'undefined') {
+        query['workspace.workflow.state'] = options.state;
+    }
+    Technique.find(query)
+        .skip(options.offset)
+        .limit(options.limit)
         .lean()
         .exec(function(err, techniques) {
             if (err) {
@@ -38,42 +48,49 @@ exports.retrieveById = function(stixId, versions, callback) {
     }
 
     if (versions === 'all') {
-        Technique.find({'stix.id': stixId}, function (err, techniques) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
-                } else {
-                    return callback(err);
+        Technique.find({'stix.id': stixId})
+            .lean()
+            .exec(function (err, techniques) {
+                if (err) {
+                    if (err.name === 'CastError') {
+                        const error = new Error(errors.badlyFormattedParameter);
+                        error.parameterName = 'stixId';
+                        return callback(error);
+                    }
+                    else {
+                        return callback(err);
+                    }
                 }
-            } else {
-                return callback(null, techniques);
-            }
-        });
+                else {
+                    return callback(null, techniques);
+                }
+            });
     }
     else if (versions === 'latest') {
-        Technique.findOne({ 'stix.id': stixId }, function(err, technique) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
+        Technique.findOne({ 'stix.id': stixId })
+            .sort('-stix.modified')
+            .lean()
+            .exec(function(err, technique) {
+                if (err) {
+                    if (err.name === 'CastError') {
+                        const error = new Error(errors.badlyFormattedParameter);
+                        error.parameterName = 'stixId';
+                        return callback(error);
+                    }
+                    else {
+                        return callback(err);
+                    }
                 }
                 else {
-                    return callback(err);
+                    // Note: document is null if not found
+                    if (technique) {
+                        return callback(null, [ technique ]);
+                    }
+                    else {
+                        return callback(null, []);
+                    }
                 }
-            }
-            else {
-                // Note: document is null if not found
-                if (technique) {
-                    return callback(null, [ technique ]);
-                }
-                else {
-                    return callback(null, []);
-                }
-            }
-        });
+            });
     }
     else {
         const error = new Error(errors.invalidQueryStringParameter);
@@ -226,3 +243,4 @@ exports.delete = function (stixId, stixModified, callback) {
         }
     });
 };
+

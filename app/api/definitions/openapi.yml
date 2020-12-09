@@ -42,6 +42,25 @@ paths:
           schema:
             type: number
             default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: revoked
+          in: query
+          description: |
+            Whether the object has been revoked.
+          schema:
+            type: boolean
+        - name: deprecated
+          in: query
+          description: |
+            Whether the object has been deprecated.
+          schema:
+            type: boolean
       responses:
         '200':
           description: 'A list of techniques.'

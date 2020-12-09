@@ -2,12 +2,13 @@ const request = require('supertest');
 const expect = require('expect');
 const _ = require('lodash');
 
+const logger = require('../../lib/logger');
+logger.level = 'debug';
+
+const database = require('../../lib/database-in-memory')
 const app = require('../../index');
 
 const techniquesService = require('../../services/techniques-service');
-
-const logger = require('../../lib/logger');
-logger.level = 'debug';
 
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
@@ -60,6 +61,12 @@ function loadTechniques() {
 }
 
 describe('Techniques Pagination API', function () {
+    before(async function() {
+        // Establish the database connection
+        // Use an in-memory database that we spin up for the test
+        await database.initializeConnection();
+    });
+
     it('GET /api/techniques return the array of preloaded techniques', function (done) {
         loadTechniques();
         request(app)
@@ -105,5 +112,9 @@ describe('Techniques Pagination API', function () {
                 });
         });
     }));
+
+    after(async function() {
+        await database.closeConnection();
+    });
 });
 
