@@ -5,8 +5,7 @@ const _ = require('lodash');
 const logger = require('../../lib/logger');
 logger.level = 'debug';
 
-const database = require('../../lib/database-in-memory')
-const app = require('../../index');
+const database = require('../../lib/database-in-memory');
 
 const techniquesService = require('../../services/techniques-service');
 
@@ -61,7 +60,12 @@ function loadTechniques() {
 }
 
 describe('Techniques Pagination API', function () {
+    let app;
+
     before(async function() {
+        // Initialize the express app
+        app = await require('../../index').initializeApp();
+
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();

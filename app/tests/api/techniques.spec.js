@@ -6,7 +6,6 @@ const logger = require('../../lib/logger');
 logger.level = 'debug';
 
 const database = require('../../lib/database-in-memory')
-const app = require('../../index');
 
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
@@ -36,7 +35,12 @@ const initialObjectData = {
 };
 
 describe('Techniques Basic API', function () {
+    let app;
+
     before(async function() {
+        // Initialize the express app
+        app = await require('../../index').initializeApp();
+
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
