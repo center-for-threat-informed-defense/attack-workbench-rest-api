@@ -22,7 +22,7 @@ async function runServer() {
     const config = app.get('config');
 
     // Start the server
-    logger.info('Starting the server');
+    logger.info('Starting the HTTP server');
     const server = app.listen(config.server.port, function () {
         const host = server.address().address;
         const port = server.address().port;

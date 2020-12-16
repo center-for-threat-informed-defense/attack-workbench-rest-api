@@ -36,21 +36,19 @@ exports.initializeApp = async function() {
         app.use(morgan('dev', {stream: logger.stream}));
 
         // Enable Swagger UI
+        logger.info('Enabling Swagger UI');
         const swaggerUi = require('swagger-ui-express');
-        // const yaml = require('yamljs');
-        // const openApiDoc = yaml.load(config.openApi.specPath);
-        // app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
-
-        const $RefParser = require("@apidevtools/json-schema-ref-parser");
-        const openApiDoc = await $RefParser.bundle(config.openApi.specPath);
+        const refParser = require("@apidevtools/json-schema-ref-parser");
+        const openApiDoc = await refParser.bundle(config.openApi.specPath);
         app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
     }
 
     // Set up the static routes
+    logger.info('Configuring static routes');
     app.use(express.static('public'));
 
     // Set up the api routes
-    logger.info('Creating the routes');
+    logger.info('Configuring REST API routes');
     const routes = require('./routes');
     app.use(routes);
 
