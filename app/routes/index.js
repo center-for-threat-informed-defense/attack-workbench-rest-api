@@ -4,6 +4,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const OpenApiValidator = require('express-openapi-validator');
 const techniquesRoutes = require('./techniques-routes');
+const tacticsRoutes = require('./tactics-routes');
+const groupsRoutes = require('./groups-routes');
+
 const errorHandler = require('../lib/error-handler');
 const config = require('../config/config');
 
@@ -22,6 +25,8 @@ router.use(OpenApiValidator.middleware({
 
 // Set up the routes
 router.use('/api', techniquesRoutes);
+router.use('/api', tacticsRoutes);
+router.use('/api', groupsRoutes);
 
 // Handle errors that haven't otherwise been caught
 router.use(errorHandler.bodyParser);
