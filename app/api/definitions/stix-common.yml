@@ -11,8 +11,7 @@ components:
         # STIX common properties
         type:
           type: string
-          pattern: '^attack-pattern$'
-          example: 'attack-pattern'
+          pattern: '^(attack-pattern|x-mitre-tactic|intrusion-set)$'
         spec_version:
           type: string
           pattern: '^2.1$'
@@ -52,10 +51,8 @@ components:
           type: string
         url:
           type: string
-          example: 'https://attack.mitre.org/techniques/T1103'
         external_id:
           type: string
-          example: 'T1103'
       required:
         - source_name
 
