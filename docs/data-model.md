@@ -15,6 +15,11 @@ The ATT&CK Workbench database supports the following ATT&CK object types
 - Relationship (relationship)
 - Collection Index
 
+### Note on updating objects
+
+Most ATT&CK object types should be updated by creating a new object with a new `modified` timestamp (POST request).
+The Collection Index is different and should be updated by modifying (overwriting) the current object (PUT request).
+
 ### attackObjects Collection
 
 Most objects are stored in the `attackObjects` collection.

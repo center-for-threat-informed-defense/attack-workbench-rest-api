@@ -1,0 +1,98 @@
+components:
+  schemas:
+    collection-index-wrapper:
+      type: object
+      required:
+        - collection_index
+      properties:
+        collection_index:
+          $ref: '#/components/schemas/collection-index-object'
+        workspace:
+          $ref: '#/components/schemas/collection-index-workspace'
+
+    collection-index-object:
+      type: object
+      required:
+        - id
+        - name
+        - created
+        - modified
+        - collections
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        created:
+          type: string
+          format: date-time
+        modified:
+          type: string
+          format: date-time
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/collection-reference'
+
+    collection-reference:
+      type: object
+      required:
+        - id
+        - name
+        - created
+        - versions
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        created:
+          type: string
+          format: date-time
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/collection-version'
+
+    collection-version:
+      type: object
+      required:
+        - version
+        - modified
+      properties:
+        version:
+          type: string
+        modified:
+          type: string
+          format: date-time
+        url:
+          type: string
+        taxii_url:
+          type: string
+        release_notes:
+          type: string
+
+    collection-index-workspace:
+      type: object
+      properties:
+        remote_url:
+          type: string
+        update_policy:
+          type: object
+          properties:
+            automatic:
+              type: boolean
+            interval:
+              type: number
+            last_retrieval:
+              type: string
+              format: date-time
+            subscriptions:
+              type: array
+              items:
+                type: string
+                example: 'x-mitre-collection--915b6504-bde8-40b5-bfda-0c3ecb46a9b9'

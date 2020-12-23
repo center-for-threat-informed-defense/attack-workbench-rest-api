@@ -18,6 +18,8 @@ tags:
     description: 'Operations on tactics.'
   - name: 'Groups'
     description: 'Operations on groups.'
+  - name: 'Collection Indexes'
+    description: 'Operations on collection indexes'
 paths:
   /api/techniques:
     get:
@@ -319,7 +321,7 @@ paths:
       description: |
         This endpoint gets a single version of a tactic from the workspace, identified by its STIX id and modified date.
       tags:
-        - 'tactics'
+        - 'Tactics'
       parameters:
         - name: stixId
           in: path
@@ -581,6 +583,139 @@ paths:
           description: 'The group was successfully deleted.'
         '404':
           description: 'A group with the requested STIX id and modified date was not found.'
+
+  /api/collection-indexes:
+    get:
+      summary: 'Get a list of collection indexes'
+      operationId: 'collection-indexes-get-all'
+      description: |
+        This endpoint gets a list of collection indexes from the workspace.
+        Only the latest version of a collection index is stored.
+      tags:
+        - 'Collection Indexes'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of collection indexes to retrieve.
+            The default (0) will retrieve all collection indexes.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of collection indexes to skip.
+          schema:
+            type: number
+            default: 0
+      responses:
+        '200':
+          description: 'A list of collection indexes.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+    post:
+      summary: 'Create a collection index'
+      operationId: 'collection-index-create'
+      description: |
+        This endpoint creates a new collection index in the workspace.
+      tags:
+        - 'Collection Indexes'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+      responses:
+        '201':
+          description: 'The collection index has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+        '400':
+          description: 'Missing or invalid parameters were provided. The collection index was not created.'
+
+  /api/collection-indexes/{id}:
+    get:
+      summary: 'Get collection index'
+      operationId: 'collection-index-get-by-id'
+      description: |
+        This endpoint gets collection index from the workspace, identified by its id.
+      tags:
+        - 'Collection Indexes'
+      parameters:
+        - name: id
+          in: path
+          description: 'id of the collection index to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A list of collection indexes matching the requested id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+    put:
+      summary: 'Update a collection index'
+      operationId: 'collection-index-update'
+      description: |
+        This endpoint updates a single collection index in the workspace, identified by its id.
+      tags:
+        - 'Collection Indexes'
+      parameters:
+        - name: id
+          in: path
+          description: 'id of the collection index to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+      responses:
+        '200':
+          description: 'The collection index was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+        '400':
+          description: 'Missing or invalid parameters were provided. The collection index was not updated.'
+        '404':
+          description: 'A collection index with the requested id was not found.'
+    delete:
+      summary: 'Delete a collection index'
+      operationId: 'collection-index-delete'
+      description: |
+        This endpoint deletes a single collection index from the workspace.
+        The collection index is identified by its id.
+      tags:
+        - 'Collection Indexes'
+      parameters:
+        - name: id
+          in: path
+          description: 'id of the collection index to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The collection index was successfully deleted.'
+        '404':
+          description: 'A collection index with the requested id was not found.'
 
 components:
   schemas:
