@@ -14,6 +14,8 @@ servers:
 tags:
   - name: 'Techniques'
     description: 'Operations on techniques.'
+  - name: 'Tactics'
+    description: 'Operations on tactics.'
   - name: 'Groups'
     description: 'Operations on groups.'
 paths:
@@ -228,6 +230,358 @@ paths:
         '404':
           description: 'A technique with the requested STIX id and modified date was not found.'
 
+  /api/tactics:
+    get:
+      summary: 'Get a list of tactics'
+      operationId: 'tactic-get-all'
+      description: |
+        This endpoint gets a list of tactics from the workspace.
+        The list of tactics may include multiple versions of each tactic.
+      tags:
+        - 'Tactics'
+      responses:
+        '200':
+          description: 'A list of tactics.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/tactic'
+
+    post:
+      summary: 'Create a tactic'
+      operationId: 'tactic-create'
+      description: |
+        This endpoint creates a new tactic in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing tactic.
+        If the `stix.id` property is not set, it creates a new tactic, generating a STIX id for it.
+      tags:
+        - 'Tactics'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tactic'
+      responses:
+        '201':
+          description: 'The tactic has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tactic'
+        '400':
+          description: 'Missing or invalid parameters were provided. The tactic was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The tactic was not created.'
+
+  /api/tactics/{stixId}:
+    get:
+      summary: 'Get one or more versions of a tactic'
+      operationId: 'tactic-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a tactic from the workspace, identified by their STIX id.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the tactic to retrieve.
+            `all` gets all versions of the tactic, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of tactics matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/tactic'
+
+  /api/tactics/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a tactic matching the STIX id and modified date'
+      operationId: 'tactic-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a tactic from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the tactic to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a tactic matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tactic'
+        '404':
+          description: 'A tactic with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a tactic'
+      operationId: 'tactic-update'
+      description: |
+        This endpoint updates a single version of a tactic in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the tactic to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tactic'
+      responses:
+        '200':
+          description: 'The tactic was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tactic'
+        '400':
+          description: 'Missing or invalid parameters were provided. The tactic was not updated.'
+        '404':
+          description: 'A tactic with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a tactic'
+      operationId: 'tactic-delete'
+      description: |
+        This endpoint deletes a single version of a tactic from the workspace.
+        The tactic is identified by its STIX id and modified date.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the tactic to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The tactic was successfully deleted.'
+        '404':
+          description: 'A tactic with the requested STIX id and modified date was not found.'
+
+  /api/groups:
+    get:
+      summary: 'Get a list of groups'
+      operationId: 'group-get-all'
+      description: |
+        This endpoint gets a list of groups from the workspace.
+        The list of groups may include multiple versions of each group.
+      tags:
+        - 'Groups'
+      responses:
+        '200':
+          description: 'A list of groups.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/group'
+
+    post:
+      summary: 'Create a group'
+      operationId: 'group-create'
+      description: |
+        This endpoint creates a new group in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing group.
+        If the `stix.id` property is not set, it creates a new group, generating a STIX id for it.
+      tags:
+        - 'Groups'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/group'
+      responses:
+        '201':
+          description: 'The group has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/group'
+        '400':
+          description: 'Missing or invalid parameters were provided. The group was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The group was not created.'
+
+  /api/groups/{stixId}:
+    get:
+      summary: 'Get one or more versions of a group'
+      operationId: 'group-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a group from the workspace, identified by their STIX id.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the group to retrieve.
+            `all` gets all versions of the group, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of groups matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/group'
+
+  /api/groups/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a group matching the STIX id and modified date'
+      operationId: 'group-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a group from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the group to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a group matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/group'
+        '404':
+          description: 'A group with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a group'
+      operationId: 'group-update'
+      description: |
+        This endpoint updates a single version of a group in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the group to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/group'
+      responses:
+        '200':
+          description: 'The group was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/group'
+        '400':
+          description: 'Missing or invalid parameters were provided. The group was not updated.'
+        '404':
+          description: 'A group with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a group'
+      operationId: 'group-delete'
+      description: |
+        This endpoint deletes a single version of a group from the workspace.
+        The group is identified by its STIX id and modified date.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the group to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The group was successfully deleted.'
+        '404':
+          description: 'A group with the requested STIX id and modified date was not found.'
+
 components:
   schemas:
     workspace:
@@ -254,8 +608,8 @@ components:
         # STIX common properties
         type:
           type: string
-          pattern: '^attack-pattern$'
-          example: 'attack-pattern'
+          pattern: '^(attack-pattern|x-mitre-tactic|intrusion-set)$'
+
         spec_version:
           type: string
           pattern: '^2.1$'
@@ -353,6 +707,81 @@ components:
               type: string
               example: '1.0'
 
+    tactic:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: '#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/x-mitre-tactic'
+    
+    x-mitre-tactic:
+      allOf:
+        - $ref: '#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # x-mitre-tactic specific properties
+            name:
+              type: string
+              example: 'Collection'
+            description:
+              type: string
+              example: "This is a tactic."
+            # ATT&CK custom properties
+            x_mitre_contributors:
+              type: array
+              items:
+                type: string
+            x_mitre_deprecated:
+              type: boolean
+              example: false            
+            x_mitre_version:
+              type: string
+              example: '1.0'
+
+    group:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: '#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/intrusion-set'
+    
+    intrusion-set:
+      allOf:
+        - $ref: '#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # intrusion-set specific properties
+            name:
+              type: string
+              example: 'APT29'
+            description:
+              type: string
+              exampe: 'This is an intrusion set (group)'
+            # ATT&CK custom properties
+            aliases:
+                type: array
+                items:
+                  type: string
+            x_mitre_contributors:
+              type: array
+              items:
+                type: string
+            x_mitre_version:
+              type: string
+              example: '1.0'
+
     editor_identity:
       type: object
       description: 'This property replaces mitreId'
@@ -375,10 +804,8 @@ components:
           type: string
         url:
           type: string
-          example: 'https://attack.mitre.org/techniques/T1103'
         external_id:
           type: string
-          example: 'T1103'
       required:
         - source_name
 
