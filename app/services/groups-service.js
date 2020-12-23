@@ -34,42 +34,47 @@ exports.retrieveById = function(stixId, versions, callback) {
     }
 
     if (versions === 'all') {
-        Group.find({'stix.id': stixId}, function (err, groups) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
+        Group.find({'stix.id': stixId})
+            .lean()
+            .exec(function (err, groups) {
+                if (err) {
+                    if (err.name === 'CastError') {
+                        const error = new Error(errors.badlyFormattedParameter);
+                        error.parameterName = 'stixId';
+                        return callback(error);
+                    } else {
+                        return callback(err);
+                    }
                 } else {
-                    return callback(err);
+                    return callback(null, groups);
                 }
-            } else {
-                return callback(null, groups);
-            }
-        });
+            });
     }
     else if (versions === 'latest') {
-        Group.findOne({ 'stix.id': stixId }, function(err, group) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
+        Group.findOne({ 'stix.id': stixId })
+            .sort('-stix.modified')
+            .lean()
+            .exec(function(err, group) {
+                if (err) {
+                    if (err.name === 'CastError') {
+                        const error = new Error(errors.badlyFormattedParameter);
+                        error.parameterName = 'stixId';
+                        return callback(error);
+                    }
+                    else {
+                        return callback(err);
+                    }
                 }
                 else {
-                    return callback(err);
+                    // Note: document is null if not found
+                    if (group) {
+                        return callback(null, [ group ]);
+                    }
+                    else {
+                        return callback(null, []);
+                    }
                 }
-            }
-            else {
-                // Note: document is null if not found
-                if (group) {
-                    return callback(null, [ group ]);
-                }
-                else {
-                    return callback(null, []);
-                }
-            }
-        });
+            });
     }
     else {
         const error = new Error(errors.invalidQueryStringParameter);

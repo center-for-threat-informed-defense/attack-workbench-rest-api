@@ -768,12 +768,12 @@ components:
               example: 'APT29'
             description:
               type: string
-              exampe: 'This is an intrusion set (group)'
+              example: 'This is an intrusion set (group)'
             # ATT&CK custom properties
             aliases:
-                type: array
-                items:
-                  type: string
+              type: array
+              items:
+                type: string
             x_mitre_contributors:
               type: array
               items:

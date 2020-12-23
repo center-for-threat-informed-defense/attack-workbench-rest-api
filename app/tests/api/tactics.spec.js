@@ -25,17 +25,18 @@ const initialObjectData = {
     }
 };
 
-let app;
-before(async function() {
-    // Establish the database connection
-    // Use an in-memory database that we spin up for the test
-    await database.initializeConnection();
-
-    // Create the app
-    app = await require('../../index').initializeApp();
-});
-
 describe('Tactics API', function () {
+    let app;
+
+    before(async function() {
+        // Initialize the express app
+        app = await require('../../index').initializeApp();
+
+        // Establish the database connection
+        // Use an in-memory database that we spin up for the test
+        await database.initializeConnection();
+    });
+
     it('GET /api/tactics returns an empty array of tactics', function (done) {
         request(app)
             .get('/api/tactics')
@@ -364,8 +365,9 @@ describe('Tactics API', function () {
                 }
             });
     });
+
+    after(async function() {
+        await database.closeConnection();
+    });
 });
 
-after(async function() {
-    await database.closeConnection();
-});

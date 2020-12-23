@@ -34,42 +34,47 @@ exports.retrieveById = function(stixId, versions, callback) {
     }
 
     if (versions === 'all') {
-        Tactic.find({'stix.id': stixId}, function (err, tactics) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
+        Tactic.find({'stix.id': stixId})
+            .lean()
+            .exec(function (err, tactics) {
+                if (err) {
+                    if (err.name === 'CastError') {
+                        const error = new Error(errors.badlyFormattedParameter);
+                        error.parameterName = 'stixId';
+                        return callback(error);
+                    } else {
+                        return callback(err);
+                    }
                 } else {
-                    return callback(err);
+                    return callback(null, tactics);
                 }
-            } else {
-                return callback(null, tactics);
-            }
-        });
+            });
     }
     else if (versions === 'latest') {
-        Tactic.findOne({ 'stix.id': stixId }, function(err, tactic) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
+        Tactic.findOne({ 'stix.id': stixId })
+            .sort('-stix.modified')
+            .lean()
+            .exec(function(err, tactic) {
+                if (err) {
+                    if (err.name === 'CastError') {
+                        const error = new Error(errors.badlyFormattedParameter);
+                        error.parameterName = 'stixId';
+                        return callback(error);
+                    }
+                    else {
+                        return callback(err);
+                    }
                 }
                 else {
-                    return callback(err);
+                    // Note: document is null if not found
+                    if (tactic) {
+                        return callback(null, [ tactic ]);
+                    }
+                    else {
+                        return callback(null, []);
+                    }
                 }
-            }
-            else {
-                // Note: document is null if not found
-                if (tactic) {
-                    return callback(null, [ tactic ]);
-                }
-                else {
-                    return callback(null, []);
-                }
-            }
-        });
+            });
     }
     else {
         const error = new Error(errors.invalidQueryStringParameter);

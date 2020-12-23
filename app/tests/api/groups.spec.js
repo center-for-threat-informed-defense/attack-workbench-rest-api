@@ -25,17 +25,18 @@ const initialObjectData = {
     }
 };
 
-let app;
-before(async function() {
-    // Establish the database connection
-    // Use an in-memory database that we spin up for the test
-    await database.initializeConnection();
-
-    // Create the app
-    app = await require('../../index').initializeApp();
-});
-
 describe('Groups API', function () {
+    let app;
+
+    before(async function() {
+        // Initialize the express app
+        app = await require('../../index').initializeApp();
+
+        // Establish the database connection
+        // Use an in-memory database that we spin up for the test
+        await database.initializeConnection();
+    });
+
     it('GET /api/groups returns an empty array of groups', function (done) {
         request(app)
             .get('/api/groups')
@@ -362,8 +363,9 @@ describe('Groups API', function () {
                 }
             });
     });
+
+    after(async function() {
+        await database.closeConnection();
+    });
 });
 
-after(async function() {
-    await database.closeConnection();
-});
