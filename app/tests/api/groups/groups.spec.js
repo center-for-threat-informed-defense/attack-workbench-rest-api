@@ -1,9 +1,9 @@
 const request = require('supertest');
-const database = require('../../lib/database-in-memory')
+const database = require('../../../lib/database-in-memory')
 const expect = require('expect');
 const _ = require('lodash');
 
-const logger = require('../../lib/logger');
+const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
 // modified and created properties will be set before calling REST API
@@ -30,7 +30,7 @@ describe('Groups API', function () {
 
     before(async function() {
         // Initialize the express app
-        app = await require('../../index').initializeApp();
+        app = await require('../../../index').initializeApp();
 
         // Establish the database connection
         // Use an in-memory database that we spin up for the test

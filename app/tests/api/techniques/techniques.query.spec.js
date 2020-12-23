@@ -2,12 +2,12 @@ const request = require('supertest');
 const expect = require('expect');
 const _ = require('lodash');
 
-const logger = require('../../lib/logger');
+const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
-const database = require('../../lib/database-in-memory')
+const database = require('../../../lib/database-in-memory')
 
-const techniquesService = require('../../services/techniques-service');
+const techniquesService = require('../../../services/techniques-service');
 
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
@@ -81,7 +81,7 @@ describe('Techniques Query API', function () {
 
     before(async function() {
         // Initialize the express app
-        app = await require('../../index').initializeApp();
+        app = await require('../../../index').initializeApp();
 
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
