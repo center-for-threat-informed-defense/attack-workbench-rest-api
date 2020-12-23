@@ -1,0 +1,58 @@
+components:
+  schemas:
+    stix-common:
+      type: object
+      required:
+        - type
+        - spec_version
+        - created
+        - modified
+      properties:
+        # STIX common properties
+        type:
+          type: string
+          pattern: '^(attack-pattern|x-mitre-tactic|intrusion-set)$'
+        spec_version:
+          type: string
+          pattern: '^2.1$'
+          example: '2.1'
+        id:
+          type: string
+          example: 'attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc'
+        created:
+          type: string
+          format: date-time
+        modified:
+          type: string
+          format: date-time
+        created_by_ref:
+          type: string
+          example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
+        revoked:
+          type: boolean
+          example: false
+        external_references:
+          type: array
+          items:
+            $ref: '#/components/schemas/external_reference'
+        object_marking_refs:
+          type: array
+          items:
+            type: string
+            example: 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'
+
+    external_reference:
+      type: object
+      properties:
+        source_name:
+          type: string
+          example: 'mitre-attack'
+        description:
+          type: string
+        url:
+          type: string
+        external_id:
+          type: string
+      required:
+        - source_name
+
