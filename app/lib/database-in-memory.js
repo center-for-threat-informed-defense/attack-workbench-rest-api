@@ -37,6 +37,7 @@ exports.clearDatabase = async function() {
 
     for (const key in collections) {
         const collection = collections[key];
+        // eslint-disable-next-line no-await-in-loop
         await collection.deleteMany();
     }
 }

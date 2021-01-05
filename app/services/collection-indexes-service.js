@@ -1,6 +1,5 @@
 'use strict';
 
-const uuid = require('uuid');
 const CollectionIndex = require('../models/collection-index-model');
 
 const errors = {
