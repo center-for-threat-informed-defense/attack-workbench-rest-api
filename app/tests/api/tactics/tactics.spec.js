@@ -121,6 +121,20 @@ describe('Tactics API', function () {
             });
     });
 
+    it('GET /api/tactics/:id should not return a tactic when the id cannot be found', function (done) {
+        request(app)
+            .get('/api/tactics/not-an-id')
+            .set('Accept', 'application/json')
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
     it('GET /api/tactics/:id returns the added tactic', function (done) {
         request(app)
             .get('/api/tactics/' + tactic1.stix.id)

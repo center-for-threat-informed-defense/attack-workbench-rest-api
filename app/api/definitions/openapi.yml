@@ -137,6 +137,8 @@ paths:
                 type: array
                 items:
                   $ref: 'techniques.yml#/components/schemas/technique'
+        '404':
+          description: 'A technique with the requested STIX id was not found.'
 
   /api/techniques/{stixId}/modified/{modified}:
     get:
@@ -313,6 +315,8 @@ paths:
                 type: array
                 items:
                   $ref: 'tactics.yml#/components/schemas/tactic'
+        '404':
+          description: 'A tactic with the requested STIX id was not found.'
 
   /api/tactics/{stixId}/modified/{modified}:
     get:
@@ -489,6 +493,8 @@ paths:
                 type: array
                 items:
                   $ref: 'groups.yml#/components/schemas/group'
+        '404':
+          description: 'A group with the requested STIX id was not found.'
 
   /api/groups/{stixId}/modified/{modified}:
     get:
@@ -665,6 +671,8 @@ paths:
                 type: array
                 items:
                   $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+        '404':
+          description: 'A collection index with the requested id was not found.'
     put:
       summary: 'Update a collection index'
       operationId: 'collection-index-update'

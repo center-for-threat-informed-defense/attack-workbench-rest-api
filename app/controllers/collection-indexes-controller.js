@@ -31,17 +31,18 @@ exports.retrieveById = function(req, res) {
                 logger.warn('Badly formatted id: ' + id);
                 return res.status(400).send('Id is badly formatted.');
             }
-            else if (err.message === techniquesService.errors.invalidQueryStringParameter) {
-                logger.warn('Invalid query string: versions=' + req.query.versions);
-                return res.status(400).send('Query string parameter versions is invalid.');
-            }
             else {
                 logger.error('Failed with error: ' + err);
                 return res.status(500).send('Unable to get collection index. Server error.');
             }
         }
         else {
-            return res.status(200).send(collectionIndex);
+            if (collectionIndex) {
+                return res.status(200).send(collectionIndex);
+            }
+            else {
+                return res.status(404).send('Collection Index not found.');
+            }
         }
     });
 };

@@ -121,6 +121,20 @@ describe('Groups API', function () {
             });
     });
 
+    it('GET /api/groups/:id should not return a group when the id cannot be found', function (done) {
+        request(app)
+            .get('/api/groups/not-an-id')
+            .set('Accept', 'application/json')
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
     it('GET /api/groups/:id returns the added group', function (done) {
         request(app)
             .get('/api/groups/' + group1.stix.id)

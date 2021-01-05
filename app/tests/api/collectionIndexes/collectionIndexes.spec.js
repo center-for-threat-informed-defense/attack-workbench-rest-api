@@ -153,6 +153,20 @@ describe('Collection Indexes Basic API', function () {
             });
     });
 
+    it('GET /api/collection-indexes/:id should not return a collection index when the id cannot be found', function (done) {
+        request(app)
+            .get('/api/collection-indexes/not-an-id')
+            .set('Accept', 'application/json')
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
     it('GET /api/collection-indexes/:id returns the added collection index', function (done) {
         request(app)
             .get('/api/collection-indexes/' + collectionIndex1.collection_index.id)

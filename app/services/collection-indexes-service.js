@@ -45,11 +45,7 @@ exports.retrieveById = function(id, callback) {
                 }
             } else {
                 // Note: document is null if not found
-                if (collectionIndex) {
-                    return callback(null, collectionIndex);
-                } else {
-                    return callback(null, []);
-                }
+                return callback(null, collectionIndex);
             }
         });
 };
