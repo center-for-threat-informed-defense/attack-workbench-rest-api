@@ -126,6 +126,20 @@ describe('Techniques Basic API', function () {
             });
     });
 
+    it('GET /api/techniques/:id should not return a technique when the id cannot be found', function (done) {
+        request(app)
+            .get('/api/techniques/not-an-id')
+            .set('Accept', 'application/json')
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
     it('GET /api/techniques/:id returns the added technique', function (done) {
         request(app)
             .get('/api/techniques/' + technique1.stix.id)

@@ -35,8 +35,13 @@ exports.retrieveById = function(req, res) {
             }
         }
         else {
-            logger.debug(`Success: Retrieved ${ tactics.length } tactic(s) with id ${ req.params.stixId }`);
-            return res.status(200).send(tactics);
+            if (tactics.length === 0) {
+                return res.status(404).send('Tactic not found.');
+            }
+            else {
+                logger.debug(`Success: Retrieved ${ tactics.length } tactic(s) with id ${ req.params.stixId }`);
+                return res.status(200).send(tactics);
+            }
         }
     });
 };
