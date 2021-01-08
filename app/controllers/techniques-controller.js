@@ -8,8 +8,8 @@ exports.retrieveAll = function(req, res) {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
         state: req.query.state,
-        revoked: req.query.revoked,
-        deprecated: req.query.deprecated
+        includeRevoked: req.query.includeRevoked,
+        includeDeprecated: req.query.includeDeprecated
     }
 
     techniquesService.retrieveAll(options, function(err, techniques) {

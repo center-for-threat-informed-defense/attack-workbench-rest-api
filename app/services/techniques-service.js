@@ -13,28 +13,44 @@ const errors = {
 exports.errors = errors;
 
 exports.retrieveAll = function(options, callback) {
+    // Build the query
     const query = {};
-    if (typeof options.revoked !== 'undefined') {
-        query['stix.revoked'] = options.revoked || { $in: [null, false] };
+    if (!options.includeRevoked) {
+        query['stix.revoked'] = { $in: [null, false] };
     }
-    if (typeof options.deprecated !== 'undefined') {
-        query['stix.x_mitre_deprecated'] = options.deprecated || { $in: [null, false] };
+    if (!options.includeDeprecated) {
+        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
         query['workspace.workflow.state'] = options.state;
     }
-    Technique.find(query)
-        .skip(options.offset)
-        .limit(options.limit)
-        .lean()
-        .exec(function(err, techniques) {
-            if (err) {
-                return callback(err);
-            }
-            else {
-                return callback(null, techniques);
-            }
-        });
+
+    // Build the aggregation
+    // - Group the documents by stix.id, sorted by stix.modified
+    // - Use the last document in each group (according to the value of stix.modified)
+    // - Then apply query, skip and limit options
+    const aggregation = [
+        { $sort: { 'stix.modified': 1 } },
+        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
+        { $replaceRoot: { newRoot: '$document' }},
+        { $match: query }
+    ];
+    if (options.skip) {
+        aggregation.push({ $skip: options.skip });
+    }
+    if (options.limit) {
+        aggregation.push({ $limit: options.limit });
+    }
+
+    // Retrieve the documents
+    Technique.aggregate(aggregation, function(err, techniques) {
+        if (err) {
+            return callback(err);
+        }
+        else {
+            return callback(null, techniques);
+        }
+    });
 };
 
 exports.retrieveById = function(stixId, versions, callback) {
@@ -169,6 +185,38 @@ exports.create = function(data, callback) {
             return callback(null, savedTechnique);
         }
     });
+};
+
+exports.createAsync = async function(data) {
+    // This function handles two use cases:
+    //   1. stix.id is undefined. Create a new object and generate the stix.id
+    //   2. stix.id is defined. Create a new object with the specified id. This is
+    //      a new version of an existing object.
+    //      TODO: Verify that the object already exists (?)
+
+    // Create the document
+    const technique = new Technique(data);
+
+    if (!technique.stix.id) {
+        // Assign a new STIX id
+        technique.stix.id = `attack-pattern--${uuid.v4()}`;
+    }
+
+    // Save the document in the database
+    try {
+        const savedTechnique = await technique.save();
+        return savedTechnique;
+    }
+    catch (err) {
+        if (err.name === 'MongoError' && err.code === 11000) {
+            // 11000 = Duplicate index
+            const error = new Error(errors.duplicateId);
+            throw error;
+        }
+        else {
+            throw err;
+        }
+    }
 };
 
 exports.updateFull = function(stixId, stixModified, data, callback) {

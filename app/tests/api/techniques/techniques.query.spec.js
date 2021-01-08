@@ -1,6 +1,9 @@
+const fs = require('fs').promises;
+
 const request = require('supertest');
 const expect = require('expect');
 const _ = require('lodash');
+const uuid = require('uuid');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -9,71 +12,95 @@ const database = require('../../../lib/database-in-memory')
 
 const techniquesService = require('../../../services/techniques-service');
 
-// modified and created properties will be set before calling REST API
-// stix.id property will be created by REST API
-const initialObjectData = {
-    workspace: {
-        domains: [ 'domain-1']
-    },
-    stix: {
-        spec_version: '2.1',
-        type: 'attack-pattern',
-        description: 'This is a technique.',
-        external_references: [
-            { source_name: 'source-1', external_id: 's1' }
-        ],
-        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
-        created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
-        kill_chain_phases: [
-            { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
-        ],
-        x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
-        x_mitre_detection: 'detection text',
-        x_mitre_is_subtechnique: false,
-        x_mitre_impact_type: [ 'impact-1' ],
-        x_mitre_platforms: [ 'platform-1', 'platform-2' ]
-    }
-};
+function asyncWait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-function loadTechniques() {
+async function readJson(path) {
+    const data = await fs.readFile(require.resolve(path));
+    return JSON.parse(data);
+}
+
+async function configureTechniques(baseTechnique) {
     const techniques = [];
-    // x_mitre_deprecated undefined
-    const data1 = _.cloneDeep(initialObjectData);
+    // x_mitre_deprecated,revoked undefined
+    const data1 = _.cloneDeep(baseTechnique);
     techniques.push(data1);
 
-    // x_mitre_deprecated false
-    const data2 = _.cloneDeep(initialObjectData);
+    // x_mitre_deprecated = false, revoked = false
+    const data2 = _.cloneDeep(baseTechnique);
     data2.stix.x_mitre_deprecated = false;
     data2.stix.revoked = false;
     data2.workspace.workflow = { state: 'work-in-progress' };
     techniques.push(data2);
 
-    // x_mitre_deprecated true
-    const data3 = _.cloneDeep(initialObjectData);
+    // x_mitre_deprecated = true, revoked = false
+    const data3 = _.cloneDeep(baseTechnique);
     data3.stix.x_mitre_deprecated = true;
-    data3.stix.revoked = true;
-    data2.workspace.workflow = { state: 'awaiting-review' };
+    data3.stix.revoked = false;
+    data3.workspace.workflow = { state: 'awaiting-review' };
     techniques.push(data3);
 
-    // Initialize the data
-    techniques.forEach(function(data) {
-        data.stix.name = `attack-pattern-${ data.stix.x_mitre_deprecated }`;
+    // x_mitre_deprecated = false, revoked = true
+    const data4 = _.cloneDeep(baseTechnique);
+    data4.stix.x_mitre_deprecated = false;
+    data4.stix.revoked = true;
+    data4.workspace.workflow = { state: 'awaiting-review' };
+    techniques.push(data4);
 
-        const timestamp = new Date().toISOString();
-        data.stix.created = timestamp;
-        data.stix.modified = timestamp;
+    // multiple versions, last version has x_mitre_deprecated = true, revoked = true
+    const data5a = _.cloneDeep(baseTechnique);
+    const id = `attack-pattern--${uuid.v4()}`;
+    data5a.stix.id = id;
+    data5a.stix.name = 'multiple-versions'
+    data5a.workspace.workflow = { state: 'awaiting-review' };
+    const createdTimestamp = new Date().toISOString();
+    data5a.stix.created = createdTimestamp;
+    data5a.stix.modified = createdTimestamp;
+    techniques.push(data5a);
 
-        techniquesService.create(data, function(err, technique) {
-            if (err) {
-                if (err.message === techniquesService.errors.duplicateId) {
-                    logger.warn("Duplicate stix.id and stix.modified");
-                }
-                else {
-                    logger.error("Failed with error: " + err);
-                }
-            }
-        })
-    });
+    await asyncWait(10); // wait so the modified timestamp can change
+    const data5b = _.cloneDeep(baseTechnique);
+    data5b.stix.id = id;
+    data5b.stix.name = 'multiple-versions'
+    data5b.workspace.workflow = { state: 'awaiting-review' };
+    data5b.stix.created = createdTimestamp;
+    let timestamp = new Date().toISOString();
+    data5b.stix.modified = timestamp;
+    techniques.push(data5b);
+
+    await asyncWait(10);
+    const data5c = _.cloneDeep(baseTechnique);
+    data5c.stix.id = id;
+    data5c.stix.name = 'multiple-versions'
+    data5c.workspace.workflow = { state: 'awaiting-review' };
+    data5c.stix.x_mitre_deprecated = true;
+    data5c.stix.revoked = true;
+    data5c.stix.created = createdTimestamp;
+    timestamp = new Date().toISOString();
+    data5c.stix.modified = timestamp;
+    techniques.push(data5c);
+
+//    logger.info(JSON.stringify(techniques, null, 4));
+
+    return techniques;
+}
+
+async function loadTechniques(techniques) {
+    for (const technique of techniques) {
+        if (!technique.stix.name) {
+            technique.stix.name = `attack-pattern-${technique.stix.x_mitre_deprecated}-${technique.stix.revoked}`;
+        }
+
+        if (!technique.stix.created) {
+            const timestamp = new Date().toISOString();
+            technique.stix.created = timestamp;
+            technique.stix.modified = timestamp;
+        }
+
+        // eslint-disable-next-line no-await-in-loop
+        await techniquesService.createAsync(technique);
+    }
 }
 
 describe('Techniques Query API', function () {
@@ -87,12 +114,56 @@ describe('Techniques Query API', function () {
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
 
-        loadTechniques();
+        const baseTechnique = await readJson('./techniques.query.json');
+        const techniques = await configureTechniques(baseTechnique);
+        await loadTechniques(techniques);
     });
 
-    it('GET /api/techniques should return all of the preloaded techniques', function (done) {
+    it('GET /api/techniques should return 2 of the preloaded techniques', function (done) {
         request(app)
             .get('/api/techniques')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get all the techniques
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques should return techniques with x_mitre_deprecated not set to true (false or undefined)', function (done) {
+        request(app)
+            .get('/api/techniques?includeDeprecated=false')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get all the techniques
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques should return all techniques', function (done) {
+        request(app)
+            .get('/api/techniques?includeDeprecated=true')
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
@@ -111,51 +182,9 @@ describe('Techniques Query API', function () {
             });
     });
 
-    it('GET /api/techniques should return techniques with x_mitre_deprecated not set to true (false or undefined)', function (done) {
-        request(app)
-            .get('/api/techniques?deprecated=false')
-            .set('Accept', 'application/json')
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get all the techniques
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(2);
-                    done();
-                }
-            });
-    });
-
-    it('GET /api/techniques should return techniques with x_mitre_deprecated set to true', function (done) {
-        request(app)
-            .get('/api/techniques?deprecated=true')
-            .set('Accept', 'application/json')
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get all the techniques
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(1);
-                    done();
-                }
-            });
-    });
-
     it('GET /api/techniques should return techniques with revoked not set to true (false or undefined)', function (done) {
         request(app)
-            .get('/api/techniques?revoked=false')
+            .get('/api/techniques?includeRevoked=false')
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
@@ -174,9 +203,9 @@ describe('Techniques Query API', function () {
             });
     });
 
-    it('GET /api/techniques should return techniques with x_mitre_deprecated set to true', function (done) {
+    it('GET /api/techniques should return all techniques', function (done) {
         request(app)
-            .get('/api/techniques?revoked=true')
+            .get('/api/techniques?includeRevoked=true')
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
@@ -189,15 +218,15 @@ describe('Techniques Query API', function () {
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(1);
+                    expect(techniques.length).toBe(3);
                     done();
                 }
             });
     });
 
-    it('GET /api/techniques should return techniques with workflow.state set to awaiting-review', function (done) {
+    it('GET /api/techniques should return techniques with workflow.state set to work-in-progress', function (done) {
         request(app)
-            .get('/api/techniques?state=awaiting-review')
+            .get('/api/techniques?state=work-in-progress')
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
