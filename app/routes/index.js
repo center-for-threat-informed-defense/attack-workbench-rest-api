@@ -8,7 +8,8 @@ const techniquesRoutes = require('./techniques-routes');
 const tacticsRoutes = require('./tactics-routes');
 const groupsRoutes = require('./groups-routes');
 const collectionIndexesRoutes = require('./collection-indexes-routes');
-const softwareRoutes = require('./software-routes')
+const softwareRoutes = require('./software-routes');
+const mitigationsRoutes = require('./mitigations-routes');
 
 const errorHandler = require('../lib/error-handler');
 const config = require('../config/config');
@@ -32,6 +33,7 @@ router.use('/api', tacticsRoutes);
 router.use('/api', groupsRoutes);
 router.use('/api', collectionIndexesRoutes);
 router.use('/api', softwareRoutes);
+router.use('/api', mitigationsRoutes);
 
 // Handle errors that haven't otherwise been caught
 router.use(errorHandler.bodyParser);

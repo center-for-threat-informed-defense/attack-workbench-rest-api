@@ -22,6 +22,8 @@ tags:
     description: 'Operations on collection indexes'
   - name: 'Software'
     description: 'Operations on software'
+  - name: 'Mitigations'
+    description: 'Operations on mitigations'
 paths:
   /api/techniques:
     get:
@@ -914,9 +916,183 @@ paths:
         '404':
           description: 'A software with the requested STIX id and modified date was not found.'
 
+  /api/mitigations:
+    get:
+      summary: 'Get a list of mitigations'
+      operationId: 'mitigation-get-all'
+      description: |
+        This endpoint gets a list of mitigations from the workspace.
+        The list of mitigations may include multiple versions of each mitigation.
+      tags:
+        - 'Mitigations'
+      responses:
+        '200':
+          description: 'A list of mitigations.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'mitigations.yml#/components/schemas/mitigation'
 
+    post:
+      summary: 'Create a mitigation'
+      operationId: 'mitigation-create'
+      description: |
+        This endpoint creates a new mitigation in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing mitigation.
+        If the `stix.id` property is not set, it creates a new mitigation, generating a STIX id for it.
+      tags:
+        - 'Mitigations'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'mitigations.yml#/components/schemas/mitigation'
+      responses:
+        '201':
+          description: 'The mitigation has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'mitigations.yml#/components/schemas/mitigation'
+        '400':
+          description: 'Missing or invalid parameters were provided. The mitigation was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The mitigation was not created.'
 
+  /api/mitigations/{stixId}:
+    get:
+      summary: 'Get one or more versions of a mitigation'
+      operationId: 'mitigation-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a mitigation from the workspace, identified by their STIX id.
+      tags:
+        - 'Mitigations'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the mitigation to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the mitigation to retrieve.
+            `all` gets all versions of the mitigation, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of mitigations matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'mitigations.yml#/components/schemas/mitigation'
+        '404':
+          description: 'A mitigation with the requested STIX id was not found.'
 
+  /api/mitigations/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a mitigation matching the STIX id and modified date'
+      operationId: 'mitigation-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a mitigation from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Mitigations'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the mitigation to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the mitigation to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a mitigation matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: 'mitigations.yml#/components/schemas/mitigation'
+        '404':
+          description: 'A mitigation with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a mitigation'
+      operationId: 'mitigation-update'
+      description: |
+        This endpoint updates a single version of a mitigation in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Mitigations'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the mitigation to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the mitigation to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'mitigations.yml#/components/schemas/mitigation'
+      responses:
+        '200':
+          description: 'The mitigation was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'mitigations.yml#/components/schemas/mitigation'
+        '400':
+          description: 'Missing or invalid parameters were provided. The mitigation was not updated.'
+        '404':
+          description: 'A mitigation with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a mitigation'
+      operationId: 'mitigation-delete'
+      description: |
+        This endpoint deletes a single version of a mitigation from the workspace.
+        The mitigation is identified by its STIX id and modified date.
+      tags:
+        - 'Mitigations'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the mitigation to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the mitigation to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The mitigation was successfully deleted.'
+        '404':
+          description: 'A mitigation with the requested STIX id and modified date was not found.'
 
 components:
   schemas:
