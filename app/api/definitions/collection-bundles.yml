@@ -21,6 +21,3 @@ components:
           type: array
           items:
             type: object
-
-    import-summary:
-      type: object

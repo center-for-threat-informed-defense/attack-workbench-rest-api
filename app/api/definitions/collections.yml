@@ -7,9 +7,49 @@ components:
         - stix
       properties:
         workspace:
-          $ref: 'workspace.yml#/components/schemas/workspace'
+          $ref: '#/components/schemas/workspace-x-mitre-collection'
         stix:
           $ref: '#/components/schemas/stix-x-mitre-collection'
+
+    workspace-x-mitre-collection:
+      type: object
+      required:
+        - imported
+      properties:
+        imported:
+          type: string
+          format: date-time
+        import_categories:
+          type: object
+          properties:
+            additions:
+              type: array
+              items:
+                type: string
+            changes:
+              type: array
+              items:
+                type: string
+            minor_changes:
+              type: array
+              items:
+                type: string
+            revocations:
+              type: array
+              items:
+                type: string
+            deprecations:
+              type: array
+              items:
+                type: string
+            supercedes_user_edits:
+              type: array
+              items:
+                type: string
+            supercedes_collection_changes:
+              type: array
+              items:
+                type: string
 
     stix-x-mitre-collection:
       allOf:

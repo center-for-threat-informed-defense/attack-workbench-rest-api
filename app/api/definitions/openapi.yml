@@ -839,6 +839,15 @@ paths:
         This endpoint imports a collection bundle into the workspace.
       tags:
         - 'Collection Bundles'
+      parameters:
+        - name: checkOnly
+          in: query
+          description: |
+            Do not import the collection.
+            Only determine what the results of the import would be if it were performed.
+          schema:
+            type: boolean
+            default: false
       requestBody:
         required: true
         content:
@@ -851,7 +860,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: 'collection-bundles.yml#/components/schemas/import-summary'
+                $ref: 'collections.yml#/components/schemas/collection'
 
 components:
   schemas:

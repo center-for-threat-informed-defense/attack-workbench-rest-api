@@ -23,14 +23,14 @@ exports.import = function(req, res) {
     }
 
     // Create the collection index
-    collectionBundlesService.import(collectionBundleData, function(err, importSummary) {
+    collectionBundlesService.import(collection, collectionBundleData, req.query.checkOnly, function(err, importedCollection) {
         if (err) {
             logger.error("Create collection index failed with error: " + err);
             return res.status(500).send("Unable to create collection index. Server error.");
         }
         else {
-            logger.debug("Success: Imported collection with id " + importSummary.collectionId);
-            return res.status(201).send(importSummary);
+            logger.debug("Success: Imported collection with id " + importedCollection.stix.id);
+            return res.status(201).send(importedCollection);
         }
     });
 };

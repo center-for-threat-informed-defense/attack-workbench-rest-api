@@ -13,3 +13,16 @@ module.exports.common = {
         }
     }
 };
+
+module.exports.collection = {
+    imported: Date,
+    import_categories: {
+        additions: [ String ],
+        changes: [ String ],
+        minor_changes: [ String ],
+        revocations: [ String ],
+        deprecations: [ String ],
+        supercedes_user_edits: [ String ],
+        supercedes_collection_changes: [ String ]
+    }
+};
