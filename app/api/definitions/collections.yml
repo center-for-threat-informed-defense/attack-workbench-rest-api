@@ -42,11 +42,11 @@ components:
               type: array
               items:
                 type: string
-            supercedes_user_edits:
+            supersedes_user_edits:
               type: array
               items:
                 type: string
-            supercedes_collection_changes:
+            supersedes_collection_changes:
               type: array
               items:
                 type: string

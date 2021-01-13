@@ -22,7 +22,7 @@ module.exports.collection = {
         minor_changes: [ String ],
         revocations: [ String ],
         deprecations: [ String ],
-        supercedes_user_edits: [ String ],
-        supercedes_collection_changes: [ String ]
+        supersedes_user_edits: [ String ],
+        supersedes_collection_changes: [ String ]
     }
 };

@@ -11,8 +11,8 @@ exports.import = function(collection, data, checkOnly, callback) {
                     minor_changes: [],
                     revocations: [],
                     deprecations: [],
-                    supercedes_user_edits: [],
-                    supercedes_collection_changes: []
+                    supersedes_user_edits: [],
+                    supersedes_collection_changes: []
                 }
             },
             stix: collection
