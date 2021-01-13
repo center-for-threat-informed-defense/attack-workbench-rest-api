@@ -1,0 +1,26 @@
+components:
+  schemas:
+    collection-bundle:
+      type: object
+      required:
+        - id
+        - type
+        - spec_version
+        - objects
+      properties:
+        id:
+          type: string
+          example: 'bundle--0cde353c-ea5b-4668-9f68-971946609282'
+        type:
+          type: string
+          pattern: '^(bundle)$'
+        spec_version:
+          type: string
+          example: '2.1'
+        objects:
+          type: array
+          items:
+            type: object
+
+    import-summary:
+      type: object
