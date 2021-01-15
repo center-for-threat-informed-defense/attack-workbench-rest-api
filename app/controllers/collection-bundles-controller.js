@@ -25,8 +25,14 @@ exports.import = function(req, res) {
     // Create the collection index
     collectionBundlesService.import(collection, collectionBundleData, req.query.checkOnly, function(err, importedCollection) {
         if (err) {
-            logger.error("Create collection index failed with error: " + err);
-            return res.status(500).send("Unable to create collection index. Server error.");
+            if (err.message === collectionBundlesService.errors.duplicateCollection) {
+                logger.error('Unable to import collection, duplicate x-mitre-collection.');
+                return res.status(400).send('Unable to import collection, duplicate x-mitre-collection.');
+            }
+            else {
+                logger.error("Create collection index failed with error: " + err);
+                return res.status(500).send("Unable to create collection index. Server error.");
+            }
         }
         else {
             logger.debug("Success: Imported collection with id " + importedCollection.stix.id);

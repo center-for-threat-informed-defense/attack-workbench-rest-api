@@ -55,7 +55,6 @@ exports.retrieveAll = function(options, callback) {
 exports.retrieveById = function(stixId, versions, callback) {
     // versions=all Retrieve all collections with the stixId
     // versions=latest Retrieve the collection with the latest modified date for this stixId
-
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -112,4 +111,26 @@ exports.retrieveById = function(stixId, versions, callback) {
         error.parameterName = 'versions';
         return callback(error);
     }
+};
+
+exports.create = function(data, callback) {
+    // Create the document
+    const collection = new Collection(data);
+
+    // Save the document in the database
+    collection.save(function(err, savedCollection) {
+        if (err) {
+            if (err.name === 'MongoError' && err.code === 11000) {
+                // 11000 = Duplicate index
+                const error = new Error(errors.duplicateId);
+                return callback(error);
+            }
+            else {
+                return callback(err);
+            }
+        }
+        else {
+            return callback(null, savedCollection);
+        }
+    });
 };

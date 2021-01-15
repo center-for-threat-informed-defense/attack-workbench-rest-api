@@ -23,6 +23,9 @@ module.exports.collection = {
         revocations: [ String ],
         deprecations: [ String ],
         supersedes_user_edits: [ String ],
-        supersedes_collection_changes: [ String ]
+        supersedes_collection_changes: [ String ],
+        duplicates: [ String ],
+        out_of_date: [ String ],
+        errors: [ String ]
     }
 };

@@ -54,3 +54,31 @@ exports.retrieveById = function(req, res) {
     });
 };
 
+exports.create = function(req, res) {
+    // Get the data from the request
+    const collectionData = req.body;
+
+    // The collection must have an id.
+    if (collectionData.stix && !collectionData.stix.id) {
+        logger.warn('Create collection failed: Missing id');
+        return res.status(400).send('Unable to create collection. Missing id.');
+    }
+
+    // Create the technique
+    collectionsService.create(collectionData, function(err, collection) {
+        if (err) {
+            if (err.message === collectionsService.errors.duplicateId) {
+                logger.warn("Duplicate stix.id and stix.modified");
+                return res.status(409).send('Unable to create technique. Duplicate stix.id and stix.modified properties.');
+            }
+            else {
+                logger.error("Failed with error: " + err);
+                return res.status(500).send("Unable to create technique. Server error.");
+            }
+        }
+        else {
+            logger.debug("Success: Created technique with id " + collection.stix.id);
+            return res.status(201).send(collection);
+        }
+    });
+};

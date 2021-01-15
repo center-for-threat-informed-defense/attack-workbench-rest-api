@@ -65,6 +65,7 @@ exports.retrieveById = function(stixId, versions, callback) {
 
     if (versions === 'all') {
         Technique.find({'stix.id': stixId})
+            .sort('-stix.modified')
             .lean()
             .exec(function (err, techniques) {
                 if (err) {

@@ -7,8 +7,9 @@ const router = express.Router();
 
 router.route('/collections')
     .get(collectionsController.retrieveAll)
+    .post(collectionsController.create);
 
-router.route('/collections/:id')
+router.route('/collections/:stixId')
     .get(collectionsController.retrieveById);
 
 module.exports = router;

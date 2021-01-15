@@ -793,6 +793,32 @@ paths:
                 items:
                   $ref: 'collections.yml#/components/schemas/collection'
 
+    post:
+      summary: 'Create a collection (x-mitre-collection)'
+      operationId: 'technique-create'
+      description: |
+        This endpoint creates a new collection in the workspace.
+        Both the `stix.id` and `stix.modified` properties must be set.
+      tags:
+        - 'Collections'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'collections.yml#/components/schemas/collection'
+      responses:
+        '201':
+          description: 'The collection has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'collections.yml#/components/schemas/collection'
+        '400':
+          description: 'Missing or invalid parameters were provided. The collection was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The collection was not created.'
+
   /api/collections/{stixId}:
     get:
       summary: 'Get one or more versions of a collection'

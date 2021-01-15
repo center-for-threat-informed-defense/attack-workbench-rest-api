@@ -13,8 +13,6 @@ components:
 
     workspace-x-mitre-collection:
       type: object
-      required:
-        - imported
       properties:
         imported:
           type: string
@@ -47,6 +45,18 @@ components:
               items:
                 type: string
             supersedes_collection_changes:
+              type: array
+              items:
+                type: string
+            duplicates:
+              type: array
+              items:
+                type: string
+            out_of_date:
+              type: array
+              items:
+                type: string
+            errors:
               type: array
               items:
                 type: string
