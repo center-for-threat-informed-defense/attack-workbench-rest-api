@@ -15,13 +15,27 @@ const initialObjectData = {
     stix: {
         name: 'software-1',
         spec_version: '2.1',
-        type: 'software',
-        description: 'This is a software.',
+        type: 'malware',
+        description: 'This is a malware type of software.',
         external_references: [
             { source_name: 'source-1', external_id: 's1' }
         ],
         object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
-        created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5"
+        created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+        x_mitre_version: "1.1",
+        x_mitre_aliases: [
+            "software-1"
+        ],
+        x_mitre_platforms: [
+            "platform-1"
+        ],
+        x_mitre_contributors: [
+            "contributor-1",
+            "contributor-2"
+        ],
+        x_mitre_domains: [
+            "mobile-attack"
+        ]
     }
 };
 
@@ -147,21 +161,25 @@ describe('Software API', function () {
                 }
                 else {
                     // We expect to get one software in an array
-                    const software = res.body;
-                    expect(software).toBeDefined();
-                    expect(Array.isArray(software)).toBe(true);
-                    expect(software.length).toBe(1);
+                    const softwareObjects = res.body;
+                    expect(softwareObjects).toBeDefined();
+                    expect(Array.isArray(softwareObjects)).toBe(true);
+                    expect(softwareObjects.length).toBe(1);
 
-                    const softwr = software[0];
-                    expect(softwr).toBeDefined();
-                    expect(softwr.stix).toBeDefined();
-                    expect(softwr.stix.id).toBe(software1.stix.id);
-                    expect(softwr.stix.type).toBe(software1.stix.type);
-                    expect(softwr.stix.name).toBe(software1.stix.name);
-                    expect(softwr.stix.description).toBe(software1.stix.description);
-                    expect(softwr.stix.spec_version).toBe(software1.stix.spec_version);
-                    expect(softwr.stix.object_marking_refs).toEqual(expect.arrayContaining(software1.stix.object_marking_refs));
-                    expect(softwr.stix.created_by_ref).toBe(software1.stix.created_by_ref);
+                    const software= softwareObjects[0];
+                    expect(software).toBeDefined();
+                    expect(software.stix).toBeDefined();
+                    expect(software.stix.id).toBe(software1.stix.id);
+                    expect(software.stix.type).toBe(software1.stix.type);
+                    expect(software.stix.name).toBe(software1.stix.name);
+                    expect(software.stix.description).toBe(software1.stix.description);
+                    expect(software.stix.spec_version).toBe(software1.stix.spec_version);
+                    expect(software.stix.object_marking_refs).toEqual(expect.arrayContaining(software1.stix.object_marking_refs));
+                    expect(software.stix.created_by_ref).toBe(software1.stix.created_by_ref);
+                    expect(software.stix.x_mitre_version).toBe(software1.stix.x_mitre_version);
+                    expect(software.stix.x_mitre_aliases).toEqual(expect.arrayContaining(software1.stix.x_mitre_aliases));
+                    expect(software.stix.x_mitre_platforms).toEqual(expect.arrayContaining(software1.stix.x_mitre_platforms));
+                    expect(software.stix.x_mitre_contributors).toEqual(expect.arrayContaining(software1.stix.x_mitre_contributors));
 
                     done();
                 }
