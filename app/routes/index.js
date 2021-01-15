@@ -7,6 +7,8 @@ const OpenApiValidator = require('express-openapi-validator');
 const techniquesRoutes = require('./techniques-routes');
 const tacticsRoutes = require('./tactics-routes');
 const groupsRoutes = require('./groups-routes');
+const softwareRoutes = require('./software-routes');
+const mitigationsRoutes = require('./mitigations-routes');
 const collectionIndexesRoutes = require('./collection-indexes-routes');
 const collectionsRoutes = require('./collections-routes');
 const collectionBundlesRoutes = require('./collection-bundles-routes');
@@ -31,6 +33,8 @@ router.use(OpenApiValidator.middleware({
 router.use('/api', techniquesRoutes);
 router.use('/api', tacticsRoutes);
 router.use('/api', groupsRoutes);
+router.use('/api', softwareRoutes);
+router.use('/api', mitigationsRoutes);
 router.use('/api', collectionIndexesRoutes);
 router.use('/api', collectionsRoutes);
 router.use('/api', collectionBundlesRoutes);
