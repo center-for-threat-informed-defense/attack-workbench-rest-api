@@ -42,6 +42,7 @@ const initialObjectData = {
             created: '2020-03-30T14:03:43.761Z',
             modified: '2020-03-30T14:03:43.761Z',
             name: 'attack-pattern-1',
+            x_mitre_version: '1.0',
             spec_version: '2.1',
             type: 'attack-pattern',
             description: 'This is a technique.',
@@ -64,6 +65,7 @@ const initialObjectData = {
             created: '2019-02-03T16:56:41.200Z',
             modified: '2019-02-03T16:56:41.200Z',
             name: 'attack-pattern-2',
+            x_mitre_version: '1.0',
             spec_version: '2.1',
             type: 'attack-pattern',
             description: 'This is another technique.',
@@ -128,6 +130,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     collection1 = res.body;
                     expect(collection1).toBeDefined();
+                    expect(collection1.workspace.import_categories.additions.length).toBe(2);
                     done();
                 }
             });
@@ -148,6 +151,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     collection1 = res.body;
                     expect(collection1).toBeDefined();
+                    expect(collection1.workspace.import_categories.additions.length).toBe(2);
                     done();
                 }
             });
@@ -180,6 +184,34 @@ describe('Collection Bundles Basic API', function () {
                 if (err) {
                     done(err);
                 } else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collection-bundles imports an updated collection bundle', function (done) {
+        const updateTimestamp = new Date().toISOString();
+        const updatedCollection = _.cloneDeep(initialObjectData);
+        updatedCollection.objects[0].modified = updateTimestamp;
+        updatedCollection.objects[1].modified = updateTimestamp;
+        updatedCollection.objects[1].x_mitre_version = '1.1';
+
+        const body = updatedCollection;
+        request(app)
+            .post('/api/collection-bundles')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get the created collection object
+                    const collection2 = res.body;
+                    expect(collection2).toBeDefined();
+                    expect(collection2.workspace.import_categories.changes.length).toBe(1);
+                    expect(collection2.workspace.import_categories.duplicates.length).toBe(1);
                     done();
                 }
             });

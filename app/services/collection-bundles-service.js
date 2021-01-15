@@ -21,7 +21,10 @@ exports.import = function(collection, data, checkOnly, callback) {
                 revocations: [],
                 deprecations: [],
                 supersedes_user_edits: [],
-                supersedes_collection_changes: []
+                supersedes_collection_changes: [],
+                duplicates: [],
+                out_of_date: [],
+                errors: []
             }
         },
         stix: collection
@@ -74,12 +77,13 @@ exports.import = function(collection, data, checkOnly, callback) {
                                     else {
                                         const latestExistingObject = objects[0];
                                         if (latestExistingObject.stix.modified.toISOString() < importObject.modified) {
+                                            // TBD: change x_mitre_version comparison from lexical to numerical
                                             if (latestExistingObject.stix.x_mitre_version < importObject.x_mitre_version) {
                                                 // This a change (same stixId, higher x-mitre-version, later modified)
                                                 importedCollection.workspace.import_categories.changes.push(importObject.id);
                                             }
                                             else if (latestExistingObject.stix.x_mitre_version > importObject.x_mitre_version) {
-                                                // TBD: How to handle if modifed is later, but x_mitre_version is lower
+                                                // TBD: How to handle if modified is later, but x_mitre_version is lower
                                             }
                                             else {
                                                 // This a minor change (same stixId, same x-mitre-version, later modified)
