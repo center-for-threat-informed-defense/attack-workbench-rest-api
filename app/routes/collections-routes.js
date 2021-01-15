@@ -10,6 +10,7 @@ router.route('/collections')
     .post(collectionsController.create);
 
 router.route('/collections/:stixId')
-    .get(collectionsController.retrieveById);
+    .get(collectionsController.retrieveById)
+    .delete(collectionsController.delete);
 
 module.exports = router;

@@ -30,8 +30,8 @@ exports.import = function(req, res) {
                 return res.status(400).send('Unable to import collection, duplicate x-mitre-collection.');
             }
             else {
-                logger.error("Create collection index failed with error: " + err);
-                return res.status(500).send("Unable to create collection index. Server error.");
+                logger.error("Unable to import collection, create collection index failed with error: " + err);
+                return res.status(500).send("Unable to import collection, unable to create collection index. Server error.");
             }
         }
         else {

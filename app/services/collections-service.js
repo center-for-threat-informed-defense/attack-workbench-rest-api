@@ -1,6 +1,8 @@
 'use strict';
 
 const Collection = require('../models/collection-model');
+const AttackObject = require('../models/attack-object-model');
+const async = require('async');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -133,4 +135,64 @@ exports.create = function(data, callback) {
             return callback(null, savedCollection);
         }
     });
+};
+
+exports.delete = function (stixId, deleteAllContents, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    Collection.find({'stix.id': stixId})
+        .lean()
+        .exec(function (err, collections) {
+            if (err) {
+                if (err.name === 'CastError') {
+                    const error = new Error(errors.badlyFormattedParameter);
+                    error.parameterName = 'stixId';
+                    return callback(error);
+                }
+                else {
+                    return callback(err);
+                }
+            }
+            else {
+                const removedCollections = [];
+                async.each(collections, function(collection, callback2) {
+                        if (deleteAllContents) {
+                            async.each(collection.stix.x_mitre_contents, function(reference, callback2a) {
+                                AttackObject.findOneAndRemove({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
+                                    if (err) {
+                                        return callback2a(err);
+                                    }
+                                    else {
+                                        return callback2a();
+                                    }
+                                });
+                            });
+                        }
+
+                        Collection.findOneAndRemove({ 'stix.id': collection.stix.id, 'stix.modified': collection.stix.modified }, function (err, collection) {
+                            if (err) {
+                                return callback2(err);
+                            } else {
+                                //Note: collection is null if not found
+                                if (collection) {
+                                    removedCollections.push(collection)
+                                }
+                                return callback2(null, collection);
+                            }
+                        });
+                    },
+                    function(err, results) {
+                        if (err) {
+                            return callback(err);
+                        }
+                        else {
+                            return callback(null, removedCollections);
+                        }
+                    });
+            }
+        });
 };

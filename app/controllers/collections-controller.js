@@ -64,7 +64,7 @@ exports.create = function(req, res) {
         return res.status(400).send('Unable to create collection. Missing id.');
     }
 
-    // Create the technique
+    // Create the collection
     collectionsService.create(collectionData, function(err, collection) {
         if (err) {
             if (err.message === collectionsService.errors.duplicateId) {
@@ -79,6 +79,23 @@ exports.create = function(req, res) {
         else {
             logger.debug("Success: Created technique with id " + collection.stix.id);
             return res.status(201).send(collection);
+        }
+    });
+};
+
+exports.delete = function(req, res) {
+    collectionsService.delete(req.params.stixId, req.query.deleteAllContents, function (err, removedCollections) {
+        if (err) {
+            logger.error('Delete collections failed. ' + err);
+            return res.status(500).send('Unable to delete collections. Server error.');
+        }
+        else {
+            if (removedCollections.length === 0) {
+                return res.status(404).send('Collection not found.');
+            } else {
+                logger.debug("Success: Deleted collection with id " + removedCollections[0].id);
+                return res.status(204).end();
+            }
         }
     });
 };

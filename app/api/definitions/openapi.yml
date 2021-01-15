@@ -1217,6 +1217,32 @@ paths:
                   $ref: 'collections.yml#/components/schemas/collection'
         '404':
           description: 'A collection with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a collection'
+      operationId: 'collection-delete'
+      description: |
+        This endpoint deletes all versions of a collection from the workspace.
+      tags:
+        - 'Collections'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the collections to delete'
+          required: true
+          schema:
+            type: string
+        - name: deleteAllContents
+          in: query
+          description: |
+            Delete all of the objects referenced in x_mitre_contents.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '204':
+          description: 'The collections were successfully deleted.'
+        '404':
+          description: 'A collection with the requested STIX id was not found.'
 
   /api/collection-bundles:
     post:

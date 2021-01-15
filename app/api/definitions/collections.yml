@@ -108,5 +108,4 @@ components:
           type: string
       required:
         - object_ref
-        - object_modified
         - error_type
