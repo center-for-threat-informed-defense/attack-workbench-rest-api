@@ -1,0 +1,47 @@
+components:
+  schemas:
+    software:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/software-type'
+
+    software-type:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # software specific properties
+            name:
+              type: string
+              example: 'Net'
+            description:
+              type: string
+              example: 'This is a software'
+            # ATT&CK custom properties
+            x_mitre_aliases:
+              type: array
+              items:
+                type: string
+            x_mitre_contributors:
+              type: array
+              items:
+                type: string
+            x_mitre_version:
+              type: string
+              example: '1.0'
+            x_mitre_deprecated:
+              type: boolean
+              example: false
+            x_mitre_platforms:
+              type: array
+              items:
+                type: string
+                example: 'Windows'
