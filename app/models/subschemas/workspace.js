@@ -14,6 +14,12 @@ module.exports.common = {
     }
 };
 
+const importError = {
+    object_ref: { type: String, required: true },
+    object_modified : { type: Date, required: true },
+    error_type: { type: String, required: true }
+};
+
 module.exports.collection = {
     imported: Date,
     import_categories: {
@@ -26,6 +32,6 @@ module.exports.collection = {
         supersedes_collection_changes: [ String ],
         duplicates: [ String ],
         out_of_date: [ String ],
-        errors: [ String ]
+        errors: [ importError ]
     }
 };

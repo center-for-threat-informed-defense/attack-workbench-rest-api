@@ -59,7 +59,7 @@ components:
             errors:
               type: array
               items:
-                type: string
+                $ref: '#/components/schemas/import-error'
 
     stix-x-mitre-collection:
       allOf:
@@ -78,7 +78,7 @@ components:
             x_mitre_contents:
               type: array
               items:
-                $ref: '#/components/schemas/x_mitre_contents'
+                $ref: '#/components/schemas/x-mitre-contents'
             x_mitre_deprecated:
               type: boolean
               example: false
@@ -86,7 +86,7 @@ components:
               type: string
               example: '1.0'
 
-    x_mitre_contents:
+    x-mitre-contents:
       type: object
       properties:
         object_ref:
@@ -96,3 +96,17 @@ components:
       required:
         - object_ref
         - object_modified
+
+    import-error:
+      type: object
+      properties:
+        object_ref:
+          type: string
+        object_modified:
+          type: string
+        error_type:
+          type: string
+      required:
+        - object_ref
+        - object_modified
+        - error_type

@@ -9,6 +9,10 @@ const errors = {
 };
 exports.errors = errors;
 
+const importErrors = {
+    retrievalError: 'Retrieval error'
+}
+
 exports.import = function(collection, data, checkOnly, callback) {
     // Create the x-mitre-collection object
     const importedCollection = {
@@ -58,7 +62,12 @@ exports.import = function(collection, data, checkOnly, callback) {
                             techniquesService.retrieveById(importObject.id, 'all', function(err, objects) {
                                 if (err) {
                                     // Record the error, but don't cancel the import
-                                    importedCollection.workspace.import_categories.errors.push(importObject.id);
+                                    const importError = {
+                                        object_ref: importObject.id,
+                                        object_modified: importObject.modified,
+                                        error_type: importErrors.retrievalError
+                                    }
+                                    importedCollection.workspace.import_categories.errors.push(importError);
                                     return callback2a();
                                 }
                                 else {
