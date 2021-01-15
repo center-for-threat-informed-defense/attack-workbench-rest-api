@@ -21,7 +21,7 @@ tags:
   - name: 'Collection Indexes'
     description: 'Operations on collection indexes'
   - name: 'Software'
-    description: 'Operations on software'
+    description: 'Operations on software (tools and malware)'
   - name: 'Mitigations'
     description: 'Operations on mitigations'
 paths:
@@ -734,22 +734,18 @@ paths:
         '404':
           description: 'A collection index with the requested id was not found.'
 
-
-
-
-
   /api/software:
     get:
-      summary: 'Get a list of software'
+      summary: 'Get a list of software objects'
       operationId: 'group-get-all'
       description: |
-        This endpoint gets a list of software from the workspace.
-        The list of software may include multiple versions of each group.
+        This endpoint gets a list of software objects from the workspace.
+        The list of software objects may include multiple versions of each object.
       tags:
         - 'Software'
       responses:
         '200':
-          description: 'A list of software.'
+          description: 'A list of software objects.'
           content:
             application/json:
               schema:
@@ -758,12 +754,12 @@ paths:
                   $ref: 'software.yml#/components/schemas/software'
 
     post:
-      summary: 'Create a software'
+      summary: 'Create a software object'
       operationId: 'software-create'
       description: |
-        This endpoint creates a new software in the workspace.
-        If the `stix.id` property is set, it creates a new version of an existing software.
-        If the `stix.id` property is not set, it creates a new software, generating a STIX id for it.
+        This endpoint creates a new software object in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing software object.
+        If the `stix.id` property is not set, it creates a new software object, generating a STIX id for it.
       tags:
         - 'Software'
       requestBody:
@@ -774,35 +770,35 @@ paths:
               $ref: 'software.yml#/components/schemas/software'
       responses:
         '201':
-          description: 'The software has been successfully created.'
+          description: 'The software object has been successfully created.'
           content:
             application/json:
               schema:
                 $ref: 'software.yml#/components/schemas/software'
         '400':
-          description: 'Missing or invalid parameters were provided. The software was not created.'
+          description: 'Missing or invalid parameters were provided. The software object was not created.'
         '409':
-          description: 'Duplicate `stix.id` and `stix.modified` properties. The software was not created.'
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The software object was not created.'
 
   /api/software/{stixId}:
     get:
-      summary: 'Get one or more versions of a software'
+      summary: 'Get one or more versions of a software object'
       operationId: 'software-get-one-id'
       description: |
-        This endpoint gets a list of one or more versions of a software from the workspace, identified by their STIX id.
+        This endpoint gets a list of one or more versions of a software object from the workspace, identified by their STIX id.
       tags:
         - 'Software'
       parameters:
         - name: stixId
           in: path
-          description: 'STIX id of the software to retrieve'
+          description: 'STIX id of the software object to retrieve'
           required: true
           schema:
             type: string
         - name: versions
           in: query
           description: |
-            The versions of the software to retrieve.
+            The versions of the software object to retrieve.
             `all` gets all versions of the software, `latest` gets only the latest version.
           schema:
             type: string
@@ -812,7 +808,7 @@ paths:
             default: latest
       responses:
         '200':
-          description: 'A list of software matching the requested STIX id.'
+          description: 'A list of software objects matching the requested STIX id.'
           content:
             application/json:
               schema:
@@ -820,55 +816,55 @@ paths:
                 items:
                   $ref: 'software.yml#/components/schemas/software'
         '404':
-          description: 'A software with the requested STIX id was not found.'
+          description: 'A software object with the requested STIX id was not found.'
 
   /api/software/{stixId}/modified/{modified}:
     get:
-      summary: 'Gets the version of a software matching the STIX id and modified date'
+      summary: 'Gets the version of a software object matching the STIX id and modified date'
       operationId: 'software-get-by-id-and-modified'
       description: |
-        This endpoint gets a single version of a software from the workspace, identified by its STIX id and modified date.
+        This endpoint gets a single version of a software object from the workspace, identified by its STIX id and modified date.
       tags:
         - 'Software'
       parameters:
         - name: stixId
           in: path
-          description: 'STIX id of the software to retrieve'
+          description: 'STIX id of the software object to retrieve'
           required: true
           schema:
             type: string
         - name: modified
           in: path
-          description: 'modified date of the software to retrieve'
+          description: 'modified date of the software object to retrieve'
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: 'The version of a software matching the STIX id and modified date.'
+          description: 'The version of a software object matching the STIX id and modified date.'
           content:
             application/json:
               schema:
                 $ref: 'software.yml#/components/schemas/software'
         '404':
-          description: 'A software with the requested STIX id and modified date was not found.'
+          description: 'A software object with the requested STIX id and modified date was not found.'
     put:
-      summary: 'Update a software'
+      summary: 'Update a software object'
       operationId: 'software-update'
       description: |
-        This endpoint updates a single version of a software in the workspace, identified by its STIX id and modified date.
+        This endpoint updates a single version of a software object in the workspace, identified by its STIX id and modified date.
       tags:
         - 'Software'
       parameters:
         - name: stixId
           in: path
-          description: 'STIX id of the software to update'
+          description: 'STIX id of the software object to update'
           required: true
           schema:
             type: string
         - name: modified
           in: path
-          description: 'modified date of the software to update'
+          description: 'modified date of the software object to update'
           required: true
           schema:
             type: string
@@ -880,41 +876,41 @@ paths:
               $ref: 'software.yml#/components/schemas/software'
       responses:
         '200':
-          description: 'The software was updated.'
+          description: 'The software object was updated.'
           content:
             application/json:
               schema:
                 $ref: 'software.yml#/components/schemas/software'
         '400':
-          description: 'Missing or invalid parameters were provided. The software was not updated.'
+          description: 'Missing or invalid parameters were provided. The software object was not updated.'
         '404':
-          description: 'A software with the requested STIX id and modified date was not found.'
+          description: 'A software object with the requested STIX id and modified date was not found.'
     delete:
-      summary: 'Delete a software'
+      summary: 'Delete a software object'
       operationId: 'software-delete'
       description: |
-        This endpoint deletes a single version of a software from the workspace.
-        The software is identified by its STIX id and modified date.
+        This endpoint deletes a single version of a software object from the workspace.
+        The software object is identified by its STIX id and modified date.
       tags:
         - 'Software'
       parameters:
         - name: stixId
           in: path
-          description: 'STIX id of the software to delete'
+          description: 'STIX id of the software object to delete'
           required: true
           schema:
             type: string
         - name: modified
           in: path
-          description: 'modified date of the software to delete'
+          description: 'modified date of the software object to delete'
           required: true
           schema:
             type: string
       responses:
         '204':
-          description: 'The software was successfully deleted.'
+          description: 'The software object was successfully deleted.'
         '404':
-          description: 'A software with the requested STIX id and modified date was not found.'
+          description: 'A software object with the requested STIX id and modified date was not found.'
 
   /api/mitigations:
     get:
