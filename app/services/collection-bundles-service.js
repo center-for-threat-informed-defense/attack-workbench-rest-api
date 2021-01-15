@@ -2,6 +2,11 @@
 
 const collectionsService = require('../services/collections-service');
 const techniquesService = require('../services/techniques-service');
+const tacticsService = require('../services/tactics-service');
+const groupsService = require('../services/groups-service');
+const mitigationsService = require('../services/mitigations-service');
+const softwareService = require('../services/software-service');
+
 const async = require('async');
 
 const errors = {
@@ -10,7 +15,14 @@ const errors = {
 exports.errors = errors;
 
 const importErrors = {
-    retrievalError: 'Retrieval error'
+    retrievalError: 'Retrieval error',
+    unknownObjectType: 'Unknown object type',
+    notInContents: 'Not in contents',  // object in bundle but not in x_mitre_contents
+    missingObject: 'Missing object'    // object in x_mitre_contents but not in bundle
+}
+
+function hashEntry(stixId, modified) {
+    return stixId + '/' + modified;
 }
 
 exports.import = function(collection, data, checkOnly, callback) {
@@ -33,6 +45,12 @@ exports.import = function(collection, data, checkOnly, callback) {
         },
         stix: collection
     };
+
+    // Build a map of the objects in x_mitre_contents
+    const contentsMap = new Map();
+    for (const entry of collection.x_mitre_contents) {
+        contentsMap.set(hashEntry(entry.object_ref, entry.object_modified), entry);
+    }
 
     async.series(
         [
@@ -57,9 +75,37 @@ exports.import = function(collection, data, checkOnly, callback) {
             // Iterate over the objects
             function(callback2) {
                 async.each(data.objects, function(importObject, callback2a) {
+                        // Check to see if the object is in x_mitre_contents
+                        if (!contentsMap.delete(hashEntry(importObject.id, importObject.modified)) && importObject.type !== 'x-mitre-collection') {
+                            // Not found in x_mitre_contents
+                            // Record the error but continue processing the object
+                            const importError = {
+                                object_ref: importObject.id,
+                                object_modified: importObject.modified,
+                                error_type: importErrors.notInContents
+                            }
+                            importedCollection.workspace.import_categories.errors.push(importError);
+                        }
+
+                        let service;
                         if (importObject.type === 'attack-pattern') {
+                            service = techniquesService;
+                        }
+                        else if (importObject.type === 'x-mitre-tactic') {
+                            service = tacticsService;
+                        }
+                        else if (importObject.type === 'intrusion-set') {
+                            service = groupsService;
+                        }
+                        else if (importObject.type === 'course-of-action') {
+                            service = mitigationsService;
+                        }
+                        else if (importObject.type === 'malware' || importObject.type === 'tool') {
+                            service = softwareService;
+                        }
+                        if (service) {
                             // Retrieve all the objects with the same stix ID
-                            techniquesService.retrieveById(importObject.id, 'all', function(err, objects) {
+                            service.retrieveById(importObject.id, 'all', function(err, objects) {
                                 if (err) {
                                     // Record the error, but don't cancel the import
                                     const importError = {
@@ -111,15 +157,15 @@ exports.import = function(collection, data, checkOnly, callback) {
                                         process.nextTick(() => callback2a());
                                     }
                                     else {
-                                        const technique = {
+                                        const newObject = {
                                             workspace: {
                                                 domains: []
                                             },
                                             stix: importObject
                                         };
-                                        techniquesService.create(technique, function (err, savedTechnique) {
+                                        service.create(newObject, function (err, savedObject) {
                                             if (err) {
-                                                if (err.message === techniquesService.errors.duplicateId) {
+                                                if (err.message === service.errors.duplicateId) {
                                                     return callback2a(err);
                                                 } else {
                                                     return callback2a(err);
@@ -133,10 +179,35 @@ exports.import = function(collection, data, checkOnly, callback) {
                             });
                         }
                         else {
-                            process.nextTick(() => callback2a());
+                            if (importObject.type === 'x-mitre-collection') {
+                                // Skip x-mitre-collection objects
+                                process.nextTick(() => callback2a());
+                            }
+                            else {
+                                // Unknown object type
+                                // Record the error, but don't cancel the import
+                                const importError = {
+                                    object_ref: importObject.id,
+                                    object_modified: importObject.modified,
+                                    error_type: importErrors.unknownObjectType
+                                }
+                                importedCollection.workspace.import_categories.errors.push(importError);
+                                process.nextTick(() => callback2a());
+                            }
                         }
                     },
                     function(err) {
+                        // All the entries in the entry map should be removed now
+                        for (const entry of contentsMap.values()) {
+                            // Object was in x_mitre_contents but not in the bundle
+                            const importError = {
+                                object_ref: entry.object_ref,
+                                object_modified: entry.object_modified,
+                                error_type: importErrors.missingObject
+                            }
+                            importedCollection.workspace.import_categories.errors.push(importError);
+                        }
+
                         return callback2(err);
                     })
             },

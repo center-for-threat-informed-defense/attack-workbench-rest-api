@@ -8,6 +8,6 @@ const xMitreContent = {
 module.exports.xMitreCollection = {
     name: { type: String, required: true },
     description: String,
-    x_mitre_content: [ xMitreContent ],
+    x_mitre_contents: [ xMitreContent ],
     x_mitre_version: String
 };
