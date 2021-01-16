@@ -9,17 +9,23 @@ exports.retrieveAll = function(req, res) {
         limit: req.query.limit || 0,
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
-        includeDeprecated: req.query.includeDeprecated
+        includeDeprecated: req.query.includeDeprecated,
+        includePagination: req.query.includePagination
     }
 
-    techniquesService.retrieveAll(options, function(err, techniques) {
+    techniquesService.retrieveAll(options, function(err, results) {
         if (err) {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get techniques. Server error.');
         }
         else {
-            logger.debug(`Success: Retrieved ${ techniques.length } technique(s)`);
-            return res.status(200).send(techniques);
+            if (options.includePagination) {
+                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total technique(s)`);
+            }
+            else {
+                logger.debug(`Success: Retrieved ${ results.length } technique(s)`);
+            }
+            return res.status(200).send(results);
         }
     });
 };

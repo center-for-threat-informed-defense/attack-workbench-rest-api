@@ -115,6 +115,31 @@ describe('Techniques Pagination API', function () {
                     }
                 });
         });
+
+        it('GET /api/techniques return a page of preloaded techniques with pagination data', function (done) {
+            request(app)
+                .get(`/api/techniques?offset=${ offset }&limit=${ pageSize }&includePagination=true`)
+                .set('Accept', 'application/json')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .end(function (err, res) {
+                    if (err) {
+                        done(err);
+                    } else {
+                        // We expect to get an array with one page of techniques
+                        const techniques = res.body.data;
+                        const pagination = res.body.pagination;
+                        expect(techniques).toBeDefined();
+                        expect(Array.isArray(techniques)).toBe(true);
+                        expect(techniques.length).toBe(pageSize);
+                        expect(pagination).toBeDefined();
+                        expect(pagination.total).toBe(numberTechniques);
+                        expect(pagination.limit).toBe(pageSize);
+                        expect(pagination.offset).toBe(offset);
+                        done();
+                    }
+                });
+        });
     }));
 
     after(async function() {
