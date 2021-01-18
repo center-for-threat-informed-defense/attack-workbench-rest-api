@@ -1214,6 +1214,13 @@ paths:
               - all
               - latest
             default: latest
+        - name: retrieveContents
+          in: query
+          description: |
+            Retrieve the objects that are referenced by the collection
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'A list of collections matching the requested STIX id.'

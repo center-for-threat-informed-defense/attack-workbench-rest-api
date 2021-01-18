@@ -23,7 +23,7 @@ exports.retrieveAll = function(callback) {
     });
 };
 
-exports.retrieveById = function(stixId, versions, callback) {
+exports.retrieveById = function(stixId, options, callback) {
     // versions=all Retrieve all tactics with the stixId
     // versions=latest Retrieve the tactics with the latest modified date for this stixId
 
@@ -33,7 +33,7 @@ exports.retrieveById = function(stixId, versions, callback) {
         return callback(error);
     }
 
-    if (versions === 'all') {
+    if (options.versions === 'all') {
         Tactic.find({'stix.id': stixId})
             .lean()
             .exec(function (err, tactics) {
@@ -50,7 +50,7 @@ exports.retrieveById = function(stixId, versions, callback) {
                 }
             });
     }
-    else if (versions === 'latest') {
+    else if (options.versions === 'latest') {
         Tactic.findOne({ 'stix.id': stixId })
             .sort('-stix.modified')
             .lean()

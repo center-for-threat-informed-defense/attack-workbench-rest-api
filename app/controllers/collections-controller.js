@@ -25,9 +25,12 @@ exports.retrieveAll = function(req, res) {
 };
 
 exports.retrieveById = function(req, res) {
-    const versions = req.query.versions || 'latest';
+    const options = {
+        versions: req.query.versions || 'latest',
+        retrieveContents: req.query.retrieveContents
+    }
 
-    collectionsService.retrieveById(req.params.stixId, versions, function (err, collections) {
+    collectionsService.retrieveById(req.params.stixId, options, function (err, collections) {
         if (err) {
             if (err.message === collectionsService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);

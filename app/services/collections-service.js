@@ -2,6 +2,7 @@
 
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
+const attackObjectsService = require('./attack-objects-service');
 const async = require('async');
 
 const errors = {
@@ -54,7 +55,31 @@ exports.retrieveAll = function(options, callback) {
     });
 };
 
-exports.retrieveById = function(stixId, versions, callback) {
+function getContents(objectList, callback) {
+    async.mapLimit(
+        objectList,
+        5,
+        function(objectRef, callback2) {
+            attackObjectsService.retrieveVersionById(objectRef.object_ref, objectRef.object_modified, function (err, attackObject) {
+                if (err) {
+                    return callback2(err);
+                } else {
+                    return callback2(null, attackObject);
+                }
+            });
+        },
+        function(err, results) {
+            if (err) {
+                return callback(err);
+            }
+            else {
+                const filteredResults = results.filter(item => item);
+                return callback(null, filteredResults);
+            }
+        });
+}
+
+exports.retrieveById = function(stixId, options, callback) {
     // versions=all Retrieve all collections with the stixId
     // versions=latest Retrieve the collection with the latest modified date for this stixId
     if (!stixId) {
@@ -63,7 +88,7 @@ exports.retrieveById = function(stixId, versions, callback) {
         return callback(error);
     }
 
-    if (versions === 'all') {
+    if (options.versions === 'all') {
         Collection.find({'stix.id': stixId})
             .lean()
             .exec(function (err, collections) {
@@ -78,11 +103,35 @@ exports.retrieveById = function(stixId, versions, callback) {
                     }
                 }
                 else {
-                    return callback(null, collections);
+                    if (options.retrieveContents) {
+                        async.eachSeries(
+                            collections,
+                            function(collection, callback2) {
+                                getContents(collection.stix.x_mitre_contents, function (err, contents) {
+                                    if (err) {
+                                        return callback2(err);
+                                    } else {
+                                        collection.contents = contents;
+                                        return callback2(null);
+                                    }
+                                })
+                            },
+                            function(err, results) {
+                                if (err) {
+                                    return callback(err);
+                                }
+                                else {
+                                    return callback(null, collections);
+                                }
+                            });
+                    }
+                    else {
+                        return callback(null, collections);
+                    }
                 }
             });
     }
-    else if (versions === 'latest') {
+    else if (options.versions === 'latest') {
         Collection.findOne({ 'stix.id': stixId })
             .sort('-stix.modified')
             .lean()
@@ -100,7 +149,19 @@ exports.retrieveById = function(stixId, versions, callback) {
                 else {
                     // Note: document is null if not found
                     if (collection) {
-                        return callback(null, [ collection ]);
+                        if (options.retrieveContents) {
+                            getContents(collection.stix.x_mitre_contents, function (err, contents) {
+                                if (err) {
+                                    return callback(err);
+                                } else {
+                                    collection.contents = contents;
+                                    return callback(null, [ collection ]);
+                                }
+                            })
+                        }
+                        else {
+                            return callback(null, [ collection ]);
+                        }
                     }
                     else {
                         return callback(null, []);

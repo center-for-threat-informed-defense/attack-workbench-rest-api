@@ -77,7 +77,7 @@ exports.retrieveAll = function(options, callback) {
     });
 };
 
-exports.retrieveById = function(stixId, versions, callback) {
+exports.retrieveById = function(stixId, options, callback) {
     // versions=all Retrieve all techniques with the stixId
     // versions=latest Retrieve the technique with the latest modified date for this stixId
 
@@ -87,7 +87,7 @@ exports.retrieveById = function(stixId, versions, callback) {
         return callback(error);
     }
 
-    if (versions === 'all') {
+    if (options.versions === 'all') {
         Technique.find({'stix.id': stixId})
             .sort('-stix.modified')
             .lean()
@@ -107,7 +107,7 @@ exports.retrieveById = function(stixId, versions, callback) {
                 }
             });
     }
-    else if (versions === 'latest') {
+    else if (options.versions === 'latest') {
         Technique.findOne({ 'stix.id': stixId })
             .sort('-stix.modified')
             .lean()

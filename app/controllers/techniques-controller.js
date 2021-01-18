@@ -31,9 +31,11 @@ exports.retrieveAll = function(req, res) {
 };
 
 exports.retrieveById = function(req, res) {
-    const versions = req.query.versions || 'latest';
+    const options = {
+        versions: req.query.versions || 'latest'
+    }
 
-    techniquesService.retrieveById(req.params.stixId, versions, function (err, techniques) {
+    techniquesService.retrieveById(req.params.stixId, options, function (err, techniques) {
         if (err) {
             if (err.message === techniquesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);

@@ -56,7 +56,7 @@ exports.import = function(collection, data, checkOnly, callback) {
         [
             // Check for a duplicate x-mitre-collection object
             function(callback1) {
-                collectionsService.retrieveById(importedCollection.stix.id, 'all', function(err, collections) {
+                collectionsService.retrieveById(importedCollection.stix.id, { versions: 'all' }, function(err, collections) {
                     if (err) {
                         return callback1(err);
                     }
@@ -105,7 +105,7 @@ exports.import = function(collection, data, checkOnly, callback) {
                         }
                         if (service) {
                             // Retrieve all the objects with the same stix ID
-                            service.retrieveById(importObject.id, 'all', function(err, objects) {
+                            service.retrieveById(importObject.id, { versions: 'all' }, function(err, objects) {
                                 if (err) {
                                     // Record the error, but don't cancel the import
                                     const importError = {
