@@ -4,14 +4,28 @@ const tacticsService = require('../services/tactics-service');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
-    tacticsService.retrieveAll(function(err, tactics) {
+    const options = {
+        offset: req.query.offset || 0,
+        limit: req.query.limit || 0,
+        state: req.query.state,
+        includeRevoked: req.query.includeRevoked,
+        includeDeprecated: req.query.includeDeprecated,
+        includePagination: req.query.includePagination
+    }
+
+    tacticsService.retrieveAll(options, function(err, results) {
         if (err) {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get tactics. Server error.');
         }
         else {
-            logger.debug(`Success: Retrieved ${ tactics.length } tactic(s)`);
-            return res.status(200).send(tactics);
+            if (options.includePagination) {
+                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total tactic(s)`);
+            }
+            else {
+                logger.debug(`Success: Retrieved ${ results.length } tactic(s)`);
+            }
+            return res.status(200).send(results);
         }
     });
 };

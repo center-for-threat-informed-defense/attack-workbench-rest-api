@@ -4,14 +4,28 @@ const softwareService = require('../services/software-service');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
-    softwareService.retrieveAll(function(err, software) {
+    const options = {
+        offset: req.query.offset || 0,
+        limit: req.query.limit || 0,
+        state: req.query.state,
+        includeRevoked: req.query.includeRevoked,
+        includeDeprecated: req.query.includeDeprecated,
+        includePagination: req.query.includePagination
+    }
+
+    softwareService.retrieveAll(options, function(err, results) {
         if (err) {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get software. Server error.');
         }
         else {
-            logger.debug(`Success: Retrieved ${ software.length } software`);
-            return res.status(200).send(software);
+            if (options.includePagination) {
+                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total software`);
+            }
+            else {
+                logger.debug(`Success: Retrieved ${ results.length } software`);
+            }
+            return res.status(200).send(results);
         }
     });
 };

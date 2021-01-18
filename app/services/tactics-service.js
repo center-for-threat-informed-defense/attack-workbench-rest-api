@@ -12,13 +12,67 @@ const errors = {
 };
 exports.errors = errors;
 
-exports.retrieveAll = function(callback) {
-    Tactic.find(function(err, tactics) {
+exports.retrieveAll = function(options, callback) {
+    // Build the query
+    const query = {};
+    if (!options.includeRevoked) {
+        query['stix.revoked'] = { $in: [null, false] };
+    }
+    if (!options.includeDeprecated) {
+        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
+    }
+    if (typeof options.state !== 'undefined') {
+        query['workspace.workflow.state'] = options.state;
+    }
+
+    // Build the aggregation
+    // - Group the documents by stix.id, sorted by stix.modified
+    // - Use the last document in each group (according to the value of stix.modified)
+    // - Then apply query, skip and limit options
+    const aggregation = [
+        { $sort: { 'stix.modified': 1 } },
+        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
+        { $replaceRoot: { newRoot: '$document' }},
+        { $match: query }
+    ];
+
+    const facet = {
+        $facet: {
+            totalCount: [ { $count: 'totalCount' }],
+            documents: [ ]
+        }
+    };
+    if (options.skip) {
+        facet.$facet.documents.push({ $skip: options.skip });
+    }
+    else {
+        facet.$facet.documents.push({ $skip: 0 });
+    }
+    if (options.limit) {
+        facet.$facet.documents.push({ $limit: options.limit });
+    }
+    aggregation.push(facet);
+
+    // Retrieve the documents
+    Tactic.aggregate(aggregation, function(err, results) {
         if (err) {
             return callback(err);
         }
         else {
-            return callback(null, tactics);
+            if (options.includePagination) {
+                const returnValue = {
+                    pagination: {
+                        total: results[0].totalCount[0].totalCount,
+                        offset: options.offset,
+                        limit: options.limit
+                    },
+                    data: results[0].documents
+                };
+                return callback(null, returnValue);
+            }
+            else {
+                return callback(null, results[0].documents);
+            }
         }
     });
 };

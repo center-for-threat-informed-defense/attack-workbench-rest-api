@@ -4,14 +4,28 @@ const mitigationsService = require('../services/mitigations-service');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
-    mitigationsService.retrieveAll(function(err, mitigations) {
+    const options = {
+        offset: req.query.offset || 0,
+        limit: req.query.limit || 0,
+        state: req.query.state,
+        includeRevoked: req.query.includeRevoked,
+        includeDeprecated: req.query.includeDeprecated,
+        includePagination: req.query.includePagination
+    }
+
+    mitigationsService.retrieveAll(options, function(err, results) {
         if (err) {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get mitigations. Server error.');
         }
         else {
-            logger.debug(`Success: Retrieved ${ mitigations.length } mitigation(s)`);
-            return res.status(200).send(mitigations);
+            if (options.includePagination) {
+                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total mitigation(s)`);
+            }
+            else {
+                logger.debug(`Success: Retrieved ${ results.length } mitigation(s)`);
+            }
+            return res.status(200).send(results);
         }
     });
 };

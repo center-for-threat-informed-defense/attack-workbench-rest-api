@@ -4,14 +4,28 @@ const groupsService = require('../services/groups-service');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
-    groupsService.retrieveAll(function(err, groups) {
+    const options = {
+        offset: req.query.offset || 0,
+        limit: req.query.limit || 0,
+        state: req.query.state,
+        includeRevoked: req.query.includeRevoked,
+        includeDeprecated: req.query.includeDeprecated,
+        includePagination: req.query.includePagination
+    }
+
+    groupsService.retrieveAll(options, function(err, results) {
         if (err) {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get groups. Server error.');
         }
         else {
-            logger.debug(`Success: Retrieved ${ groups.length } group(s)`);
-            return res.status(200).send(groups);
+            if (options.includePagination) {
+                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total group(s)`);
+            }
+            else {
+                logger.debug(`Success: Retrieved ${ results.length } group(s)`);
+            }
+            return res.status(200).send(results);
         }
     });
 };
