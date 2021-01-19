@@ -7,6 +7,7 @@ module.exports.intrusionSet = {
 
     // ATT&CK custom stix properties
     aliases: [ String ],
+    x_mitre_domains: [ String ],
     x_mitre_version: String,
     x_mitre_contributors: [ String ]
 };

@@ -10,6 +10,7 @@ const matrixProperties = {
 
     // ATT&CK custom stix properties
     tactic_refs: [ String ],
+    x_mitre_domains: [ String ],
     x_mitre_version: String
 };
 
