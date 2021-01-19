@@ -7,6 +7,8 @@ const markingObject = {
     statement: String
 };
 
+// TBD: Marking Definition should not have modified or revoked properties.
+
 const markingDefinitionProperties = {
     // marking definition specific properties
     name: { type: String, required: true },

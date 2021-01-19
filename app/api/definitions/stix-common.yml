@@ -11,7 +11,7 @@ components:
         # STIX common properties
         type:
           type: string
-          pattern: '^(attack-pattern|x-mitre-tactic|intrusion-set|tool|malware|course-of-action|x-mitre-collection)$'
+          pattern: '^(attack-pattern|x-mitre-tactic|intrusion-set|tool|malware|course-of-action|x-mitre-matrix|relationship|x-mitre-collection)$'
         spec_version:
           type: string
           pattern: '^2.1$'

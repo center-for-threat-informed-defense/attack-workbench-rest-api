@@ -6,6 +6,8 @@ const tacticsService = require('../services/tactics-service');
 const groupsService = require('../services/groups-service');
 const mitigationsService = require('../services/mitigations-service');
 const softwareService = require('../services/software-service');
+const matricesService = require('../services/matrices-service');
+const relationshipService = require('../services/relationships-service');
 
 const async = require('async');
 
@@ -61,7 +63,14 @@ exports.import = function(collection, data, checkOnly, callback) {
                         return callback1(err);
                     }
                     else {
-                        const duplicateCollection = collections.find(collection => collection.stix.modified.toISOString() === importedCollection.stix.modified);
+                        const duplicateCollection = collections.find(collection => {
+                            // Imported objects may have more decimal places in the seconds than toISOString() creates
+                            // So convert everything to a single format
+                            // TBD: Come up with a cleaner solution
+                            const existingCollectionTimestamp = collection.stix.modified.toISOString();
+                            const importedCollectionTimestamp = new Date(importedCollection.stix.modified).toISOString();
+                            return existingCollectionTimestamp === importedCollectionTimestamp;
+                        });
                         if (duplicateCollection) {
                             const error = new Error(errors.duplicateCollection);
                             return callback1(error);
@@ -103,6 +112,13 @@ exports.import = function(collection, data, checkOnly, callback) {
                         else if (importObject.type === 'malware' || importObject.type === 'tool') {
                             service = softwareService;
                         }
+                        else if (importObject.type === 'x-mitre-matrix') {
+                            service = matricesService;
+                        }
+                        else if (importObject.type === 'relationship') {
+                            service = relationshipService;
+                        }
+
                         if (service) {
                             // Retrieve all the objects with the same stix ID
                             service.retrieveById(importObject.id, { versions: 'all' }, function(err, objects) {

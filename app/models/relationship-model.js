@@ -5,11 +5,11 @@ const AttackObject = require('./attack-object-model');
 
 const relationshipProperties = {
     // relationship specific properties
-    name: { type: String, required: true },
+    name: String,
     description: String,
-    relationship_type: String,
-    source_ref: String,
-    target_ref: String,
+    relationship_type: { type: String, required: true },
+    source_ref: { type: String, required: true },
+    target_ref: { type: String, required: true },
     start_time: Date,
     stop_time: Date,
 
