@@ -985,6 +985,31 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: sourceRef
+          in: query
+          description: |
+            STIX id of referenced object. Only retrieve relationships that reference this object in the `source_ref` property.
+          schema:
+            type: string
+        - name: targetRef
+          in: query
+          description: |
+            STIX id of referenced object. Only retrieve relationships that reference this object in the `target_ref` property.
+          schema:
+            type: string
+        - name: sourceOrTargetRef
+          in: query
+          description: |
+            STIX id of referenced object.
+            Only retrieve relationships that reference this object in either the `source_ref` or `target_ref` properties.
+          schema:
+            type: string
+        - name: relationshipType
+          in: query
+          description: |
+            Only retrieve relationships that have a matching `relationship_type`.
+          schema:
+            type: string
         - name: includePagination
           in: query
           description: |

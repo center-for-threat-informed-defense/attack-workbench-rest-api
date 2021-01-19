@@ -10,6 +10,10 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        sourceRef: req.query.sourceRef,
+        targetRef: req.query.targetRef,
+        sourceOrTargetRef: req.query.sourceOrTargetRef,
+        relationshipType: req.query.relationshipType,
         includePagination: req.query.includePagination
     }
 

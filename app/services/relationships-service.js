@@ -24,6 +24,17 @@ exports.retrieveAll = function(options, callback) {
     if (typeof options.state !== 'undefined') {
         query['workspace.workflow.state'] = options.state;
     }
+    if (typeof options.sourceRef !== 'undefined') {
+        query['stix.source_ref'] = options.sourceRef;
+    }
+    if (typeof options.targetRef !== 'undefined') {
+        query['stix.target_ref'] = options.targetRef;
+    }
+    // TBD: Implement sourceOrTargetRef
+    // { $or: [{ source_ref: options.sourceOrTargetRef }, { target_ref: options.sourceOrTargetRef }] }
+    if (typeof options.relationshipType !== 'undefined') {
+        query['stix.relationship_type'] = options.relationshipType;
+    }
 
     // Build the aggregation
     // - Group the documents by stix.id, sorted by stix.modified
