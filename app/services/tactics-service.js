@@ -60,9 +60,13 @@ exports.retrieveAll = function(options, callback) {
         }
         else {
             if (options.includePagination) {
+                let derivedTotalCount = 0;
+                if (results[0].totalCount.length > 0) {
+                    derivedTotalCount = results[0].totalCount[0].totalCount;
+                }
                 const returnValue = {
                     pagination: {
-                        total: results[0].totalCount[0].totalCount,
+                        total: derivedTotalCount,
                         offset: options.offset,
                         limit: options.limit
                     },

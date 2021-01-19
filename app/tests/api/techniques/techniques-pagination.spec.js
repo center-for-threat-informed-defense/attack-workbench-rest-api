@@ -35,7 +35,7 @@ const initialObjectData = {
     }
 };
 
-const numberTechniques = 40;
+const numberTechniques = 45;
 function loadTechniques() {
     // Initialize the data
     for (let i = 0; i < numberTechniques; i++) {
@@ -69,6 +69,96 @@ describe('Techniques Pagination API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+    });
+
+    it('GET /api/techniques return an empty page', function (done) {
+        request(app)
+            .get(`/api/techniques?offset=0&limit=10`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get an array with one page of techniques
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques return an empty page with offset', function (done) {
+        request(app)
+            .get(`/api/techniques?offset=10&limit=10`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get an array with one page of techniques
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques return an empty page with pagination data', function (done) {
+        request(app)
+            .get(`/api/techniques?offset=0&limit=10&includePagination=true`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get an array with one page of techniques
+                    const techniques = res.body.data;
+                    const pagination = res.body.pagination;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(0);
+                    expect(pagination).toBeDefined();
+                    expect(pagination.total).toBe(0);
+                    expect(pagination.limit).toBe(10);
+                    expect(pagination.offset).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques return an empty page with offset with pagination data', function (done) {
+        request(app)
+            .get(`/api/techniques?offset=10&limit=10&includePagination=true`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get an array with one page of techniques
+                    const techniques = res.body.data;
+                    const pagination = res.body.pagination;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(0);
+                    expect(pagination).toBeDefined();
+                    expect(pagination.total).toBe(0);
+                    expect(pagination.limit).toBe(10);
+                    expect(pagination.offset).toBe(10);
+                    done();
+                }
+            });
     });
 
     it('GET /api/techniques return the array of preloaded techniques', function (done) {
@@ -141,6 +231,51 @@ describe('Techniques Pagination API', function () {
                 });
         });
     }));
+
+    it('GET /api/techniques return a partial page of preloaded techniques', function (done) {
+        request(app)
+            .get(`/api/techniques?offset=40&limit=20`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get an array with one page of techniques
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(5);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques return a partial page of preloaded techniques with pagination data', function (done) {
+        request(app)
+            .get(`/api/techniques?offset=40&limit=20&includePagination=true`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get an array with one page of techniques
+                    const techniques = res.body.data;
+                    const pagination = res.body.pagination;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(5);
+                    expect(pagination).toBeDefined();
+                    expect(pagination.total).toBe(5);
+                    expect(pagination.limit).toBe(20);
+                    expect(pagination.offset).toBe(40);
+                    done();
+                }
+            });
+    });
 
     after(async function() {
         await database.closeConnection();
