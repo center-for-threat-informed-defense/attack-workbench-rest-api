@@ -42,8 +42,8 @@ exports.retrieveAll = function(options, callback) {
             documents: [ ]
         }
     };
-    if (options.skip) {
-        facet.$facet.documents.push({ $skip: options.skip });
+    if (options.offset) {
+        facet.$facet.documents.push({ $skip: options.offset });
     }
     else {
         facet.$facet.documents.push({ $skip: 0 });

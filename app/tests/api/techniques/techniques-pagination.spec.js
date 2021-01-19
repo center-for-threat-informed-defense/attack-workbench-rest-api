@@ -269,7 +269,7 @@ describe('Techniques Pagination API', function () {
                     expect(Array.isArray(techniques)).toBe(true);
                     expect(techniques.length).toBe(5);
                     expect(pagination).toBeDefined();
-                    expect(pagination.total).toBe(5);
+                    expect(pagination.total).toBe(45);
                     expect(pagination.limit).toBe(20);
                     expect(pagination.offset).toBe(40);
                     done();
