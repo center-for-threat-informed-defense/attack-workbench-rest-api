@@ -14,6 +14,8 @@ exports.retrieveAll = function(req, res) {
         targetRef: req.query.targetRef,
         sourceOrTargetRef: req.query.sourceOrTargetRef,
         relationshipType: req.query.relationshipType,
+        sourceType: req.query.sourceType,
+        targetType: req.query.targetType,
         includePagination: req.query.includePagination
     }
 

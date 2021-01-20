@@ -1010,6 +1010,28 @@ paths:
             Only retrieve relationships that have a matching `relationship_type`.
           schema:
             type: string
+        - name: sourceType
+          in: query
+          description: |
+            Only retrieve relationships that have a `source_ref` to an object of the selected type.
+          schema:
+            type: string
+            enum:
+              - technique
+              - group
+              - mitigation
+              - software
+        - name: targetType
+          in: query
+          description: |
+            Only retrieve relationships that have a `target_ref` to an object of the selected type.
+          schema:
+            type: string
+            enum:
+              - technique
+              - group
+              - mitigation
+              - software
         - name: includePagination
           in: query
           description: |

@@ -32,9 +32,10 @@ exports.retrieveAll = function(options, callback) {
     // - Use the last document in each group (according to the value of stix.modified)
     // - Then apply query, skip and limit options
     const aggregation = [
-        { $sort: { 'stix.modified': 1 } },
+        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
         { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
         { $replaceRoot: { newRoot: '$document' }},
+        { $sort: { 'stix.id': 1 }},
         { $match: query }
     ];
     if (options.skip) {

@@ -12,6 +12,15 @@ const errors = {
 };
 exports.errors = errors;
 
+const objectTypeMap = new Map();
+objectTypeMap.set('malware', 'software');
+objectTypeMap.set('tool', 'software');
+objectTypeMap.set('attack-pattern', 'technique');
+objectTypeMap.set('intrusion-set', 'group');
+objectTypeMap.set('course-of-action', 'mitigation');
+objectTypeMap.set('x-mitre-tactic', 'tactic');
+objectTypeMap.set('x-mitre-matrix', 'matrix');
+
 exports.retrieveAll = function(options, callback) {
     // Build the query
     const query = {};
@@ -41,9 +50,10 @@ exports.retrieveAll = function(options, callback) {
     // - Use the last document in each group (according to the value of stix.modified)
     // - Then apply query, skip and limit options
     const aggregation = [
-        { $sort: { 'stix.modified': 1 } },
+        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
         { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
         { $replaceRoot: { newRoot: '$document' }},
+        { $sort: { 'stix.id': 1 }},
         { $match: query }
     ];
 
@@ -62,6 +72,28 @@ exports.retrieveAll = function(options, callback) {
     if (options.limit) {
         facet.$facet.documents.push({ $limit: options.limit });
     }
+    if (options.sourceType) {
+        facet.$facet.documents.push(
+            { $lookup:
+                    {
+                        from: 'attackObjects',
+                        localField: 'stix.source_ref',
+                        foreignField: 'stix.id',
+                        as: 'source_objects'
+                    }
+            });
+    }
+    if (options.targetType) {
+        facet.$facet.documents.push(
+            { $lookup:
+                    {
+                        from: 'attackObjects',
+                        localField: 'stix.target_ref',
+                        foreignField: 'stix.id',
+                        as: 'target_objects'
+                    }
+            });
+    }
     aggregation.push(facet);
 
     // Retrieve the documents
@@ -70,11 +102,44 @@ exports.retrieveAll = function(options, callback) {
             return callback(err);
         }
         else {
+            if (options.sourceType) {
+                // Filter out relationships that don't reference the source type
+                results[0].documents = results[0].documents.filter(document =>
+                {
+                    if (document.source_objects.length === 0) {
+                        return false;
+                    }
+                    else {
+                        document.source_objects.sort((a, b) => b.stix.modified.localeCompare(a.stix.modified));
+                        document.source_object = document.source_objects[0];
+                        document.source_objects = undefined;
+                        return objectTypeMap.get(document.source_object.stix.type) === options.sourceType;
+                    }
+                });
+            }
+
+            if (options.targetType) {
+                // Filter out relationships that don't reference the target type
+                results[0].documents = results[0].documents.filter(document =>
+                {
+                    if (document.target_objects.length === 0) {
+                        return false;
+                    }
+                    else {
+                        document.target_objects.sort((a, b) => b.stix.modified.localeCompare(a.stix.modified));
+                        document.target_object = document.target_objects[0];
+                        document.target_objects = undefined;
+                        return objectTypeMap.get(document.target_object.stix.type) === options.targetType;
+                    }
+                });
+            }
+
             if (options.includePagination) {
                 let derivedTotalCount = 0;
                 if (results[0].totalCount.length > 0) {
                     derivedTotalCount = results[0].totalCount[0].totalCount;
                 }
+
                 const returnValue = {
                     pagination: {
                         total: derivedTotalCount,
