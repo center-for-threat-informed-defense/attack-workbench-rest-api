@@ -60,7 +60,10 @@ exports.retrieveAll = function(options, callback) {
     const facet = {
         $facet: {
             totalCount: [ { $count: 'totalCount' }],
-            documents: [ ]
+            documents: [
+                { $lookup: { from: 'attackObjects', localField: 'stix.source_ref', foreignField: 'stix.id', as: 'source_objects' }},
+                { $lookup: { from: 'attackObjects', localField: 'stix.target_ref', foreignField: 'stix.id', as: 'target_objects' }}
+            ]
         }
     };
     if (options.offset) {
@@ -71,28 +74,6 @@ exports.retrieveAll = function(options, callback) {
     }
     if (options.limit) {
         facet.$facet.documents.push({ $limit: options.limit });
-    }
-    if (options.sourceType) {
-        facet.$facet.documents.push(
-            { $lookup:
-                    {
-                        from: 'attackObjects',
-                        localField: 'stix.source_ref',
-                        foreignField: 'stix.id',
-                        as: 'source_objects'
-                    }
-            });
-    }
-    if (options.targetType) {
-        facet.$facet.documents.push(
-            { $lookup:
-                    {
-                        from: 'attackObjects',
-                        localField: 'stix.target_ref',
-                        foreignField: 'stix.id',
-                        as: 'target_objects'
-                    }
-            });
     }
     aggregation.push(facet);
 
@@ -111,9 +92,7 @@ exports.retrieveAll = function(options, callback) {
                     }
                     else {
                         document.source_objects.sort((a, b) => b.stix.modified.localeCompare(a.stix.modified));
-                        document.source_object = document.source_objects[0];
-                        document.source_objects = undefined;
-                        return objectTypeMap.get(document.source_object.stix.type) === options.sourceType;
+                        return objectTypeMap.get(document.source_objects[0].stix.type) === options.sourceType;
                     }
                 });
             }
@@ -127,11 +106,27 @@ exports.retrieveAll = function(options, callback) {
                     }
                     else {
                         document.target_objects.sort((a, b) => b.stix.modified.localeCompare(a.stix.modified));
-                        document.target_object = document.target_objects[0];
-                        document.target_objects = undefined;
-                        return objectTypeMap.get(document.target_object.stix.type) === options.targetType;
+                        return objectTypeMap.get(document.target_objects[0].stix.type) === options.targetType;
                     }
                 });
+            }
+
+            for (const document of results[0].documents) {
+                if (document.source_objects.length === 0) {
+                    document.source_objects = undefined;
+                }
+                else {
+                    document.source_object = document.source_objects[0];
+                    document.source_objects = undefined;
+                }
+
+                if (document.target_objects.length === 0) {
+                    document.target_objects = undefined;
+                }
+                else {
+                    document.target_object = document.target_objects[0];
+                    document.target_objects = undefined;
+                }
             }
 
             if (options.includePagination) {
