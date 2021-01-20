@@ -28,16 +28,17 @@ exports.retrieveAll = function(options, callback) {
     }
 
     // Build the aggregation
-    // - Group the documents by stix.id, sorted by stix.modified
-    // - Use the last document in each group (according to the value of stix.modified)
-    // - Then apply query, skip and limit options
-    const aggregation = [
-        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
-        { $replaceRoot: { newRoot: '$document' }},
-        { $sort: { 'stix.id': 1 }},
-        { $match: query }
-    ];
+    const aggregation = [ { $sort: { 'stix.id': 1, 'stix.modified': 1 }} ];
+    if (options.versions === 'latest') {
+        // Group the documents by stix.id, sorted by stix.modified
+        // Use the last document in each group (according to the value of stix.modified)
+        // Then sort again since the $group does not retain the sort order
+        aggregation.push({ $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}});
+        aggregation.push({ $replaceRoot: { newRoot: '$document' }});
+        aggregation.push({ $sort: { 'stix.id': 1 }});
+    }
+    // Apply query, skip and limit options
+    aggregation.push({ $match: query });
     if (options.skip) {
         aggregation.push({ $skip: options.skip });
     }

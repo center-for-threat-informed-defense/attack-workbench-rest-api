@@ -7,6 +7,7 @@ exports.retrieveAll = function(req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
+        versions: req.query.versions || 'latest',
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated
