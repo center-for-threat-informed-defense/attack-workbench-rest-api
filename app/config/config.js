@@ -13,5 +13,8 @@ module.exports = {
     },
     openApi: {
         specPath: './app/api/definitions/openapi.yml'
+    },
+    collectionIndex: {
+        defaultInterval: process.env.DEFAULT_INTERVAL || 300
     }
 };

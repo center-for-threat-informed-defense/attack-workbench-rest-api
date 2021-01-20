@@ -1,6 +1,7 @@
 'use strict';
 
 const CollectionIndex = require('../models/collection-index-model');
+const config = require('../config/config');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -52,6 +53,12 @@ exports.retrieveById = function(id, callback) {
 exports.create = function(data, callback) {
     // Create the document
     const collectionIndex = new CollectionIndex(data);
+
+    if (collectionIndex.workspace.update_policy) {
+        if (collectionIndex.workspace.update_policy.automatic && !collectionIndex.workspace.update_policy.interval) {
+            collectionIndex.workspace.update_policy.interval = config.collectionIndex.defaultInterval;
+        }
+    }
 
     // Save the document in the database
     collectionIndex.save(function(err, collectionIndex) {
