@@ -1,0 +1,14 @@
+components:
+  schemas:
+    workspace:
+      type: object
+      required:
+        - domains
+      properties:
+        # STIX common properties
+        domains:
+          type: array
+          description: 'This property replaces x_mitre_collections'
+          items:
+            type: string
+            example: 'attack-enterprise'

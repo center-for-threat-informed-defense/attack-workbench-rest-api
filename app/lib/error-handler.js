@@ -13,13 +13,10 @@ exports.bodyParser = function(err, req, res, next) {
 };
 
 exports.requestValidation = function(err, req, res, next) {
-    if (err.errors && err.errors.length >= 1 && (
-        err.errors[0].errorCode === 'format.openapi.validation' ||
-        err.errors[0].errorCode === 'type.openapi.validation' ||
-        err.errors[0].errorCode === 'required.openapi.validation')) {
+    if (err.status && err.message) {
         logger.warn('Request failed validation');
-        logger.info(JSON.stringify(err.errors));
-        res.status(400).send('Invalid request.');
+        logger.info((JSON.stringify(err)));
+        res.status(err.status).send(err.message);
     }
     else {
         next(err);

@@ -1,0 +1,2007 @@
+openapi: '3.0.3'
+info:
+  title: 'ATT&CK Workbench REST API'
+  version: '0.0.1'
+servers:
+  - url: '{protocol}://{hostname}:{port}/'
+    variables:
+      protocol:
+        default: 'http'
+      hostname:
+        default: 'localhost'
+      port:
+        default: '3000'
+tags:
+  - name: 'Techniques'
+    description: 'Operations on techniques.'
+  - name: 'Tactics'
+    description: 'Operations on tactics.'
+  - name: 'Groups'
+    description: 'Operations on groups.'
+  - name: 'Software'
+    description: 'Operations on software (tools and malware)'
+  - name: 'Mitigations'
+    description: 'Operations on mitigations'
+  - name: 'Matrices'
+    description: 'Operations on matrices.'
+  - name: 'Relationships'
+    description: 'Operations on relationships.'
+  - name: 'Collection Indexes'
+    description: 'Operations on collection indexes'
+  - name: 'Collections'
+    description: 'Operations on collections'
+  - name: 'Collection Bundles'
+    description: 'Operations on collection bundles'
+
+paths:
+  /api/techniques:
+    get:
+      summary: 'Get a list of techniques'
+      operationId: 'technique-get-all'
+      description: |
+        This endpoint retrieves a list of techniques from the workspace.
+        If there are multiple versions of a technique, only the latest version (based on the `modified` property) will be returned.
+        In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are only applied to the latest version of a technique.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of techniques to retrieve.
+            The default (0) will retrieve all techniques.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of techniques to skip.
+            The default (0) will start with the first technique.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, techniques will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of techniques.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'techniques.yml#/components/schemas/technique'
+
+    post:
+      summary: 'Create a technique'
+      operationId: 'technique-create'
+      description: |
+        This endpoint creates a new technique in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing technique.
+        If the `stix.id` property is not set, it creates a new technique, generating a STIX id for it.
+      tags:
+        - 'Techniques'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'techniques.yml#/components/schemas/technique'
+      responses:
+        '201':
+          description: 'The technique has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'techniques.yml#/components/schemas/technique'
+        '400':
+          description: 'Missing or invalid parameters were provided. The technique was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The technique was not created.'
+
+  /api/techniques/{stixId}:
+    get:
+      summary: 'Get one or more versions of a technique'
+      operationId: 'technique-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a technique from the workspace, identified by their STIX id.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the technique to retrieve.
+            `all` gets all versions of the technique, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of techniques matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'techniques.yml#/components/schemas/technique'
+        '404':
+          description: 'A technique with the requested STIX id was not found.'
+
+  /api/techniques/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a technique matching the STIX id and modified date'
+      operationId: 'technique-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a technique from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a technique matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: 'techniques.yml#/components/schemas/technique'
+        '404':
+          description: 'A technique with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a technique'
+      operationId: 'technique-update'
+      description: |
+        This endpoint updates a single version of a technique in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'techniques.yml#/components/schemas/technique'
+      responses:
+        '200':
+          description: 'The technique was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'techniques.yml#/components/schemas/technique'
+        '400':
+          description: 'Missing or invalid parameters were provided. The technique was not updated.'
+        '404':
+          description: 'A technique with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a technique'
+      operationId: 'technique-delete'
+      description: |
+        This endpoint deletes a single version of a technique from the workspace.
+        The technique is identified by its STIX id and modified date.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The technique was successfully deleted.'
+        '404':
+          description: 'A technique with the requested STIX id and modified date was not found.'
+
+  /api/tactics:
+    get:
+      summary: 'Get a list of tactics'
+      operationId: 'tactic-get-all'
+      description: |
+        This endpoint gets a list of tactics from the workspace.
+        The list of tactics may include multiple versions of each tactic.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of tactics to retrieve.
+            The default (0) will retrieve all tactics.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of tactics to skip.
+            The default (0) will start with the first tactic.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, tactics will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of tactics.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'tactics.yml#/components/schemas/tactic'
+
+    post:
+      summary: 'Create a tactic'
+      operationId: 'tactic-create'
+      description: |
+        This endpoint creates a new tactic in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing tactic.
+        If the `stix.id` property is not set, it creates a new tactic, generating a STIX id for it.
+      tags:
+        - 'Tactics'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'tactics.yml#/components/schemas/tactic'
+      responses:
+        '201':
+          description: 'The tactic has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'tactics.yml#/components/schemas/tactic'
+        '400':
+          description: 'Missing or invalid parameters were provided. The tactic was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The tactic was not created.'
+
+  /api/tactics/{stixId}:
+    get:
+      summary: 'Get one or more versions of a tactic'
+      operationId: 'tactic-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a tactic from the workspace, identified by their STIX id.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the tactic to retrieve.
+            `all` gets all versions of the tactic, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of tactics matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'tactics.yml#/components/schemas/tactic'
+        '404':
+          description: 'A tactic with the requested STIX id was not found.'
+
+  /api/tactics/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a tactic matching the STIX id and modified date'
+      operationId: 'tactic-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a tactic from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the tactic to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a tactic matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: 'tactics.yml#/components/schemas/tactic'
+        '404':
+          description: 'A tactic with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a tactic'
+      operationId: 'tactic-update'
+      description: |
+        This endpoint updates a single version of a tactic in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the tactic to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'tactics.yml#/components/schemas/tactic'
+      responses:
+        '200':
+          description: 'The tactic was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'tactics.yml#/components/schemas/tactic'
+        '400':
+          description: 'Missing or invalid parameters were provided. The tactic was not updated.'
+        '404':
+          description: 'A tactic with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a tactic'
+      operationId: 'tactic-delete'
+      description: |
+        This endpoint deletes a single version of a tactic from the workspace.
+        The tactic is identified by its STIX id and modified date.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the tactic to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The tactic was successfully deleted.'
+        '404':
+          description: 'A tactic with the requested STIX id and modified date was not found.'
+
+  /api/groups:
+    get:
+      summary: 'Get a list of groups'
+      operationId: 'group-get-all'
+      description: |
+        This endpoint gets a list of groups from the workspace.
+        The list of groups may include multiple versions of each group.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of groups to retrieve.
+            The default (0) will retrieve all groups.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of groups to skip.
+            The default (0) will start with the first group.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, groups will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of groups.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'groups.yml#/components/schemas/group'
+
+    post:
+      summary: 'Create a group'
+      operationId: 'group-create'
+      description: |
+        This endpoint creates a new group in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing group.
+        If the `stix.id` property is not set, it creates a new group, generating a STIX id for it.
+      tags:
+        - 'Groups'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'groups.yml#/components/schemas/group'
+      responses:
+        '201':
+          description: 'The group has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'groups.yml#/components/schemas/group'
+        '400':
+          description: 'Missing or invalid parameters were provided. The group was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The group was not created.'
+
+  /api/groups/{stixId}:
+    get:
+      summary: 'Get one or more versions of a group'
+      operationId: 'group-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a group from the workspace, identified by their STIX id.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the group to retrieve.
+            `all` gets all versions of the group, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of groups matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'groups.yml#/components/schemas/group'
+        '404':
+          description: 'A group with the requested STIX id was not found.'
+
+  /api/groups/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a group matching the STIX id and modified date'
+      operationId: 'group-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a group from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the group to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a group matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: 'groups.yml#/components/schemas/group'
+        '404':
+          description: 'A group with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a group'
+      operationId: 'group-update'
+      description: |
+        This endpoint updates a single version of a group in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the group to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'groups.yml#/components/schemas/group'
+      responses:
+        '200':
+          description: 'The group was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'groups.yml#/components/schemas/group'
+        '400':
+          description: 'Missing or invalid parameters were provided. The group was not updated.'
+        '404':
+          description: 'A group with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a group'
+      operationId: 'group-delete'
+      description: |
+        This endpoint deletes a single version of a group from the workspace.
+        The group is identified by its STIX id and modified date.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the group to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The group was successfully deleted.'
+        '404':
+          description: 'A group with the requested STIX id and modified date was not found.'
+
+  /api/matrices:
+    get:
+      summary: 'Get a list of matrices'
+      operationId: 'matrix-get-all'
+      description: |
+        This endpoint retrieves a list of matrices from the workspace.
+        If there are multiple versions of a matrix, only the latest version (based on the `modified` property) will be returned.
+        In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are only applied to the latest version of a matrix.
+      tags:
+        - 'Matrices'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of matrices to retrieve.
+            The default (0) will retrieve all matrices.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of matrices to skip.
+            The default (0) will start with the first matrix.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, matrices will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of matrices.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'matrices.yml#/components/schemas/matrix'
+
+    post:
+      summary: 'Create a matrix'
+      operationId: 'matrix-create'
+      description: |
+        This endpoint creates a new matrix in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing matrix.
+        If the `stix.id` property is not set, it creates a new matrix, generating a STIX id for it.
+      tags:
+        - 'Matrices'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'matrices.yml#/components/schemas/matrix'
+      responses:
+        '201':
+          description: 'The matrix has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'matrices.yml#/components/schemas/matrix'
+        '400':
+          description: 'Missing or invalid parameters were provided. The matrix was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The matrix was not created.'
+
+  /api/matrices/{stixId}:
+    get:
+      summary: 'Get one or more versions of a matrix'
+      operationId: 'matrix-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a matrix from the workspace, identified by their STIX id.
+      tags:
+        - 'Matrices'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the matrix to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the matrix to retrieve.
+            `all` gets all versions of the matrix, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of matrices matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'matrices.yml#/components/schemas/matrix'
+        '404':
+          description: 'A matrix with the requested STIX id was not found.'
+
+  /api/matrices/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a matrix matching the STIX id and modified date'
+      operationId: 'matrix-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a matrix from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Matrices'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the matrix to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the matrix to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a matrix matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: 'matrices.yml#/components/schemas/matrix'
+        '404':
+          description: 'A matrix with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a matrix'
+      operationId: 'matrix-update'
+      description: |
+        This endpoint updates a single version of a matrix in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Matrices'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the matrix to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the matrix to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'matrices.yml#/components/schemas/matrix'
+      responses:
+        '200':
+          description: 'The matrix was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'matrices.yml#/components/schemas/matrix'
+        '400':
+          description: 'Missing or invalid parameters were provided. The matrix was not updated.'
+        '404':
+          description: 'A matrix with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a matrix'
+      operationId: 'matrix-delete'
+      description: |
+        This endpoint deletes a single version of a matrix from the workspace.
+        The matrix is identified by its STIX id and modified date.
+      tags:
+        - 'Matrices'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the matrix to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the matrix to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The matrix was successfully deleted.'
+        '404':
+          description: 'A matrix with the requested STIX id and modified date was not found.'
+
+  /api/relationships:
+    get:
+      summary: 'Get a list of relationships'
+      operationId: 'relationship-get-all'
+      description: |
+        This endpoint retrieves a list of relationships from the workspace.
+        If there are multiple versions of a relationship, only the latest version (based on the `modified` property) will be returned.
+        In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are only applied to the latest version of a relationship.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of relationships to retrieve.
+            The default (0) will retrieve all relationships.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of relationships to skip.
+            The default (0) will start with the first relationship.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, relationships will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: sourceRef
+          in: query
+          description: |
+            STIX id of referenced object. Only retrieve relationships that reference this object in the `source_ref` property.
+          schema:
+            type: string
+        - name: targetRef
+          in: query
+          description: |
+            STIX id of referenced object. Only retrieve relationships that reference this object in the `target_ref` property.
+          schema:
+            type: string
+        - name: sourceOrTargetRef
+          in: query
+          description: |
+            STIX id of referenced object.
+            Only retrieve relationships that reference this object in either the `source_ref` or `target_ref` properties.
+          schema:
+            type: string
+        - name: relationshipType
+          in: query
+          description: |
+            Only retrieve relationships that have a matching `relationship_type`.
+          schema:
+            type: string
+        - name: sourceType
+          in: query
+          description: |
+            Only retrieve relationships that have a `source_ref` to an object of the selected type.
+          schema:
+            type: string
+            enum:
+              - technique
+              - group
+              - mitigation
+              - software
+        - name: targetType
+          in: query
+          description: |
+            Only retrieve relationships that have a `target_ref` to an object of the selected type.
+          schema:
+            type: string
+            enum:
+              - technique
+              - group
+              - mitigation
+              - software
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of relationships.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'relationships.yml#/components/schemas/relationship'
+
+    post:
+      summary: 'Create a relationship'
+      operationId: 'relationship-create'
+      description: |
+        This endpoint creates a new relationship in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing relationship.
+        If the `stix.id` property is not set, it creates a new relationship, generating a STIX id for it.
+      tags:
+        - 'Relationships'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'relationships.yml#/components/schemas/relationship'
+      responses:
+        '201':
+          description: 'The relationship has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'relationships.yml#/components/schemas/relationship'
+        '400':
+          description: 'Missing or invalid parameters were provided. The relationship was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The relationship was not created.'
+
+  /api/relationships/{stixId}:
+    get:
+      summary: 'Get one or more versions of a relationship'
+      operationId: 'relationship-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a relationship from the workspace, identified by their STIX id.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the relationship to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the relationship to retrieve.
+            `all` gets all versions of the relationship, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of relationships matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'relationships.yml#/components/schemas/relationship'
+        '404':
+          description: 'A relationship with the requested STIX id was not found.'
+
+  /api/relationships/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a relationship matching the STIX id and modified date'
+      operationId: 'relationship-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a relationship from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the relationship to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the relationship to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a relationship matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: 'relationships.yml#/components/schemas/relationship'
+        '404':
+          description: 'A relationship with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a relationship'
+      operationId: 'relationship-update'
+      description: |
+        This endpoint updates a single version of a relationship in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the relationship to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the relationship to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'relationships.yml#/components/schemas/relationship'
+      responses:
+        '200':
+          description: 'The relationship was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'relationships.yml#/components/schemas/relationship'
+        '400':
+          description: 'Missing or invalid parameters were provided. The relationship was not updated.'
+        '404':
+          description: 'A relationship with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a relationship'
+      operationId: 'relationship-delete'
+      description: |
+        This endpoint deletes a single version of a relationship from the workspace.
+        The relationship is identified by its STIX id and modified date.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the relationship to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the relationship to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The relationship was successfully deleted.'
+        '404':
+          description: 'A relationship with the requested STIX id and modified date was not found.'
+
+  /api/collection-indexes:
+    get:
+      summary: 'Get a list of collection indexes'
+      operationId: 'collection-indexes-get-all'
+      description: |
+        This endpoint gets a list of collection indexes from the workspace.
+        Only the latest version of a collection index is stored.
+      tags:
+        - 'Collection Indexes'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of collection indexes to retrieve.
+            The default (0) will retrieve all collection indexes.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of collection indexes to skip.
+          schema:
+            type: number
+            default: 0
+      responses:
+        '200':
+          description: 'A list of collection indexes.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+    post:
+      summary: 'Create a collection index'
+      operationId: 'collection-index-create'
+      description: |
+        This endpoint creates a new collection index in the workspace.
+      tags:
+        - 'Collection Indexes'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+      responses:
+        '201':
+          description: 'The collection index has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+        '400':
+          description: 'Missing or invalid parameters were provided. The collection index was not created.'
+
+  /api/collection-indexes/{id}:
+    get:
+      summary: 'Get collection index'
+      operationId: 'collection-index-get-by-id'
+      description: |
+        This endpoint gets collection index from the workspace, identified by its id.
+      tags:
+        - 'Collection Indexes'
+      parameters:
+        - name: id
+          in: path
+          description: 'id of the collection index to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A list of collection indexes matching the requested id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+        '404':
+          description: 'A collection index with the requested id was not found.'
+    put:
+      summary: 'Update a collection index'
+      operationId: 'collection-index-update'
+      description: |
+        This endpoint updates a single collection index in the workspace, identified by its id.
+      tags:
+        - 'Collection Indexes'
+      parameters:
+        - name: id
+          in: path
+          description: 'id of the collection index to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+      responses:
+        '200':
+          description: 'The collection index was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'collection-indexes.yml#/components/schemas/collection-index-wrapper'
+        '400':
+          description: 'Missing or invalid parameters were provided. The collection index was not updated.'
+        '404':
+          description: 'A collection index with the requested id was not found.'
+    delete:
+      summary: 'Delete a collection index'
+      operationId: 'collection-index-delete'
+      description: |
+        This endpoint deletes a single collection index from the workspace.
+        The collection index is identified by its id.
+      tags:
+        - 'Collection Indexes'
+      parameters:
+        - name: id
+          in: path
+          description: 'id of the collection index to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The collection index was successfully deleted.'
+        '404':
+          description: 'A collection index with the requested id was not found.'
+
+  /api/software:
+    get:
+      summary: 'Get a list of software objects'
+      operationId: 'group-get-all'
+      description: |
+        This endpoint gets a list of software objects from the workspace.
+        The list of software objects may include multiple versions of each object.
+      tags:
+        - 'Software'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of software objects to retrieve.
+            The default (0) will retrieve all software objects.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of software objects to skip.
+            The default (0) will start with the first software object.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, software objects will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of software objects.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'software.yml#/components/schemas/software'
+
+    post:
+      summary: 'Create a software object'
+      operationId: 'software-create'
+      description: |
+        This endpoint creates a new software object in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing software object.
+        If the `stix.id` property is not set, it creates a new software object, generating a STIX id for it.
+      tags:
+        - 'Software'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'software.yml#/components/schemas/software'
+      responses:
+        '201':
+          description: 'The software object has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'software.yml#/components/schemas/software'
+        '400':
+          description: 'Missing or invalid parameters were provided. The software object was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The software object was not created.'
+
+  /api/software/{stixId}:
+    get:
+      summary: 'Get one or more versions of a software object'
+      operationId: 'software-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a software object from the workspace, identified by their STIX id.
+      tags:
+        - 'Software'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the software object to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the software object to retrieve.
+            `all` gets all versions of the software, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of software objects matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'software.yml#/components/schemas/software'
+        '404':
+          description: 'A software object with the requested STIX id was not found.'
+
+  /api/software/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a software object matching the STIX id and modified date'
+      operationId: 'software-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a software object from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Software'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the software object to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the software object to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a software object matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: 'software.yml#/components/schemas/software'
+        '404':
+          description: 'A software object with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a software object'
+      operationId: 'software-update'
+      description: |
+        This endpoint updates a single version of a software object in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Software'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the software object to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the software object to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'software.yml#/components/schemas/software'
+      responses:
+        '200':
+          description: 'The software object was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'software.yml#/components/schemas/software'
+        '400':
+          description: 'Missing or invalid parameters were provided. The software object was not updated.'
+        '404':
+          description: 'A software object with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a software object'
+      operationId: 'software-delete'
+      description: |
+        This endpoint deletes a single version of a software object from the workspace.
+        The software object is identified by its STIX id and modified date.
+      tags:
+        - 'Software'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the software object to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the software object to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The software object was successfully deleted.'
+        '404':
+          description: 'A software object with the requested STIX id and modified date was not found.'
+
+  /api/mitigations:
+    get:
+      summary: 'Get a list of mitigations'
+      operationId: 'mitigation-get-all'
+      description: |
+        This endpoint gets a list of mitigations from the workspace.
+        The list of mitigations may include multiple versions of each mitigation.
+      tags:
+        - 'Mitigations'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of mitigations to retrieve.
+            The default (0) will retrieve all mitigations.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of mitigations to skip.
+            The default (0) will start with the first mitigation.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, mitigations will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of mitigations.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'mitigations.yml#/components/schemas/mitigation'
+
+    post:
+      summary: 'Create a mitigation'
+      operationId: 'mitigation-create'
+      description: |
+        This endpoint creates a new mitigation in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing mitigation.
+        If the `stix.id` property is not set, it creates a new mitigation, generating a STIX id for it.
+      tags:
+        - 'Mitigations'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'mitigations.yml#/components/schemas/mitigation'
+      responses:
+        '201':
+          description: 'The mitigation has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'mitigations.yml#/components/schemas/mitigation'
+        '400':
+          description: 'Missing or invalid parameters were provided. The mitigation was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The mitigation was not created.'
+
+  /api/mitigations/{stixId}:
+    get:
+      summary: 'Get one or more versions of a mitigation'
+      operationId: 'mitigation-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a mitigation from the workspace, identified by their STIX id.
+      tags:
+        - 'Mitigations'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the mitigation to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the mitigation to retrieve.
+            `all` gets all versions of the mitigation, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of mitigations matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'mitigations.yml#/components/schemas/mitigation'
+        '404':
+          description: 'A mitigation with the requested STIX id was not found.'
+
+  /api/mitigations/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a mitigation matching the STIX id and modified date'
+      operationId: 'mitigation-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a mitigation from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Mitigations'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the mitigation to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the mitigation to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a mitigation matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: 'mitigations.yml#/components/schemas/mitigation'
+        '404':
+          description: 'A mitigation with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a mitigation'
+      operationId: 'mitigation-update'
+      description: |
+        This endpoint updates a single version of a mitigation in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Mitigations'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the mitigation to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the mitigation to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'mitigations.yml#/components/schemas/mitigation'
+      responses:
+        '200':
+          description: 'The mitigation was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: 'mitigations.yml#/components/schemas/mitigation'
+        '400':
+          description: 'Missing or invalid parameters were provided. The mitigation was not updated.'
+        '404':
+          description: 'A mitigation with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a mitigation'
+      operationId: 'mitigation-delete'
+      description: |
+        This endpoint deletes a single version of a mitigation from the workspace.
+        The mitigation is identified by its STIX id and modified date.
+      tags:
+        - 'Mitigations'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the mitigation to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the mitigation to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The mitigation was successfully deleted.'
+        '404':
+          description: 'A mitigation with the requested STIX id and modified date was not found.'
+
+  /api/collections:
+    get:
+      summary: 'Get a list of collections'
+      operationId: 'collection-get-all'
+      description: |
+        This endpoint retrieves a list of collections (x-mitre-collections) from the workspace.
+        If there are multiple versions of a collection, only the latest version (based on the `modified` property) will be returned.
+        In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are only applied to the latest version of a collection.
+      tags:
+        - 'Collections'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of collections to retrieve.
+            The default (0) will retrieve all collections.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of collections to skip.
+            The default (0) will start with the first collection.
+          schema:
+            type: number
+            default: 0
+        - name: versions
+          in: query
+          description: |
+            The versions of the collections to retrieve.
+            `all` gets all versions of all the collections, `latest` gets only the latest version of each collection.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, collections will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of collections.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'collections.yml#/components/schemas/collection'
+
+    post:
+      summary: 'Create a collection (x-mitre-collection)'
+      operationId: 'technique-create'
+      description: |
+        This endpoint creates a new collection in the workspace.
+        Both the `stix.id` and `stix.modified` properties must be set.
+      tags:
+        - 'Collections'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'collections.yml#/components/schemas/collection'
+      responses:
+        '201':
+          description: 'The collection has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: 'collections.yml#/components/schemas/collection'
+        '400':
+          description: 'Missing or invalid parameters were provided. The collection was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The collection was not created.'
+
+  /api/collections/{stixId}:
+    get:
+      summary: 'Get one or more versions of a collection'
+      operationId: 'collection-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a collection (x-mitre-collection) from the workspace, identified by the STIX id.
+      tags:
+        - 'Collections'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the collection to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the collection to retrieve.
+            `all` gets all versions of the collection, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+        - name: retrieveContents
+          in: query
+          description: |
+            Retrieve the objects that are referenced by the collection
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of collections matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'collections.yml#/components/schemas/collection'
+        '404':
+          description: 'A collection with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a collection'
+      operationId: 'collection-delete'
+      description: |
+        This endpoint deletes all versions of a collection from the workspace.
+      tags:
+        - 'Collections'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the collections to delete'
+          required: true
+          schema:
+            type: string
+        - name: deleteAllContents
+          in: query
+          description: |
+            Delete all of the objects referenced in x_mitre_contents.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '204':
+          description: 'The collections were successfully deleted.'
+        '404':
+          description: 'A collection with the requested STIX id was not found.'
+
+  /api/collection-bundles:
+    post:
+      summary: 'Import a collection bundle'
+      operationId: 'collection-bundle-import'
+      description: |
+        This endpoint imports a collection bundle into the workspace.
+      tags:
+        - 'Collection Bundles'
+      parameters:
+        - name: checkOnly
+          in: query
+          description: |
+            Do not import the collection.
+            Only determine what the results of the import would be if it were performed.
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'collection-bundles.yml#/components/schemas/collection-bundle'
+      responses:
+        '201':
+          description: 'The collection has been successfully imported.'
+          content:
+            application/json:
+              schema:
+                $ref: 'collections.yml#/components/schemas/collection'
+
+components:
+  schemas:
+    editor_identity:
+      type: object
+      description: 'This property replaces mitreId'
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name

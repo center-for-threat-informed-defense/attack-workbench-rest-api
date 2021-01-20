@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+async function runServer() {
+    // Configure the logger
+    const logger = require('../app/lib/logger');
+
+    const os = require('os');
+    logger.info('** hostname = ' + os.hostname());
+    logger.info('** type = ' + os.type());
+    logger.info('** platform = ' + os.platform());
+    logger.info('** arch = ' + os.arch());
+    logger.info('** release = ' + os.release());
+    logger.info('** uptime = ' + os.uptime());
+    logger.info('** versions = ' + JSON.stringify(process.versions));
+
+    // Establish the database connection
+    logger.info('Setting up the database connection');
+    await require('../app/lib/database-connection').initializeConnection();
+
+    // Create the app
+    const app = await require('../app').initializeApp();
+    const config = app.get('config');
+
+    // Start the server
+    logger.info('Starting the HTTP server');
+    const server = app.listen(config.server.port, function () {
+        const host = server.address().address;
+        const port = server.address().port;
+
+        logger.info(`Listening at http://${host}:${port}`);
+        logger.info('ATT&CK Workbench REST API start up complete');
+    })
+}
+
+runServer();
+

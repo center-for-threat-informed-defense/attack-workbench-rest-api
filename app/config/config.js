@@ -10,5 +10,11 @@ module.exports = {
     },
     database: {
         url: process.env.DATABASE_URL
+    },
+    openApi: {
+        specPath: './app/api/definitions/openapi.yml'
+    },
+    collectionIndex: {
+        defaultInterval: process.env.DEFAULT_INTERVAL || 300
     }
 };

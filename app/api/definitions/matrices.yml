@@ -1,0 +1,35 @@
+components:
+  schemas:
+    matrix:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/x-mitre-matrix'
+
+    x-mitre-matrix:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # x-mitre-matrix specific properties
+            name:
+              type: string
+              example: 'Mobile ATT&CK'
+            description:
+              type: string
+              example: 'This is a matrix'
+            # ATT&CK custom properties
+            tactic_refs:
+              type: array
+              items:
+                type: string
+            x_mitre_version:
+              type: string
+              example: '1.0'

@@ -4,28 +4,40 @@
   "description": "REST API service for the ATT&CK Workbench.",
   "main": "index.js",
   "scripts": {
-    "api:generate-md": "widdershins ./app/api/definitions/api.yml -o ./app/api/markdown/api.md --summary",
+    "api:generate-md": "widdershins ./app/api/definitions/openapi.yml -o ./app/api/markdown/api.md --summary",
     "api:generate-html": "shins --root ./app/api/web -o ./app/api/web/index.html ./app/api/markdown/api.md",
     "api:generate-all": "npm run api:generate-md && npm run api:generate-html",
     "lint": "eslint .",
     "snyk": "snyk test --insecure",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node ./bin/www",
+    "test": "npm run test:api",
+    "test:api": "mocha --recursive ./app/tests/api"
   },
   "dependencies": {
+    "@apidevtools/json-schema-ref-parser": "^9.0.6",
+    "async": "^3.2.0",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
+    "cors": "^2.8.5",
     "express": "^4.17.1",
-    "express-openapi-validator": "^3.6.7",
-    "helmet": "^3.21.2",
-    "mongoose": "^5.8.10",
-    "morgan": "^1.9.1",
-    "uuid": "^3.4.0",
-    "winston": "^3.2.1"
+    "express-openapi-validator": "^4.10.2",
+    "helmet": "^4.3.1",
+    "lodash": "^4.17.20",
+    "mongoose": "^5.11.10",
+    "morgan": "^1.10.0",
+    "swagger-ui-express": "^4.1.6",
+    "uuid": "^8.3.2",
+    "winston": "^3.3.3",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "eslint": "^6.8.0",
-    "shins": "^2.4.1-0",
-    "snyk": "^1.291.0",
-    "widdershins": "^3.6.7"
+    "eslint": "^7.17.0",
+    "expect": "^26.6.2",
+    "mocha": "^8.2.1",
+    "mongodb-memory-server": "^6.9.2",
+    "shins": "^2.6.0",
+    "snyk": "^1.437.3",
+    "supertest": "^5.0.0",
+    "widdershins": "^4.0.1"
   }
 }

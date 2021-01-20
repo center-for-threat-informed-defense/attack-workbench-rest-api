@@ -1,0 +1,111 @@
+components:
+  schemas:
+    collection:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: '#/components/schemas/workspace-x-mitre-collection'
+        stix:
+          $ref: '#/components/schemas/stix-x-mitre-collection'
+
+    workspace-x-mitre-collection:
+      type: object
+      properties:
+        imported:
+          type: string
+          format: date-time
+        import_categories:
+          type: object
+          properties:
+            additions:
+              type: array
+              items:
+                type: string
+            changes:
+              type: array
+              items:
+                type: string
+            minor_changes:
+              type: array
+              items:
+                type: string
+            revocations:
+              type: array
+              items:
+                type: string
+            deprecations:
+              type: array
+              items:
+                type: string
+            supersedes_user_edits:
+              type: array
+              items:
+                type: string
+            supersedes_collection_changes:
+              type: array
+              items:
+                type: string
+            duplicates:
+              type: array
+              items:
+                type: string
+            out_of_date:
+              type: array
+              items:
+                type: string
+            errors:
+              type: array
+              items:
+                $ref: '#/components/schemas/import-error'
+
+    stix-x-mitre-collection:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # x-mitre-collection specific properties
+            name:
+              type: string
+              example: 'Enterprise ATT&CK'
+            description:
+              type: string
+            # ATT&CK custom properties
+            x_mitre_contents:
+              type: array
+              items:
+                $ref: '#/components/schemas/x-mitre-contents'
+            x_mitre_deprecated:
+              type: boolean
+              example: false
+            x_mitre_version:
+              type: string
+              example: '1.0'
+
+    x-mitre-contents:
+      type: object
+      properties:
+        object_ref:
+          type: string
+        object_modified:
+          type: string
+      required:
+        - object_ref
+        - object_modified
+
+    import-error:
+      type: object
+      properties:
+        object_ref:
+          type: string
+        object_modified:
+          type: string
+        error_type:
+          type: string
+      required:
+        - object_ref
+        - error_type
