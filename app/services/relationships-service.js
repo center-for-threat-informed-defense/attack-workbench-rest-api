@@ -91,7 +91,7 @@ exports.retrieveAll = function(options, callback) {
                         return false;
                     }
                     else {
-                        document.source_objects.sort((a, b) => b.stix.modified.localeCompare(a.stix.modified));
+                        document.source_objects.sort((a, b) => b.stix.modified - a.stix.modified);
                         return objectTypeMap.get(document.source_objects[0].stix.type) === options.sourceType;
                     }
                 });
@@ -105,7 +105,7 @@ exports.retrieveAll = function(options, callback) {
                         return false;
                     }
                     else {
-                        document.target_objects.sort((a, b) => b.stix.modified.localeCompare(a.stix.modified));
+                        document.target_objects.sort((a, b) => b.stix.modified - a.stix.modified);
                         return objectTypeMap.get(document.target_objects[0].stix.type) === options.targetType;
                     }
                 });
