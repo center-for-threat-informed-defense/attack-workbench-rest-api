@@ -148,7 +148,7 @@ const initialObjectData = {
     ]
 };
 
-describe('Collection Bundles Basic API', function () {
+xdescribe('Collection Bundles Basic API', function () {
     let app;
 
     before(async function() {
@@ -160,7 +160,7 @@ describe('Collection Bundles Basic API', function () {
         await database.initializeConnection();
     });
 
-    xit('POST /api/collection-bundles does not import an empty collection bundle', function (done) {
+    it('POST /api/collection-bundles does not import an empty collection bundle', function (done) {
         const body = {};
         request(app)
             .post('/api/collection-bundles')
