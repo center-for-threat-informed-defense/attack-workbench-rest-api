@@ -20,6 +20,6 @@ jobs:
       - run: $(npm bin)/nyc --reporter=lcov --timeout 10000 npm test
       - name: Uploade Coverage to CodeCov
         run: |
-          npx codecov
+          bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CODECOV_SECRET }}
     env:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
