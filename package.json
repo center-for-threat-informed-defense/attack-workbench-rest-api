@@ -11,7 +11,7 @@
     "snyk": "snyk test --insecure",
     "start": "node ./bin/www",
     "test": "npm run test:api",
-    "test:api": "mocha --recursive ./app/tests/api"
+    "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^9.0.6",
