@@ -153,13 +153,10 @@ describe('Collection Bundles Basic API', function () {
 
     before(async function() {
         // Initialize the express app
-        console.log('Before initialize');
         app = await require('../../../index').initializeApp();
-        console.log('After initialize');
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
-        console.log('after await db connection');
     });
 
     it('POST /api/collection-bundles does not import an empty collection bundle', function (done) {
