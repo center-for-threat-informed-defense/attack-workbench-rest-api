@@ -148,7 +148,7 @@ const initialObjectData = {
     ]
 };
 
-xdescribe('Collection Bundles Basic API', function () {
+describe('Collection Bundles Basic API', function () {
     let app;
 
     before(async function() {

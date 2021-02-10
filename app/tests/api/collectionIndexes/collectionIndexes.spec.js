@@ -60,7 +60,7 @@ const initialObjectData = {
     }
 }
 
-xdescribe('Collection Indexes Basic API', function () {
+describe('Collection Indexes Basic API', function () {
     let app;
 
     before(async function() {
