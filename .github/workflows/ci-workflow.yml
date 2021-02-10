@@ -17,7 +17,7 @@ jobs:
       - run: npm install
       - run: npm run lint
       - run: npm run snyk
-      - run: $(npm bin)/nyc --reporter=lcov npm test
+      - run: $(npm bin)/nyc --reporter=lcov --timeout=10000 npm test
       - name: Uploade Coverage to CodeCov
         run: |
           npx codecov
