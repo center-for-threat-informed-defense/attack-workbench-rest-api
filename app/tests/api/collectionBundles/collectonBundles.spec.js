@@ -160,7 +160,7 @@ describe('Collection Bundles Basic API', function () {
         await database.initializeConnection();
     });
 
-    it('POST /api/collection-bundles does not import an empty collection bundle', function (done) {
+    xit('POST /api/collection-bundles does not import an empty collection bundle', function (done) {
         const body = {};
         request(app)
             .post('/api/collection-bundles')
