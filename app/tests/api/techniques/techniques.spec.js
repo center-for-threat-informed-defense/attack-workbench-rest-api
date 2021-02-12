@@ -11,7 +11,9 @@ const database = require('../../../lib/database-in-memory')
 // stix.id property will be created by REST API
 const initialObjectData = {
     workspace: {
-        domains: [ 'domain-1']
+        workflow: {
+            state: 'work-in-progress'
+        }
     },
     stix: {
         name: 'attack-pattern-1',

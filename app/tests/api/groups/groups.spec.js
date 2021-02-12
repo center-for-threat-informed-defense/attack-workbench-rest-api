@@ -10,7 +10,9 @@ logger.level = 'debug';
 // stix.id property will be created by REST API
 const initialObjectData = {
     workspace: {
-        domains: [ 'domain-1']
+        workflow: {
+            state: 'work-in-progress'
+        }
     },
     stix: {
         name: 'intrusion-set-1',

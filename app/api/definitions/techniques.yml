@@ -64,6 +64,10 @@ components:
               type: array
               items:
                 type: string
+            x_mitre_domains:
+              type: array
+              items:
+                type: string
             x_mitre_version:
               type: string
               example: '1.0'

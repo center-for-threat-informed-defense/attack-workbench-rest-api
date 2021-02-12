@@ -13,7 +13,9 @@ const techniquesService = require('../../../services/techniques-service');
 // stix.id property will be created by REST API
 const initialObjectData = {
     workspace: {
-        domains: [ 'domain-1']
+        workflow: {
+            state: 'work-in-progress'
+        }
     },
     stix: {
         spec_version: '2.1',
