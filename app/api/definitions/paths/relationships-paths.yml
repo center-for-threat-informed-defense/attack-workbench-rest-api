@@ -1,0 +1,273 @@
+paths:
+  /api/relationships:
+    get:
+      summary: 'Get a list of relationships'
+      operationId: 'relationship-get-all'
+      description: |
+        This endpoint retrieves a list of relationships from the workspace.
+        If there are multiple versions of a relationship, only the latest version (based on the `modified` property) will be returned.
+        In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are only applied to the latest version of a relationship.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of relationships to retrieve.
+            The default (0) will retrieve all relationships.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of relationships to skip.
+            The default (0) will start with the first relationship.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, relationships will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: sourceRef
+          in: query
+          description: |
+            STIX id of referenced object. Only retrieve relationships that reference this object in the `source_ref` property.
+          schema:
+            type: string
+        - name: targetRef
+          in: query
+          description: |
+            STIX id of referenced object. Only retrieve relationships that reference this object in the `target_ref` property.
+          schema:
+            type: string
+        - name: sourceOrTargetRef
+          in: query
+          description: |
+            STIX id of referenced object.
+            Only retrieve relationships that reference this object in either the `source_ref` or `target_ref` properties.
+          schema:
+            type: string
+        - name: relationshipType
+          in: query
+          description: |
+            Only retrieve relationships that have a matching `relationship_type`.
+          schema:
+            type: string
+        - name: sourceType
+          in: query
+          description: |
+            Only retrieve relationships that have a `source_ref` to an object of the selected type.
+          schema:
+            type: string
+            enum:
+              - technique
+              - group
+              - mitigation
+              - software
+        - name: targetType
+          in: query
+          description: |
+            Only retrieve relationships that have a `target_ref` to an object of the selected type.
+          schema:
+            type: string
+            enum:
+              - technique
+              - group
+              - mitigation
+              - software
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of relationships.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/relationships.yml#/components/schemas/relationship'
+
+    post:
+      summary: 'Create a relationship'
+      operationId: 'relationship-create'
+      description: |
+        This endpoint creates a new relationship in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing relationship.
+        If the `stix.id` property is not set, it creates a new relationship, generating a STIX id for it.
+      tags:
+        - 'Relationships'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/relationships.yml#/components/schemas/relationship'
+      responses:
+        '201':
+          description: 'The relationship has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/relationships.yml#/components/schemas/relationship'
+        '400':
+          description: 'Missing or invalid parameters were provided. The relationship was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The relationship was not created.'
+
+  /api/relationships/{stixId}:
+    get:
+      summary: 'Get one or more versions of a relationship'
+      operationId: 'relationship-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a relationship from the workspace, identified by their STIX id.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the relationship to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the relationship to retrieve.
+            `all` gets all versions of the relationship, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of relationships matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/relationships.yml#/components/schemas/relationship'
+        '404':
+          description: 'A relationship with the requested STIX id was not found.'
+
+  /api/relationships/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a relationship matching the STIX id and modified date'
+      operationId: 'relationship-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a relationship from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the relationship to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the relationship to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a relationship matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/relationships.yml#/components/schemas/relationship'
+        '404':
+          description: 'A relationship with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a relationship'
+      operationId: 'relationship-update'
+      description: |
+        This endpoint updates a single version of a relationship in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the relationship to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the relationship to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/relationships.yml#/components/schemas/relationship'
+      responses:
+        '200':
+          description: 'The relationship was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/relationships.yml#/components/schemas/relationship'
+        '400':
+          description: 'Missing or invalid parameters were provided. The relationship was not updated.'
+        '404':
+          description: 'A relationship with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a relationship'
+      operationId: 'relationship-delete'
+      description: |
+        This endpoint deletes a single version of a relationship from the workspace.
+        The relationship is identified by its STIX id and modified date.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the relationship to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the relationship to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The relationship was successfully deleted.'
+        '404':
+          description: 'A relationship with the requested STIX id and modified date was not found.'

@@ -218,7 +218,68 @@ Wraps returned objects in a larger object.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "AppInit DLLs",
+      "description": "string",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "string",
+          "phase_name": "string"
+        }
+      ],
+      "x_mitre_contributors": [
+        "string"
+      ],
+      "x_mitre_data_sources": [
+        "string"
+      ],
+      "x_mitre_deprecated": false,
+      "x_mitre_detection": "string",
+      "x_mitre_effective_permissions": [
+        "Administrator"
+      ],
+      "x_mitre_permissions_required": [
+        "Administrator"
+      ],
+      "x_mitre_platforms": [
+        "Windows"
+      ],
+      "x_mitre_subtechnique": false,
+      "x_mitre_system_requirements": [
+        "string"
+      ],
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-a-list-of-techniques-responses">Responses</h3>
@@ -233,7 +294,52 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» kill_chain_phases|[object]|false|none|none|
+|»»»» kill_chain_name|string|true|none|none|
+|»»»» phase_name|string|true|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_data_sources|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_detection|string|false|none|none|
+|»»» x_mitre_effective_permissions|[string]|false|none|none|
+|»»» x_mitre_permissions_required|[string]|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_subtechnique|boolean|false|none|none|
+|»»» x_mitre_system_requirements|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -262,7 +368,66 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -396,20 +561,200 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
+<h3 id="create-a-technique-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items)|true|none|
+
 > Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="create-a-technique-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The technique has been successfully created.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The technique has been successfully created.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The technique was not created.|None|
 |409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The technique was not created.|None|
 
 <h3 id="create-a-technique-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» kill_chain_phases|[object]|false|none|none|
+|»»»» kill_chain_name|string|true|none|none|
+|»»»» phase_name|string|true|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_data_sources|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_detection|string|false|none|none|
+|»»» x_mitre_effective_permissions|[string]|false|none|none|
+|»»» x_mitre_permissions_required|[string]|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_subtechnique|boolean|false|none|none|
+|»»» x_mitre_system_requirements|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -584,7 +929,68 @@ This endpoint gets a list of one or more versions of a technique from the worksp
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "AppInit DLLs",
+      "description": "string",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "string",
+          "phase_name": "string"
+        }
+      ],
+      "x_mitre_contributors": [
+        "string"
+      ],
+      "x_mitre_data_sources": [
+        "string"
+      ],
+      "x_mitre_deprecated": false,
+      "x_mitre_detection": "string",
+      "x_mitre_effective_permissions": [
+        "Administrator"
+      ],
+      "x_mitre_permissions_required": [
+        "Administrator"
+      ],
+      "x_mitre_platforms": [
+        "Windows"
+      ],
+      "x_mitre_subtechnique": false,
+      "x_mitre_system_requirements": [
+        "string"
+      ],
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-one-or-more-versions-of-a-technique-responses">Responses</h3>
@@ -600,7 +1006,52 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» kill_chain_phases|[object]|false|none|none|
+|»»»» kill_chain_name|string|true|none|none|
+|»»»» phase_name|string|true|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_data_sources|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_detection|string|false|none|none|
+|»»» x_mitre_effective_permissions|[string]|false|none|none|
+|»»» x_mitre_permissions_required|[string]|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_subtechnique|boolean|false|none|none|
+|»»» x_mitre_system_requirements|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -760,14 +1211,129 @@ This endpoint gets a single version of a technique from the workspace, identifie
 
 > Example responses
 
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
 <h3 id="gets-the-version-of-a-technique-matching-the-stix-id-and-modified-date-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a technique matching the STIX id and modified date.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a technique matching the STIX id and modified date.|Inline|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A technique with the requested STIX id and modified date was not found.|None|
 
 <h3 id="gets-the-version-of-a-technique-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» kill_chain_phases|[object]|false|none|none|
+|»»»» kill_chain_name|string|true|none|none|
+|»»»» phase_name|string|true|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_data_sources|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_detection|string|false|none|none|
+|»»» x_mitre_effective_permissions|[string]|false|none|none|
+|»»» x_mitre_permissions_required|[string]|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_subtechnique|boolean|false|none|none|
+|»»» x_mitre_system_requirements|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -796,7 +1362,66 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -928,7 +1553,66 @@ This endpoint updates a single version of a technique in the workspace, identifi
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
 <h3 id="update-a-technique-parameters">Parameters</h3>
@@ -937,18 +1621,134 @@ false
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the technique to update|
 |modified|path|string|true|modified date of the technique to update|
+|body|body|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items)|true|none|
 
 > Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "AppInit DLLs",
+    "description": "string",
+    "kill_chain_phases": [
+      {
+        "kill_chain_name": "string",
+        "phase_name": "string"
+      }
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_data_sources": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_detection": "string",
+    "x_mitre_effective_permissions": [
+      "Administrator"
+    ],
+    "x_mitre_permissions_required": [
+      "Administrator"
+    ],
+    "x_mitre_platforms": [
+      "Windows"
+    ],
+    "x_mitre_subtechnique": false,
+    "x_mitre_system_requirements": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="update-a-technique-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The technique was updated.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The technique was updated.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The technique was not updated.|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A technique with the requested STIX id and modified date was not found.|None|
 
 <h3 id="update-a-technique-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» kill_chain_phases|[object]|false|none|none|
+|»»»» kill_chain_name|string|true|none|none|
+|»»»» phase_name|string|true|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_data_sources|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_detection|string|false|none|none|
+|»»» x_mitre_effective_permissions|[string]|false|none|none|
+|»»» x_mitre_permissions_required|[string]|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_subtechnique|boolean|false|none|none|
+|»»» x_mitre_system_requirements|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -1279,7 +2079,45 @@ Wraps returned objects in a larger object.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Collection",
+      "description": "This is a tactic.",
+      "x_mitre_contributors": [
+        "string"
+      ],
+      "x_mitre_deprecated": false,
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-a-list-of-tactics-responses">Responses</h3>
@@ -1294,7 +2132,42 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -1323,7 +2196,43 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Collection",
+    "description": "This is a tactic.",
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -1457,20 +2366,144 @@ If the `stix.id` property is not set, it creates a new tactic, generating a STIX
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Collection",
+    "description": "This is a tactic.",
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
+<h3 id="create-a-tactic-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items)|true|none|
+
 > Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Collection",
+    "description": "This is a tactic.",
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="create-a-tactic-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The tactic has been successfully created.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The tactic has been successfully created.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The tactic was not created.|None|
 |409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The tactic was not created.|None|
 
 <h3 id="create-a-tactic-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -1645,7 +2678,45 @@ This endpoint gets a list of one or more versions of a tactic from the workspace
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Collection",
+      "description": "This is a tactic.",
+      "x_mitre_contributors": [
+        "string"
+      ],
+      "x_mitre_deprecated": false,
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-one-or-more-versions-of-a-tactic-responses">Responses</h3>
@@ -1661,7 +2732,42 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -1821,14 +2927,96 @@ This endpoint gets a single version of a tactic from the workspace, identified b
 
 > Example responses
 
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Collection",
+    "description": "This is a tactic.",
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
 <h3 id="gets-the-version-of-a-tactic-matching-the-stix-id-and-modified-date-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a tactic matching the STIX id and modified date.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a tactic matching the STIX id and modified date.|Inline|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A tactic with the requested STIX id and modified date was not found.|None|
 
 <h3 id="gets-the-version-of-a-tactic-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -1857,7 +3045,43 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Collection",
+    "description": "This is a tactic.",
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -1989,7 +3213,43 @@ This endpoint updates a single version of a tactic in the workspace, identified 
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Collection",
+    "description": "This is a tactic.",
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
 <h3 id="update-a-tactic-parameters">Parameters</h3>
@@ -1998,18 +3258,101 @@ false
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the tactic to update|
 |modified|path|string|true|modified date of the tactic to update|
+|body|body|[#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items)|true|none|
 
 > Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Collection",
+    "description": "This is a tactic.",
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="update-a-tactic-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The tactic was updated.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The tactic was updated.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The tactic was not updated.|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A tactic with the requested STIX id and modified date was not found.|None|
 
 <h3 id="update-a-tactic-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -2340,7 +3683,47 @@ Wraps returned objects in a larger object.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "APT29",
+      "description": "This is an intrusion set (group)",
+      "aliases": [
+        "string"
+      ],
+      "x_mitre_contributors": [
+        "string"
+      ],
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-a-list-of-groups-responses">Responses</h3>
@@ -2355,7 +3738,42 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -2384,7 +3802,45 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "APT29",
+    "description": "This is an intrusion set (group)",
+    "aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -2518,20 +3974,148 @@ If the `stix.id` property is not set, it creates a new group, generating a STIX 
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "APT29",
+    "description": "This is an intrusion set (group)",
+    "aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
+<h3 id="create-a-group-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items)|true|none|
+
 > Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "APT29",
+    "description": "This is an intrusion set (group)",
+    "aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="create-a-group-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The group has been successfully created.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The group has been successfully created.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The group was not created.|None|
 |409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The group was not created.|None|
 
 <h3 id="create-a-group-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -2706,7 +4290,47 @@ This endpoint gets a list of one or more versions of a group from the workspace,
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "APT29",
+      "description": "This is an intrusion set (group)",
+      "aliases": [
+        "string"
+      ],
+      "x_mitre_contributors": [
+        "string"
+      ],
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-one-or-more-versions-of-a-group-responses">Responses</h3>
@@ -2722,7 +4346,42 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -2882,14 +4541,98 @@ This endpoint gets a single version of a group from the workspace, identified by
 
 > Example responses
 
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "APT29",
+    "description": "This is an intrusion set (group)",
+    "aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
 <h3 id="gets-the-version-of-a-group-matching-the-stix-id-and-modified-date-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a group matching the STIX id and modified date.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a group matching the STIX id and modified date.|Inline|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A group with the requested STIX id and modified date was not found.|None|
 
 <h3 id="gets-the-version-of-a-group-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -2918,7 +4661,45 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "APT29",
+    "description": "This is an intrusion set (group)",
+    "aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -3050,7 +4831,45 @@ This endpoint updates a single version of a group in the workspace, identified b
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "APT29",
+    "description": "This is an intrusion set (group)",
+    "aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
 <h3 id="update-a-group-parameters">Parameters</h3>
@@ -3059,18 +4878,103 @@ false
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the group to update|
 |modified|path|string|true|modified date of the group to update|
+|body|body|[#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items)|true|none|
 
 > Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "APT29",
+    "description": "This is an intrusion set (group)",
+    "aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="update-a-group-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The group was updated.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The group was updated.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The group was not updated.|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A group with the requested STIX id and modified date was not found.|None|
 
 <h3 id="update-a-group-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -3223,7 +5127,7 @@ Operations on software (tools and malware)
 
 ## Get a list of software objects
 
-<a id="opIdgroup-get-all"></a>
+<a id="opIdsoftware-get-all"></a>
 
 > Code samples
 
@@ -3401,7 +5305,51 @@ Wraps returned objects in a larger object.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Net",
+      "description": "This is a software",
+      "x_mitre_aliases": [
+        "string"
+      ],
+      "x_mitre_contributors": [
+        "string"
+      ],
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0",
+      "x_mitre_deprecated": false,
+      "x_mitre_platforms": [
+        "Windows"
+      ]
+    }
+  }
+]
 ```
 
 <h3 id="get-a-list-of-software-objects-responses">Responses</h3>
@@ -3416,7 +5364,44 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -3445,7 +5430,49 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Net",
+    "description": "This is a software",
+    "x_mitre_aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false,
+    "x_mitre_platforms": [
+      "Windows"
+    ]
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -3579,20 +5606,158 @@ If the `stix.id` property is not set, it creates a new software object, generati
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Net",
+    "description": "This is a software",
+    "x_mitre_aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false,
+    "x_mitre_platforms": [
+      "Windows"
+    ]
+  }
+}
 ```
 
+<h3 id="create-a-software-object-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items)|true|none|
+
 > Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Net",
+    "description": "This is a software",
+    "x_mitre_aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false,
+    "x_mitre_platforms": [
+      "Windows"
+    ]
+  }
+}
+```
 
 <h3 id="create-a-software-object-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The software object has been successfully created.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The software object has been successfully created.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The software object was not created.|None|
 |409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The software object was not created.|None|
 
 <h3 id="create-a-software-object-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -3767,7 +5932,51 @@ This endpoint gets a list of one or more versions of a software object from the 
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Net",
+      "description": "This is a software",
+      "x_mitre_aliases": [
+        "string"
+      ],
+      "x_mitre_contributors": [
+        "string"
+      ],
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0",
+      "x_mitre_deprecated": false,
+      "x_mitre_platforms": [
+        "Windows"
+      ]
+    }
+  }
+]
 ```
 
 <h3 id="get-one-or-more-versions-of-a-software-object-responses">Responses</h3>
@@ -3783,7 +5992,44 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -3943,14 +6189,104 @@ This endpoint gets a single version of a software object from the workspace, ide
 
 > Example responses
 
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Net",
+    "description": "This is a software",
+    "x_mitre_aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false,
+    "x_mitre_platforms": [
+      "Windows"
+    ]
+  }
+}
+```
+
 <h3 id="gets-the-version-of-a-software-object-matching-the-stix-id-and-modified-date-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a software object matching the STIX id and modified date.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a software object matching the STIX id and modified date.|Inline|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A software object with the requested STIX id and modified date was not found.|None|
 
 <h3 id="gets-the-version-of-a-software-object-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -3979,7 +6315,49 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Net",
+    "description": "This is a software",
+    "x_mitre_aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false,
+    "x_mitre_platforms": [
+      "Windows"
+    ]
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -4111,7 +6489,49 @@ This endpoint updates a single version of a software object in the workspace, id
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Net",
+    "description": "This is a software",
+    "x_mitre_aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false,
+    "x_mitre_platforms": [
+      "Windows"
+    ]
+  }
+}
 ```
 
 <h3 id="update-a-software-object-parameters">Parameters</h3>
@@ -4120,18 +6540,109 @@ false
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the software object to update|
 |modified|path|string|true|modified date of the software object to update|
+|body|body|[#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items)|true|none|
 
 > Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Net",
+    "description": "This is a software",
+    "x_mitre_aliases": [
+      "string"
+    ],
+    "x_mitre_contributors": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false,
+    "x_mitre_platforms": [
+      "Windows"
+    ]
+  }
+}
+```
 
 <h3 id="update-a-software-object-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The software object was updated.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The software object was updated.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The software object was not updated.|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A software object with the requested STIX id and modified date was not found.|None|
 
 <h3 id="update-a-software-object-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_aliases|[string]|false|none|none|
+|»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_platforms|[string]|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -4462,7 +6973,42 @@ Wraps returned objects in a larger object.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Compiled HTML File Mitigation",
+      "description": "This is a course of action (mitigation).",
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0",
+      "x_mitre_deprecated": false
+    }
+  }
+]
 ```
 
 <h3 id="get-a-list-of-mitigations-responses">Responses</h3>
@@ -4477,7 +7023,41 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -4506,7 +7086,40 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Compiled HTML File Mitigation",
+    "description": "This is a course of action (mitigation).",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -4640,20 +7253,137 @@ If the `stix.id` property is not set, it creates a new mitigation, generating a 
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Compiled HTML File Mitigation",
+    "description": "This is a course of action (mitigation).",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false
+  }
+}
 ```
 
+<h3 id="create-a-mitigation-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items)|true|none|
+
 > Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Compiled HTML File Mitigation",
+    "description": "This is a course of action (mitigation).",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false
+  }
+}
+```
 
 <h3 id="create-a-mitigation-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The mitigation has been successfully created.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The mitigation has been successfully created.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The mitigation was not created.|None|
 |409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The mitigation was not created.|None|
 
 <h3 id="create-a-mitigation-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -4828,7 +7558,42 @@ This endpoint gets a list of one or more versions of a mitigation from the works
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Compiled HTML File Mitigation",
+      "description": "This is a course of action (mitigation).",
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0",
+      "x_mitre_deprecated": false
+    }
+  }
+]
 ```
 
 <h3 id="get-one-or-more-versions-of-a-mitigation-responses">Responses</h3>
@@ -4844,7 +7609,41 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -5004,14 +7803,92 @@ This endpoint gets a single version of a mitigation from the workspace, identifi
 
 > Example responses
 
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Compiled HTML File Mitigation",
+    "description": "This is a course of action (mitigation).",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false
+  }
+}
+```
+
 <h3 id="gets-the-version-of-a-mitigation-matching-the-stix-id-and-modified-date-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a mitigation matching the STIX id and modified date.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a mitigation matching the STIX id and modified date.|Inline|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A mitigation with the requested STIX id and modified date was not found.|None|
 
 <h3 id="gets-the-version-of-a-mitigation-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -5040,7 +7917,40 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Compiled HTML File Mitigation",
+    "description": "This is a course of action (mitigation).",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -5172,7 +8082,40 @@ This endpoint updates a single version of a mitigation in the workspace, identif
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Compiled HTML File Mitigation",
+    "description": "This is a course of action (mitigation).",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false
+  }
+}
 ```
 
 <h3 id="update-a-mitigation-parameters">Parameters</h3>
@@ -5181,18 +8124,97 @@ false
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the mitigation to update|
 |modified|path|string|true|modified date of the mitigation to update|
+|body|body|[#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items)|true|none|
 
 > Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Compiled HTML File Mitigation",
+    "description": "This is a course of action (mitigation).",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0",
+    "x_mitre_deprecated": false
+  }
+}
+```
 
 <h3 id="update-a-mitigation-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The mitigation was updated.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The mitigation was updated.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The mitigation was not updated.|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A mitigation with the requested STIX id and modified date was not found.|None|
 
 <h3 id="update-a-mitigation-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -5524,7 +8546,44 @@ Wraps returned objects in a larger object.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Mobile ATT&CK",
+      "description": "This is a matrix",
+      "tactic_refs": [
+        "string"
+      ],
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-a-list-of-matrices-responses">Responses</h3>
@@ -5539,7 +8598,41 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -5568,7 +8661,42 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Mobile ATT&CK",
+    "description": "This is a matrix",
+    "tactic_refs": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -5702,20 +8830,141 @@ If the `stix.id` property is not set, it creates a new matrix, generating a STIX
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Mobile ATT&CK",
+    "description": "This is a matrix",
+    "tactic_refs": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
+<h3 id="create-a-matrix-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items)|true|none|
+
 > Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Mobile ATT&CK",
+    "description": "This is a matrix",
+    "tactic_refs": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="create-a-matrix-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The matrix has been successfully created.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The matrix has been successfully created.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The matrix was not created.|None|
 |409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The matrix was not created.|None|
 
 <h3 id="create-a-matrix-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -5890,7 +9139,44 @@ This endpoint gets a list of one or more versions of a matrix from the workspace
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Mobile ATT&CK",
+      "description": "This is a matrix",
+      "tactic_refs": [
+        "string"
+      ],
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-one-or-more-versions-of-a-matrix-responses">Responses</h3>
@@ -5906,7 +9192,41 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -6066,14 +9386,94 @@ This endpoint gets a single version of a matrix from the workspace, identified b
 
 > Example responses
 
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Mobile ATT&CK",
+    "description": "This is a matrix",
+    "tactic_refs": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
 <h3 id="gets-the-version-of-a-matrix-matching-the-stix-id-and-modified-date-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a matrix matching the STIX id and modified date.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a matrix matching the STIX id and modified date.|Inline|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A matrix with the requested STIX id and modified date was not found.|None|
 
 <h3 id="gets-the-version-of-a-matrix-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -6102,7 +9502,42 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Mobile ATT&CK",
+    "description": "This is a matrix",
+    "tactic_refs": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -6234,7 +9669,42 @@ This endpoint updates a single version of a matrix in the workspace, identified 
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Mobile ATT&CK",
+    "description": "This is a matrix",
+    "tactic_refs": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
 <h3 id="update-a-matrix-parameters">Parameters</h3>
@@ -6243,18 +9713,99 @@ false
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the matrix to update|
 |modified|path|string|true|modified date of the matrix to update|
+|body|body|[#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items)|true|none|
 
 > Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Mobile ATT&CK",
+    "description": "This is a matrix",
+    "tactic_refs": [
+      "string"
+    ],
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="update-a-matrix-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The matrix was updated.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The matrix was updated.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The matrix was not updated.|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A matrix with the requested STIX id and modified date was not found.|None|
 
 <h3 id="update-a-matrix-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -6618,7 +10169,46 @@ Wraps returned objects in a larger object.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "string",
+      "description": "This is a relationship",
+      "relationship_type": "uses",
+      "source_ref": "string",
+      "target_ref": "string",
+      "start_time": "2019-08-24T14:15:22Z",
+      "stop_time": "2019-08-24T14:15:22Z",
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-a-list-of-relationships-responses">Responses</h3>
@@ -6633,7 +10223,45 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» relationship_type|string|false|none|none|
+|»»» source_ref|string|false|none|none|
+|»»» target_ref|string|false|none|none|
+|»»» start_time|string(date-time)|false|none|none|
+|»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -6662,7 +10290,44 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "description": "This is a relationship",
+    "relationship_type": "uses",
+    "source_ref": "string",
+    "target_ref": "string",
+    "start_time": "2019-08-24T14:15:22Z",
+    "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -6796,20 +10461,149 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "description": "This is a relationship",
+    "relationship_type": "uses",
+    "source_ref": "string",
+    "target_ref": "string",
+    "start_time": "2019-08-24T14:15:22Z",
+    "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
+<h3 id="create-a-relationship-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items)|true|none|
+
 > Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "description": "This is a relationship",
+    "relationship_type": "uses",
+    "source_ref": "string",
+    "target_ref": "string",
+    "start_time": "2019-08-24T14:15:22Z",
+    "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="create-a-relationship-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The relationship has been successfully created.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The relationship has been successfully created.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The relationship was not created.|None|
 |409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The relationship was not created.|None|
 
 <h3 id="create-a-relationship-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» relationship_type|string|false|none|none|
+|»»» source_ref|string|false|none|none|
+|»»» target_ref|string|false|none|none|
+|»»» start_time|string(date-time)|false|none|none|
+|»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -6984,7 +10778,46 @@ This endpoint gets a list of one or more versions of a relationship from the wor
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "string",
+      "description": "This is a relationship",
+      "relationship_type": "uses",
+      "source_ref": "string",
+      "target_ref": "string",
+      "start_time": "2019-08-24T14:15:22Z",
+      "stop_time": "2019-08-24T14:15:22Z",
+      "x_mitre_domains": [
+        "string"
+      ],
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-one-or-more-versions-of-a-relationship-responses">Responses</h3>
@@ -7000,7 +10833,45 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» relationship_type|string|false|none|none|
+|»»» source_ref|string|false|none|none|
+|»»» target_ref|string|false|none|none|
+|»»» start_time|string(date-time)|false|none|none|
+|»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -7160,14 +11031,100 @@ This endpoint gets a single version of a relationship from the workspace, identi
 
 > Example responses
 
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "description": "This is a relationship",
+    "relationship_type": "uses",
+    "source_ref": "string",
+    "target_ref": "string",
+    "start_time": "2019-08-24T14:15:22Z",
+    "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
 <h3 id="gets-the-version-of-a-relationship-matching-the-stix-id-and-modified-date-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a relationship matching the STIX id and modified date.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a relationship matching the STIX id and modified date.|Inline|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A relationship with the requested STIX id and modified date was not found.|None|
 
 <h3 id="gets-the-version-of-a-relationship-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» relationship_type|string|false|none|none|
+|»»» source_ref|string|false|none|none|
+|»»» target_ref|string|false|none|none|
+|»»» start_time|string(date-time)|false|none|none|
+|»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -7196,7 +11153,44 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "description": "This is a relationship",
+    "relationship_type": "uses",
+    "source_ref": "string",
+    "target_ref": "string",
+    "start_time": "2019-08-24T14:15:22Z",
+    "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -7328,7 +11322,44 @@ This endpoint updates a single version of a relationship in the workspace, ident
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "description": "This is a relationship",
+    "relationship_type": "uses",
+    "source_ref": "string",
+    "target_ref": "string",
+    "start_time": "2019-08-24T14:15:22Z",
+    "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
 <h3 id="update-a-relationship-parameters">Parameters</h3>
@@ -7337,18 +11368,105 @@ false
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the relationship to update|
 |modified|path|string|true|modified date of the relationship to update|
+|body|body|[#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items)|true|none|
 
 > Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "description": "This is a relationship",
+    "relationship_type": "uses",
+    "source_ref": "string",
+    "target_ref": "string",
+    "start_time": "2019-08-24T14:15:22Z",
+    "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_domains": [
+      "string"
+    ],
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="update-a-relationship-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The relationship was updated.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The relationship was updated.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The relationship was not updated.|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A relationship with the requested STIX id and modified date was not found.|None|
 
 <h3 id="update-a-relationship-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» relationship_type|string|false|none|none|
+|»»» source_ref|string|false|none|none|
+|»»» target_ref|string|false|none|none|
+|»»» start_time|string(date-time)|false|none|none|
+|»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_domains|[string]|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -7664,7 +11782,45 @@ The default (0) will retrieve all collection indexes.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "collection_index": {
+      "id": "string",
+      "name": "string",
+      "description": "string",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "collections": [
+        {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "created": "2019-08-24T14:15:22Z",
+          "versions": [
+            {
+              "version": "string",
+              "modified": "2019-08-24T14:15:22Z",
+              "url": "string",
+              "taxii_url": "string",
+              "release_notes": "string"
+            }
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "remote_url": "string",
+      "update_policy": {
+        "automatic": true,
+        "interval": 0,
+        "last_retrieval": "2019-08-24T14:15:22Z",
+        "subscriptions": [
+          "x-mitre-collection--915b6504-bde8-40b5-bfda-0c3ecb46a9b9"
+        ]
+      }
+    }
+  }
+]
 ```
 
 <h3 id="get-a-list-of-collection-indexes-responses">Responses</h3>
@@ -7679,7 +11835,31 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1collection-indexes/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collection-indexes/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» collection_index|object|true|none|none|
+|»» id|string|true|none|none|
+|»» name|string|true|none|none|
+|»» description|string|false|none|none|
+|»» created|string(date-time)|true|none|none|
+|»» modified|string(date-time)|true|none|none|
+|»» collections|[object]|true|none|none|
+|»»» id|string|true|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» versions|[object]|true|none|none|
+|»»»» version|string|true|none|none|
+|»»»» modified|string(date-time)|true|none|none|
+|»»»» url|string|false|none|none|
+|»»»» taxii_url|string|false|none|none|
+|»»»» release_notes|string|false|none|none|
+|» workspace|object|false|none|none|
+|»» remote_url|string|false|none|none|
+|»» update_policy|object|false|none|none|
+|»»» automatic|boolean|false|none|none|
+|»»» interval|number|false|none|none|
+|»»» last_retrieval|string(date-time)|false|none|none|
+|»»» subscriptions|[string]|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -7708,7 +11888,43 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "collection_index": {
+    "id": "string",
+    "name": "string",
+    "description": "string",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "collections": [
+      {
+        "id": "string",
+        "name": "string",
+        "description": "string",
+        "created": "2019-08-24T14:15:22Z",
+        "versions": [
+          {
+            "version": "string",
+            "modified": "2019-08-24T14:15:22Z",
+            "url": "string",
+            "taxii_url": "string",
+            "release_notes": "string"
+          }
+        ]
+      }
+    ]
+  },
+  "workspace": {
+    "remote_url": "string",
+    "update_policy": {
+      "automatic": true,
+      "interval": 0,
+      "last_retrieval": "2019-08-24T14:15:22Z",
+      "subscriptions": [
+        "x-mitre-collection--915b6504-bde8-40b5-bfda-0c3ecb46a9b9"
+      ]
+    }
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -7840,19 +12056,132 @@ This endpoint creates a new collection index in the workspace.
 > Body parameter
 
 ```json
-false
+{
+  "collection_index": {
+    "id": "string",
+    "name": "string",
+    "description": "string",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "collections": [
+      {
+        "id": "string",
+        "name": "string",
+        "description": "string",
+        "created": "2019-08-24T14:15:22Z",
+        "versions": [
+          {
+            "version": "string",
+            "modified": "2019-08-24T14:15:22Z",
+            "url": "string",
+            "taxii_url": "string",
+            "release_notes": "string"
+          }
+        ]
+      }
+    ]
+  },
+  "workspace": {
+    "remote_url": "string",
+    "update_policy": {
+      "automatic": true,
+      "interval": 0,
+      "last_retrieval": "2019-08-24T14:15:22Z",
+      "subscriptions": [
+        "x-mitre-collection--915b6504-bde8-40b5-bfda-0c3ecb46a9b9"
+      ]
+    }
+  }
+}
 ```
 
+<h3 id="create-a-collection-index-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1collection-indexes/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collection-indexes/get/responses/200/content/application~1json/schema/items)|true|none|
+
 > Example responses
+
+> 201 Response
+
+```json
+{
+  "collection_index": {
+    "id": "string",
+    "name": "string",
+    "description": "string",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "collections": [
+      {
+        "id": "string",
+        "name": "string",
+        "description": "string",
+        "created": "2019-08-24T14:15:22Z",
+        "versions": [
+          {
+            "version": "string",
+            "modified": "2019-08-24T14:15:22Z",
+            "url": "string",
+            "taxii_url": "string",
+            "release_notes": "string"
+          }
+        ]
+      }
+    ]
+  },
+  "workspace": {
+    "remote_url": "string",
+    "update_policy": {
+      "automatic": true,
+      "interval": 0,
+      "last_retrieval": "2019-08-24T14:15:22Z",
+      "subscriptions": [
+        "x-mitre-collection--915b6504-bde8-40b5-bfda-0c3ecb46a9b9"
+      ]
+    }
+  }
+}
+```
 
 <h3 id="create-a-collection-index-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The collection index has been successfully created.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The collection index has been successfully created.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The collection index was not created.|None|
 
 <h3 id="create-a-collection-index-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» collection_index|object|true|none|none|
+|»» id|string|true|none|none|
+|»» name|string|true|none|none|
+|»» description|string|false|none|none|
+|»» created|string(date-time)|true|none|none|
+|»» modified|string(date-time)|true|none|none|
+|»» collections|[object]|true|none|none|
+|»»» id|string|true|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» versions|[object]|true|none|none|
+|»»»» version|string|true|none|none|
+|»»»» modified|string(date-time)|true|none|none|
+|»»»» url|string|false|none|none|
+|»»»» taxii_url|string|false|none|none|
+|»»»» release_notes|string|false|none|none|
+|» workspace|object|false|none|none|
+|»» remote_url|string|false|none|none|
+|»» update_policy|object|false|none|none|
+|»»» automatic|boolean|false|none|none|
+|»»» interval|number|false|none|none|
+|»»» last_retrieval|string(date-time)|false|none|none|
+|»»» subscriptions|[string]|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -8014,7 +12343,45 @@ This endpoint gets collection index from the workspace, identified by its id.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "collection_index": {
+      "id": "string",
+      "name": "string",
+      "description": "string",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "collections": [
+        {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "created": "2019-08-24T14:15:22Z",
+          "versions": [
+            {
+              "version": "string",
+              "modified": "2019-08-24T14:15:22Z",
+              "url": "string",
+              "taxii_url": "string",
+              "release_notes": "string"
+            }
+          ]
+        }
+      ]
+    },
+    "workspace": {
+      "remote_url": "string",
+      "update_policy": {
+        "automatic": true,
+        "interval": 0,
+        "last_retrieval": "2019-08-24T14:15:22Z",
+        "subscriptions": [
+          "x-mitre-collection--915b6504-bde8-40b5-bfda-0c3ecb46a9b9"
+        ]
+      }
+    }
+  }
+]
 ```
 
 <h3 id="get-collection-index-responses">Responses</h3>
@@ -8030,7 +12397,31 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1collection-indexes/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collection-indexes/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» collection_index|object|true|none|none|
+|»» id|string|true|none|none|
+|»» name|string|true|none|none|
+|»» description|string|false|none|none|
+|»» created|string(date-time)|true|none|none|
+|»» modified|string(date-time)|true|none|none|
+|»» collections|[object]|true|none|none|
+|»»» id|string|true|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» versions|[object]|true|none|none|
+|»»»» version|string|true|none|none|
+|»»»» modified|string(date-time)|true|none|none|
+|»»»» url|string|false|none|none|
+|»»»» taxii_url|string|false|none|none|
+|»»»» release_notes|string|false|none|none|
+|» workspace|object|false|none|none|
+|»» remote_url|string|false|none|none|
+|»» update_policy|object|false|none|none|
+|»»» automatic|boolean|false|none|none|
+|»»» interval|number|false|none|none|
+|»»» last_retrieval|string(date-time)|false|none|none|
+|»»» subscriptions|[string]|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -8059,7 +12450,43 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "collection_index": {
+    "id": "string",
+    "name": "string",
+    "description": "string",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "collections": [
+      {
+        "id": "string",
+        "name": "string",
+        "description": "string",
+        "created": "2019-08-24T14:15:22Z",
+        "versions": [
+          {
+            "version": "string",
+            "modified": "2019-08-24T14:15:22Z",
+            "url": "string",
+            "taxii_url": "string",
+            "release_notes": "string"
+          }
+        ]
+      }
+    ]
+  },
+  "workspace": {
+    "remote_url": "string",
+    "update_policy": {
+      "automatic": true,
+      "interval": 0,
+      "last_retrieval": "2019-08-24T14:15:22Z",
+      "subscriptions": [
+        "x-mitre-collection--915b6504-bde8-40b5-bfda-0c3ecb46a9b9"
+      ]
+    }
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -8191,7 +12618,43 @@ This endpoint updates a single collection index in the workspace, identified by 
 > Body parameter
 
 ```json
-false
+{
+  "collection_index": {
+    "id": "string",
+    "name": "string",
+    "description": "string",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "collections": [
+      {
+        "id": "string",
+        "name": "string",
+        "description": "string",
+        "created": "2019-08-24T14:15:22Z",
+        "versions": [
+          {
+            "version": "string",
+            "modified": "2019-08-24T14:15:22Z",
+            "url": "string",
+            "taxii_url": "string",
+            "release_notes": "string"
+          }
+        ]
+      }
+    ]
+  },
+  "workspace": {
+    "remote_url": "string",
+    "update_policy": {
+      "automatic": true,
+      "interval": 0,
+      "last_retrieval": "2019-08-24T14:15:22Z",
+      "subscriptions": [
+        "x-mitre-collection--915b6504-bde8-40b5-bfda-0c3ecb46a9b9"
+      ]
+    }
+  }
+}
 ```
 
 <h3 id="update-a-collection-index-parameters">Parameters</h3>
@@ -8199,18 +12662,90 @@ false
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
 |id|path|string|true|id of the collection index to update|
+|body|body|[#/paths/~1api~1collection-indexes/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collection-indexes/get/responses/200/content/application~1json/schema/items)|true|none|
 
 > Example responses
+
+> 200 Response
+
+```json
+{
+  "collection_index": {
+    "id": "string",
+    "name": "string",
+    "description": "string",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "collections": [
+      {
+        "id": "string",
+        "name": "string",
+        "description": "string",
+        "created": "2019-08-24T14:15:22Z",
+        "versions": [
+          {
+            "version": "string",
+            "modified": "2019-08-24T14:15:22Z",
+            "url": "string",
+            "taxii_url": "string",
+            "release_notes": "string"
+          }
+        ]
+      }
+    ]
+  },
+  "workspace": {
+    "remote_url": "string",
+    "update_policy": {
+      "automatic": true,
+      "interval": 0,
+      "last_retrieval": "2019-08-24T14:15:22Z",
+      "subscriptions": [
+        "x-mitre-collection--915b6504-bde8-40b5-bfda-0c3ecb46a9b9"
+      ]
+    }
+  }
+}
+```
 
 <h3 id="update-a-collection-index-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The collection index was updated.|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The collection index was updated.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The collection index was not updated.|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A collection index with the requested id was not found.|None|
 
 <h3 id="update-a-collection-index-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» collection_index|object|true|none|none|
+|»» id|string|true|none|none|
+|»» name|string|true|none|none|
+|»» description|string|false|none|none|
+|»» created|string(date-time)|true|none|none|
+|»» modified|string(date-time)|true|none|none|
+|»» collections|[object]|true|none|none|
+|»»» id|string|true|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» versions|[object]|true|none|none|
+|»»»» version|string|true|none|none|
+|»»»» modified|string(date-time)|true|none|none|
+|»»»» url|string|false|none|none|
+|»»»» taxii_url|string|false|none|none|
+|»»»» release_notes|string|false|none|none|
+|» workspace|object|false|none|none|
+|»» remote_url|string|false|none|none|
+|»» update_policy|object|false|none|none|
+|»»» automatic|boolean|false|none|none|
+|»»» interval|number|false|none|none|
+|»»» last_retrieval|string(date-time)|false|none|none|
+|»»» subscriptions|[string]|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -8548,7 +13083,79 @@ If this parameter is not set, collections will be retrieved with any state.
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "imported": "2019-08-24T14:15:22Z",
+      "import_categories": {
+        "additions": [
+          "string"
+        ],
+        "changes": [
+          "string"
+        ],
+        "minor_changes": [
+          "string"
+        ],
+        "revocations": [
+          "string"
+        ],
+        "deprecations": [
+          "string"
+        ],
+        "supersedes_user_edits": [
+          "string"
+        ],
+        "supersedes_collection_changes": [
+          "string"
+        ],
+        "duplicates": [
+          "string"
+        ],
+        "out_of_date": [
+          "string"
+        ],
+        "errors": [
+          {
+            "object_ref": "string",
+            "object_modified": "string",
+            "error_type": "string"
+          }
+        ]
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Enterprise ATT&CK",
+      "description": "string",
+      "x_mitre_contents": [
+        {
+          "object_ref": "string",
+          "object_modified": "string"
+        }
+      ],
+      "x_mitre_deprecated": false,
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-a-list-of-collections-responses">Responses</h3>
@@ -8563,7 +13170,56 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|object|true|none|none|
+|»» imported|string(date-time)|false|none|none|
+|»» import_categories|object|false|none|none|
+|»»» additions|[string]|false|none|none|
+|»»» changes|[string]|false|none|none|
+|»»» minor_changes|[string]|false|none|none|
+|»»» revocations|[string]|false|none|none|
+|»»» deprecations|[string]|false|none|none|
+|»»» supersedes_user_edits|[string]|false|none|none|
+|»»» supersedes_collection_changes|[string]|false|none|none|
+|»»» duplicates|[string]|false|none|none|
+|»»» out_of_date|[string]|false|none|none|
+|»»» errors|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|false|none|none|
+|»»»» error_type|string|true|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_contents|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|true|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -8592,7 +13248,77 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "workspace": {
+    "imported": "2019-08-24T14:15:22Z",
+    "import_categories": {
+      "additions": [
+        "string"
+      ],
+      "changes": [
+        "string"
+      ],
+      "minor_changes": [
+        "string"
+      ],
+      "revocations": [
+        "string"
+      ],
+      "deprecations": [
+        "string"
+      ],
+      "supersedes_user_edits": [
+        "string"
+      ],
+      "supersedes_collection_changes": [
+        "string"
+      ],
+      "duplicates": [
+        "string"
+      ],
+      "out_of_date": [
+        "string"
+      ],
+      "errors": [
+        {
+          "object_ref": "string",
+          "object_modified": "string",
+          "error_type": "string"
+        }
+      ]
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Enterprise ATT&CK",
+    "description": "string",
+    "x_mitre_contents": [
+      {
+        "object_ref": "string",
+        "object_modified": "string"
+      }
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_version": "1.0"
+  }
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -8725,20 +13451,226 @@ Both the `stix.id` and `stix.modified` properties must be set.
 > Body parameter
 
 ```json
-false
+{
+  "workspace": {
+    "imported": "2019-08-24T14:15:22Z",
+    "import_categories": {
+      "additions": [
+        "string"
+      ],
+      "changes": [
+        "string"
+      ],
+      "minor_changes": [
+        "string"
+      ],
+      "revocations": [
+        "string"
+      ],
+      "deprecations": [
+        "string"
+      ],
+      "supersedes_user_edits": [
+        "string"
+      ],
+      "supersedes_collection_changes": [
+        "string"
+      ],
+      "duplicates": [
+        "string"
+      ],
+      "out_of_date": [
+        "string"
+      ],
+      "errors": [
+        {
+          "object_ref": "string",
+          "object_modified": "string",
+          "error_type": "string"
+        }
+      ]
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Enterprise ATT&CK",
+    "description": "string",
+    "x_mitre_contents": [
+      {
+        "object_ref": "string",
+        "object_modified": "string"
+      }
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_version": "1.0"
+  }
+}
 ```
 
+<h3 id="create-a-collection-(x-mitre-collection)-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items)|true|none|
+
 > Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "imported": "2019-08-24T14:15:22Z",
+    "import_categories": {
+      "additions": [
+        "string"
+      ],
+      "changes": [
+        "string"
+      ],
+      "minor_changes": [
+        "string"
+      ],
+      "revocations": [
+        "string"
+      ],
+      "deprecations": [
+        "string"
+      ],
+      "supersedes_user_edits": [
+        "string"
+      ],
+      "supersedes_collection_changes": [
+        "string"
+      ],
+      "duplicates": [
+        "string"
+      ],
+      "out_of_date": [
+        "string"
+      ],
+      "errors": [
+        {
+          "object_ref": "string",
+          "object_modified": "string",
+          "error_type": "string"
+        }
+      ]
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Enterprise ATT&CK",
+    "description": "string",
+    "x_mitre_contents": [
+      {
+        "object_ref": "string",
+        "object_modified": "string"
+      }
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_version": "1.0"
+  }
+}
+```
 
 <h3 id="create-a-collection-(x-mitre-collection)-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The collection has been successfully created.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The collection has been successfully created.|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The collection was not created.|None|
 |409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The collection was not created.|None|
 
 <h3 id="create-a-collection-(x-mitre-collection)-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|object|true|none|none|
+|»» imported|string(date-time)|false|none|none|
+|»» import_categories|object|false|none|none|
+|»»» additions|[string]|false|none|none|
+|»»» changes|[string]|false|none|none|
+|»»» minor_changes|[string]|false|none|none|
+|»»» revocations|[string]|false|none|none|
+|»»» deprecations|[string]|false|none|none|
+|»»» supersedes_user_edits|[string]|false|none|none|
+|»»» supersedes_collection_changes|[string]|false|none|none|
+|»»» duplicates|[string]|false|none|none|
+|»»» out_of_date|[string]|false|none|none|
+|»»» errors|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|false|none|none|
+|»»»» error_type|string|true|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_contents|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|true|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -8916,7 +13848,79 @@ This endpoint gets a list of one or more versions of a collection (x-mitre-colle
 > 200 Response
 
 ```json
-[]
+[
+  {
+    "workspace": {
+      "imported": "2019-08-24T14:15:22Z",
+      "import_categories": {
+        "additions": [
+          "string"
+        ],
+        "changes": [
+          "string"
+        ],
+        "minor_changes": [
+          "string"
+        ],
+        "revocations": [
+          "string"
+        ],
+        "deprecations": [
+          "string"
+        ],
+        "supersedes_user_edits": [
+          "string"
+        ],
+        "supersedes_collection_changes": [
+          "string"
+        ],
+        "duplicates": [
+          "string"
+        ],
+        "out_of_date": [
+          "string"
+        ],
+        "errors": [
+          {
+            "object_ref": "string",
+            "object_modified": "string",
+            "error_type": "string"
+          }
+        ]
+      }
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Enterprise ATT&CK",
+      "description": "string",
+      "x_mitre_contents": [
+        {
+          "object_ref": "string",
+          "object_modified": "string"
+        }
+      ],
+      "x_mitre_deprecated": false,
+      "x_mitre_version": "1.0"
+    }
+  }
+]
 ```
 
 <h3 id="get-one-or-more-versions-of-a-collection-responses">Responses</h3>
@@ -8932,7 +13936,56 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» *anonymous*|any|false|none|none|
+|*anonymous*|[[#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|object|true|none|none|
+|»» imported|string(date-time)|false|none|none|
+|»» import_categories|object|false|none|none|
+|»»» additions|[string]|false|none|none|
+|»»» changes|[string]|false|none|none|
+|»»» minor_changes|[string]|false|none|none|
+|»»» revocations|[string]|false|none|none|
+|»»» deprecations|[string]|false|none|none|
+|»»» supersedes_user_edits|[string]|false|none|none|
+|»»» supersedes_collection_changes|[string]|false|none|none|
+|»»» duplicates|[string]|false|none|none|
+|»»» out_of_date|[string]|false|none|none|
+|»»» errors|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|false|none|none|
+|»»»» error_type|string|true|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_contents|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|true|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -9109,7 +14162,14 @@ Accept: application/json
 ```
 
 ```javascript
-const inputBody = 'false';
+const inputBody = '{
+  "id": "bundle--0cde353c-ea5b-4668-9f68-971946609282",
+  "type": "string",
+  "spec_version": "2.1",
+  "objects": [
+    {}
+  ]
+}';
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json'
@@ -9241,7 +14301,14 @@ This endpoint imports a collection bundle into the workspace.
 > Body parameter
 
 ```json
-false
+{
+  "id": "bundle--0cde353c-ea5b-4668-9f68-971946609282",
+  "type": "string",
+  "spec_version": "2.1",
+  "objects": [
+    {}
+  ]
+}
 ```
 
 <h3 id="import-a-collection-bundle-parameters">Parameters</h3>
@@ -9249,6 +14316,11 @@ false
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
 |checkOnly|query|boolean|false|Do not import the collection.|
+|body|body|object|true|none|
+|» id|body|string|true|none|
+|» type|body|string|true|none|
+|» spec_version|body|string|true|none|
+|» objects|body|[object]|true|none|
 
 #### Detailed descriptions
 
@@ -9257,13 +14329,143 @@ Only determine what the results of the import would be if it were performed.
 
 > Example responses
 
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "imported": "2019-08-24T14:15:22Z",
+    "import_categories": {
+      "additions": [
+        "string"
+      ],
+      "changes": [
+        "string"
+      ],
+      "minor_changes": [
+        "string"
+      ],
+      "revocations": [
+        "string"
+      ],
+      "deprecations": [
+        "string"
+      ],
+      "supersedes_user_edits": [
+        "string"
+      ],
+      "supersedes_collection_changes": [
+        "string"
+      ],
+      "duplicates": [
+        "string"
+      ],
+      "out_of_date": [
+        "string"
+      ],
+      "errors": [
+        {
+          "object_ref": "string",
+          "object_modified": "string",
+          "error_type": "string"
+        }
+      ]
+    }
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Enterprise ATT&CK",
+    "description": "string",
+    "x_mitre_contents": [
+      {
+        "object_ref": "string",
+        "object_modified": "string"
+      }
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
 <h3 id="import-a-collection-bundle-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The collection has been successfully imported.|None|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The collection has been successfully imported.|Inline|
 
 <h3 id="import-a-collection-bundle-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|object|true|none|none|
+|»» imported|string(date-time)|false|none|none|
+|»» import_categories|object|false|none|none|
+|»»» additions|[string]|false|none|none|
+|»»» changes|[string]|false|none|none|
+|»»» minor_changes|[string]|false|none|none|
+|»»» revocations|[string]|false|none|none|
+|»»» deprecations|[string]|false|none|none|
+|»»» supersedes_user_edits|[string]|false|none|none|
+|»»» supersedes_collection_changes|[string]|false|none|none|
+|»»» duplicates|[string]|false|none|none|
+|»»» out_of_date|[string]|false|none|none|
+|»»» errors|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|false|none|none|
+|»»»» error_type|string|true|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_contents|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|true|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication

@@ -1,0 +1,167 @@
+paths:
+  /api/collections:
+    get:
+      summary: 'Get a list of collections'
+      operationId: 'collection-get-all'
+      description: |
+        This endpoint retrieves a list of collections (x-mitre-collections) from the workspace.
+        If there are multiple versions of a collection, only the latest version (based on the `modified` property) will be returned.
+        In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are only applied to the latest version of a collection.
+      tags:
+        - 'Collections'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of collections to retrieve.
+            The default (0) will retrieve all collections.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of collections to skip.
+            The default (0) will start with the first collection.
+          schema:
+            type: number
+            default: 0
+        - name: versions
+          in: query
+          description: |
+            The versions of the collections to retrieve.
+            `all` gets all versions of all the collections, `latest` gets only the latest version of each collection.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, collections will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of collections.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/collections.yml#/components/schemas/collection'
+
+    post:
+      summary: 'Create a collection (x-mitre-collection)'
+      operationId: 'technique-create'
+      description: |
+        This endpoint creates a new collection in the workspace.
+        Both the `stix.id` and `stix.modified` properties must be set.
+      tags:
+        - 'Collections'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/collections.yml#/components/schemas/collection'
+      responses:
+        '201':
+          description: 'The collection has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/collections.yml#/components/schemas/collection'
+        '400':
+          description: 'Missing or invalid parameters were provided. The collection was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The collection was not created.'
+
+  /api/collections/{stixId}:
+    get:
+      summary: 'Get one or more versions of a collection'
+      operationId: 'collection-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a collection (x-mitre-collection) from the workspace, identified by the STIX id.
+      tags:
+        - 'Collections'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the collection to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the collection to retrieve.
+            `all` gets all versions of the collection, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+        - name: retrieveContents
+          in: query
+          description: |
+            Retrieve the objects that are referenced by the collection
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of collections matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/collections.yml#/components/schemas/collection'
+        '404':
+          description: 'A collection with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a collection'
+      operationId: 'collection-delete'
+      description: |
+        This endpoint deletes all versions of a collection from the workspace.
+      tags:
+        - 'Collections'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the collections to delete'
+          required: true
+          schema:
+            type: string
+        - name: deleteAllContents
+          in: query
+          description: |
+            Delete all of the objects referenced in x_mitre_contents.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '204':
+          description: 'The collections were successfully deleted.'
+        '404':
+          description: 'A collection with the requested STIX id was not found.'

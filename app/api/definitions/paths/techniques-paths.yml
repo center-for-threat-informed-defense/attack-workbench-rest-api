@@ -1,0 +1,226 @@
+paths:
+  /api/techniques:
+    get:
+      summary: 'Get a list of techniques'
+      operationId: 'technique-get-all'
+      description: |
+        This endpoint retrieves a list of techniques from the workspace.
+        If there are multiple versions of a technique, only the latest version (based on the `modified` property) will be returned.
+        In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are only applied to the latest version of a technique.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of techniques to retrieve.
+            The default (0) will retrieve all techniques.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of techniques to skip.
+            The default (0) will start with the first technique.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, techniques will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of techniques.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/techniques.yml#/components/schemas/technique'
+
+    post:
+      summary: 'Create a technique'
+      operationId: 'technique-create'
+      description: |
+        This endpoint creates a new technique in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing technique.
+        If the `stix.id` property is not set, it creates a new technique, generating a STIX id for it.
+      tags:
+        - 'Techniques'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/techniques.yml#/components/schemas/technique'
+      responses:
+        '201':
+          description: 'The technique has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/techniques.yml#/components/schemas/technique'
+        '400':
+          description: 'Missing or invalid parameters were provided. The technique was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The technique was not created.'
+
+  /api/techniques/{stixId}:
+    get:
+      summary: 'Get one or more versions of a technique'
+      operationId: 'technique-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a technique from the workspace, identified by their STIX id.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the technique to retrieve.
+            `all` gets all versions of the technique, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of techniques matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/techniques.yml#/components/schemas/technique'
+        '404':
+          description: 'A technique with the requested STIX id was not found.'
+
+  /api/techniques/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a technique matching the STIX id and modified date'
+      operationId: 'technique-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a technique from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a technique matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/techniques.yml#/components/schemas/technique'
+        '404':
+          description: 'A technique with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a technique'
+      operationId: 'technique-update'
+      description: |
+        This endpoint updates a single version of a technique in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/techniques.yml#/components/schemas/technique'
+      responses:
+        '200':
+          description: 'The technique was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/techniques.yml#/components/schemas/technique'
+        '400':
+          description: 'Missing or invalid parameters were provided. The technique was not updated.'
+        '404':
+          description: 'A technique with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a technique'
+      operationId: 'technique-delete'
+      description: |
+        This endpoint deletes a single version of a technique from the workspace.
+        The technique is identified by its STIX id and modified date.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The technique was successfully deleted.'
+        '404':
+          description: 'A technique with the requested STIX id and modified date was not found.'

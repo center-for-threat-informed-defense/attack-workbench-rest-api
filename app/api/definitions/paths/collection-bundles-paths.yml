@@ -1,0 +1,31 @@
+paths:
+  /api/collection-bundles:
+    post:
+      summary: 'Import a collection bundle'
+      operationId: 'collection-bundle-import'
+      description: |
+        This endpoint imports a collection bundle into the workspace.
+      tags:
+        - 'Collection Bundles'
+      parameters:
+        - name: checkOnly
+          in: query
+          description: |
+            Do not import the collection.
+            Only determine what the results of the import would be if it were performed.
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/collection-bundles.yml#/components/schemas/collection-bundle'
+      responses:
+        '201':
+          description: 'The collection has been successfully imported.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/collections.yml#/components/schemas/collection'

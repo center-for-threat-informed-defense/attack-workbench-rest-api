@@ -1,0 +1,225 @@
+paths:
+  /api/groups:
+    get:
+      summary: 'Get a list of groups'
+      operationId: 'group-get-all'
+      description: |
+        This endpoint gets a list of groups from the workspace.
+        The list of groups may include multiple versions of each group.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of groups to retrieve.
+            The default (0) will retrieve all groups.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of groups to skip.
+            The default (0) will start with the first group.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, groups will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of groups.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/groups.yml#/components/schemas/group'
+
+    post:
+      summary: 'Create a group'
+      operationId: 'group-create'
+      description: |
+        This endpoint creates a new group in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing group.
+        If the `stix.id` property is not set, it creates a new group, generating a STIX id for it.
+      tags:
+        - 'Groups'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/groups.yml#/components/schemas/group'
+      responses:
+        '201':
+          description: 'The group has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/groups.yml#/components/schemas/group'
+        '400':
+          description: 'Missing or invalid parameters were provided. The group was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The group was not created.'
+
+  /api/groups/{stixId}:
+    get:
+      summary: 'Get one or more versions of a group'
+      operationId: 'group-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a group from the workspace, identified by their STIX id.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the group to retrieve.
+            `all` gets all versions of the group, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of groups matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/groups.yml#/components/schemas/group'
+        '404':
+          description: 'A group with the requested STIX id was not found.'
+
+  /api/groups/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a group matching the STIX id and modified date'
+      operationId: 'group-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a group from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the group to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a group matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/groups.yml#/components/schemas/group'
+        '404':
+          description: 'A group with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a group'
+      operationId: 'group-update'
+      description: |
+        This endpoint updates a single version of a group in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the group to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/groups.yml#/components/schemas/group'
+      responses:
+        '200':
+          description: 'The group was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/groups.yml#/components/schemas/group'
+        '400':
+          description: 'Missing or invalid parameters were provided. The group was not updated.'
+        '404':
+          description: 'A group with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a group'
+      operationId: 'group-delete'
+      description: |
+        This endpoint deletes a single version of a group from the workspace.
+        The group is identified by its STIX id and modified date.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the group to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The group was successfully deleted.'
+        '404':
+          description: 'A group with the requested STIX id and modified date was not found.'
