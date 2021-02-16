@@ -196,7 +196,7 @@ exports.create = function(data, callback) {
 
     if (!matrix.stix.id) {
         // Assign a new STIX id
-        matrix.stix.id = `attack-pattern--${uuid.v4()}`;
+        matrix.stix.id = `x-mitre-matrix--${uuid.v4()}`;
     }
 
     // Save the document in the database
@@ -229,7 +229,7 @@ exports.createAsync = async function(data) {
 
     if (!matrix.stix.id) {
         // Assign a new STIX id
-        matrix.stix.id = `attack-pattern--${uuid.v4()}`;
+        matrix.stix.id = `x-mitre-matrix--${uuid.v4()}`;
     }
 
     // Save the document in the database

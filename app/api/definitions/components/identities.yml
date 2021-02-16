@@ -1,0 +1,44 @@
+components:
+  schemas:
+    identity:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/identity-stix-object'
+
+    identity-stix-object:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # identity specific properties
+            name:
+              type: string
+              example: 'The MITRE Corporation'
+            description:
+              type: string
+              example: 'This is an identity'
+            roles:
+              type: array
+              items:
+                type: string
+            identity_class:
+              type: string
+              example: 'organization'
+            sectors:
+              type: array
+              items:
+                type: string
+            contact_information:
+              type: string
+            # ATT&CK custom properties
+            x_mitre_version:
+              type: string
+              example: '1.0'

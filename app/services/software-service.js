@@ -193,8 +193,12 @@ exports.create = function(data, callback) {
 
     if (!software.stix.id) {
         // Assign a new STIX id
-        // JEFF how do we handle software STIX ids if they can either be tools or malware?
-        software.stix.id = `tool--${uuid.v4()}`;
+        if (software.stix.type === 'tool') {
+            software.stix.id = `tool--${uuid.v4()}`;
+        }
+        else {
+            software.stix.id = `malware--${uuid.v4()}`;
+        }
     }
 
     // Save the document in the database

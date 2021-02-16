@@ -11,7 +11,7 @@ const markingObject = {
 
 const markingDefinitionProperties = {
     // marking definition specific properties
-    name: { type: String, required: true },
+    name: String,
     definition_type: String,
     definition: markingObject
 };

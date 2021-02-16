@@ -24,6 +24,10 @@ tags:
     description: 'Operations on mitigations'
   - name: 'Matrices'
     description: 'Operations on matrices.'
+  - name: 'Identities'
+    description: 'Operations on identities'
+  - name: 'Marking Definitions'
+    description: 'Operations on marking definitions'
   - name: 'Relationships'
     description: 'Operations on relationships.'
   - name: 'Collection Indexes'
@@ -73,6 +77,23 @@ paths:
 
   /api/matrices/{stixId}/modified/{modified}:
     $ref: 'paths/matrices-paths.yml#/paths/~1api~1matrices~1{stixId}~1modified~1{modified}'
+
+  # Identities
+  /api/identities:
+    $ref: 'paths/identities-paths.yml#/paths/~1api~1identities'
+
+  /api/identities/{stixId}:
+    $ref: 'paths/identities-paths.yml#/paths/~1api~1identities~1{stixId}'
+
+  /api/identities/{stixId}/modified/{modified}:
+    $ref: 'paths/identities-paths.yml#/paths/~1api~1identities~1{stixId}~1modified~1{modified}'
+
+  # Marking Definitions
+  /api/marking-definitions:
+    $ref: 'paths/marking-definitions-paths.yml#/paths/~1api~1marking-definitions'
+
+  /api/marking-definitions/{stixId}:
+    $ref: 'paths/marking-definitions-paths.yml#/paths/~1api~1marking-definitions~1{stixId}'
 
   # Software
   /api/software:

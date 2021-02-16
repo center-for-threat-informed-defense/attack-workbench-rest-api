@@ -108,18 +108,20 @@ exports.retrieveById = function(stixId, options, callback) {
 };
 
 exports.create = function(data, callback) {
-    // This function handles two use cases:
+    // This function handles one use case:
     //   1. stix.id is undefined. Create a new object and generate the stix.id
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
-    //      TODO: Verify that the object already exists (?)
 
     // Create the document
     const markingDefinition = new MarkingDefinition(data);
 
-    if (!markingDefinition.stix.id) {
+    if (markingDefinition.stix.id) {
+        const error = new Error(errors.badlyFormattedParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+    else {
         // Assign a new STIX id
-        markingDefinition.stix.id = `attack-pattern--${uuid.v4()}`;
+        markingDefinition.stix.id = `marking-definition--${uuid.v4()}`;
     }
 
     // Save the document in the database
@@ -141,18 +143,20 @@ exports.create = function(data, callback) {
 };
 
 exports.createAsync = async function(data) {
-    // This function handles two use cases:
+    // This function handles one use case:
     //   1. stix.id is undefined. Create a new object and generate the stix.id
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
-    //      TODO: Verify that the object already exists (?)
 
     // Create the document
     const markingDefinition = new MarkingDefinition(data);
 
-    if (!markingDefinition.stix.id) {
+    if (markingDefinition.stix.id) {
+        const error = new Error(errors.badlyFormattedParameter);
+        error.parameterName = 'stixId';
+        throw error;
+    }
+    else {
         // Assign a new STIX id
-        markingDefinition.stix.id = `attack-pattern--${uuid.v4()}`;
+        markingDefinition.stix.id = `marking-definition--${uuid.v4()}`;
     }
 
     // Save the document in the database
@@ -182,7 +186,7 @@ exports.updateFull = function(stixId, data, callback) {
     MarkingDefinition.findOne({ 'stix.id': stixId }, function(err, document) {
         if (err) {
             if (err.name === 'CastError') {
-                var error = new Error(errors.badlyFormattedParameter);
+                const error = new Error(errors.badlyFormattedParameter);
                 error.parameterName = 'stixId';
                 return callback(error);
             }
@@ -201,7 +205,7 @@ exports.updateFull = function(stixId, data, callback) {
                 if (err) {
                     if (err.name === 'MongoError' && err.code === 11000) {
                         // 11000 = Duplicate index
-                        var error = new Error(errors.duplicateId);
+                        const error = new Error(errors.duplicateId);
                         return callback(error);
                     }
                     else {
