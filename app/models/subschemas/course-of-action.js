@@ -1,7 +1,5 @@
 'use strict';
 
-const stixCore = require('./stix-core');
-
 module.exports.courseOfAction = {
     // course-of-action specific properties
     name: { type: String, required: true },
