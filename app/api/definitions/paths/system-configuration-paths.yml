@@ -1,0 +1,16 @@
+paths:
+  /api/config/allowed-values:
+    get:
+      summary: 'Get the list of domain-specific allowed values'
+      operationId: 'config-get-allowed-values'
+      description: |
+        This endpoint gets a list of domain-specific allowed values for certain properties.
+      tags:
+        - 'System Configuration'
+      responses:
+        '200':
+          description: 'A list of allowed values.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/system-configuration.yml#/components/schemas/allowed-values'

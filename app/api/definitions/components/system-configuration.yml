@@ -1,0 +1,30 @@
+components:
+  schemas:
+    allowed-values:
+      type: object
+      properties:
+        techniques:
+          type: object
+          properties:
+            x_mitre_platforms:
+              type: object
+              properties:
+                enterprise-attack:
+                  type: array
+                  items:
+                    type: string
+                mobile-attack:
+                  type: array
+                  items:
+                    type: string
+                ics-attack:
+                  type: array
+                  items:
+                    type: string
+            x_mitre_tactic_types:
+              type: object
+              properties:
+                mobile-attack:
+                  type: array
+                  items:
+                    type: string

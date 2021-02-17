@@ -1,0 +1,12 @@
+{
+  "techniques": {
+    "x_mitre_platforms": {
+      "enterprise-attack": [ "Linux", "macOS", "Windows" ],
+      "mobile-attack": [ "Android", "iOS" ],
+      "ics-attack": []
+    },
+    "x_mitre_tactic_type": {
+      "mobile-attack": [ "Post-Adversary Device Access", "Pre-Adversary Device Access", "Without Adversary Device Access" ]
+    }
+  }
+}

@@ -36,6 +36,8 @@ tags:
     description: 'Operations on collections'
   - name: 'Collection Bundles'
     description: 'Operations on collection bundles'
+  - name: 'System Configuration'
+    description: 'Operations on the system configuration'
 
 paths:
   # Techniques
@@ -142,6 +144,10 @@ paths:
   # Collection Bundles
   /api/collection-bundles:
     $ref: 'paths/collection-bundles-paths.yml#/paths/~1api~1collection-bundles'
+
+  # System Configuration
+  /api/config/allowed-values:
+    $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1allowed-values'
 
 components:
   schemas:

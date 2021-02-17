@@ -14,6 +14,7 @@ const relationshipsRoutes = require('./relationships-routes');
 const collectionIndexesRoutes = require('./collection-indexes-routes');
 const collectionsRoutes = require('./collections-routes');
 const collectionBundlesRoutes = require('./collection-bundles-routes');
+const systemConfigurationRoutes = require('./system-configuration-routes');
 
 const errorHandler = require('../lib/error-handler');
 const config = require('../config/config');
@@ -42,6 +43,7 @@ router.use('/api', relationshipsRoutes);
 router.use('/api', collectionIndexesRoutes);
 router.use('/api', collectionsRoutes);
 router.use('/api', collectionBundlesRoutes);
+router.use('/api', systemConfigurationRoutes);
 
 // Handle errors that haven't otherwise been caught
 router.use(errorHandler.bodyParser);

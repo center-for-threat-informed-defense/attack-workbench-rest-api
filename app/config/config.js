@@ -16,5 +16,8 @@ module.exports = {
     },
     collectionIndex: {
         defaultInterval: process.env.DEFAULT_INTERVAL || 300
+    },
+    configurationFiles: {
+        allowedValues: process.env.CONFIG_ALLOWED_VALUES || './app/config/allowed-values.json'
     }
 };
