@@ -20,7 +20,7 @@
       ],
       "ics-attack": []
     },
-    "x_mitre_tactic_type": {
+    "x_mitre_tactic_types": {
       "mobile-attack": [
         "Post-Adversary Device Access",
         "Pre-Adversary Device Access",
