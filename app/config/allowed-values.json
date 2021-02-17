@@ -1,12 +1,31 @@
 {
   "techniques": {
     "x_mitre_platforms": {
-      "enterprise-attack": [ "Linux", "macOS", "Windows" ],
-      "mobile-attack": [ "Android", "iOS" ],
+      "enterprise-attack": [
+        "PRE",
+        "Linux",
+        "macOS",
+        "Windows",
+        "Network",
+        "AWS",
+        "GCP",
+        "Azure",
+        "Office 365",
+        "Azure AD",
+        "SaaS"
+      ],
+      "mobile-attack": [
+        "Android",
+        "iOS"
+      ],
       "ics-attack": []
     },
     "x_mitre_tactic_type": {
-      "mobile-attack": [ "Post-Adversary Device Access", "Pre-Adversary Device Access", "Without Adversary Device Access" ]
+      "mobile-attack": [
+        "Post-Adversary Device Access",
+        "Pre-Adversary Device Access",
+        "Without Adversary Device Access"
+      ]
     }
   }
 }
