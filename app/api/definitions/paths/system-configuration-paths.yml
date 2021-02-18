@@ -13,4 +13,6 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '../components/system-configuration.yml#/components/schemas/allowed-values'
+                type: array
+                items:
+                  $ref: '../components/system-configuration.yml#/components/schemas/allowed-values'

@@ -1,31 +1,89 @@
-{
-  "techniques": {
-    "x_mitre_platforms": {
-      "enterprise-attack": [
-        "PRE",
-        "Linux",
-        "macOS",
-        "Windows",
-        "Network",
-        "AWS",
-        "GCP",
-        "Azure",
-        "Office 365",
-        "Azure AD",
-        "SaaS"
-      ],
-      "mobile-attack": [
-        "Android",
-        "iOS"
-      ],
-      "ics-attack": []
-    },
-    "x_mitre_tactic_types": {
-      "mobile-attack": [
-        "Post-Adversary Device Access",
-        "Pre-Adversary Device Access",
-        "Without Adversary Device Access"
-      ]
-    }
+[
+  {
+    "objectType": "technique",
+    "properties": [
+      {
+        "propertyName": "x_mitre_platform",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "PRE",
+              "Linux",
+              "macOS",
+              "Windows",
+              "Network",
+              "AWS",
+              "GCP",
+              "Azure",
+              "Office 365",
+              "Azure AD",
+              "SaaS"
+            ]
+          },
+          {
+            "domainName": "mobile-attack",
+            "allowedValues": [
+              "Android",
+              "iOS"
+            ]
+          },
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [ ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_tactic_types",
+        "domains": [
+          {
+            "domainName": "mobile-attack",
+            "allowedValues": [
+              "Post-Adversary Device Access",
+              "Pre-Adversary Device Access",
+              "Without Adversary Device Access"            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "objectType": "software",
+    "properties": [
+      {
+        "propertyName": "x_mitre_platform",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "PRE",
+              "Linux",
+              "macOS",
+              "Windows",
+              "Network",
+              "AWS",
+              "GCP",
+              "Azure",
+              "Office 365",
+              "Azure AD",
+              "SaaS"
+            ]
+          },
+          {
+            "domainName": "mobile-attack",
+            "allowedValues": [
+              "Android",
+              "iOS"
+            ]
+          },
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [ ]
+          }
+        ]
+      }
+    ]
   }
-}
+]
+
