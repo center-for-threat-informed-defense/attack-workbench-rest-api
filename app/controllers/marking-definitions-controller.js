@@ -68,9 +68,9 @@ exports.create = function(req, res) {
     // Create the marking definition
     markingDefinitionsService.create(markingDefinitionData, function(err, markingDefinition) {
         if (err) {
-            if (err.message === markingDefinitionsService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id");
-                return res.status(409).send('Unable to create marking definition. Duplicate stix.id property.');
+            if (err.message === markingDefinitionsService.errors.badlyFormattedParameter) {
+                logger.warn('Unable to create marking definition: Stix id not allowed');
+                return res.status(400).send('Stix id not allowed.');
             }
             else {
                 logger.error("Failed with error: " + err);

@@ -2,6 +2,7 @@
 
 module.exports.intrusionSet = {
     // intrusion-set specific properties
+    modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
 

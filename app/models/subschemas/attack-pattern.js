@@ -4,6 +4,7 @@ const stixCore = require('./stix-core');
 
 module.exports.attackPattern = {
     // attack-pattern specific properties
+    modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
     kill_chain_phases: [ stixCore.killChainPhase ],

@@ -6,6 +6,7 @@ const xMitreContent = {
 };
 
 module.exports.xMitreCollection = {
+    modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
     x_mitre_contents: [ xMitreContent ],

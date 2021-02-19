@@ -5,6 +5,7 @@ const AttackObject = require('./attack-object-model');
 
 const identityProperties = {
     // identity specific properties
+    modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
     roles: [ String ],
