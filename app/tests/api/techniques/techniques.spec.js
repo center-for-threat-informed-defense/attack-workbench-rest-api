@@ -21,6 +21,7 @@ const initialObjectData = {
         type: 'attack-pattern',
         description: 'This is a technique.',
         external_references: [
+            { source_name: 'mitre-attack', external_id: 'T9999', url: 'https://attack.mitre.org/techniques/T9999' },
             { source_name: 'source-1', external_id: 's1' }
         ],
         object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],

@@ -4,6 +4,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const OpenApiValidator = require('express-openapi-validator');
 
+const attackObjectsRoutes = require('./attack-objects-routes');
 const techniquesRoutes = require('./techniques-routes');
 const tacticsRoutes = require('./tactics-routes');
 const groupsRoutes = require('./groups-routes');
@@ -35,6 +36,7 @@ router.use(OpenApiValidator.middleware({
 }));
 
 // Set up the routes
+router.use('/api', attackObjectsRoutes);
 router.use('/api', techniquesRoutes);
 router.use('/api', tacticsRoutes);
 router.use('/api', groupsRoutes);

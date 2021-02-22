@@ -12,24 +12,26 @@ servers:
       port:
         default: '3000'
 tags:
+  - name: 'ATT&CK Objects'
+    description: 'Operations on all ATT&CK objects'
   - name: 'Techniques'
-    description: 'Operations on techniques.'
+    description: 'Operations on techniques'
   - name: 'Tactics'
-    description: 'Operations on tactics.'
+    description: 'Operations on tactics'
   - name: 'Groups'
-    description: 'Operations on groups.'
+    description: 'Operations on groups'
   - name: 'Software'
     description: 'Operations on software (tools and malware)'
   - name: 'Mitigations'
     description: 'Operations on mitigations'
   - name: 'Matrices'
-    description: 'Operations on matrices.'
+    description: 'Operations on matrices'
   - name: 'Identities'
     description: 'Operations on identities'
   - name: 'Marking Definitions'
     description: 'Operations on marking definitions'
   - name: 'Relationships'
-    description: 'Operations on relationships.'
+    description: 'Operations on relationships'
   - name: 'Collection Indexes'
     description: 'Operations on collection indexes'
   - name: 'Collections'
@@ -40,6 +42,10 @@ tags:
     description: 'Operations on the system configuration'
 
 paths:
+  # ATT&CK Objects
+  /api/attack-objects:
+    $ref: 'paths/attack-objects-paths.yml#/paths/~1api~1attack-objects'
+
   # Techniques
   /api/techniques:
     $ref: 'paths/techniques-paths.yml#/paths/~1api~1techniques'
@@ -148,17 +154,3 @@ paths:
   # System Configuration
   /api/config/allowed-values:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1allowed-values'
-
-components:
-  schemas:
-    editor_identity:
-      type: object
-      description: 'This property replaces mitreId'
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-      required:
-        - id
-        - name
