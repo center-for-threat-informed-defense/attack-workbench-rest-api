@@ -10,7 +10,8 @@ module.exports.common = {
                 'reviewed'
             ]
         }
-    }
+    },
+    attack_id: String
 };
 
 const importError = {

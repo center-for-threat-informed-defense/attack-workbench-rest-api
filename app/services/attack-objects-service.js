@@ -14,6 +14,9 @@ exports.errors = errors;
 exports.retrieveAll = function(options, callback) {
     // Build the query
     const query = {};
+    if (options.attackId) {
+        query['workspace.attack_id'] = options.attackId;
+    }
     if (!options.includeRevoked) {
         query['stix.revoked'] = { $in: [null, false] };
     }

@@ -9,6 +9,14 @@ paths:
       tags:
         - 'ATT&CK Objects'
       parameters:
+        - name: attackId
+          in: query
+          description: |
+            The ATT&CK ID of the object to retrieve.
+            Returns all objects where the last version of the object matches the requested ATT&CK ID.
+          schema:
+            type: string
+          example: 'T9999'
         - name: limit
           in: query
           description: |

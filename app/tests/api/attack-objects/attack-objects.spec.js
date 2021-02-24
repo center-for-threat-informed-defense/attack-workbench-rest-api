@@ -50,6 +50,7 @@ const groupData = {
         type: 'intrusion-set',
         description: 'This is a group.',
         external_references: [
+            { source_name: 'mitre-attack', external_id: 'G1111', url: 'https://attack.mitre.org/groups/G1111' },
             { source_name: 'source-1', external_id: 's1' }
         ],
         object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
@@ -85,6 +86,7 @@ const mitigationData = {
         type: 'course-of-action',
         description: 'This is a mitigation.',
         external_references: [
+            { source_name: 'mitre-attack', external_id: 'T9999', url: 'https://attack.mitre.org/mitigations/T9999' },
             { source_name: 'source-1', external_id: 's1' }
         ],
         object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
@@ -105,6 +107,7 @@ const softwareData = {
         type: 'malware',
         description: 'This is a malware type of software.',
         external_references: [
+            { source_name: 'mitre-attack', external_id: 'S3333', url: 'https://attack.mitre.org/software/S3333' },
             { source_name: 'source-1', external_id: 's1' }
         ],
         object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
@@ -138,6 +141,7 @@ const tacticData = {
         type: 'x-mitre-tactic',
         description: 'This is a tactic.',
         external_references: [
+            { source_name: 'mitre-attack', external_id: 'TA4444', url: 'https://attack.mitre.org/tactics/TA4444' },
             { source_name: 'source-1', external_id: 's1' }
         ],
         object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
@@ -426,6 +430,94 @@ describe('ATT&CK Objects API', function () {
                     expect(attackObjects).toBeDefined();
                     expect(Array.isArray(attackObjects)).toBe(true);
                     expect(attackObjects.length).toBe(8);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/attack-objects returns zero objects with an ATT&CK ID that does not exist', function (done) {
+        request(app)
+            .get('/api/attack-objects?attackId=T1234')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get an empty array
+                    const attackObjects = res.body;
+                    expect(attackObjects).toBeDefined();
+                    expect(Array.isArray(attackObjects)).toBe(true);
+                    expect(attackObjects.length).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/attack-objects returns the group with ATT&CK ID G1111', function (done) {
+        request(app)
+            .get('/api/attack-objects?attackId=G1111')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the matching group object
+                    const attackObjects = res.body;
+                    expect(attackObjects).toBeDefined();
+                    expect(Array.isArray(attackObjects)).toBe(true);
+                    expect(attackObjects.length).toBe(1);
+                    const groupObject = attackObjects[0];
+                    expect(groupObject.stix.name).toBe(groupData.stix.name);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/attack-objects returns the software with ATT&CK ID S3333', function (done) {
+        request(app)
+            .get('/api/attack-objects?attackId=S3333')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the matching software object
+                    const attackObjects = res.body;
+                    expect(attackObjects).toBeDefined();
+                    expect(Array.isArray(attackObjects)).toBe(true);
+                    expect(attackObjects.length).toBe(1);
+                    const softwareObject = attackObjects[0];
+                    expect(softwareObject.stix.name).toBe(softwareData.stix.name);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/attack-objects returns the mitigation and the technique with ATT&CK ID T9999', function (done) {
+        request(app)
+            .get('/api/attack-objects?attackId=T9999')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the matching objects
+                    const attackObjects = res.body;
+                    expect(attackObjects).toBeDefined();
+                    expect(Array.isArray(attackObjects)).toBe(true);
+                    expect(attackObjects.length).toBe(2);
                     done();
                 }
             });

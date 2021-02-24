@@ -9,3 +9,6 @@ components:
           properties:
             state:
               type: string
+        attackId:
+          type: string
+          example: 'T9999'
