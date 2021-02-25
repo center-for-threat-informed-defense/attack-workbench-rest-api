@@ -5,6 +5,7 @@ const AttackObject = require('./attack-object-model');
 
 const relationshipProperties = {
     // relationship specific properties
+    modified: { type: Date, required: true },
     name: String,
     description: String,
     relationship_type: { type: String, required: true },
