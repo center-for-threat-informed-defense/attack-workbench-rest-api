@@ -16,11 +16,11 @@ components:
         - $ref: 'stix-common.yml#/components/schemas/stix-common'
         - type: object
           required:
-            - name
+            - relationship_type
+            - source_ref
+            - target_ref
           properties:
             # relationship specific properties
-            name:
-              type: string
             description:
               type: string
               example: 'This is a relationship'
