@@ -54,28 +54,10 @@ exports.retrieveAll = function(options, callback) {
         { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
         { $replaceRoot: { newRoot: '$document' }},
         { $sort: { 'stix.id': 1 }},
-        { $match: query }
+        { $match: query },
+        { $lookup: { from: 'attackObjects', localField: 'stix.source_ref', foreignField: 'stix.id', as: 'source_objects' }},
+        { $lookup: { from: 'attackObjects', localField: 'stix.target_ref', foreignField: 'stix.id', as: 'target_objects' }}
     ];
-
-    const facet = {
-        $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [
-                { $lookup: { from: 'attackObjects', localField: 'stix.source_ref', foreignField: 'stix.id', as: 'source_objects' }},
-                { $lookup: { from: 'attackObjects', localField: 'stix.target_ref', foreignField: 'stix.id', as: 'target_objects' }}
-            ]
-        }
-    };
-    if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
-    }
-    else {
-        facet.$facet.documents.push({ $skip: 0 });
-    }
-    if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-    }
-    aggregation.push(facet);
 
     // Retrieve the documents
     Relationship.aggregate(aggregation, function(err, results) {
@@ -85,7 +67,7 @@ exports.retrieveAll = function(options, callback) {
         else {
             if (options.sourceType) {
                 // Filter out relationships that don't reference the source type
-                results[0].documents = results[0].documents.filter(document =>
+                results = results.filter(document =>
                 {
                     if (document.source_objects.length === 0) {
                         return false;
@@ -99,7 +81,7 @@ exports.retrieveAll = function(options, callback) {
 
             if (options.targetType) {
                 // Filter out relationships that don't reference the target type
-                results[0].documents = results[0].documents.filter(document =>
+                results = results.filter(document =>
                 {
                     if (document.target_objects.length === 0) {
                         return false;
@@ -111,7 +93,22 @@ exports.retrieveAll = function(options, callback) {
                 });
             }
 
-            for (const document of results[0].documents) {
+            const prePaginationTotal = results.length;
+
+            // Apply pagination parameters
+            if (options.offset || options.limit) {
+                const start = options.offset || 0;
+                if (options.limit) {
+                    const end = start + options.limit;
+                    results = results.slice(start, end);
+                }
+                else {
+                    results = results.slice(start);
+                }
+            }
+
+            // Move latest source and target objects to a non-array property, then remove array of source and target objects
+            for (const document of results) {
                 if (document.source_objects.length === 0) {
                     document.source_objects = undefined;
                 }
@@ -130,23 +127,18 @@ exports.retrieveAll = function(options, callback) {
             }
 
             if (options.includePagination) {
-                let derivedTotalCount = 0;
-                if (results[0].totalCount.length > 0) {
-                    derivedTotalCount = results[0].totalCount[0].totalCount;
-                }
-
                 const returnValue = {
                     pagination: {
-                        total: derivedTotalCount,
+                        total: prePaginationTotal,
                         offset: options.offset,
                         limit: options.limit
                     },
-                    data: results[0].documents
+                    data: results
                 };
                 return callback(null, returnValue);
             }
             else {
-                return callback(null, results[0].documents);
+                return callback(null, results);
             }
         }
     });
