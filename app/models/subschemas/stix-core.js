@@ -22,6 +22,7 @@ module.exports.commonRequiredSDO = {
             'intrusion-set',
             'malware',
             'marking-definition',
+            'note',
             'relationship',
             'tool',
             'x-mitre-collection',

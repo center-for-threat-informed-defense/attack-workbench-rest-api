@@ -32,6 +32,8 @@ tags:
     description: 'Operations on marking definitions'
   - name: 'Relationships'
     description: 'Operations on relationships'
+  - name: 'Notes'
+    description: 'Operations on notes'
   - name: 'Collection Indexes'
     description: 'Operations on collection indexes'
   - name: 'Collections'
@@ -132,6 +134,16 @@ paths:
 
   /api/relationships/{stixId}/modified/{modified}:
     $ref: 'paths/relationships-paths.yml#/paths/~1api~1relationships~1{stixId}~1modified~1{modified}'
+
+  # Notes
+  /api/notes:
+    $ref: 'paths/notes-paths.yml#/paths/~1api~1notes'
+
+  /api/notes/{stixId}:
+    $ref: 'paths/notes-paths.yml#/paths/~1api~1notes~1{stixId}'
+
+  /api/notes/{stixId}/modified/{modified}:
+    $ref: 'paths/notes-paths.yml#/paths/~1api~1notes~1{stixId}~1modified~1{modified}'
 
   # Collection Indexes
   /api/collection-indexes:
