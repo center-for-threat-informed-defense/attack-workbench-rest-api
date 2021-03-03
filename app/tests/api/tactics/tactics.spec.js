@@ -97,6 +97,10 @@ describe('Tactics API', function () {
                     // We expect to get the created tactic
                     tactic1 = res.body;
                     expect(tactic1).toBeDefined();
+                    expect(tactic1.stix).toBeDefined();
+                    expect(tactic1.stix.id).toBeDefined();
+                    expect(tactic1.stix.created).toBeDefined();
+                    expect(tactic1.stix.modified).toBeDefined();
                     done();
                 }
             });

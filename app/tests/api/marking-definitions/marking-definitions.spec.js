@@ -91,6 +91,10 @@ describe('Marking Definitions API', function () {
                     // We expect to get the created marking definition
                     markingDefinition1 = res.body;
                     expect(markingDefinition1).toBeDefined();
+                    expect(markingDefinition1.stix).toBeDefined();
+                    expect(markingDefinition1.stix.id).toBeDefined();
+                    expect(markingDefinition1.stix.created).toBeDefined();
+                    // stix.modified does not exist for marking definitions
                     done();
                 }
             });

@@ -102,6 +102,10 @@ describe('Notes API', function () {
                     // We expect to get the created note
                     note1 = res.body;
                     expect(note1).toBeDefined();
+                    expect(note1.stix).toBeDefined();
+                    expect(note1.stix.id).toBeDefined();
+                    expect(note1.stix.created).toBeDefined();
+                    expect(note1.stix.modified).toBeDefined();
                     done();
                 }
             });

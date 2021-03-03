@@ -98,6 +98,10 @@ describe('Mitigations API', function () {
                     // We expect to get the created mitigation
                     mitigation1 = res.body;
                     expect(mitigation1).toBeDefined();
+                    expect(mitigation1.stix).toBeDefined();
+                    expect(mitigation1.stix.id).toBeDefined();
+                    expect(mitigation1.stix.created).toBeDefined();
+                    expect(mitigation1.stix.modified).toBeDefined();
                     done();
                 }
             });

@@ -94,6 +94,10 @@ describe('Identity API', function () {
                     // We expect to get the created identity
                     identity1 = res.body;
                     expect(identity1).toBeDefined();
+                    expect(identity1.stix).toBeDefined();
+                    expect(identity1.stix.id).toBeDefined();
+                    expect(identity1.stix.created).toBeDefined();
+                    expect(identity1.stix.modified).toBeDefined();
                     done();
                 }
             });

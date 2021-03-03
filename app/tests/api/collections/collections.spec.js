@@ -106,6 +106,10 @@ describe('Collections (x-mitre-collection) Basic API', function () {
                     // We expect to get the created collection
                     collection1 = res.body;
                     expect(collection1).toBeDefined();
+                    expect(collection1.stix).toBeDefined();
+                    expect(collection1.stix.id).toBeDefined();
+                    expect(collection1.stix.created).toBeDefined();
+                    expect(collection1.stix.modified).toBeDefined();
                     done();
                 }
             });

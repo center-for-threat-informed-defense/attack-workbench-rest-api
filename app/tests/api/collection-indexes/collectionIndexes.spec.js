@@ -127,6 +127,10 @@ describe('Collection Indexes Basic API', function () {
                     // We expect to get the created collection index
                     collectionIndex1 = res.body;
                     expect(collectionIndex1).toBeDefined();
+                    expect(collectionIndex1.collection_index).toBeDefined();
+                    expect(collectionIndex1.collection_index.id).toBeDefined();
+                    expect(collectionIndex1.collection_index.created).toBeDefined();
+                    expect(collectionIndex1.collection_index.modified).toBeDefined();
                     done();
                 }
             });

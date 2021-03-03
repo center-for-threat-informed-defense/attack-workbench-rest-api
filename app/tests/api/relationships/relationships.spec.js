@@ -108,6 +108,10 @@ describe('Relationships API', function () {
                     // We expect to get the created relationship
                     relationship1a = res.body;
                     expect(relationship1a).toBeDefined();
+                    expect(relationship1a.stix).toBeDefined();
+                    expect(relationship1a.stix.id).toBeDefined();
+                    expect(relationship1a.stix.created).toBeDefined();
+                    expect(relationship1a.stix.modified).toBeDefined();
                     done();
                 }
             });

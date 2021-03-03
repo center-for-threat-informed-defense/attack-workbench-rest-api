@@ -97,6 +97,10 @@ describe('Groups API', function () {
                     // We expect to get the created group
                     group1 = res.body;
                     expect(group1).toBeDefined();
+                    expect(group1.stix).toBeDefined();
+                    expect(group1.stix.id).toBeDefined();
+                    expect(group1.stix.created).toBeDefined();
+                    expect(group1.stix.modified).toBeDefined();
                     done();
                 }
             });

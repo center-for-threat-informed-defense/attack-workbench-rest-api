@@ -111,6 +111,10 @@ describe('Software API', function () {
                     // We expect to get the created software
                     software1 = res.body;
                     expect(software1).toBeDefined();
+                    expect(software1.stix).toBeDefined();
+                    expect(software1.stix.id).toBeDefined();
+                    expect(software1.stix.created).toBeDefined();
+                    expect(software1.stix.modified).toBeDefined();
                     done();
                 }
             });

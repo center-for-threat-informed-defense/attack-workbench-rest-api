@@ -104,6 +104,10 @@ describe('Techniques Basic API', function () {
                     // We expect to get the created technique
                     technique1 = res.body;
                     expect(technique1).toBeDefined();
+                    expect(technique1.stix).toBeDefined();
+                    expect(technique1.stix.id).toBeDefined();
+                    expect(technique1.stix.created).toBeDefined();
+                    expect(technique1.stix.modified).toBeDefined();
                     done();
                 }
             });
