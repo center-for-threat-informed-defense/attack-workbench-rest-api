@@ -39,26 +39,29 @@ exports.retrieveAll = function(options, callback) {
     if (typeof options.targetRef !== 'undefined') {
         query['stix.target_ref'] = options.targetRef;
     }
-    // TBD: Implement sourceOrTargetRef
-    // { $or: [{ source_ref: options.sourceOrTargetRef }, { target_ref: options.sourceOrTargetRef }] }
+    if (typeof options.sourceOrTargetRef !== 'undefined') {
+        query.$or = [{ 'stix.source_ref': options.sourceOrTargetRef }, { 'stix.target_ref': options.sourceOrTargetRef }]
+    }
     if (typeof options.relationshipType !== 'undefined') {
         query['stix.relationship_type'] = options.relationshipType;
     }
 
     // Build the aggregation
-    // - Group the documents by stix.id, sorted by stix.modified
-    // - Use the last document in each group (according to the value of stix.modified)
-    // - Then apply query, skip and limit options
-    const aggregation = [
-        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
-        { $replaceRoot: { newRoot: '$document' }},
-        { $sort: { 'stix.id': 1 }},
-        { $match: query },
-        { $lookup: { from: 'attackObjects', localField: 'stix.source_ref', foreignField: 'stix.id', as: 'source_objects' }},
-        { $lookup: { from: 'attackObjects', localField: 'stix.target_ref', foreignField: 'stix.id', as: 'target_objects' }}
-    ];
+    const aggregation = [];
+    if (options.versions === 'latest') {
+        // - Group the documents by stix.id, sorted by stix.modified
+        // - Use the last document in each group (according to the value of stix.modified)
+        aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': 1 } });
+        aggregation.push({ $group: { _id: '$stix.id', document: { $last: '$$ROOT' } } });
+        aggregation.push({ $replaceRoot: { newRoot: '$document' } });
+    }
 
+    // Add stages to the aggregation to sort (for pagination), apply the query, and add source and target object data
+    aggregation.push({ $sort: { 'stix.id': 1 } });
+    aggregation.push({ $match: query });
+    aggregation.push({ $lookup: { from: 'attackObjects', localField: 'stix.source_ref', foreignField: 'stix.id', as: 'source_objects' }});
+    aggregation.push({ $lookup: { from: 'attackObjects', localField: 'stix.target_ref', foreignField: 'stix.id', as: 'target_objects' }});
+    
     // Retrieve the documents
     Relationship.aggregate(aggregation, function(err, results) {
         if (err) {

@@ -95,6 +95,17 @@ paths:
               - group
               - mitigation
               - software
+        - name: versions
+          in: query
+          description: |
+            The versions of the relationship to retrieve.
+            `all` gets all versions of the relationship, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
         - name: includePagination
           in: query
           description: |
