@@ -34,6 +34,8 @@ tags:
     description: 'Operations on relationships'
   - name: 'Notes'
     description: 'Operations on notes'
+  - name: 'References'
+    description: 'Operations on references'
   - name: 'Collection Indexes'
     description: 'Operations on collection indexes'
   - name: 'Collections'
@@ -144,6 +146,10 @@ paths:
 
   /api/notes/{stixId}/modified/{modified}:
     $ref: 'paths/notes-paths.yml#/paths/~1api~1notes~1{stixId}~1modified~1{modified}'
+
+  # References
+  /api/references:
+    $ref: 'paths/references-paths.yml#/paths/~1api~1references'
 
   # Collection Indexes
   /api/collection-indexes:

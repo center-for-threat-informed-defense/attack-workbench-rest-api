@@ -1,0 +1,14 @@
+components:
+  schemas:
+    reference:
+      type: object
+      required:
+        - source_name
+        - description
+      properties:
+        source_name:
+          type: string
+        description:
+          type: string
+        url:
+          type: string

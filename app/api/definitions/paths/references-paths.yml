@@ -1,0 +1,101 @@
+paths:
+  /api/references:
+    get:
+      summary: 'Get a list of references'
+      operationId: 'reference-get-all'
+      description: |
+        This endpoint gets a list of references from the workspace.
+      tags:
+        - 'References'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of references to retrieve.
+            The default (0) will retrieve all references.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of references to skip.
+            The default (0) will start with the first reference.
+          schema:
+            type: number
+            default: 0
+        - name: sourceName
+          in: query
+          description: |
+            source_name of the object to retrieve.
+          schema:
+            type: string
+          example: 'AddMonitor'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of references.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/references.yml#/components/schemas/reference'
+
+    post:
+      summary: 'Create a reference'
+      operationId: 'reference-create'
+      description: |
+        This endpoint creates a new reference in the workspace.
+      tags:
+        - 'References'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/references.yml#/components/schemas/reference'
+      responses:
+        '201':
+          description: 'The reference has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/references.yml#/components/schemas/reference'
+        '400':
+          description: 'Missing or invalid parameters were provided. The reference was not created.'
+        '409':
+          description: 'Duplicate `source_name`. The reference was not created.'
+
+    put:
+      summary: 'Update a reference'
+      operationId: 'reference-update'
+      description: |
+        This endpoint updates a single version of a reference in the workspace, identified by its `source_name`.
+        Note that the `source_name` is used a a key and cannot be changed.
+      tags:
+        - 'References'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/references.yml#/components/schemas/reference'
+      responses:
+        '200':
+          description: 'The reference was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/references.yml#/components/schemas/reference'
+        '400':
+          description: 'Missing or invalid parameters were provided. The reference was not updated.'
+        '404':
+          description: 'A reference with the requested source_name was not found.'
