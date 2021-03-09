@@ -30,7 +30,7 @@ module.exports.attackPatternEnterpriseDomain = {
 };
 
 module.exports.attackPatternMobileDomain = {
-    x_mitre_tactic_types: { type: [ String ], default: undefined }
+    x_mitre_tactic_type: { type: [ String ], default: undefined }
 };
 
 module.exports.attackPatternICSDomain = {
