@@ -183,7 +183,7 @@ describe('Techniques Basic API', function () {
                     expect(technique.stix.x_mitre_defense_bypassed).not.toBeDefined();
                     expect(technique.stix.x_mitre_permissions_required).not.toBeDefined();
                     expect(technique.stix.x_mitre_system_requirements).not.toBeDefined();
-                    expect(technique.stix.x_mitre_tactic_types).not.toBeDefined();
+                    expect(technique.stix.x_mitre_tactic_type).not.toBeDefined();
 
                     done();
                 }

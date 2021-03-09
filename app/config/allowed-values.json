@@ -35,7 +35,7 @@
         ]
       },
       {
-        "propertyName": "x_mitre_tactic_types",
+        "propertyName": "x_mitre_tactic_type",
         "domains": [
           {
             "domainName": "mobile-attack",
