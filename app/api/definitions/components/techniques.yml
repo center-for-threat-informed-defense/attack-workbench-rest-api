@@ -57,6 +57,11 @@ components:
               items:
                 type: string
                 example: 'Windows'
+            x_mitre_impact_type:
+              type: array
+              items:
+                type: string
+                example: 'Availability'
             x_mitre_subtechnique:
               type: boolean
               example: false

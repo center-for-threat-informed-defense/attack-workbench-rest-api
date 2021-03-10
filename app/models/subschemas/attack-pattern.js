@@ -26,6 +26,7 @@ module.exports.attackPatternEnterpriseDomain = {
     x_mitre_impact_type: { type: [ String ], default: undefined },
     x_mitre_permissions_required: { type: [ String ], default: undefined },
     x_mitre_system_requirements: { type: [ String ], default: undefined },
+    x_mitre_effective_permissions: { type: [ String ], default: undefined },
     x_mitre_remote_support: Boolean
 };
 

@@ -13,12 +13,11 @@
               "macOS",
               "Windows",
               "Network",
-              "AWS",
-              "GCP",
-              "Azure",
               "Office 365",
               "Azure AD",
-              "SaaS"
+              "SaaS",
+              "IaaS",
+              "Google Workspace"
             ]
           },
           {
@@ -43,6 +42,48 @@
               "Post-Adversary Device Access",
               "Pre-Adversary Device Access",
               "Without Adversary Device Access"            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_impact_type",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "Availability",
+              "Integrity"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_effective_permissions",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "Administrator",
+              "root",
+              "SYSTEM",
+              "User",
+              "Remote Desktop Users"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_permissions_required",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "Administrator",
+              "root",
+              "SYSTEM",
+              "User",
+              "Remote Desktop Users"
+            ]
           }
         ]
       }
