@@ -1,7 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
-const Group = require('../models/intrusion-set-model');
+const Group = require('../models/group-model');
 
 const errors = {
     missingParameter: 'Missing required parameter',

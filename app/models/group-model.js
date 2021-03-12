@@ -3,31 +3,30 @@
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 
-const stixTactic = {
-    // STIX x-mitre-tactic specific properties
+const stixIntrusionSet = {
+    // STIX intrusion-set specific properties
     modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
 
     // ATT&CK custom stix properties
-    x_mitre_deprecated: Boolean,
+    aliases: [ String ],
     x_mitre_domains: [ String ],
     x_mitre_version: String,
-    x_mitre_contributors: [ String ],
-    x_mitre_shortname: String
+    x_mitre_contributors: [ String ]
 };
 
 // Create the definition
-const tacticDefinition = {
+const groupDefinition = {
     stix: {
-        ...stixTactic
+        ...stixIntrusionSet
     }
 };
 
 // Create the schema
-const tacticSchema = new mongoose.Schema(tacticDefinition);
+const groupSchema = new mongoose.Schema(groupDefinition);
 
 // Create the model
-const TacticModel = AttackObject.discriminator('Tactic', tacticSchema);
+const GroupModel = AttackObject.discriminator('Intrusion-Set', groupSchema);
 
-module.exports = TacticModel;
+module.exports = GroupModel;

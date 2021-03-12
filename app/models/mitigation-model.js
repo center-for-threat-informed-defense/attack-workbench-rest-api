@@ -2,20 +2,30 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
-const courseOfActionDefinitions = require('./subschemas/course-of-action');
+
+const stixCourseOfAction = {
+    // STIX course-of-action specific properties
+    modified: { type: Date, required: true },
+    name: { type: String, required: true },
+    description: String,
+
+    // ATT&CK custom stix properties
+    x_mitre_deprecated: Boolean,
+    x_mitre_domains: [ String ],
+    x_mitre_version: String
+};
 
 // Create the definition
-const courseOfActionDefinition = {
+const mitigationDefinition = {
     stix: {
-        ...courseOfActionDefinitions.courseOfAction
+        ...stixCourseOfAction
     }
 };
 
 // Create the schema
-const courseOfActionSchema = new mongoose.Schema(courseOfActionDefinition);
+const mitigationSchema = new mongoose.Schema(mitigationDefinition);
 
 // Create the model
-const CourseOfActionModel = AttackObject.discriminator('Course-of-Action', courseOfActionSchema);
+const MitigationModel = AttackObject.discriminator('Course-of-Action', mitigationSchema);
 
-module.exports = CourseOfActionModel;
-
+module.exports = MitigationModel;
