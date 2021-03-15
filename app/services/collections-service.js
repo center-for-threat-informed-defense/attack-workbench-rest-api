@@ -61,14 +61,9 @@ function getContents(objectList, callback) {
     async.mapLimit(
         objectList,
         5,
-        function(objectRef, callback2) {
-            attackObjectsService.retrieveVersionById(objectRef.object_ref, objectRef.object_modified, function (err, attackObject) {
-                if (err) {
-                    return callback2(err);
-                } else {
-                    return callback2(null, attackObject);
-                }
-            });
+        async function(objectRef) {
+            const attackObject = await attackObjectsService.retrieveVersionById(objectRef.object_ref, objectRef.object_modified);
+            return attackObject;
         },
         function(err, results) {
             if (err) {

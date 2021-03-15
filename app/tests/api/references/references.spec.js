@@ -5,6 +5,8 @@ const expect = require('expect');
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
+const Reference = require('../../../models/reference-model');
+
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
 const initialObjectData1 = {
@@ -29,33 +31,35 @@ describe('References API', function () {
     let app;
 
     before(async function() {
-        // Initialize the express app
-        app = await require('../../../index').initializeApp();
-
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Wait until the Reference indexes are created
+        await Reference.init();
+
+        // Initialize the express app
+        app = await require('../../../index').initializeApp();
     });
 
     it('GET /api/references returns an empty array of references', function (done) {
-        request(app)
-            .get('/api/references')
-            .set('Accept', 'application/json')
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const references = res.body;
-                    expect(references).toBeDefined();
-                    expect(Array.isArray(references)).toBe(true);
-                    expect(references.length).toBe(0);
-                    done();
-                }
-            });
+            request(app)
+                .get('/api/references')
+                .set('Accept', 'application/json')
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .end(function (err, res) {
+                    if (err) {
+                        done(err);
+                    } else {
+                        // We expect to get an empty array
+                        const references = res.body;
+                        expect(references).toBeDefined();
+                        expect(Array.isArray(references)).toBe(true);
+                        expect(references.length).toBe(0);
+                        done();
+                    }
+                })
     });
 
     it('POST /api/references does not create an empty reference', function (done) {
@@ -204,6 +208,34 @@ describe('References API', function () {
                     expect(reference.source_name).toBe(reference1.source_name);
                     expect(reference.description).toBe(reference1.description);
                     expect(reference.url).toBe(reference1.url);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/references uses the search parameter to return the third added reference', function (done) {
+        request(app)
+            .get('/api/references?search=' + encodeURIComponent('#3'))
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one reference in an array
+                    const references = res.body;
+                    expect(references).toBeDefined();
+                    expect(Array.isArray(references)).toBe(true);
+                    expect(references.length).toBe(1);
+
+                    const reference = references[0];
+                    expect(reference).toBeDefined();
+                    expect(reference.source_name).toBe(reference3.source_name);
+                    expect(reference.description).toBe(reference3.description);
+                    expect(reference.url).toBe(reference3.url);
 
                     done();
                 }

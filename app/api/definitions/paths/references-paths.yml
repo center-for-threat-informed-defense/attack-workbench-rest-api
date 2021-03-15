@@ -31,6 +31,14 @@ paths:
           schema:
             type: string
           example: 'AddMonitor'
+        - name: search
+          in: query
+          description: |
+            Only return references where the provided search text occurs in the `description` or `url`.
+            The search is case-insensitive.
+          schema:
+            type: string
+          example: 'windows'
         - name: includePagination
           in: query
           description: |

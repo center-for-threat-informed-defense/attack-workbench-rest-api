@@ -11,7 +11,13 @@ const errors = {
 };
 exports.errors = errors;
 
-exports.retrieveAll = function(options, callback) {
+exports.retrieveAll = async function(options) {
+    // Build the text search
+    let textSearch;
+    if (typeof options.search !== 'undefined') {
+        textSearch = { $text: { $search: options.search }};
+    }
+
     // Build the query
     const query = {};
     if (typeof options.sourceName !== 'undefined') {
@@ -19,10 +25,13 @@ exports.retrieveAll = function(options, callback) {
     }
 
     // Build the aggregation
-    const aggregation = [
-        { $sort: { 'source_name': 1 }},
-        { $match: query }
-    ];
+    const aggregation = [];
+    if (textSearch) {
+        aggregation.push({ $match: textSearch });
+    }
+
+    aggregation.push({ $sort: { 'source_name': 1 }});
+    aggregation.push({ $match: query });
 
     const facet = {
         $facet: {
@@ -42,31 +51,25 @@ exports.retrieveAll = function(options, callback) {
     aggregation.push(facet);
 
     // Retrieve the documents
-    Reference.aggregate(aggregation, function(err, results) {
-        if (err) {
-            return callback(err);
+    const results = await Reference.aggregate(aggregation);
+
+    if (options.includePagination) {
+        let derivedTotalCount = 0;
+        if (results[0].totalCount.length > 0) {
+            derivedTotalCount = results[0].totalCount[0].totalCount;
         }
-        else {
-            if (options.includePagination) {
-                let derivedTotalCount = 0;
-                if (results[0].totalCount.length > 0) {
-                    derivedTotalCount = results[0].totalCount[0].totalCount;
-                }
-                const returnValue = {
-                    pagination: {
-                        total: derivedTotalCount,
-                        offset: options.offset,
-                        limit: options.limit
-                    },
-                    data: results[0].documents
-                };
-                return callback(null, returnValue);
-            }
-            else {
-                return callback(null, results[0].documents);
-            }
-        }
-    });
+        const returnValue = {
+            pagination: {
+                total: derivedTotalCount,
+                offset: options.offset,
+                limit: options.limit
+            },
+            data: results[0].documents
+        };
+        return returnValue;
+    } else {
+        return results[0].documents;
+    }
 };
 
 exports.create = function(data, callback) {

@@ -3,7 +3,7 @@
 const attackObjectsService = require('../services/attack-objects-service');
 const logger = require('../lib/logger');
 
-exports.retrieveAll = function(req, res) {
+exports.retrieveAll = async function(req, res) {
     const options = {
         attackId: req.query.attackId,
         offset: req.query.offset || 0,
@@ -14,19 +14,18 @@ exports.retrieveAll = function(req, res) {
         includePagination: req.query.includePagination
     }
 
-    attackObjectsService.retrieveAll(options, function(err, results) {
-        if (err) {
+    const results = await attackObjectsService.retrieveAll(options)
+        .catch (err => {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get ATT&CK objects. Server error.');
-        }
-        else {
-            if (options.includePagination) {
-                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total ATT&CK object(s)`);
-            }
-            else {
-                logger.debug(`Success: Retrieved ${ results.length } ATT&CK object(s)`);
-            }
-            return res.status(200).send(results);
-        }
-    });
+        });
+
+    if (options.includePagination) {
+        logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total ATT&CK object(s)`);
+    }
+    else {
+        logger.debug(`Success: Retrieved ${results.length} ATT&CK object(s)`);
+    }
+
+    return res.status(200).send(results);
 };

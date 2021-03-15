@@ -3,29 +3,28 @@
 const referencesService = require('../services/references-service');
 const logger = require('../lib/logger');
 
-exports.retrieveAll = function(req, res) {
+exports.retrieveAll = async function(req, res) {
     const options = {
         sourceName: req.query.sourceName,
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
+        search: req.query.search,
         includePagination: req.query.includePagination
     }
 
-    referencesService.retrieveAll(options, function(err, results) {
-        if (err) {
+    const results = await referencesService.retrieveAll(options)
+        .catch(err => {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get references. Server error.');
-        }
-        else {
-            if (options.includePagination) {
-                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total reference(s)`);
-            }
-            else {
-                logger.debug(`Success: Retrieved ${ results.length } reference(s)`);
-            }
-            return res.status(200).send(results);
-        }
-    });
+        });
+
+    if (options.includePagination) {
+        logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total reference(s)`);
+    }
+    else {
+        logger.debug(`Success: Retrieved ${ results.length } reference(s)`);
+    }
+    return res.status(200).send(results);
 };
 
 exports.create = function(req, res) {

@@ -11,7 +11,7 @@ const errors = {
 };
 exports.errors = errors;
 
-exports.retrieveAll = function(options, callback) {
+exports.retrieveAll = async function(options) {
     // Build the query
     const query = {};
     if (options.attackId) {
@@ -57,67 +57,55 @@ exports.retrieveAll = function(options, callback) {
     aggregation.push(facet);
 
     // Retrieve the documents
-    AttackObject.aggregate(aggregation, function(err, results) {
-        if (err) {
-            return callback(err);
+    const results = await AttackObject.aggregate(aggregation);
+
+    if (options.includePagination) {
+        let derivedTotalCount = 0;
+        if (results[0].totalCount.length > 0) {
+            derivedTotalCount = results[0].totalCount[0].totalCount;
         }
-        else {
-            if (options.includePagination) {
-                let derivedTotalCount = 0;
-                if (results[0].totalCount.length > 0) {
-                    derivedTotalCount = results[0].totalCount[0].totalCount;
-                }
-                const returnValue = {
-                    pagination: {
-                        total: derivedTotalCount,
-                        offset: options.offset,
-                        limit: options.limit
-                    },
-                    data: results[0].documents
-                };
-                return callback(null, returnValue);
-            }
-            else {
-                return callback(null, results[0].documents);
-            }
-        }
-    });
+        const returnValue = {
+            pagination: {
+                total: derivedTotalCount,
+                offset: options.offset,
+                limit: options.limit
+            },
+            data: results[0].documents
+        };
+        return returnValue;
+    }
+    else {
+        return results[0].documents;
+    }
 };
 
-exports.retrieveVersionById = function(stixId, modified, callback) {
+exports.retrieveVersionById = async function(stixId, modified) {
     // Retrieve the version of the attack object with the matching stixId and modified date
 
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
-        return callback(error);
+        throw error;
     }
 
     if (!modified) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'modified';
-        return callback(error);
+        throw error;
     }
 
-    AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function(err, attackObject) {
-        if (err) {
+    const attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified })
+        .catch(err => {
             if (err.name === 'CastError') {
                 const error = new Error(errors.badlyFormattedParameter);
                 error.parameterName = 'stixId';
-                return callback(error);
+                throw error;
             }
             else {
-                return callback(err);
+                throw err;
             }
-        }
-        else {
-            // Note: document is null if not found
-            if (attackObject) {
-                return callback(null, attackObject);
-            }
-            else {
-                return callback();
-            }
-        }
-    });
+        });
+
+    // Note: attackObject is null if not found
+    return attackObject;
 };
