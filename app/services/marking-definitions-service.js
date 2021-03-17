@@ -107,17 +107,29 @@ exports.retrieveById = function(stixId, options, callback) {
         });
 };
 
-exports.create = function(data, callback) {
-    // This function handles one use case:
+exports.create = function(data, options, callback) {
+    // This function handles three use cases:
     //   1. stix.id is undefined. Create a new object and generate the stix.id
+    //   2. stix.id is defined and options.import is not set. This is an error.
+    //   3. stix.id is defined and options.import is set. Create a new object
+    //      using the specified stix.id
+    // TBD: Overwrite existing object when importing??
+
+    // Shift parameters if called without including options
+    if (!callback) {
+        callback = options;
+        options = {};
+    }
 
     // Create the document
     const markingDefinition = new MarkingDefinition(data);
 
     if (markingDefinition.stix.id) {
-        const error = new Error(errors.badlyFormattedParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
+        if (!options.import) {
+            const error = new Error(errors.badlyFormattedParameter);
+            error.parameterName = 'stixId';
+            return callback(error);
+        }
     }
     else {
         // Assign a new STIX id

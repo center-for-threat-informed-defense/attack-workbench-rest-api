@@ -7,6 +7,7 @@
     "api:generate-md": "widdershins ./app/api/definitions/openapi.yml -o ./app/api/markdown/api.md --summary --resolve",
     "api:generate-html": "shins --root ./app/api/web -o ./app/api/web/index.html ./app/api/markdown/api.md",
     "api:generate-all": "npm run api:generate-md && npm run api:generate-html",
+    "coverage": "nyc npm test",
     "lint": "eslint .",
     "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",

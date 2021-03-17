@@ -35,8 +35,14 @@ exports.import = function(req, res) {
             }
         }
         else {
-            logger.debug("Success: Imported collection with id " + importedCollection.stix.id);
-            return res.status(201).send(importedCollection);
+            if (req.query.checkOnly) {
+                logger.debug("Success: Previewed import of collection with id " + importedCollection.stix.id);
+                return res.status(201).send(importedCollection);
+            }
+            else {
+                logger.debug("Success: Imported collection with id " + importedCollection.stix.id);
+                return res.status(201).send(importedCollection);
+            }
         }
     });
 };

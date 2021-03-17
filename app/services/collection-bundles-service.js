@@ -8,6 +8,10 @@ const mitigationsService = require('../services/mitigations-service');
 const softwareService = require('../services/software-service');
 const matricesService = require('../services/matrices-service');
 const relationshipService = require('../services/relationships-service');
+const markingDefinitionsService = require('../services/marking-definitions-service');
+const identitiesService = require('../services/identities-service');
+const notesService = require('../services/notes-service');
+const referencesService = require('../services/references-service');
 
 const async = require('async');
 
@@ -23,8 +27,28 @@ const importErrors = {
     missingObject: 'Missing object'    // object in x_mitre_contents but not in bundle
 }
 
-function hashEntry(stixId, modified) {
+function makeKey(stixId, modified) {
     return stixId + '/' + modified;
+}
+
+function makeKeyFromObject(stixObject) {
+    if (stixObject.type === 'marking-definition') {
+        return makeKey(stixObject.id, stixObject.created);
+    }
+    else {
+        return makeKey(stixObject.id, stixObject.modified);
+    }
+}
+
+// Convert the date to seconds past the epoch
+// Works for both Date and string types
+function toEpoch(date) {
+    if (date instanceof Date) {
+        return date.getTime();
+    }
+    else {
+        return Date.parse(date);
+    }
 }
 
 exports.import = function(collection, data, checkOnly, callback) {
@@ -43,6 +67,10 @@ exports.import = function(collection, data, checkOnly, callback) {
                 duplicates: [],
                 out_of_date: [],
                 errors: []
+            },
+            import_references: {
+                additions: [],
+                changes: []
             }
         },
         stix: collection
@@ -51,8 +79,10 @@ exports.import = function(collection, data, checkOnly, callback) {
     // Build a map of the objects in x_mitre_contents
     const contentsMap = new Map();
     for (const entry of collection.x_mitre_contents) {
-        contentsMap.set(hashEntry(entry.object_ref, entry.object_modified), entry);
+        contentsMap.set(makeKey(entry.object_ref, entry.object_modified), entry);
     }
+
+    const importReferences = new Map();
 
     async.series(
         [
@@ -63,14 +93,7 @@ exports.import = function(collection, data, checkOnly, callback) {
                         return callback1(err);
                     }
                     else {
-                        const duplicateCollection = collections.find(collection => {
-                            // Imported objects may have more decimal places in the seconds than toISOString() creates
-                            // So convert everything to a single format
-                            // TBD: Come up with a cleaner solution
-                            const existingCollectionTimestamp = collection.stix.modified.toISOString();
-                            const importedCollectionTimestamp = new Date(importedCollection.stix.modified).toISOString();
-                            return existingCollectionTimestamp === importedCollectionTimestamp;
-                        });
+                        const duplicateCollection = collections.find(collection => toEpoch(collection.stix.modified) === toEpoch(importedCollection.stix.modified));
                         if (duplicateCollection) {
                             const error = new Error(errors.duplicateCollection);
                             return callback1(error);
@@ -83,9 +106,9 @@ exports.import = function(collection, data, checkOnly, callback) {
             },
             // Iterate over the objects
             function(callback2) {
-                async.each(data.objects, function(importObject, callback2a) {
+                async.eachLimit(data.objects, 8, function(importObject, callback2a) {
                         // Check to see if the object is in x_mitre_contents
-                        if (!contentsMap.delete(hashEntry(importObject.id, importObject.modified)) && importObject.type !== 'x-mitre-collection') {
+                        if (!contentsMap.delete(makeKeyFromObject(importObject)) && importObject.type !== 'x-mitre-collection') {
                             // Not found in x_mitre_contents
                             // Record the error but continue processing the object
                             const importError = {
@@ -118,6 +141,15 @@ exports.import = function(collection, data, checkOnly, callback) {
                         else if (importObject.type === 'relationship') {
                             service = relationshipService;
                         }
+                        else if (importObject.type === 'marking-definition') {
+                            service = markingDefinitionsService;
+                        }
+                        else if (importObject.type === 'identity') {
+                            service = identitiesService;
+                        }
+                        else if (importObject.type === 'note') {
+                            service = notesService;
+                        }
 
                         if (service) {
                             // Retrieve all the objects with the same stix ID
@@ -134,11 +166,21 @@ exports.import = function(collection, data, checkOnly, callback) {
                                 }
                                 else {
                                     // Is this a duplicate? (same stixId and modified)
-                                    const duplicateObject = objects.find(object => object.stix.modified.toISOString() === importObject.modified);
-                                    if (duplicateObject) {
-                                        // Record the duplicate, but don't save it and don't cancel the import
-                                        importedCollection.workspace.import_categories.duplicates.push(importObject.id);
-                                        return callback2a();
+                                    if (importObject.type === 'marking-definition') {
+                                        const duplicateObject = objects.find(object => toEpoch(object.stix.created) === toEpoch(importObject.created));
+                                        if (duplicateObject) {
+                                            // Record the duplicate, but don't save it and don't cancel the import
+                                            importedCollection.workspace.import_categories.duplicates.push(importObject.id);
+                                            return callback2a();
+                                        }
+                                    }
+                                    else {
+                                        const duplicateObject = objects.find(object => toEpoch(object.stix.modified) === toEpoch(importObject.modified));
+                                        if (duplicateObject) {
+                                            // Record the duplicate, but don't save it and don't cancel the import
+                                            importedCollection.workspace.import_categories.duplicates.push(importObject.id);
+                                            return callback2a();
+                                        }
                                     }
 
                                     // Is this an addition? (new stixId)
@@ -147,7 +189,7 @@ exports.import = function(collection, data, checkOnly, callback) {
                                     }
                                     else {
                                         const latestExistingObject = objects[0];
-                                        if (latestExistingObject.stix.modified.toISOString() < importObject.modified) {
+                                        if (toEpoch(latestExistingObject.stix.modified) < toEpoch(importObject.modified)) {
                                             // TBD: change x_mitre_version comparison from lexical to numerical
                                             if (latestExistingObject.stix.x_mitre_version < importObject.x_mitre_version) {
                                                 // This a change (same stixId, higher x-mitre-version, later modified)
@@ -167,10 +209,28 @@ exports.import = function(collection, data, checkOnly, callback) {
                                         }
                                     }
 
+                                    // Extract the references from the object
+                                    if (importObject.external_references && Array.isArray(importObject.external_references)) {
+                                        for (const externalReference of importObject.external_references) {
+                                            if (externalReference.source_name && externalReference.description && !externalReference.external_id) {
+                                                if (importReferences.has(externalReference.source_name)) {
+                                                    if (externalReference.description === importReferences.get(externalReference.source_name)) {
+                                                        // Duplicate in collection bundle -- skip
+                                                    } else {
+                                                        // Duplicate source name in collection bundle, but description is different
+                                                        // Skip for now
+                                                    }
+                                                } else {
+                                                    importReferences.set(externalReference.source_name, externalReference);
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     // Save the object
                                     if (checkOnly) {
                                         // Do nothing
-                                        process.nextTick(() => callback2a());
+                                        return callback2a();
                                     }
                                     else {
                                         const newObject = {
@@ -179,17 +239,32 @@ exports.import = function(collection, data, checkOnly, callback) {
                                             },
                                             stix: importObject
                                         };
-                                        service.create(newObject, function (err, savedObject) {
-                                            if (err) {
-                                                if (err.message === service.errors.duplicateId) {
-                                                    return callback2a(err);
+                                        if (importObject.type === 'marking-definition') {
+                                            service.create(newObject, { import: true }, function (err, savedObject) {
+                                                if (err) {
+                                                    if (err.message === service.errors.duplicateId) {
+                                                        return callback2a(err);
+                                                    } else {
+                                                        return callback2a(err);
+                                                    }
                                                 } else {
-                                                    return callback2a(err);
+                                                    return callback2a();
                                                 }
-                                            } else {
-                                                return callback2a();
-                                            }
-                                        });
+                                            });
+                                        }
+                                        else {
+                                            service.create(newObject, function (err, savedObject) {
+                                                if (err) {
+                                                    if (err.message === service.errors.duplicateId) {
+                                                        return callback2a(err);
+                                                    } else {
+                                                        return callback2a(err);
+                                                    }
+                                                } else {
+                                                    return callback2a();
+                                                }
+                                            });
+                                        }
                                     }
                                 }
                             });
@@ -197,7 +272,7 @@ exports.import = function(collection, data, checkOnly, callback) {
                         else {
                             if (importObject.type === 'x-mitre-collection') {
                                 // Skip x-mitre-collection objects
-                                process.nextTick(() => callback2a());
+                                return callback2a();
                             }
                             else {
                                 // Unknown object type
@@ -208,7 +283,7 @@ exports.import = function(collection, data, checkOnly, callback) {
                                     error_type: importErrors.unknownObjectType
                                 }
                                 importedCollection.workspace.import_categories.errors.push(importError);
-                                process.nextTick(() => callback2a());
+                                return callback2a();
                             }
                         }
                     },
@@ -227,11 +302,64 @@ exports.import = function(collection, data, checkOnly, callback) {
                         return callback2(err);
                     })
             },
-            // Save the x-mitre-collection object
+            // Import the new references
             function(callback3) {
+                const options = {};
+                referencesService.retrieveAll(options)
+                    .then(function(references) {
+                        const existingReferences = new Map(references.map(item => [ item.source_name, item ]));
+
+                        // Iterate over the import references
+                        async.eachLimit([...importReferences.values()], 8, function(importReference, callback3a) {
+                                if (existingReferences.has(importReference.source_name)) {
+                                    // Duplicate of existing reference -- overwrite
+                                    if (checkOnly) {
+                                        // Do nothing
+                                        importedCollection.workspace.import_references.changes.push(importReference.source_name);
+                                        return callback3a();
+                                    } else {
+                                        // Save the reference
+                                        referencesService.update(importReference)
+                                            .then(function (reference) {
+                                                importedCollection.workspace.import_references.changes.push(importReference.source_name);
+                                                return callback3a();
+                                            })
+                                            .catch(function (err) {
+                                                return callback3a(err);
+                                            });
+                                    }
+                                } else {
+                                    if (checkOnly) {
+                                        // Do nothing
+                                        importedCollection.workspace.import_references.additions.push(importReference.source_name);
+                                        return callback3a();
+                                    } else {
+                                        // Save the reference
+                                        referencesService.create(importReference)
+                                            .then(function (reference) {
+                                                importedCollection.workspace.import_references.additions.push(importReference.source_name);
+                                                return callback3a();
+                                            })
+                                            .catch(function (err) {
+                                                return callback3a(err);
+                                            });
+                                    }
+                                }
+                            },
+                            function(err) {
+                                return callback3(err);
+                            });
+                    })
+                    .catch(err => {
+                        console.log('Unable to retrieve existing references: ' + err);
+                        return callback3(err);
+                    });
+            },
+            // Save the x-mitre-collection object
+            function(callback4) {
                 if (checkOnly) {
                     // Do nothing
-                    process.nextTick(() => callback3(null, importedCollection));
+                    process.nextTick(() => callback4(null, importedCollection));
                 }
                 else {
                     collectionsService.create(importedCollection, function(err, savedCollection) {
@@ -239,12 +367,12 @@ exports.import = function(collection, data, checkOnly, callback) {
                             if (err.name === 'MongoError' && err.code === 11000) {
                                 // 11000 = Duplicate index
                                 const error = new Error(errors.duplicateCollection);
-                                return callback3(error);
+                                return callback4(error);
                             } else {
-                                return callback3(err);
+                                return callback4(err);
                             }
                         } else {
-                            return callback3(null, savedCollection);
+                            return callback4(null, savedCollection);
                         }
                     });
                 }
@@ -255,7 +383,7 @@ exports.import = function(collection, data, checkOnly, callback) {
                 return callback(err);
             }
             else {
-                return callback(null, results[2]);
+                return callback(null, results[3]);
             }
         }
     );

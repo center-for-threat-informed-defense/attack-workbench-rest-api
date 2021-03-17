@@ -8,6 +8,6 @@ const router = express.Router();
 router.route('/references')
     .get(referencesController.retrieveAll)
     .post(referencesController.create)
-    .put(referencesController.updateFull);
+    .put(referencesController.update);
 
 module.exports = router;

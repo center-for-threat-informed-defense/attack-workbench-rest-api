@@ -65,12 +65,12 @@ describe('Techniques Pagination API', function () {
     let app;
 
     before(async function() {
-        // Initialize the express app
-        app = await require('../../../index').initializeApp();
-
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Initialize the express app
+        app = await require('../../../index').initializeApp();
     });
 
     it('GET /api/techniques return an empty page', function (done) {

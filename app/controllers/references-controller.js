@@ -27,7 +27,7 @@ exports.retrieveAll = async function(req, res) {
     return res.status(200).send(results);
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const referenceData = req.body;
 
@@ -37,42 +37,36 @@ exports.create = function(req, res) {
     }
 
     // Create the reference
-    referencesService.create(referenceData, function(err, reference) {
-        if (err) {
+    const reference = await referencesService.create(referenceData)
+        .catch(err => {
             if (err.message === referencesService.errors.duplicateId) {
                 logger.warn("Duplicate source_name");
                 return res.status(409).send('Unable to create reference. Duplicate source_name.');
-            }
-            else {
+            } else {
                 logger.error("***** Failed with error: " + err);
                 return res.status(500).send("Unable to create reference. Server error.");
             }
-        }
-        else {
-            logger.debug("Success: Created reference with source_name " + reference.source_name);
-            return res.status(201).send(reference);
-        }
-    });
+        });
+
+    logger.debug("Success: Created reference with source_name " + reference.source_name);
+    return res.status(201).send(reference);
 };
 
-exports.updateFull = function(req, res) {
+exports.update = async function(req, res) {
     // Get the data from the request
     const referenceData = req.body;
 
     // Create the reference
-    referencesService.updateFull(referenceData, function(err, reference) {
-        if (err) {
-            logger.error("Failed with error: " + err);
-            return res.status(500).send("Unable to update reference. Server error.");
-        }
-        else {
-            if (!reference) {
-                return res.status(404).send('Reference not found.');
-            } else {
-                logger.debug("Success: Updated reference with source_name " + reference.source_name);
-                return res.status(200).send(reference);
-            }
-        }
-    });
-};
+    const reference = await referencesService.update(referenceData)
+        .catch(err => {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to update reference. Server error.');
+        });
 
+    if (!reference) {
+        return res.status(404).send('Reference not found.');
+    } else {
+        logger.debug('Success: Updated reference with source_name ' + reference.source_name);
+        return res.status(200).send(reference);
+    }
+};
