@@ -82,7 +82,7 @@ exports.retrieveAll = function(options, callback) {
     });
 };
 
-exports.retrieveById = function(stixId, options, callback) {
+exports.retrieve = function(stixId, options, callback) {
     // versions=all Retrieve all notes with the stixId
     // versions=latest Retrieve the notes with the latest modified date for this stixId
 
@@ -142,7 +142,7 @@ exports.retrieveById = function(stixId, options, callback) {
     }
 };
 
-exports.retrieveVersionById = function(stixId, modified, callback) {
+exports.retrieveVersion = function(stixId, modified, callback) {
     // Retrieve the versions of the note with the matching stixId and modified date
 
     if (!stixId) {
@@ -214,7 +214,7 @@ exports.create = function(data, callback) {
     });
 };
 
-exports.updateFull = function(stixId, stixModified, data, callback) {
+exports.updateVersion = function(stixId, stixModified, data, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -264,7 +264,23 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.delete = function (stixId, stixModified, callback) {
+exports.delete = function (stixId, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    Note.deleteMany({ 'stix.id': stixId }, function (err, results) {
+        if (err) {
+            return callback(err);
+        } else {
+            return callback(null, results);
+        }
+    });
+};
+
+exports.deleteVersion = function (stixId, stixModified, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';

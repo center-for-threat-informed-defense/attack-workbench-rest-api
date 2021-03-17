@@ -44,7 +44,7 @@ describe('Notes API', function () {
         await database.initializeConnection();
     });
 
-    it('GET /api/notes returns an empty array of notes', function (done) {
+    it('GET /api/notes should return an empty array of notes', function (done) {
         request(app)
             .get('/api/notes')
             .set('Accept', 'application/json')
@@ -65,7 +65,7 @@ describe('Notes API', function () {
             });
     });
 
-    it('POST /api/notes does not create an empty note', function (done) {
+    it('POST /api/notes should not create an empty note', function (done) {
         const body = { };
         request(app)
             .post('/api/notes')
@@ -83,7 +83,7 @@ describe('Notes API', function () {
     });
 
     let note1;
-    it('POST /api/notes creates a note', function (done) {
+    it('POST /api/notes should create a note', function (done) {
         const timestamp = new Date().toISOString();
         initialObjectData.stix.created = timestamp;
         initialObjectData.stix.modified = timestamp;
@@ -111,7 +111,7 @@ describe('Notes API', function () {
             });
     });
 
-    it('GET /api/notes returns the added note', function (done) {
+    it('GET /api/notes should return the added note', function (done) {
         request(app)
             .get('/api/notes')
             .set('Accept', 'application/json')
@@ -146,7 +146,7 @@ describe('Notes API', function () {
             });
     });
 
-    it('GET /api/notes/:id returns the added note', function (done) {
+    it('GET /api/notes/:id should return the added note', function (done) {
         request(app)
             .get('/api/notes/' + note1.stix.id)
             .set('Accept', 'application/json')
@@ -179,7 +179,7 @@ describe('Notes API', function () {
             });
     });
 
-    it('PUT /api/notes updates a note', function (done) {
+    it('PUT /api/notes should update a note', function (done) {
         const originalModified = note1.stix.modified;
         const timestamp = new Date().toISOString();
         note1.stix.modified = timestamp;
@@ -206,7 +206,7 @@ describe('Notes API', function () {
             });
     });
 
-    it('POST /api/notes does not create a note with the same id and modified date', function (done) {
+    it('POST /api/notes should not create a note with the same id and modified date', function (done) {
         const body = note1;
         request(app)
             .post('/api/notes')
@@ -244,14 +244,14 @@ describe('Notes API', function () {
                 }
                 else {
                     // We expect to get the created note
-                    const note = res.body;
-                    expect(note).toBeDefined();
+                    note2 = res.body;
+                    expect(note2).toBeDefined();
                     done();
                 }
             });
     });
 
-    it('GET /api/notes returns the latest added note', function (done) {
+    it('GET /api/notes should return the latest added note', function (done) {
         request(app)
             .get('/api/notes/' + note2.stix.id)
             .set('Accept', 'application/json')
@@ -275,7 +275,64 @@ describe('Notes API', function () {
             });
     });
 
-    it('GET /api/notes returns all added notes', function (done) {
+    let note3;
+    it('POST /api/notes should create a new note with a new stix.id', function (done) {
+        note3 = _.cloneDeep(note1);
+        note3._id = undefined;
+        note3.__t = undefined;
+        note3.__v = undefined;
+        note3.stix.id = undefined;
+        const timestamp = new Date().toISOString();
+        note3.stix.modified = timestamp;
+        const body = note3;
+        request(app)
+            .post('/api/notes')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created note
+                    note3 = res.body;
+                    expect(note3).toBeDefined();
+                    done();
+                }
+            });
+    });
+
+    let note4;
+    it('POST /api/notes should create a new version of the last note with a duplicate stix.id but different stix.modified date', function (done) {
+        note4 = _.cloneDeep(note3);
+        note4._id = undefined;
+        note4.__t = undefined;
+        note4.__v = undefined;
+        const timestamp = new Date().toISOString();
+        note4.stix.modified = timestamp;
+        const body = note4;
+        request(app)
+            .post('/api/notes')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created note
+                    note4 = res.body;
+                    expect(note4).toBeDefined();
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/notes/:id should return all versions of the first note', function (done) {
         request(app)
             .get('/api/notes/' + note1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
@@ -296,7 +353,7 @@ describe('Notes API', function () {
             });
     });
 
-    it('GET /api/notes/:id/modified/:modified returns the first added note', function (done) {
+    it('GET /api/notes/:id/modified/:modified should return the first added note', function (done) {
         request(app)
             .get('/api/notes/' + note1.stix.id + '/modified/' + note1.stix.modified)
             .set('Accept', 'application/json')
@@ -318,7 +375,7 @@ describe('Notes API', function () {
             });
     });
 
-    it('GET /api/notes/:id/modified/:modified returns the second added note', function (done) {
+    it('GET /api/notes/:id/modified/:modified should return the second added note', function (done) {
         request(app)
             .get('/api/notes/' + note2.stix.id + '/modified/' + note2.stix.modified)
             .set('Accept', 'application/json')
@@ -340,7 +397,42 @@ describe('Notes API', function () {
             });
     });
 
-    it('DELETE /api/notes deletes a note', function (done) {
+    it('GET /api/notes should return the latest version of all the notes', function (done) {
+        request(app)
+            .get('/api/notes/')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get two notes in an array
+                    const notes = res.body;
+                    expect(notes).toBeDefined();
+                    expect(Array.isArray(notes)).toBe(true);
+                    expect(notes.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/notes/:id should not delete a note when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/notes/not-an-id')
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/notes/:id/modified/:modified should delete the first version of the note', function (done) {
         request(app)
             .delete('/api/notes/' + note1.stix.id + '/modified/' + note1.stix.modified)
             .expect(204)
@@ -354,7 +446,7 @@ describe('Notes API', function () {
             });
     });
 
-    it('DELETE /api/notes should delete the second note', function (done) {
+    it('DELETE /api/notes/:id/modified/:modified should delete the second version of the note', function (done) {
         request(app)
             .delete('/api/notes/' + note2.stix.id + '/modified/' + note2.stix.modified)
             .expect(204)
@@ -368,7 +460,21 @@ describe('Notes API', function () {
             });
     });
 
-    it('GET /api/notes returns an empty array of notes', function (done) {
+    it('DELETE /api/notes/:id should delete all versions of the note', function (done) {
+        request(app)
+            .delete('/api/notes/' + note3.stix.id)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/notes should return an empty array of notes', function (done) {
         request(app)
             .get('/api/notes')
             .set('Accept', 'application/json')

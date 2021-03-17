@@ -128,6 +128,26 @@ paths:
                   $ref: '../components/notes.yml#/components/schemas/note'
         '404':
           description: 'A note with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a note'
+      operationId: 'note-delete'
+      description: |
+        This endpoint deletes all versions of a note from the workspace.
+        The note is identified by its STIX id.
+      tags:
+        - 'Notes'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the note to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The note was successfully deleted.'
+        '404':
+          description: 'A note with the requested STIX id was not found.'
 
   /api/notes/{stixId}/modified/{modified}:
     get:
@@ -161,7 +181,7 @@ paths:
           description: 'A note with the requested STIX id and modified date was not found.'
     put:
       summary: 'Update a note'
-      operationId: 'note-update'
+      operationId: 'note-update-version'
       description: |
         This endpoint updates a single version of a note in the workspace, identified by its STIX id and modified date.
       tags:
@@ -198,7 +218,7 @@ paths:
           description: 'A note with the requested STIX id and modified date was not found.'
     delete:
       summary: 'Delete a note'
-      operationId: 'note-delete'
+      operationId: 'note-delete-version'
       description: |
         This endpoint deletes a single version of a note from the workspace.
         The note is identified by its STIX id and modified date.

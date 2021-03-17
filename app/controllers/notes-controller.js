@@ -30,12 +30,12 @@ exports.retrieveAll = function(req, res) {
     });
 };
 
-exports.retrieveById = function(req, res) {
+exports.retrieve = function(req, res) {
     const options = {
         versions: req.query.versions || 'latest'
     }
 
-    notesService.retrieveById(req.params.stixId, options, function (err, notes) {
+    notesService.retrieve(req.params.stixId, options, function (err, notes) {
         if (err) {
             if (err.message === notesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -62,8 +62,8 @@ exports.retrieveById = function(req, res) {
     });
 };
 
-exports.retrieveVersionById = function(req, res) {
-    notesService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, note) {
+exports.retrieveVersion = function(req, res) {
+    notesService.retrieveVersion(req.params.stixId, req.params.modified, function (err, note) {
         if (err) {
             if (err.message === notesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -73,12 +73,13 @@ exports.retrieveVersionById = function(req, res) {
                 logger.error('Failed with error: ' + err);
                 return res.status(500).send('Unable to get note. Server error.');
             }
-        } else {
+        }
+        else {
             if (!note) {
                 return res.status(404).send('Note not found.');
             }
             else {
-                logger.debug(`Success: Retrieved note with id ${note.id}`);
+                logger.debug(`Success: Retrieved note with id ${ note.id }`);
                 return res.status(200).send(note);
             }
         }
@@ -108,12 +109,12 @@ exports.create = function(req, res) {
     });
 };
 
-exports.updateFull = function(req, res) {
+exports.updateVersion = function(req, res) {
     // Get the data from the request
     const noteData = req.body;
 
     // Create the note
-    notesService.updateFull(req.params.stixId, req.params.modified, noteData, function(err, note) {
+    notesService.updateVersion(req.params.stixId, req.params.modified, noteData, function(err, note) {
         if (err) {
             logger.error("Failed with error: " + err);
             return res.status(500).send("Unable to update note. Server error.");
@@ -121,7 +122,8 @@ exports.updateFull = function(req, res) {
         else {
             if (!note) {
                 return res.status(404).send('Note not found.');
-            } else {
+            }
+            else {
                 logger.debug("Success: Updated note with id " + note.stix.id);
                 return res.status(200).send(note);
             }
@@ -130,16 +132,34 @@ exports.updateFull = function(req, res) {
 };
 
 exports.delete = function(req, res) {
-    notesService.delete(req.params.stixId, req.params.modified, function (err, note) {
+    notesService.delete(req.params.stixId, function (err, results) {
         if (err) {
             logger.error('Delete note failed. ' + err);
+            return res.status(500).send('Unable to delete note. Server error.');
+        }
+        else {
+            if (results.deletedCount === 0) {
+                return res.status(404).send('Note not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted note with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteVersion = function(req, res) {
+    notesService.deleteVersion(req.params.stixId, req.params.modified, function (err, note) {
+        if (err) {
+            logger.error('Delete note version failed. ' + err);
             return res.status(500).send('Unable to delete note. Server error.');
         }
         else {
             if (!note) {
                 return res.status(404).send('Note not found.');
             } else {
-                logger.debug("Success: Deleted note with id " + note.stix.id);
+                logger.debug(`Success: Deleted note with id ${ note.stix.id} and modified ${ note.stix.modified }`);
                 return res.status(204).end();
             }
         }
