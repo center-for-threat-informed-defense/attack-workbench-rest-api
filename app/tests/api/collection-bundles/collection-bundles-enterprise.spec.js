@@ -52,7 +52,7 @@ describe('Collection Bundles API Full-Size Test', function () {
     });
 
     it('POST /api/collection-bundles imports the 7.2 enterprise collection bundle', function (done) {
-        this.timeout(30000);
+        this.timeout(60000);
         const body = collectionBundle72;
         request(app)
             .post('/api/collection-bundles')
@@ -74,7 +74,7 @@ describe('Collection Bundles API Full-Size Test', function () {
     });
 
     it('POST /api/collection-bundles imports the 8.0 enterprise collection bundle', function (done) {
-        this.timeout(30000);
+        this.timeout(60000);
         const body = collectionBundle80;
         request(app)
             .post('/api/collection-bundles')
