@@ -1,0 +1,130 @@
+[
+  {
+    "objectType": "technique",
+    "properties": [
+      {
+        "propertyName": "x_mitre_platform",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "PRE",
+              "Linux",
+              "macOS",
+              "Windows",
+              "Network",
+              "Office 365",
+              "Azure AD",
+              "SaaS",
+              "IaaS",
+              "Google Workspace"
+            ]
+          },
+          {
+            "domainName": "mobile-attack",
+            "allowedValues": [
+              "Android",
+              "iOS"
+            ]
+          },
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [ ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_tactic_type",
+        "domains": [
+          {
+            "domainName": "mobile-attack",
+            "allowedValues": [
+              "Post-Adversary Device Access",
+              "Pre-Adversary Device Access",
+              "Without Adversary Device Access"            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_impact_type",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "Availability",
+              "Integrity"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_effective_permissions",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "Administrator",
+              "root",
+              "SYSTEM",
+              "User",
+              "Remote Desktop Users"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_permissions_required",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "Administrator",
+              "root",
+              "SYSTEM",
+              "User",
+              "Remote Desktop Users"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "objectType": "software",
+    "properties": [
+      {
+        "propertyName": "x_mitre_platform",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "PRE",
+              "Linux",
+              "macOS",
+              "Windows",
+              "Network",
+              "AWS",
+              "GCP",
+              "Azure",
+              "Office 365",
+              "Azure AD",
+              "SaaS"
+            ]
+          },
+          {
+            "domainName": "mobile-attack",
+            "allowedValues": [
+              "Android",
+              "iOS"
+            ]
+          },
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [ ]
+          }
+        ]
+      }
+    ]
+  }
+]
+

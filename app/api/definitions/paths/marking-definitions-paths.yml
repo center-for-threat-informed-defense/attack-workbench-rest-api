@@ -1,0 +1,163 @@
+paths:
+  /api/marking-definitions:
+    get:
+      summary: 'Get a list of marking definitions'
+      operationId: 'marking-definition-get-all'
+      description: |
+        This endpoint retrieves a list of marking definitions from the workspace.
+        Note that marking definitions do not have an `modified` property and only one version of a marking definition may exist.
+        In addition, a marking definition does not have a `revoked` property.
+      tags:
+        - 'Marking Definitions'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of marking definitions to retrieve.
+            The default (0) will retrieve all marking definitions.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of marking definitions to skip.
+            The default (0) will start with the first marking definition.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, marking definitions will be retrieved with any state.
+          schema:
+            type: string
+          example: 'work-in-progress'
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of marking definitions.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/marking-definitions.yml#/components/schemas/marking-definition'
+
+    post:
+      summary: 'Create a marking definition'
+      operationId: 'marking-definition-create'
+      description: |
+        This endpoint creates a new marking definition in the workspace.
+        The `stix.id` property should not be set; this endpoint will create a new marking definition, generating a STIX id for it.
+      tags:
+        - 'Marking Definitions'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/marking-definitions.yml#/components/schemas/marking-definition'
+      responses:
+        '201':
+          description: 'The marking definition has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/marking-definitions.yml#/components/schemas/marking-definition'
+        '400':
+          description: 'Missing or invalid parameters were provided. The marking definition was not created.'
+
+  /api/marking-definitions/{stixId}:
+    get:
+      summary: 'Get a marking definition'
+      operationId: 'marking-definition-get-one-id'
+      description: |
+        This endpoint gets a list containing one marking definition from the workspace, identified by STIX id.
+        (This endpoint returns a list to maintain a similar structure with other endpoints.)
+      tags:
+        - 'Marking Definitions'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the marking definition to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A list containing one marking definition matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/marking-definitions.yml#/components/schemas/marking-definition'
+        '404':
+          description: 'A marking definition with the requested STIX id was not found.'
+    put:
+      summary: 'Update a marking definition'
+      operationId: 'marking-definition-update'
+      description: |
+        This endpoint updates a marking definition in the workspace, identified by its STIX id.
+      tags:
+        - 'Marking Definitions'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the marking definition to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/marking-definitions.yml#/components/schemas/marking-definition'
+      responses:
+        '200':
+          description: 'The marking definition was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/marking-definitions.yml#/components/schemas/marking-definition'
+        '400':
+          description: 'Missing or invalid parameters were provided. The marking definition was not updated.'
+        '404':
+          description: 'A marking definition with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a marking definition'
+      operationId: 'marking-definition-delete'
+      description: |
+        This endpoint deletes a marking definition from the workspace.
+        The marking definition is identified by its STIX id.
+      tags:
+        - 'Marking Definitions'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the marking definition to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The marking definition was successfully deleted.'
+        '404':
+          description: 'A marking definition with the requested STIX id was not found.'

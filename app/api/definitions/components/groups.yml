@@ -1,0 +1,43 @@
+components:
+  schemas:
+    group:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/intrusion-set'
+
+    intrusion-set:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # intrusion-set specific properties
+            name:
+              type: string
+              example: 'APT29'
+            description:
+              type: string
+              example: 'This is an intrusion set (group)'
+            # ATT&CK custom properties
+            aliases:
+              type: array
+              items:
+                type: string
+            x_mitre_contributors:
+              type: array
+              items:
+                type: string
+            x_mitre_domains:
+              type: array
+              items:
+                type: string
+            x_mitre_version:
+              type: string
+              example: '1.0'

@@ -1,0 +1,32 @@
+components:
+  schemas:
+    marking-definition:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/marking-definition-stix-object'
+
+    marking-definition-stix-object:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common-marking-definition'
+        - type: object
+          properties:
+            # marking-definition specific properties
+            name:
+              type: string
+            definition_type:
+              type: string
+              example: 'statement'
+            definition:
+              $ref: '#/components/schemas/marking-object-definition'
+
+    marking-object-definition:
+      type: object
+      properties:
+        statement:
+          type: string

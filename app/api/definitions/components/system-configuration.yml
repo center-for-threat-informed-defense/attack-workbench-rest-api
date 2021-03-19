@@ -1,0 +1,35 @@
+components:
+  schemas:
+    allowed-values:
+      type: object
+      properties:
+        objectType:
+          type: string
+          example: 'technique'
+        properties:
+          $ref: '#/components/schemas/allowedValuesForProperty'
+
+    allowedValuesForProperty:
+      type: array
+      items:
+        type: object
+        properties:
+          propertyName:
+            type: string
+            example: 'x_mitre_platform'
+          domains:
+            $ref: '#/components/schemas/allowedValuesForDomain'
+
+    allowedValuesForDomain:
+      type: array
+      items:
+        type: object
+        properties:
+          domainName:
+            type: string
+            example: 'enterprise-attack'
+          allowedValues:
+            type: array
+            items:
+              type: string
+              example: 'Linux'

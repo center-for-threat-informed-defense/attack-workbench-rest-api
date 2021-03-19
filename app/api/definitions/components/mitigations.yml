@@ -1,0 +1,38 @@
+components:
+  schemas:
+    mitigation:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/course-of-action'
+
+    course-of-action:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # mitigation-specific properties
+            name:
+              type: string
+              example: 'Compiled HTML File Mitigation'
+            description:
+              type: string
+              example: 'This is a course of action (mitigation).'
+            # ATT&CK custom properties
+            x_mitre_domains:
+              type: array
+              items:
+                type: string
+            x_mitre_version:
+              type: string
+              example: '1.0'
+            x_mitre_deprecated:
+              type: boolean
+              example: false

@@ -10,7 +10,9 @@ logger.level = 'debug';
 // stix.id property will be created by REST API
 const initialObjectData = {
     workspace: {
-        domains: [ 'domain-1']
+        workflow: {
+            state: 'work-in-progress'
+        }
     },
     stix: {
         name: 'course-of-action-1',
@@ -30,12 +32,12 @@ describe('Mitigations API', function () {
     let app;
 
     before(async function() {
-        // Initialize the express app
-        app = await require('../../../index').initializeApp();
-
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Initialize the express app
+        app = await require('../../../index').initializeApp();
     });
 
     it('GET /api/mitigations returns an empty array of mitigations', function (done) {
@@ -96,6 +98,10 @@ describe('Mitigations API', function () {
                     // We expect to get the created mitigation
                     mitigation1 = res.body;
                     expect(mitigation1).toBeDefined();
+                    expect(mitigation1.stix).toBeDefined();
+                    expect(mitigation1.stix.id).toBeDefined();
+                    expect(mitigation1.stix.created).toBeDefined();
+                    expect(mitigation1.stix.modified).toBeDefined();
                     done();
                 }
             });

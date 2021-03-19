@@ -37,6 +37,14 @@ exports.retrieveAll = function(options, callback) {
         { $match: query }
     ];
 
+    if (typeof options.search !== 'undefined') {
+        const match = { $match: { $or: [
+                    { 'stix.name': { '$regex': options.search, '$options': 'i' }},
+                    { 'stix.description': { '$regex': options.search, '$options': 'i' }}
+                ]}};
+        aggregation.push(match);
+    }
+
     const facet = {
         $facet: {
             totalCount: [ { $count: 'totalCount' }],
@@ -196,7 +204,7 @@ exports.create = function(data, callback) {
 
     if (!matrix.stix.id) {
         // Assign a new STIX id
-        matrix.stix.id = `attack-pattern--${uuid.v4()}`;
+        matrix.stix.id = `x-mitre-matrix--${uuid.v4()}`;
     }
 
     // Save the document in the database
@@ -229,7 +237,7 @@ exports.createAsync = async function(data) {
 
     if (!matrix.stix.id) {
         // Assign a new STIX id
-        matrix.stix.id = `attack-pattern--${uuid.v4()}`;
+        matrix.stix.id = `x-mitre-matrix--${uuid.v4()}`;
     }
 
     // Save the document in the database

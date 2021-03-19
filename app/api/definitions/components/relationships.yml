@@ -1,0 +1,47 @@
+components:
+  schemas:
+    relationship:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/stix-relationship'
+
+    stix-relationship:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - relationship_type
+            - source_ref
+            - target_ref
+          properties:
+            # relationship specific properties
+            description:
+              type: string
+              example: 'This is a relationship'
+            relationship_type:
+              type: string
+              example: 'uses'
+            source_ref:
+              type: string
+            target_ref:
+              type: string
+            start_time:
+              type: string
+              format: date-time
+            stop_time:
+              type: string
+              format: date-time
+            # ATT&CK custom properties
+            x_mitre_domains:
+              type: array
+              items:
+                type: string
+            x_mitre_version:
+              type: string
+              example: '1.0'

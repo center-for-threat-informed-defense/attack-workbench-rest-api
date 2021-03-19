@@ -22,6 +22,7 @@ module.exports.commonRequiredSDO = {
             'intrusion-set',
             'malware',
             'marking-definition',
+            'note',
             'relationship',
             'tool',
             'x-mitre-collection',
@@ -32,8 +33,7 @@ module.exports.commonRequiredSDO = {
     },
     spec_version: { type: String, required: true },
     id: { type: String, required: true },
-    created: { type: Date, required: true },
-    modified: { type: Date, required: true }
+    created: { type: Date, required: true }
 };
 
 module.exports.commonOptionalSDO = {

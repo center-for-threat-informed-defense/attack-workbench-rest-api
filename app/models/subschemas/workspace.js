@@ -1,7 +1,6 @@
 'use strict';
 
 module.exports.common = {
-    domains: [ String ],
     workflow: {
         state: {
             type: String,
@@ -11,7 +10,8 @@ module.exports.common = {
                 'reviewed'
             ]
         }
-    }
+    },
+    attack_id: String
 };
 
 const importError = {
@@ -33,5 +33,9 @@ module.exports.collection = {
         duplicates: [ String ],
         out_of_date: [ String ],
         errors: [ importError ]
+    },
+    import_references: {
+        additions: [ String ],
+        changes: [ String ]
     }
 };

@@ -44,7 +44,7 @@ exports.initializeApp = async function() {
         logger.info('Enabling Swagger UI');
         const swaggerUi = require('swagger-ui-express');
         const refParser = require("@apidevtools/json-schema-ref-parser");
-        const openApiDoc = await refParser.bundle(config.openApi.specPath);
+        const openApiDoc = await refParser.dereference(config.openApi.specPath);
         app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
     }
 

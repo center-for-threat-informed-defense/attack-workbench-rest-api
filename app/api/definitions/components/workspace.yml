@@ -1,0 +1,14 @@
+components:
+  schemas:
+    workspace:
+      type: object
+      properties:
+        # STIX common properties
+        workflow:
+          type: object
+          properties:
+            state:
+              type: string
+        attackId:
+          type: string
+          example: 'T9999'

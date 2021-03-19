@@ -3,7 +3,8 @@
 const stixCore = require('./stix-core');
 
 module.exports.attackPattern = {
-    // attack-pattern specific properties
+    // STIX attack-pattern specific properties
+    modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
     kill_chain_phases: [ stixCore.killChainPhase ],
@@ -25,11 +26,12 @@ module.exports.attackPatternEnterpriseDomain = {
     x_mitre_impact_type: { type: [ String ], default: undefined },
     x_mitre_permissions_required: { type: [ String ], default: undefined },
     x_mitre_system_requirements: { type: [ String ], default: undefined },
+    x_mitre_effective_permissions: { type: [ String ], default: undefined },
     x_mitre_remote_support: Boolean
 };
 
 module.exports.attackPatternMobileDomain = {
-    x_mitre_tactic_types: { type: [ String ], default: undefined }
+    x_mitre_tactic_type: { type: [ String ], default: undefined }
 };
 
 module.exports.attackPatternICSDomain = {

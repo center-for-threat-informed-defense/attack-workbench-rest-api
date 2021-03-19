@@ -1,0 +1,42 @@
+components:
+  schemas:
+    tactic:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/x-mitre-tactic'
+
+    x-mitre-tactic:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # x-mitre-tactic specific properties
+            name:
+              type: string
+              example: 'Collection'
+            description:
+              type: string
+              example: "This is a tactic."
+            # ATT&CK custom properties
+            x_mitre_contributors:
+              type: array
+              items:
+                type: string
+            x_mitre_deprecated:
+              type: boolean
+              example: false
+            x_mitre_domains:
+              type: array
+              items:
+                type: string
+            x_mitre_version:
+              type: string
+              example: '1.0'

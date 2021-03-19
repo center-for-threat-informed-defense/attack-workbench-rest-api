@@ -196,7 +196,7 @@ exports.create = function(data, callback) {
 
     if (!identity.stix.id) {
         // Assign a new STIX id
-        identity.stix.id = `attack-pattern--${uuid.v4()}`;
+        identity.stix.id = `identity--${uuid.v4()}`;
     }
 
     // Save the document in the database
@@ -229,7 +229,7 @@ exports.createAsync = async function(data) {
 
     if (!identity.stix.id) {
         // Assign a new STIX id
-        identity.stix.id = `attack-pattern--${uuid.v4()}`;
+        identity.stix.id = `identity--${uuid.v4()}`;
     }
 
     // Save the document in the database

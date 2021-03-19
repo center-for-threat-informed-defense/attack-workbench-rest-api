@@ -1,0 +1,34 @@
+components:
+  schemas:
+    note:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/stix-note'
+
+    stix-note:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - content
+            - object_refs
+          properties:
+            # note specific properties
+            abstract:
+              type: string
+            content:
+              type: string
+            authors:
+              type: array
+              items:
+                type: string
+            object_refs:
+              type: array
+              items:
+                type: string

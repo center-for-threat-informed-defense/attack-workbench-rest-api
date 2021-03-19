@@ -1,6 +1,8 @@
 {
   "workspace": {
-    "domains": [ "domain-1"]
+    "workflow": {
+
+    }
   },
   "stix": {
     "spec_version": "2.1",

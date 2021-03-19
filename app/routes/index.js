@@ -3,17 +3,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const OpenApiValidator = require('express-openapi-validator');
-
-const techniquesRoutes = require('./techniques-routes');
-const tacticsRoutes = require('./tactics-routes');
-const groupsRoutes = require('./groups-routes');
-const softwareRoutes = require('./software-routes');
-const mitigationsRoutes = require('./mitigations-routes');
-const matricesRoutes = require('./matrices-routes');
-const relationshipsRoutes = require('./relationships-routes');
-const collectionIndexesRoutes = require('./collection-indexes-routes');
-const collectionsRoutes = require('./collections-routes');
-const collectionBundlesRoutes = require('./collection-bundles-routes');
+const fs = require('fs');
+const path = require("path");
 
 const errorHandler = require('../lib/error-handler');
 const config = require('../config/config');
@@ -31,17 +22,15 @@ router.use(OpenApiValidator.middleware({
     validateResponses: false
 }));
 
-// Set up the routes
-router.use('/api', techniquesRoutes);
-router.use('/api', tacticsRoutes);
-router.use('/api', groupsRoutes);
-router.use('/api', softwareRoutes);
-router.use('/api', mitigationsRoutes);
-router.use('/api', matricesRoutes);
-router.use('/api', relationshipsRoutes);
-router.use('/api', collectionIndexesRoutes);
-router.use('/api', collectionsRoutes);
-router.use('/api', collectionBundlesRoutes);
+// Set up the endpoint routes
+//   All files in this directory that end in '-routes.js' will be added as endpoint routes
+fs.readdirSync(path.join(__dirname, '.')).forEach(function(filename) {
+    if (filename.endsWith('-routes.js')) {
+        const moduleName = path.basename(filename, '.js');
+        const module = require('./' + moduleName);
+        router.use('/api', module);
+    }
+});
 
 // Handle errors that haven't otherwise been caught
 router.use(errorHandler.bodyParser);

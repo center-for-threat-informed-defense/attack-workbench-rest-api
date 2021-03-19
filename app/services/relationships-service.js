@@ -39,44 +39,29 @@ exports.retrieveAll = function(options, callback) {
     if (typeof options.targetRef !== 'undefined') {
         query['stix.target_ref'] = options.targetRef;
     }
-    // TBD: Implement sourceOrTargetRef
-    // { $or: [{ source_ref: options.sourceOrTargetRef }, { target_ref: options.sourceOrTargetRef }] }
+    if (typeof options.sourceOrTargetRef !== 'undefined') {
+        query.$or = [{ 'stix.source_ref': options.sourceOrTargetRef }, { 'stix.target_ref': options.sourceOrTargetRef }]
+    }
     if (typeof options.relationshipType !== 'undefined') {
         query['stix.relationship_type'] = options.relationshipType;
     }
 
     // Build the aggregation
-    // - Group the documents by stix.id, sorted by stix.modified
-    // - Use the last document in each group (according to the value of stix.modified)
-    // - Then apply query, skip and limit options
-    const aggregation = [
-        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
-        { $replaceRoot: { newRoot: '$document' }},
-        { $sort: { 'stix.id': 1 }},
-        { $match: query }
-    ];
+    const aggregation = [];
+    if (options.versions === 'latest') {
+        // - Group the documents by stix.id, sorted by stix.modified
+        // - Use the last document in each group (according to the value of stix.modified)
+        aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': 1 } });
+        aggregation.push({ $group: { _id: '$stix.id', document: { $last: '$$ROOT' } } });
+        aggregation.push({ $replaceRoot: { newRoot: '$document' } });
+    }
 
-    const facet = {
-        $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [
-                { $lookup: { from: 'attackObjects', localField: 'stix.source_ref', foreignField: 'stix.id', as: 'source_objects' }},
-                { $lookup: { from: 'attackObjects', localField: 'stix.target_ref', foreignField: 'stix.id', as: 'target_objects' }}
-            ]
-        }
-    };
-    if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
-    }
-    else {
-        facet.$facet.documents.push({ $skip: 0 });
-    }
-    if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-    }
-    aggregation.push(facet);
-
+    // Add stages to the aggregation to sort (for pagination), apply the query, and add source and target object data
+    aggregation.push({ $sort: { 'stix.id': 1 } });
+    aggregation.push({ $match: query });
+    aggregation.push({ $lookup: { from: 'attackObjects', localField: 'stix.source_ref', foreignField: 'stix.id', as: 'source_objects' }});
+    aggregation.push({ $lookup: { from: 'attackObjects', localField: 'stix.target_ref', foreignField: 'stix.id', as: 'target_objects' }});
+    
     // Retrieve the documents
     Relationship.aggregate(aggregation, function(err, results) {
         if (err) {
@@ -85,13 +70,13 @@ exports.retrieveAll = function(options, callback) {
         else {
             if (options.sourceType) {
                 // Filter out relationships that don't reference the source type
-                results[0].documents = results[0].documents.filter(document =>
+                results = results.filter(document =>
                 {
                     if (document.source_objects.length === 0) {
                         return false;
                     }
                     else {
-                        document.source_objects.sort((a, b) => b.stix.modified.localeCompare(a.stix.modified));
+                        document.source_objects.sort((a, b) => b.stix.modified - a.stix.modified);
                         return objectTypeMap.get(document.source_objects[0].stix.type) === options.sourceType;
                     }
                 });
@@ -99,19 +84,34 @@ exports.retrieveAll = function(options, callback) {
 
             if (options.targetType) {
                 // Filter out relationships that don't reference the target type
-                results[0].documents = results[0].documents.filter(document =>
+                results = results.filter(document =>
                 {
                     if (document.target_objects.length === 0) {
                         return false;
                     }
                     else {
-                        document.target_objects.sort((a, b) => b.stix.modified.localeCompare(a.stix.modified));
+                        document.target_objects.sort((a, b) => b.stix.modified - a.stix.modified);
                         return objectTypeMap.get(document.target_objects[0].stix.type) === options.targetType;
                     }
                 });
             }
 
-            for (const document of results[0].documents) {
+            const prePaginationTotal = results.length;
+
+            // Apply pagination parameters
+            if (options.offset || options.limit) {
+                const start = options.offset || 0;
+                if (options.limit) {
+                    const end = start + options.limit;
+                    results = results.slice(start, end);
+                }
+                else {
+                    results = results.slice(start);
+                }
+            }
+
+            // Move latest source and target objects to a non-array property, then remove array of source and target objects
+            for (const document of results) {
                 if (document.source_objects.length === 0) {
                     document.source_objects = undefined;
                 }
@@ -130,23 +130,18 @@ exports.retrieveAll = function(options, callback) {
             }
 
             if (options.includePagination) {
-                let derivedTotalCount = 0;
-                if (results[0].totalCount.length > 0) {
-                    derivedTotalCount = results[0].totalCount[0].totalCount;
-                }
-
                 const returnValue = {
                     pagination: {
-                        total: derivedTotalCount,
+                        total: prePaginationTotal,
                         offset: options.offset,
                         limit: options.limit
                     },
-                    data: results[0].documents
+                    data: results
                 };
                 return callback(null, returnValue);
             }
             else {
-                return callback(null, results[0].documents);
+                return callback(null, results);
             }
         }
     });
@@ -266,7 +261,7 @@ exports.create = function(data, callback) {
 
     if (!relationship.stix.id) {
         // Assign a new STIX id
-        relationship.stix.id = `attack-pattern--${uuid.v4()}`;
+        relationship.stix.id = `relationship--${uuid.v4()}`;
     }
 
     // Save the document in the database
@@ -299,7 +294,7 @@ exports.createAsync = async function(data) {
 
     if (!relationship.stix.id) {
         // Assign a new STIX id
-        relationship.stix.id = `attack-pattern--${uuid.v4()}`;
+        relationship.stix.id = `relationship--${uuid.v4()}`;
     }
 
     // Save the document in the database

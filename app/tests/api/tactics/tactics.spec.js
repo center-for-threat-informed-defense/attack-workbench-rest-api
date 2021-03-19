@@ -10,13 +10,15 @@ logger.level = 'debug';
 // stix.id property will be created by REST API
 const initialObjectData = {
     workspace: {
-        domains: [ 'domain-1']
+        workflow: {
+            state: 'work-in-progress'
+        }
     },
     stix: {
         name: 'x-mitre-tactic-1',
         spec_version: '2.1',
         type: 'x-mitre-tactic',
-        description: 'This is a tactic.',
+        description: 'This is a tactic. yellow.',
         external_references: [
             { source_name: 'source-1', external_id: 's1' }
         ],
@@ -29,12 +31,12 @@ describe('Tactics API', function () {
     let app;
 
     before(async function() {
-        // Initialize the express app
-        app = await require('../../../index').initializeApp();
-
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Initialize the express app
+        app = await require('../../../index').initializeApp();
     });
 
     it('GET /api/tactics returns an empty array of tactics', function (done) {
@@ -95,6 +97,10 @@ describe('Tactics API', function () {
                     // We expect to get the created tactic
                     tactic1 = res.body;
                     expect(tactic1).toBeDefined();
+                    expect(tactic1.stix).toBeDefined();
+                    expect(tactic1.stix.id).toBeDefined();
+                    expect(tactic1.stix.created).toBeDefined();
+                    expect(tactic1.stix.modified).toBeDefined();
                     done();
                 }
             });
@@ -221,6 +227,7 @@ describe('Tactics API', function () {
         tactic2.__t = undefined;
         tactic2.__v = undefined;
         const timestamp = new Date().toISOString();
+        tactic2.stix.description = 'Still a tactic. Violet.'
         tactic2.stix.modified = timestamp;
         const body = tactic2;
         request(app)
@@ -326,6 +333,55 @@ describe('Tactics API', function () {
                     expect(tactic.stix).toBeDefined();
                     expect(tactic.stix.id).toBe(tactic2.stix.id);
                     expect(tactic.stix.modified).toBe(tactic2.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/tactics uses the search parameter to return the latest version of the tactic', function (done) {
+        request(app)
+            .get('/api/tactics?search=violet')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one tactic in an array
+                    const tactics = res.body;
+                    expect(tactics).toBeDefined();
+                    expect(Array.isArray(tactics)).toBe(true);
+                    expect(tactics.length).toBe(1);
+
+                    // We expect it to be the latest version of the tactic
+                    const tactic = tactics[0];
+                    expect(tactic).toBeDefined();
+                    expect(tactic.stix).toBeDefined();
+                    expect(tactic.stix.id).toBe(tactic2.stix.id);
+                    expect(tactic.stix.modified).toBe(tactic2.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/tactics should not get the first version of the tactic when using the search parameter', function (done) {
+        request(app)
+            .get('/api/tactics?search=yellow')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get zero tactics in an array
+                    const tactics = res.body;
+                    expect(tactics).toBeDefined();
+                    expect(Array.isArray(tactics)).toBe(true);
+                    expect(tactics.length).toBe(0);
                     done();
                 }
             });

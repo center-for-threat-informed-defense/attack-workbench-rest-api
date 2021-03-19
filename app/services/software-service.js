@@ -37,6 +37,14 @@ exports.retrieveAll = function(options, callback) {
         { $match: query }
     ];
 
+    if (typeof options.search !== 'undefined') {
+        const match = { $match: { $or: [
+                    { 'stix.name': { '$regex': options.search, '$options': 'i' }},
+                    { 'stix.description': { '$regex': options.search, '$options': 'i' }}
+                ]}};
+        aggregation.push(match);
+    }
+
     const facet = {
         $facet: {
             totalCount: [ { $count: 'totalCount' }],
@@ -193,8 +201,12 @@ exports.create = function(data, callback) {
 
     if (!software.stix.id) {
         // Assign a new STIX id
-        // JEFF how do we handle software STIX ids if they can either be tools or malware?
-        software.stix.id = `tool--${uuid.v4()}`;
+        if (software.stix.type === 'tool') {
+            software.stix.id = `tool--${uuid.v4()}`;
+        }
+        else {
+            software.stix.id = `malware--${uuid.v4()}`;
+        }
     }
 
     // Save the document in the database

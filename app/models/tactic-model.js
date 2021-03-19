@@ -2,12 +2,25 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
-const tacticDefinitions = require('./subschemas/tactic');
+
+const stixTactic = {
+    // STIX x-mitre-tactic specific properties
+    modified: { type: Date, required: true },
+    name: { type: String, required: true },
+    description: String,
+
+    // ATT&CK custom stix properties
+    x_mitre_deprecated: Boolean,
+    x_mitre_domains: [ String ],
+    x_mitre_version: String,
+    x_mitre_contributors: [ String ],
+    x_mitre_shortname: String
+};
 
 // Create the definition
 const tacticDefinition = {
     stix: {
-        ...tacticDefinitions.tactic
+        ...stixTactic
     }
 };
 

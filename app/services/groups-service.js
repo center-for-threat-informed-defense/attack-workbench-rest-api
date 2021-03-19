@@ -1,7 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
-const Group = require('../models/intrusion-set-model');
+const Group = require('../models/group-model');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -36,6 +36,14 @@ exports.retrieveAll = function(options, callback) {
         { $sort: { 'stix.id': 1 }},
         { $match: query }
     ];
+
+    if (typeof options.search !== 'undefined') {
+        const match = { $match: { $or: [
+                        { 'stix.name': { '$regex': options.search, '$options': 'i' }},
+                        { 'stix.description': { '$regex': options.search, '$options': 'i' }}
+                        ]}};
+        aggregation.push(match);
+    }
 
     const facet = {
         $facet: {
