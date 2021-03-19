@@ -37,6 +37,14 @@ exports.retrieveAll = function(options, callback) {
         { $match: query }
     ];
 
+    if (typeof options.search !== 'undefined') {
+        const match = { $match: { $or: [
+                        { 'stix.name': { '$regex': options.search, '$options': 'i' }},
+                        { 'stix.description': { '$regex': options.search, '$options': 'i' }}
+                        ]}};
+        aggregation.push(match);
+    }
+
     const facet = {
         $facet: {
             totalCount: [ { $count: 'totalCount' }],

@@ -10,7 +10,8 @@ exports.retrieveAll = function(req, res) {
         versions: req.query.versions || 'latest',
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
-        includeDeprecated: req.query.includeDeprecated
+        includeDeprecated: req.query.includeDeprecated,
+        search: req.query.search
     }
 
     collectionsService.retrieveAll(options, function(err, collections) {

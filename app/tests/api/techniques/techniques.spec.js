@@ -19,7 +19,7 @@ const initialObjectData = {
         name: 'attack-pattern-1',
         spec_version: '2.1',
         type: 'attack-pattern',
-        description: 'This is a technique.',
+        description: 'This is a technique. Orange.',
         external_references: [
             { source_name: 'mitre-attack', external_id: 'T9999', url: 'https://attack.mitre.org/techniques/T9999' },
             { source_name: 'source-1', external_id: 's1' }
@@ -240,6 +240,7 @@ describe('Techniques Basic API', function () {
         technique2.__v = undefined;
         const timestamp = new Date().toISOString();
         technique2.stix.modified = timestamp;
+        technique2.stix.description = 'Still a technique. Purple!'
         const body = technique2;
         request(app)
             .post('/api/techniques')
@@ -339,6 +340,55 @@ describe('Techniques Basic API', function () {
                     expect(technique.stix).toBeDefined();
                     expect(technique.stix.id).toBe(technique2.stix.id);
                     expect(technique.stix.modified).toBe(technique2.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques uses the search parameter to return the latest version of the technique', function (done) {
+        request(app)
+            .get('/api/techniques?search=purple')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one technique in an array
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(1);
+
+                    // We expect it to be the latest version of the technique
+                    const technique = techniques[0];
+                    expect(technique).toBeDefined();
+                    expect(technique.stix).toBeDefined();
+                    expect(technique.stix.id).toBe(technique2.stix.id);
+                    expect(technique.stix.modified).toBe(technique2.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques should not get the first version of the techniques when using the search parameter', function (done) {
+        request(app)
+            .get('/api/techniques?search=orange')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get zero techniques in an array
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(0);
                     done();
                 }
             });

@@ -2,10 +2,10 @@ const request = require('supertest');
 const expect = require('expect');
 const fs = require('fs').promises;
 
-const logger = require('../../../lib/logger');
+const logger = require('../../lib/logger');
 logger.level = 'debug';
 
-const database = require('../../../lib/database-in-memory')
+const database = require('../../lib/database-in-memory')
 
 async function readJson(path) {
     const filePath = require.resolve(path);
@@ -24,7 +24,7 @@ describe('Collection Bundles API Full-Size Test', function () {
         await database.initializeConnection();
 
         // Initialize the express app
-        app = await require('../../../index').initializeApp();
+        app = await require('../../index').initializeApp();
 
         collectionBundle72 = await readJson('./enterprise-attack-7.2.json');
         collectionBundle80 = await readJson('./enterprise-attack-8.0.json');
@@ -68,6 +68,8 @@ describe('Collection Bundles API Full-Size Test', function () {
                     const collection = res.body;
                     expect(collection).toBeDefined();
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
+                    console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
+                    console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);
                     done();
                 }
             });
@@ -90,6 +92,8 @@ describe('Collection Bundles API Full-Size Test', function () {
                     const collection = res.body;
                     expect(collection).toBeDefined();
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
+                    console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
+                    console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);
                     done();
                 }
             });

@@ -11,8 +11,9 @@
     "lint": "eslint .",
     "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",
-    "test": "npm run test:openapi && npm run test:api",
+    "test": "npm run test:openapi && npm run test:api && npm run test:import",
     "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api",
+    "test:import": "mocha  --timeout 10000 --recursive ./app/tests/import",
     "test:openapi": "mocha  --timeout 10000 ./app/tests/openapi"
   },
   "dependencies": {

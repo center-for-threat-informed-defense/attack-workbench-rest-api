@@ -2,6 +2,7 @@ const request = require('supertest');
 const database = require('../../../lib/database-in-memory')
 const expect = require('expect');
 const _ = require('lodash');
+const Group = require('../../../models/group-model');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -18,7 +19,7 @@ const initialObjectData = {
         name: 'intrusion-set-1',
         spec_version: '2.1',
         type: 'intrusion-set',
-        description: 'This is a group.',
+        description: 'This is a group. Blue.',
         external_references: [
             { source_name: 'source-1', external_id: 's1' }
         ],
@@ -34,6 +35,9 @@ describe('Groups API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Wait until the indexes are created
+        await Group.init();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
@@ -178,7 +182,7 @@ describe('Groups API', function () {
         const originalModified = group1.stix.modified;
         const timestamp = new Date().toISOString();
         group1.stix.modified = timestamp;
-        group1.stix.description = 'This is an updated group.'
+        group1.stix.description = 'This is an updated group. Blue.'
         const body = group1;
         request(app)
             .put('/api/groups/' + group1.stix.id + '/modified/' + originalModified)
@@ -226,6 +230,7 @@ describe('Groups API', function () {
         group2.__v = undefined;
         const timestamp = new Date().toISOString();
         group2.stix.modified = timestamp;
+        group2.stix.description = 'This is a new version of a group. Green.';
         const body = group2;
         request(app)
             .post('/api/groups')
@@ -302,7 +307,7 @@ describe('Groups API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get one group in an array
+                    // We expect to get one group
                     const group = res.body;
                     expect(group).toBeDefined();
                     expect(group.stix).toBeDefined();
@@ -324,12 +329,121 @@ describe('Groups API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get one group in an array
+                    // We expect to get one group
                     const group = res.body;
                     expect(group).toBeDefined();
                     expect(group.stix).toBeDefined();
                     expect(group.stix.id).toBe(group2.stix.id);
                     expect(group.stix.modified).toBe(group2.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    let group3;
+    it('POST /api/groups should create a new group with a different stix.id', function (done) {
+        const group = _.cloneDeep(initialObjectData);
+        group._id = undefined;
+        group.__t = undefined;
+        group.__v = undefined;
+        group.stix.id = undefined;
+        const timestamp = new Date().toISOString();
+        group.stix.created = timestamp;
+        group.stix.modified = timestamp;
+        group.stix.name = 'Mr. Brown';
+        group.stix.description = 'This is a new group. Red.';
+        const body = group;
+        request(app)
+            .post('/api/groups')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created group
+                    group3 = res.body;
+                    expect(group3).toBeDefined();
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups uses the search parameter to return the latest version of the group', function (done) {
+        request(app)
+            .get('/api/groups?search=green')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+
+                    // We expect it to be the latest version of the group
+                    const group = groups[0];
+                    expect(group).toBeDefined();
+                    expect(group.stix).toBeDefined();
+                    expect(group.stix.id).toBe(group2.stix.id);
+                    expect(group.stix.modified).toBe(group2.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups should not get the first version of the group when using the search parameter', function (done) {
+        request(app)
+            .get('/api/groups?search=blue')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get zero groups in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups uses the search parameter to return the group using the name property', function (done) {
+        request(app)
+            .get('/api/groups?search=brown')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+
+                    // We expect it to be the third group
+                    const group = groups[0];
+                    expect(group).toBeDefined();
+                    expect(group.stix).toBeDefined();
+                    expect(group.stix.id).toBe(group3.stix.id);
+                    expect(group.stix.modified).toBe(group3.stix.modified);
                     done();
                 }
             });
@@ -352,6 +466,20 @@ describe('Groups API', function () {
     it('DELETE /api/groups should delete the second group', function (done) {
         request(app)
             .delete('/api/groups/' + group2.stix.id + '/modified/' + group2.stix.modified)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/groups should delete the third group', function (done) {
+        request(app)
+            .delete('/api/groups/' + group3.stix.id + '/modified/' + group3.stix.modified)
             .expect(204)
             .end(function(err, res) {
                 if (err) {

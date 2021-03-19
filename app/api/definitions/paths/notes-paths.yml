@@ -46,6 +46,14 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: search
+          in: query
+          description: |
+            Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.
+            The search is case-insensitive.
+          schema:
+            type: string
+          example: 'windows'
         - name: includePagination
           in: query
           description: |

@@ -17,7 +17,7 @@ const initialObjectData = {
     stix: {
         spec_version: '2.1',
         type: 'note',
-        abstract: 'This is the abstract for a note.',
+        abstract: 'This is the abstract for a note. Ivory.',
         content: 'This is the content for a note.',
         authors: [
             'Author 1',
@@ -230,6 +230,8 @@ describe('Notes API', function () {
         note2.__t = undefined;
         note2.__v = undefined;
         const timestamp = new Date().toISOString();
+        note2.stix.abstract = 'This is the abstract for a note.';
+        note2.stix.content = 'Still a note. Parchment.'
         note2.stix.modified = timestamp;
         const body = note2;
         request(app)
@@ -283,6 +285,8 @@ describe('Notes API', function () {
         note3.__v = undefined;
         note3.stix.id = undefined;
         const timestamp = new Date().toISOString();
+        note3.stix.abstract = 'This is the abstract for a note.';
+        note3.stix.content = 'Still a note.'
         note3.stix.modified = timestamp;
         const body = note3;
         request(app)
@@ -311,6 +315,8 @@ describe('Notes API', function () {
         note4.__t = undefined;
         note4.__v = undefined;
         const timestamp = new Date().toISOString();
+        note4.stix.abstract = 'This is the abstract for a note. Parchment';
+        note4.stix.content = 'Still a note.'
         note4.stix.modified = timestamp;
         const body = note4;
         request(app)
@@ -413,6 +419,48 @@ describe('Notes API', function () {
                     expect(notes).toBeDefined();
                     expect(Array.isArray(notes)).toBe(true);
                     expect(notes.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/notes uses the search parameter to return the latest version of both notes', function (done) {
+        request(app)
+            .get('/api/notes?search=PARCHMENT')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get two notes in an array
+                    const notes = res.body;
+                    expect(notes).toBeDefined();
+                    expect(Array.isArray(notes)).toBe(true);
+                    expect(notes.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/notes should not get the first version of the note when using the search parameter', function (done) {
+        request(app)
+            .get('/api/notes?search=IVORY')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get zero notes in an array
+                    const notes = res.body;
+                    expect(notes).toBeDefined();
+                    expect(Array.isArray(notes)).toBe(true);
+                    expect(notes.length).toBe(0);
                     done();
                 }
             });

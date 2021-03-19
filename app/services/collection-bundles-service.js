@@ -52,6 +52,9 @@ function toEpoch(date) {
 }
 
 exports.import = function(collection, data, checkOnly, callback) {
+    let uniqueImportReference = 0;
+    let duplicateImportReference = 0;
+
     // Create the x-mitre-collection object
     const importedCollection = {
         workspace: {
@@ -70,7 +73,8 @@ exports.import = function(collection, data, checkOnly, callback) {
             },
             import_references: {
                 additions: [],
-                changes: []
+                changes: [],
+                duplicates: []
             }
         },
         stix: collection
@@ -214,13 +218,15 @@ exports.import = function(collection, data, checkOnly, callback) {
                                         for (const externalReference of importObject.external_references) {
                                             if (externalReference.source_name && externalReference.description && !externalReference.external_id) {
                                                 if (importReferences.has(externalReference.source_name)) {
-                                                    if (externalReference.description === importReferences.get(externalReference.source_name)) {
-                                                        // Duplicate in collection bundle -- skip
-                                                    } else {
-                                                        // Duplicate source name in collection bundle, but description is different
-                                                        // Skip for now
-                                                    }
+                                                    duplicateImportReference++;
+                                                    // if (externalReference.description === importReferences.get(externalReference.source_name)) {
+                                                    //     // Duplicate in collection bundle -- skip
+                                                    // } else {
+                                                    //     // Duplicate source name in collection bundle, but description is different
+                                                    //     // Skip for now
+                                                    // }
                                                 } else {
+                                                    uniqueImportReference++;
                                                     importReferences.set(externalReference.source_name, externalReference);
                                                 }
                                             }
@@ -309,6 +315,8 @@ exports.import = function(collection, data, checkOnly, callback) {
                     .then(function(references) {
                         const existingReferences = new Map(references.map(item => [ item.source_name, item ]));
 
+                        console.log(`${ uniqueImportReference } unique references found, ${ duplicateImportReference } duplicate references found`);
+                        console.log(`importReferences.size ${ importReferences.size }`);
                         // Iterate over the import references
                         async.eachLimit([...importReferences.values()], 8, function(importReference, callback3a) {
                                 if (existingReferences.has(importReference.source_name)) {
@@ -325,6 +333,7 @@ exports.import = function(collection, data, checkOnly, callback) {
                                                 return callback3a();
                                             })
                                             .catch(function (err) {
+                                                console.log(`Error while saving reference: ` + err);
                                                 return callback3a(err);
                                             });
                                     }

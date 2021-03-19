@@ -1,6 +1,7 @@
 const request = require('supertest');
 const database = require('../../../lib/database-in-memory')
 const expect = require('expect');
+const AttackObject = require('../../../models/attack-object-model');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -199,6 +200,9 @@ describe('ATT&CK Objects API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Wait until the indexes are created
+        await AttackObject.init();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
@@ -518,6 +522,28 @@ describe('ATT&CK Objects API', function () {
                     expect(attackObjects).toBeDefined();
                     expect(Array.isArray(attackObjects)).toBe(true);
                     expect(attackObjects.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/attack-objects uses the search parameter to return the tactic object', function (done) {
+        request(app)
+            .get('/api/attack-objects?search=tactic')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the matching objects
+                    const attackObjects = res.body;
+                    expect(attackObjects).toBeDefined();
+                    expect(Array.isArray(attackObjects)).toBe(true);
+                    expect(attackObjects.length).toBe(1);
+                    expect(attackObjects[0].stix.type).toBe('x-mitre-tactic');
                     done();
                 }
             });

@@ -37,8 +37,18 @@ exports.retrieveAll = function(options, callback) {
         aggregation.push({ $replaceRoot: { newRoot: '$document' }});
         aggregation.push({ $sort: { 'stix.id': 1 }});
     }
+
     // Apply query, skip and limit options
     aggregation.push({ $match: query });
+
+    if (typeof options.search !== 'undefined') {
+        const match = { $match: { $or: [
+                    { 'stix.name': { '$regex': options.search, '$options': 'i' }},
+                    { 'stix.description': { '$regex': options.search, '$options': 'i' }}
+                ]}};
+        aggregation.push(match);
+    }
+
     if (options.skip) {
         aggregation.push({ $skip: options.skip });
     }

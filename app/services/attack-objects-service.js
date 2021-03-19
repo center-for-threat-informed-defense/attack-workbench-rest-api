@@ -31,13 +31,20 @@ exports.retrieveAll = async function(options) {
     // - Group the documents by stix.id, sorted by stix.modified
     // - Use the last document in each group (according to the value of stix.modified)
     // - Then apply query, skip and limit options
-    const aggregation = [
-        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
-        { $replaceRoot: { newRoot: '$document' }},
-        { $sort: { 'stix.id': 1 }},
-        { $match: query }
-    ];
+    const aggregation = [];
+    aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': 1 } });
+    aggregation.push({ $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}});
+    aggregation.push({ $replaceRoot: { newRoot: '$document' }});
+    aggregation.push({ $sort: { 'stix.id': 1 }});
+    aggregation.push({ $match: query });
+
+    if (typeof options.search !== 'undefined') {
+        const match = { $match: { $or: [
+                    { 'stix.name': { '$regex': options.search, '$options': 'i' }},
+                    { 'stix.description': { '$regex': options.search, '$options': 'i' }}
+                ]}};
+        aggregation.push(match);
+    }
 
     const facet = {
         $facet: {

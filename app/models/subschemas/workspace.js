@@ -33,5 +33,9 @@ module.exports.collection = {
         duplicates: [ String ],
         out_of_date: [ String ],
         errors: [ importError ]
+    },
+    import_references: {
+        additions: [ String ],
+        changes: [ String ]
     }
 };
