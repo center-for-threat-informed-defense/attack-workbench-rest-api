@@ -33,9 +33,304 @@ Base URLs:
 
     * **port** -  Default: 3000
 
+<h1 id="att-and-ck-workbench-rest-api-att-and-ck-objects">ATT&CK Objects</h1>
+
+Operations on all ATT&CK objects
+
+## Get a list of all ATT&CK objects
+
+<a id="opIdattack-object-get-all"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/attack-objects \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/attack-objects HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/attack-objects',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/attack-objects',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/attack-objects', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/attack-objects', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/attack-objects");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/attack-objects", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/attack-objects`
+
+This endpoint gets a list of all ATT&CK objects from the workspace.
+The list of objects may include multiple versions of each ATT&CK object.
+
+<h3 id="get-a-list-of-all-att&ck-objects-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|attackId|query|string|false|The ATT&CK ID of the object to retrieve.|
+|limit|query|number|false|The number of objects to retrieve.|
+|offset|query|number|false|The number of objects to skip.|
+|state|query|string|false|State of the object in the editing workflow.|
+|includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
+|includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|search|query|string|false|Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.|
+|includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
+
+#### Detailed descriptions
+
+**attackId**: The ATT&CK ID of the object to retrieve.
+Returns all objects where the last version of the object matches the requested ATT&CK ID.
+
+**limit**: The number of objects to retrieve.
+The default (0) will retrieve all objects.
+
+**offset**: The number of objects to skip.
+The default (0) will start with the first object.
+
+**state**: State of the object in the editing workflow.
+If this parameter is not set, objects will be retrieved with any state.
+
+**includeRevoked**: Whether to include objects that have the `revoked` property set to true.
+
+**includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
+
+**search**: Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.
+The search is case-insensitive.
+
+**includePagination**: Whether to include pagination data in the returned value.
+Wraps returned objects in a larger object.
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "workspace": {
+      "imported": "2019-08-24T14:15:22Z",
+      "import_categories": {
+        "additions": [
+          "string"
+        ],
+        "changes": [
+          "string"
+        ],
+        "minor_changes": [
+          "string"
+        ],
+        "revocations": [
+          "string"
+        ],
+        "deprecations": [
+          "string"
+        ],
+        "supersedes_user_edits": [
+          "string"
+        ],
+        "supersedes_collection_changes": [
+          "string"
+        ],
+        "duplicates": [
+          "string"
+        ],
+        "out_of_date": [
+          "string"
+        ],
+        "errors": [
+          {
+            "object_ref": "string",
+            "object_modified": "string",
+            "error_type": "string"
+          }
+        ]
+      }
+    },
+    "stix": {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "Enterprise ATT&CK",
+      "description": "string",
+      "x_mitre_contents": [
+        {
+          "object_ref": "string",
+          "object_modified": "string"
+        }
+      ],
+      "x_mitre_deprecated": false,
+      "x_mitre_version": "1.0"
+    }
+  }
+]
+```
+
+<h3 id="get-a-list-of-all-att&ck-objects-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of ATT&CK Objects.|Inline|
+
+<h3 id="get-a-list-of-all-att&ck-objects-responseschema">Response Schema</h3>
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
 <h1 id="att-and-ck-workbench-rest-api-techniques">Techniques</h1>
 
-Operations on techniques.
+Operations on techniques
 
 ## Get a list of techniques
 
@@ -193,6 +488,7 @@ In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are 
 |state|query|string|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
 |includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
 
 #### Detailed descriptions
@@ -210,6 +506,9 @@ If this parameter is not set, techniques will be retrieved with any state.
 
 **includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
 
+**search**: Only return objects where the provided search text occurs in the `name` or `description`.
+The search is case-insensitive.
+
 **includePagination**: Whether to include pagination data in the returned value.
 Wraps returned objects in a larger object.
 
@@ -223,10 +522,11 @@ Wraps returned objects in a larger object.
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -269,6 +569,9 @@ Wraps returned objects in a larger object.
       "x_mitre_platforms": [
         "Windows"
       ],
+      "x_mitre_impact_type": [
+        "Availability"
+      ],
       "x_mitre_subtechnique": false,
       "x_mitre_system_requirements": [
         "string"
@@ -294,17 +597,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/9](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/9)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -336,10 +640,27 @@ Status Code **200**
 |»»» x_mitre_effective_permissions|[string]|false|none|none|
 |»»» x_mitre_permissions_required|[string]|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_impact_type|[string]|false|none|none|
 |»»» x_mitre_subtechnique|boolean|false|none|none|
 |»»» x_mitre_system_requirements|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -372,10 +693,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -417,6 +739,9 @@ const inputBody = '{
     ],
     "x_mitre_platforms": [
       "Windows"
+    ],
+    "x_mitre_impact_type": [
+      "Availability"
     ],
     "x_mitre_subtechnique": false,
     "x_mitre_system_requirements": [
@@ -565,10 +890,11 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -610,6 +936,9 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
     ],
     "x_mitre_platforms": [
       "Windows"
+    ],
+    "x_mitre_impact_type": [
+      "Availability"
     ],
     "x_mitre_subtechnique": false,
     "x_mitre_system_requirements": [
@@ -627,7 +956,7 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/9](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/9)|true|none|
 
 > Example responses
 
@@ -638,10 +967,11 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -683,6 +1013,9 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
     ],
     "x_mitre_platforms": [
       "Windows"
+    ],
+    "x_mitre_impact_type": [
+      "Availability"
     ],
     "x_mitre_subtechnique": false,
     "x_mitre_system_requirements": [
@@ -710,16 +1043,17 @@ Status Code **201**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -751,10 +1085,27 @@ Status Code **201**
 |»»» x_mitre_effective_permissions|[string]|false|none|none|
 |»»» x_mitre_permissions_required|[string]|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_impact_type|[string]|false|none|none|
 |»»» x_mitre_subtechnique|boolean|false|none|none|
 |»»» x_mitre_system_requirements|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -934,10 +1285,11 @@ This endpoint gets a list of one or more versions of a technique from the worksp
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -980,6 +1332,9 @@ This endpoint gets a list of one or more versions of a technique from the worksp
       "x_mitre_platforms": [
         "Windows"
       ],
+      "x_mitre_impact_type": [
+        "Availability"
+      ],
       "x_mitre_subtechnique": false,
       "x_mitre_system_requirements": [
         "string"
@@ -1006,17 +1361,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/9](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/9)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -1048,10 +1404,27 @@ Status Code **200**
 |»»» x_mitre_effective_permissions|[string]|false|none|none|
 |»»» x_mitre_permissions_required|[string]|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_impact_type|[string]|false|none|none|
 |»»» x_mitre_subtechnique|boolean|false|none|none|
 |»»» x_mitre_system_requirements|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -1218,10 +1591,11 @@ This endpoint gets a single version of a technique from the workspace, identifie
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -1264,6 +1638,9 @@ This endpoint gets a single version of a technique from the workspace, identifie
     "x_mitre_platforms": [
       "Windows"
     ],
+    "x_mitre_impact_type": [
+      "Availability"
+    ],
     "x_mitre_subtechnique": false,
     "x_mitre_system_requirements": [
       "string"
@@ -1289,16 +1666,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -1330,10 +1708,27 @@ Status Code **200**
 |»»» x_mitre_effective_permissions|[string]|false|none|none|
 |»»» x_mitre_permissions_required|[string]|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_impact_type|[string]|false|none|none|
 |»»» x_mitre_subtechnique|boolean|false|none|none|
 |»»» x_mitre_system_requirements|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -1366,10 +1761,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -1411,6 +1807,9 @@ const inputBody = '{
     ],
     "x_mitre_platforms": [
       "Windows"
+    ],
+    "x_mitre_impact_type": [
+      "Availability"
     ],
     "x_mitre_subtechnique": false,
     "x_mitre_system_requirements": [
@@ -1557,10 +1956,11 @@ This endpoint updates a single version of a technique in the workspace, identifi
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -1602,6 +2002,9 @@ This endpoint updates a single version of a technique in the workspace, identifi
     ],
     "x_mitre_platforms": [
       "Windows"
+    ],
+    "x_mitre_impact_type": [
+      "Availability"
     ],
     "x_mitre_subtechnique": false,
     "x_mitre_system_requirements": [
@@ -1621,7 +2024,7 @@ This endpoint updates a single version of a technique in the workspace, identifi
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the technique to update|
 |modified|path|string|true|modified date of the technique to update|
-|body|body|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/9](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/9)|true|none|
 
 > Example responses
 
@@ -1632,10 +2035,11 @@ This endpoint updates a single version of a technique in the workspace, identifi
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -1677,6 +2081,9 @@ This endpoint updates a single version of a technique in the workspace, identifi
     ],
     "x_mitre_platforms": [
       "Windows"
+    ],
+    "x_mitre_impact_type": [
+      "Availability"
     ],
     "x_mitre_subtechnique": false,
     "x_mitre_system_requirements": [
@@ -1704,16 +2111,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -1745,10 +2153,27 @@ Status Code **200**
 |»»» x_mitre_effective_permissions|[string]|false|none|none|
 |»»» x_mitre_permissions_required|[string]|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+|»»» x_mitre_impact_type|[string]|false|none|none|
 |»»» x_mitre_subtechnique|boolean|false|none|none|
 |»»» x_mitre_system_requirements|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -1897,7 +2322,7 @@ This operation does not require authentication
 
 <h1 id="att-and-ck-workbench-rest-api-tactics">Tactics</h1>
 
-Operations on tactics.
+Operations on tactics
 
 ## Get a list of tactics
 
@@ -2054,6 +2479,7 @@ The list of tactics may include multiple versions of each tactic.
 |state|query|string|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
 |includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
 
 #### Detailed descriptions
@@ -2071,6 +2497,9 @@ If this parameter is not set, tactics will be retrieved with any state.
 
 **includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
 
+**search**: Only return objects where the provided search text occurs in the `name` or `description`.
+The search is case-insensitive.
+
 **includePagination**: Whether to include pagination data in the returned value.
 Wraps returned objects in a larger object.
 
@@ -2084,10 +2513,11 @@ Wraps returned objects in a larger object.
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -2132,17 +2562,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/8](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/8)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -2168,6 +2599,22 @@ Status Code **200**
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -2200,10 +2647,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -2370,10 +2818,11 @@ If the `stix.id` property is not set, it creates a new tactic, generating a STIX
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -2409,7 +2858,7 @@ If the `stix.id` property is not set, it creates a new tactic, generating a STIX
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/8](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/8)|true|none|
 
 > Example responses
 
@@ -2420,10 +2869,11 @@ If the `stix.id` property is not set, it creates a new tactic, generating a STIX
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -2469,16 +2919,17 @@ Status Code **201**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -2504,6 +2955,22 @@ Status Code **201**
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -2683,10 +3150,11 @@ This endpoint gets a list of one or more versions of a tactic from the workspace
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -2732,17 +3200,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/8](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/8)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -2768,6 +3237,22 @@ Status Code **200**
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -2934,10 +3419,11 @@ This endpoint gets a single version of a tactic from the workspace, identified b
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -2982,16 +3468,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -3017,6 +3504,22 @@ Status Code **200**
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -3049,10 +3552,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -3217,10 +3721,11 @@ This endpoint updates a single version of a tactic in the workspace, identified 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -3258,7 +3763,7 @@ This endpoint updates a single version of a tactic in the workspace, identified 
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the tactic to update|
 |modified|path|string|true|modified date of the tactic to update|
-|body|body|[#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1tactics/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/8](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/8)|true|none|
 
 > Example responses
 
@@ -3269,10 +3774,11 @@ This endpoint updates a single version of a tactic in the workspace, identified 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -3318,16 +3824,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -3353,6 +3860,22 @@ Status Code **200**
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -3501,7 +4024,7 @@ This operation does not require authentication
 
 <h1 id="att-and-ck-workbench-rest-api-groups">Groups</h1>
 
-Operations on groups.
+Operations on groups
 
 ## Get a list of groups
 
@@ -3658,6 +4181,7 @@ The list of groups may include multiple versions of each group.
 |state|query|string|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
 |includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
 
 #### Detailed descriptions
@@ -3675,6 +4199,9 @@ If this parameter is not set, groups will be retrieved with any state.
 
 **includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
 
+**search**: Only return objects where the provided search text occurs in the `name` or `description`.
+The search is case-insensitive.
+
 **includePagination**: Whether to include pagination data in the returned value.
 Wraps returned objects in a larger object.
 
@@ -3688,10 +4215,11 @@ Wraps returned objects in a larger object.
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -3738,17 +4266,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -3774,6 +4303,22 @@ Status Code **200**
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -3806,10 +4351,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -3978,10 +4524,11 @@ If the `stix.id` property is not set, it creates a new group, generating a STIX 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -4019,7 +4566,7 @@ If the `stix.id` property is not set, it creates a new group, generating a STIX 
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1)|true|none|
 
 > Example responses
 
@@ -4030,10 +4577,11 @@ If the `stix.id` property is not set, it creates a new group, generating a STIX 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -4081,16 +4629,17 @@ Status Code **201**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -4116,6 +4665,22 @@ Status Code **201**
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -4295,10 +4860,11 @@ This endpoint gets a list of one or more versions of a group from the workspace,
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -4346,17 +4912,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -4382,6 +4949,22 @@ Status Code **200**
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -4548,10 +5131,11 @@ This endpoint gets a single version of a group from the workspace, identified by
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -4598,16 +5182,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -4633,6 +5218,22 @@ Status Code **200**
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -4665,10 +5266,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -4835,10 +5437,11 @@ This endpoint updates a single version of a group in the workspace, identified b
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -4878,7 +5481,7 @@ This endpoint updates a single version of a group in the workspace, identified b
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the group to update|
 |modified|path|string|true|modified date of the group to update|
-|body|body|[#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1groups/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1)|true|none|
 
 > Example responses
 
@@ -4889,10 +5492,11 @@ This endpoint updates a single version of a group in the workspace, identified b
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -4940,16 +5544,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -4975,6 +5580,22 @@ Status Code **200**
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -5280,6 +5901,7 @@ The list of software objects may include multiple versions of each object.
 |state|query|string|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
 |includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
 
 #### Detailed descriptions
@@ -5297,6 +5919,9 @@ If this parameter is not set, software objects will be retrieved with any state.
 
 **includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
 
+**search**: Only return objects where the provided search text occurs in the `name` or `description`.
+The search is case-insensitive.
+
 **includePagination**: Whether to include pagination data in the returned value.
 Wraps returned objects in a larger object.
 
@@ -5310,10 +5935,11 @@ Wraps returned objects in a larger object.
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -5364,17 +5990,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/7](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/7)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -5402,6 +6029,22 @@ Status Code **200**
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -5434,10 +6077,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -5610,10 +6254,11 @@ If the `stix.id` property is not set, it creates a new software object, generati
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -5655,7 +6300,7 @@ If the `stix.id` property is not set, it creates a new software object, generati
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/7](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/7)|true|none|
 
 > Example responses
 
@@ -5666,10 +6311,11 @@ If the `stix.id` property is not set, it creates a new software object, generati
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -5721,16 +6367,17 @@ Status Code **201**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -5758,6 +6405,22 @@ Status Code **201**
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -5937,10 +6600,11 @@ This endpoint gets a list of one or more versions of a software object from the 
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -5992,17 +6656,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/7](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/7)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -6030,6 +6695,22 @@ Status Code **200**
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -6196,10 +6877,11 @@ This endpoint gets a single version of a software object from the workspace, ide
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -6250,16 +6932,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -6287,6 +6970,22 @@ Status Code **200**
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -6319,10 +7018,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -6493,10 +7193,11 @@ This endpoint updates a single version of a software object in the workspace, id
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -6540,7 +7241,7 @@ This endpoint updates a single version of a software object in the workspace, id
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the software object to update|
 |modified|path|string|true|modified date of the software object to update|
-|body|body|[#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1software/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/7](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/7)|true|none|
 
 > Example responses
 
@@ -6551,10 +7252,11 @@ This endpoint updates a single version of a software object in the workspace, id
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -6606,16 +7308,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -6643,6 +7346,22 @@ Status Code **200**
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -6948,6 +7667,7 @@ The list of mitigations may include multiple versions of each mitigation.
 |state|query|string|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
 |includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
 
 #### Detailed descriptions
@@ -6965,6 +7685,9 @@ If this parameter is not set, mitigations will be retrieved with any state.
 
 **includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
 
+**search**: Only return objects where the provided search text occurs in the `name` or `description`.
+The search is case-insensitive.
+
 **includePagination**: Whether to include pagination data in the returned value.
 Wraps returned objects in a larger object.
 
@@ -6978,10 +7701,11 @@ Wraps returned objects in a larger object.
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -7023,17 +7747,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/5](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/5)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -7058,6 +7783,22 @@ Status Code **200**
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -7090,10 +7831,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -7257,10 +7999,11 @@ If the `stix.id` property is not set, it creates a new mitigation, generating a 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -7293,7 +8036,7 @@ If the `stix.id` property is not set, it creates a new mitigation, generating a 
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/5](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/5)|true|none|
 
 > Example responses
 
@@ -7304,10 +8047,11 @@ If the `stix.id` property is not set, it creates a new mitigation, generating a 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -7350,16 +8094,17 @@ Status Code **201**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -7384,6 +8129,22 @@ Status Code **201**
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -7563,10 +8324,11 @@ This endpoint gets a list of one or more versions of a mitigation from the works
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -7609,17 +8371,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/5](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/5)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -7644,6 +8407,22 @@ Status Code **200**
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -7810,10 +8589,11 @@ This endpoint gets a single version of a mitigation from the workspace, identifi
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -7855,16 +8635,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -7889,6 +8670,22 @@ Status Code **200**
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -7921,10 +8718,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -8086,10 +8884,11 @@ This endpoint updates a single version of a mitigation in the workspace, identif
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -8124,7 +8923,7 @@ This endpoint updates a single version of a mitigation in the workspace, identif
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the mitigation to update|
 |modified|path|string|true|modified date of the mitigation to update|
-|body|body|[#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1mitigations/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/5](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/5)|true|none|
 
 > Example responses
 
@@ -8135,10 +8934,11 @@ This endpoint updates a single version of a mitigation in the workspace, identif
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -8181,16 +8981,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -8215,6 +9016,22 @@ Status Code **200**
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -8363,7 +9180,7 @@ This operation does not require authentication
 
 <h1 id="att-and-ck-workbench-rest-api-matrices">Matrices</h1>
 
-Operations on matrices.
+Operations on matrices
 
 ## Get a list of matrices
 
@@ -8521,6 +9338,7 @@ In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are 
 |state|query|string|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|search|query|string|false|Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.|
 |includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
 
 #### Detailed descriptions
@@ -8538,6 +9356,9 @@ If this parameter is not set, matrices will be retrieved with any state.
 
 **includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
 
+**search**: Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.
+The search is case-insensitive.
+
 **includePagination**: Whether to include pagination data in the returned value.
 Wraps returned objects in a larger object.
 
@@ -8551,10 +9372,11 @@ Wraps returned objects in a larger object.
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -8598,17 +9420,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/4](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/4)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -8633,6 +9456,22 @@ Status Code **200**
 |»»» tactic_refs|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -8665,10 +9504,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -8834,10 +9674,11 @@ If the `stix.id` property is not set, it creates a new matrix, generating a STIX
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -8872,7 +9713,7 @@ If the `stix.id` property is not set, it creates a new matrix, generating a STIX
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/4](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/4)|true|none|
 
 > Example responses
 
@@ -8883,10 +9724,11 @@ If the `stix.id` property is not set, it creates a new matrix, generating a STIX
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -8931,16 +9773,17 @@ Status Code **201**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -8965,6 +9808,22 @@ Status Code **201**
 |»»» tactic_refs|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -9144,10 +10003,11 @@ This endpoint gets a list of one or more versions of a matrix from the workspace
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -9192,17 +10052,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/4](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/4)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -9227,6 +10088,22 @@ Status Code **200**
 |»»» tactic_refs|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -9393,10 +10270,11 @@ This endpoint gets a single version of a matrix from the workspace, identified b
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -9440,16 +10318,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -9474,6 +10353,22 @@ Status Code **200**
 |»»» tactic_refs|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -9506,10 +10401,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -9673,10 +10569,11 @@ This endpoint updates a single version of a matrix in the workspace, identified 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -9713,7 +10610,7 @@ This endpoint updates a single version of a matrix in the workspace, identified 
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the matrix to update|
 |modified|path|string|true|modified date of the matrix to update|
-|body|body|[#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1matrices/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/4](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/4)|true|none|
 
 > Example responses
 
@@ -9724,10 +10621,11 @@ This endpoint updates a single version of a matrix in the workspace, identified 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -9772,16 +10670,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -9806,6 +10705,22 @@ Status Code **200**
 |»»» tactic_refs|[string]|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -9952,9 +10867,2999 @@ The matrix is identified by its STIX id and modified date.
 This operation does not require authentication
 </aside>
 
+<h1 id="att-and-ck-workbench-rest-api-identities">Identities</h1>
+
+Operations on identities
+
+## Get a list of identities
+
+<a id="opIdidentity-get-all"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/identities \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/identities HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/identities',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/identities',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/identities', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/identities', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/identities");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/identities", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/identities`
+
+This endpoint retrieves a list of identities from the workspace.
+If there are multiple versions of an identity, only the latest version (based on the `modified` property) will be returned.
+In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are only applied to the latest version of an identity.
+
+<h3 id="get-a-list-of-identities-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|limit|query|number|false|The number of identities to retrieve.|
+|offset|query|number|false|The number of identities to skip.|
+|state|query|string|false|State of the object in the editing workflow.|
+|includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
+|includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
+
+#### Detailed descriptions
+
+**limit**: The number of identities to retrieve.
+The default (0) will retrieve all identities.
+
+**offset**: The number of identities to skip.
+The default (0) will start with the first identity.
+
+**state**: State of the object in the editing workflow.
+If this parameter is not set, identities will be retrieved with any state.
+
+**includeRevoked**: Whether to include objects that have the `revoked` property set to true.
+
+**includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
+
+**includePagination**: Whether to include pagination data in the returned value.
+Wraps returned objects in a larger object.
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      },
+      "attackId": "T9999"
+    },
+    "stix": {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "The MITRE Corporation",
+      "description": "This is an identity",
+      "roles": [
+        "string"
+      ],
+      "identity_class": "organization",
+      "sectors": [
+        "string"
+      ],
+      "contact_information": "string",
+      "x_mitre_version": "1.0"
+    }
+  }
+]
+```
+
+<h3 id="get-a-list-of-identities-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of identities.|Inline|
+
+<h3 id="get-a-list-of-identities-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/2](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/2)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» roles|[string]|false|none|none|
+|»»» identity_class|string|false|none|none|
+|»»» sectors|[string]|false|none|none|
+|»»» contact_information|string|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Create an identity
+
+<a id="opIdidentity-create"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X POST {protocol}://{hostname}:{port}/api/identities \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json'
+
+```
+
+```http
+POST {protocol}://{hostname}:{port}/api/identities HTTP/1.1
+
+Content-Type: application/json
+Accept: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "The MITRE Corporation",
+    "description": "This is an identity",
+    "roles": [
+      "string"
+    ],
+    "identity_class": "organization",
+    "sectors": [
+      "string"
+    ],
+    "contact_information": "string",
+    "x_mitre_version": "1.0"
+  }
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/identities',
+{
+  method: 'POST',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json',
+  'Accept' => 'application/json'
+}
+
+result = RestClient.post '{protocol}://{hostname}:{port}/api/identities',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+}
+
+r = requests.post('{protocol}://{hostname}:{port}/api/identities', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('POST','{protocol}://{hostname}:{port}/api/identities', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/identities");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("POST");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("POST", "{protocol}://{hostname}:{port}/api/identities", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`POST /api/identities`
+
+This endpoint creates a new identity in the workspace.
+If the `stix.id` property is set, it creates a new version of an existing identity.
+If the `stix.id` property is not set, it creates a new identity, generating a STIX id for it.
+
+> Body parameter
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "The MITRE Corporation",
+    "description": "This is an identity",
+    "roles": [
+      "string"
+    ],
+    "identity_class": "organization",
+    "sectors": [
+      "string"
+    ],
+    "contact_information": "string",
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
+<h3 id="create-an-identity-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/2](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/2)|true|none|
+
+> Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "The MITRE Corporation",
+    "description": "This is an identity",
+    "roles": [
+      "string"
+    ],
+    "identity_class": "organization",
+    "sectors": [
+      "string"
+    ],
+    "contact_information": "string",
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
+<h3 id="create-an-identity-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The identity has been successfully created.|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The identity was not created.|None|
+|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The identity was not created.|None|
+
+<h3 id="create-an-identity-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» roles|[string]|false|none|none|
+|»»» identity_class|string|false|none|none|
+|»»» sectors|[string]|false|none|none|
+|»»» contact_information|string|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Get one or more versions of an identity
+
+<a id="opIdidentity-get-one-id"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/identities/{stixId} \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/identities/{stixId} HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/identities/{stixId}',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/identities/{stixId}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/identities/{stixId}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/identities/{stixId}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/identities/{stixId}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/identities/{stixId}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/identities/{stixId}`
+
+This endpoint gets a list of one or more versions of an identity from the workspace, identified by their STIX id.
+
+<h3 id="get-one-or-more-versions-of-an-identity-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the identity to retrieve|
+|versions|query|string|false|The versions of the identity to retrieve.|
+
+#### Detailed descriptions
+
+**versions**: The versions of the identity to retrieve.
+`all` gets all versions of the identity, `latest` gets only the latest version.
+
+#### Enumerated Values
+
+|Parameter|Value|
+|---|---|
+|versions|all|
+|versions|latest|
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      },
+      "attackId": "T9999"
+    },
+    "stix": {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "The MITRE Corporation",
+      "description": "This is an identity",
+      "roles": [
+        "string"
+      ],
+      "identity_class": "organization",
+      "sectors": [
+        "string"
+      ],
+      "contact_information": "string",
+      "x_mitre_version": "1.0"
+    }
+  }
+]
+```
+
+<h3 id="get-one-or-more-versions-of-an-identity-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of identities matching the requested STIX id.|Inline|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|An identity with the requested STIX id was not found.|None|
+
+<h3 id="get-one-or-more-versions-of-an-identity-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/2](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/2)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» roles|[string]|false|none|none|
+|»»» identity_class|string|false|none|none|
+|»»» sectors|[string]|false|none|none|
+|»»» contact_information|string|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Gets the version of a identity matching the STIX id and modified date
+
+<a id="opIdidentity-get-by-id-and-modified"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified} \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified} HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/identities/{stixId}/modified/{modified}`
+
+This endpoint gets a single version of a identity from the workspace, identified by its STIX id and modified date.
+
+<h3 id="gets-the-version-of-a-identity-matching-the-stix-id-and-modified-date-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the identity to retrieve|
+|modified|path|string|true|modified date of the identity to retrieve|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "The MITRE Corporation",
+    "description": "This is an identity",
+    "roles": [
+      "string"
+    ],
+    "identity_class": "organization",
+    "sectors": [
+      "string"
+    ],
+    "contact_information": "string",
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
+<h3 id="gets-the-version-of-a-identity-matching-the-stix-id-and-modified-date-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of an identity matching the STIX id and modified date.|Inline|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|An identity with the requested STIX id and modified date was not found.|None|
+
+<h3 id="gets-the-version-of-a-identity-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» roles|[string]|false|none|none|
+|»»» identity_class|string|false|none|none|
+|»»» sectors|[string]|false|none|none|
+|»»» contact_information|string|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Update an identity
+
+<a id="opIdidentity-update"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X PUT {protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified} \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json'
+
+```
+
+```http
+PUT {protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified} HTTP/1.1
+
+Content-Type: application/json
+Accept: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "The MITRE Corporation",
+    "description": "This is an identity",
+    "roles": [
+      "string"
+    ],
+    "identity_class": "organization",
+    "sectors": [
+      "string"
+    ],
+    "contact_information": "string",
+    "x_mitre_version": "1.0"
+  }
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}',
+{
+  method: 'PUT',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json',
+  'Accept' => 'application/json'
+}
+
+result = RestClient.put '{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+}
+
+r = requests.put('{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('PUT','{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("PUT");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("PUT", "{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`PUT /api/identities/{stixId}/modified/{modified}`
+
+This endpoint updates a single version of an identity in the workspace, identified by its STIX id and modified date.
+
+> Body parameter
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "The MITRE Corporation",
+    "description": "This is an identity",
+    "roles": [
+      "string"
+    ],
+    "identity_class": "organization",
+    "sectors": [
+      "string"
+    ],
+    "contact_information": "string",
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
+<h3 id="update-an-identity-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the identity to update|
+|modified|path|string|true|modified date of the identity to update|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/2](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/2)|true|none|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "The MITRE Corporation",
+    "description": "This is an identity",
+    "roles": [
+      "string"
+    ],
+    "identity_class": "organization",
+    "sectors": [
+      "string"
+    ],
+    "contact_information": "string",
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
+<h3 id="update-an-identity-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The identity was updated.|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The identity was not updated.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|An identity with the requested STIX id and modified date was not found.|None|
+
+<h3 id="update-an-identity-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» roles|[string]|false|none|none|
+|»»» identity_class|string|false|none|none|
+|»»» sectors|[string]|false|none|none|
+|»»» contact_information|string|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Delete a identity
+
+<a id="opIdidentity-delete"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X DELETE {protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}
+
+```
+
+```http
+DELETE {protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified} HTTP/1.1
+
+```
+
+```javascript
+
+fetch('{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}',
+{
+  method: 'DELETE'
+
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+result = RestClient.delete '{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}',
+  params: {
+  }
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+
+r = requests.delete('{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}')
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('DELETE','{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("DELETE");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("DELETE", "{protocol}://{hostname}:{port}/api/identities/{stixId}/modified/{modified}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`DELETE /api/identities/{stixId}/modified/{modified}`
+
+This endpoint deletes a single version of an identity from the workspace.
+The identity is identified by its STIX id and modified date.
+
+<h3 id="delete-a-identity-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the identity to delete|
+|modified|path|string|true|modified date of the identity to delete|
+
+<h3 id="delete-a-identity-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The identity was successfully deleted.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|An identity with the requested STIX id and modified date was not found.|None|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+<h1 id="att-and-ck-workbench-rest-api-marking-definitions">Marking Definitions</h1>
+
+Operations on marking definitions
+
+## Get a list of marking definitions
+
+<a id="opIdmarking-definition-get-all"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/marking-definitions \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/marking-definitions HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/marking-definitions',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/marking-definitions',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/marking-definitions', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/marking-definitions', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/marking-definitions");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/marking-definitions", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/marking-definitions`
+
+This endpoint retrieves a list of marking definitions from the workspace.
+Note that marking definitions do not have an `modified` property and only one version of a marking definition may exist.
+In addition, a marking definition does not have a `revoked` property.
+
+<h3 id="get-a-list-of-marking-definitions-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|limit|query|number|false|The number of marking definitions to retrieve.|
+|offset|query|number|false|The number of marking definitions to skip.|
+|state|query|string|false|State of the object in the editing workflow.|
+|includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
+
+#### Detailed descriptions
+
+**limit**: The number of marking definitions to retrieve.
+The default (0) will retrieve all marking definitions.
+
+**offset**: The number of marking definitions to skip.
+The default (0) will start with the first marking definition.
+
+**state**: State of the object in the editing workflow.
+If this parameter is not set, marking definitions will be retrieved with any state.
+
+**includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
+
+**includePagination**: Whether to include pagination data in the returned value.
+Wraps returned objects in a larger object.
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      },
+      "attackId": "T9999"
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "marking-definition--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "string",
+      "definition_type": "statement",
+      "definition": {
+        "statement": "string"
+      }
+    }
+  }
+]
+```
+
+<h3 id="get-a-list-of-marking-definitions-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of marking definitions.|Inline|
+
+<h3 id="get-a-list-of-marking-definitions-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/3](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/3)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|false|none|none|
+|»»» definition_type|string|false|none|none|
+|»»» definition|object|false|none|none|
+|»»»» statement|string|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Create a marking definition
+
+<a id="opIdmarking-definition-create"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X POST {protocol}://{hostname}:{port}/api/marking-definitions \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json'
+
+```
+
+```http
+POST {protocol}://{hostname}:{port}/api/marking-definitions HTTP/1.1
+
+Content-Type: application/json
+Accept: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "marking-definition--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "definition_type": "statement",
+    "definition": {
+      "statement": "string"
+    }
+  }
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/marking-definitions',
+{
+  method: 'POST',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json',
+  'Accept' => 'application/json'
+}
+
+result = RestClient.post '{protocol}://{hostname}:{port}/api/marking-definitions',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+}
+
+r = requests.post('{protocol}://{hostname}:{port}/api/marking-definitions', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('POST','{protocol}://{hostname}:{port}/api/marking-definitions', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/marking-definitions");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("POST");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("POST", "{protocol}://{hostname}:{port}/api/marking-definitions", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`POST /api/marking-definitions`
+
+This endpoint creates a new marking definition in the workspace.
+The `stix.id` property should not be set; this endpoint will create a new marking definition, generating a STIX id for it.
+
+> Body parameter
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "marking-definition--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "definition_type": "statement",
+    "definition": {
+      "statement": "string"
+    }
+  }
+}
+```
+
+<h3 id="create-a-marking-definition-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/3](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/3)|true|none|
+
+> Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "marking-definition--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "definition_type": "statement",
+    "definition": {
+      "statement": "string"
+    }
+  }
+}
+```
+
+<h3 id="create-a-marking-definition-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The marking definition has been successfully created.|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The marking definition was not created.|None|
+
+<h3 id="create-a-marking-definition-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|false|none|none|
+|»»» definition_type|string|false|none|none|
+|»»» definition|object|false|none|none|
+|»»»» statement|string|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Get a marking definition
+
+<a id="opIdmarking-definition-get-one-id"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/marking-definitions/{stixId} \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/marking-definitions/{stixId} HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/marking-definitions/{stixId}`
+
+This endpoint gets a list containing one marking definition from the workspace, identified by STIX id.
+(This endpoint returns a list to maintain a similar structure with other endpoints.)
+
+<h3 id="get-a-marking-definition-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the marking definition to retrieve|
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      },
+      "attackId": "T9999"
+    },
+    "stix": {
+      "type": "string",
+      "spec_version": "2.1",
+      "id": "marking-definition--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "string",
+      "definition_type": "statement",
+      "definition": {
+        "statement": "string"
+      }
+    }
+  }
+]
+```
+
+<h3 id="get-a-marking-definition-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list containing one marking definition matching the requested STIX id.|Inline|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A marking definition with the requested STIX id was not found.|None|
+
+<h3 id="get-a-marking-definition-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/3](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/3)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|false|none|none|
+|»»» definition_type|string|false|none|none|
+|»»» definition|object|false|none|none|
+|»»»» statement|string|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Update a marking definition
+
+<a id="opIdmarking-definition-update"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X PUT {protocol}://{hostname}:{port}/api/marking-definitions/{stixId} \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json'
+
+```
+
+```http
+PUT {protocol}://{hostname}:{port}/api/marking-definitions/{stixId} HTTP/1.1
+
+Content-Type: application/json
+Accept: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "marking-definition--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "definition_type": "statement",
+    "definition": {
+      "statement": "string"
+    }
+  }
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}',
+{
+  method: 'PUT',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json',
+  'Accept' => 'application/json'
+}
+
+result = RestClient.put '{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+}
+
+r = requests.put('{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('PUT','{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("PUT");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("PUT", "{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`PUT /api/marking-definitions/{stixId}`
+
+This endpoint updates a marking definition in the workspace, identified by its STIX id.
+
+> Body parameter
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "marking-definition--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "definition_type": "statement",
+    "definition": {
+      "statement": "string"
+    }
+  }
+}
+```
+
+<h3 id="update-a-marking-definition-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the marking definition to update|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/3](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/3)|true|none|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "string",
+    "spec_version": "2.1",
+    "id": "marking-definition--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "string",
+    "definition_type": "statement",
+    "definition": {
+      "statement": "string"
+    }
+  }
+}
+```
+
+<h3 id="update-a-marking-definition-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The marking definition was updated.|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The marking definition was not updated.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A marking definition with the requested STIX id was not found.|None|
+
+<h3 id="update-a-marking-definition-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|false|none|none|
+|»»» definition_type|string|false|none|none|
+|»»» definition|object|false|none|none|
+|»»»» statement|string|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Delete a marking definition
+
+<a id="opIdmarking-definition-delete"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X DELETE {protocol}://{hostname}:{port}/api/marking-definitions/{stixId}
+
+```
+
+```http
+DELETE {protocol}://{hostname}:{port}/api/marking-definitions/{stixId} HTTP/1.1
+
+```
+
+```javascript
+
+fetch('{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}',
+{
+  method: 'DELETE'
+
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+result = RestClient.delete '{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}',
+  params: {
+  }
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+
+r = requests.delete('{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}')
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('DELETE','{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("DELETE");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("DELETE", "{protocol}://{hostname}:{port}/api/marking-definitions/{stixId}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`DELETE /api/marking-definitions/{stixId}`
+
+This endpoint deletes a marking definition from the workspace.
+The marking definition is identified by its STIX id.
+
+<h3 id="delete-a-marking-definition-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the marking definition to delete|
+
+<h3 id="delete-a-marking-definition-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The marking definition was successfully deleted.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A marking definition with the requested STIX id was not found.|None|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
 <h1 id="att-and-ck-workbench-rest-api-relationships">Relationships</h1>
 
-Operations on relationships.
+Operations on relationships
 
 ## Get a list of relationships
 
@@ -10118,6 +14023,7 @@ In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are 
 |relationshipType|query|string|false|Only retrieve relationships that have a matching `relationship_type`.|
 |sourceType|query|string|false|Only retrieve relationships that have a `source_ref` to an object of the selected type.|
 |targetType|query|string|false|Only retrieve relationships that have a `target_ref` to an object of the selected type.|
+|versions|query|string|false|The versions of the relationship to retrieve.|
 |includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
 
 #### Detailed descriptions
@@ -10148,6 +14054,9 @@ Only retrieve relationships that reference this object in either the `source_ref
 
 **targetType**: Only retrieve relationships that have a `target_ref` to an object of the selected type.
 
+**versions**: The versions of the relationship to retrieve.
+`all` gets all versions of the relationship, `latest` gets only the latest version.
+
 **includePagination**: Whether to include pagination data in the returned value.
 Wraps returned objects in a larger object.
 
@@ -10163,6 +14072,8 @@ Wraps returned objects in a larger object.
 |targetType|group|
 |targetType|mitigation|
 |targetType|software|
+|versions|all|
+|versions|latest|
 
 > Example responses
 
@@ -10174,10 +14085,11 @@ Wraps returned objects in a larger object.
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -10195,7 +14107,6 @@ Wraps returned objects in a larger object.
       "object_marking_refs": [
         "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
       ],
-      "name": "string",
       "description": "This is a relationship",
       "relationship_type": "uses",
       "source_ref": "string",
@@ -10223,17 +14134,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/6](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/6)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -10253,15 +14165,30 @@ Status Code **200**
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |»» *anonymous*|object|false|none|none|
-|»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
-|»»» relationship_type|string|false|none|none|
-|»»» source_ref|string|false|none|none|
-|»»» target_ref|string|false|none|none|
+|»»» relationship_type|string|true|none|none|
+|»»» source_ref|string|true|none|none|
+|»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -10294,10 +14221,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -10315,7 +14243,6 @@ const inputBody = '{
     "object_marking_refs": [
       "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
     ],
-    "name": "string",
     "description": "This is a relationship",
     "relationship_type": "uses",
     "source_ref": "string",
@@ -10465,10 +14392,11 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -10486,7 +14414,6 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
     "object_marking_refs": [
       "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
     ],
-    "name": "string",
     "description": "This is a relationship",
     "relationship_type": "uses",
     "source_ref": "string",
@@ -10505,7 +14432,7 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/6](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/6)|true|none|
 
 > Example responses
 
@@ -10516,10 +14443,11 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -10537,7 +14465,6 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
     "object_marking_refs": [
       "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
     ],
-    "name": "string",
     "description": "This is a relationship",
     "relationship_type": "uses",
     "source_ref": "string",
@@ -10566,16 +14493,17 @@ Status Code **201**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -10595,15 +14523,30 @@ Status Code **201**
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |»» *anonymous*|object|false|none|none|
-|»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
-|»»» relationship_type|string|false|none|none|
-|»»» source_ref|string|false|none|none|
-|»»» target_ref|string|false|none|none|
+|»»» relationship_type|string|true|none|none|
+|»»» source_ref|string|true|none|none|
+|»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -10783,10 +14726,11 @@ This endpoint gets a list of one or more versions of a relationship from the wor
     "workspace": {
       "workflow": {
         "state": "string"
-      }
+      },
+      "attackId": "T9999"
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -10804,7 +14748,6 @@ This endpoint gets a list of one or more versions of a relationship from the wor
       "object_marking_refs": [
         "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
       ],
-      "name": "string",
       "description": "This is a relationship",
       "relationship_type": "uses",
       "source_ref": "string",
@@ -10833,17 +14776,18 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items)]|false|none|none|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/6](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/6)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -10863,15 +14807,30 @@ Status Code **200**
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |»» *anonymous*|object|false|none|none|
-|»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
-|»»» relationship_type|string|false|none|none|
-|»»» source_ref|string|false|none|none|
-|»»» target_ref|string|false|none|none|
+|»»» relationship_type|string|true|none|none|
+|»»» source_ref|string|true|none|none|
+|»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -11038,10 +14997,11 @@ This endpoint gets a single version of a relationship from the workspace, identi
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -11059,7 +15019,6 @@ This endpoint gets a single version of a relationship from the workspace, identi
     "object_marking_refs": [
       "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
     ],
-    "name": "string",
     "description": "This is a relationship",
     "relationship_type": "uses",
     "source_ref": "string",
@@ -11087,16 +15046,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -11116,15 +15076,30 @@ Status Code **200**
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |»» *anonymous*|object|false|none|none|
-|»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
-|»»» relationship_type|string|false|none|none|
-|»»» source_ref|string|false|none|none|
-|»»» target_ref|string|false|none|none|
+|»»» relationship_type|string|true|none|none|
+|»»» source_ref|string|true|none|none|
+|»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -11157,10 +15132,11 @@ const inputBody = '{
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -11178,7 +15154,6 @@ const inputBody = '{
     "object_marking_refs": [
       "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
     ],
-    "name": "string",
     "description": "This is a relationship",
     "relationship_type": "uses",
     "source_ref": "string",
@@ -11326,10 +15301,11 @@ This endpoint updates a single version of a relationship in the workspace, ident
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -11347,7 +15323,6 @@ This endpoint updates a single version of a relationship in the workspace, ident
     "object_marking_refs": [
       "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
     ],
-    "name": "string",
     "description": "This is a relationship",
     "relationship_type": "uses",
     "source_ref": "string",
@@ -11368,7 +15343,7 @@ This endpoint updates a single version of a relationship in the workspace, ident
 |---|---|---|---|---|
 |stixId|path|string|true|STIX id of the relationship to update|
 |modified|path|string|true|modified date of the relationship to update|
-|body|body|[#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1relationships/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/6](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/6)|true|none|
 
 > Example responses
 
@@ -11379,10 +15354,11 @@ This endpoint updates a single version of a relationship in the workspace, ident
   "workspace": {
     "workflow": {
       "state": "string"
-    }
+    },
+    "attackId": "T9999"
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -11400,7 +15376,6 @@ This endpoint updates a single version of a relationship in the workspace, ident
     "object_marking_refs": [
       "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
     ],
-    "name": "string",
     "description": "This is a relationship",
     "relationship_type": "uses",
     "source_ref": "string",
@@ -11429,16 +15404,17 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|» workspace|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/workspace)|true|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -11458,15 +15434,30 @@ Status Code **200**
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |»» *anonymous*|object|false|none|none|
-|»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
-|»»» relationship_type|string|false|none|none|
-|»»» source_ref|string|false|none|none|
-|»»» target_ref|string|false|none|none|
+|»»» relationship_type|string|true|none|none|
+|»»» source_ref|string|true|none|none|
+|»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -11608,6 +15599,2302 @@ The relationship is identified by its STIX id and modified date.
 |---|---|---|---|
 |204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The relationship was successfully deleted.|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A relationship with the requested STIX id and modified date was not found.|None|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+<h1 id="att-and-ck-workbench-rest-api-notes">Notes</h1>
+
+Operations on notes
+
+## Get a list of notes
+
+<a id="opIdnote-get-all"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/notes \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/notes HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/notes',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/notes',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/notes', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/notes', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/notes");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/notes", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/notes`
+
+This endpoint gets a list of notes from the workspace.
+
+<h3 id="get-a-list-of-notes-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|limit|query|number|false|The number of notes to retrieve.|
+|offset|query|number|false|The number of notes to skip.|
+|state|query|string|false|State of the object in the editing workflow.|
+|includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
+|includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|search|query|string|false|Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.|
+|includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
+
+#### Detailed descriptions
+
+**limit**: The number of notes to retrieve.
+The default (0) will retrieve all notes.
+
+**offset**: The number of notes to skip.
+The default (0) will start with the first note.
+
+**state**: State of the object in the editing workflow.
+If this parameter is not set, notes will be retrieved with any state.
+
+**includeRevoked**: Whether to include objects that have the `revoked` property set to true.
+
+**includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
+
+**search**: Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.
+The search is case-insensitive.
+
+**includePagination**: Whether to include pagination data in the returned value.
+Wraps returned objects in a larger object.
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      },
+      "attackId": "T9999"
+    },
+    "stix": {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "abstract": "string",
+      "content": "string",
+      "authors": [
+        "string"
+      ],
+      "object_refs": [
+        "string"
+      ]
+    }
+  }
+]
+```
+
+<h3 id="get-a-list-of-notes-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of notes.|Inline|
+
+<h3 id="get-a-list-of-notes-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[#/paths/~1api~1notes/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1notes/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» abstract|string|false|none|none|
+|»»» content|string|true|none|none|
+|»»» authors|[string]|false|none|none|
+|»»» object_refs|[string]|true|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Create a note
+
+<a id="opIdnote-create"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X POST {protocol}://{hostname}:{port}/api/notes \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json'
+
+```
+
+```http
+POST {protocol}://{hostname}:{port}/api/notes HTTP/1.1
+
+Content-Type: application/json
+Accept: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "abstract": "string",
+    "content": "string",
+    "authors": [
+      "string"
+    ],
+    "object_refs": [
+      "string"
+    ]
+  }
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/notes',
+{
+  method: 'POST',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json',
+  'Accept' => 'application/json'
+}
+
+result = RestClient.post '{protocol}://{hostname}:{port}/api/notes',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+}
+
+r = requests.post('{protocol}://{hostname}:{port}/api/notes', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('POST','{protocol}://{hostname}:{port}/api/notes', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/notes");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("POST");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("POST", "{protocol}://{hostname}:{port}/api/notes", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`POST /api/notes`
+
+This endpoint creates a new note in the workspace.
+If the `stix.id` property is set, it creates a new version of an existing note.
+If the `stix.id` property is not set, it creates a new note, generating a STIX id for it.
+
+> Body parameter
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "abstract": "string",
+    "content": "string",
+    "authors": [
+      "string"
+    ],
+    "object_refs": [
+      "string"
+    ]
+  }
+}
+```
+
+<h3 id="create-a-note-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1notes/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1notes/get/responses/200/content/application~1json/schema/items)|true|none|
+
+> Example responses
+
+> 201 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "abstract": "string",
+    "content": "string",
+    "authors": [
+      "string"
+    ],
+    "object_refs": [
+      "string"
+    ]
+  }
+}
+```
+
+<h3 id="create-a-note-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The note has been successfully created.|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The note was not created.|None|
+|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `stix.id` and `stix.modified` properties. The note was not created.|None|
+
+<h3 id="create-a-note-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» abstract|string|false|none|none|
+|»»» content|string|true|none|none|
+|»»» authors|[string]|false|none|none|
+|»»» object_refs|[string]|true|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Get one or more versions of a note
+
+<a id="opIdnote-get-one-id"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/notes/{stixId} \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/notes/{stixId} HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/notes/{stixId}',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/notes/{stixId}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/notes/{stixId}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/notes/{stixId}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/notes/{stixId}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/notes/{stixId}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/notes/{stixId}`
+
+This endpoint gets a list of one or more versions of a note from the workspace, identified by their STIX id.
+
+<h3 id="get-one-or-more-versions-of-a-note-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the note to retrieve|
+|versions|query|string|false|The versions of the note to retrieve.|
+
+#### Detailed descriptions
+
+**versions**: The versions of the note to retrieve.
+`all` gets all versions of the note, `latest` gets only the latest version.
+
+#### Enumerated Values
+
+|Parameter|Value|
+|---|---|
+|versions|all|
+|versions|latest|
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      },
+      "attackId": "T9999"
+    },
+    "stix": {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "abstract": "string",
+      "content": "string",
+      "authors": [
+        "string"
+      ],
+      "object_refs": [
+        "string"
+      ]
+    }
+  }
+]
+```
+
+<h3 id="get-one-or-more-versions-of-a-note-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of notes matching the requested STIX id.|Inline|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A note with the requested STIX id was not found.|None|
+
+<h3 id="get-one-or-more-versions-of-a-note-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[#/paths/~1api~1notes/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1notes/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» abstract|string|false|none|none|
+|»»» content|string|true|none|none|
+|»»» authors|[string]|false|none|none|
+|»»» object_refs|[string]|true|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Delete a note
+
+<a id="opIdnote-delete-version"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X DELETE {protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}
+
+```
+
+```http
+DELETE {protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified} HTTP/1.1
+
+```
+
+```javascript
+
+fetch('{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}',
+{
+  method: 'DELETE'
+
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+result = RestClient.delete '{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}',
+  params: {
+  }
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+
+r = requests.delete('{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}')
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('DELETE','{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("DELETE");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("DELETE", "{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`DELETE /api/notes/{stixId}/modified/{modified}`
+
+This endpoint deletes a single version of a note from the workspace.
+The note is identified by its STIX id and modified date.
+
+<h3 id="delete-a-note-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the note to delete|
+|modified|path|string|true|modified date of the note to delete|
+
+<h3 id="delete-a-note-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The note was successfully deleted.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A note with the requested STIX id and modified date was not found.|None|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Gets the version of a note matching the STIX id and modified date
+
+<a id="opIdnote-get-by-id-and-modified"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified} \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified} HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/notes/{stixId}/modified/{modified}`
+
+This endpoint gets a single version of a note from the workspace, identified by its STIX id and modified date.
+
+<h3 id="gets-the-version-of-a-note-matching-the-stix-id-and-modified-date-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the note to retrieve|
+|modified|path|string|true|modified date of the note to retrieve|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "abstract": "string",
+    "content": "string",
+    "authors": [
+      "string"
+    ],
+    "object_refs": [
+      "string"
+    ]
+  }
+}
+```
+
+<h3 id="gets-the-version-of-a-note-matching-the-stix-id-and-modified-date-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a note matching the STIX id and modified date.|Inline|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A note with the requested STIX id and modified date was not found.|None|
+
+<h3 id="gets-the-version-of-a-note-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» abstract|string|false|none|none|
+|»»» content|string|true|none|none|
+|»»» authors|[string]|false|none|none|
+|»»» object_refs|[string]|true|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Update a note
+
+<a id="opIdnote-update-version"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X PUT {protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified} \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json'
+
+```
+
+```http
+PUT {protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified} HTTP/1.1
+
+Content-Type: application/json
+Accept: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "abstract": "string",
+    "content": "string",
+    "authors": [
+      "string"
+    ],
+    "object_refs": [
+      "string"
+    ]
+  }
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}',
+{
+  method: 'PUT',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json',
+  'Accept' => 'application/json'
+}
+
+result = RestClient.put '{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+}
+
+r = requests.put('{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('PUT','{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("PUT");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("PUT", "{protocol}://{hostname}:{port}/api/notes/{stixId}/modified/{modified}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`PUT /api/notes/{stixId}/modified/{modified}`
+
+This endpoint updates a single version of a note in the workspace, identified by its STIX id and modified date.
+
+> Body parameter
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "abstract": "string",
+    "content": "string",
+    "authors": [
+      "string"
+    ],
+    "object_refs": [
+      "string"
+    ]
+  }
+}
+```
+
+<h3 id="update-a-note-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the note to update|
+|modified|path|string|true|modified date of the note to update|
+|body|body|[#/paths/~1api~1notes/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1notes/get/responses/200/content/application~1json/schema/items)|true|none|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "workflow": {
+      "state": "string"
+    },
+    "attackId": "T9999"
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "abstract": "string",
+    "content": "string",
+    "authors": [
+      "string"
+    ],
+    "object_refs": [
+      "string"
+    ]
+  }
+}
+```
+
+<h3 id="update-a-note-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The note was updated.|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The note was not updated.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A note with the requested STIX id and modified date was not found.|None|
+
+<h3 id="update-a-note-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» abstract|string|false|none|none|
+|»»» content|string|true|none|none|
+|»»» authors|[string]|false|none|none|
+|»»» object_refs|[string]|true|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+<h1 id="att-and-ck-workbench-rest-api-references">References</h1>
+
+Operations on references
+
+## Get a list of references
+
+<a id="opIdreference-get-all"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/references \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/references HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/references',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/references',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/references', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/references', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/references");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/references", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/references`
+
+This endpoint gets a list of references from the workspace.
+
+<h3 id="get-a-list-of-references-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|limit|query|number|false|The number of references to retrieve.|
+|offset|query|number|false|The number of references to skip.|
+|sourceName|query|string|false|source_name of the object to retrieve.|
+|search|query|string|false|Only return references where the provided search text occurs in the `description` or `url`.|
+|includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
+
+#### Detailed descriptions
+
+**limit**: The number of references to retrieve.
+The default (0) will retrieve all references.
+
+**offset**: The number of references to skip.
+The default (0) will start with the first reference.
+
+**sourceName**: source_name of the object to retrieve.
+
+**search**: Only return references where the provided search text occurs in the `description` or `url`.
+The search is case-insensitive.
+
+**includePagination**: Whether to include pagination data in the returned value.
+Wraps returned objects in a larger object.
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "source_name": "string",
+    "description": "string",
+    "url": "string"
+  }
+]
+```
+
+<h3 id="get-a-list-of-references-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of references.|Inline|
+
+<h3 id="get-a-list-of-references-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[#/paths/~1api~1references/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1references/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|» source_name|string|true|none|none|
+|» description|string|true|none|none|
+|» url|string|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Create a reference
+
+<a id="opIdreference-create"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X POST {protocol}://{hostname}:{port}/api/references \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json'
+
+```
+
+```http
+POST {protocol}://{hostname}:{port}/api/references HTTP/1.1
+
+Content-Type: application/json
+Accept: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "source_name": "string",
+  "description": "string",
+  "url": "string"
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/references',
+{
+  method: 'POST',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json',
+  'Accept' => 'application/json'
+}
+
+result = RestClient.post '{protocol}://{hostname}:{port}/api/references',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+}
+
+r = requests.post('{protocol}://{hostname}:{port}/api/references', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('POST','{protocol}://{hostname}:{port}/api/references', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/references");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("POST");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("POST", "{protocol}://{hostname}:{port}/api/references", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`POST /api/references`
+
+This endpoint creates a new reference in the workspace.
+
+> Body parameter
+
+```json
+{
+  "source_name": "string",
+  "description": "string",
+  "url": "string"
+}
+```
+
+<h3 id="create-a-reference-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1references/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1references/get/responses/200/content/application~1json/schema/items)|true|none|
+
+> Example responses
+
+> 201 Response
+
+```json
+{
+  "source_name": "string",
+  "description": "string",
+  "url": "string"
+}
+```
+
+<h3 id="create-a-reference-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|The reference has been successfully created.|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The reference was not created.|None|
+|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Duplicate `source_name`. The reference was not created.|None|
+
+<h3 id="create-a-reference-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» source_name|string|true|none|none|
+|» description|string|true|none|none|
+|» url|string|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Update a reference
+
+<a id="opIdreference-update"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X PUT {protocol}://{hostname}:{port}/api/references \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json'
+
+```
+
+```http
+PUT {protocol}://{hostname}:{port}/api/references HTTP/1.1
+
+Content-Type: application/json
+Accept: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "source_name": "string",
+  "description": "string",
+  "url": "string"
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/references',
+{
+  method: 'PUT',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json',
+  'Accept' => 'application/json'
+}
+
+result = RestClient.put '{protocol}://{hostname}:{port}/api/references',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+}
+
+r = requests.put('{protocol}://{hostname}:{port}/api/references', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('PUT','{protocol}://{hostname}:{port}/api/references', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/references");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("PUT");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("PUT", "{protocol}://{hostname}:{port}/api/references", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`PUT /api/references`
+
+This endpoint updates a single version of a reference in the workspace, identified by its `source_name`.
+Note that the `source_name` is used a a key and cannot be changed.
+
+> Body parameter
+
+```json
+{
+  "source_name": "string",
+  "description": "string",
+  "url": "string"
+}
+```
+
+<h3 id="update-a-reference-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|[#/paths/~1api~1references/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1references/get/responses/200/content/application~1json/schema/items)|true|none|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "source_name": "string",
+  "description": "string",
+  "url": "string"
+}
+```
+
+<h3 id="update-a-reference-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The reference was updated.|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The reference was not updated.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A reference with the requested source_name was not found.|None|
+
+<h3 id="update-a-reference-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» source_name|string|true|none|none|
+|» description|string|true|none|none|
+|» url|string|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -13052,6 +19339,7 @@ In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are 
 |state|query|string|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+|search|query|string|false|Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.|
 
 #### Detailed descriptions
 
@@ -13070,6 +19358,9 @@ If this parameter is not set, collections will be retrieved with any state.
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
 **includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
+
+**search**: Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.
+The search is case-insensitive.
 
 #### Enumerated Values
 
@@ -13125,7 +19416,7 @@ If this parameter is not set, collections will be retrieved with any state.
       }
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -13170,7 +19461,7 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0)]|false|none|none|
 |» workspace|object|true|none|none|
 |»» imported|string(date-time)|false|none|none|
 |»» import_categories|object|false|none|none|
@@ -13193,7 +19484,7 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -13220,6 +19511,22 @@ Status Code **200**
 |»»»» object_modified|string|true|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -13289,7 +19596,7 @@ const inputBody = '{
     }
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -13492,7 +19799,7 @@ Both the `stix.id` and `stix.modified` properties must be set.
     }
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -13528,7 +19835,7 @@ Both the `stix.id` and `stix.modified` properties must be set.
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items)|true|none|
+|body|body|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0)|true|none|
 
 > Example responses
 
@@ -13576,7 +19883,7 @@ Both the `stix.id` and `stix.modified` properties must be set.
     }
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -13644,7 +19951,7 @@ Status Code **201**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -13671,6 +19978,22 @@ Status Code **201**
 |»»»» object_modified|string|true|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -13890,7 +20213,7 @@ This endpoint gets a list of one or more versions of a collection (x-mitre-colle
       }
     },
     "stix": {
-      "type": "string",
+      "type": "attack-pattern",
       "spec_version": "2.1",
       "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
       "created": "2019-08-24T14:15:22Z",
@@ -13936,7 +20259,7 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|*anonymous*|[[#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items](#schema#/paths/~1api~1collections/get/responses/200/content/application~1json/schema/items)]|false|none|none|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0)]|false|none|none|
 |» workspace|object|true|none|none|
 |»» imported|string(date-time)|false|none|none|
 |»» import_categories|object|false|none|none|
@@ -13959,7 +20282,7 @@ Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -13986,6 +20309,22 @@ Status Code **200**
 |»»»» object_modified|string|true|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
 
 <aside class="success">
 This operation does not require authentication
@@ -14373,7 +20712,7 @@ Only determine what the results of the import would be if it were performed.
     }
   },
   "stix": {
-    "type": "string",
+    "type": "attack-pattern",
     "spec_version": "2.1",
     "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
     "created": "2019-08-24T14:15:22Z",
@@ -14439,7 +20778,7 @@ Status Code **201**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|»» *anonymous*|[#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allOf/0](#schema#/paths/~1api~1techniques/get/responses/200/content/application~1json/schema/items/properties/stix/allof/0)|false|none|none|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
 |»»» type|string|true|none|none|
 |»»» spec_version|string|true|none|none|
 |»»» id|string|false|none|none|
@@ -14467,33 +20806,220 @@ Status Code **201**
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
 <aside class="success">
 This operation does not require authentication
 </aside>
 
-# Schemas
+<h1 id="att-and-ck-workbench-rest-api-system-configuration">System Configuration</h1>
 
-<h2 id="tocS_editor_identity">editor_identity</h2>
-<!-- backwards compatibility -->
-<a id="schemaeditor_identity"></a>
-<a id="schema_editor_identity"></a>
-<a id="tocSeditor_identity"></a>
-<a id="tocseditor_identity"></a>
+Operations on the system configuration
 
-```json
+## Get the list of domain-specific allowed values
+
+<a id="opIdconfig-get-allowed-values"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/config/allowed-values \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/config/allowed-values HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/config/allowed-values',
 {
-  "id": "string",
-  "name": "string"
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/config/allowed-values',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/config/allowed-values', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/config/allowed-values', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/config/allowed-values");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/config/allowed-values", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
 }
 
 ```
 
-This property replaces mitreId
+`GET /api/config/allowed-values`
 
-### Properties
+This endpoint gets a list of domain-specific allowed values for certain properties.
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "objectType": "technique",
+    "properties": [
+      {
+        "propertyName": "x_mitre_platform",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "Linux"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
+```
+
+<h3 id="get-the-list-of-domain-specific-allowed-values-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|A list of allowed values.|Inline|
+
+<h3 id="get-the-list-of-domain-specific-allowed-values-responseschema">Response Schema</h3>
+
+Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|id|string|true|none|none|
-|name|string|true|none|none|
+|» objectType|string|false|none|none|
+|» properties|[object]|false|none|none|
+|»» propertyName|string|false|none|none|
+|»» domains|[object]|false|none|none|
+|»»» domainName|string|false|none|none|
+|»»» allowedValues|[string]|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
 
