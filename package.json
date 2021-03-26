@@ -26,7 +26,7 @@
     "express-openapi-validator": "^4.12.4",
     "helmet": "^4.4.1",
     "lodash": "^4.17.21",
-    "mongoose": "^5.11.17",
+    "mongoose": "^5.12.2",
     "morgan": "^1.10.0",
     "swagger-ui-express": "^4.1.6",
     "uuid": "^8.3.2",
