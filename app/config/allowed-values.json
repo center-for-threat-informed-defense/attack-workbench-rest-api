@@ -3,7 +3,7 @@
     "objectType": "technique",
     "properties": [
       {
-        "propertyName": "x_mitre_platform",
+        "propertyName": "x_mitre_platforms",
         "domains": [
           {
             "domainName": "enterprise-attack",
@@ -93,7 +93,7 @@
     "objectType": "software",
     "properties": [
       {
-        "propertyName": "x_mitre_platform",
+        "propertyName": "x_mitre_platforms",
         "domains": [
           {
             "domainName": "enterprise-attack",
