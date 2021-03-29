@@ -25,6 +25,8 @@ components:
             description:
               type: string
               example: 'This is a software'
+            is_family:
+              type: boolean
             # ATT&CK custom properties
             x_mitre_aliases:
               type: array

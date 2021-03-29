@@ -19,6 +19,7 @@ const initialObjectData = {
         spec_version: '2.1',
         type: 'malware',
         description: 'This is a malware type of software.',
+        is_family: true,
         external_references: [
             { source_name: 'source-1', external_id: 's1' }
         ],
@@ -179,6 +180,7 @@ describe('Software API', function () {
                     expect(software.stix.type).toBe(software1.stix.type);
                     expect(software.stix.name).toBe(software1.stix.name);
                     expect(software.stix.description).toBe(software1.stix.description);
+                    expect(software.stix.is_family).toBe(software1.stix.is_family);
                     expect(software.stix.spec_version).toBe(software1.stix.spec_version);
                     expect(software.stix.object_marking_refs).toEqual(expect.arrayContaining(software1.stix.object_marking_refs));
                     expect(software.stix.created_by_ref).toBe(software1.stix.created_by_ref);
