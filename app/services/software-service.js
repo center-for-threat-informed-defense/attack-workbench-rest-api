@@ -5,6 +5,8 @@ const Software = require('../models/software-model');
 
 const errors = {
     missingParameter: 'Missing required parameter',
+    missingProperty: 'Missing required property',
+    propertyNotAllowed: 'Includes property that is not allowed',
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
     notFound: 'Document not found',
@@ -195,6 +197,19 @@ exports.create = function(data, callback) {
     //   2. stix.id is defined. Create a new object with the specified id. This is
     //      a new version of an existing object.
     //      TODO: Verify that the object already exists (?)
+
+    // Add validation for is_family
+    // malware must have stix.is_family, tools must NOT have stix.is_family
+    if (data.stix && data.stix.type === 'malware' && (typeof data.stix.is_family === 'undefined' || data.stix.is_family === null)) {
+        const err = new Error(errors.missingProperty);
+        err.propertyName = 'stix.is_family';
+        return callback(err);
+    }
+    else if (data.stix && data.stix.type === 'tool' && data.stix.is_family !== undefined) {
+        const err = new Error(errors.propertyNotAllowed);
+        err.propertyName = 'stix.is_family';
+        return callback(err);
+    }
 
     // Create the document
     const software = new Software(data);

@@ -42,6 +42,18 @@ const initialObjectData = {
     }
 };
 
+// Software missing required property stix.name
+const invalidMissingName = _.cloneDeep(initialObjectData);
+invalidMissingName.stix.name = undefined;
+
+// Software (malware) missing required property stix.is_family
+const invalidMalwareMissingIsFamily = _.cloneDeep(initialObjectData);
+delete invalidMalwareMissingIsFamily.stix.is_family;
+
+// Software (tool) includes property stix.is_family
+const invalidToolIncludesIsFamily = _.cloneDeep(initialObjectData);
+invalidToolIncludesIsFamily.stix.type = 'tool';
+
 describe('Software API', function () {
     let app;
 
@@ -77,6 +89,66 @@ describe('Software API', function () {
 
     it('POST /api/software does not create an empty software', function (done) {
         const body = { };
+        request(app)
+            .post('/api/software')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/software does not create a software missing the name property', function (done) {
+        const timestamp = new Date().toISOString();
+        invalidMissingName.stix.created = timestamp;
+        invalidMissingName.stix.modified = timestamp;
+        const body = invalidMissingName;
+        request(app)
+            .post('/api/software')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/software does not create a software (malware) missing the is_family property', function (done) {
+        const timestamp = new Date().toISOString();
+        invalidMalwareMissingIsFamily.stix.created = timestamp;
+        invalidMalwareMissingIsFamily.stix.modified = timestamp;
+        const body = invalidMalwareMissingIsFamily;
+        request(app)
+            .post('/api/software')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/software does not create a software (tool) with the is_family property', function (done) {
+        const timestamp = new Date().toISOString();
+        invalidToolIncludesIsFamily.stix.created = timestamp;
+        invalidToolIncludesIsFamily.stix.modified = timestamp;
+        const body = invalidToolIncludesIsFamily;
         request(app)
             .post('/api/software')
             .send(body)

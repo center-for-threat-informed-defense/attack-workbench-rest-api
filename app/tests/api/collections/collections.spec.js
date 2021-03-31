@@ -71,6 +71,7 @@ const softwareData = {
         spec_version: '2.1',
         type: 'malware',
         description: 'This is a malware type of software.',
+        is_family: false,
         external_references: [
             { source_name: 'mitre-attack', external_id: 'S3333', url: 'https://attack.mitre.org/software/S3333' },
             { source_name: 'source-1', external_id: 's1' }

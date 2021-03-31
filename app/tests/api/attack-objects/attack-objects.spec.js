@@ -107,6 +107,7 @@ const softwareData = {
         spec_version: '2.1',
         type: 'malware',
         description: 'This is a malware type of software.',
+        is_family: false,
         external_references: [
             { source_name: 'mitre-attack', external_id: 'S3333', url: 'https://attack.mitre.org/software/S3333' },
             { source_name: 'source-1', external_id: 's1' }
@@ -501,6 +502,7 @@ describe('ATT&CK Objects API', function () {
                     expect(attackObjects.length).toBe(1);
                     const softwareObject = attackObjects[0];
                     expect(softwareObject.stix.name).toBe(softwareData.stix.name);
+                    expect(softwareObject.stix.x_mitre_version).toBe(softwareData.stix.x_mitre_version);
                     done();
                 }
             });
