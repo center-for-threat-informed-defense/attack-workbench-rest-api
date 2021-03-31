@@ -17,7 +17,8 @@ module.exports.common = {
 const importError = {
     object_ref: { type: String, required: true },
     object_modified : { type: Date },
-    error_type: { type: String, required: true }
+    error_type: { type: String, required: true },
+    error_message: { type: String }
 };
 
 module.exports.collection = {

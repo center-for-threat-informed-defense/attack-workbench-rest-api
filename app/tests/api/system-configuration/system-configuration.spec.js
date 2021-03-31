@@ -34,7 +34,7 @@ describe('System Configuration API', function () {
                     expect(Array.isArray(allowedValues)).toBe(true);
 
                     const expectedObjectType = 'technique';
-                    const expectedPropertyName = 'x_mitre_platform';
+                    const expectedPropertyName = 'x_mitre_platforms';
                     const expectedDomainName = 'enterprise-attack';
                     const expectedPropertyValue = 'Linux';
 

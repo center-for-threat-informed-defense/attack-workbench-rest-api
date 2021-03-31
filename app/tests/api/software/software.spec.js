@@ -19,6 +19,7 @@ const initialObjectData = {
         spec_version: '2.1',
         type: 'malware',
         description: 'This is a malware type of software.',
+        is_family: true,
         external_references: [
             { source_name: 'source-1', external_id: 's1' }
         ],
@@ -40,6 +41,18 @@ const initialObjectData = {
         ]
     }
 };
+
+// Software missing required property stix.name
+const invalidMissingName = _.cloneDeep(initialObjectData);
+invalidMissingName.stix.name = undefined;
+
+// Software (malware) missing required property stix.is_family
+const invalidMalwareMissingIsFamily = _.cloneDeep(initialObjectData);
+delete invalidMalwareMissingIsFamily.stix.is_family;
+
+// Software (tool) includes property stix.is_family
+const invalidToolIncludesIsFamily = _.cloneDeep(initialObjectData);
+invalidToolIncludesIsFamily.stix.type = 'tool';
 
 describe('Software API', function () {
     let app;
@@ -76,6 +89,46 @@ describe('Software API', function () {
 
     it('POST /api/software does not create an empty software', function (done) {
         const body = { };
+        request(app)
+            .post('/api/software')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/software does not create a software missing the name property', function (done) {
+        const timestamp = new Date().toISOString();
+        invalidMissingName.stix.created = timestamp;
+        invalidMissingName.stix.modified = timestamp;
+        const body = invalidMissingName;
+        request(app)
+            .post('/api/software')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/software does not create a software (tool) with the is_family property', function (done) {
+        const timestamp = new Date().toISOString();
+        invalidToolIncludesIsFamily.stix.created = timestamp;
+        invalidToolIncludesIsFamily.stix.modified = timestamp;
+        const body = invalidToolIncludesIsFamily;
         request(app)
             .post('/api/software')
             .send(body)
@@ -179,6 +232,7 @@ describe('Software API', function () {
                     expect(software.stix.type).toBe(software1.stix.type);
                     expect(software.stix.name).toBe(software1.stix.name);
                     expect(software.stix.description).toBe(software1.stix.description);
+                    expect(software.stix.is_family).toBe(software1.stix.is_family);
                     expect(software.stix.spec_version).toBe(software1.stix.spec_version);
                     expect(software.stix.object_marking_refs).toEqual(expect.arrayContaining(software1.stix.object_marking_refs));
                     expect(software.stix.created_by_ref).toBe(software1.stix.created_by_ref);
@@ -397,6 +451,36 @@ describe('Software API', function () {
                     expect(software).toBeDefined();
                     expect(Array.isArray(software)).toBe(true);
                     expect(software.length).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/software creates a software (malware) missing the is_family property using a default value', function (done) {
+        const timestamp = new Date().toISOString();
+        invalidMalwareMissingIsFamily.stix.created = timestamp;
+        invalidMalwareMissingIsFamily.stix.modified = timestamp;
+        const body = invalidMalwareMissingIsFamily;
+        request(app)
+            .post('/api/software')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created software
+                    const malware = res.body;
+                    expect(malware).toBeDefined();
+                    expect(malware.stix).toBeDefined();
+                    expect(malware.stix.id).toBeDefined();
+                    expect(malware.stix.created).toBeDefined();
+                    expect(malware.stix.modified).toBeDefined();
+                    expect(typeof malware.stix.is_family).toBe('boolean');
+                    expect(malware.stix.is_family).toBe(true);
                     done();
                 }
             });

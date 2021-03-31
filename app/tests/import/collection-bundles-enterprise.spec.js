@@ -67,6 +67,9 @@ describe('Collection Bundles API Full-Size Test', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
+                    if (collection.workspace.import_categories.errors.length > 0) {
+                        console.log(collection.workspace.import_categories.errors[0]);
+                    }
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
                     console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
                     console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);

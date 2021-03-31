@@ -97,6 +97,14 @@ exports.create = function(req, res) {
                 logger.warn("Duplicate stix.id and stix.modified");
                 return res.status(409).send('Unable to create software. Duplicate stix.id and stix.modified properties.');
             }
+            else if (err.message === softwareService.errors.missingProperty) {
+                logger.warn(`Unable to create software, missing property ${ err.propertyName }`);
+                return res.status(400).send(`Unable to create software, missing property ${ err.propertyName }`);
+            }
+            else if (err.message === softwareService.errors.propertyNotAllowed) {
+                logger.warn(`Unable to create software, property ${ err.propertyName } is not allowed`);
+                return res.status(400).send(`Unable to create software, property ${ err.propertyName } is not allowed`);
+            }
             else {
                 logger.error("Failed with error: " + err);
                 return res.status(500).send("Unable to create software. Server error.");
