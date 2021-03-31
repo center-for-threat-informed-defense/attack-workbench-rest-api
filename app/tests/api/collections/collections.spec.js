@@ -409,6 +409,27 @@ describe('Collections (x-mitre-collection) Basic API', function () {
             });
     });
 
+    it('GET /api/collections/:id/modified/:modified returns the proper collection', function (done) {
+        request(app)
+            .get('/api/collections/' + collection1.stix.id + '/modified/' + collection1.stix.modified)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get one collection
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.stix).toBeDefined();
+                    expect(collection.stix.id).toBe(collection1.stix.id);
+                    expect(collection.stix.modified).toBe(collection1.stix.modified);
+                    done();
+                }
+            });
+    });
+
     it('GET /api/collections returns all added collections', function (done) {
         request(app)
             .get('/api/collections/' + collection1.stix.id + '?versions=all')

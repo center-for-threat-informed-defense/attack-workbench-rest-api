@@ -173,3 +173,41 @@ paths:
           description: 'The collections were successfully deleted.'
         '404':
           description: 'A collection with the requested STIX id was not found.'
+
+  /api/collections/{stixId}/modified/{modified}:
+      get:
+        summary: 'Gets the version of a collection matching the STIX id and modified date'
+        operationId: 'collection-get-by-id-and-modified'
+        description: |
+          This endpoint gets a single version of a collection from the workspace, identified by its STIX id and modified date.
+        tags:
+          - 'Collections'
+        parameters:
+          - name: stixId
+            in: path
+            description: 'STIX id of the collection to retrieve'
+            required: true
+            schema:
+              type: string
+          - name: modified
+            in: path
+            description: 'modified date of the collection to retrieve'
+            required: true
+            schema:
+              type: string
+          - name: retrieveContents
+            in: query
+            description: |
+              Retrieve the objects that are referenced by the collection
+            schema:
+              type: boolean
+              default: false
+        responses:
+          '200':
+            description: 'The version of a collection matching the STIX id and modified date.'
+            content:
+              application/json:
+                schema:
+                  $ref: '../components/collections.yml#/components/schemas/collection'
+          '404':
+            description: 'A collection with the requested STIX id and modified date was not found.'

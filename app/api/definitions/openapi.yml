@@ -165,6 +165,9 @@ paths:
   /api/collections/{stixId}:
     $ref: 'paths/collections-paths.yml#/paths/~1api~1collections~1{stixId}'
 
+  /api/collections/{stixId}/modified/{modified}:
+    $ref: 'paths/collections-paths.yml#/paths/~1api~1collections~1{stixId}~1modified~1{modified}'
+
   # Collection Bundles
   /api/collection-bundles:
     $ref: 'paths/collection-bundles-paths.yml#/paths/~1api~1collection-bundles'
