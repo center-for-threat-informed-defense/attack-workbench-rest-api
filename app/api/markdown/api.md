@@ -20985,7 +20985,7 @@ This endpoint gets a list of domain-specific allowed values for certain properti
     "objectType": "technique",
     "properties": [
       {
-        "propertyName": "x_mitre_platform",
+        "propertyName": "x_mitre_platforms",
         "domains": [
           {
             "domainName": "enterprise-attack",

@@ -16,7 +16,7 @@ components:
         properties:
           propertyName:
             type: string
-            example: 'x_mitre_platform'
+            example: 'x_mitre_platforms'
           domains:
             $ref: '#/components/schemas/allowedValuesForDomain'
 
