@@ -59,6 +59,33 @@ exports.retrieveById = function(req, res) {
     });
 };
 
+exports.retrieveVersionById = function(req, res) {
+    const options = {
+        retrieveContents: req.query.retrieveContents
+    }
+    collectionsService.retrieveVersionById(req.params.stixId, req.params.modified, options, function(err, collection) {
+        if (err) {
+            if (err.message === collectionsService.errors.badlyFormattedParameter) {
+                logger.warn('Badly formatted stix id: ' + req.params.stixId);
+                return res.status(400).send('Stix id is badly formatted.');
+            }
+            else {
+                logger.error('Failed with error: ' + err);
+                return res.status(500).send('Unable to get collections. Server error.');
+            }
+        } 
+        else {
+            if (!collection) {
+                return res.status(404).send('Collection not found.');
+            }
+            else {
+                logger.debug(`Success: Retrieved collection with id ${group.id}`);
+                return res.status(200).send(collection);
+            }
+        }
+    })
+}
+
 exports.create = function(req, res) {
     // Get the data from the request
     const collectionData = req.body;

@@ -13,4 +13,7 @@ router.route('/collections/:stixId')
     .get(collectionsController.retrieveById)
     .delete(collectionsController.delete);
 
+router.route('/collections/:stixId/modified/:modified')
+    .get(collectionsController.retrieveVersionById);
+
 module.exports = router;
