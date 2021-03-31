@@ -79,7 +79,7 @@ exports.retrieveVersionById = function(req, res) {
                 return res.status(404).send('Collection not found.');
             }
             else {
-                logger.debug(`Success: Retrieved collection with id ${group.id}`);
+                logger.debug(`Success: Retrieved collection with id ${collection.id}`);
                 return res.status(200).send(collection);
             }
         }

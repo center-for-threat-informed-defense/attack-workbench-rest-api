@@ -194,7 +194,7 @@ paths:
             description: 'modified date of the collection to retrieve'
             required: true
             schema:
-            type: string
+              type: string
           - name: retrieveContents
             in: query
             description: |
