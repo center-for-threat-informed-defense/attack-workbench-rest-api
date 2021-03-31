@@ -176,7 +176,7 @@ paths:
 
   /api/collections/{stixId}/modified/{modified}:
       get:
-        summary: 'Gets the version of a group matching the STIX id and modified date'
+        summary: 'Gets the version of a collection matching the STIX id and modified date'
         operationId: 'collection-get-by-id-and-modified'
         description: |
           This endpoint gets a single version of a collection from the workspace, identified by its STIX id and modified date.
