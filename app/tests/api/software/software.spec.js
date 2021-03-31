@@ -124,26 +124,6 @@ describe('Software API', function () {
             });
     });
 
-    it('POST /api/software does not create a software (malware) missing the is_family property', function (done) {
-        const timestamp = new Date().toISOString();
-        invalidMalwareMissingIsFamily.stix.created = timestamp;
-        invalidMalwareMissingIsFamily.stix.modified = timestamp;
-        const body = invalidMalwareMissingIsFamily;
-        request(app)
-            .post('/api/software')
-            .send(body)
-            .set('Accept', 'application/json')
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
-    });
-
     it('POST /api/software does not create a software (tool) with the is_family property', function (done) {
         const timestamp = new Date().toISOString();
         invalidToolIncludesIsFamily.stix.created = timestamp;
@@ -471,6 +451,36 @@ describe('Software API', function () {
                     expect(software).toBeDefined();
                     expect(Array.isArray(software)).toBe(true);
                     expect(software.length).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/software creates a software (malware) missing the is_family property using a default value', function (done) {
+        const timestamp = new Date().toISOString();
+        invalidMalwareMissingIsFamily.stix.created = timestamp;
+        invalidMalwareMissingIsFamily.stix.modified = timestamp;
+        const body = invalidMalwareMissingIsFamily;
+        request(app)
+            .post('/api/software')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created software
+                    const malware = res.body;
+                    expect(malware).toBeDefined();
+                    expect(malware.stix).toBeDefined();
+                    expect(malware.stix.id).toBeDefined();
+                    expect(malware.stix.created).toBeDefined();
+                    expect(malware.stix.modified).toBeDefined();
+                    expect(typeof malware.stix.is_family).toBe('boolean');
+                    expect(malware.stix.is_family).toBe(true);
                     done();
                 }
             });

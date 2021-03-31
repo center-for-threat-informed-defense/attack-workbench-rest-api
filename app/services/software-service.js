@@ -198,12 +198,9 @@ exports.create = function(data, callback) {
     //      a new version of an existing object.
     //      TODO: Verify that the object already exists (?)
 
-    // Add validation for is_family
-    // malware must have stix.is_family, tools must NOT have stix.is_family
-    if (data.stix && data.stix.type === 'malware' && (typeof data.stix.is_family === 'undefined' || data.stix.is_family === null)) {
-        const err = new Error(errors.missingProperty);
-        err.propertyName = 'stix.is_family';
-        return callback(err);
+    // is_family defaults to true for malware, not allowed for tools
+    if (data.stix && data.stix.type === 'malware' && typeof data.stix.is_family !== 'boolean') {
+        data.stix.is_family = true;
     }
     else if (data.stix && data.stix.type === 'tool' && data.stix.is_family !== undefined) {
         const err = new Error(errors.propertyNotAllowed);
