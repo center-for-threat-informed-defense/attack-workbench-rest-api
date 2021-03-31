@@ -24,7 +24,8 @@ const importErrors = {
     retrievalError: 'Retrieval error',
     unknownObjectType: 'Unknown object type',
     notInContents: 'Not in contents',  // object in bundle but not in x_mitre_contents
-    missingObject: 'Missing object'    // object in x_mitre_contents but not in bundle
+    missingObject: 'Missing object',    // object in x_mitre_contents but not in bundle
+    saveError: 'Save error'
 }
 
 function makeKey(stixId, modified) {
@@ -262,9 +263,18 @@ exports.import = function(collection, data, checkOnly, callback) {
                                             service.create(newObject, function (err, savedObject) {
                                                 if (err) {
                                                     if (err.message === service.errors.duplicateId) {
+                                                        // We've checked for this already, so this shouldn't occur
                                                         return callback2a(err);
                                                     } else {
-                                                        return callback2a(err);
+                                                        // Record the error, but don't cancel the import
+                                                        const importError = {
+                                                            object_ref: importObject.id,
+                                                            object_modified: importObject.modified,
+                                                            error_type: importErrors.saveError,
+                                                            error_message: err.message
+                                                        }
+                                                        importedCollection.workspace.import_categories.errors.push(importError);
+                                                        return callback2a();
                                                     }
                                                 } else {
                                                     return callback2a();

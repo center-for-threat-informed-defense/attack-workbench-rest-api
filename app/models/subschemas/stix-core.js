@@ -16,7 +16,8 @@ module.exports.killChainPhase = {
 module.exports.commonRequiredSDO = {
     type: {
         type: String,
-        enum: ['attack-pattern',
+        enum: [
+            'attack-pattern',
             'course-of-action',
             'identity',
             'intrusion-set',

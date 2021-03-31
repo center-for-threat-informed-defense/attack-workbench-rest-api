@@ -106,6 +106,8 @@ components:
           type: string
         error_type:
           type: string
+        error_message:
+          type: string
       required:
         - object_ref
         - error_type

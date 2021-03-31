@@ -8,6 +8,7 @@ const stixMalware = {
     modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
+    is_family: Boolean,
     labels: [ String ],
 
     // ATT&CK custom stix properties
