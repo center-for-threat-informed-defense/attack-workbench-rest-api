@@ -430,6 +430,31 @@ describe('Collections (x-mitre-collection) Basic API', function () {
             });
     });
 
+    it('GET /api/collections/:id/modified/:modified with retrieveContents flag returns the added collection with contents', function (done) {
+        request(app)
+            .get('/api/collections/' + collection1.stix.id + '/modified/' + collection1.stix.modified + '?retrieveContents=true')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get one collection
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.stix).toBeDefined();
+                    expect(collection.stix.id).toBe(collection1.stix.id);
+                    expect(collection.stix.modified).toBe(collection1.stix.modified);
+
+                    expect(collection.contents).toBeDefined();
+                    expect(Array.isArray(collection.contents)).toBe(true);
+                    expect(collection.contents.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
     it('GET /api/collections returns all added collections', function (done) {
         request(app)
             .get('/api/collections/' + collection1.stix.id + '?versions=all')

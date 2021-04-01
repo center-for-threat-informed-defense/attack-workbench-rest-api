@@ -198,39 +198,41 @@ exports.retrieveVersionById = function(stixId, modified, options, callback) {
         return callback(error);
     }
 
-    Collection.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function(err, collection) {
-        if (err) {
-            if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'stixId';
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
-        }
-        else {
-            if (collection) {
-                if (options.retrieveContents) {
-                    getContents(collection.stix.x_mitre_contents, function (err, contents) {
-                        if (err) {
-                            return callback(err);
-                        } else {
-                            collection.contents = contents;
-                            return callback(null, collection );
-                        }
-                    })
-                } 
+    Collection.findOne({ 'stix.id': stixId, 'stix.modified': modified })
+        .lean()
+        .exec(function(err, collection) {
+            if (err) {
+                if (err.name === 'CastError') {
+                    const error = new Error(errors.badlyFormattedParameter);
+                    error.parameterName = 'stixId';
+                    return callback(error);
+                }
                 else {
-                    return callback(null, collection)
+                    return callback(err);
                 }
             }
             else {
-                console.log('** NOT FOUND')
-                return callback();
+                if (collection) {
+                    if (options.retrieveContents) {
+                        getContents(collection.stix.x_mitre_contents, function (err, contents) {
+                            if (err) {
+                                return callback(err);
+                            } else {
+                                collection.contents = contents;
+                                return callback(null, collection );
+                            }
+                        })
+                    } 
+                    else {
+                        return callback(null, collection)
+                    }
+                }
+                else {
+                    console.log('** NOT FOUND')
+                    return callback();
+                }
             }
-        }
-    })
+        })
 }
 
 exports.create = function(data, callback) {
