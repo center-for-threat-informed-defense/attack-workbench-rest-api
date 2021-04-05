@@ -55,6 +55,7 @@ function toEpoch(date) {
 exports.import = function(collection, data, checkOnly, callback) {
     let uniqueImportReference = 0;
     let duplicateImportReference = 0;
+    let aliasReference = 0;
 
     // Create the x-mitre-collection object
     const importedCollection = {
@@ -218,17 +219,36 @@ exports.import = function(collection, data, checkOnly, callback) {
                                     if (importObject.external_references && Array.isArray(importObject.external_references)) {
                                         for (const externalReference of importObject.external_references) {
                                             if (externalReference.source_name && externalReference.description && !externalReference.external_id) {
-                                                if (importReferences.has(externalReference.source_name)) {
-                                                    duplicateImportReference++;
-                                                    // if (externalReference.description === importReferences.get(externalReference.source_name)) {
-                                                    //     // Duplicate in collection bundle -- skip
-                                                    // } else {
-                                                    //     // Duplicate source name in collection bundle, but description is different
-                                                    //     // Skip for now
-                                                    // }
-                                                } else {
-                                                    uniqueImportReference++;
-                                                    importReferences.set(externalReference.source_name, externalReference);
+
+                                                // Is this reference just an alias?
+                                                let isAlias = false;
+                                                if (importObject.type === 'intrustion-set') {
+                                                    if (importObject.aliases && importObject.aliases.includes(externalReference.source_name)) {
+                                                        isAlias = true;
+                                                    }
+                                                }
+                                                else if (importObject.type === 'malware' || importObject.type === 'tool') {
+                                                    if (importObject.x_mitre_aliases && importObject.x_mitre_aliases.includes(externalReference.source_name)) {
+                                                        isAlias = true;
+                                                    }
+                                                }
+
+                                                if (isAlias) {
+                                                    aliasReference++;
+                                                }
+                                                else {
+                                                    if (importReferences.has(externalReference.source_name)) {
+                                                        duplicateImportReference++;
+                                                        // if (externalReference.description === importReferences.get(externalReference.source_name)) {
+                                                        //     // Duplicate in collection bundle -- skip
+                                                        // } else {
+                                                        //     // Duplicate source name in collection bundle, but description is different
+                                                        //     // Skip for now
+                                                        // }
+                                                    } else {
+                                                        uniqueImportReference++;
+                                                        importReferences.set(externalReference.source_name, externalReference);
+                                                    }
                                                 }
                                             }
                                         }
@@ -326,6 +346,7 @@ exports.import = function(collection, data, checkOnly, callback) {
                         const existingReferences = new Map(references.map(item => [ item.source_name, item ]));
 
                         console.log(`${ uniqueImportReference } unique references found, ${ duplicateImportReference } duplicate references found`);
+                        console.log(`${ aliasReference } alias instances found in references`);
                         console.log(`importReferences.size ${ importReferences.size }`);
                         // Iterate over the import references
                         async.eachLimit([...importReferences.values()], 8, function(importReference, callback3a) {

@@ -46,6 +46,10 @@ const initialObjectData = {
                 {
                     "object_ref": "intrusion-set--bef4c620-0787-42a8-a96d-b7eb6e85917c",
                     "object_modified": "2020-10-06T23:32:21.793Z"
+                },
+                {
+                    "object_ref": "malware--04227b24-7817-4de1-9050-b7b1b57f5866",
+                    "object_modified": "2020-03-30T18:17:52.697Z"
                 }
             ]
         },
@@ -59,7 +63,8 @@ const initialObjectData = {
             type: 'attack-pattern',
             description: 'This is a technique.',
             external_references: [
-                { source_name: 'source-1', external_id: 's1' }
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'attack-pattern-1 source', description: 'this is a source description'}
             ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
             created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -82,7 +87,8 @@ const initialObjectData = {
             type: 'attack-pattern',
             description: 'This is another technique.',
             external_references: [
-                { source_name: 'source-1', external_id: 's1' }
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'attack-pattern-2 source', description: 'this is a source description 2'}
             ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
             created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -144,6 +150,31 @@ const initialObjectData = {
             x_mitre_domains: [
                 "domain-1"
             ]
+        },
+        {
+            id: "malware--04227b24-7817-4de1-9050-b7b1b57f5866",
+            type: "malware",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            name: "software-1",
+            description: "This is a software with an alias",
+            external_references: [
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'malware-1 source', description: 'this is a source description'},
+                { source_name: 'xyzzy', description: '(Citation: Adventure 1975)'}
+            ],
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            x_mitre_version: "1.0",
+            modified: "2020-03-30T18:17:52.697Z",
+            created: "2017-10-25T14:48:53.732Z",
+            spec_version: "2.1",
+            x_mitre_domains: [
+                "domain-1"
+            ],
+            x_mitre_aliases: [
+                "xyzzy"
+            ],
         }
     ]
 };
@@ -192,7 +223,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     collection1 = res.body;
                     expect(collection1).toBeDefined();
-                    expect(collection1.workspace.import_categories.additions.length).toBe(4);
+                    expect(collection1.workspace.import_categories.additions.length).toBe(5);
                     expect(collection1.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
@@ -214,7 +245,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     collection1 = res.body;
                     expect(collection1).toBeDefined();
-                    expect(collection1.workspace.import_categories.additions.length).toBe(4);
+                    expect(collection1.workspace.import_categories.additions.length).toBe(5);
                     expect(collection1.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
@@ -276,8 +307,52 @@ describe('Collection Bundles Basic API', function () {
                     const collection2 = res.body;
                     expect(collection2).toBeDefined();
                     expect(collection2.workspace.import_categories.changes.length).toBe(1);
-                    expect(collection2.workspace.import_categories.duplicates.length).toBe(3);
+                    expect(collection2.workspace.import_categories.duplicates.length).toBe(4);
                     expect(collection2.workspace.import_categories.errors.length).toBe(3);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/references returns the malware added reference', function (done) {
+        request(app)
+            .get('/api/references?sourceName=' + encodeURIComponent('malware-1 source'))
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one reference in an array
+                    const references = res.body;
+                    expect(references).toBeDefined();
+                    expect(Array.isArray(references)).toBe(true);
+                    expect(references.length).toBe(1);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/references does not return the malware alias', function (done) {
+        request(app)
+            .get('/api/references?sourceName=' + encodeURIComponent('xyzzy'))
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get zero references in an array
+                    const references = res.body;
+                    expect(references).toBeDefined();
+                    expect(Array.isArray(references)).toBe(true);
+                    expect(references.length).toBe(0);
+
                     done();
                 }
             });
