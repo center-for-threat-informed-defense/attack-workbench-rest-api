@@ -36,6 +36,9 @@ components:
               type: array
               items:
                 type: string
+            x_mitre_deprecated:
+              type: boolean
+              example: false
             x_mitre_domains:
               type: array
               items:
@@ -43,9 +46,6 @@ components:
             x_mitre_version:
               type: string
               example: '1.0'
-            x_mitre_deprecated:
-              type: boolean
-              example: false
             x_mitre_platforms:
               type: array
               items:

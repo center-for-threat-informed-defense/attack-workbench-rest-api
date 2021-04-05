@@ -9,7 +9,10 @@ const noteProperties = {
     abstract: String,
     content: { type: String, required: true },
     authors: [ String ],
-    object_refs: { type: [ String ], required: true }
+    object_refs: { type: [ String ], required: true },
+
+    // ATT&CK custom stix properties
+    x_mitre_deprecated: Boolean
 };
 
 // Create the definition

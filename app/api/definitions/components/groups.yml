@@ -34,6 +34,9 @@ components:
               type: array
               items:
                 type: string
+            x_mitre_deprecated:
+              type: boolean
+              example: false
             x_mitre_domains:
               type: array
               items:

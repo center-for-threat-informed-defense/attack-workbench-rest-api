@@ -32,3 +32,7 @@ components:
               type: array
               items:
                 type: string
+            # ATT&CK custom properties
+            x_mitre_deprecated:
+              type: boolean
+              example: false

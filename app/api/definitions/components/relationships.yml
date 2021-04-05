@@ -38,6 +38,9 @@ components:
               type: string
               format: date-time
             # ATT&CK custom properties
+            x_mitre_deprecated:
+              type: boolean
+              example: false
             x_mitre_domains:
               type: array
               items:
