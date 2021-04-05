@@ -222,6 +222,38 @@ exports.create = function(data, callback) {
     });
 };
 
+exports.createAsync = async function(data) {
+    // This function handles two use cases:
+    //   1. stix.id is undefined. Create a new object and generate the stix.id
+    //   2. stix.id is defined. Create a new object with the specified id. This is
+    //      a new version of an existing object.
+    //      TODO: Verify that the object already exists (?)
+
+    // Create the document
+    const group = new Group(data);
+
+    if (!group.stix.id) {
+        // Assign a new STIX id
+        group.stix.id = `intrusion-set--${uuid.v4()}`;
+    }
+
+    // Save the document in the database
+    try {
+        const savedGroup = await group.save();
+        return savedGroup;
+    }
+    catch (err) {
+        if (err.name === 'MongoError' && err.code === 11000) {
+            // 11000 = Duplicate index
+            const error = new Error(errors.duplicateId);
+            throw error;
+        }
+        else {
+            throw err;
+        }
+    }
+};
+
 exports.updateFull = function(stixId, stixModified, data, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
