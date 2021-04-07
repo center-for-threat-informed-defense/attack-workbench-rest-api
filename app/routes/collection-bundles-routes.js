@@ -6,6 +6,7 @@ const collectionBundlesController = require('../controllers/collection-bundles-c
 const router = express.Router();
 
 router.route('/collection-bundles')
-    .post(collectionBundlesController.import);
+    .get(collectionBundlesController.exportBundle)
+    .post(collectionBundlesController.importBundle);
 
 module.exports = router;

@@ -1,5 +1,7 @@
 'use strict';
 
+const uuid = require('uuid');
+
 const collectionsService = require('../services/collections-service');
 const techniquesService = require('../services/techniques-service');
 const tacticsService = require('../services/tactics-service');
@@ -16,7 +18,8 @@ const referencesService = require('../services/references-service');
 const async = require('async');
 
 const errors = {
-    duplicateCollection: 'Duplicate collection'
+    duplicateCollection: 'Duplicate collection',
+    notFound: 'Collection not found',
 };
 exports.errors = errors;
 
@@ -52,7 +55,7 @@ function toEpoch(date) {
     }
 }
 
-exports.import = function(collection, data, checkOnly, callback) {
+exports.importBundle = function(collection, data, checkOnly, callback) {
     let uniqueImportReference = 0;
     let duplicateImportReference = 0;
     let aliasReference = 0;
@@ -428,3 +431,42 @@ exports.import = function(collection, data, checkOnly, callback) {
         }
     );
 };
+
+exports.exportBundle = function(options, callback) {
+    // Create the bundle to hold the exported objects
+    const bundle = {
+        type: 'bundle',
+        id: `bundle--${uuid.v4()}`,
+        spec_version: '2.0',
+        objects: []
+    };
+
+    const collectionOptions = {
+        versions: 'latest',
+        retrieveContents: true
+    };
+    collectionsService.retrieveById(options.collectionId, collectionOptions, function(err, collection) {
+        if (err) {
+            return callback(err);
+        }
+        else {
+            if (collection.length === 1) {
+                bundle.objects.push(collection[0].stix);
+
+                for (const attackObject of collection[0].contents) {
+                    bundle.objects.push(attackObject.stix);
+                }
+
+                return callback(null, bundle);
+            }
+            else if (collection.length === 0) {
+                const error = new Error(errors.notFound);
+                return callback(error);
+            }
+            else {
+                const error = new Error('Unknown error occurred');
+                return callback(error);
+            }
+        }
+    });
+}

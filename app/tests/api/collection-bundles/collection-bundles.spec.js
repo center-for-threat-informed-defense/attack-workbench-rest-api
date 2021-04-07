@@ -358,6 +358,42 @@ describe('Collection Bundles Basic API', function () {
             });
     });
 
+    it('GET /api/collection-bundles does not export the collection bundle with a bad id', function (done) {
+        request(app)
+            .get('/api/collection-bundles?collectionId=not-an-id')
+            .set('Accept', 'application/json')
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collection-bundles exports the collection bundle', function (done) {
+        request(app)
+            .get(`/api/collection-bundles?collectionId=x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported collection bundle
+                    const collectionBundle = res.body;
+                    expect(collectionBundle).toBeDefined();
+                    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+                    expect(collectionBundle.objects.length).toBe(5);
+
+                    done();
+                }
+            });
+    });
+
     after(async function() {
         await database.closeConnection();
     });

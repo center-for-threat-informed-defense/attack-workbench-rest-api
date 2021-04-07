@@ -1,5 +1,29 @@
 paths:
   /api/collection-bundles:
+    get:
+      summary: 'Export a collection bundle'
+      operationId: 'collection-bundle-export'
+      description: |
+        This endpoint exports a collection bundle and returns the bundle.
+      tags:
+        - 'Collection Bundles'
+      parameters:
+        - name: collectionId
+          in: query
+          description: |
+            The STIX id of the collection to export.
+          schema:
+            type: string
+          example: 'x-mitre-collection--0bbd7841-f053-471a-9900-da4af02e40c2'
+      responses:
+        '200':
+          description: 'An exported collection bundle.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/collection-bundles.yml#/components/schemas/collection-bundle'
     post:
       summary: 'Import a collection bundle'
       operationId: 'collection-bundle-import'
