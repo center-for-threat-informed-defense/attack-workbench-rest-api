@@ -37,9 +37,14 @@ paths:
           in: query
           description: |
             State of the object in the editing workflow.
-            If this parameter is not set, objects will be retrieved with any state.
+            If this parameter is not set, objects will be retrieved regardless of state.
+            This parameter may be set multiple times to retrieve objects with any of the provided states.
           schema:
-            type: string
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
           example: 'work-in-progress'
         - name: includeRevoked
           in: query

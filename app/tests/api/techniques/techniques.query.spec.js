@@ -24,10 +24,12 @@ async function readJson(path) {
 async function configureTechniques(baseTechnique) {
     const techniques = [];
     // x_mitre_deprecated,revoked undefined
+    // state undefined
     const data1 = _.cloneDeep(baseTechnique);
     techniques.push(data1);
 
     // x_mitre_deprecated = false, revoked = false
+    // state = work-in-progress
     const data2 = _.cloneDeep(baseTechnique);
     data2.stix.x_mitre_deprecated = false;
     data2.stix.revoked = false;
@@ -35,6 +37,7 @@ async function configureTechniques(baseTechnique) {
     techniques.push(data2);
 
     // x_mitre_deprecated = true, revoked = false
+    // state = awaiting-review
     const data3 = _.cloneDeep(baseTechnique);
     data3.stix.x_mitre_deprecated = true;
     data3.stix.revoked = false;
@@ -42,6 +45,7 @@ async function configureTechniques(baseTechnique) {
     techniques.push(data3);
 
     // x_mitre_deprecated = false, revoked = true
+    // state = awaiting-review
     const data4 = _.cloneDeep(baseTechnique);
     data4.stix.x_mitre_deprecated = false;
     data4.stix.revoked = true;
@@ -49,6 +53,7 @@ async function configureTechniques(baseTechnique) {
     techniques.push(data4);
 
     // multiple versions, last version has x_mitre_deprecated = true, revoked = true
+    // state = awaiting-review
     const data5a = _.cloneDeep(baseTechnique);
     const id = `attack-pattern--${uuid.v4()}`;
     data5a.stix.id = id;
@@ -81,7 +86,21 @@ async function configureTechniques(baseTechnique) {
     data5c.stix.modified = timestamp;
     techniques.push(data5c);
 
-//    logger.info(JSON.stringify(techniques, null, 4));
+    // x_mitre_deprecated,revoked undefined
+    // state = work-in-progress
+    const data6 = _.cloneDeep(baseTechnique);
+    data6.stix.x_mitre_deprecated = false;
+    data6.stix.revoked = false;
+    data6.workspace.workflow = { state: 'work-in-progress' };
+    techniques.push(data6);
+
+    // x_mitre_deprecated,revoked undefined
+    // state = reviewed
+    const data7 = _.cloneDeep(baseTechnique);
+    data7.stix.x_mitre_deprecated = false;
+    data7.stix.revoked = false;
+    data7.workspace.workflow = { state: 'reviewed' };
+    techniques.push(data7);
 
     return techniques;
 }
@@ -119,7 +138,7 @@ describe('Techniques Query API', function () {
         await loadTechniques(techniques);
     });
 
-    it('GET /api/techniques should return 2 of the preloaded techniques', function (done) {
+    it('GET /api/techniques should return the preloaded techniques (not deprecated, not revoked)', function (done) {
         request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
@@ -130,11 +149,11 @@ describe('Techniques Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the techniques
+                    // Expect techniques 1, 2, 6, and 7
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(2);
+                    expect(techniques.length).toBe(4);
                     done();
                 }
             });
@@ -151,17 +170,17 @@ describe('Techniques Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the techniques
+                    // Expect techniques 1, 2, 6, and 7
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(2);
+                    expect(techniques.length).toBe(4);
                     done();
                 }
             });
     });
 
-    it('GET /api/techniques should return all techniques', function (done) {
+    it('GET /api/techniques should include deprecated techniques (excluding revoked)', function (done) {
         request(app)
             .get('/api/techniques?includeDeprecated=true')
             .set('Accept', 'application/json')
@@ -172,11 +191,11 @@ describe('Techniques Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the techniques
+                    // Expect techniques 1, 2, 3, 6, and 7
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(3);
+                    expect(techniques.length).toBe(5);
                     done();
                 }
             });
@@ -193,17 +212,17 @@ describe('Techniques Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the techniques
+                    // Expect techniques 1,2, 6, and 7
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(2);
+                    expect(techniques.length).toBe(4);
                     done();
                 }
             });
     });
 
-    it('GET /api/techniques should return all techniques', function (done) {
+    it('GET /api/techniques should include revoked techniques (but not deprecated)', function (done) {
         request(app)
             .get('/api/techniques?includeRevoked=true')
             .set('Accept', 'application/json')
@@ -214,11 +233,11 @@ describe('Techniques Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the techniques
+                    // Expect techniques 1, 2, 4, 6, and 7
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(3);
+                    expect(techniques.length).toBe(5);
                     done();
                 }
             });
@@ -235,11 +254,32 @@ describe('Techniques Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the techniques
+                    // Expect techniques 2 and 6
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(1);
+                    expect(techniques.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques should return techniques with workflow.state set to work-in-progress or reviewed', function (done) {
+        request(app)
+            .get('/api/techniques?state=work-in-progress&state=reviewed')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // Expect techniques 2, 6, and 7
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(3);
                     done();
                 }
             });

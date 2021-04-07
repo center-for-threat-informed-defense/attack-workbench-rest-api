@@ -24,7 +24,12 @@ exports.retrieveAll = async function(options) {
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
-        query['workspace.workflow.state'] = options.state;
+        if (Array.isArray(options.state)) {
+            query['workspace.workflow.state'] = { $in: options.state };
+        }
+        else {
+            query['workspace.workflow.state'] = options.state;
+        }
     }
 
     // Build the aggregation
