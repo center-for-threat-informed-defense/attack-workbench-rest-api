@@ -8,6 +8,13 @@ paths:
       tags:
         - 'Collection Bundles'
       parameters:
+        - name: previewOnly
+          in: query
+          description: |
+            Return the bundle but do not mark the collection as exported.
+          schema:
+            type: boolean
+            default: false
         - name: collectionId
           in: query
           description: |
@@ -32,11 +39,19 @@ paths:
       tags:
         - 'Collection Bundles'
       parameters:
-        - name: checkOnly
+        - name: previewOnly
           in: query
           description: |
             Do not import the collection.
             Only determine what the results of the import would be if it were performed.
+          schema:
+            type: boolean
+            default: false
+        - name: checkOnly
+          deprecated: true
+          in: query
+          description: |
+            Replaced by previewOnly
           schema:
             type: boolean
             default: false

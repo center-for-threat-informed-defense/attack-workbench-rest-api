@@ -30,10 +30,31 @@ describe('Collection Bundles API Full-Size Test', function () {
         collectionBundle80 = await readJson('./enterprise-attack-8.0.json');
     });
 
-    it('POST /api/collection-bundles previews the import of a collection bundle', function (done) {
+    it('POST /api/collection-bundles previews the import of a collection bundle (checkOnly)', function (done) {
         const body = collectionBundle80;
         request(app)
             .post('/api/collection-bundles?checkOnly=true')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get the created collection object
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.workspace.import_categories.errors.length).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collection-bundles previews the import of a collection bundle (previewOnly)', function (done) {
+        const body = collectionBundle80;
+        request(app)
+            .post('/api/collection-bundles?previewOnly=true')
             .send(body)
             .set('Accept', 'application/json')
             .expect(201)

@@ -14,6 +14,11 @@ module.exports.common = {
     attack_id: String
 };
 
+const exportData = {
+    export_timestamp: Date,
+    bundle_id: String
+};
+
 const importError = {
     object_ref: { type: String, required: true },
     object_modified : { type: Date },
@@ -23,6 +28,7 @@ const importError = {
 
 module.exports.collection = {
     imported: Date,
+    exported: [ exportData ],
     import_categories: {
         additions: [ String ],
         changes: [ String ],

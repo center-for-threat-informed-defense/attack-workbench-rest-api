@@ -321,3 +321,20 @@ exports.delete = function (stixId, deleteAllContents, callback) {
             }
         });
 };
+
+exports.insertExport = async function(stixId, modified, exportData) {
+    const collection = await Collection.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+
+    if (collection) {
+        // Make sure the exports array exists
+        if (!collection.workspace.exported) {
+            collection.workspace.exported = [];
+        }
+        collection.workspace.exported.push(exportData);
+
+        await collection.save();
+    }
+    else {
+        throw new Error(errors.notFound);
+    }
+};

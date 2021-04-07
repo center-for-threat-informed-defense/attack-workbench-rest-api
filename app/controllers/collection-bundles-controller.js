@@ -22,8 +22,10 @@ exports.importBundle = function(req, res) {
         return res.status(400).send('Unable to import collection bundle. x-mitre-collection missing id.');
     }
 
+    const previewOnly = req.query.previewOnly || req.query.checkOnly;
+
     // Create the collection index
-    collectionBundlesService.importBundle(collection, collectionBundleData, req.query.checkOnly, function(err, importedCollection) {
+    collectionBundlesService.importBundle(collection, collectionBundleData, previewOnly, function(err, importedCollection) {
         if (err) {
             if (err.message === collectionBundlesService.errors.duplicateCollection) {
                 logger.error('Unable to import collection, duplicate x-mitre-collection.');
@@ -49,7 +51,8 @@ exports.importBundle = function(req, res) {
 
 exports.exportBundle = function(req, res) {
     const options = {
-        collectionId: req.query.collectionId
+        collectionId: req.query.collectionId,
+        previewOnly: req.query.previewOnly
     };
 
     collectionBundlesService.exportBundle(options, function(err, collectionBundle) {

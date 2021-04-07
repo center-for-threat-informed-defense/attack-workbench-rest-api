@@ -55,7 +55,7 @@ function toEpoch(date) {
     }
 }
 
-exports.importBundle = function(collection, data, checkOnly, callback) {
+exports.importBundle = function(collection, data, previewOnly, callback) {
     let uniqueImportReference = 0;
     let duplicateImportReference = 0;
     let aliasReference = 0;
@@ -64,6 +64,7 @@ exports.importBundle = function(collection, data, checkOnly, callback) {
     const importedCollection = {
         workspace: {
             imported: new Date().toISOString(),
+            exported: [],
             import_categories: {
                 additions: [],
                 changes: [],
@@ -258,7 +259,7 @@ exports.importBundle = function(collection, data, checkOnly, callback) {
                                     }
 
                                     // Save the object
-                                    if (checkOnly) {
+                                    if (previewOnly) {
                                         // Do nothing
                                         return callback2a();
                                     }
@@ -355,7 +356,7 @@ exports.importBundle = function(collection, data, checkOnly, callback) {
                         async.eachLimit([...importReferences.values()], 8, function(importReference, callback3a) {
                                 if (existingReferences.has(importReference.source_name)) {
                                     // Duplicate of existing reference -- overwrite
-                                    if (checkOnly) {
+                                    if (previewOnly) {
                                         // Do nothing
                                         importedCollection.workspace.import_references.changes.push(importReference.source_name);
                                         return callback3a();
@@ -372,7 +373,7 @@ exports.importBundle = function(collection, data, checkOnly, callback) {
                                             });
                                     }
                                 } else {
-                                    if (checkOnly) {
+                                    if (previewOnly) {
                                         // Do nothing
                                         importedCollection.workspace.import_references.additions.push(importReference.source_name);
                                         return callback3a();
@@ -400,7 +401,7 @@ exports.importBundle = function(collection, data, checkOnly, callback) {
             },
             // Save the x-mitre-collection object
             function(callback4) {
-                if (checkOnly) {
+                if (previewOnly) {
                     // Do nothing
                     process.nextTick(() => callback4(null, importedCollection));
                 }
@@ -451,13 +452,30 @@ exports.exportBundle = function(options, callback) {
         }
         else {
             if (collection.length === 1) {
-                bundle.objects.push(collection[0].stix);
+                const exportedCollection = collection[0];
+                bundle.objects.push(exportedCollection.stix);
 
-                for (const attackObject of collection[0].contents) {
+                for (const attackObject of exportedCollection.contents) {
                     bundle.objects.push(attackObject.stix);
                 }
 
-                return callback(null, bundle);
+                if (options.previewOnly) {
+                    return callback(null, bundle);
+                }
+                else {
+                    const exportData = {
+                        export_timestamp: new Date(),
+                        bundle_id: bundle.id
+                    }
+                    collectionsService.insertExport(exportedCollection.stix.id, exportedCollection.stix.modified, exportData)
+                        .then(function (err) {
+                            if (err) {
+                                return callback(err);
+                            } else {
+                                return callback(null, bundle);
+                            }
+                        });
+                }
             }
             else if (collection.length === 0) {
                 const error = new Error(errors.notFound);

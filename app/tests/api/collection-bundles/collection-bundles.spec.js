@@ -207,8 +207,7 @@ describe('Collection Bundles Basic API', function () {
             });
     });
 
-    let collection1;
-    it('POST /api/collection-bundles previews the import of a collection bundle', function (done) {
+    it('POST /api/collection-bundles previews the import of a collection bundle (checkOnly)', function (done) {
         const body = initialObjectData;
         request(app)
             .post('/api/collection-bundles?checkOnly=true')
@@ -221,10 +220,33 @@ describe('Collection Bundles Basic API', function () {
                     done(err);
                 } else {
                     // We expect to get the created collection object
-                    collection1 = res.body;
-                    expect(collection1).toBeDefined();
-                    expect(collection1.workspace.import_categories.additions.length).toBe(5);
-                    expect(collection1.workspace.import_categories.errors.length).toBe(3);
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.workspace.import_categories.additions.length).toBe(5);
+                    expect(collection.workspace.import_categories.errors.length).toBe(3);
+                    done();
+                }
+            });
+    });
+
+    let collection1;
+    it('POST /api/collection-bundles previews the import of a collection bundle (previewOnly)', function (done) {
+        const body = initialObjectData;
+        request(app)
+            .post('/api/collection-bundles?previewOnly=true')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get the created collection object
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.workspace.import_categories.additions.length).toBe(5);
+                    expect(collection.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
             });
@@ -367,6 +389,28 @@ describe('Collection Bundles Basic API', function () {
                 if (err) {
                     done(err);
                 } else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collection-bundles previews the export of the collection bundle', function (done) {
+        request(app)
+            .get(`/api/collection-bundles?previewOnly=true&collectionId=x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported collection bundle
+                    const collectionBundle = res.body;
+                    expect(collectionBundle).toBeDefined();
+                    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+                    expect(collectionBundle.objects.length).toBe(5);
+
                     done();
                 }
             });
