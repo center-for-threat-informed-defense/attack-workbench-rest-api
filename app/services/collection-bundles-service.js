@@ -56,9 +56,11 @@ function toEpoch(date) {
 }
 
 exports.importBundle = function(collection, data, previewOnly, callback) {
-    let uniqueImportReference = 0;
-    let duplicateImportReference = 0;
-    let aliasReference = 0;
+    const referenceImportResults = {
+        uniqueReferences: 0,
+        duplicateReferences: 0,
+        aliasReferences: 0
+    };
 
     // Create the collection reference
     const collectionReference = {
@@ -244,11 +246,11 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                                 }
 
                                                 if (isAlias) {
-                                                    aliasReference++;
+                                                    referenceImportResults.aliasReferences++;
                                                 }
                                                 else {
                                                     if (importReferences.has(externalReference.source_name)) {
-                                                        duplicateImportReference++;
+                                                        referenceImportResults.duplicateReferences++;
                                                         // if (externalReference.description === importReferences.get(externalReference.source_name)) {
                                                         //     // Duplicate in collection bundle -- skip
                                                         // } else {
@@ -256,7 +258,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                                         //     // Skip for now
                                                         // }
                                                     } else {
-                                                        uniqueImportReference++;
+                                                        referenceImportResults.uniqueReferences++;
                                                         importReferences.set(externalReference.source_name, externalReference);
                                                     }
                                                 }
@@ -396,9 +398,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                 return callback3(err);
                             });
                     })
-                    .catch(err => {
-                        return callback3(err);
-                    });
+                    .catch(err => callback3(err));
             },
             // Save the x-mitre-collection object
             function(callback4) {
