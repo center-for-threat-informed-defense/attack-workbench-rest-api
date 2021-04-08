@@ -3,7 +3,7 @@
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
 const attackObjectsService = require('./attack-objects-service');
-const async = require('async');
+const asyncLib = require('async');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -73,7 +73,7 @@ exports.retrieveAll = function(options, callback) {
 };
 
 function getContents(objectList, callback) {
-    async.mapLimit(
+    asyncLib.mapLimit(
         objectList,
         5,
         async function(objectRef) {
@@ -116,7 +116,7 @@ exports.retrieveById = function(stixId, options, callback) {
                 }
                 else {
                     if (options.retrieveContents) {
-                        async.eachSeries(
+                        asyncLib.eachSeries(
                             collections,
                             function(collection, callback2) {
                                 getContents(collection.stix.x_mitre_contents, function (err, contents) {
@@ -240,7 +240,32 @@ exports.retrieveVersionById = function(stixId, modified, options, callback) {
         })
 }
 
-exports.create = function(data, callback) {
+function addObjectsToCollection(objectList, collectionID, collectionModified, callback) {
+    // Modify the objects in the collection to show that they are part of the collection
+    const errors = [];
+    asyncLib.eachLimit(objectList, 4, function(attackObject, callback2) {
+            attackObjectsService.insertCollection(attackObject.object_ref, attackObject.object_modified, collectionID, collectionModified)
+                .then(
+                    function() {
+                        return callback2();
+                    },
+                    function(err) {
+                        // Save the error, but do not cause the function to fail
+                        errors.push(err);
+                        return callback2();
+                    });
+        },
+        function(err) {
+            if (err) {
+                return callback(err);
+            }
+            else {
+                return callback(null, errors);
+            }
+        });
+}
+
+exports.create = function(data, options, callback) {
     // Create the document
     const collection = new Collection(data);
 
@@ -257,7 +282,18 @@ exports.create = function(data, callback) {
             }
         }
         else {
-            return callback(null, savedCollection);
+            if (options.addObjectsToCollection) {
+                addObjectsToCollection(savedCollection.stix.x_mitre_contents, savedCollection.stix.id, savedCollection.stix.modified, function (err, addErrors) {
+                    if (err) {
+                        return callback(err, savedCollection, addErrors);
+                    } else {
+                        return callback(null, savedCollection, addErrors);
+                    }
+                });
+            }
+            else {
+                return callback(null, savedCollection, []);
+            }
         }
     });
 };
@@ -284,9 +320,9 @@ exports.delete = function (stixId, deleteAllContents, callback) {
             }
             else {
                 const removedCollections = [];
-                async.each(collections, function(collection, callback2) {
+                asyncLib.each(collections, function(collection, callback2) {
                         if (deleteAllContents) {
-                            async.each(collection.stix.x_mitre_contents, function(reference, callback2a) {
+                            asyncLib.each(collection.stix.x_mitre_contents, function(reference, callback2a) {
                                 AttackObject.findOneAndRemove({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
                                     if (err) {
                                         return callback2a(err);

@@ -24,7 +24,7 @@ exports.importBundle = function(req, res) {
 
     const previewOnly = req.query.previewOnly || req.query.checkOnly;
 
-    // Create the collection index
+    // Import the collection bundle
     collectionBundlesService.importBundle(collection, collectionBundleData, previewOnly, function(err, importedCollection) {
         if (err) {
             if (err.message === collectionBundlesService.errors.duplicateCollection) {

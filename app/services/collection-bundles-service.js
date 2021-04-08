@@ -60,6 +60,12 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
     let duplicateImportReference = 0;
     let aliasReference = 0;
 
+    // Create the collection reference
+    const collectionReference = {
+        collection_ref: collection.id,
+        collection_modified: collection.modified
+    };
+
     // Create the x-mitre-collection object
     const importedCollection = {
         workspace: {
@@ -266,7 +272,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                     else {
                                         const newObject = {
                                             workspace: {
-                                                domains: []
+                                                collections: [ collectionReference ]
                                             },
                                             stix: importObject
                                         };
@@ -349,9 +355,6 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                     .then(function(references) {
                         const existingReferences = new Map(references.map(item => [ item.source_name, item ]));
 
-                        console.log(`${ uniqueImportReference } unique references found, ${ duplicateImportReference } duplicate references found`);
-                        console.log(`${ aliasReference } alias instances found in references`);
-                        console.log(`importReferences.size ${ importReferences.size }`);
                         // Iterate over the import references
                         async.eachLimit([...importReferences.values()], 8, function(importReference, callback3a) {
                                 if (existingReferences.has(importReference.source_name)) {
@@ -368,7 +371,6 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                                 return callback3a();
                                             })
                                             .catch(function (err) {
-                                                console.log(`Error while saving reference: ` + err);
                                                 return callback3a(err);
                                             });
                                     }
@@ -395,7 +397,6 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                             });
                     })
                     .catch(err => {
-                        console.log('Unable to retrieve existing references: ' + err);
                         return callback3(err);
                     });
             },
@@ -406,7 +407,8 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                     process.nextTick(() => callback4(null, importedCollection));
                 }
                 else {
-                    collectionsService.create(importedCollection, function(err, savedCollection) {
+                    const options = { addObjectsToCollection: false }; // already done when saving objects
+                    collectionsService.create(importedCollection, options, function(err, savedCollection) {
                         if (err) {
                             if (err.name === 'MongoError' && err.code === 11000) {
                                 // 11000 = Duplicate index

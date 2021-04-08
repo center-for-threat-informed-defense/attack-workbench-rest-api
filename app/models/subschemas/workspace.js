@@ -1,5 +1,10 @@
 'use strict';
 
+const collectionVersion = {
+    collection_ref: { type: String, required: true },
+    collection_modified : { type: Date, required: true }
+}
+
 module.exports.common = {
     workflow: {
         state: {
@@ -11,7 +16,8 @@ module.exports.common = {
             ]
         }
     },
-    attack_id: String
+    attack_id: String,
+    collections: [ collectionVersion ]
 };
 
 const exportData = {

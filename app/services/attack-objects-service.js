@@ -7,7 +7,8 @@ const errors = {
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
     notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
+    invalidQueryStringParameter: 'Invalid query string parameter',
+    duplicateCollection: 'Duplicate collection'
 };
 exports.errors = errors;
 
@@ -120,4 +121,37 @@ exports.retrieveVersionById = async function(stixId, modified) {
 
     // Note: attackObject is null if not found
     return attackObject;
+};
+
+// Record that this object is part of a collection
+exports.insertCollection = async function(stixId, modified, collectionId, collectionModified) {
+    const attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+
+    if (attackObject) {
+        // Create the collection reference
+        const collection = {
+            collection_ref: collectionId,
+            collection_modified: collectionModified
+        };
+
+        // Make sure the exports array exists and add the collection reference
+        if (!attackObject.workspace.collections) {
+            attackObject.workspace.collections = [];
+        }
+
+        // Check to see if the collection is already added
+        // (collection with same id and version should only be created--and therefore objects added--one time)
+        const duplicateCollection = attackObject.workspace.collections.find(
+            item => item.collection_ref === collection.collection_ref && item.collection_modified === collection.collection_modified);
+        if (duplicateCollection) {
+            throw new Error(errors.duplicateCollection);
+        }
+
+        attackObject.workspace.collections.push(collection);
+
+        await attackObject.save();
+    }
+    else {
+        throw new Error(errors.notFound);
+    }
 };

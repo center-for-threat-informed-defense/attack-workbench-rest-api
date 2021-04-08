@@ -97,7 +97,8 @@ exports.create = function(req, res) {
     }
 
     // Create the collection
-    collectionsService.create(collectionData, function(err, collection) {
+    const options = { addObjectsToCollection: true };
+    collectionsService.create(collectionData, options, function(err, collection) {
         if (err) {
             if (err.message === collectionsService.errors.duplicateId) {
                 logger.warn("Duplicate stix.id and stix.modified");
