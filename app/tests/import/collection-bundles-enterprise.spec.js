@@ -123,6 +123,28 @@ describe('Collection Bundles API Full-Size Test', function () {
             });
     });
 
+    const domain = 'enterprise-attack';
+    it('GET /api/stix-bundles exports the STIX bundle', function (done) {
+        request(app)
+            .get(`/api/stix-bundles?domain=${ domain }`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported stix bundle
+                    const stixBundle = res.body;
+                    expect(stixBundle).toBeDefined();
+                    expect(Array.isArray(stixBundle.objects)).toBe(true);
+
+                    done();
+                }
+            });
+    });
+
     after(async function() {
         await database.closeConnection();
     });

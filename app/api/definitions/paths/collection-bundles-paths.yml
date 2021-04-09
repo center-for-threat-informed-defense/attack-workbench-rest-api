@@ -36,9 +36,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '../components/collection-bundles.yml#/components/schemas/collection-bundle'
+                $ref: '../components/collection-bundles.yml#/components/schemas/collection-bundle'
     post:
       summary: 'Import a collection bundle'
       operationId: 'collection-bundle-import'
