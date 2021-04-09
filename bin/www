@@ -17,6 +17,10 @@ async function runServer() {
     logger.info('Setting up the database connection');
     await require('../app/lib/database-connection').initializeConnection();
 
+    // Check for valid database configuration
+    const databaseConfiguration = require('../app/lib/database-configuration');
+    await databaseConfiguration.checkSystemConfiguration();
+
     // Create the app
     const app = await require('../app').initializeApp();
     const config = app.get('config');

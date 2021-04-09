@@ -12,6 +12,7 @@ const noteProperties = {
     object_refs: { type: [ String ], required: true },
 
     // ATT&CK custom stix properties
+    x_mitre_modified_by_ref: String,
     x_mitre_deprecated: Boolean
 };
 

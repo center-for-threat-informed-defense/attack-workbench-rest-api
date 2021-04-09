@@ -33,3 +33,10 @@ components:
             items:
               type: string
               example: 'Linux'
+
+    organization-identity:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'identity--76abfbed-a92f-4e2a-953e-dc83f90ecddc'

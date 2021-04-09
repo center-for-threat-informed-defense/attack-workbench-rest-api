@@ -10,6 +10,7 @@ module.exports.attackPattern = {
     kill_chain_phases: [ stixCore.killChainPhase ],
 
     // ATT&CK custom stix properties
+    x_mitre_modified_by_ref: String,
     x_mitre_detection: String,
     x_mitre_platforms: [ String ],
     x_mitre_is_subtechnique: Boolean,

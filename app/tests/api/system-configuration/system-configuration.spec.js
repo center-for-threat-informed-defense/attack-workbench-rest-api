@@ -1,6 +1,8 @@
 const request = require('supertest');
-const database = require('../../../lib/database-in-memory')
 const expect = require('expect');
+
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -12,6 +14,9 @@ describe('System Configuration API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
@@ -48,6 +53,26 @@ describe('System Configuration API', function () {
                     const domainAllowedValues = propertyAllowedValues.domains.find(item => item.domainName === expectedDomainName);
                     expect(domainAllowedValues).toBeDefined();
                     expect(domainAllowedValues.allowedValues).toContain(expectedPropertyValue);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/config/organization-identity returns the organizaton identity', function (done) {
+        request(app)
+            .get('/api/config/organization-identity')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the organization identity
+                    const identity = res.body;
+                    expect(identity).toBeDefined();
 
                     done();
                 }

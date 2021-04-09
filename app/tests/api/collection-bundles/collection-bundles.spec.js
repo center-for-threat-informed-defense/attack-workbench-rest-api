@@ -5,7 +5,8 @@ const _ = require('lodash');
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
-const database = require('../../../lib/database-in-memory')
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 
 const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
 const collectionTimestamp = new Date().toISOString();
@@ -188,6 +189,9 @@ describe('Collection Bundles Basic API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();

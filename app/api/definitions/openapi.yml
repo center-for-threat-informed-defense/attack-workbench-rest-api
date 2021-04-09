@@ -181,3 +181,6 @@ paths:
   # System Configuration
   /api/config/allowed-values:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1allowed-values'
+
+  /api/config/organization-identity:
+    $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1organization-identity'

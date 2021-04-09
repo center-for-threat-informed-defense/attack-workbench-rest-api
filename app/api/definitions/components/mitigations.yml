@@ -26,6 +26,9 @@ components:
               type: string
               example: 'This is a course of action (mitigation).'
             # ATT&CK custom properties
+            x_mitre_modified_by_ref:
+              type: string
+              example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
             x_mitre_deprecated:
               type: boolean
               example: false

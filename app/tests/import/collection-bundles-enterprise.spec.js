@@ -5,7 +5,8 @@ const fs = require('fs').promises;
 const logger = require('../../lib/logger');
 logger.level = 'debug';
 
-const database = require('../../lib/database-in-memory')
+const database = require('../../lib/database-in-memory');
+const databaseConfiguration = require('../../lib/database-configuration');
 
 async function readJson(path) {
     const filePath = require.resolve(path);
@@ -22,6 +23,9 @@ describe('Collection Bundles API Full-Size Test', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the express app
         app = await require('../../index').initializeApp();

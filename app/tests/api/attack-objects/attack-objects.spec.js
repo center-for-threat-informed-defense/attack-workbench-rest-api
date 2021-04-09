@@ -1,6 +1,8 @@
 const request = require('supertest');
-const database = require('../../../lib/database-in-memory')
 const expect = require('expect');
+
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 const AttackObject = require('../../../models/attack-object-model');
 
 const logger = require('../../../lib/logger');
@@ -205,11 +207,14 @@ describe('ATT&CK Objects API', function () {
         // Wait until the indexes are created
         await AttackObject.init();
 
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
+
         // Initialize the express app
         app = await require('../../../index').initializeApp();
     });
 
-    it('GET /api/attack-objects returns an empty array of ATT&CK objects', function (done) {
+    it('GET /api/attack-objects returns only the placeholder identity', function (done) {
         request(app)
             .get('/api/attack-objects')
             .set('Accept', 'application/json')
@@ -224,7 +229,7 @@ describe('ATT&CK Objects API', function () {
                     const attackObjects = res.body;
                     expect(attackObjects).toBeDefined();
                     expect(Array.isArray(attackObjects)).toBe(true);
-                    expect(attackObjects.length).toBe(0);
+                    expect(attackObjects.length).toBe(1);
                     done();
                 }
             });
@@ -434,7 +439,7 @@ describe('ATT&CK Objects API', function () {
                     const attackObjects = res.body;
                     expect(attackObjects).toBeDefined();
                     expect(Array.isArray(attackObjects)).toBe(true);
-                    expect(attackObjects.length).toBe(8);
+                    expect(attackObjects.length).toBe(9);
                     done();
                 }
             });

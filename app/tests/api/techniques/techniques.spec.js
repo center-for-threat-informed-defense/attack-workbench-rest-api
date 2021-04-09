@@ -5,7 +5,8 @@ const _ = require('lodash');
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
-const database = require('../../../lib/database-in-memory')
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
@@ -29,6 +30,7 @@ const initialObjectData = {
         kill_chain_phases: [
             { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
         ],
+        x_mitre_modified_by_ref: "identity--d6424da5-85a0-496e-ae17-494499271108",
         x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
         x_mitre_detection: 'detection text',
         x_mitre_is_subtechnique: false,
@@ -44,6 +46,9 @@ describe('Techniques Basic API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
@@ -173,6 +178,7 @@ describe('Techniques Basic API', function () {
                     expect(technique.stix.spec_version).toBe(technique1.stix.spec_version);
                     expect(technique.stix.object_marking_refs).toEqual(expect.arrayContaining(technique1.stix.object_marking_refs));
                     expect(technique.stix.created_by_ref).toBe(technique1.stix.created_by_ref);
+                    expect(technique.stix.x_mitre_modified_by_ref).toBe(technique1.stix.x_mitre_modified_by_ref);
                     expect(technique.stix.x_mitre_data_sources).toEqual(expect.arrayContaining(technique1.stix.x_mitre_data_sources));
                     expect(technique.stix.x_mitre_detection).toBe(technique1.stix.x_mitre_detection);
                     expect(technique.stix.x_mitre_is_subtechnique).toBe(technique1.stix.x_mitre_is_subtechnique);

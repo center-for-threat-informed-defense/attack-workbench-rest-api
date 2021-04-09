@@ -1,7 +1,9 @@
 const request = require('supertest');
-const database = require('../../../lib/database-in-memory')
 const expect = require('expect');
 const _ = require('lodash');
+
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -32,11 +34,14 @@ describe('Identity API', function () {
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
 
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
+
         // Initialize the express app
         app = await require('../../../index').initializeApp();
     });
 
-    it('GET /api/identities returns an empty array of identities', function (done) {
+    it('GET /api/identities returns the placeholder identity', function (done) {
         request(app)
             .get('/api/identities')
             .set('Accept', 'application/json')
@@ -51,7 +56,7 @@ describe('Identity API', function () {
                     const identities = res.body;
                     expect(identities).toBeDefined();
                     expect(Array.isArray(identities)).toBe(true);
-                    expect(identities.length).toBe(0);
+                    expect(identities.length).toBe(1);
                     done();
                 }
             });
@@ -118,7 +123,7 @@ describe('Identity API', function () {
                     const identities = res.body;
                     expect(identities).toBeDefined();
                     expect(Array.isArray(identities)).toBe(true);
-                    expect(identities.length).toBe(1);
+                    expect(identities.length).toBe(2);
                     done();
                 }
             });
@@ -360,7 +365,7 @@ describe('Identity API', function () {
             });
     });
 
-    it('GET /api/identities returns an empty array of identities', function (done) {
+    it('GET /api/identities returns only the placeholder identity', function (done) {
         request(app)
             .get('/api/identities')
             .set('Accept', 'application/json')
@@ -375,7 +380,7 @@ describe('Identity API', function () {
                     const identities = res.body;
                     expect(identities).toBeDefined();
                     expect(Array.isArray(identities)).toBe(true);
-                    expect(identities.length).toBe(0);
+                    expect(identities.length).toBe(1);
                     done();
                 }
             });

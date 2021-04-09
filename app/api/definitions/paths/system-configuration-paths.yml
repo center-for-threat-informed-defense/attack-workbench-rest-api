@@ -16,3 +16,42 @@ paths:
                 type: array
                 items:
                   $ref: '../components/system-configuration.yml#/components/schemas/allowed-values'
+
+  /api/config/organization-identity:
+    get:
+      summary: 'Get the designated organization identity'
+      operationId: 'config-get-organization-identity'
+      description: |
+        This endpoint gets the organization identity object for the system.
+      tags:
+        - 'System Configuration'
+      responses:
+        '200':
+          description: 'An identity object.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/identities.yml#/components/schemas/identity'
+    post:
+      summary: 'Set the designated organization identity'
+      operationId: 'config-set-organization-identity'
+      description: |
+        This endpoint sets the organization identity for the system.
+        The identity object must already exist.
+      tags:
+        - 'System Configuration'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/system-configuration.yml#/components/schemas/organization-identity'
+      responses:
+        '204':
+          description: 'The organization identity has been successfully set.'
+        '400':
+          description: 'Missing or invalid parameters were provided. The organization identity was not set.'
+        '404':
+          description: 'The identity could not be found. The organization identity was not set.'
