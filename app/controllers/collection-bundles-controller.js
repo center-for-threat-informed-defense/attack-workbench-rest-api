@@ -50,8 +50,13 @@ exports.importBundle = function(req, res) {
 };
 
 exports.exportBundle = function(req, res) {
+    if (req.query.collectionModified && !req.query.collectionId) {
+        return res.status(400).send('collectionId is required when providing collectionModified');
+    }
+
     const options = {
         collectionId: req.query.collectionId,
+        collectionModified: req.query.collectionModified,
         previewOnly: req.query.previewOnly
     };
 

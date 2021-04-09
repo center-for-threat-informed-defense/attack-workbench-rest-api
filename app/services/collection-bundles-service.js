@@ -435,7 +435,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
     );
 };
 
-exports.exportBundle = function(options, callback) {
+function createBundle(collection, options, callback) {
     // Create the bundle to hold the exported objects
     const bundle = {
         type: 'bundle',
@@ -444,49 +444,85 @@ exports.exportBundle = function(options, callback) {
         objects: []
     };
 
-    const collectionOptions = {
-        versions: 'latest',
-        retrieveContents: true
-    };
-    collectionsService.retrieveById(options.collectionId, collectionOptions, function(err, collection) {
-        if (err) {
-            return callback(err);
+    // Put the collection object in the bundle
+    bundle.objects.push(collection.stix);
+
+    // Put the contents in the bundle
+    for (const attackObject of collection.contents) {
+        bundle.objects.push(attackObject.stix);
+    }
+
+    if (options.previewOnly) {
+        return callback(null, bundle);
+    }
+    else {
+        const exportData = {
+            export_timestamp: new Date(),
+            bundle_id: bundle.id
         }
-        else {
-            if (collection.length === 1) {
-                const exportedCollection = collection[0];
-                bundle.objects.push(exportedCollection.stix);
-
-                for (const attackObject of exportedCollection.contents) {
-                    bundle.objects.push(attackObject.stix);
-                }
-
-                if (options.previewOnly) {
+        // Mark all of the objects as belonging to the bundle
+        collectionsService.insertExport(collection.stix.id, collection.stix.modified, exportData)
+            .then(function (err) {
+                if (err) {
+                    return callback(err);
+                } else {
                     return callback(null, bundle);
                 }
-                else {
-                    const exportData = {
-                        export_timestamp: new Date(),
-                        bundle_id: bundle.id
-                    }
-                    collectionsService.insertExport(exportedCollection.stix.id, exportedCollection.stix.modified, exportData)
-                        .then(function (err) {
-                            if (err) {
-                                return callback(err);
-                            } else {
-                                return callback(null, bundle);
-                            }
-                        });
-                }
-            }
-            else if (collection.length === 0) {
-                const error = new Error(errors.notFound);
-                return callback(error);
+            });
+    }
+}
+
+exports.exportBundle = function(options, callback) {
+    if (options.collectionModified) {
+        // Retrieve the collection with the provided id and modified date
+        const retrievalOptions = { retrieveContents: true };
+        collectionsService.retrieveVersionById(options.collectionId, options.collectionModified, retrievalOptions, function(err, collection) {
+            if (err) {
+                return callback(err);
             }
             else {
-                const error = new Error('Unknown error occurred');
-                return callback(error);
+                if (collection) {
+                    createBundle(collection, options, function (err, bundle) {
+                        if (err) {
+                            return callback(err);
+                        } else {
+                            return callback(null, bundle);
+                        }
+                    });
+                } else {
+                    const error = new Error(errors.notFound);
+                    return callback(error);
+                }
             }
-        }
-    });
+        });
+    }
+    else {
+        // Retrieve the latest collection with the provided id
+        const retrievalOptions = {
+            versions: 'latest',
+            retrieveContents: true
+        };
+        collectionsService.retrieveById(options.collectionId, retrievalOptions, function (err, collections) {
+            if (err) {
+                return callback(err);
+            } else {
+                if (collections.length === 1) {
+                    const exportedCollection = collections[0];
+                    createBundle(exportedCollection, options, function (err, bundle) {
+                        if (err) {
+                            return callback(err);
+                        } else {
+                            return callback(null, bundle);
+                        }
+                    });
+                } else if (collections.length === 0) {
+                    const error = new Error(errors.notFound);
+                    return callback(error);
+                } else {
+                    const error = new Error('Unknown error occurred');
+                    return callback(error);
+                }
+            }
+        });
+    }
 }

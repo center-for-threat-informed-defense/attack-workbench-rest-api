@@ -7,16 +7,18 @@ logger.level = 'debug';
 
 const database = require('../../../lib/database-in-memory')
 
-const timestamp = new Date().toISOString();
+const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
+const collectionTimestamp = new Date().toISOString();
+
 const initialObjectData = {
     type: 'bundle',
     id: 'bundle--0cde353c-ea5b-4668-9f68-971946609282',
     spec_version: '2.1',
     objects: [
         {
-            id: 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647',
-            created: timestamp,
-            modified: timestamp,
+            id: collectionId,
+            created: collectionTimestamp,
+            modified: collectionTimestamp,
             name: 'collection-1',
             spec_version: '2.1',
             type: 'x-mitre-collection',
@@ -418,7 +420,29 @@ describe('Collection Bundles Basic API', function () {
 
     it('GET /api/collection-bundles exports the collection bundle', function (done) {
         request(app)
-            .get(`/api/collection-bundles?collectionId=x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647`)
+            .get(`/api/collection-bundles?collectionId=${ collectionId }`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported collection bundle
+                    const collectionBundle = res.body;
+                    expect(collectionBundle).toBeDefined();
+                    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+                    expect(collectionBundle.objects.length).toBe(5);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collection-bundles exports the collection bundle with id and modified', function (done) {
+        request(app)
+            .get(`/api/collection-bundles?collectionId=${ collectionId }&collectionModified=${ encodeURIComponent(collectionTimestamp) }`)
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
