@@ -31,12 +31,12 @@ exports.retrieveAll = function(req, res) {
     });
 };
 
-exports.retrieve = function(req, res) {
+exports.retrieveById = function(req, res) {
     const options = {
         versions: req.query.versions || 'latest'
     }
 
-    notesService.retrieve(req.params.stixId, options, function (err, notes) {
+    notesService.retrieveById(req.params.stixId, options, function (err, notes) {
         if (err) {
             if (err.message === notesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -63,8 +63,8 @@ exports.retrieve = function(req, res) {
     });
 };
 
-exports.retrieveVersion = function(req, res) {
-    notesService.retrieveVersion(req.params.stixId, req.params.modified, function (err, note) {
+exports.retrieveVersionById = function(req, res) {
+    notesService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, note) {
         if (err) {
             if (err.message === notesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);

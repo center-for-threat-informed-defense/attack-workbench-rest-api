@@ -8,6 +8,7 @@ const AttackObject = require('../models/attack-object-model');
 const Group = require('../models/group-model');
 const Matrix = require('../models/matrix-model');
 const Mitigation = require('../models/mitigation-model');
+const Note = require('../models/note-model');
 const Relationship = require('../models/relationship-model');
 const Software = require('../models/software-model');
 const Tactic = require('../models/tactic-model');
@@ -81,6 +82,7 @@ exports.exportBundle = async function(options) {
     }
 
     // Get the relationships that point at primary objects (removing duplicates)
+
     // Create a map of the primary objects (only use the id, since relationships only reference the id)
     const objectsMap = new Map();
     for (const primaryObject of primaryObjects) {
@@ -129,7 +131,7 @@ exports.exportBundle = async function(options) {
                 objectsMap.set(secondaryObject.stix.id, true);
             }
             else {
-                console.log(`Could not find secondary object with id ${relationship.stix.target_ref }`);
+                console.log(`Could not find secondary object with id ${ relationship.stix.target_ref }`);
             }
         }
     }
@@ -137,6 +139,39 @@ exports.exportBundle = async function(options) {
     // Put the secondary objects in the bundle
     for (const secondaryObject of secondaryObjects) {
         bundle.objects.push(secondaryObject.stix);
+    }
+
+    // Create a map of relationship ids
+    const relationshipsMap = new Map();
+    for (const relationship of relationships) {
+        relationshipsMap.set(relationship.stix.id, true);
+    }
+
+    // Get any note that references an object in the bundle
+    // Start by getting all notes
+    const allNotes = await Note
+        .find()
+        .lean()
+        .exec();
+
+    // Iterate over the notes, keeping any that have an object_ref that points at an object in the bundle
+    const notes = [];
+    for (const note of allNotes) {
+        let includeNote = false;
+        for (const objectRef of note.stix.object_refs) {
+            if (objectsMap.has(objectRef) || relationshipsMap.has(objectRef)) {
+                includeNote = true;
+                break;
+            }
+        }
+        if (includeNote) {
+            notes.push(note);
+        }
+    }
+
+    // Put the notes in the bundle
+    for (const note of notes) {
+        bundle.objects.push(note.stix);
     }
 
     // Make a list of identities referenced
@@ -159,7 +194,12 @@ exports.exportBundle = async function(options) {
 
     for (const stixId of identitiesMap.keys()) {
         const identity = await getAttackObject(stixId);
-        bundle.objects.push(identity.stix);
+        if (identity) {
+            bundle.objects.push(identity.stix);
+        }
+        else {
+            console.log(`Referenced identity not found: ${ stixId }`);
+        }
     }
 
     for (const stixId of markingDefinitionsMap.keys()) {

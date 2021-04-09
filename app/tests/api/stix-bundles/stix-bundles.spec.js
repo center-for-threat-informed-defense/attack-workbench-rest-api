@@ -69,6 +69,10 @@ const initialObjectData = {
                 {
                     "object_ref": "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168",
                     "object_modified": "2017-06-01T00:00:00Z"
+                },
+                {
+                    "object_ref": "note--6b9456275-20bf-48b0-afb7-988d769a2f99",
+                    "object_modified": "2020-04-12T15:44:47.629Z"
                 }
             ]
         },
@@ -268,6 +272,25 @@ const initialObjectData = {
             created: "2018-10-17T00:14:20.652Z",
             x_mitre_version: "1.2",
             spec_version: "2.1"
+        },
+        {
+            type: 'note',
+            id: 'note--6b9456275-20bf-48b0-afb7-988d769a2f99',
+            spec_version: '2.1',
+            abstract: 'This is the abstract for a note.',
+            content: 'This is the content for a note.',
+            authors: [
+                'Author 1',
+                'Author 2'
+            ],
+            external_references: [
+                { source_name: 'source-1', external_id: 's1' }
+            ],
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            object_refs: [ 'malware--04227b24-7817-4de1-9050-b7b1b57f5866' ],
+            modified: "2020-04-12T15:44:47.629Z",
+            created: "2019-10-22T00:14:20.652Z"
         }
     ]
 };
@@ -300,7 +323,7 @@ describe('STIX Bundles Basic API', function () {
                     const collection = res.body;
                     console.log(JSON.stringify(collection.workspace.import_categories.errors, null, 2));
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(10);
+                    expect(collection.workspace.import_categories.additions.length).toBe(11);
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
                     done();
                 }
@@ -337,8 +360,8 @@ describe('STIX Bundles Basic API', function () {
                     expect(stixBundle).toBeDefined();
                     expect(Array.isArray(stixBundle.objects)).toBe(true);
                     // 5 primary objects, 1 relationship, 1 secondary object,
-                    // 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(9);
+                    // 1 note, 1 identity, 1 marking definition
+                    expect(stixBundle.objects.length).toBe(10);
 
                     done();
                 }
