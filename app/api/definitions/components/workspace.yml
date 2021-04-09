@@ -12,3 +12,19 @@ components:
         attackId:
           type: string
           example: 'T9999'
+        collections:
+          type: array
+          items:
+            $ref: '#/components/schemas/collection_reference'
+
+    collection_reference:
+      type: object
+      properties:
+        collection_ref:
+          type: string
+        collection_modified:
+          type: string
+          format: date-time
+      required:
+        - collection_ref
+        - collection_modified
