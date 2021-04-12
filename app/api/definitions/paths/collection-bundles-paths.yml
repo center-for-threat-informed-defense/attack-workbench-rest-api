@@ -30,6 +30,7 @@ paths:
           schema:
             type: string
           example: '2020-03-30T02:39:23.582Z'
+          allowReserved: true
       responses:
         '200':
           description: 'An exported collection bundle.'
