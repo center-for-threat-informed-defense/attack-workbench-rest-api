@@ -440,7 +440,6 @@ function createBundle(collection, options, callback) {
     const bundle = {
         type: 'bundle',
         id: `bundle--${uuid.v4()}`,
-        spec_version: '2.0',
         objects: []
     };
 
