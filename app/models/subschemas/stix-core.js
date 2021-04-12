@@ -1,17 +1,20 @@
 'use strict';
 
-const external_reference = {
+const mongoose = require('mongoose');
+
+const externalReference = {
     source_name: { type: String, required: true },
     description: { type: String },
     url: { type: String },
     external_id: { type: String }
 };
-module.exports.external_reference = external_reference;
+const externalReferenceSchema = new mongoose.Schema(externalReference, { _id: false });
 
-module.exports.killChainPhase = {
+const killChainPhase = {
     kill_chain_name: { type: String, required: true },
     phase_name : { type: String, required: true }
 };
+module.exports.killChainPhaseSchema = new mongoose.Schema(killChainPhase, { _id: false });
 
 module.exports.commonRequiredSDO = {
     type: {
@@ -40,6 +43,6 @@ module.exports.commonRequiredSDO = {
 module.exports.commonOptionalSDO = {
     created_by_ref: { type: String },
     revoked: { type: Boolean },
-    external_references: [ external_reference ],
+    external_references: [ externalReferenceSchema ],
     object_marking_refs: [ String ]
 };

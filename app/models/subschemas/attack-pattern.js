@@ -7,7 +7,7 @@ module.exports.attackPattern = {
     modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
-    kill_chain_phases: [ stixCore.killChainPhase ],
+    kill_chain_phases: [ stixCore.killChainPhaseSchema ],
 
     // ATT&CK custom stix properties
     x_mitre_modified_by_ref: String,
