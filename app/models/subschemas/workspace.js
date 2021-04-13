@@ -55,5 +55,16 @@ module.exports.collection = {
     import_references: {
         additions: [ String ],
         changes: [ String ]
+    },
+    workflow: {
+        state: {
+            type: String,
+            enum: [
+                'work-in-progress',
+                'awaiting-review',
+                'reviewed'
+            ]
+        },
+        release: Boolean
     }
 };

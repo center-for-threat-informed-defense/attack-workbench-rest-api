@@ -24,8 +24,7 @@ const initialObjectData = {
         external_references: [
             { source_name: 'source-1', external_id: 's1' }
         ],
-        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
-        created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab"
+        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ]
     }
 };
 
@@ -106,6 +105,9 @@ describe('Tactics API', function () {
                     expect(tactic1.stix.id).toBeDefined();
                     expect(tactic1.stix.created).toBeDefined();
                     expect(tactic1.stix.modified).toBeDefined();
+                    expect(tactic1.stix.created_by_ref).toBeDefined();
+                    expect(tactic1.stix.x_mitre_modified_by_ref).toBeDefined();
+                    expect(tactic1.stix.created_by_ref).toBe(tactic1.stix.x_mitre_modified_by_ref);
                     done();
                 }
             });
@@ -173,6 +175,7 @@ describe('Tactics API', function () {
                     expect(tactic.stix.spec_version).toBe(tactic1.stix.spec_version);
                     expect(tactic.stix.object_marking_refs).toEqual(expect.arrayContaining(tactic1.stix.object_marking_refs));
                     expect(tactic.stix.created_by_ref).toBe(tactic1.stix.created_by_ref);
+                    expect(tactic.stix.x_mitre_modified_by_ref).toBe(tactic1.stix.x_mitre_modified_by_ref);
 
                     expect(tactic.stix.x_mitre_deprecated).not.toBeDefined();
 

@@ -37,6 +37,18 @@ exports.retrieveAllowedValues = function(callback) {
     }
 }
 
+exports.retrieveOrganizationIdentityRef = async function() {
+    // There should be exactly one system configuration document
+    const systemConfig = await SystemConfiguration.findOne();
+
+    if (systemConfig && systemConfig.organization_identity_ref) {
+        return systemConfig.organization_identity_ref;
+    }
+    else {
+        throw new Error(errors.organizationIdentityNotSet);
+    }
+}
+
 exports.retrieveOrganizationIdentity = async function() {
     // There should be exactly one system configuration document
     const systemConfig = await SystemConfiguration.findOne();

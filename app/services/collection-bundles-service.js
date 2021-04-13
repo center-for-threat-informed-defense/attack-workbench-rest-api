@@ -292,26 +292,50 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                             });
                                         }
                                         else {
-                                            service.create(newObject, function (err, savedObject) {
-                                                if (err) {
-                                                    if (err.message === service.errors.duplicateId) {
-                                                        // We've checked for this already, so this shouldn't occur
-                                                        return callback2a(err);
-                                                    } else {
-                                                        // Record the error, but don't cancel the import
-                                                        const importError = {
-                                                            object_ref: importObject.id,
-                                                            object_modified: importObject.modified,
-                                                            error_type: importErrors.saveError,
-                                                            error_message: err.message
+                                            if (service.createIsAsync) {
+                                                service.create(newObject, { import: true })
+                                                    .then(function(savedObject) {
+                                                        return callback2a();
+                                                    })
+                                                    .catch(function(err) {
+                                                        if (err.message === service.errors.duplicateId) {
+                                                            // We've checked for this already, so this shouldn't occur
+                                                            return callback2a(err);
+                                                        } else {
+                                                            // Record the error, but don't cancel the import
+                                                            const importError = {
+                                                                object_ref: importObject.id,
+                                                                object_modified: importObject.modified,
+                                                                error_type: importErrors.saveError,
+                                                                error_message: err.message
+                                                            }
+                                                            importedCollection.workspace.import_categories.errors.push(importError);
+                                                            return callback2a();
                                                         }
-                                                        importedCollection.workspace.import_categories.errors.push(importError);
+                                                    });
+                                            }
+                                            else {
+                                                service.create(newObject, function (err, savedObject) {
+                                                    if (err) {
+                                                        if (err.message === service.errors.duplicateId) {
+                                                            // We've checked for this already, so this shouldn't occur
+                                                            return callback2a(err);
+                                                        } else {
+                                                            // Record the error, but don't cancel the import
+                                                            const importError = {
+                                                                object_ref: importObject.id,
+                                                                object_modified: importObject.modified,
+                                                                error_type: importErrors.saveError,
+                                                                error_message: err.message
+                                                            }
+                                                            importedCollection.workspace.import_categories.errors.push(importError);
+                                                            return callback2a();
+                                                        }
+                                                    } else {
                                                         return callback2a();
                                                     }
-                                                } else {
-                                                    return callback2a();
-                                                }
-                                            });
+                                                });
+                                            }
                                         }
                                     }
                                 }
