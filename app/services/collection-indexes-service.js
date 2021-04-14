@@ -2,7 +2,6 @@
 
 const CollectionIndex = require('../models/collection-index-model');
 const config = require('../config/config');
-const systemConfigurationService = require('./system-configuration-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',

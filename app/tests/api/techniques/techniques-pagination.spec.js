@@ -51,7 +51,7 @@ async function loadTechniques() {
 
         try {
             // eslint-disable-next-line no-await-in-loop
-            const technique = await techniquesService.create(data, { import: false });
+            await techniquesService.create(data, { import: false });
         }
         catch(err) {
             console.log(err);

@@ -2,7 +2,6 @@
 
 const uuid = require('uuid');
 const Identity = require('../models/identity-model');
-const systemConfigurationService = require('./system-configuration-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
