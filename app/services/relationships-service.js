@@ -2,6 +2,7 @@
 
 const uuid = require('uuid');
 const Relationship = require('../models/relationship-model');
+const systemConfigurationService = require('./system-configuration-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -254,52 +255,35 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
     });
 };
 
-exports.create = function(data, callback) {
+exports.createIsAsync = true;
+exports.create = async function(data, options) {
     // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id
+    //   1. stix.id is undefined. Create a new object and generate the stix.id. Set both
+    //      stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
     //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
-    //      TODO: Verify that the object already exists (?)
+    //      a new version of an existing object. Set stix.x_mitre_modified_by_ref to the organization
+    //      identity.
 
     // Create the document
     const relationship = new Relationship(data);
 
-    if (!relationship.stix.id) {
-        // Assign a new STIX id
-        relationship.stix.id = `relationship--${uuid.v4()}`;
-    }
-
-    // Save the document in the database
-    relationship.save(function(err, savedRelationship) {
-        if (err) {
-            if (err.name === 'MongoError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
+    options = options || {};
+    if (!options.import) {
+        const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+        if (relationship.stix.id) {
+            // New version of an existing object
+            // Only set the x_mitre_modified_by_ref property
+            relationship.stix.x_mitre_modified_by_ref = organizationIdentityRef;
         }
         else {
-            return callback(null, savedRelationship);
+            // New object
+            // Assign a new STIX id
+            relationship.stix.id = `x-mitre-tactic--${uuid.v4()}`;
+
+            // Set the created_by_ref and x_mitre_modified_by_ref properties
+            relationship.stix.created_by_ref = organizationIdentityRef;
+            relationship.stix.x_mitre_modified_by_ref = organizationIdentityRef;
         }
-    });
-};
-
-exports.createAsync = async function(data) {
-    // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
-    //      TODO: Verify that the object already exists (?)
-
-    // Create the document
-    const relationship = new Relationship(data);
-
-    if (!relationship.stix.id) {
-        // Assign a new STIX id
-        relationship.stix.id = `relationship--${uuid.v4()}`;
     }
 
     // Save the document in the database

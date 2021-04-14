@@ -86,27 +86,26 @@ exports.retrieveVersionById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const mitigationData = req.body;
 
     // Create the mitigation
-    mitigationsService.create(mitigationData, function(err, mitigation) {
-        if (err) {
-            if (err.message === mitigationsService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create mitigation. Duplicate stix.id and stix.modified properties.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create mitigation. Server error.");
-            }
+    try {
+        const mitigation = await mitigationsService.create(mitigationData, { import: false });
+        logger.debug("Success: Created mitigation with id " + mitigation.stix.id);
+        return res.status(201).send(mitigation);
+    }
+    catch(err) {
+        if (err.message === mitigationsService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create mitigation. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            logger.debug("Success: Created mitigation with id " + mitigation.stix.id);
-            return res.status(201).send(mitigation);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create mitigation. Server error.");
         }
-    });
+    }
 };
 
 exports.updateFull = function(req, res) {

@@ -279,17 +279,17 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                             stix: importObject
                                         };
                                         if (importObject.type === 'marking-definition') {
-                                            service.create(newObject, { import: true }, function (err, savedObject) {
-                                                if (err) {
+                                            service.create(newObject, { import: true })
+                                                .then(function (savedObject) {
+                                                    return callback2a();
+                                                })
+                                                .catch(function(err) {
                                                     if (err.message === service.errors.duplicateId) {
                                                         return callback2a(err);
                                                     } else {
                                                         return callback2a(err);
                                                     }
-                                                } else {
-                                                    return callback2a();
-                                                }
-                                            });
+                                                });
                                         }
                                         else {
                                             if (service.createIsAsync) {

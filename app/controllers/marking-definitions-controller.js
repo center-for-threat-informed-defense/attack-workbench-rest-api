@@ -61,27 +61,26 @@ exports.retrieveById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const markingDefinitionData = req.body;
 
     // Create the marking definition
-    markingDefinitionsService.create(markingDefinitionData, function(err, markingDefinition) {
-        if (err) {
-            if (err.message === markingDefinitionsService.errors.badlyFormattedParameter) {
-                logger.warn('Unable to create marking definition: Stix id not allowed');
-                return res.status(400).send('Stix id not allowed.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create marking definition. Server error.");
-            }
+    try {
+        const markingDefinition = await markingDefinitionsService.create(markingDefinitionData, { import: false });
+        logger.debug("Success: Created marking definition with id " + markingDefinition.stix.id);
+        return res.status(201).send(markingDefinition);
+    }
+    catch(err) {
+        if (err.message === markingDefinitionsService.errors.badlyFormattedParameter) {
+            logger.warn('Unable to create marking definition: Stix id not allowed');
+            return res.status(400).send('Stix id not allowed.');
         }
         else {
-            logger.debug("Success: Created marking definition with id " + markingDefinition.stix.id);
-            return res.status(201).send(markingDefinition);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create marking definition. Server error.");
         }
-    });
+    }
 };
 
 exports.updateFull = function(req, res) {

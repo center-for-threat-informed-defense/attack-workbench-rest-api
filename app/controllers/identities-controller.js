@@ -85,27 +85,26 @@ exports.retrieveVersionById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const identityData = req.body;
 
     // Create the identity
-    identitiesService.create(identityData, function(err, identity) {
-        if (err) {
-            if (err.message === identitiesService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create identity. Duplicate stix.id and stix.modified properties.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create identity. Server error.");
-            }
+    try {
+        const identity = await identitiesService.create(identityData, { import: false });
+        logger.debug("Success: Created identity with id " + identity.stix.id);
+        return res.status(201).send(identity);
+    }
+    catch(err) {
+        if (err.message === identitiesService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create identity. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            logger.debug("Success: Created identity with id " + identity.stix.id);
-            return res.status(201).send(identity);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create identity. Server error.");
         }
-    });
+    }
 };
 
 exports.updateFull = function(req, res) {

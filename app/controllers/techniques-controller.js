@@ -86,27 +86,26 @@ exports.retrieveVersionById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const techniqueData = req.body;
 
     // Create the technique
-    techniquesService.create(techniqueData, function(err, technique) {
-        if (err) {
-            if (err.message === techniquesService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create technique. Duplicate stix.id and stix.modified properties.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create technique. Server error.");
-            }
+    try {
+        const technique = await techniquesService.create(techniqueData, { import: false });
+
+        logger.debug("Success: Created technique with id " + technique.stix.id);
+        return res.status(201).send(technique);    }
+    catch(err) {
+        if (err.message === techniquesService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create technique. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            logger.debug("Success: Created technique with id " + technique.stix.id);
-            return res.status(201).send(technique);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create technique. Server error.");
         }
-    });
+    }
 };
 
 exports.updateFull = function(req, res) {

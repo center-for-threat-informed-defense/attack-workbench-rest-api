@@ -25,7 +25,7 @@ async function createPlaceholderOrganizationIdentity() {
     };
 
     try {
-        const newIdentity = await identitiesService.createAsync(placeholderIdentity);
+        const newIdentity = await identitiesService.create(placeholderIdentity, { import: false });
 
         // Set the organization identity to the placeholder identity
         await systemConfigurationService.setOrganizationIdentity(newIdentity.stix.id);

@@ -2,6 +2,7 @@
 
 const uuid = require('uuid');
 const MarkingDefinition = require('../models/marking-definition-model');
+const systemConfigurationService = require('./system-configuration-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -112,51 +113,52 @@ exports.retrieveById = function(stixId, options, callback) {
         });
 };
 
-exports.create = function(data, options, callback) {
+exports.createIsAsync = true;
+exports.create = async function(data, options) {
     // This function handles three use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id
+    //   1. stix.id is undefined. Create a new object and generate the stix.id. Set stix.created_by_ref
+    //      to the organization identity.
     //   2. stix.id is defined and options.import is not set. This is an error.
     //   3. stix.id is defined and options.import is set. Create a new object
-    //      using the specified stix.id
+    //      using the specified stix.id and stix.created_by_ref.
     // TBD: Overwrite existing object when importing??
-
-    // Shift parameters if called without including options
-    if (!callback) {
-        callback = options;
-        options = {};
-    }
 
     // Create the document
     const markingDefinition = new MarkingDefinition(data);
 
-    if (markingDefinition.stix.id) {
-        if (!options.import) {
+    options = options || {};
+    if (!options.import) {
+        const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+        if (markingDefinition.stix.id) {
             const error = new Error(errors.badlyFormattedParameter);
             error.parameterName = 'stixId';
-            return callback(error);
+            throw error;
         }
-    }
-    else {
-        // Assign a new STIX id
-        markingDefinition.stix.id = `marking-definition--${uuid.v4()}`;
+        else {
+            // New object
+            // Assign a new STIX id
+            markingDefinition.stix.id = `marking-definition--${uuid.v4()}`;
+
+            // Set the created_by_ref property
+            markingDefinition.stix.created_by_ref = organizationIdentityRef;
+        }
     }
 
     // Save the document in the database
-    markingDefinition.save(function(err, savedMarkingDefinition) {
-        if (err) {
-            if (err.name === 'MongoError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
+    try {
+        const savedMarkingDefinition = await markingDefinition.save();
+        return savedMarkingDefinition;
+    }
+    catch(err) {
+        if (err.name === 'MongoError' && err.code === 11000) {
+            // 11000 = Duplicate index
+            const error = new Error(errors.duplicateId);
+            throw error;
         }
         else {
-            return callback(null, savedMarkingDefinition);
+            throw err;
         }
-    });
+    }
 };
 
 exports.createAsync = async function(data) {

@@ -4,6 +4,7 @@ const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
 const attackObjectsService = require('./attack-objects-service');
 const asyncLib = require('async');
+const systemConfigurationService = require('./system-configuration-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',

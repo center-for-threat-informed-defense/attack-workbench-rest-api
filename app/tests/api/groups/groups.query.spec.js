@@ -100,7 +100,7 @@ async function loadGroups(groups) {
         }
 
         // eslint-disable-next-line no-await-in-loop
-        await groupsService.createAsync(group);
+        await groupsService.create(group, { import: false });
     }
 }
 

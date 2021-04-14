@@ -86,35 +86,34 @@ exports.retrieveVersionById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const softwareData = req.body;
 
     // Create the software
-    softwareService.create(softwareData, function(err, software) {
-        if (err) {
-            if (err.message === softwareService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create software. Duplicate stix.id and stix.modified properties.');
-            }
-            else if (err.message === softwareService.errors.missingProperty) {
-                logger.warn(`Unable to create software, missing property ${ err.propertyName }`);
-                return res.status(400).send(`Unable to create software, missing property ${ err.propertyName }`);
-            }
-            else if (err.message === softwareService.errors.propertyNotAllowed) {
-                logger.warn(`Unable to create software, property ${ err.propertyName } is not allowed`);
-                return res.status(400).send(`Unable to create software, property ${ err.propertyName } is not allowed`);
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create software. Server error.");
-            }
+    try {
+        const software = await softwareService.create(softwareData, { import: false });
+        logger.debug("Success: Created software with id " + software.stix.id);
+        return res.status(201).send(software);
+    }
+    catch(err) {
+        if (err.message === softwareService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create software. Duplicate stix.id and stix.modified properties.');
+        }
+        else if (err.message === softwareService.errors.missingProperty) {
+            logger.warn(`Unable to create software, missing property ${ err.propertyName }`);
+            return res.status(400).send(`Unable to create software, missing property ${ err.propertyName }`);
+        }
+        else if (err.message === softwareService.errors.propertyNotAllowed) {
+            logger.warn(`Unable to create software, property ${ err.propertyName } is not allowed`);
+            return res.status(400).send(`Unable to create software, property ${ err.propertyName } is not allowed`);
         }
         else {
-            logger.debug("Success: Created software with id " + software.stix.id);
-            return res.status(201).send(software);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create software. Server error.");
         }
-    });
+    }
 };
 
 exports.updateFull = function(req, res) {

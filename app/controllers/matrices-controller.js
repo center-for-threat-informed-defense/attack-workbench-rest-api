@@ -86,27 +86,26 @@ exports.retrieveVersionById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const matrixData = req.body;
 
     // Create the matrix
-    matricesService.create(matrixData, function(err, matrix) {
-        if (err) {
-            if (err.message === matricesService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create matrix. Duplicate stix.id and stix.modified properties.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create matrix. Server error.");
-            }
+    try {
+        const matrix = await matricesService.create(matrixData, { import: false });
+        logger.debug("Success: Created matrix with id " + matrix.stix.id);
+        return res.status(201).send(matrix);
+    }
+    catch(err) {
+        if (err.message === matricesService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create matrix. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            logger.debug("Success: Created matrix with id " + matrix.stix.id);
-            return res.status(201).send(matrix);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create matrix. Server error.");
         }
-    });
+    }
 };
 
 exports.updateFull = function(req, res) {

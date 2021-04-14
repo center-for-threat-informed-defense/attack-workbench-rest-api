@@ -119,7 +119,7 @@ async function loadTechniques(techniques) {
         }
 
         // eslint-disable-next-line no-await-in-loop
-        await techniquesService.createAsync(technique);
+        await techniquesService.create(technique);
     }
 }
 
