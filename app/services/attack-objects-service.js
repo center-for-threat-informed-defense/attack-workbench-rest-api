@@ -1,6 +1,7 @@
 'use strict';
 
 const AttackObject = require('../models/attack-object-model');
+const identitiesService = require('./identities-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -72,6 +73,7 @@ exports.retrieveAll = async function(options) {
     // Retrieve the documents
     const results = await AttackObject.aggregate(aggregation);
 
+    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
     if (options.includePagination) {
         let derivedTotalCount = 0;
         if (results[0].totalCount.length > 0) {
@@ -120,6 +122,7 @@ exports.retrieveVersionById = async function(stixId, modified) {
         });
 
     // Note: attackObject is null if not found
+    await identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
     return attackObject;
 };
 

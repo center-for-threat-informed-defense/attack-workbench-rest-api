@@ -191,6 +191,9 @@ describe('Techniques Basic API', function () {
                     expect(technique.stix.x_mitre_system_requirements).not.toBeDefined();
                     expect(technique.stix.x_mitre_tactic_type).not.toBeDefined();
 
+                    expect(technique.created_by_identity).toBeDefined();
+                    expect(technique.modified_by_identity).toBeDefined();
+
                     done();
                 }
             });

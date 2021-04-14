@@ -3,6 +3,7 @@
 const uuid = require('uuid');
 const Note = require('../models/note-model');
 const systemConfigurationService = require('./system-configuration-service');
+const identitiesService = require('./identities-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -74,24 +75,27 @@ exports.retrieveAll = function(options, callback) {
             return callback(err);
         }
         else {
-            if (options.includePagination) {
-                let derivedTotalCount = 0;
-                if (results[0].totalCount.length > 0) {
-                    derivedTotalCount = results[0].totalCount[0].totalCount;
-                }
-                const returnValue = {
-                    pagination: {
-                        total: derivedTotalCount,
-                        offset: options.offset,
-                        limit: options.limit
-                    },
-                    data: results[0].documents
-                };
-                return callback(null, returnValue);
-            }
-            else {
-                return callback(null, results[0].documents);
-            }
+            identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents)
+                .then(function() {
+                    if (options.includePagination) {
+                        let derivedTotalCount = 0;
+                        if (results[0].totalCount.length > 0) {
+                            derivedTotalCount = results[0].totalCount[0].totalCount;
+                        }
+                        const returnValue = {
+                            pagination: {
+                                total: derivedTotalCount,
+                                offset: options.offset,
+                                limit: options.limit
+                            },
+                            data: results[0].documents
+                        };
+                        return callback(null, returnValue);
+                    }
+                    else {
+                        return callback(null, results[0].documents);
+                    }
+                });
         }
     });
 };
@@ -119,7 +123,8 @@ exports.retrieveById = function(stixId, options, callback) {
                         return callback(err);
                     }
                 } else {
-                    return callback(null, notes);
+                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(notes)
+                        .then(() => callback(null, notes));
                 }
             });
     }
@@ -141,7 +146,8 @@ exports.retrieveById = function(stixId, options, callback) {
                 else {
                     // Note: document is null if not found
                     if (note) {
-                        return callback(null, [ note ]);
+                        identitiesService.addCreatedByAndModifiedByIdentities(note)
+                            .then(() => callback(null, [ note ]));
                     }
                     else {
                         return callback(null, []);
@@ -185,7 +191,8 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
         else {
             // Note: document is null if not found
             if (note) {
-                return callback(null, note);
+                identitiesService.addCreatedByAndModifiedByIdentities(note)
+                    .then(() => callback(null, note));
             }
             else {
                 console.log('** NOT FOUND')

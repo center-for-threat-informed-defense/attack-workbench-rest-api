@@ -3,6 +3,7 @@
 const uuid = require('uuid');
 const Relationship = require('../models/relationship-model');
 const systemConfigurationService = require('./system-configuration-service');
+const identitiesService = require('./identities-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -67,7 +68,7 @@ exports.retrieveAll = function(options, callback) {
     aggregation.push({ $match: query });
     aggregation.push({ $lookup: { from: 'attackObjects', localField: 'stix.source_ref', foreignField: 'stix.id', as: 'source_objects' }});
     aggregation.push({ $lookup: { from: 'attackObjects', localField: 'stix.target_ref', foreignField: 'stix.id', as: 'target_objects' }});
-    
+
     // Retrieve the documents
     Relationship.aggregate(aggregation, function(err, results) {
         if (err) {
@@ -135,20 +136,23 @@ exports.retrieveAll = function(options, callback) {
                 }
             }
 
-            if (options.includePagination) {
-                const returnValue = {
-                    pagination: {
-                        total: prePaginationTotal,
-                        offset: options.offset,
-                        limit: options.limit
-                    },
-                    data: results
-                };
-                return callback(null, returnValue);
-            }
-            else {
-                return callback(null, results);
-            }
+            identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results)
+                .then(function() {
+                    if (options.includePagination) {
+                        const returnValue = {
+                            pagination: {
+                                total: prePaginationTotal,
+                                offset: options.offset,
+                                limit: options.limit
+                            },
+                            data: results
+                        };
+                        return callback(null, returnValue);
+                    }
+                    else {
+                        return callback(null, results);
+                    }
+                });
         }
     });
 };
@@ -164,7 +168,8 @@ exports.retrieveById = function(stixId, options, callback) {
     }
 
     if (options.versions === 'all') {
-        Relationship.find({'stix.id': stixId})
+        Relationship
+            .find({'stix.id': stixId})
             .sort('-stix.modified')
             .lean()
             .exec(function (err, relationships) {
@@ -179,7 +184,8 @@ exports.retrieveById = function(stixId, options, callback) {
                     }
                 }
                 else {
-                    return callback(null, relationships);
+                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(relationships)
+                        .then(() => callback(null, relationships));
                 }
             });
     }
@@ -201,7 +207,8 @@ exports.retrieveById = function(stixId, options, callback) {
                 else {
                     // Note: document is null if not found
                     if (relationship) {
-                        return callback(null, [ relationship ]);
+                        identitiesService.addCreatedByAndModifiedByIdentities(relationship)
+                            .then(() => callback(null, [ relationship ]));
                     }
                     else {
                         return callback(null, []);
@@ -217,7 +224,7 @@ exports.retrieveById = function(stixId, options, callback) {
 };
 
 exports.retrieveVersionById = function(stixId, modified, callback) {
-    // Retrieve the versions of the relationship with the matching stixId and modified date
+    // Retrieve the version of the relationship with the matching stixId and modified date
 
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -245,7 +252,8 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
         else {
             // Note: document is null if not found
             if (relationship) {
-                return callback(null, relationship);
+                identitiesService.addCreatedByAndModifiedByIdentities(relationship)
+                    .then(() => callback(null, relationship));
             }
             else {
                 console.log('** NOT FOUND')

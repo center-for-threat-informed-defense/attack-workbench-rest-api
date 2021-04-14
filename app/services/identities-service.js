@@ -296,3 +296,42 @@ exports.delete = function (stixId, stixModified, callback) {
     });
 };
 
+async function getLatest(stixId) {
+    const identity = await Identity
+        .findOne({ 'stix.id': stixId })
+        .sort('-stix.modified')
+        .lean()
+        .exec();
+
+    return identity;
+}
+
+async function addCreatedByAndModifiedByIdentities(attackObject) {
+    if (attackObject && attackObject.stix && attackObject.stix.created_by_ref) {
+        try {
+            // eslint-disable-next-line require-atomic-updates
+            attackObject.created_by_identity = await getLatest(attackObject.stix.created_by_ref);
+        }
+        catch(err) {
+            // Ignore lookup errors
+        }
+    }
+
+    if (attackObject && attackObject.stix && attackObject.stix.x_mitre_modified_by_ref) {
+        try {
+            // eslint-disable-next-line require-atomic-updates
+            attackObject.modified_by_identity = await getLatest(attackObject.stix.x_mitre_modified_by_ref);
+        }
+        catch(err) {
+            // Ignore lookup errors
+        }
+    }
+}
+exports.addCreatedByAndModifiedByIdentities = addCreatedByAndModifiedByIdentities;
+
+exports.addCreatedByAndModifiedByIdentitiesToAll = async function(attackObjects) {
+    for (const attackObject of attackObjects) {
+        // eslint-disable-next-line no-await-in-loop
+        await addCreatedByAndModifiedByIdentities(attackObject);
+    }
+}

@@ -7,6 +7,7 @@ const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
 const systemConfigurationService = require('./system-configuration-service');
 const attackObjectsService = require('./attack-objects-service');
+const identitiesService = require('./identities-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -70,7 +71,10 @@ exports.retrieveAll = function(options, callback) {
             return callback(err);
         }
         else {
-            return callback(null, collections);
+            identitiesService.addCreatedByAndModifiedByIdentitiesToAll(collections)
+                .then(function() {
+                    return callback(null, collections);
+                });
         }
     });
 };
@@ -227,12 +231,14 @@ exports.retrieveVersionById = function(stixId, modified, options, callback) {
                                 return callback(err);
                             } else {
                                 collection.contents = contents;
-                                return callback(null, collection );
+                                identitiesService.addCreatedByAndModifiedByIdentities(collection)
+                                    .then(() => callback(null, collection));
                             }
                         })
                     } 
                     else {
-                        return callback(null, collection)
+                        identitiesService.addCreatedByAndModifiedByIdentities(collection)
+                            .then(() => callback(null, collection));
                     }
                 }
                 else {
