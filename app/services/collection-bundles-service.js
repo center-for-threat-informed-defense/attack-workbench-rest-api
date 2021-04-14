@@ -431,9 +431,12 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                     process.nextTick(() => callback4(null, importedCollection));
                 }
                 else {
-                    const options = { addObjectsToCollection: false }; // already done when saving objects
-                    collectionsService.create(importedCollection, options, function(err, savedCollection) {
-                        if (err) {
+                    const options = { addObjectsToCollection: false, import: true };
+                    collectionsService.create(importedCollection, options)
+                        .then(function(result) {
+                            return callback4(null, result.savedCollection);
+                        })
+                        .catch(function(err) {
                             if (err.name === 'MongoError' && err.code === 11000) {
                                 // 11000 = Duplicate index
                                 const error = new Error(errors.duplicateCollection);
@@ -441,10 +444,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                             } else {
                                 return callback4(err);
                             }
-                        } else {
-                            return callback4(null, savedCollection);
-                        }
-                    });
+                        });
                 }
             }
         ],

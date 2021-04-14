@@ -192,9 +192,9 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
 exports.createIsAsync = true;
 exports.create = async function(data, options) {
     // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id.
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
+    //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+    //      provided.
+    //   2. This is a new version of an existing object. Create a new object with the specified id.
     //   Do not set the created_by_ref or x_mitre_modified_by_ref properties.
 
     // Create the document
@@ -202,11 +202,8 @@ exports.create = async function(data, options) {
 
     options = options || {};
     if (!options.import) {
-        if (!identity.stix.id) {
-            // New object
-            // Assign a new STIX id
-            identity.stix.id = `identity--${uuid.v4()}`;
-        }
+        // Assign a new STIX id if not already provided
+        identity.stix.id = identity.stix.id || `identity--${uuid.v4()}`;
     }
 
     // Save the document in the database

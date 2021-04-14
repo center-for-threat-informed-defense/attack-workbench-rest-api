@@ -1,6 +1,7 @@
 const request = require('supertest');
 const expect = require('expect');
 const _ = require('lodash');
+const uuid = require('uuid');
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
@@ -80,6 +81,7 @@ describe('Create Object with Organization Identity API', function () {
 
     let tactic1;
     it('POST /api/tactics creates a tactic', function (done) {
+        initialTacticData.stix.id = `x-mitre-tactic--${uuid.v4()}`;
         const timestamp = new Date().toISOString();
         initialTacticData.stix.created = timestamp;
         initialTacticData.stix.modified = timestamp;

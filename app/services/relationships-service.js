@@ -258,27 +258,34 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
 exports.createIsAsync = true;
 exports.create = async function(data, options) {
     // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id. Set both
-    //      stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object. Set stix.x_mitre_modified_by_ref to the organization
-    //      identity.
+    //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+    //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
+    //   2. This is a new version of an existing object. Create a new object with the specified id.
+    //      Set stix.x_mitre_modified_by_ref to the organization identity.
 
     // Create the document
     const relationship = new Relationship(data);
 
     options = options || {};
     if (!options.import) {
+        // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+
+        // Check for an existing object
+        let existingObject;
         if (relationship.stix.id) {
+            existingObject = await Relationship.findOne({ 'stix.id': relationship.stix.id });
+        }
+
+        if (existingObject) {
             // New version of an existing object
             // Only set the x_mitre_modified_by_ref property
             relationship.stix.x_mitre_modified_by_ref = organizationIdentityRef;
         }
         else {
             // New object
-            // Assign a new STIX id
-            relationship.stix.id = `x-mitre-tactic--${uuid.v4()}`;
+            // Assign a new STIX id if not already provided
+            relationship.stix.id = relationship.stix.id || `relationship--${uuid.v4()}`;
 
             // Set the created_by_ref and x_mitre_modified_by_ref properties
             relationship.stix.created_by_ref = organizationIdentityRef;

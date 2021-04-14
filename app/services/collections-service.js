@@ -1,9 +1,12 @@
 'use strict';
 
+const uuid = require('uuid');
+const asyncLib = require('async');
+
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
+const systemConfigurationService = require('./system-configuration-service');
 const attackObjectsService = require('./attack-objects-service');
-const asyncLib = require('async');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -240,62 +243,75 @@ exports.retrieveVersionById = function(stixId, modified, options, callback) {
         })
 }
 
-function addObjectsToCollection(objectList, collectionID, collectionModified, callback) {
+async function addObjectsToCollection(objectList, collectionID, collectionModified) {
     // Modify the objects in the collection to show that they are part of the collection
-    const errors = [];
-    asyncLib.eachLimit(objectList, 4, function(attackObject, callback2) {
-            attackObjectsService.insertCollection(attackObject.object_ref, attackObject.object_modified, collectionID, collectionModified)
-                .then(
-                    function() {
-                        return callback2();
-                    },
-                    function(err) {
-                        // Save the error, but do not cause the function to fail
-                        errors.push(err);
-                        return callback2();
-                    });
-        },
-        function(err) {
-            if (err) {
-                return callback(err);
-            }
-            else {
-                return callback(null, errors);
-            }
-        });
+    const insertionErrors = [];
+    for (const attackObject of objectList) {
+        try {
+            // eslint-disable-next-line no-await-in-loop
+            await attackObjectsService.insertCollection(attackObject.object_ref, attackObject.object_modified, collectionID, collectionModified);
+        }
+        catch(err) {
+            insertionErrors.push(err);
+        }
+    }
+
+    return insertionErrors;
 }
 
-exports.create = function(data, options, callback) {
+exports.createIsAsync = true;
+exports.create = async function(data, options) {
     // Create the document
     const collection = new Collection(data);
 
-    // Save the document in the database
-    collection.save(function(err, savedCollection) {
-        if (err) {
-            if (err.name === 'MongoError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
+    options = options || {};
+    if (!options.import) {
+        // Get the organization identity
+        const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+
+        // Check for an existing object
+        let existingObject;
+        if (collection.stix.id) {
+            existingObject = await Collection.findOne({ 'stix.id': collection.stix.id });
+        }
+
+        if (existingObject) {
+            // New version of an existing object
+            // Only set the x_mitre_modified_by_ref property
+            collection.stix.x_mitre_modified_by_ref = organizationIdentityRef;
         }
         else {
-            if (options.addObjectsToCollection) {
-                addObjectsToCollection(savedCollection.stix.x_mitre_contents, savedCollection.stix.id, savedCollection.stix.modified, function (err, addErrors) {
-                    if (err) {
-                        return callback(err, savedCollection, addErrors);
-                    } else {
-                        return callback(null, savedCollection, addErrors);
-                    }
-                });
-            }
-            else {
-                return callback(null, savedCollection, []);
-            }
+            // New object
+            // Assign a new STIX id if not already provided
+            collection.stix.id = collection.stix.id || `x-mitre-collection--${uuid.v4()}`;
+
+            // Set the created_by_ref and x_mitre_modified_by_ref properties
+            collection.stix.created_by_ref = organizationIdentityRef;
+            collection.stix.x_mitre_modified_by_ref = organizationIdentityRef;
         }
-    });
+    }
+
+    // Save the document in the database
+    let insertionErrors = [];
+    try {
+        const savedCollection = await collection.save();
+
+        if (options.addObjectsToCollection) {
+            insertionErrors = await addObjectsToCollection(savedCollection.stix.x_mitre_contents, savedCollection.stix.id, savedCollection.stix.modified);
+        }
+
+        return { savedCollection, insertionErrors };
+    }
+    catch (err) {
+        if (err.name === 'MongoError' && err.code === 11000) {
+            // 11000 = Duplicate index
+            const error = new Error(errors.duplicateId);
+            throw error;
+        }
+        else {
+            throw err;
+        }
+    }
 };
 
 exports.delete = function (stixId, deleteAllContents, callback) {

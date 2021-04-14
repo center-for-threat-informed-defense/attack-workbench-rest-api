@@ -198,19 +198,26 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
 exports.createIsAsync = true;
 exports.create = async function(data, options) {
     // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id. Set both
-    //      stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object. Set stix.x_mitre_modified_by_ref to the organization
-    //      identity.
+    //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+    //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
+    //   2. This is a new version of an existing object. Create a new object with the specified id.
+    //      Set stix.x_mitre_modified_by_ref to the organization identity.
 
     // Create the document
     const mitigation = new Mitigation(data);
 
     options = options || {};
     if (!options.import) {
+        // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+
+        // Check for an existing object
+        let existingObject;
         if (mitigation.stix.id) {
+            existingObject = await Mitigation.findOne({ 'stix.id': mitigation.stix.id });
+        }
+
+        if (existingObject) {
             // New version of an existing object
             // Only set the x_mitre_modified_by_ref property
             mitigation.stix.x_mitre_modified_by_ref = organizationIdentityRef;
@@ -218,7 +225,7 @@ exports.create = async function(data, options) {
         else {
             // New object
             // Assign a new STIX id
-            mitigation.stix.id = `course-of-action--${uuid.v4()}`;
+            mitigation.stix.id = mitigation.stix.id || `course-of-action--${uuid.v4()}`;
 
             // Set the created_by_ref and x_mitre_modified_by_ref properties
             mitigation.stix.created_by_ref = organizationIdentityRef;
