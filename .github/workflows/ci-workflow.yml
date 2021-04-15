@@ -18,8 +18,11 @@ jobs:
       - run: npm run lint
       - run: npm run snyk
       - run: $(npm bin)/nyc --reporter=lcov npm test
-      - name: Uploade Coverage to CodeCov
-        run: |
-          bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CODECOV_SECRET }}
+      - name: Upload Coverage to CodeCov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_SECRET }}
+          files: coverage.xml
+          verbose: true
     env:
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
