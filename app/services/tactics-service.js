@@ -2,6 +2,8 @@
 
 const uuid = require('uuid');
 const Tactic = require('../models/tactic-model');
+const systemConfigurationService = require('./system-configuration-service');
+const identitiesService = require('./identities-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -22,7 +24,12 @@ exports.retrieveAll = function(options, callback) {
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
-        query['workspace.workflow.state'] = options.state;
+        if (Array.isArray(options.state)) {
+            query['workspace.workflow.state'] = { $in: options.state };
+        }
+        else {
+            query['workspace.workflow.state'] = options.state;
+        }
     }
 
     // Build the aggregation
@@ -68,24 +75,27 @@ exports.retrieveAll = function(options, callback) {
             return callback(err);
         }
         else {
-            if (options.includePagination) {
-                let derivedTotalCount = 0;
-                if (results[0].totalCount.length > 0) {
-                    derivedTotalCount = results[0].totalCount[0].totalCount;
-                }
-                const returnValue = {
-                    pagination: {
-                        total: derivedTotalCount,
-                        offset: options.offset,
-                        limit: options.limit
-                    },
-                    data: results[0].documents
-                };
-                return callback(null, returnValue);
-            }
-            else {
-                return callback(null, results[0].documents);
-            }
+            identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents)
+                .then(function() {
+                    if (options.includePagination) {
+                        let derivedTotalCount = 0;
+                        if (results[0].totalCount.length > 0) {
+                            derivedTotalCount = results[0].totalCount[0].totalCount;
+                        }
+                        const returnValue = {
+                            pagination: {
+                                total: derivedTotalCount,
+                                offset: options.offset,
+                                limit: options.limit
+                            },
+                            data: results[0].documents
+                        };
+                        return callback(null, returnValue);
+                    }
+                    else {
+                        return callback(null, results[0].documents);
+                    }
+                });
         }
     });
 };
@@ -113,7 +123,8 @@ exports.retrieveById = function(stixId, options, callback) {
                         return callback(err);
                     }
                 } else {
-                    return callback(null, tactics);
+                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(tactics)
+                        .then(() => callback(null, tactics));
                 }
             });
     }
@@ -135,7 +146,8 @@ exports.retrieveById = function(stixId, options, callback) {
                 else {
                     // Note: document is null if not found
                     if (tactic) {
-                        return callback(null, [ tactic ]);
+                        identitiesService.addCreatedByAndModifiedByIdentities(tactic)
+                            .then(() => callback(null, [ tactic ]));
                     }
                     else {
                         return callback(null, []);
@@ -179,7 +191,8 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
         else {
             // Note: document is null if not found
             if (tactic) {
-                return callback(null, tactic);
+                identitiesService.addCreatedByAndModifiedByIdentities(tactic)
+                    .then(() => callback(null, tactic));
             }
             else {
                 console.log('** NOT FOUND')
@@ -189,37 +202,59 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
     });
 };
 
-exports.create = function(data, callback) {
+exports.createIsAsync = true;
+exports.create = async function(data, options) {
     // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
-    //      TODO: Verify that the object already exists (?)
+    //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+    //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
+    //   2. This is a new version of an existing object. Create a new object with the specified id.
+    //      Set stix.x_mitre_modified_by_ref to the organization identity.
 
     // Create the document
     const tactic = new Tactic(data);
 
-    if (!tactic.stix.id) {
-        // Assign a new STIX id
-        tactic.stix.id = `x-mitre-tactic--${uuid.v4()}`;
+    options = options || {};
+    if (!options.import) {
+        // Get the organization identity
+        const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+
+        // Check for an existing object
+        let existingObject;
+        if (tactic.stix.id) {
+            existingObject = await Tactic.findOne({ 'stix.id': tactic.stix.id });
+        }
+
+        if (existingObject) {
+            // New version of an existing object
+            // Only set the x_mitre_modified_by_ref property
+            tactic.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+        }
+        else {
+            // New object
+            // Assign a new STIX id if not already provided
+            tactic.stix.id = tactic.stix.id || `x-mitre-tactic--${uuid.v4()}`;
+
+            // Set the created_by_ref and x_mitre_modified_by_ref properties
+            tactic.stix.created_by_ref = organizationIdentityRef;
+            tactic.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+        }
     }
 
     // Save the document in the database
-    tactic.save(function(err, savedTactic) {
-        if (err) {
-            if (err.name === 'MongoError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
+    try {
+        const savedTactic = await tactic.save();
+        return savedTactic;
+    }
+    catch(err) {
+        if (err.name === 'MongoError' && err.code === 11000) {
+            // 11000 = Duplicate index
+            const error = new Error(errors.duplicateId);
+            throw error;
         }
         else {
-            return callback(null, savedTactic);
+            throw err;
         }
-    });
+    }
 };
 
 exports.updateFull = function(stixId, stixModified, data, callback) {

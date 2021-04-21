@@ -10,11 +10,11 @@ router.route('/notes')
     .post(notesController.create);
 
 router.route('/notes/:stixId')
-    .get(notesController.retrieve)
+    .get(notesController.retrieveById)
     .delete(notesController.delete);
 
 router.route('/notes/:stixId/modified/:modified')
-    .get(notesController.retrieveVersion)
+    .get(notesController.retrieveVersionById)
     .put(notesController.updateVersion)
     //    .patch(notesController.updatePartial)
     .delete(notesController.deleteVersion);

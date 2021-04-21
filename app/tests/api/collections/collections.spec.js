@@ -5,7 +5,8 @@ const _ = require('lodash');
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
-const database = require('../../../lib/database-in-memory')
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 
 // modified and created properties will be set before calling REST API
 const initialCollectionData = {
@@ -71,6 +72,7 @@ const softwareData = {
         spec_version: '2.1',
         type: 'malware',
         description: 'This is a malware type of software.',
+        is_family: false,
         external_references: [
             { source_name: 'mitre-attack', external_id: 'S3333', url: 'https://attack.mitre.org/software/S3333' },
             { source_name: 'source-1', external_id: 's1' }
@@ -101,6 +103,9 @@ describe('Collections (x-mitre-collection) Basic API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
@@ -403,6 +408,52 @@ describe('Collections (x-mitre-collection) Basic API', function () {
                     const collection = collections[0];
                     expect(collection.stix.id).toBe(collection2.stix.id);
                     expect(collection.stix.modified).toBe(collection2.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collections/:id/modified/:modified returns the proper collection', function (done) {
+        request(app)
+            .get('/api/collections/' + collection1.stix.id + '/modified/' + collection1.stix.modified)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get one collection
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.stix).toBeDefined();
+                    expect(collection.stix.id).toBe(collection1.stix.id);
+                    expect(collection.stix.modified).toBe(collection1.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collections/:id/modified/:modified with retrieveContents flag returns the added collection with contents', function (done) {
+        request(app)
+            .get('/api/collections/' + collection1.stix.id + '/modified/' + collection1.stix.modified + '?retrieveContents=true')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get one collection
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.stix).toBeDefined();
+                    expect(collection.stix.id).toBe(collection1.stix.id);
+                    expect(collection.stix.modified).toBe(collection1.stix.modified);
+
+                    expect(collection.contents).toBeDefined();
+                    expect(Array.isArray(collection.contents)).toBe(true);
+                    expect(collection.contents.length).toBe(2);
                     done();
                 }
             });

@@ -25,7 +25,12 @@ components:
             description:
               type: string
               example: 'This is a software'
+            is_family:
+              type: boolean
             # ATT&CK custom properties
+            x_mitre_modified_by_ref:
+              type: string
+              example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
             x_mitre_aliases:
               type: array
               items:
@@ -34,6 +39,9 @@ components:
               type: array
               items:
                 type: string
+            x_mitre_deprecated:
+              type: boolean
+              example: false
             x_mitre_domains:
               type: array
               items:
@@ -41,9 +49,6 @@ components:
             x_mitre_version:
               type: string
               example: '1.0'
-            x_mitre_deprecated:
-              type: boolean
-              example: false
             x_mitre_platforms:
               type: array
               items:

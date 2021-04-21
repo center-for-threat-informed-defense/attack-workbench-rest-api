@@ -92,27 +92,26 @@ exports.retrieveVersionById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const relationshipData = req.body;
 
     // Create the relationship
-    relationshipsService.create(relationshipData, function(err, relationship) {
-        if (err) {
-            if (err.message === relationshipsService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create relationship. Duplicate stix.id and stix.modified properties.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create relationship. Server error.");
-            }
+    try {
+        const relationship = await relationshipsService.create(relationshipData, {  import: false });
+        logger.debug("Success: Created relationship with id " + relationship.stix.id);
+        return res.status(201).send(relationship);
+    }
+    catch(err) {
+        if (err.message === relationshipsService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create relationship. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            logger.debug("Success: Created relationship with id " + relationship.stix.id);
-            return res.status(201).send(relationship);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create relationship. Server error.");
         }
-    });
+    }
 };
 
 exports.updateFull = function(req, res) {

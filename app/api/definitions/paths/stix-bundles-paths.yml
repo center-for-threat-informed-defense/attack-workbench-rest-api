@@ -1,0 +1,28 @@
+paths:
+  /api/stix-bundles:
+    get:
+      summary: 'Export a stix bundle'
+      operationId: 'stix-bundle-export'
+      description: |
+        This endpoint exports a STIX bundle and returns the bundle.
+        This endpoint is distinguished from exporting a collection bundle by being based on a selected domain, instead of a collection object.
+        Also, the returned STIX bundle will not contain a collection object.
+      tags:
+        - 'STIX Bundles'
+      parameters:
+        - name: domain
+          in: query
+          description: |
+            The domain to export.
+          schema:
+            type: string
+          example: 'enterprise-attack'
+      responses:
+        '200':
+          description: 'An exported stix bundle.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/stix-bundles.yml#/components/schemas/stix-bundle'

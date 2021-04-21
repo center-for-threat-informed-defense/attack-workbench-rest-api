@@ -42,6 +42,8 @@ tags:
     description: 'Operations on collections'
   - name: 'Collection Bundles'
     description: 'Operations on collection bundles'
+  - name: 'STIX Bundles'
+    description: 'Operations on STIX bundles'
   - name: 'System Configuration'
     description: 'Operations on the system configuration'
 
@@ -165,10 +167,20 @@ paths:
   /api/collections/{stixId}:
     $ref: 'paths/collections-paths.yml#/paths/~1api~1collections~1{stixId}'
 
+  /api/collections/{stixId}/modified/{modified}:
+    $ref: 'paths/collections-paths.yml#/paths/~1api~1collections~1{stixId}~1modified~1{modified}'
+
   # Collection Bundles
   /api/collection-bundles:
     $ref: 'paths/collection-bundles-paths.yml#/paths/~1api~1collection-bundles'
 
+  # STIX Bundles
+  /api/stix-bundles:
+    $ref: 'paths/stix-bundles-paths.yml#/paths/~1api~1stix-bundles'
+
   # System Configuration
   /api/config/allowed-values:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1allowed-values'
+
+  /api/config/organization-identity:
+    $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1organization-identity'

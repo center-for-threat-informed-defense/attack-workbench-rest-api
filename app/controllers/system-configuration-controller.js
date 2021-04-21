@@ -16,3 +16,32 @@ exports.retrieveAllowedValues = function(req, res) {
     });
 };
 
+exports.retrieveOrganizationIdentity = async function(req, res) {
+    try {
+        const identity = await systemConfigurationService.retrieveOrganizationIdentity();
+        logger.debug("Success: Retrieved organization identity.");
+        return res.status(200).send(identity);
+    }
+    catch(err) {
+        logger.error("Unable to retrieve organization identity, failed with error: " + err);
+        return res.status(500).send("Unable to retrieve organization identity. Server error.");
+    }
+};
+
+exports.setOrganizationIdentity = async function(req, res) {
+    const organizationIdentity = req.body;
+    if (!organizationIdentity.id) {
+        logger.warn('Missing organization identity id');
+        return res.status(400).send('Organization identity id is required');
+    }
+
+    try {
+        await systemConfigurationService.setOrganizationIdentity(organizationIdentity.id);
+        logger.debug(`Success: Set organization identity to: ${ organizationIdentity.id }`);
+        return res.status(204).send();
+    }
+    catch(err) {
+        logger.error("Unable to set organization identity, failed with error: " + err);
+        return res.status(500).send("Unable to seet organization identity. Server error.");
+    }
+};

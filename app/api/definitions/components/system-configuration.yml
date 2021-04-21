@@ -16,7 +16,7 @@ components:
         properties:
           propertyName:
             type: string
-            example: 'x_mitre_platform'
+            example: 'x_mitre_platforms'
           domains:
             $ref: '#/components/schemas/allowedValuesForDomain'
 
@@ -33,3 +33,10 @@ components:
             items:
               type: string
               example: 'Linux'
+
+    organization-identity:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'identity--76abfbed-a92f-4e2a-953e-dc83f90ecddc'

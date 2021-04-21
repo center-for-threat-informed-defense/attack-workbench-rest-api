@@ -1,13 +1,15 @@
 'use strict';
 
 const AttackObject = require('../models/attack-object-model');
+const identitiesService = require('./identities-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
     notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
+    invalidQueryStringParameter: 'Invalid query string parameter',
+    duplicateCollection: 'Duplicate collection'
 };
 exports.errors = errors;
 
@@ -24,7 +26,12 @@ exports.retrieveAll = async function(options) {
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
-        query['workspace.workflow.state'] = options.state;
+        if (Array.isArray(options.state)) {
+            query['workspace.workflow.state'] = { $in: options.state };
+        }
+        else {
+            query['workspace.workflow.state'] = options.state;
+        }
     }
 
     // Build the aggregation
@@ -66,6 +73,7 @@ exports.retrieveAll = async function(options) {
     // Retrieve the documents
     const results = await AttackObject.aggregate(aggregation);
 
+    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
     if (options.includePagination) {
         let derivedTotalCount = 0;
         if (results[0].totalCount.length > 0) {
@@ -114,5 +122,39 @@ exports.retrieveVersionById = async function(stixId, modified) {
         });
 
     // Note: attackObject is null if not found
+    await identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
     return attackObject;
+};
+
+// Record that this object is part of a collection
+exports.insertCollection = async function(stixId, modified, collectionId, collectionModified) {
+    const attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+
+    if (attackObject) {
+        // Create the collection reference
+        const collection = {
+            collection_ref: collectionId,
+            collection_modified: collectionModified
+        };
+
+        // Make sure the exports array exists and add the collection reference
+        if (!attackObject.workspace.collections) {
+            attackObject.workspace.collections = [];
+        }
+
+        // Check to see if the collection is already added
+        // (collection with same id and version should only be created--and therefore objects added--one time)
+        const duplicateCollection = attackObject.workspace.collections.find(
+            item => item.collection_ref === collection.collection_ref && item.collection_modified === collection.collection_modified);
+        if (duplicateCollection) {
+            throw new Error(errors.duplicateCollection);
+        }
+
+        attackObject.workspace.collections.push(collection);
+
+        await attackObject.save();
+    }
+    else {
+        throw new Error(errors.notFound);
+    }
 };

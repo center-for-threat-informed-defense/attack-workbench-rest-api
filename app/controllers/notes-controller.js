@@ -31,12 +31,12 @@ exports.retrieveAll = function(req, res) {
     });
 };
 
-exports.retrieve = function(req, res) {
+exports.retrieveById = function(req, res) {
     const options = {
         versions: req.query.versions || 'latest'
     }
 
-    notesService.retrieve(req.params.stixId, options, function (err, notes) {
+    notesService.retrieveById(req.params.stixId, options, function (err, notes) {
         if (err) {
             if (err.message === notesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -63,8 +63,8 @@ exports.retrieve = function(req, res) {
     });
 };
 
-exports.retrieveVersion = function(req, res) {
-    notesService.retrieveVersion(req.params.stixId, req.params.modified, function (err, note) {
+exports.retrieveVersionById = function(req, res) {
+    notesService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, note) {
         if (err) {
             if (err.message === notesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -87,27 +87,26 @@ exports.retrieveVersion = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const noteData = req.body;
 
     // Create the note
-    notesService.create(noteData, function(err, note) {
-        if (err) {
-            if (err.message === notesService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create note. Duplicate stix.id and stix.modified properties.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create note. Server error.");
-            }
+    try {
+        const note = await notesService.create(noteData, { import: false });
+        logger.debug("Success: Created note with id " + note.stix.id);
+        return res.status(201).send(note);
+    }
+    catch(err) {
+        if (err.message === notesService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create note. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            logger.debug("Success: Created note with id " + note.stix.id);
-            return res.status(201).send(note);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create note. Server error.");
         }
-    });
+    }
 };
 
 exports.updateVersion = function(req, res) {

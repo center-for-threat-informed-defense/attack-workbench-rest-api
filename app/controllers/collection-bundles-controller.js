@@ -3,7 +3,7 @@
 const collectionBundlesService = require('../services/collection-bundles-service');
 const logger = require('../lib/logger');
 
-exports.import = function(req, res) {
+exports.importBundle = function(req, res) {
     // Get the data from the request
     const collectionBundleData = req.body;
 
@@ -22,8 +22,10 @@ exports.import = function(req, res) {
         return res.status(400).send('Unable to import collection bundle. x-mitre-collection missing id.');
     }
 
-    // Create the collection index
-    collectionBundlesService.import(collection, collectionBundleData, req.query.checkOnly, function(err, importedCollection) {
+    const previewOnly = req.query.previewOnly || req.query.checkOnly;
+
+    // Import the collection bundle
+    collectionBundlesService.importBundle(collection, collectionBundleData, previewOnly, function(err, importedCollection) {
         if (err) {
             if (err.message === collectionBundlesService.errors.duplicateCollection) {
                 logger.error('Unable to import collection, duplicate x-mitre-collection.');
@@ -46,4 +48,31 @@ exports.import = function(req, res) {
         }
     });
 };
+
+exports.exportBundle = function(req, res) {
+    if (req.query.collectionModified && !req.query.collectionId) {
+        return res.status(400).send('collectionId is required when providing collectionModified');
+    }
+
+    const options = {
+        collectionId: req.query.collectionId,
+        collectionModified: req.query.collectionModified,
+        previewOnly: req.query.previewOnly
+    };
+
+    collectionBundlesService.exportBundle(options, function(err, collectionBundle) {
+        if (err) {
+            if (err.message === collectionBundlesService.errors.notFound) {
+                return res.status(404).send('Collection not found');
+            }
+            else {
+                logger.error('Unable to export collection: ' + err);
+                return res.status(500).send('Unable to export collection.');
+            }
+        }
+        else {
+            return res.status(200).send(collectionBundle);
+        }
+    })
+}
 

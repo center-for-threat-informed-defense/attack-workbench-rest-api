@@ -59,33 +59,57 @@ exports.retrieveById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.retrieveVersionById = function(req, res) {
+    const options = {
+        retrieveContents: req.query.retrieveContents
+    }
+    collectionsService.retrieveVersionById(req.params.stixId, req.params.modified, options, function(err, collection) {
+        if (err) {
+            if (err.message === collectionsService.errors.badlyFormattedParameter) {
+                logger.warn('Badly formatted stix id: ' + req.params.stixId);
+                return res.status(400).send('Stix id is badly formatted.');
+            }
+            else {
+                logger.error('Failed with error: ' + err);
+                return res.status(500).send('Unable to get collections. Server error.');
+            }
+        } 
+        else {
+            if (!collection) {
+                return res.status(404).send('Collection not found.');
+            }
+            else {
+                logger.debug(`Success: Retrieved collection with id ${collection.id}`);
+                return res.status(200).send(collection);
+            }
+        }
+    })
+}
+
+exports.create = async function(req, res) {
     // Get the data from the request
     const collectionData = req.body;
 
-    // The collection must have an id.
-    if (collectionData.stix && !collectionData.stix.id) {
-        logger.warn('Create collection failed: Missing id');
-        return res.status(400).send('Unable to create collection. Missing id.');
-    }
-
     // Create the collection
-    collectionsService.create(collectionData, function(err, collection) {
-        if (err) {
-            if (err.message === collectionsService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create technique. Duplicate stix.id and stix.modified properties.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create technique. Server error.");
-            }
+    const options = { addObjectsToCollection: true, import: false };
+    try {
+        const { savedCollection, insertionErrors } = await collectionsService.create(collectionData, options);
+        logger.debug('Success: Created collection with id ' + savedCollection.stix.id);
+        if (insertionErrors.length > 0) {
+            logger.info(`There were ${ insertionErrors.length } errors while marking the objects in the collection.`);
+        }
+        return res.status(201).send(savedCollection);
+    }
+    catch(err) {
+        if (err.message === collectionsService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create collection. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            logger.debug("Success: Created technique with id " + collection.stix.id);
-            return res.status(201).send(collection);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create collection. Server error.");
         }
-    });
+    }
 };
 
 exports.delete = function(req, res) {

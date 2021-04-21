@@ -10,14 +10,16 @@ const collectionVersionDefinition = {
     taxii_url: { type: String },
     release_notes: { type: String }
 };
+const collectionVersionSchema = new mongoose.Schema(collectionVersionDefinition, { _id: false });
 
 const collectionReferenceDefinition = {
     id: { type: String, required: true },
     name : { type: String, required: true },
     description : { type: String },
     created : { type: Date, required: true },
-    versions : [ collectionVersionDefinition ]
+    versions : [ collectionVersionSchema ]
 };
+const collectionReferenceSchema = new mongoose.Schema(collectionReferenceDefinition, { _id: false });
 
 // This is the collection index that was retrieved
 const collectionIndexObjectDefinition = {
@@ -26,7 +28,7 @@ const collectionIndexObjectDefinition = {
     description: { type: String },
     created: { type: Date, required: true },
     modified: { type: Date, required: true },
-    collections: [ collectionReferenceDefinition ]
+    collections: [ collectionReferenceSchema ]
 };
 
 // This is the collection index with its workspace data

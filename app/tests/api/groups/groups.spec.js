@@ -1,7 +1,9 @@
 const request = require('supertest');
-const database = require('../../../lib/database-in-memory')
 const expect = require('expect');
 const _ = require('lodash');
+
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 const Group = require('../../../models/group-model');
 
 const logger = require('../../../lib/logger');
@@ -38,6 +40,9 @@ describe('Groups API', function () {
 
         // Wait until the indexes are created
         await Group.init();
+
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();

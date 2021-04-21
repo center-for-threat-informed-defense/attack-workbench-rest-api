@@ -15,6 +15,8 @@ const relationshipProperties = {
     stop_time: Date,
 
     // ATT&CK custom stix properties
+    x_mitre_modified_by_ref: String,
+    x_mitre_deprecated: Boolean,
     x_mitre_domains: [ String ],
     x_mitre_version: String
 };

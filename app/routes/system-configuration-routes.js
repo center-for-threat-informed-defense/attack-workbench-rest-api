@@ -8,4 +8,8 @@ const router = express.Router();
 router.route('/config/allowed-values')
     .get(systemConfigurationController.retrieveAllowedValues);
 
+router.route('/config/organization-identity')
+    .get(systemConfigurationController.retrieveOrganizationIdentity)
+    .post(systemConfigurationController.setOrganizationIdentity);
+
 module.exports = router;

@@ -86,27 +86,26 @@ exports.retrieveVersionById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const groupData = req.body;
 
     // Create the group
-    groupsService.create(groupData, function(err, group) {
-        if (err) {
-            if (err.message === groupsService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create group. Duplicate stix.id and stix.modified properties.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create group. Server error.");
-            }
+    try {
+        const group = await groupsService.create(groupData, { import: false });
+        logger.debug("Success: Created group with id " + group.stix.id);
+        return res.status(201).send(group);
+    }
+    catch(err) {
+        if (err.message === groupsService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create group. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            logger.debug("Success: Created group with id " + group.stix.id);
-            return res.status(201).send(group);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create group. Server error.");
         }
-    });
+    }
 };
 
 exports.updateFull = function(req, res) {

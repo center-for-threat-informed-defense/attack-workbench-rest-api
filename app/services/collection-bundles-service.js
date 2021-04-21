@@ -1,5 +1,7 @@
 'use strict';
 
+const uuid = require('uuid');
+
 const collectionsService = require('../services/collections-service');
 const techniquesService = require('../services/techniques-service');
 const tacticsService = require('../services/tactics-service');
@@ -16,7 +18,8 @@ const referencesService = require('../services/references-service');
 const async = require('async');
 
 const errors = {
-    duplicateCollection: 'Duplicate collection'
+    duplicateCollection: 'Duplicate collection',
+    notFound: 'Collection not found',
 };
 exports.errors = errors;
 
@@ -24,7 +27,8 @@ const importErrors = {
     retrievalError: 'Retrieval error',
     unknownObjectType: 'Unknown object type',
     notInContents: 'Not in contents',  // object in bundle but not in x_mitre_contents
-    missingObject: 'Missing object'    // object in x_mitre_contents but not in bundle
+    missingObject: 'Missing object',    // object in x_mitre_contents but not in bundle
+    saveError: 'Save error'
 }
 
 function makeKey(stixId, modified) {
@@ -51,14 +55,24 @@ function toEpoch(date) {
     }
 }
 
-exports.import = function(collection, data, checkOnly, callback) {
-    let uniqueImportReference = 0;
-    let duplicateImportReference = 0;
+exports.importBundle = function(collection, data, previewOnly, callback) {
+    const referenceImportResults = {
+        uniqueReferences: 0,
+        duplicateReferences: 0,
+        aliasReferences: 0
+    };
+
+    // Create the collection reference
+    const collectionReference = {
+        collection_ref: collection.id,
+        collection_modified: collection.modified
+    };
 
     // Create the x-mitre-collection object
     const importedCollection = {
         workspace: {
             imported: new Date().toISOString(),
+            exported: [],
             import_categories: {
                 additions: [],
                 changes: [],
@@ -217,59 +231,111 @@ exports.import = function(collection, data, checkOnly, callback) {
                                     if (importObject.external_references && Array.isArray(importObject.external_references)) {
                                         for (const externalReference of importObject.external_references) {
                                             if (externalReference.source_name && externalReference.description && !externalReference.external_id) {
-                                                if (importReferences.has(externalReference.source_name)) {
-                                                    duplicateImportReference++;
-                                                    // if (externalReference.description === importReferences.get(externalReference.source_name)) {
-                                                    //     // Duplicate in collection bundle -- skip
-                                                    // } else {
-                                                    //     // Duplicate source name in collection bundle, but description is different
-                                                    //     // Skip for now
-                                                    // }
-                                                } else {
-                                                    uniqueImportReference++;
-                                                    importReferences.set(externalReference.source_name, externalReference);
+
+                                                // Is this reference just an alias?
+                                                let isAlias = false;
+                                                if (importObject.type === 'intrustion-set') {
+                                                    if (importObject.aliases && importObject.aliases.includes(externalReference.source_name)) {
+                                                        isAlias = true;
+                                                    }
+                                                }
+                                                else if (importObject.type === 'malware' || importObject.type === 'tool') {
+                                                    if (importObject.x_mitre_aliases && importObject.x_mitre_aliases.includes(externalReference.source_name)) {
+                                                        isAlias = true;
+                                                    }
+                                                }
+
+                                                if (isAlias) {
+                                                    referenceImportResults.aliasReferences++;
+                                                }
+                                                else {
+                                                    if (importReferences.has(externalReference.source_name)) {
+                                                        referenceImportResults.duplicateReferences++;
+                                                        // if (externalReference.description === importReferences.get(externalReference.source_name)) {
+                                                        //     // Duplicate in collection bundle -- skip
+                                                        // } else {
+                                                        //     // Duplicate source name in collection bundle, but description is different
+                                                        //     // Skip for now
+                                                        // }
+                                                    } else {
+                                                        referenceImportResults.uniqueReferences++;
+                                                        importReferences.set(externalReference.source_name, externalReference);
+                                                    }
                                                 }
                                             }
                                         }
                                     }
 
                                     // Save the object
-                                    if (checkOnly) {
+                                    if (previewOnly) {
                                         // Do nothing
                                         return callback2a();
                                     }
                                     else {
                                         const newObject = {
                                             workspace: {
-                                                domains: []
+                                                collections: [ collectionReference ]
                                             },
                                             stix: importObject
                                         };
                                         if (importObject.type === 'marking-definition') {
-                                            service.create(newObject, { import: true }, function (err, savedObject) {
-                                                if (err) {
+                                            service.create(newObject, { import: true })
+                                                .then(function (savedObject) {
+                                                    return callback2a();
+                                                })
+                                                .catch(function(err) {
                                                     if (err.message === service.errors.duplicateId) {
                                                         return callback2a(err);
                                                     } else {
                                                         return callback2a(err);
                                                     }
-                                                } else {
-                                                    return callback2a();
-                                                }
-                                            });
+                                                });
                                         }
                                         else {
-                                            service.create(newObject, function (err, savedObject) {
-                                                if (err) {
-                                                    if (err.message === service.errors.duplicateId) {
-                                                        return callback2a(err);
+                                            if (service.createIsAsync) {
+                                                service.create(newObject, { import: true })
+                                                    .then(function(savedObject) {
+                                                        return callback2a();
+                                                    })
+                                                    .catch(function(err) {
+                                                        if (err.message === service.errors.duplicateId) {
+                                                            // We've checked for this already, so this shouldn't occur
+                                                            return callback2a(err);
+                                                        } else {
+                                                            // Record the error, but don't cancel the import
+                                                            const importError = {
+                                                                object_ref: importObject.id,
+                                                                object_modified: importObject.modified,
+                                                                error_type: importErrors.saveError,
+                                                                error_message: err.message
+                                                            }
+                                                            importedCollection.workspace.import_categories.errors.push(importError);
+                                                            return callback2a();
+                                                        }
+                                                    });
+                                            }
+                                            else {
+                                                service.create(newObject, function (err, savedObject) {
+                                                    if (err) {
+                                                        if (err.message === service.errors.duplicateId) {
+                                                            // We've checked for this already, so this shouldn't occur
+                                                            return callback2a(err);
+                                                        } else {
+                                                            // Record the error, but don't cancel the import
+                                                            const importError = {
+                                                                object_ref: importObject.id,
+                                                                object_modified: importObject.modified,
+                                                                error_type: importErrors.saveError,
+                                                                error_message: err.message
+                                                            }
+                                                            importedCollection.workspace.import_categories.errors.push(importError);
+                                                            return callback2a();
+                                                        }
                                                     } else {
-                                                        return callback2a(err);
+                                                        return callback2a();
                                                     }
-                                                } else {
-                                                    return callback2a();
-                                                }
-                                            });
+                                                });
+                                            }
                                         }
                                     }
                                 }
@@ -315,13 +381,11 @@ exports.import = function(collection, data, checkOnly, callback) {
                     .then(function(references) {
                         const existingReferences = new Map(references.map(item => [ item.source_name, item ]));
 
-                        console.log(`${ uniqueImportReference } unique references found, ${ duplicateImportReference } duplicate references found`);
-                        console.log(`importReferences.size ${ importReferences.size }`);
                         // Iterate over the import references
                         async.eachLimit([...importReferences.values()], 8, function(importReference, callback3a) {
                                 if (existingReferences.has(importReference.source_name)) {
                                     // Duplicate of existing reference -- overwrite
-                                    if (checkOnly) {
+                                    if (previewOnly) {
                                         // Do nothing
                                         importedCollection.workspace.import_references.changes.push(importReference.source_name);
                                         return callback3a();
@@ -333,12 +397,11 @@ exports.import = function(collection, data, checkOnly, callback) {
                                                 return callback3a();
                                             })
                                             .catch(function (err) {
-                                                console.log(`Error while saving reference: ` + err);
                                                 return callback3a(err);
                                             });
                                     }
                                 } else {
-                                    if (checkOnly) {
+                                    if (previewOnly) {
                                         // Do nothing
                                         importedCollection.workspace.import_references.additions.push(importReference.source_name);
                                         return callback3a();
@@ -359,20 +422,21 @@ exports.import = function(collection, data, checkOnly, callback) {
                                 return callback3(err);
                             });
                     })
-                    .catch(err => {
-                        console.log('Unable to retrieve existing references: ' + err);
-                        return callback3(err);
-                    });
+                    .catch(err => callback3(err));
             },
             // Save the x-mitre-collection object
             function(callback4) {
-                if (checkOnly) {
+                if (previewOnly) {
                     // Do nothing
                     process.nextTick(() => callback4(null, importedCollection));
                 }
                 else {
-                    collectionsService.create(importedCollection, function(err, savedCollection) {
-                        if (err) {
+                    const options = { addObjectsToCollection: false, import: true };
+                    collectionsService.create(importedCollection, options)
+                        .then(function(result) {
+                            return callback4(null, result.savedCollection);
+                        })
+                        .catch(function(err) {
                             if (err.name === 'MongoError' && err.code === 11000) {
                                 // 11000 = Duplicate index
                                 const error = new Error(errors.duplicateCollection);
@@ -380,10 +444,7 @@ exports.import = function(collection, data, checkOnly, callback) {
                             } else {
                                 return callback4(err);
                             }
-                        } else {
-                            return callback4(null, savedCollection);
-                        }
-                    });
+                        });
                 }
             }
         ],
@@ -397,3 +458,94 @@ exports.import = function(collection, data, checkOnly, callback) {
         }
     );
 };
+
+function createBundle(collection, options, callback) {
+    // Create the bundle to hold the exported objects
+    const bundle = {
+        type: 'bundle',
+        id: `bundle--${uuid.v4()}`,
+        objects: []
+    };
+
+    // Put the collection object in the bundle
+    bundle.objects.push(collection.stix);
+
+    // Put the contents in the bundle
+    for (const attackObject of collection.contents) {
+        bundle.objects.push(attackObject.stix);
+    }
+
+    if (options.previewOnly) {
+        return callback(null, bundle);
+    }
+    else {
+        const exportData = {
+            export_timestamp: new Date(),
+            bundle_id: bundle.id
+        }
+        // Mark all of the objects as belonging to the bundle
+        collectionsService.insertExport(collection.stix.id, collection.stix.modified, exportData)
+            .then(function (err) {
+                if (err) {
+                    return callback(err);
+                } else {
+                    return callback(null, bundle);
+                }
+            });
+    }
+}
+
+exports.exportBundle = function(options, callback) {
+    if (options.collectionModified) {
+        // Retrieve the collection with the provided id and modified date
+        const retrievalOptions = { retrieveContents: true };
+        collectionsService.retrieveVersionById(options.collectionId, options.collectionModified, retrievalOptions, function(err, collection) {
+            if (err) {
+                return callback(err);
+            }
+            else {
+                if (collection) {
+                    createBundle(collection, options, function (err, bundle) {
+                        if (err) {
+                            return callback(err);
+                        } else {
+                            return callback(null, bundle);
+                        }
+                    });
+                } else {
+                    const error = new Error(errors.notFound);
+                    return callback(error);
+                }
+            }
+        });
+    }
+    else {
+        // Retrieve the latest collection with the provided id
+        const retrievalOptions = {
+            versions: 'latest',
+            retrieveContents: true
+        };
+        collectionsService.retrieveById(options.collectionId, retrievalOptions, function (err, collections) {
+            if (err) {
+                return callback(err);
+            } else {
+                if (collections.length === 1) {
+                    const exportedCollection = collections[0];
+                    createBundle(exportedCollection, options, function (err, bundle) {
+                        if (err) {
+                            return callback(err);
+                        } else {
+                            return callback(null, bundle);
+                        }
+                    });
+                } else if (collections.length === 0) {
+                    const error = new Error(errors.notFound);
+                    return callback(error);
+                } else {
+                    const error = new Error('Unknown error occurred');
+                    return callback(error);
+                }
+            }
+        });
+    }
+}

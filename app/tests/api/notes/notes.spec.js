@@ -1,7 +1,9 @@
 const request = require('supertest');
-const database = require('../../../lib/database-in-memory')
 const expect = require('expect');
 const _ = require('lodash');
+
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -39,6 +41,9 @@ describe('Notes API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();

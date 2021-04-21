@@ -2,6 +2,8 @@
 
 const uuid = require('uuid');
 const Relationship = require('../models/relationship-model');
+const systemConfigurationService = require('./system-configuration-service');
+const identitiesService = require('./identities-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -31,7 +33,12 @@ exports.retrieveAll = function(options, callback) {
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
-        query['workspace.workflow.state'] = options.state;
+        if (Array.isArray(options.state)) {
+            query['workspace.workflow.state'] = { $in: options.state };
+        }
+        else {
+            query['workspace.workflow.state'] = options.state;
+        }
     }
     if (typeof options.sourceRef !== 'undefined') {
         query['stix.source_ref'] = options.sourceRef;
@@ -61,7 +68,7 @@ exports.retrieveAll = function(options, callback) {
     aggregation.push({ $match: query });
     aggregation.push({ $lookup: { from: 'attackObjects', localField: 'stix.source_ref', foreignField: 'stix.id', as: 'source_objects' }});
     aggregation.push({ $lookup: { from: 'attackObjects', localField: 'stix.target_ref', foreignField: 'stix.id', as: 'target_objects' }});
-    
+
     // Retrieve the documents
     Relationship.aggregate(aggregation, function(err, results) {
         if (err) {
@@ -129,20 +136,23 @@ exports.retrieveAll = function(options, callback) {
                 }
             }
 
-            if (options.includePagination) {
-                const returnValue = {
-                    pagination: {
-                        total: prePaginationTotal,
-                        offset: options.offset,
-                        limit: options.limit
-                    },
-                    data: results
-                };
-                return callback(null, returnValue);
-            }
-            else {
-                return callback(null, results);
-            }
+            identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results)
+                .then(function() {
+                    if (options.includePagination) {
+                        const returnValue = {
+                            pagination: {
+                                total: prePaginationTotal,
+                                offset: options.offset,
+                                limit: options.limit
+                            },
+                            data: results
+                        };
+                        return callback(null, returnValue);
+                    }
+                    else {
+                        return callback(null, results);
+                    }
+                });
         }
     });
 };
@@ -158,7 +168,8 @@ exports.retrieveById = function(stixId, options, callback) {
     }
 
     if (options.versions === 'all') {
-        Relationship.find({'stix.id': stixId})
+        Relationship
+            .find({'stix.id': stixId})
             .sort('-stix.modified')
             .lean()
             .exec(function (err, relationships) {
@@ -173,7 +184,8 @@ exports.retrieveById = function(stixId, options, callback) {
                     }
                 }
                 else {
-                    return callback(null, relationships);
+                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(relationships)
+                        .then(() => callback(null, relationships));
                 }
             });
     }
@@ -195,7 +207,8 @@ exports.retrieveById = function(stixId, options, callback) {
                 else {
                     // Note: document is null if not found
                     if (relationship) {
-                        return callback(null, [ relationship ]);
+                        identitiesService.addCreatedByAndModifiedByIdentities(relationship)
+                            .then(() => callback(null, [ relationship ]));
                     }
                     else {
                         return callback(null, []);
@@ -211,7 +224,7 @@ exports.retrieveById = function(stixId, options, callback) {
 };
 
 exports.retrieveVersionById = function(stixId, modified, callback) {
-    // Retrieve the versions of the relationship with the matching stixId and modified date
+    // Retrieve the version of the relationship with the matching stixId and modified date
 
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -239,7 +252,8 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
         else {
             // Note: document is null if not found
             if (relationship) {
-                return callback(null, relationship);
+                identitiesService.addCreatedByAndModifiedByIdentities(relationship)
+                    .then(() => callback(null, relationship));
             }
             else {
                 console.log('** NOT FOUND')
@@ -249,52 +263,42 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
     });
 };
 
-exports.create = function(data, callback) {
+exports.createIsAsync = true;
+exports.create = async function(data, options) {
     // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
-    //      TODO: Verify that the object already exists (?)
+    //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+    //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
+    //   2. This is a new version of an existing object. Create a new object with the specified id.
+    //      Set stix.x_mitre_modified_by_ref to the organization identity.
 
     // Create the document
     const relationship = new Relationship(data);
 
-    if (!relationship.stix.id) {
-        // Assign a new STIX id
-        relationship.stix.id = `relationship--${uuid.v4()}`;
-    }
+    options = options || {};
+    if (!options.import) {
+        // Get the organization identity
+        const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
 
-    // Save the document in the database
-    relationship.save(function(err, savedRelationship) {
-        if (err) {
-            if (err.name === 'MongoError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
+        // Check for an existing object
+        let existingObject;
+        if (relationship.stix.id) {
+            existingObject = await Relationship.findOne({ 'stix.id': relationship.stix.id });
+        }
+
+        if (existingObject) {
+            // New version of an existing object
+            // Only set the x_mitre_modified_by_ref property
+            relationship.stix.x_mitre_modified_by_ref = organizationIdentityRef;
         }
         else {
-            return callback(null, savedRelationship);
+            // New object
+            // Assign a new STIX id if not already provided
+            relationship.stix.id = relationship.stix.id || `relationship--${uuid.v4()}`;
+
+            // Set the created_by_ref and x_mitre_modified_by_ref properties
+            relationship.stix.created_by_ref = organizationIdentityRef;
+            relationship.stix.x_mitre_modified_by_ref = organizationIdentityRef;
         }
-    });
-};
-
-exports.createAsync = async function(data) {
-    // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
-    //      TODO: Verify that the object already exists (?)
-
-    // Create the document
-    const relationship = new Relationship(data);
-
-    if (!relationship.stix.id) {
-        // Assign a new STIX id
-        relationship.stix.id = `relationship--${uuid.v4()}`;
     }
 
     // Save the document in the database

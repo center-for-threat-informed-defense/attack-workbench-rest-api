@@ -60,6 +60,13 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/import-error'
+        workflow:
+          type: object
+          properties:
+            state:
+              type: string
+            release:
+              type: boolean
 
     stix-x-mitre-collection:
       allOf:
@@ -75,6 +82,9 @@ components:
             description:
               type: string
             # ATT&CK custom properties
+            x_mitre_modified_by_ref:
+              type: string
+              example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
             x_mitre_contents:
               type: array
               items:
@@ -105,6 +115,8 @@ components:
         object_modified:
           type: string
         error_type:
+          type: string
+        error_message:
           type: string
       required:
         - object_ref

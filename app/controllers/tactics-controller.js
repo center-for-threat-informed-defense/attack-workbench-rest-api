@@ -86,27 +86,27 @@ exports.retrieveVersionById = function(req, res) {
     });
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const tacticData = req.body;
 
     // Create the tactic
-    tacticsService.create(tacticData, function(err, tactic) {
-        if (err) {
-            if (err.message === tacticsService.errors.duplicateId) {
-                logger.warn("Duplicate stix.id and stix.modified");
-                return res.status(409).send('Unable to create tactic. Duplicate stix.id and stix.modified properties.');
-            }
-            else {
-                logger.error("Failed with error: " + err);
-                return res.status(500).send("Unable to create tactic. Server error.");
-            }
+    try {
+        const tactic = await tacticsService.create(tacticData, { import: false });
+
+        logger.debug("Success: Created tactic with id " + tactic.stix.id);
+        return res.status(201).send(tactic);
+    }
+    catch(err) {
+        if (err.message === tacticsService.errors.duplicateId) {
+            logger.warn("Duplicate stix.id and stix.modified");
+            return res.status(409).send('Unable to create tactic. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            logger.debug("Success: Created tactic with id " + tactic.stix.id);
-            return res.status(201).send(tactic);
+            logger.error("Failed with error: " + err);
+            return res.status(500).send("Unable to create tactic. Server error.");
         }
-    });
+    }
 };
 
 exports.updateFull = function(req, res) {

@@ -22,7 +22,12 @@ exports.retrieveAll = function(options, callback) {
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
-        query['workspace.workflow.state'] = options.state;
+        if (Array.isArray(options.state)) {
+            query['workspace.workflow.state'] = { $in: options.state };
+        }
+        else {
+            query['workspace.workflow.state'] = options.state;
+        }
     }
 
     // Build the aggregation
@@ -184,52 +189,21 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
     });
 };
 
-exports.create = function(data, callback) {
+exports.createIsAsync = true;
+exports.create = async function(data, options) {
     // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
-    //      TODO: Verify that the object already exists (?)
+    //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+    //      provided.
+    //   2. This is a new version of an existing object. Create a new object with the specified id.
+    //   Do not set the created_by_ref or x_mitre_modified_by_ref properties.
 
     // Create the document
     const identity = new Identity(data);
 
-    if (!identity.stix.id) {
-        // Assign a new STIX id
-        identity.stix.id = `identity--${uuid.v4()}`;
-    }
-
-    // Save the document in the database
-    identity.save(function(err, savedIdentity) {
-        if (err) {
-            if (err.name === 'MongoError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
-        }
-        else {
-            return callback(null, savedIdentity);
-        }
-    });
-};
-
-exports.createAsync = async function(data) {
-    // This function handles two use cases:
-    //   1. stix.id is undefined. Create a new object and generate the stix.id
-    //   2. stix.id is defined. Create a new object with the specified id. This is
-    //      a new version of an existing object.
-    //      TODO: Verify that the object already exists (?)
-
-    // Create the document
-    const identity = new Identity(data);
-
-    if (!identity.stix.id) {
-        // Assign a new STIX id
-        identity.stix.id = `identity--${uuid.v4()}`;
+    options = options || {};
+    if (!options.import) {
+        // Assign a new STIX id if not already provided
+        identity.stix.id = identity.stix.id || `identity--${uuid.v4()}`;
     }
 
     // Save the document in the database
@@ -322,3 +296,42 @@ exports.delete = function (stixId, stixModified, callback) {
     });
 };
 
+async function getLatest(stixId) {
+    const identity = await Identity
+        .findOne({ 'stix.id': stixId })
+        .sort('-stix.modified')
+        .lean()
+        .exec();
+
+    return identity;
+}
+
+async function addCreatedByAndModifiedByIdentities(attackObject) {
+    if (attackObject && attackObject.stix && attackObject.stix.created_by_ref) {
+        try {
+            // eslint-disable-next-line require-atomic-updates
+            attackObject.created_by_identity = await getLatest(attackObject.stix.created_by_ref);
+        }
+        catch(err) {
+            // Ignore lookup errors
+        }
+    }
+
+    if (attackObject && attackObject.stix && attackObject.stix.x_mitre_modified_by_ref) {
+        try {
+            // eslint-disable-next-line require-atomic-updates
+            attackObject.modified_by_identity = await getLatest(attackObject.stix.x_mitre_modified_by_ref);
+        }
+        catch(err) {
+            // Ignore lookup errors
+        }
+    }
+}
+exports.addCreatedByAndModifiedByIdentities = addCreatedByAndModifiedByIdentities;
+
+exports.addCreatedByAndModifiedByIdentitiesToAll = async function(attackObjects) {
+    for (const attackObject of attackObjects) {
+        // eslint-disable-next-line no-await-in-loop
+        await addCreatedByAndModifiedByIdentities(attackObject);
+    }
+}

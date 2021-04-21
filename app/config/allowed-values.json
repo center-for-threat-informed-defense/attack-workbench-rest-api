@@ -3,7 +3,7 @@
     "objectType": "technique",
     "properties": [
       {
-        "propertyName": "x_mitre_platform",
+        "propertyName": "x_mitre_platforms",
         "domains": [
           {
             "domainName": "enterprise-attack",
@@ -29,7 +29,16 @@
           },
           {
             "domainName": "ics-attack",
-            "allowedValues": [ ]
+            "allowedValues": [
+              "Field Controller/RTU/PLC/IED",
+              "Safety Instrumented System/Protection Relay",
+              "Control Server",
+              "Input/Output Server",
+              "Windows",
+              "Human-Machine Interface",
+              "Engineering Workstation",
+              "Data Historian"
+            ]
           }
         ]
       },
@@ -41,7 +50,8 @@
             "allowedValues": [
               "Post-Adversary Device Access",
               "Pre-Adversary Device Access",
-              "Without Adversary Device Access"            ]
+              "Without Adversary Device Access"
+            ]
           }
         ]
       },
@@ -93,7 +103,7 @@
     "objectType": "software",
     "properties": [
       {
-        "propertyName": "x_mitre_platform",
+        "propertyName": "x_mitre_platforms",
         "domains": [
           {
             "domainName": "enterprise-attack",
@@ -120,7 +130,16 @@
           },
           {
             "domainName": "ics-attack",
-            "allowedValues": [ ]
+            "allowedValues": [
+              "Field Controller/RTU/PLC/IED",
+              "Safety Instrumented System/Protection Relay",
+              "Control Server",
+              "Input/Output Server",
+              "Windows",
+              "Human-Machine Interface",
+              "Engineering Workstation",
+              "Data Historian"
+            ]
           }
         ]
       }

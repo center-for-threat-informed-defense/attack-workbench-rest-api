@@ -5,18 +5,21 @@ const _ = require('lodash');
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
-const database = require('../../../lib/database-in-memory')
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 
-const timestamp = new Date().toISOString();
+const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
+const collectionTimestamp = new Date().toISOString();
+
 const initialObjectData = {
     type: 'bundle',
     id: 'bundle--0cde353c-ea5b-4668-9f68-971946609282',
     spec_version: '2.1',
     objects: [
         {
-            id: 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647',
-            created: timestamp,
-            modified: timestamp,
+            id: collectionId,
+            created: collectionTimestamp,
+            modified: collectionTimestamp,
             name: 'collection-1',
             spec_version: '2.1',
             type: 'x-mitre-collection',
@@ -46,6 +49,10 @@ const initialObjectData = {
                 {
                     "object_ref": "intrusion-set--bef4c620-0787-42a8-a96d-b7eb6e85917c",
                     "object_modified": "2020-10-06T23:32:21.793Z"
+                },
+                {
+                    "object_ref": "malware--04227b24-7817-4de1-9050-b7b1b57f5866",
+                    "object_modified": "2020-03-30T18:17:52.697Z"
                 }
             ]
         },
@@ -59,7 +66,8 @@ const initialObjectData = {
             type: 'attack-pattern',
             description: 'This is a technique.',
             external_references: [
-                { source_name: 'source-1', external_id: 's1' }
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'attack-pattern-1 source', description: 'this is a source description'}
             ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
             created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -82,7 +90,8 @@ const initialObjectData = {
             type: 'attack-pattern',
             description: 'This is another technique.',
             external_references: [
-                { source_name: 'source-1', external_id: 's1' }
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'attack-pattern-2 source', description: 'this is a source description 2'}
             ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
             created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -144,6 +153,31 @@ const initialObjectData = {
             x_mitre_domains: [
                 "domain-1"
             ]
+        },
+        {
+            id: "malware--04227b24-7817-4de1-9050-b7b1b57f5866",
+            type: "malware",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            name: "software-1",
+            description: "This is a software with an alias",
+            external_references: [
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'malware-1 source', description: 'this is a source description'},
+                { source_name: 'xyzzy', description: '(Citation: Adventure 1975)'}
+            ],
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            x_mitre_version: "1.0",
+            modified: "2020-03-30T18:17:52.697Z",
+            created: "2017-10-25T14:48:53.732Z",
+            spec_version: "2.1",
+            x_mitre_domains: [
+                "domain-1"
+            ],
+            x_mitre_aliases: [
+                "xyzzy"
+            ],
         }
     ]
 };
@@ -155,6 +189,9 @@ describe('Collection Bundles Basic API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
@@ -176,8 +213,7 @@ describe('Collection Bundles Basic API', function () {
             });
     });
 
-    let collection1;
-    it('POST /api/collection-bundles previews the import of a collection bundle', function (done) {
+    it('POST /api/collection-bundles previews the import of a collection bundle (checkOnly)', function (done) {
         const body = initialObjectData;
         request(app)
             .post('/api/collection-bundles?checkOnly=true')
@@ -190,10 +226,33 @@ describe('Collection Bundles Basic API', function () {
                     done(err);
                 } else {
                     // We expect to get the created collection object
-                    collection1 = res.body;
-                    expect(collection1).toBeDefined();
-                    expect(collection1.workspace.import_categories.additions.length).toBe(4);
-                    expect(collection1.workspace.import_categories.errors.length).toBe(3);
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.workspace.import_categories.additions.length).toBe(5);
+                    expect(collection.workspace.import_categories.errors.length).toBe(3);
+                    done();
+                }
+            });
+    });
+
+    let collection1;
+    it('POST /api/collection-bundles previews the import of a collection bundle (previewOnly)', function (done) {
+        const body = initialObjectData;
+        request(app)
+            .post('/api/collection-bundles?previewOnly=true')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get the created collection object
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.workspace.import_categories.additions.length).toBe(5);
+                    expect(collection.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
             });
@@ -214,7 +273,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     collection1 = res.body;
                     expect(collection1).toBeDefined();
-                    expect(collection1.workspace.import_categories.additions.length).toBe(4);
+                    expect(collection1.workspace.import_categories.additions.length).toBe(5);
                     expect(collection1.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
@@ -276,8 +335,132 @@ describe('Collection Bundles Basic API', function () {
                     const collection2 = res.body;
                     expect(collection2).toBeDefined();
                     expect(collection2.workspace.import_categories.changes.length).toBe(1);
-                    expect(collection2.workspace.import_categories.duplicates.length).toBe(3);
+                    expect(collection2.workspace.import_categories.duplicates.length).toBe(4);
                     expect(collection2.workspace.import_categories.errors.length).toBe(3);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/references returns the malware added reference', function (done) {
+        request(app)
+            .get('/api/references?sourceName=' + encodeURIComponent('malware-1 source'))
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one reference in an array
+                    const references = res.body;
+                    expect(references).toBeDefined();
+                    expect(Array.isArray(references)).toBe(true);
+                    expect(references.length).toBe(1);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/references does not return the malware alias', function (done) {
+        request(app)
+            .get('/api/references?sourceName=' + encodeURIComponent('xyzzy'))
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get zero references in an array
+                    const references = res.body;
+                    expect(references).toBeDefined();
+                    expect(Array.isArray(references)).toBe(true);
+                    expect(references.length).toBe(0);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collection-bundles does not export the collection bundle with a bad id', function (done) {
+        request(app)
+            .get('/api/collection-bundles?collectionId=not-an-id')
+            .set('Accept', 'application/json')
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collection-bundles previews the export of the collection bundle', function (done) {
+        request(app)
+            .get(`/api/collection-bundles?previewOnly=true&collectionId=x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported collection bundle
+                    const collectionBundle = res.body;
+                    expect(collectionBundle).toBeDefined();
+                    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+                    expect(collectionBundle.objects.length).toBe(5);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collection-bundles exports the collection bundle', function (done) {
+        request(app)
+            .get(`/api/collection-bundles?collectionId=${ collectionId }`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported collection bundle
+                    const collectionBundle = res.body;
+                    expect(collectionBundle).toBeDefined();
+                    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+                    expect(collectionBundle.objects.length).toBe(5);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collection-bundles exports the collection bundle with id and modified', function (done) {
+        request(app)
+            .get(`/api/collection-bundles?collectionId=${ collectionId }&collectionModified=${ encodeURIComponent(collectionTimestamp) }`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported collection bundle
+                    const collectionBundle = res.body;
+                    expect(collectionBundle).toBeDefined();
+                    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+                    expect(collectionBundle.objects.length).toBe(5);
+
                     done();
                 }
             });

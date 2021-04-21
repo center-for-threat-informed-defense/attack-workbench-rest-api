@@ -6,6 +6,7 @@ const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
 const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
 
 const techniquesService = require('../../../services/techniques-service');
 
@@ -38,26 +39,23 @@ const initialObjectData = {
 };
 
 const numberTechniques = 45;
-function loadTechniques() {
+async function loadTechniques() {
     // Initialize the data
     for (let i = 0; i < numberTechniques; i++) {
         const data = _.cloneDeep(initialObjectData);
         data.stix.name = `attack-pattern-${ i }`;
 
-        const timestamp = new Date().toISOString();
-        data.stix.created = timestamp;
-        data.stix.modified = timestamp;
+        const timestamp = new Date();
+        data.stix.created = timestamp.toISOString();
+        data.stix.modified = timestamp.toISOString();
 
-        techniquesService.create(data, function(err, technique) {
-            if (err) {
-                if (err.message === techniquesService.errors.duplicateId) {
-                    logger.warn("Duplicate stix.id and stix.modified");
-                }
-                else {
-                    logger.error("Failed with error: " + err);
-                }
-            }
-        })
+        try {
+            // eslint-disable-next-line no-await-in-loop
+            await techniquesService.create(data, { import: false });
+        }
+        catch(err) {
+            console.log(err);
+        }
     }
 }
 
@@ -68,6 +66,9 @@ describe('Techniques Pagination API', function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
+
+        // Check for a valid database configuration
+        await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
@@ -163,26 +164,20 @@ describe('Techniques Pagination API', function () {
             });
     });
 
-    it('GET /api/techniques return the array of preloaded techniques', function (done) {
-        loadTechniques();
-        request(app)
+    it('GET /api/techniques returns the array of preloaded techniques', async function () {
+        await loadTechniques();
+        const res = await request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get all the techniques
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(numberTechniques);
-                    done();
-                }
-            });
+            .send();
+
+        // We expect to get all the techniques
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(numberTechniques);
     });
 
     const pageSizeList = [5, 10, 20];

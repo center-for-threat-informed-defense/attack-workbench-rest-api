@@ -14,9 +14,6 @@ components:
         type:
           type: string
           pattern: '^(bundle)$'
-        spec_version:
-          type: string
-          example: '2.1'
         objects:
           type: array
           items:
