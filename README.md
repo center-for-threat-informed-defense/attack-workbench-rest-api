@@ -11,7 +11,7 @@ The ATT&CK Workbench REST API is a Node.js application that uses a MongoDB datab
 
 #### Requirements
 
-- [Node.js](https://nodejs.org) version `12.14.1` or greater
+- [Node.js](https://nodejs.org) version `14.16.1` or greater
 
 - An instance of [MongoDB](https://www.mongodb.com/) version `4.4.x` or greater
  
