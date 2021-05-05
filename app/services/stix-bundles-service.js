@@ -40,11 +40,22 @@ exports.exportBundle = async function(options) {
     // Get the primary objects (objects that match the domain)
 
     // Build the query
-    const query = {
-        'stix.x_mitre_domains': options.domain,
-        'stix.revoked': { $in: [null, false] },
-        'stix.x_mitre_deprecated': { $in: [null, false] }
-    };
+    const query = { 'stix.x_mitre_domains': options.domain };
+    if (!options.includeRevoked) {
+        query['stix.revoked'] = { $in: [null, false] };
+    }
+    if (!options.includeDeprecated) {
+        console.log('*** excluding x_mitre_deprecated ***');
+        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
+    }
+    if (typeof options.state !== 'undefined') {
+        if (Array.isArray(options.state)) {
+            query['workspace.workflow.state'] = { $in: options.state };
+        }
+        else {
+            query['workspace.workflow.state'] = options.state;
+        }
+    }
 
     // Build the aggregation
     // - Group the documents by stix.id, sorted by stix.modified
@@ -89,10 +100,21 @@ exports.exportBundle = async function(options) {
     // Get all of the relationships
     // Use the aggregation to only get the last version of each relationship and
     // filter out revoked and deprecated relationships
-    const relationshipQuery = {
-        'stix.revoked': { $in: [null, false] },
-        'stix.x_mitre_deprecated': { $in: [null, false] }
-    };
+    const relationshipQuery = { };
+    if (!options.includeRevoked) {
+        relationshipQuery['stix.revoked'] = { $in: [null, false] };
+    }
+    if (!options.includeDeprecated) {
+        relationshipQuery['stix.x_mitre_deprecated'] = { $in: [null, false] };
+    }
+    if (typeof options.state !== 'undefined') {
+        if (Array.isArray(options.state)) {
+            relationshipQuery['workspace.workflow.state'] = { $in: options.state };
+        }
+        else {
+            relationshipQuery['workspace.workflow.state'] = options.state;
+        }
+    }
     const relationshipAggregation = [
         { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
         { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
@@ -125,7 +147,7 @@ exports.exportBundle = async function(options) {
                 objectsMap.set(secondaryObject.stix.id, true);
             }
             else {
-                console.log(`Could not find secondary object with id ${relationship.stix.source_ref }`);
+                console.log(`Could not find secondary object with id ${ relationship.stix.source_ref }`);
             }
         }
 
