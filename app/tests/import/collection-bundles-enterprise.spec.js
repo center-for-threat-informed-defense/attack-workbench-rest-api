@@ -144,6 +144,13 @@ describe('Collection Bundles API Full-Size Test', function () {
                     expect(stixBundle).toBeDefined();
                     expect(Array.isArray(stixBundle.objects)).toBe(true);
 
+                    // We expect to get at most one of any object
+                    const objectMap = new Map();
+                    for (const stixObject of stixBundle.objects) {
+                        expect(objectMap.get(stixObject.id)).toBeUndefined();
+                        objectMap.set(stixObject.id, stixObject.id);
+                    }
+
                     done();
                 }
             });

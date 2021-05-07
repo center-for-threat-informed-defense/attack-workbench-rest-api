@@ -17,6 +17,33 @@ paths:
           schema:
             type: string
           example: 'enterprise-attack'
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, objects will be retrieved regardless of state.
+            This parameter may be set multiple times to retrieve objects with any of the provided states.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'An exported stix bundle.'

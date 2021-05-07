@@ -9,7 +9,10 @@ exports.exportBundle = async function(req, res) {
     }
 
     const options = {
-        domain: req.query.domain
+        domain: req.query.domain,
+        state: req.query.state,
+        includeRevoked: req.query.includeRevoked,
+        includeDeprecated: req.query.includeDeprecated
     };
 
     try {

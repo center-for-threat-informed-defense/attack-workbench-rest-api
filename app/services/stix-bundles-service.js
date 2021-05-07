@@ -38,35 +38,44 @@ exports.exportBundle = async function(options) {
     };
 
     // Get the primary objects (objects that match the domain)
-    const domainQuery = { 'stix.x_mitre_domains': options.domain };
-    const domainGroups = await Group
-        .find(domainQuery)
-        .lean()
-        .exec();
-    const domainMatrices = await Matrix
-        .find(domainQuery)
-        .lean()
-        .exec();
 
-    const domainMitigations = await Mitigation
-        .find(domainQuery)
-        .lean()
-        .exec();
+    // Build the query
+    const query = { 'stix.x_mitre_domains': options.domain };
+    if (!options.includeRevoked) {
+        query['stix.revoked'] = { $in: [null, false] };
+    }
+    if (!options.includeDeprecated) {
+        console.log('*** excluding x_mitre_deprecated ***');
+        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
+    }
+    if (typeof options.state !== 'undefined') {
+        if (Array.isArray(options.state)) {
+            query['workspace.workflow.state'] = { $in: options.state };
+        }
+        else {
+            query['workspace.workflow.state'] = options.state;
+        }
+    }
 
-    const domainSoftware = await Software
-        .find(domainQuery)
-        .lean()
-        .exec();
+    // Build the aggregation
+    // - Group the documents by stix.id, sorted by stix.modified
+    // - Use the last document in each group (according to the value of stix.modified)
+    // - Then apply query, skip and limit options
+    const aggregation = [
+        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
+        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
+        { $replaceRoot: { newRoot: '$document' }},
+        { $sort: { 'stix.id': 1 }},
+        { $match: query }
+    ];
 
-    const domainTactics = await Tactic
-        .find(domainQuery)
-        .lean()
-        .exec();
-
-    const domainTechniques = await Technique
-        .find(domainQuery)
-        .lean()
-        .exec();
+    // Retrieve the primary objects
+    const domainGroups = await Group.aggregate(aggregation);
+    const domainMatrices = await Matrix.aggregate(aggregation);
+    const domainMitigations = await Mitigation.aggregate(aggregation);
+    const domainSoftware = await Software.aggregate(aggregation);
+    const domainTactics = await Tactic.aggregate(aggregation);
+    const domainTechniques = await Technique.aggregate(aggregation);
 
     const primaryObjects = [...domainGroups, ...domainMatrices, ...domainMitigations, ...domainSoftware, ...domainTactics, ...domainTechniques];
 
@@ -89,10 +98,30 @@ exports.exportBundle = async function(options) {
     }
 
     // Get all of the relationships
-    const allRelationships = await Relationship
-            .find()
-            .lean()
-            .exec();
+    // Use the aggregation to only get the last version of each relationship and
+    // filter out revoked and deprecated relationships
+    const relationshipQuery = { };
+    if (!options.includeRevoked) {
+        relationshipQuery['stix.revoked'] = { $in: [null, false] };
+    }
+    if (!options.includeDeprecated) {
+        relationshipQuery['stix.x_mitre_deprecated'] = { $in: [null, false] };
+    }
+    if (typeof options.state !== 'undefined') {
+        if (Array.isArray(options.state)) {
+            relationshipQuery['workspace.workflow.state'] = { $in: options.state };
+        }
+        else {
+            relationshipQuery['workspace.workflow.state'] = options.state;
+        }
+    }
+    const relationshipAggregation = [
+        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
+        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
+        { $replaceRoot: { newRoot: '$document' }},
+        { $match: relationshipQuery }
+    ];
+    const allRelationships = await Relationship.aggregate(relationshipAggregation);
 
     // Iterate over the relationships, keeping any that have a source_ref or target_ref that points at a primary object
     const relationships = [];
@@ -118,7 +147,7 @@ exports.exportBundle = async function(options) {
                 objectsMap.set(secondaryObject.stix.id, true);
             }
             else {
-                console.log(`Could not find secondary object with id ${relationship.stix.source_ref }`);
+                console.log(`Could not find secondary object with id ${ relationship.stix.source_ref }`);
             }
         }
 
@@ -148,10 +177,7 @@ exports.exportBundle = async function(options) {
 
     // Get any note that references an object in the bundle
     // Start by getting all notes
-    const allNotes = await Note
-        .find()
-        .lean()
-        .exec();
+    const allNotes = await Note.aggregate(relationshipAggregation);
 
     // Iterate over the notes, keeping any that have an object_ref that points at an object in the bundle
     const notes = [];

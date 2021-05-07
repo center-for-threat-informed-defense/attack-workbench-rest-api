@@ -36,6 +36,10 @@ const initialObjectData = {
                     "object_modified": "2020-03-30T14:03:43.761Z"
                 },
                 {
+                    "object_ref": "attack-pattern--1eaebf46-e361-4437-bc23-d5d65a3b92e3",
+                    "object_modified": "2020-02-17T13:14:31.140Z",
+                },
+                {
                     "object_ref": "attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483",
                     "object_modified": "2019-02-03T16:56:41.200Z"
                 },
@@ -126,10 +130,36 @@ const initialObjectData = {
             x_mitre_domains: [ domain ]
         },
         {
+            id: 'attack-pattern--1eaebf46-e361-4437-bc23-d5d65a3b92e3',
+            created: '2020-02-12T18:55:24.728Z',
+            modified: '2020-02-17T13:14:31.140Z',
+            name: 'attack-pattern-2',
+            x_mitre_version: '1.0',
+            spec_version: '2.1',
+            type: 'attack-pattern',
+            description: 'This is a technique.',
+            external_references: [
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'attack-pattern-1 source', description: 'this is a source description'}
+            ],
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            kill_chain_phases: [
+                { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
+            ],
+            x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
+            x_mitre_deprecated: true,
+            x_mitre_detection: 'detection text',
+            x_mitre_is_subtechnique: false,
+            x_mitre_impact_type: [ 'impact-1' ],
+            x_mitre_platforms: [ 'platform-1', 'platform-2' ],
+            x_mitre_domains: [ domain ]
+        },
+        {
             id: 'attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483',
             created: '2019-02-03T16:56:41.200Z',
             modified: '2019-02-03T16:56:41.200Z',
-            name: 'attack-pattern-2',
+            name: 'attack-pattern-3',
             x_mitre_version: '1.0',
             spec_version: '2.1',
             type: 'attack-pattern',
@@ -327,7 +357,7 @@ describe('STIX Bundles Basic API', function () {
                     const collection = res.body;
                     console.log(JSON.stringify(collection.workspace.import_categories.errors, null, 2));
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(11);
+                    expect(collection.workspace.import_categories.additions.length).toBe(12);
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
                     done();
                 }
@@ -366,6 +396,30 @@ describe('STIX Bundles Basic API', function () {
                     // 5 primary objects, 1 relationship, 1 secondary object,
                     // 1 note, 1 identity, 1 marking definition
                     expect(stixBundle.objects.length).toBe(10);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/stix-bundles exports the STIX bundle including deprecated objects', function (done) {
+        request(app)
+            .get(`/api/stix-bundles?domain=${ domain }&includeDeprecated=true`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported STIX bundle
+                    const stixBundle = res.body;
+                    expect(stixBundle).toBeDefined();
+                    expect(Array.isArray(stixBundle.objects)).toBe(true);
+                    // 6 primary objects, 1 relationship, 1 secondary object,
+                    // 1 note, 1 identity, 1 marking definition
+                    expect(stixBundle.objects.length).toBe(11);
 
                     done();
                 }
