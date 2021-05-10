@@ -207,7 +207,16 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                     }
                                     else {
                                         const latestExistingObject = objects[0];
-                                        if (toEpoch(latestExistingObject.stix.modified) < toEpoch(importObject.modified)) {
+
+                                        if (importObject.revoked && !latestExistingObject.revoked) {
+                                            // This a newly revoked object
+                                            importedCollection.workspace.import_categories.revocations.push(importObject.id);
+                                        }
+                                        else if (importObject.x_mitre_deprecated && !latestExistingObject.x_mitre_deprecated) {
+                                            // This a newly deprecated object
+                                            importedCollection.workspace.import_categories.deprecations.push(importObject.id);
+                                        }
+                                        else if (toEpoch(latestExistingObject.stix.modified) < toEpoch(importObject.modified)) {
                                             // TBD: change x_mitre_version comparison from lexical to numerical
                                             if (latestExistingObject.stix.x_mitre_version < importObject.x_mitre_version) {
                                                 // This a change (same stixId, higher x-mitre-version, later modified)
