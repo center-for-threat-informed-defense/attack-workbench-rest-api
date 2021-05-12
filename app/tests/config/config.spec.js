@@ -5,7 +5,7 @@ const config = require('../../config/config');
 const expect = require('expect');
 
 describe('App Configuration', function () {
-    it('The config values should be set by the config file', async function() {
+    it('The config values should be set by the config file', function(done) {
         // Defaults, not set by config file
         expect(config.app.env).toBe('development');
         expect(config.server.port).toBe(3000);
@@ -13,5 +13,7 @@ describe('App Configuration', function () {
         // Set by config file
         expect(config.app.name).toBe('test-config');
         expect(config.collectionIndex.defaultInterval).toBe(100);
+
+        done();
     });
 });
