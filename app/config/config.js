@@ -1,23 +1,60 @@
 'use strict';
 
-module.exports = {
+const convict = require('convict');
+
+const config = convict({
     server: {
-        port: process.env.PORT || 3000
+        port: {
+            doc: 'HTTP port for the server to listen on',
+            format: 'int',
+            default: 3000,
+            env: 'PORT'
+        }
     },
     app: {
-        name: 'attack-workbench-rest-api',
-        env: process.env.NODE_ENV || 'development'
+        name: {
+            default: 'attack-workbench-rest-api'
+        },
+        env: {
+            default: 'development',
+            env: 'NODE_ENV'
+        }
     },
     database: {
-        url: process.env.DATABASE_URL
+        url: {
+            default: '',
+            env: 'DATABASE_URL'
+        }
     },
     openApi: {
-        specPath: './app/api/definitions/openapi.yml'
+        specPath: {
+            default: './app/api/definitions/openapi.yml'
+        }
     },
     collectionIndex: {
-        defaultInterval: process.env.DEFAULT_INTERVAL || 300
+        defaultInterval: {
+            default: 300,
+            env: 'DEFAULT_INTERVAL'
+        }
     },
     configurationFiles: {
-        allowedValues: './app/config/allowed-values.json'
+        allowedValues: {
+            default: './app/config/allowed-values.json',
+            env: 'ALLOWED_VALUES_PATH'
+        },
+        jsonConfigFile: {
+            default: '',
+            env: 'JSON_CONFIG_PATH'
+        }
     }
-};
+});
+
+// Load configuration values from a JSON file if the JSON_CONFIG_PATH environment variable is set
+if (config.get('configurationFiles.jsonConfigFile')) {
+    config.loadFile(config.get('configurationFiles.jsonConfigFile'));
+}
+
+config.validate({ allowed: 'strict' });
+
+// Extract the configuration as an object to simplify access
+module.exports = config.getProperties();
