@@ -9,6 +9,12 @@ const config = convict({
             format: 'int',
             default: 3000,
             env: 'PORT'
+        },
+        enableCorsAnyOrigin: {
+            doc: 'Access-Control-Allow-Origin will be set to the wildcard (*), allowing requests from any domain to access the REST API endpoints',
+            format: Boolean,
+            default: true,
+            env: 'ENABLE_CORS_ANY_ORIGIN'
         }
     },
     app: {

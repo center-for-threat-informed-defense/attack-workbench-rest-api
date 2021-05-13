@@ -21,9 +21,14 @@ exports.initializeApp = async function() {
     app = express();
 
     // Allow CORS
-    // TBD: Configure CORS for a specific origin
-    const cors = require('cors');
-    app.use(cors());
+    if (config.server.enableCorsAnyOrigin) {
+        logger.info('CORS is enabled');
+        const cors = require('cors');
+        app.use(cors());
+    }
+    else {
+        logger.info('CORS is not enabled');
+    }
 
     // Compress response bodies
     const compression = require('compression');
