@@ -21,13 +21,8 @@ exports.exportBundle = async function(req, res) {
         return res.status(200).send(stixBundle);
     }
     catch(err) {
-        if (err.message === stixBundlesService.errors.notFound) {
-            return res.status(404).send('Domain not found');
-        }
-        else {
-            logger.error('Unable to export STIX bundle: ' + err);
-            return res.status(500).send('Unable to export STIX bundle.');
-        }
+        logger.error('Unable to export STIX bundle: ' + err);
+        return res.status(500).send('Unable to export STIX bundle.');
     }
 }
 

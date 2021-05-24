@@ -80,8 +80,9 @@ exports.exportBundle = async function(options) {
     const primaryObjects = [...domainGroups, ...domainMatrices, ...domainMitigations, ...domainSoftware, ...domainTactics, ...domainTechniques];
 
     // No primary objects means that the domain doesn't exist
+    // Return an empty bundle
     if (primaryObjects.length === 0) {
-        throw new Error(errors.notFound);
+        return bundle;
     }
 
     // Put the primary objects in the bundle
