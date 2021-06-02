@@ -243,7 +243,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
 
                                                 // Is this reference just an alias?
                                                 let isAlias = false;
-                                                if (importObject.type === 'intrustion-set') {
+                                                if (importObject.type === 'intrusion-set') {
                                                     if (importObject.aliases && importObject.aliases.includes(externalReference.source_name)) {
                                                         isAlias = true;
                                                     }

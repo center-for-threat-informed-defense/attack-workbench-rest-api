@@ -53,6 +53,10 @@ const initialObjectData = {
                 {
                     "object_ref": "malware--04227b24-7817-4de1-9050-b7b1b57f5866",
                     "object_modified": "2020-03-30T18:17:52.697Z"
+                },
+                {
+                    "object_ref": "intrusion-set--d69e568e-9ac8-4c08-b32c-d93b43ba9172",
+                    "object_modified": "2020-03-30T19:25:56.012Z"
                 }
             ]
         },
@@ -178,6 +182,31 @@ const initialObjectData = {
             x_mitre_aliases: [
                 "xyzzy"
             ],
+        },
+        {
+            type: "intrusion-set",
+            id: "intrusion-set--d69e568e-9ac8-4c08-b32c-d93b43ba9172",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            name: "group-1",
+            description: "This is a group with an alias",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            external_references: [
+                { source_name: "source-2", external_id: "g1" },
+                { source_name: "group source", description: "This is a group description" },
+                { source_name: "group-xyzzy", description: "(Citation: Red 1999)", }
+            ],
+            aliases: [
+                "group-xyzzy"
+            ],
+            modified: "2020-03-30T19:25:56.012Z",
+            created: "2018-10-17T00:14:20.652Z",
+            x_mitre_version: "1.0",
+            spec_version: "2.1",
+            x_mitre_domains: [
+                "domain-1"
+            ]
         }
     ]
 };
@@ -228,7 +257,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(5);
+                    expect(collection.workspace.import_categories.additions.length).toBe(6);
                     expect(collection.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
@@ -251,7 +280,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(5);
+                    expect(collection.workspace.import_categories.additions.length).toBe(6);
                     expect(collection.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
@@ -273,7 +302,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     collection1 = res.body;
                     expect(collection1).toBeDefined();
-                    expect(collection1.workspace.import_categories.additions.length).toBe(5);
+                    expect(collection1.workspace.import_categories.additions.length).toBe(6);
                     expect(collection1.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
@@ -335,7 +364,7 @@ describe('Collection Bundles Basic API', function () {
                     const collection2 = res.body;
                     expect(collection2).toBeDefined();
                     expect(collection2.workspace.import_categories.changes.length).toBe(1);
-                    expect(collection2.workspace.import_categories.duplicates.length).toBe(4);
+                    expect(collection2.workspace.import_categories.duplicates.length).toBe(5);
                     expect(collection2.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
@@ -386,6 +415,50 @@ describe('Collection Bundles Basic API', function () {
             });
     });
 
+    it('GET /api/references returns the group added reference', function (done) {
+        request(app)
+            .get('/api/references?sourceName=' + encodeURIComponent('group source'))
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one reference in an array
+                    const references = res.body;
+                    expect(references).toBeDefined();
+                    expect(Array.isArray(references)).toBe(true);
+                    expect(references.length).toBe(1);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/references does not return the group alias', function (done) {
+        request(app)
+            .get('/api/references?sourceName=' + encodeURIComponent('group-xyzzy'))
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get zero references in an array
+                    const references = res.body;
+                    expect(references).toBeDefined();
+                    expect(Array.isArray(references)).toBe(true);
+                    expect(references.length).toBe(0);
+
+                    done();
+                }
+            });
+    });
+
     it('GET /api/collection-bundles does not export the collection bundle with a bad id', function (done) {
         request(app)
             .get('/api/collection-bundles?collectionId=not-an-id')
@@ -415,7 +488,7 @@ describe('Collection Bundles Basic API', function () {
                     const collectionBundle = res.body;
                     expect(collectionBundle).toBeDefined();
                     expect(Array.isArray(collectionBundle.objects)).toBe(true);
-                    expect(collectionBundle.objects.length).toBe(5);
+                    expect(collectionBundle.objects.length).toBe(6);
 
                     done();
                 }
@@ -437,7 +510,7 @@ describe('Collection Bundles Basic API', function () {
                     const collectionBundle = res.body;
                     expect(collectionBundle).toBeDefined();
                     expect(Array.isArray(collectionBundle.objects)).toBe(true);
-                    expect(collectionBundle.objects.length).toBe(5);
+                    expect(collectionBundle.objects.length).toBe(6);
 
                     done();
                 }
@@ -459,7 +532,7 @@ describe('Collection Bundles Basic API', function () {
                     const collectionBundle = res.body;
                     expect(collectionBundle).toBeDefined();
                     expect(Array.isArray(collectionBundle.objects)).toBe(true);
-                    expect(collectionBundle.objects.length).toBe(5);
+                    expect(collectionBundle.objects.length).toBe(6);
 
                     done();
                 }
