@@ -39,6 +39,7 @@ const config = convict({
     },
     collectionIndex: {
         defaultInterval: {
+            doc: 'How often collection indexes should check for updates (in seconds). Only applies to new indexes added to the REST API, changes to not affect existing collection indexes',
             default: 300,
             env: 'DEFAULT_INTERVAL'
         }

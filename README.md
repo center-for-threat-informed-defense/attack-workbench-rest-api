@@ -5,6 +5,9 @@
 
 ## Installation
 
+### Installing using Docker
+Please refer to our [Docker install instructions](docs/docker-compose.md) for information on installing and deploying the app using Docker.
+
 ### Manual Installation
 
 The ATT&CK Workbench REST API is a Node.js application that uses a MongoDB database for persisting data.
@@ -35,11 +38,14 @@ npm install
 
 ##### Step 3. Set the environment variables
 
-| name             | required | default       | description                            |
-|------------------|----------|---------------|----------------------------------------|
-| **PORT**         | no       | `3000`        | Port the HTTP server should listen on  |
-| **NODE_ENV**     | no       | `development` | Environment that the app is running in |
-| **DATABASE_URL** | yes      | none          | URL of the MongoDB server              |
+| name                        | required | default       | description                                                        |
+|-----------------------------|----------|---------------|--------------------------------------------------------------------|
+| **PORT**                    | no       | `3000`        | Port the HTTP server should listen on                              |
+| **NODE_ENV**                | no       | `development` | Environment that the app is running in                             |
+| **DATABASE_URL**            | yes      | none          | URL of the MongoDB server                                          |
+| **ENABLE_CORS_ANY_ORIGIN**  | no       | `true`        | Allows requests from any domain to access the REST API endpoints   |
+| **DEFAULT_INTERVAL**        | no       | `300`         | How often collection indexes should check for updates (in seconds) |
+
 
 A typical value for DATABASE_URL when running on a development machine is `mongodb://localhost/attack-workspace`.
 This assumes that a MongoDB server is running on the same machine and is listening on the standard port of 27017.
@@ -50,10 +56,6 @@ The MongoDB server can be running natively or in a Docker container.
 ```
 node ./bin/www
 ```
-
-### Docker
-
-TBD
 
 ## REST API Documentation
 
