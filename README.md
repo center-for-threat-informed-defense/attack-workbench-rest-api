@@ -6,7 +6,7 @@
 ## Installation
 
 ### Installing using Docker
-Please refer to our [Docker install instructions](docs/docker-compose.md) for information on installing and deploying the app using Docker.
+Please refer to our [Docker install instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) for information on installing and deploying the app using Docker.
 
 ### Manual Installation
 
