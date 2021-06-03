@@ -5,7 +5,7 @@ const convict = require('convict');
 const config = convict({
     server: {
         port: {
-            doc: 'HTTP port for the server to listen on',
+            doc: 'Port the HTTP server should listen on',
             format: 'int',
             default: 3000,
             env: 'PORT'
@@ -28,6 +28,7 @@ const config = convict({
     },
     database: {
         url: {
+            doc: 'URL of the MongoDB server',
             default: '',
             env: 'DATABASE_URL'
         }
@@ -39,16 +40,19 @@ const config = convict({
     },
     collectionIndex: {
         defaultInterval: {
+            doc: 'How often collection indexes should check for updates (in seconds). Only applies to new indexes added to the REST API, does not affect existing collection indexes',
             default: 300,
             env: 'DEFAULT_INTERVAL'
         }
     },
     configurationFiles: {
         allowedValues: {
+            doc: 'Location of the allowed values configuration file',
             default: './app/config/allowed-values.json',
             env: 'ALLOWED_VALUES_PATH'
         },
         jsonConfigFile: {
+            doc: 'Location of a JSON file containing configuration values',
             default: '',
             env: 'JSON_CONFIG_PATH'
         }
