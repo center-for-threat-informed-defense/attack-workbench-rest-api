@@ -36,20 +36,52 @@ It doesn't depend on the global installation of any modules.
 npm install
 ```
 
-##### Step 3. Set the environment variables
+##### Step 3. Configure the system
+
+The app can be configured using environment variables, a configuration file, or a combination of these methods.
+Note that any values set in a configuration file take precedence over values set using environment variables.
+
+###### Using Enviroment Variables
 
 | name                        | required | default       | description                                                        |
 |-----------------------------|----------|---------------|--------------------------------------------------------------------|
 | **PORT**                    | no       | `3000`        | Port the HTTP server should listen on                              |
+| **ENABLE_CORS_ANY_ORIGIN**  | no       | `true`        | Allows requests from any domain to access the REST API endpoints   |
 | **NODE_ENV**                | no       | `development` | Environment that the app is running in                             |
 | **DATABASE_URL**            | yes      | none          | URL of the MongoDB server                                          |
-| **ENABLE_CORS_ANY_ORIGIN**  | no       | `true`        | Allows requests from any domain to access the REST API endpoints   |
 | **DEFAULT_INTERVAL**        | no       | `300`         | How often collection indexes should check for updates (in seconds) |
+| **JSON_CONFIG_PATH**        | no       | ``            | Location of a JSON file containing configuration values            |
 
 
 A typical value for DATABASE_URL when running on a development machine is `mongodb://localhost/attack-workspace`.
 This assumes that a MongoDB server is running on the same machine and is listening on the standard port of 27017.
 The MongoDB server can be running natively or in a Docker container.
+
+###### Using a Configuration File
+
+If the `JSON_CONFIG_PATH` environment variable is set, the app will also read configuration settings from a JSON file at that location.
+
+| name                                | type     | corresponding environment variable |
+|-------------------------------------|----------|------------------------------------|
+| **server.port**                     | int      | PORT                               |
+| **server.enableCorsAnyOrigin**      | boolean  | ENABLE_CORS_ANY_ORIGIN             |
+| **app.env**                         | string   | NODE_ENV                           |
+| **database.url**                    | string   | DATABASE_URL                       |
+| **collectionIndex.defaultInterval** | int      | DEFAULT_INTERVAL                   |
+
+Sample configuration file setting the server port and database url:
+
+```json
+{
+  "server": {
+    "port": 4000
+  },
+  "database": {
+    "url": "mongodb://localhost/attack-workspace"
+  }
+}
+```
+
 
 ##### Step 4. Run the app
 
