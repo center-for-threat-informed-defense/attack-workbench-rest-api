@@ -11,7 +11,7 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
 const collectionTimestamp = new Date().toISOString();
 
-const initialObjectData = {
+const collectionBundleData = {
     type: 'bundle',
     id: 'bundle--0cde353c-ea5b-4668-9f68-971946609282',
     spec_version: '2.1',
@@ -211,6 +211,56 @@ const initialObjectData = {
     ]
 };
 
+const collectionId2a = 'x-mitre-collection--7f478133-ad3b-4c8d-97a3-a18ef61b7dee';
+const collectionId2b = 'x-mitre-collection--1d9e41f3-c1ae-4677-85ff-f805cbc9fe74';
+const collectionTimestamp2a = new Date().toISOString();
+const collectionTimestamp2b = new Date().toISOString();
+
+const collectionBundleData2 = {
+    type: 'bundle',
+    id: 'bundle--d288edaa-6289-40b5-80cd-080e1cd7eb18',
+    spec_version: '2.1',
+    objects: [
+        {
+            id: collectionId2a,
+            created: collectionTimestamp2a,
+            modified: collectionTimestamp2a,
+            name: 'collection-2a',
+            spec_version: '2.1',
+            type: 'x-mitre-collection',
+            description: 'This is a collection.',
+            external_references: [
+                {source_name: 'source-1', external_id: 's1'}
+            ],
+            object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            x_mitre_contents: []
+        },
+        {
+            id: collectionId2b,
+            created: collectionTimestamp2b,
+            modified: collectionTimestamp2b,
+            name: 'collection-2b',
+            spec_version: '2.1',
+            type: 'x-mitre-collection',
+            description: 'This is a collection.',
+            external_references: [
+                {source_name: 'source-1', external_id: 's1'}
+            ],
+            object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            x_mitre_contents: []
+        }
+    ]
+};
+
+const collectionBundleData3 = {
+    type: 'bundle',
+    id: 'bundle--6a95e2a6-1be9-4cd8-8348-f6cbf6408343',
+    spec_version: '2.1',
+    objects: []
+};
+
 describe('Collection Bundles Basic API', function () {
     let app;
 
@@ -242,8 +292,40 @@ describe('Collection Bundles Basic API', function () {
             });
     });
 
+    it('POST /api/collection-bundles does not import a collection bundle with multiple x-mitre-collection objects', function (done) {
+        const body = collectionBundleData2;
+        request(app)
+            .post('/api/collection-bundles')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collection-bundles does not import a collection bundle with zero x-mitre-collection objects', function (done) {
+        const body = collectionBundleData3;
+        request(app)
+            .post('/api/collection-bundles')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
     it('POST /api/collection-bundles previews the import of a collection bundle (checkOnly)', function (done) {
-        const body = initialObjectData;
+        const body = collectionBundleData;
         request(app)
             .post('/api/collection-bundles?checkOnly=true')
             .send(body)
@@ -266,7 +348,7 @@ describe('Collection Bundles Basic API', function () {
 
     let collection1;
     it('POST /api/collection-bundles previews the import of a collection bundle (previewOnly)', function (done) {
-        const body = initialObjectData;
+        const body = collectionBundleData;
         request(app)
             .post('/api/collection-bundles?previewOnly=true')
             .send(body)
@@ -288,7 +370,7 @@ describe('Collection Bundles Basic API', function () {
     });
 
     it('POST /api/collection-bundles imports a collection bundle', function (done) {
-        const body = initialObjectData;
+        const body = collectionBundleData;
         request(app)
             .post('/api/collection-bundles')
             .send(body)
@@ -310,7 +392,7 @@ describe('Collection Bundles Basic API', function () {
     });
 
     it('POST /api/collection-bundles does not show a successful preview with a duplicate collection bundle', function (done) {
-        const body = initialObjectData;
+        const body = collectionBundleData;
         request(app)
             .post('/api/collection-bundles?checkOnly=true')
             .send(body)
@@ -326,7 +408,7 @@ describe('Collection Bundles Basic API', function () {
     });
 
     it('POST /api/collection-bundles does not import a duplicate collection bundle', function (done) {
-        const body = initialObjectData;
+        const body = collectionBundleData;
         request(app)
             .post('/api/collection-bundles')
             .send(body)
@@ -343,7 +425,7 @@ describe('Collection Bundles Basic API', function () {
 
     it('POST /api/collection-bundles imports an updated collection bundle', function (done) {
         const updateTimestamp = new Date().toISOString();
-        const updatedCollection = _.cloneDeep(initialObjectData);
+        const updatedCollection = _.cloneDeep(collectionBundleData);
         updatedCollection.objects[0].modified = updateTimestamp;
         updatedCollection.objects[0].x_mitre_contents[0].object_modified = updateTimestamp;
         updatedCollection.objects[1].modified = updateTimestamp;

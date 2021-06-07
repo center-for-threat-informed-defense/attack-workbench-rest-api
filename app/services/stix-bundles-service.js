@@ -45,7 +45,6 @@ exports.exportBundle = async function(options) {
         query['stix.revoked'] = { $in: [null, false] };
     }
     if (!options.includeDeprecated) {
-        console.log('*** excluding x_mitre_deprecated ***');
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
