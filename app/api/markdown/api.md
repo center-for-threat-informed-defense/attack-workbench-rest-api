@@ -1,5 +1,5 @@
 ---
-title: ATT&CK Workbench REST API v0.0.1
+title: ATT&CK Workbench REST API v1.0.0
 language_tabs:
   - shell: Shell
   - http: HTTP
@@ -19,7 +19,7 @@ headingLevel: 2
 
 <!-- Generator: Widdershins v4.0.1 -->
 
-<h1 id="att-and-ck-workbench-rest-api">ATT&CK Workbench REST API v0.0.1</h1>
+<h1 id="att-and-ck-workbench-rest-api">ATT&CK Workbench REST API v1.0.0</h1>
 
 > Scroll down for code samples, example requests and responses. Select a language for code samples from the tabs above or the mobile navigation menu.
 
@@ -190,7 +190,7 @@ The list of objects may include multiple versions of each ATT&CK object.
 |attackId|query|string|false|The ATT&CK ID of the object to retrieve.|
 |limit|query|number|false|The number of objects to retrieve.|
 |offset|query|number|false|The number of objects to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |search|query|string|false|Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.|
@@ -208,7 +208,8 @@ The default (0) will retrieve all objects.
 The default (0) will start with the first object.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, objects will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -261,9 +262,14 @@ Wraps returned objects in a larger object.
           {
             "object_ref": "string",
             "object_modified": "string",
-            "error_type": "string"
+            "error_type": "string",
+            "error_message": "string"
           }
         ]
+      },
+      "workflow": {
+        "state": "string",
+        "release": true
       }
     },
     "stix": {
@@ -287,6 +293,7 @@ Wraps returned objects in a larger object.
       ],
       "name": "Enterprise ATT&CK",
       "description": "string",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_contents": [
         {
           "object_ref": "string",
@@ -485,7 +492,7 @@ In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are 
 |---|---|---|---|---|
 |limit|query|number|false|The number of techniques to retrieve.|
 |offset|query|number|false|The number of techniques to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
@@ -500,7 +507,8 @@ The default (0) will retrieve all techniques.
 The default (0) will start with the first technique.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, techniques will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -523,7 +531,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -552,6 +566,7 @@ Wraps returned objects in a larger object.
           "phase_name": "string"
         }
       ],
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_contributors": [
         "string"
       ],
@@ -602,6 +617,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -633,6 +651,7 @@ Status Code **200**
 |»»» kill_chain_phases|[object]|false|none|none|
 |»»»» kill_chain_name|string|true|none|none|
 |»»»» phase_name|string|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_data_sources|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
@@ -694,7 +713,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -723,6 +748,7 @@ const inputBody = '{
         "phase_name": "string"
       }
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -891,7 +917,13 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -920,6 +952,7 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
         "phase_name": "string"
       }
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -968,7 +1001,13 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -997,6 +1036,7 @@ If the `stix.id` property is not set, it creates a new technique, generating a S
         "phase_name": "string"
       }
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -1047,6 +1087,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -1078,6 +1121,7 @@ Status Code **201**
 |»»» kill_chain_phases|[object]|false|none|none|
 |»»»» kill_chain_name|string|true|none|none|
 |»»»» phase_name|string|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_data_sources|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
@@ -1286,7 +1330,13 @@ This endpoint gets a list of one or more versions of a technique from the worksp
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -1315,6 +1365,7 @@ This endpoint gets a list of one or more versions of a technique from the worksp
           "phase_name": "string"
         }
       ],
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_contributors": [
         "string"
       ],
@@ -1366,6 +1417,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -1397,6 +1451,7 @@ Status Code **200**
 |»»» kill_chain_phases|[object]|false|none|none|
 |»»»» kill_chain_name|string|true|none|none|
 |»»»» phase_name|string|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_data_sources|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
@@ -1592,7 +1647,13 @@ This endpoint gets a single version of a technique from the workspace, identifie
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -1621,6 +1682,7 @@ This endpoint gets a single version of a technique from the workspace, identifie
         "phase_name": "string"
       }
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -1670,6 +1732,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -1701,6 +1766,7 @@ Status Code **200**
 |»»» kill_chain_phases|[object]|false|none|none|
 |»»»» kill_chain_name|string|true|none|none|
 |»»»» phase_name|string|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_data_sources|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
@@ -1762,7 +1828,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -1791,6 +1863,7 @@ const inputBody = '{
         "phase_name": "string"
       }
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -1957,7 +2030,13 @@ This endpoint updates a single version of a technique in the workspace, identifi
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -1986,6 +2065,7 @@ This endpoint updates a single version of a technique in the workspace, identifi
         "phase_name": "string"
       }
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -2036,7 +2116,13 @@ This endpoint updates a single version of a technique in the workspace, identifi
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -2065,6 +2151,7 @@ This endpoint updates a single version of a technique in the workspace, identifi
         "phase_name": "string"
       }
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -2115,6 +2202,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -2146,6 +2236,7 @@ Status Code **200**
 |»»» kill_chain_phases|[object]|false|none|none|
 |»»»» kill_chain_name|string|true|none|none|
 |»»»» phase_name|string|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_data_sources|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
@@ -2476,7 +2567,7 @@ The list of tactics may include multiple versions of each tactic.
 |---|---|---|---|---|
 |limit|query|number|false|The number of tactics to retrieve.|
 |offset|query|number|false|The number of tactics to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
@@ -2491,7 +2582,8 @@ The default (0) will retrieve all tactics.
 The default (0) will start with the first tactic.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, tactics will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -2514,7 +2606,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -2537,6 +2635,7 @@ Wraps returned objects in a larger object.
       ],
       "name": "Collection",
       "description": "This is a tactic.",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_contributors": [
         "string"
       ],
@@ -2567,6 +2666,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -2595,6 +2697,7 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
@@ -2648,7 +2751,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -2671,6 +2780,7 @@ const inputBody = '{
     ],
     "name": "Collection",
     "description": "This is a tactic.",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -2819,7 +2929,13 @@ If the `stix.id` property is not set, it creates a new tactic, generating a STIX
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -2842,6 +2958,7 @@ If the `stix.id` property is not set, it creates a new tactic, generating a STIX
     ],
     "name": "Collection",
     "description": "This is a tactic.",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -2870,7 +2987,13 @@ If the `stix.id` property is not set, it creates a new tactic, generating a STIX
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -2893,6 +3016,7 @@ If the `stix.id` property is not set, it creates a new tactic, generating a STIX
     ],
     "name": "Collection",
     "description": "This is a tactic.",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -2923,6 +3047,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -2951,6 +3078,7 @@ Status Code **201**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
@@ -3151,7 +3279,13 @@ This endpoint gets a list of one or more versions of a tactic from the workspace
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -3174,6 +3308,7 @@ This endpoint gets a list of one or more versions of a tactic from the workspace
       ],
       "name": "Collection",
       "description": "This is a tactic.",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_contributors": [
         "string"
       ],
@@ -3205,6 +3340,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -3233,6 +3371,7 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
@@ -3420,7 +3559,13 @@ This endpoint gets a single version of a tactic from the workspace, identified b
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -3443,6 +3588,7 @@ This endpoint gets a single version of a tactic from the workspace, identified b
     ],
     "name": "Collection",
     "description": "This is a tactic.",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -3472,6 +3618,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -3500,6 +3649,7 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
@@ -3553,7 +3703,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -3576,6 +3732,7 @@ const inputBody = '{
     ],
     "name": "Collection",
     "description": "This is a tactic.",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -3722,7 +3879,13 @@ This endpoint updates a single version of a tactic in the workspace, identified 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -3745,6 +3908,7 @@ This endpoint updates a single version of a tactic in the workspace, identified 
     ],
     "name": "Collection",
     "description": "This is a tactic.",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -3775,7 +3939,13 @@ This endpoint updates a single version of a tactic in the workspace, identified 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -3798,6 +3968,7 @@ This endpoint updates a single version of a tactic in the workspace, identified 
     ],
     "name": "Collection",
     "description": "This is a tactic.",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
@@ -3828,6 +3999,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -3856,6 +4030,7 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
 |»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
@@ -4178,7 +4353,7 @@ The list of groups may include multiple versions of each group.
 |---|---|---|---|---|
 |limit|query|number|false|The number of groups to retrieve.|
 |offset|query|number|false|The number of groups to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
@@ -4193,7 +4368,8 @@ The default (0) will retrieve all groups.
 The default (0) will start with the first group.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, groups will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -4216,7 +4392,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -4242,9 +4424,11 @@ Wraps returned objects in a larger object.
       "aliases": [
         "string"
       ],
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_contributors": [
         "string"
       ],
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
@@ -4271,6 +4455,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -4300,7 +4487,9 @@ Status Code **200**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» aliases|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -4352,7 +4541,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -4378,9 +4573,11 @@ const inputBody = '{
     "aliases": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -4525,7 +4722,13 @@ If the `stix.id` property is not set, it creates a new group, generating a STIX 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -4551,9 +4754,11 @@ If the `stix.id` property is not set, it creates a new group, generating a STIX 
     "aliases": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -4578,7 +4783,13 @@ If the `stix.id` property is not set, it creates a new group, generating a STIX 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -4604,9 +4815,11 @@ If the `stix.id` property is not set, it creates a new group, generating a STIX 
     "aliases": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -4633,6 +4846,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -4662,7 +4878,9 @@ Status Code **201**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» aliases|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -4861,7 +5079,13 @@ This endpoint gets a list of one or more versions of a group from the workspace,
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -4887,9 +5111,11 @@ This endpoint gets a list of one or more versions of a group from the workspace,
       "aliases": [
         "string"
       ],
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_contributors": [
         "string"
       ],
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
@@ -4917,6 +5143,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -4946,7 +5175,9 @@ Status Code **200**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» aliases|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -5132,7 +5363,13 @@ This endpoint gets a single version of a group from the workspace, identified by
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -5158,9 +5395,11 @@ This endpoint gets a single version of a group from the workspace, identified by
     "aliases": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -5186,6 +5425,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -5215,7 +5457,9 @@ Status Code **200**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» aliases|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -5267,7 +5511,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -5293,9 +5543,11 @@ const inputBody = '{
     "aliases": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -5438,7 +5690,13 @@ This endpoint updates a single version of a group in the workspace, identified b
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -5464,9 +5722,11 @@ This endpoint updates a single version of a group in the workspace, identified b
     "aliases": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -5493,7 +5753,13 @@ This endpoint updates a single version of a group in the workspace, identified b
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -5519,9 +5785,11 @@ This endpoint updates a single version of a group in the workspace, identified b
     "aliases": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -5548,6 +5816,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -5577,7 +5848,9 @@ Status Code **200**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» aliases|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -5898,7 +6171,7 @@ The list of software objects may include multiple versions of each object.
 |---|---|---|---|---|
 |limit|query|number|false|The number of software objects to retrieve.|
 |offset|query|number|false|The number of software objects to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
@@ -5913,7 +6186,8 @@ The default (0) will retrieve all software objects.
 The default (0) will start with the first software object.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, software objects will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -5936,7 +6210,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -5959,17 +6239,19 @@ Wraps returned objects in a larger object.
       ],
       "name": "Net",
       "description": "This is a software",
+      "is_family": true,
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_aliases": [
         "string"
       ],
       "x_mitre_contributors": [
         "string"
       ],
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
       "x_mitre_version": "1.0",
-      "x_mitre_deprecated": false,
       "x_mitre_platforms": [
         "Windows"
       ]
@@ -5995,6 +6277,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -6023,11 +6308,13 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» is_family|boolean|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_aliases|[string]|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
 
 #### Enumerated Values
@@ -6078,7 +6365,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -6101,17 +6394,19 @@ const inputBody = '{
     ],
     "name": "Net",
     "description": "This is a software",
+    "is_family": true,
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_aliases": [
       "string"
     ],
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
     "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false,
     "x_mitre_platforms": [
       "Windows"
     ]
@@ -6255,7 +6550,13 @@ If the `stix.id` property is not set, it creates a new software object, generati
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -6278,17 +6579,19 @@ If the `stix.id` property is not set, it creates a new software object, generati
     ],
     "name": "Net",
     "description": "This is a software",
+    "is_family": true,
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_aliases": [
       "string"
     ],
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
     "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false,
     "x_mitre_platforms": [
       "Windows"
     ]
@@ -6312,7 +6615,13 @@ If the `stix.id` property is not set, it creates a new software object, generati
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -6335,17 +6644,19 @@ If the `stix.id` property is not set, it creates a new software object, generati
     ],
     "name": "Net",
     "description": "This is a software",
+    "is_family": true,
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_aliases": [
       "string"
     ],
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
     "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false,
     "x_mitre_platforms": [
       "Windows"
     ]
@@ -6371,6 +6682,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -6399,11 +6713,13 @@ Status Code **201**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» is_family|boolean|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_aliases|[string]|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
 
 #### Enumerated Values
@@ -6601,7 +6917,13 @@ This endpoint gets a list of one or more versions of a software object from the 
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -6624,17 +6946,19 @@ This endpoint gets a list of one or more versions of a software object from the 
       ],
       "name": "Net",
       "description": "This is a software",
+      "is_family": true,
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_aliases": [
         "string"
       ],
       "x_mitre_contributors": [
         "string"
       ],
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
       "x_mitre_version": "1.0",
-      "x_mitre_deprecated": false,
       "x_mitre_platforms": [
         "Windows"
       ]
@@ -6661,6 +6985,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -6689,11 +7016,13 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» is_family|boolean|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_aliases|[string]|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
 
 #### Enumerated Values
@@ -6878,7 +7207,13 @@ This endpoint gets a single version of a software object from the workspace, ide
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -6901,17 +7236,19 @@ This endpoint gets a single version of a software object from the workspace, ide
     ],
     "name": "Net",
     "description": "This is a software",
+    "is_family": true,
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_aliases": [
       "string"
     ],
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
     "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false,
     "x_mitre_platforms": [
       "Windows"
     ]
@@ -6936,6 +7273,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -6964,11 +7304,13 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» is_family|boolean|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_aliases|[string]|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
 
 #### Enumerated Values
@@ -7019,7 +7361,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -7042,17 +7390,19 @@ const inputBody = '{
     ],
     "name": "Net",
     "description": "This is a software",
+    "is_family": true,
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_aliases": [
       "string"
     ],
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
     "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false,
     "x_mitre_platforms": [
       "Windows"
     ]
@@ -7194,7 +7544,13 @@ This endpoint updates a single version of a software object in the workspace, id
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -7217,17 +7573,19 @@ This endpoint updates a single version of a software object in the workspace, id
     ],
     "name": "Net",
     "description": "This is a software",
+    "is_family": true,
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_aliases": [
       "string"
     ],
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
     "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false,
     "x_mitre_platforms": [
       "Windows"
     ]
@@ -7253,7 +7611,13 @@ This endpoint updates a single version of a software object in the workspace, id
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -7276,17 +7640,19 @@ This endpoint updates a single version of a software object in the workspace, id
     ],
     "name": "Net",
     "description": "This is a software",
+    "is_family": true,
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_aliases": [
       "string"
     ],
     "x_mitre_contributors": [
       "string"
     ],
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
     "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false,
     "x_mitre_platforms": [
       "Windows"
     ]
@@ -7312,6 +7678,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -7340,11 +7709,13 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» is_family|boolean|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_aliases|[string]|false|none|none|
 |»»» x_mitre_contributors|[string]|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_platforms|[string]|false|none|none|
 
 #### Enumerated Values
@@ -7664,7 +8035,7 @@ The list of mitigations may include multiple versions of each mitigation.
 |---|---|---|---|---|
 |limit|query|number|false|The number of mitigations to retrieve.|
 |offset|query|number|false|The number of mitigations to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |search|query|string|false|Only return objects where the provided search text occurs in the `name` or `description`.|
@@ -7679,7 +8050,8 @@ The default (0) will retrieve all mitigations.
 The default (0) will start with the first mitigation.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, mitigations will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -7702,7 +8074,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -7725,11 +8103,12 @@ Wraps returned objects in a larger object.
       ],
       "name": "Compiled HTML File Mitigation",
       "description": "This is a course of action (mitigation).",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
-      "x_mitre_version": "1.0",
-      "x_mitre_deprecated": false
+      "x_mitre_version": "1.0"
     }
   }
 ]
@@ -7752,6 +8131,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -7780,9 +8162,10 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -7832,7 +8215,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -7855,11 +8244,12 @@ const inputBody = '{
     ],
     "name": "Compiled HTML File Mitigation",
     "description": "This is a course of action (mitigation).",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
-    "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false
+    "x_mitre_version": "1.0"
   }
 }';
 const headers = {
@@ -8000,7 +8390,13 @@ If the `stix.id` property is not set, it creates a new mitigation, generating a 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -8023,11 +8419,12 @@ If the `stix.id` property is not set, it creates a new mitigation, generating a 
     ],
     "name": "Compiled HTML File Mitigation",
     "description": "This is a course of action (mitigation).",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
-    "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false
+    "x_mitre_version": "1.0"
   }
 }
 ```
@@ -8048,7 +8445,13 @@ If the `stix.id` property is not set, it creates a new mitigation, generating a 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -8071,11 +8474,12 @@ If the `stix.id` property is not set, it creates a new mitigation, generating a 
     ],
     "name": "Compiled HTML File Mitigation",
     "description": "This is a course of action (mitigation).",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
-    "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false
+    "x_mitre_version": "1.0"
   }
 }
 ```
@@ -8098,6 +8502,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -8126,9 +8533,10 @@ Status Code **201**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -8325,7 +8733,13 @@ This endpoint gets a list of one or more versions of a mitigation from the works
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -8348,11 +8762,12 @@ This endpoint gets a list of one or more versions of a mitigation from the works
       ],
       "name": "Compiled HTML File Mitigation",
       "description": "This is a course of action (mitigation).",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
-      "x_mitre_version": "1.0",
-      "x_mitre_deprecated": false
+      "x_mitre_version": "1.0"
     }
   }
 ]
@@ -8376,6 +8791,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -8404,9 +8822,10 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -8590,7 +9009,13 @@ This endpoint gets a single version of a mitigation from the workspace, identifi
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -8613,11 +9038,12 @@ This endpoint gets a single version of a mitigation from the workspace, identifi
     ],
     "name": "Compiled HTML File Mitigation",
     "description": "This is a course of action (mitigation).",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
-    "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false
+    "x_mitre_version": "1.0"
   }
 }
 ```
@@ -8639,6 +9065,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -8667,9 +9096,10 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -8719,7 +9149,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -8742,11 +9178,12 @@ const inputBody = '{
     ],
     "name": "Compiled HTML File Mitigation",
     "description": "This is a course of action (mitigation).",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
-    "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false
+    "x_mitre_version": "1.0"
   }
 }';
 const headers = {
@@ -8885,7 +9322,13 @@ This endpoint updates a single version of a mitigation in the workspace, identif
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -8908,11 +9351,12 @@ This endpoint updates a single version of a mitigation in the workspace, identif
     ],
     "name": "Compiled HTML File Mitigation",
     "description": "This is a course of action (mitigation).",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
-    "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false
+    "x_mitre_version": "1.0"
   }
 }
 ```
@@ -8935,7 +9379,13 @@ This endpoint updates a single version of a mitigation in the workspace, identif
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -8958,11 +9408,12 @@ This endpoint updates a single version of a mitigation in the workspace, identif
     ],
     "name": "Compiled HTML File Mitigation",
     "description": "This is a course of action (mitigation).",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
-    "x_mitre_version": "1.0",
-    "x_mitre_deprecated": false
+    "x_mitre_version": "1.0"
   }
 }
 ```
@@ -8985,6 +9436,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -9013,9 +9467,10 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
-|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -9335,7 +9790,7 @@ In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are 
 |---|---|---|---|---|
 |limit|query|number|false|The number of matrices to retrieve.|
 |offset|query|number|false|The number of matrices to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |search|query|string|false|Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.|
@@ -9350,7 +9805,8 @@ The default (0) will retrieve all matrices.
 The default (0) will start with the first matrix.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, matrices will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -9373,7 +9829,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -9399,6 +9861,8 @@ Wraps returned objects in a larger object.
       "tactic_refs": [
         "string"
       ],
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
@@ -9425,6 +9889,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -9454,6 +9921,8 @@ Status Code **200**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -9505,7 +9974,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -9531,6 +10006,8 @@ const inputBody = '{
     "tactic_refs": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -9675,7 +10152,13 @@ If the `stix.id` property is not set, it creates a new matrix, generating a STIX
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -9701,6 +10184,8 @@ If the `stix.id` property is not set, it creates a new matrix, generating a STIX
     "tactic_refs": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -9725,7 +10210,13 @@ If the `stix.id` property is not set, it creates a new matrix, generating a STIX
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -9751,6 +10242,8 @@ If the `stix.id` property is not set, it creates a new matrix, generating a STIX
     "tactic_refs": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -9777,6 +10270,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -9806,6 +10302,8 @@ Status Code **201**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -10004,7 +10502,13 @@ This endpoint gets a list of one or more versions of a matrix from the workspace
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -10030,6 +10534,8 @@ This endpoint gets a list of one or more versions of a matrix from the workspace
       "tactic_refs": [
         "string"
       ],
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
@@ -10057,6 +10563,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -10086,6 +10595,8 @@ Status Code **200**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -10271,7 +10782,13 @@ This endpoint gets a single version of a matrix from the workspace, identified b
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -10297,6 +10814,8 @@ This endpoint gets a single version of a matrix from the workspace, identified b
     "tactic_refs": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -10322,6 +10841,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -10351,6 +10873,8 @@ Status Code **200**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -10402,7 +10926,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -10428,6 +10958,8 @@ const inputBody = '{
     "tactic_refs": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -10570,7 +11102,13 @@ This endpoint updates a single version of a matrix in the workspace, identified 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -10596,6 +11134,8 @@ This endpoint updates a single version of a matrix in the workspace, identified 
     "tactic_refs": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -10622,7 +11162,13 @@ This endpoint updates a single version of a matrix in the workspace, identified 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -10648,6 +11194,8 @@ This endpoint updates a single version of a matrix in the workspace, identified 
     "tactic_refs": [
       "string"
     ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -10674,6 +11222,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -10703,6 +11254,8 @@ Status Code **200**
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
 |»»» tactic_refs|[string]|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -11024,7 +11577,7 @@ In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are 
 |---|---|---|---|---|
 |limit|query|number|false|The number of identities to retrieve.|
 |offset|query|number|false|The number of identities to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
@@ -11038,7 +11591,8 @@ The default (0) will retrieve all identities.
 The default (0) will start with the first identity.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, identities will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -11058,7 +11612,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -11089,6 +11649,8 @@ Wraps returned objects in a larger object.
         "string"
       ],
       "contact_information": "string",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false,
       "x_mitre_version": "1.0"
     }
   }
@@ -11112,6 +11674,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -11144,6 +11709,8 @@ Status Code **200**
 |»»» identity_class|string|false|none|none|
 |»»» sectors|[string]|false|none|none|
 |»»» contact_information|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
 #### Enumerated Values
@@ -11194,7 +11761,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -11225,6 +11798,8 @@ const inputBody = '{
       "string"
     ],
     "contact_information": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_version": "1.0"
   }
 }';
@@ -11366,7 +11941,13 @@ If the `stix.id` property is not set, it creates a new identity, generating a ST
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -11397,6 +11978,8 @@ If the `stix.id` property is not set, it creates a new identity, generating a ST
       "string"
     ],
     "contact_information": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_version": "1.0"
   }
 }
@@ -11418,7 +12001,13 @@ If the `stix.id` property is not set, it creates a new identity, generating a ST
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -11449,6 +12038,8 @@ If the `stix.id` property is not set, it creates a new identity, generating a ST
       "string"
     ],
     "contact_information": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_version": "1.0"
   }
 }
@@ -11472,6 +12063,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -11504,6 +12098,8 @@ Status Code **201**
 |»»» identity_class|string|false|none|none|
 |»»» sectors|[string]|false|none|none|
 |»»» contact_information|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
 #### Enumerated Values
@@ -11701,7 +12297,13 @@ This endpoint gets a list of one or more versions of an identity from the worksp
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -11732,6 +12334,8 @@ This endpoint gets a list of one or more versions of an identity from the worksp
         "string"
       ],
       "contact_information": "string",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false,
       "x_mitre_version": "1.0"
     }
   }
@@ -11756,6 +12360,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -11788,6 +12395,8 @@ Status Code **200**
 |»»» identity_class|string|false|none|none|
 |»»» sectors|[string]|false|none|none|
 |»»» contact_information|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
 #### Enumerated Values
@@ -11972,7 +12581,13 @@ This endpoint gets a single version of a identity from the workspace, identified
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -12003,6 +12618,8 @@ This endpoint gets a single version of a identity from the workspace, identified
       "string"
     ],
     "contact_information": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_version": "1.0"
   }
 }
@@ -12025,6 +12642,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -12057,6 +12677,8 @@ Status Code **200**
 |»»» identity_class|string|false|none|none|
 |»»» sectors|[string]|false|none|none|
 |»»» contact_information|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
 #### Enumerated Values
@@ -12107,7 +12729,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -12138,6 +12766,8 @@ const inputBody = '{
       "string"
     ],
     "contact_information": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_version": "1.0"
   }
 }';
@@ -12277,7 +12907,13 @@ This endpoint updates a single version of an identity in the workspace, identifi
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -12308,6 +12944,8 @@ This endpoint updates a single version of an identity in the workspace, identifi
       "string"
     ],
     "contact_information": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_version": "1.0"
   }
 }
@@ -12331,7 +12969,13 @@ This endpoint updates a single version of an identity in the workspace, identifi
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -12362,6 +13006,8 @@ This endpoint updates a single version of an identity in the workspace, identifi
       "string"
     ],
     "contact_information": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_version": "1.0"
   }
 }
@@ -12385,6 +13031,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -12417,6 +13066,8 @@ Status Code **200**
 |»»» identity_class|string|false|none|none|
 |»»» sectors|[string]|false|none|none|
 |»»» contact_information|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
 #### Enumerated Values
@@ -12737,7 +13388,7 @@ In addition, a marking definition does not have a `revoked` property.
 |---|---|---|---|---|
 |limit|query|number|false|The number of marking definitions to retrieve.|
 |offset|query|number|false|The number of marking definitions to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |includePagination|query|boolean|false|Whether to include pagination data in the returned value.|
 
@@ -12750,7 +13401,8 @@ The default (0) will retrieve all marking definitions.
 The default (0) will start with the first marking definition.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, marking definitions will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
 
@@ -12768,7 +13420,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "string",
@@ -12791,7 +13449,8 @@ Wraps returned objects in a larger object.
       "definition_type": "statement",
       "definition": {
         "statement": "string"
-      }
+      },
+      "x_mitre_deprecated": false
     }
   }
 ]
@@ -12814,6 +13473,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -12842,6 +13504,7 @@ Status Code **200**
 |»»» definition_type|string|false|none|none|
 |»»» definition|object|false|none|none|
 |»»»» statement|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -12875,7 +13538,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "string",
@@ -12898,7 +13567,8 @@ const inputBody = '{
     "definition_type": "statement",
     "definition": {
       "statement": "string"
-    }
+    },
+    "x_mitre_deprecated": false
   }
 }';
 const headers = {
@@ -13038,7 +13708,13 @@ The `stix.id` property should not be set; this endpoint will create a new markin
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "string",
@@ -13061,7 +13737,8 @@ The `stix.id` property should not be set; this endpoint will create a new markin
     "definition_type": "statement",
     "definition": {
       "statement": "string"
-    }
+    },
+    "x_mitre_deprecated": false
   }
 }
 ```
@@ -13082,7 +13759,13 @@ The `stix.id` property should not be set; this endpoint will create a new markin
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "string",
@@ -13105,7 +13788,8 @@ The `stix.id` property should not be set; this endpoint will create a new markin
     "definition_type": "statement",
     "definition": {
       "statement": "string"
-    }
+    },
+    "x_mitre_deprecated": false
   }
 }
 ```
@@ -13127,6 +13811,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -13155,6 +13842,7 @@ Status Code **201**
 |»»» definition_type|string|false|none|none|
 |»»» definition|object|false|none|none|
 |»»»» statement|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -13323,7 +14011,13 @@ This endpoint gets a list containing one marking definition from the workspace, 
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "string",
@@ -13346,7 +14040,8 @@ This endpoint gets a list containing one marking definition from the workspace, 
       "definition_type": "statement",
       "definition": {
         "statement": "string"
-      }
+      },
+      "x_mitre_deprecated": false
     }
   }
 ]
@@ -13370,6 +14065,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -13398,6 +14096,7 @@ Status Code **200**
 |»»» definition_type|string|false|none|none|
 |»»» definition|object|false|none|none|
 |»»»» statement|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -13431,7 +14130,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "string",
@@ -13454,7 +14159,8 @@ const inputBody = '{
     "definition_type": "statement",
     "definition": {
       "statement": "string"
-    }
+    },
+    "x_mitre_deprecated": false
   }
 }';
 const headers = {
@@ -13593,7 +14299,13 @@ This endpoint updates a marking definition in the workspace, identified by its S
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "string",
@@ -13616,7 +14328,8 @@ This endpoint updates a marking definition in the workspace, identified by its S
     "definition_type": "statement",
     "definition": {
       "statement": "string"
-    }
+    },
+    "x_mitre_deprecated": false
   }
 }
 ```
@@ -13638,7 +14351,13 @@ This endpoint updates a marking definition in the workspace, identified by its S
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "string",
@@ -13661,7 +14380,8 @@ This endpoint updates a marking definition in the workspace, identified by its S
     "definition_type": "statement",
     "definition": {
       "statement": "string"
-    }
+    },
+    "x_mitre_deprecated": false
   }
 }
 ```
@@ -13684,6 +14404,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -13712,6 +14435,7 @@ Status Code **200**
 |»»» definition_type|string|false|none|none|
 |»»» definition|object|false|none|none|
 |»»»» statement|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -14014,7 +14738,7 @@ In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are 
 |---|---|---|---|---|
 |limit|query|number|false|The number of relationships to retrieve.|
 |offset|query|number|false|The number of relationships to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |sourceRef|query|string|false|STIX id of referenced object. Only retrieve relationships that reference this object in the `source_ref` property.|
@@ -14035,7 +14759,8 @@ The default (0) will retrieve all relationships.
 The default (0) will start with the first relationship.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, relationships will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -14086,7 +14811,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -14113,6 +14844,8 @@ Wraps returned objects in a larger object.
       "target_ref": "string",
       "start_time": "2019-08-24T14:15:22Z",
       "stop_time": "2019-08-24T14:15:22Z",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
@@ -14139,6 +14872,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -14171,6 +14907,8 @@ Status Code **200**
 |»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -14222,7 +14960,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -14249,6 +14993,8 @@ const inputBody = '{
     "target_ref": "string",
     "start_time": "2019-08-24T14:15:22Z",
     "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -14393,7 +15139,13 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -14420,6 +15172,8 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
     "target_ref": "string",
     "start_time": "2019-08-24T14:15:22Z",
     "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -14444,7 +15198,13 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -14471,6 +15231,8 @@ If the `stix.id` property is not set, it creates a new relationship, generating 
     "target_ref": "string",
     "start_time": "2019-08-24T14:15:22Z",
     "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -14497,6 +15259,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -14529,6 +15294,8 @@ Status Code **201**
 |»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -14727,7 +15494,13 @@ This endpoint gets a list of one or more versions of a relationship from the wor
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -14754,6 +15527,8 @@ This endpoint gets a list of one or more versions of a relationship from the wor
       "target_ref": "string",
       "start_time": "2019-08-24T14:15:22Z",
       "stop_time": "2019-08-24T14:15:22Z",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false,
       "x_mitre_domains": [
         "string"
       ],
@@ -14781,6 +15556,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -14813,6 +15591,8 @@ Status Code **200**
 |»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -14998,7 +15778,13 @@ This endpoint gets a single version of a relationship from the workspace, identi
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -15025,6 +15811,8 @@ This endpoint gets a single version of a relationship from the workspace, identi
     "target_ref": "string",
     "start_time": "2019-08-24T14:15:22Z",
     "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -15050,6 +15838,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -15082,6 +15873,8 @@ Status Code **200**
 |»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -15133,7 +15926,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -15160,6 +15959,8 @@ const inputBody = '{
     "target_ref": "string",
     "start_time": "2019-08-24T14:15:22Z",
     "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -15302,7 +16103,13 @@ This endpoint updates a single version of a relationship in the workspace, ident
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -15329,6 +16136,8 @@ This endpoint updates a single version of a relationship in the workspace, ident
     "target_ref": "string",
     "start_time": "2019-08-24T14:15:22Z",
     "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -15355,7 +16164,13 @@ This endpoint updates a single version of a relationship in the workspace, ident
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -15382,6 +16197,8 @@ This endpoint updates a single version of a relationship in the workspace, ident
     "target_ref": "string",
     "start_time": "2019-08-24T14:15:22Z",
     "stop_time": "2019-08-24T14:15:22Z",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false,
     "x_mitre_domains": [
       "string"
     ],
@@ -15408,6 +16225,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -15440,6 +16260,8 @@ Status Code **200**
 |»»» target_ref|string|true|none|none|
 |»»» start_time|string(date-time)|false|none|none|
 |»»» stop_time|string(date-time)|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 |»»» x_mitre_domains|[string]|false|none|none|
 |»»» x_mitre_version|string|false|none|none|
 
@@ -15759,7 +16581,7 @@ This endpoint gets a list of notes from the workspace.
 |---|---|---|---|---|
 |limit|query|number|false|The number of notes to retrieve.|
 |offset|query|number|false|The number of notes to skip.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |search|query|string|false|Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.|
@@ -15774,7 +16596,8 @@ The default (0) will retrieve all notes.
 The default (0) will start with the first note.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, notes will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -15797,7 +16620,13 @@ Wraps returned objects in a larger object.
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -15825,7 +16654,9 @@ Wraps returned objects in a larger object.
       ],
       "object_refs": [
         "string"
-      ]
+      ],
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false
     }
   }
 ]
@@ -15848,6 +16679,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -15878,6 +16712,8 @@ Status Code **200**
 |»»» content|string|true|none|none|
 |»»» authors|[string]|false|none|none|
 |»»» object_refs|[string]|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -15927,7 +16763,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -15955,7 +16797,9 @@ const inputBody = '{
     ],
     "object_refs": [
       "string"
-    ]
+    ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false
   }
 }';
 const headers = {
@@ -16096,7 +16940,13 @@ If the `stix.id` property is not set, it creates a new note, generating a STIX i
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -16124,7 +16974,9 @@ If the `stix.id` property is not set, it creates a new note, generating a STIX i
     ],
     "object_refs": [
       "string"
-    ]
+    ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false
   }
 }
 ```
@@ -16145,7 +16997,13 @@ If the `stix.id` property is not set, it creates a new note, generating a STIX i
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -16173,7 +17031,9 @@ If the `stix.id` property is not set, it creates a new note, generating a STIX i
     ],
     "object_refs": [
       "string"
-    ]
+    ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false
   }
 }
 ```
@@ -16196,6 +17056,9 @@ Status Code **201**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -16226,6 +17089,8 @@ Status Code **201**
 |»»» content|string|true|none|none|
 |»»» authors|[string]|false|none|none|
 |»»» object_refs|[string]|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -16422,7 +17287,13 @@ This endpoint gets a list of one or more versions of a note from the workspace, 
       "workflow": {
         "state": "string"
       },
-      "attackId": "T9999"
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
     },
     "stix": {
       "type": "attack-pattern",
@@ -16450,7 +17321,9 @@ This endpoint gets a list of one or more versions of a note from the workspace, 
       ],
       "object_refs": [
         "string"
-      ]
+      ],
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false
     }
   }
 ]
@@ -16474,6 +17347,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -16504,6 +17380,8 @@ Status Code **200**
 |»»» content|string|true|none|none|
 |»»» authors|[string]|false|none|none|
 |»»» object_refs|[string]|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -16828,7 +17706,13 @@ This endpoint gets a single version of a note from the workspace, identified by 
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -16856,7 +17740,9 @@ This endpoint gets a single version of a note from the workspace, identified by 
     ],
     "object_refs": [
       "string"
-    ]
+    ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false
   }
 }
 ```
@@ -16878,6 +17764,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -16908,6 +17797,8 @@ Status Code **200**
 |»»» content|string|true|none|none|
 |»»» authors|[string]|false|none|none|
 |»»» object_refs|[string]|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -16957,7 +17848,13 @@ const inputBody = '{
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -16985,7 +17882,9 @@ const inputBody = '{
     ],
     "object_refs": [
       "string"
-    ]
+    ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false
   }
 }';
 const headers = {
@@ -17124,7 +18023,13 @@ This endpoint updates a single version of a note in the workspace, identified by
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -17152,7 +18057,9 @@ This endpoint updates a single version of a note in the workspace, identified by
     ],
     "object_refs": [
       "string"
-    ]
+    ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false
   }
 }
 ```
@@ -17175,7 +18082,13 @@ This endpoint updates a single version of a note in the workspace, identified by
     "workflow": {
       "state": "string"
     },
-    "attackId": "T9999"
+    "attackId": "T9999",
+    "collections": [
+      {
+        "collection_ref": "string",
+        "collection_modified": "2019-08-24T14:15:22Z"
+      }
+    ]
   },
   "stix": {
     "type": "attack-pattern",
@@ -17203,7 +18116,9 @@ This endpoint updates a single version of a note in the workspace, identified by
     ],
     "object_refs": [
       "string"
-    ]
+    ],
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_deprecated": false
   }
 }
 ```
@@ -17226,6 +18141,9 @@ Status Code **200**
 |»» workflow|object|false|none|none|
 |»»» state|string|false|none|none|
 |»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -17256,6 +18174,8 @@ Status Code **200**
 |»»» content|string|true|none|none|
 |»»» authors|[string]|false|none|none|
 |»»» object_refs|[string]|true|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
 
 #### Enumerated Values
 
@@ -19336,7 +20256,7 @@ In addition, the `state`, `includeRevoked`, and `includeDeprecated` filters are 
 |limit|query|number|false|The number of collections to retrieve.|
 |offset|query|number|false|The number of collections to skip.|
 |versions|query|string|false|The versions of the collections to retrieve.|
-|state|query|string|false|State of the object in the editing workflow.|
+|state|query|any|false|State of the object in the editing workflow.|
 |includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
 |includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
 |search|query|string|false|Only return ATT&CK objects where the provided search text occurs in the `name` or `description`.|
@@ -19353,7 +20273,8 @@ The default (0) will start with the first collection.
 `all` gets all versions of all the collections, `latest` gets only the latest version of each collection.
 
 **state**: State of the object in the editing workflow.
-If this parameter is not set, collections will be retrieved with any state.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
 
 **includeRevoked**: Whether to include objects that have the `revoked` property set to true.
 
@@ -19410,9 +20331,14 @@ The search is case-insensitive.
           {
             "object_ref": "string",
             "object_modified": "string",
-            "error_type": "string"
+            "error_type": "string",
+            "error_message": "string"
           }
         ]
+      },
+      "workflow": {
+        "state": "string",
+        "release": true
       }
     },
     "stix": {
@@ -19436,6 +20362,7 @@ The search is case-insensitive.
       ],
       "name": "Enterprise ATT&CK",
       "description": "string",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_contents": [
         {
           "object_ref": "string",
@@ -19478,6 +20405,10 @@ Status Code **200**
 |»»»» object_ref|string|true|none|none|
 |»»»» object_modified|string|false|none|none|
 |»»»» error_type|string|true|none|none|
+|»»»» error_message|string|false|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»»» release|boolean|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -19506,6 +20437,7 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contents|[object]|false|none|none|
 |»»»» object_ref|string|true|none|none|
 |»»»» object_modified|string|true|none|none|
@@ -19590,9 +20522,14 @@ const inputBody = '{
         {
           "object_ref": "string",
           "object_modified": "string",
-          "error_type": "string"
+          "error_type": "string",
+          "error_message": "string"
         }
       ]
+    },
+    "workflow": {
+      "state": "string",
+      "release": true
     }
   },
   "stix": {
@@ -19616,6 +20553,7 @@ const inputBody = '{
     ],
     "name": "Enterprise ATT&CK",
     "description": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contents": [
       {
         "object_ref": "string",
@@ -19793,9 +20731,14 @@ Both the `stix.id` and `stix.modified` properties must be set.
         {
           "object_ref": "string",
           "object_modified": "string",
-          "error_type": "string"
+          "error_type": "string",
+          "error_message": "string"
         }
       ]
+    },
+    "workflow": {
+      "state": "string",
+      "release": true
     }
   },
   "stix": {
@@ -19819,6 +20762,7 @@ Both the `stix.id` and `stix.modified` properties must be set.
     ],
     "name": "Enterprise ATT&CK",
     "description": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contents": [
       {
         "object_ref": "string",
@@ -19877,9 +20821,14 @@ Both the `stix.id` and `stix.modified` properties must be set.
         {
           "object_ref": "string",
           "object_modified": "string",
-          "error_type": "string"
+          "error_type": "string",
+          "error_message": "string"
         }
       ]
+    },
+    "workflow": {
+      "state": "string",
+      "release": true
     }
   },
   "stix": {
@@ -19903,6 +20852,7 @@ Both the `stix.id` and `stix.modified` properties must be set.
     ],
     "name": "Enterprise ATT&CK",
     "description": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contents": [
       {
         "object_ref": "string",
@@ -19945,6 +20895,10 @@ Status Code **201**
 |»»»» object_ref|string|true|none|none|
 |»»»» object_modified|string|false|none|none|
 |»»»» error_type|string|true|none|none|
+|»»»» error_message|string|false|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»»» release|boolean|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -19973,6 +20927,7 @@ Status Code **201**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contents|[object]|false|none|none|
 |»»»» object_ref|string|true|none|none|
 |»»»» object_modified|string|true|none|none|
@@ -20207,9 +21162,14 @@ This endpoint gets a list of one or more versions of a collection (x-mitre-colle
           {
             "object_ref": "string",
             "object_modified": "string",
-            "error_type": "string"
+            "error_type": "string",
+            "error_message": "string"
           }
         ]
+      },
+      "workflow": {
+        "state": "string",
+        "release": true
       }
     },
     "stix": {
@@ -20233,6 +21193,7 @@ This endpoint gets a list of one or more versions of a collection (x-mitre-colle
       ],
       "name": "Enterprise ATT&CK",
       "description": "string",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
       "x_mitre_contents": [
         {
           "object_ref": "string",
@@ -20276,6 +21237,10 @@ Status Code **200**
 |»»»» object_ref|string|true|none|none|
 |»»»» object_modified|string|false|none|none|
 |»»»» error_type|string|true|none|none|
+|»»»» error_message|string|false|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»»» release|boolean|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -20304,6 +21269,7 @@ Status Code **200**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contents|[object]|false|none|none|
 |»»»» object_ref|string|true|none|none|
 |»»»» object_modified|string|true|none|none|
@@ -20474,9 +21440,534 @@ This endpoint deletes all versions of a collection from the workspace.
 This operation does not require authentication
 </aside>
 
+## Gets the version of a collection matching the STIX id and modified date
+
+<a id="opIdcollection-get-by-id-and-modified"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/collections/{stixId}/modified/{modified} \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/collections/{stixId}/modified/{modified} HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/collections/{stixId}/modified/{modified}',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/collections/{stixId}/modified/{modified}',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/collections/{stixId}/modified/{modified}', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/collections/{stixId}/modified/{modified}', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/collections/{stixId}/modified/{modified}");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/collections/{stixId}/modified/{modified}", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/collections/{stixId}/modified/{modified}`
+
+This endpoint gets a single version of a collection from the workspace, identified by its STIX id and modified date.
+
+<h3 id="gets-the-version-of-a-collection-matching-the-stix-id-and-modified-date-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|stixId|path|string|true|STIX id of the collection to retrieve|
+|modified|path|string|true|modified date of the collection to retrieve|
+|retrieveContents|query|boolean|false|Retrieve the objects that are referenced by the collection|
+
+#### Detailed descriptions
+
+**retrieveContents**: Retrieve the objects that are referenced by the collection
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "workspace": {
+    "imported": "2019-08-24T14:15:22Z",
+    "import_categories": {
+      "additions": [
+        "string"
+      ],
+      "changes": [
+        "string"
+      ],
+      "minor_changes": [
+        "string"
+      ],
+      "revocations": [
+        "string"
+      ],
+      "deprecations": [
+        "string"
+      ],
+      "supersedes_user_edits": [
+        "string"
+      ],
+      "supersedes_collection_changes": [
+        "string"
+      ],
+      "duplicates": [
+        "string"
+      ],
+      "out_of_date": [
+        "string"
+      ],
+      "errors": [
+        {
+          "object_ref": "string",
+          "object_modified": "string",
+          "error_type": "string",
+          "error_message": "string"
+        }
+      ]
+    },
+    "workflow": {
+      "state": "string",
+      "release": true
+    }
+  },
+  "stix": {
+    "type": "attack-pattern",
+    "spec_version": "2.1",
+    "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+    "created": "2019-08-24T14:15:22Z",
+    "modified": "2019-08-24T14:15:22Z",
+    "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "revoked": false,
+    "external_references": [
+      {
+        "source_name": "mitre-attack",
+        "description": "string",
+        "url": "string",
+        "external_id": "string"
+      }
+    ],
+    "object_marking_refs": [
+      "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+    ],
+    "name": "Enterprise ATT&CK",
+    "description": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+    "x_mitre_contents": [
+      {
+        "object_ref": "string",
+        "object_modified": "string"
+      }
+    ],
+    "x_mitre_deprecated": false,
+    "x_mitre_version": "1.0"
+  }
+}
+```
+
+<h3 id="gets-the-version-of-a-collection-matching-the-stix-id-and-modified-date-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|The version of a collection matching the STIX id and modified date.|Inline|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|A collection with the requested STIX id and modified date was not found.|None|
+
+<h3 id="gets-the-version-of-a-collection-matching-the-stix-id-and-modified-date-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» workspace|object|true|none|none|
+|»» imported|string(date-time)|false|none|none|
+|»» import_categories|object|false|none|none|
+|»»» additions|[string]|false|none|none|
+|»»» changes|[string]|false|none|none|
+|»»» minor_changes|[string]|false|none|none|
+|»»» revocations|[string]|false|none|none|
+|»»» deprecations|[string]|false|none|none|
+|»»» supersedes_user_edits|[string]|false|none|none|
+|»»» supersedes_collection_changes|[string]|false|none|none|
+|»»» duplicates|[string]|false|none|none|
+|»»» out_of_date|[string]|false|none|none|
+|»»» errors|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|false|none|none|
+|»»»» error_type|string|true|none|none|
+|»»»» error_message|string|false|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»»» release|boolean|false|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_contents|[object]|false|none|none|
+|»»»» object_ref|string|true|none|none|
+|»»»» object_modified|string|true|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
 <h1 id="att-and-ck-workbench-rest-api-collection-bundles">Collection Bundles</h1>
 
 Operations on collection bundles
+
+## Export a collection bundle
+
+<a id="opIdcollection-bundle-export"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/collection-bundles \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/collection-bundles HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/collection-bundles',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/collection-bundles',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/collection-bundles', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/collection-bundles', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/collection-bundles");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/collection-bundles", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/collection-bundles`
+
+This endpoint exports a collection bundle and returns the bundle.
+
+<h3 id="export-a-collection-bundle-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|previewOnly|query|boolean|false|Return the bundle but do not mark the collection as exported.|
+|collectionId|query|string|false|The STIX id of the collection to export.|
+|collectionModified|query|string|false|The modified date of the collection to export.|
+
+#### Detailed descriptions
+
+**previewOnly**: Return the bundle but do not mark the collection as exported.
+
+**collectionId**: The STIX id of the collection to export.
+
+**collectionModified**: The modified date of the collection to export.
+collectionId must be provided if collectionModified is provided.
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "id": "bundle--0cde353c-ea5b-4668-9f68-971946609282",
+  "type": "string",
+  "objects": [
+    {}
+  ]
+}
+```
+
+<h3 id="export-a-collection-bundle-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|An exported collection bundle.|Inline|
+
+<h3 id="export-a-collection-bundle-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» id|string|true|none|none|
+|» type|string|true|none|none|
+|» objects|[object]|true|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
 
 ## Import a collection bundle
 
@@ -20504,7 +21995,6 @@ Accept: application/json
 const inputBody = '{
   "id": "bundle--0cde353c-ea5b-4668-9f68-971946609282",
   "type": "string",
-  "spec_version": "2.1",
   "objects": [
     {}
   ]
@@ -20643,7 +22133,6 @@ This endpoint imports a collection bundle into the workspace.
 {
   "id": "bundle--0cde353c-ea5b-4668-9f68-971946609282",
   "type": "string",
-  "spec_version": "2.1",
   "objects": [
     {}
   ]
@@ -20654,17 +22143,16 @@ This endpoint imports a collection bundle into the workspace.
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|checkOnly|query|boolean|false|Do not import the collection.|
-|body|body|object|true|none|
-|» id|body|string|true|none|
-|» type|body|string|true|none|
-|» spec_version|body|string|true|none|
-|» objects|body|[object]|true|none|
+|previewOnly|query|boolean|false|Do not import the collection.|
+|checkOnly|query|boolean|false|Replaced by previewOnly|
+|body|body|[#/paths/~1api~1collection-bundles/get/responses/200/content/application~1json/schema](#schema#/paths/~1api~1collection-bundles/get/responses/200/content/application~1json/schema)|true|none|
 
 #### Detailed descriptions
 
-**checkOnly**: Do not import the collection.
+**previewOnly**: Do not import the collection.
 Only determine what the results of the import would be if it were performed.
+
+**checkOnly**: Replaced by previewOnly
 
 > Example responses
 
@@ -20706,9 +22194,14 @@ Only determine what the results of the import would be if it were performed.
         {
           "object_ref": "string",
           "object_modified": "string",
-          "error_type": "string"
+          "error_type": "string",
+          "error_message": "string"
         }
       ]
+    },
+    "workflow": {
+      "state": "string",
+      "release": true
     }
   },
   "stix": {
@@ -20732,6 +22225,7 @@ Only determine what the results of the import would be if it were performed.
     ],
     "name": "Enterprise ATT&CK",
     "description": "string",
+    "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
     "x_mitre_contents": [
       {
         "object_ref": "string",
@@ -20772,6 +22266,10 @@ Status Code **201**
 |»»»» object_ref|string|true|none|none|
 |»»»» object_modified|string|false|none|none|
 |»»»» error_type|string|true|none|none|
+|»»»» error_message|string|false|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»»» release|boolean|false|none|none|
 |» stix|any|true|none|none|
 
 *allOf*
@@ -20800,6 +22298,7 @@ Status Code **201**
 |»» *anonymous*|object|false|none|none|
 |»»» name|string|true|none|none|
 |»»» description|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
 |»»» x_mitre_contents|[object]|false|none|none|
 |»»»» object_ref|string|true|none|none|
 |»»»» object_modified|string|true|none|none|
@@ -20821,6 +22320,216 @@ Status Code **201**
 |type|relationship|
 |type|note|
 |type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+<h1 id="att-and-ck-workbench-rest-api-stix-bundles">STIX Bundles</h1>
+
+Operations on STIX bundles
+
+## Export a stix bundle
+
+<a id="opIdstix-bundle-export"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/stix-bundles \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/stix-bundles HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/stix-bundles',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/stix-bundles',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/stix-bundles', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/stix-bundles', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/stix-bundles");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/stix-bundles", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/stix-bundles`
+
+This endpoint exports a STIX bundle and returns the bundle.
+This endpoint is distinguished from exporting a collection bundle by being based on a selected domain, instead of a collection object.
+Also, the returned STIX bundle will not contain a collection object.
+
+<h3 id="export-a-stix-bundle-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|domain|query|string|false|The domain to export.|
+|state|query|any|false|State of the object in the editing workflow.|
+|includeRevoked|query|boolean|false|Whether to include objects that have the `revoked` property set to true.|
+|includeDeprecated|query|boolean|false|Whether to include objects that have the `x_mitre_deprecated` property set to true.|
+
+#### Detailed descriptions
+
+**domain**: The domain to export.
+
+**state**: State of the object in the editing workflow.
+If this parameter is not set, objects will be retrieved regardless of state.
+This parameter may be set multiple times to retrieve objects with any of the provided states.
+
+**includeRevoked**: Whether to include objects that have the `revoked` property set to true.
+
+**includeDeprecated**: Whether to include objects that have the `x_mitre_deprecated` property set to true.
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "id": "bundle--0cde353c-ea5b-4668-9f68-971946609282",
+    "type": "string",
+    "spec_version": "2.1",
+    "objects": [
+      {}
+    ]
+  }
+]
+```
+
+<h3 id="export-a-stix-bundle-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|An exported stix bundle.|Inline|
+
+<h3 id="export-a-stix-bundle-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» id|string|true|none|none|
+|» type|string|true|none|none|
+|» spec_version|string|true|none|none|
+|» objects|[object]|true|none|none|
 
 <aside class="success">
 This operation does not require authentication
@@ -21018,6 +22727,458 @@ Status Code **200**
 |»» domains|[object]|false|none|none|
 |»»» domainName|string|false|none|none|
 |»»» allowedValues|[string]|false|none|none|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Get the designated organization identity
+
+<a id="opIdconfig-get-organization-identity"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X GET {protocol}://{hostname}:{port}/api/config/organization-identity \
+  -H 'Accept: application/json'
+
+```
+
+```http
+GET {protocol}://{hostname}:{port}/api/config/organization-identity HTTP/1.1
+
+Accept: application/json
+
+```
+
+```javascript
+
+const headers = {
+  'Accept':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/config/organization-identity',
+{
+  method: 'GET',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Accept' => 'application/json'
+}
+
+result = RestClient.get '{protocol}://{hostname}:{port}/api/config/organization-identity',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Accept': 'application/json'
+}
+
+r = requests.get('{protocol}://{hostname}:{port}/api/config/organization-identity', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Accept' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('GET','{protocol}://{hostname}:{port}/api/config/organization-identity', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/config/organization-identity");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("GET");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Accept": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("GET", "{protocol}://{hostname}:{port}/api/config/organization-identity", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`GET /api/config/organization-identity`
+
+This endpoint gets the organization identity object for the system.
+
+> Example responses
+
+> 200 Response
+
+```json
+[
+  {
+    "workspace": {
+      "workflow": {
+        "state": "string"
+      },
+      "attackId": "T9999",
+      "collections": [
+        {
+          "collection_ref": "string",
+          "collection_modified": "2019-08-24T14:15:22Z"
+        }
+      ]
+    },
+    "stix": {
+      "type": "attack-pattern",
+      "spec_version": "2.1",
+      "id": "attack-pattern--76abfbed-a92f-4e2a-953e-dc83f90ecddc",
+      "created": "2019-08-24T14:15:22Z",
+      "modified": "2019-08-24T14:15:22Z",
+      "created_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "revoked": false,
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "description": "string",
+          "url": "string",
+          "external_id": "string"
+        }
+      ],
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "The MITRE Corporation",
+      "description": "This is an identity",
+      "roles": [
+        "string"
+      ],
+      "identity_class": "organization",
+      "sectors": [
+        "string"
+      ],
+      "contact_information": "string",
+      "x_mitre_modified_by_ref": "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+      "x_mitre_deprecated": false,
+      "x_mitre_version": "1.0"
+    }
+  }
+]
+```
+
+<h3 id="get-the-designated-organization-identity-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|An identity object.|Inline|
+
+<h3 id="get-the-designated-organization-identity-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|*anonymous*|[[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/2](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/2)]|false|none|none|
+|» workspace|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/1/properties/workspace](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/1/properties/workspace)|true|none|none|
+|»» workflow|object|false|none|none|
+|»»» state|string|false|none|none|
+|»» attackId|string|false|none|none|
+|»» collections|[object]|false|none|none|
+|»»» collection_ref|string|true|none|none|
+|»»» collection_modified|string(date-time)|true|none|none|
+|» stix|any|true|none|none|
+
+*allOf*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|[#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyOf/0/properties/stix/allOf/0](#schema#/paths/~1api~1attack-objects/get/responses/200/content/application~1json/schema/items/anyof/0/properties/stix/allof/0)|false|none|none|
+|»»» type|string|true|none|none|
+|»»» spec_version|string|true|none|none|
+|»»» id|string|false|none|none|
+|»»» created|string(date-time)|true|none|none|
+|»»» modified|string(date-time)|true|none|none|
+|»»» created_by_ref|string|false|none|none|
+|»»» revoked|boolean|false|none|none|
+|»»» external_references|[object]|false|none|none|
+|»»»» source_name|string|true|none|none|
+|»»»» description|string|false|none|none|
+|»»»» url|string|false|none|none|
+|»»»» external_id|string|false|none|none|
+|»»» object_marking_refs|[string]|false|none|none|
+
+*and*
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|»» *anonymous*|object|false|none|none|
+|»»» name|string|true|none|none|
+|»»» description|string|false|none|none|
+|»»» roles|[string]|false|none|none|
+|»»» identity_class|string|false|none|none|
+|»»» sectors|[string]|false|none|none|
+|»»» contact_information|string|false|none|none|
+|»»» x_mitre_modified_by_ref|string|false|none|none|
+|»»» x_mitre_deprecated|boolean|false|none|none|
+|»»» x_mitre_version|string|false|none|none|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|type|attack-pattern|
+|type|x-mitre-tactic|
+|type|intrusion-set|
+|type|tool|
+|type|malware|
+|type|course-of-action|
+|type|x-mitre-matrix|
+|type|identity|
+|type|relationship|
+|type|note|
+|type|x-mitre-collection|
+
+<aside class="success">
+This operation does not require authentication
+</aside>
+
+## Set the designated organization identity
+
+<a id="opIdconfig-set-organization-identity"></a>
+
+> Code samples
+
+```shell
+# You can also use wget
+curl -X POST {protocol}://{hostname}:{port}/api/config/organization-identity \
+  -H 'Content-Type: application/json'
+
+```
+
+```http
+POST {protocol}://{hostname}:{port}/api/config/organization-identity HTTP/1.1
+
+Content-Type: application/json
+
+```
+
+```javascript
+const inputBody = '{
+  "id": "identity--76abfbed-a92f-4e2a-953e-dc83f90ecddc"
+}';
+const headers = {
+  'Content-Type':'application/json'
+};
+
+fetch('{protocol}://{hostname}:{port}/api/config/organization-identity',
+{
+  method: 'POST',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+```ruby
+require 'rest-client'
+require 'json'
+
+headers = {
+  'Content-Type' => 'application/json'
+}
+
+result = RestClient.post '{protocol}://{hostname}:{port}/api/config/organization-identity',
+  params: {
+  }, headers: headers
+
+p JSON.parse(result)
+
+```
+
+```python
+import requests
+headers = {
+  'Content-Type': 'application/json'
+}
+
+r = requests.post('{protocol}://{hostname}:{port}/api/config/organization-identity', headers = headers)
+
+print(r.json())
+
+```
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+$headers = array(
+    'Content-Type' => 'application/json',
+);
+
+$client = new \GuzzleHttp\Client();
+
+// Define array of request body.
+$request_body = array();
+
+try {
+    $response = $client->request('POST','{protocol}://{hostname}:{port}/api/config/organization-identity', array(
+        'headers' => $headers,
+        'json' => $request_body,
+       )
+    );
+    print_r($response->getBody()->getContents());
+ }
+ catch (\GuzzleHttp\Exception\BadResponseException $e) {
+    // handle exception or api errors.
+    print_r($e->getMessage());
+ }
+
+ // ...
+
+```
+
+```java
+URL obj = new URL("{protocol}://{hostname}:{port}/api/config/organization-identity");
+HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+con.setRequestMethod("POST");
+int responseCode = con.getResponseCode();
+BufferedReader in = new BufferedReader(
+    new InputStreamReader(con.getInputStream()));
+String inputLine;
+StringBuffer response = new StringBuffer();
+while ((inputLine = in.readLine()) != null) {
+    response.append(inputLine);
+}
+in.close();
+System.out.println(response.toString());
+
+```
+
+```go
+package main
+
+import (
+       "bytes"
+       "net/http"
+)
+
+func main() {
+
+    headers := map[string][]string{
+        "Content-Type": []string{"application/json"},
+    }
+
+    data := bytes.NewBuffer([]byte{jsonReq})
+    req, err := http.NewRequest("POST", "{protocol}://{hostname}:{port}/api/config/organization-identity", data)
+    req.Header = headers
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    // ...
+}
+
+```
+
+`POST /api/config/organization-identity`
+
+This endpoint sets the organization identity for the system.
+The identity object must already exist.
+
+> Body parameter
+
+```json
+{
+  "id": "identity--76abfbed-a92f-4e2a-953e-dc83f90ecddc"
+}
+```
+
+<h3 id="set-the-designated-organization-identity-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|object|true|none|
+|» id|body|string|false|none|
+
+<h3 id="set-the-designated-organization-identity-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|204|[No Content](https://tools.ietf.org/html/rfc7231#section-6.3.5)|The organization identity has been successfully set.|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing or invalid parameters were provided. The organization identity was not set.|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|The identity could not be found. The organization identity was not set.|None|
 
 <aside class="success">
 This operation does not require authentication
