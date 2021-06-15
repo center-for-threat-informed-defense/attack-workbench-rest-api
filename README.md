@@ -6,6 +6,17 @@ This repository contains the REST API service for storing, querying, and editing
 
 The ATT&CK Workbench application requires additional components for full operation. The [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) repository contains the full documentation of the scope and function of the project. See the [install and run](#install-and-run) instructions for more details about setting up the entire project.
 
+## REST API Documentation
+
+When running with the NODE_ENV environment variable set to `development`, the app hosts a description of the REST API using the Swagger UI module.
+The REST API documentation can be viewed using a browser at the path `/api-docs`. 
+
+For a basic installation on the local machine this documentation can be accessed at http://localhost:3000/api-docs
+
+The [docs](/docs/README.md) folder contains additional documentation about using the REST API:
+- [changelog](/docs/changelog.md): records of updates to the REST API.
+- [workbench data model](/docs/data-model.md): additional information about data model of objects stored via the REST API.
+- [standalone docker installation](/docs/docker.md): instructions for setting up the REST API via docker. Note that this is not the same as the full [ATT&CK Workbench Docker Installation](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md).
 
 ## Install and run
 
@@ -104,14 +115,6 @@ Sample configuration file setting the server port and database url:
 ```
 node ./bin/www
 ```
-
-## REST API Documentation
-
-When running with the NODE_ENV environment variable set to `development`, the app hosts a description of the REST API using the Swagger UI module.
-The REST API documentation can be viewed using a browser at the path `/api-docs`.
-For a basic installation on the local machine the documentation is at:
-
-http://localhost:3000/api-docs
 
 ## Scripts
 
