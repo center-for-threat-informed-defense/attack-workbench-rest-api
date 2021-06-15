@@ -11,7 +11,7 @@ The ATT&CK Workbench application requires additional components for full operati
 When running with the NODE_ENV environment variable set to `development`, the app hosts a description of the REST API using the Swagger UI module.
 The REST API documentation can be viewed using a browser at the path `/api-docs`. 
 
-For a basic installation on the local machine this documentation can be accessed at http://localhost:3000/api-docs
+For a basic installation on the local machine this documentation can be accessed at `http://localhost:3000/api-docs`.
 
 The [docs](/docs/README.md) folder contains additional documentation about using the REST API:
 - [changelog](/docs/changelog.md): records of updates to the REST API.
