@@ -1,4 +1,4 @@
-# ATT&CK Workbench REST API
+# ATT&CK® Workbench REST API
 
 The ATT&CK Workbench is an application allowing users to **explore**, **create**, **annotate**, and **share** extensions of the ATT&CK knowledge base. 
 
