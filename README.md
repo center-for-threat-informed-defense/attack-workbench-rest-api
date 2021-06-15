@@ -4,7 +4,8 @@ The ATT&CK Workbench is an application allowing users to **explore**, **create**
 
 This repository contains the REST API service for storing, querying, and editing ATT&CK objects. It is a Node.js application that uses a MongoDB database for persisting data. 
 
-The full ATT&CK Workbench application requires additional components to operate fully. In particular, The [attack-workbench-frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) repository contains the full documentation of the scope and function of the project. See the [install and run](#install-and-run) instructions for more details about setting up the entire project.
+The ATT&CK Workbench application requires additional components for full operation. The [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) repository contains the full documentation of the scope and function of the project. See the [install and run](#install-and-run) instructions for more details about setting up the entire project.
+
 
 ## Install and run
 
