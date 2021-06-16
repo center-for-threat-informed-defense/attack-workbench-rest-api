@@ -261,6 +261,85 @@ const collectionBundleData3 = {
     objects: []
 };
 
+const collectionId4 = 'x-mitre-collection--987ae650-ec5d-4530-90ad-49e05347271e'
+const collectionTimestamp4 = new Date().toISOString();
+
+const collectionBundleData4 = {
+    type: 'bundle',
+    id: 'bundle--ad851e77-ea3c-454a-b2ba-a73c59d3c70f',
+    spec_version: '2.1',
+    objects: [
+        {
+            id: collectionId4,
+            created: collectionTimestamp4,
+            modified: collectionTimestamp4,
+            name: 'collection-4',
+            spec_version: '2.1',
+            type: 'x-mitre-collection',
+            description: 'This is a collection.',
+            external_references: [
+                {source_name: 'source-1', external_id: 's1'}
+            ],
+            object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            x_mitre_contents: [
+                {
+                    "object_ref": "attack-pattern--fb4f094c-ad39-4dba-b459-5e314f6d6c8d",
+                    "object_modified": "2020-03-30T14:03:43.761Z"
+                }
+            ]
+        },
+        {
+            id: 'attack-pattern--fb4f094c-ad39-4dba-b459-5e314f6d6c8d',
+            created: '2020-03-30T14:03:43.761Z',
+            modified: '2020-03-30T14:03:43.761Z',
+            name: 'attack-pattern-1',
+            x_mitre_version: '1.0',
+            spec_version: '2.1',
+            type: 'attack-pattern',
+            description: 'This is a technique.',
+            external_references: [
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'attack-pattern-1 source', description: 'this is a source description'}
+            ],
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            kill_chain_phases: [
+                { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
+            ],
+            x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
+            x_mitre_detection: 'detection text',
+            x_mitre_is_subtechnique: false,
+            x_mitre_impact_type: [ 'impact-1' ],
+            x_mitre_platforms: [ 'platform-1', 'platform-2' ]
+        },
+        {
+            id: 'attack-pattern--fb4f094c-ad39-4dba-b459-5e314f6d6c8d',
+            created: '2020-03-30T14:03:43.761Z',
+            modified: '2020-03-30T14:03:43.761Z',
+            name: 'attack-pattern-1',
+            x_mitre_version: '1.0',
+            spec_version: '2.1',
+            type: 'attack-pattern',
+            description: 'This is a technique.',
+            external_references: [
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'attack-pattern-1 source', description: 'this is a source description'}
+            ],
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            kill_chain_phases: [
+                { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
+            ],
+            x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
+            x_mitre_detection: 'detection text',
+            x_mitre_is_subtechnique: false,
+            x_mitre_impact_type: [ 'impact-1' ],
+            x_mitre_platforms: [ 'platform-1', 'platform-2' ]
+        }
+    ]
+};
+
 describe('Collection Bundles Basic API', function () {
     let app;
 
@@ -310,6 +389,22 @@ describe('Collection Bundles Basic API', function () {
 
     it('POST /api/collection-bundles does not import a collection bundle with zero x-mitre-collection objects', function (done) {
         const body = collectionBundleData3;
+        request(app)
+            .post('/api/collection-bundles')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collection-bundles does not import a collection bundle with duplicate objects in the bundle', function (done) {
+        const body = collectionBundleData4;
         request(app)
             .post('/api/collection-bundles')
             .send(body)
