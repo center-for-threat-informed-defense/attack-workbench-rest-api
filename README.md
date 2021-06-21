@@ -1,21 +1,48 @@
 # ATT&CK Workbench REST API
-- [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend): the front-end UI for the ATT&CK Workbench tool.
-- [ATT&CK Workbench Collection Manager](https://github.com/center-for-threat-informed-defense/attack-workbench-collection-manager): REST API and CLI for managing collections.
-- ATT&CK Workbench REST API: REST API service for storing, querying and editing ATT&CK objects.
 
-## Installation
+The ATT&CK Workbench is an application allowing users to **explore**, **create**, **annotate**, and **share** extensions of the MITRE ATT&CK® knowledge base. 
+
+This repository contains the REST API service for storing, querying, and editing ATT&CK objects. It is a Node.js application that uses a MongoDB database for persisting data. 
+
+The ATT&CK Workbench application requires additional components for full operation. The [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) repository contains the full documentation of the scope and function of the project. See the [install and run](#install-and-run) instructions for more details about setting up the entire project.
+
+## REST API Documentation
+
+When running with the NODE_ENV environment variable set to `development`, the app hosts a description of the REST API using the Swagger UI module.
+The REST API documentation can be viewed using a browser at the path `/api-docs`. 
+
+For a basic installation on the local machine this documentation can be accessed at `http://localhost:3000/api-docs`.
+
+The [docs](/docs/README.md) folder contains additional documentation about using the REST API:
+- [changelog](/docs/changelog.md): records of updates to the REST API.
+- [workbench data model](/docs/data-model.md): additional information about data model of objects stored via the REST API.
+- [standalone docker installation](/docs/docker.md): instructions for setting up the REST API via docker. Note that this is not the same as the full [ATT&CK Workbench Docker Installation](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md).
+
+## Install and run
+
+The ATT&CK Workbench application is made up of several repositories. For the full application to operate each needs to be running at the same time. The [docker install instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) will install all components and is recommended for most deployments.
+- [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) 
+  
+  The front-end user interface for the ATT&CK Workbench tool, and the primary interface through which the knowledge base is accessed.
+- [ATT&CK Workbench REST API](https://github.com/center-for-threat-informed-defense/attack-workbench-rest-api) (this repository)
+
+  REST API service for storing, querying and editing ATT&CK objects.
+- [ATT&CK Workbench Collection Manager](https://github.com/center-for-threat-informed-defense/attack-workbench-collection-manager)
+
+  REST API and services for managing collections, collection indexes, and collection subscriptions. 
+  
+  The collection manager is **not** required to be installed to use the ATT&CK Workbench, but is **highly recommended**. If you opt not to install the collection-manager you will not be able to import or export data from your local knowledge base. If the collection manager is not installed, set `integrations.collection_manager.enabled` to `false` in the front-end environment. See [modifying the environment](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend#modifying-the-environment) for more details.
+
+The manual install instructions in each repository describe how each component to be deployed to a separate machine or with customized settings. 
 
 ### Installing using Docker
-Please refer to our [Docker install instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) for information on installing and deploying the app using Docker.
+Please refer to our [Docker install instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) for information on installing and deploying the app using Docker. The docker setup is the easiest way to deploy the application.
 
 ### Manual Installation
-
-The ATT&CK Workbench REST API is a Node.js application that uses a MongoDB database for persisting data.
 
 #### Requirements
 
 - [Node.js](https://nodejs.org) version `14.16.1` or greater
-
 - An instance of [MongoDB](https://www.mongodb.com/) version `4.4.x` or greater
  
 #### Installation
@@ -41,7 +68,7 @@ npm install
 The app can be configured using environment variables, a configuration file, or a combination of these methods.
 Note that any values set in a configuration file take precedence over values set using environment variables.
 
-###### Using Enviroment Variables
+###### Using Environment Variables
 
 | name                        | required | default       | description                                                        |
 |-----------------------------|----------|---------------|--------------------------------------------------------------------|
@@ -88,14 +115,6 @@ Sample configuration file setting the server port and database url:
 ```
 node ./bin/www
 ```
-
-## REST API Documentation
-
-When running with the NODE_ENV environment variable set to `development`, the app hosts a description of the REST API using the Swagger UI module.
-The REST API documentation can be viewed using a browser at the path `/api-docs`.
-For a basic installation on the local machine the documentation is at:
-
-http://localhost:3000/api-docs
 
 ## Scripts
 
