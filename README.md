@@ -1,6 +1,6 @@
-# ATT&CK® Workbench REST API
+# ATT&CK Workbench REST API
 
-The ATT&CK Workbench is an application allowing users to **explore**, **create**, **annotate**, and **share** extensions of the ATT&CK knowledge base. 
+The ATT&CK Workbench is an application allowing users to **explore**, **create**, **annotate**, and **share** extensions of the MITRE ATT&CK® knowledge base. 
 
 This repository contains the REST API service for storing, querying, and editing ATT&CK objects. It is a Node.js application that uses a MongoDB database for persisting data. 
 
@@ -31,7 +31,7 @@ The ATT&CK Workbench application is made up of several repositories. For the ful
 
   REST API and services for managing collections, collection indexes, and collection subscriptions. 
   
-  The collection manager is **not** required to be installed to use the ATT&CK Workbench, but is highly recommended. If you opt not to install the collection-manager you will not be able to import or export data from your local knowledge base. If the collection manager is not installed, set `integrations.collection_manager.enabled` to `false` in the front-end environment. See [modifying the environment](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend#modifying-the-environment) for more details.
+  The collection manager is **not** required to be installed to use the ATT&CK Workbench, but is **highly recommended**. If you opt not to install the collection-manager you will not be able to import or export data from your local knowledge base. If the collection manager is not installed, set `integrations.collection_manager.enabled` to `false` in the front-end environment. See [modifying the environment](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend#modifying-the-environment) for more details.
 
 The manual install instructions in each repository describe how each component to be deployed to a separate machine or with customized settings. 
 
