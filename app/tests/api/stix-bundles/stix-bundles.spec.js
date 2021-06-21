@@ -364,15 +364,20 @@ describe('STIX Bundles Basic API', function () {
             });
     });
 
-    it('GET /api/stix-bundles does not export the STIX bundle with a bad domain name', function (done) {
+    it('GET /api/stix-bundles exports an empty STIX bundle', function (done) {
         request(app)
             .get('/api/stix-bundles?domain=not-a-domain')
             .set('Accept', 'application/json')
-            .expect(404)
+            .expect(200)
             .end(function (err, res) {
                 if (err) {
                     done(err);
                 } else {
+                    // We expect to get the exported STIX bundle
+                    const stixBundle = res.body;
+                    expect(stixBundle).toBeDefined();
+                    expect(Array.isArray(stixBundle.objects)).toBe(true);
+                    expect(stixBundle.objects.length).toBe(0);
                     done();
                 }
             });

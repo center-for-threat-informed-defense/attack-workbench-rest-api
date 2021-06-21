@@ -1,7 +1,7 @@
 openapi: '3.0.3'
 info:
   title: 'ATT&CK Workbench REST API'
-  version: '0.0.1'
+  version: '1.0.0'
 servers:
   - url: '{protocol}://{hostname}:{port}/'
     variables:

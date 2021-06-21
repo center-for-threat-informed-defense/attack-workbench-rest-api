@@ -7,25 +7,37 @@ exports.importBundle = function(req, res) {
     // Get the data from the request
     const collectionBundleData = req.body;
 
-    // Find the x-mitre-collection object
-    const collection = collectionBundleData.objects.find(object => object.type === 'x-mitre-collection');
+    // Find the x-mitre-collection objects
+    const collections = collectionBundleData.objects.filter(object => object.type === 'x-mitre-collection');
 
     // The bundle must have an x-mitre-collection object
-    if (!collection) {
+    if (collections.length === 0) {
         logger.warn("Unable to import collection bundle. Missing x-mitre-collection object.");
         return res.status(400).send('Unable to import collection bundle. Missing x-mitre-collection object.');
     }
+    else if (collections.length > 1) {
+        logger.warn("Unable to import collection bundle. More than one x-mitre-collection object.");
+        return res.status(400).send('Unable to import collection bundle. More than one x-mitre-collection object.');
+    }
 
     // The collection must have an id.
-    if (!collection.id) {
+    if (!collections[0].id) {
         logger.warn('Unable to import collection bundle. x-mitre-collection missing id');
         return res.status(400).send('Unable to import collection bundle. x-mitre-collection missing id.');
     }
 
-    const previewOnly = req.query.previewOnly || req.query.checkOnly;
+    const validationResult = collectionBundlesService.validateBundle(collectionBundleData);
+    if (validationResult.errors.length > 0) {
+        logger.warn('Unable to import collection bundle. Validation failed');
+        return res.status(400).send('Unable to import collection, validation failed.');
+    }
+
+    const options = {
+        previewOnly: req.query.previewOnly || req.query.checkOnly
+    }
 
     // Import the collection bundle
-    collectionBundlesService.importBundle(collection, collectionBundleData, previewOnly, function(err, importedCollection) {
+    collectionBundlesService.importBundle(collections[0], collectionBundleData, options, function(err, importedCollection) {
         if (err) {
             if (err.message === collectionBundlesService.errors.duplicateCollection) {
                 logger.error('Unable to import collection, duplicate x-mitre-collection.');

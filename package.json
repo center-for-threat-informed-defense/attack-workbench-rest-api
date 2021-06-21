@@ -1,18 +1,16 @@
 {
   "name": "attack-workbench-rest-api",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "REST API service for the ATT&CK Workbench.",
   "main": "index.js",
   "scripts": {
-    "api:generate-md": "widdershins ./app/api/definitions/openapi.yml -o ./app/api/markdown/api.md --summary --resolve",
-    "api:generate-html": "shins --root ./app/api/web -o ./app/api/web/index.html ./app/api/markdown/api.md",
-    "api:generate-all": "npm run api:generate-md && npm run api:generate-html",
     "coverage": "nyc npm test",
     "lint": "eslint .",
     "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",
-    "test": "npm run test:openapi && npm run test:api && npm run test:import",
+    "test": "npm run test:openapi && npm run test:config && npm run test:api && npm run test:import",
     "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api",
+    "test:config": "mocha  --timeout 10000 --recursive ./app/tests/config",
     "test:import": "mocha  --timeout 10000 --recursive ./app/tests/import",
     "test:openapi": "mocha  --timeout 10000 ./app/tests/openapi"
   },
@@ -21,6 +19,7 @@
     "async": "^3.2.0",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
+    "convict": "^6.1.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "express-openapi-validator": "^4.12.9",
@@ -41,9 +40,7 @@
     "mongodb-memory-server": "^6.9.6",
     "nyc": "^15.1.0",
     "openapi-schema-validator": "^7.2.3",
-    "shins": "^2.6.0",
     "snyk": "^1.580.0",
-    "supertest": "^5.0.0",
-    "widdershins": "^4.0.1"
+    "supertest": "^5.0.0"
   }
 }

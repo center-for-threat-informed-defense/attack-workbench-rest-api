@@ -45,7 +45,6 @@ exports.exportBundle = async function(options) {
         query['stix.revoked'] = { $in: [null, false] };
     }
     if (!options.includeDeprecated) {
-        console.log('*** excluding x_mitre_deprecated ***');
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
@@ -80,8 +79,9 @@ exports.exportBundle = async function(options) {
     const primaryObjects = [...domainGroups, ...domainMatrices, ...domainMitigations, ...domainSoftware, ...domainTactics, ...domainTechniques];
 
     // No primary objects means that the domain doesn't exist
+    // Return an empty bundle
     if (primaryObjects.length === 0) {
-        throw new Error(errors.notFound);
+        return bundle;
     }
 
     // Put the primary objects in the bundle

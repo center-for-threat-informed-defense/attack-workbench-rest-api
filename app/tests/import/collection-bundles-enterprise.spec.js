@@ -98,6 +98,9 @@ describe('Collection Bundles API Full-Size Test', function () {
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
                     console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
                     console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);
+
+                    console.log(`categories, revocations: ${ collection.workspace.import_categories.revocations.length }`);
+                    console.log(`categories, deprecations: ${ collection.workspace.import_categories.deprecations.length }`);
                     done();
                 }
             });
@@ -122,6 +125,9 @@ describe('Collection Bundles API Full-Size Test', function () {
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
                     console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
                     console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);
+
+                    console.log(`categories, revocations: ${ collection.workspace.import_categories.revocations.length }`);
+                    console.log(`categories, deprecations: ${ collection.workspace.import_categories.deprecations.length }`);
                     done();
                 }
             });

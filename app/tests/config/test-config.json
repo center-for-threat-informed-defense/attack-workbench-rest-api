@@ -1,0 +1,8 @@
+{
+  "app": {
+    "name": "test-config"
+  },
+  "collectionIndex": {
+    "defaultInterval": 100
+  }
+}
