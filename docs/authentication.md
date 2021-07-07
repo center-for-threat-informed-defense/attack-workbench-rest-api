@@ -1,5 +1,8 @@
 # Authentication
 
+This document describes the authentication design for the ATT&CK Workbench REST API.
+Please refer to [doc ref goes here] for instructions on configuring authentication, and [doc ref goes here] for instructions on managing users.
+
 The ATT&CK Workbench REST API can be configured to use one of the implemented user authentication mechanisms.
 The currently implemented user authentication mechanisms are:
 - Anonymous
@@ -41,13 +44,17 @@ Retrieves the current user session object for a logged in user. If the user is n
 
 User Session Object:
 
-| Property      | Type   | Description                                     |    
-|---------------|--------|-------------------------------------------------|
-| **email**     | string | email address                                   |
-| **name**      | string | full name                                       |
-| **status**    | string | allowed values: `pending`, `active`, `inactive` |
-| **role**      | string | allowed values: `visitor`, `editor`, `admin`    |
-| **identity**  | object | STIX identity assigned to this user             |
+| Property        | Type    | Description                                     |    
+|-----------------|---------|-------------------------------------------------|
+| **email**       | string  | email address                                   |
+| **name**        | string  | full name                                       |
+| **status**      | string  | allowed values: `pending`, `active`, `inactive` |
+| **role**        | string  | allowed values: `visitor`, `editor`, `admin`    |
+| **identity**    | object  | STIX identity assigned to this user             |
+| **registered**  | boolean | has the user been added to the database?        |
+
+A user who is in the process of registering and has logged in but has not been added to the database
+
 
 #### Anonymous Endpoints
 
