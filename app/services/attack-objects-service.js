@@ -53,44 +53,38 @@ exports.retrieveAll = async function(options) {
         aggregation.push(match);
     }
 
-    const facet = {
-        $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [ ]
-        }
-    };
-    if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
+    // Retrieve the documents
+    const documents = await AttackObject.aggregate(aggregation);
+
+    // Apply pagination
+    const offset = options.offset ?? 0;
+    const limit = options.limit ?? 0;
+
+    let paginatedDocuments;
+    if (limit > 0) {
+        paginatedDocuments = documents.slice(offset, offset + limit);
     }
     else {
-        facet.$facet.documents.push({ $skip: 0 });
+        paginatedDocuments = documents.slice(offset);
     }
-    if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-    }
-    aggregation.push(facet);
 
-    // Retrieve the documents
-    const results = await AttackObject.aggregate(aggregation);
+    // Add identities
+    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(paginatedDocuments);
 
-    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
+    // Prepare the return value
     if (options.includePagination) {
-        let derivedTotalCount = 0;
-        if (results[0].totalCount.length > 0) {
-            derivedTotalCount = results[0].totalCount[0].totalCount;
-        }
         const returnValue = {
             pagination: {
-                total: derivedTotalCount,
+                total: documents.length,
                 offset: options.offset,
                 limit: options.limit
             },
-            data: results[0].documents
+            data: paginatedDocuments
         };
         return returnValue;
     }
     else {
-        return results[0].documents;
+        return paginatedDocuments;
     }
 };
 
