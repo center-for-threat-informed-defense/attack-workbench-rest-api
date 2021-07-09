@@ -29,10 +29,13 @@ const initialObjectData = {
     }
 };
 
+// Use the techniques service for creating objects, but the attack-objects API for retrieving them
+// Include the state so that the placeholder organization identity isn't retrieved (which would throw off the numbers)
 const options = {
     prefix: 'attack-pattern',
-    baseUrl: '/api/techniques',
-    label: 'Techniques'
+    baseUrl: '/api/attack-objects',
+    label: 'Attack Objects',
+    state: 'work-in-progress'
 }
 const paginationTests = new PaginationTests(techniquesService, initialObjectData, options);
 paginationTests.executeTests();
