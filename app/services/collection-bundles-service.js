@@ -55,7 +55,32 @@ function toEpoch(date) {
     }
 }
 
-exports.importBundle = function(collection, data, previewOnly, callback) {
+exports.validateBundle = function(bundle) {
+    const validationResult = {
+        errors: []
+    };
+
+    // Check for duplicate objects in the bundle
+    const objectMap = new Map();
+    for (const stixObject of bundle.objects) {
+        if (objectMap.has(makeKey(stixObject.id, stixObject.modified))) {
+            // Object already in map: duplicate STIX id and modified date
+            const error = {
+                type: 'duplicate',
+                id: stixObject.id,
+                modified: stixObject.modified
+            };
+            validationResult.errors.push(error);
+        }
+        else {
+            objectMap.set(makeKey(stixObject.id, stixObject.modified), stixObject);
+        }
+    }
+
+    return validationResult;
+}
+
+exports.importBundle = function(collection, data, options, callback) {
     const referenceImportResults = {
         uniqueReferences: 0,
         duplicateReferences: 0,
@@ -276,7 +301,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                     }
 
                                     // Save the object
-                                    if (previewOnly) {
+                                    if (options.previewOnly) {
                                         // Do nothing
                                         return callback2a();
                                     }
@@ -394,7 +419,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                         async.eachLimit([...importReferences.values()], 8, function(importReference, callback3a) {
                                 if (existingReferences.has(importReference.source_name)) {
                                     // Duplicate of existing reference -- overwrite
-                                    if (previewOnly) {
+                                    if (options.previewOnly) {
                                         // Do nothing
                                         importedCollection.workspace.import_references.changes.push(importReference.source_name);
                                         return callback3a();
@@ -410,7 +435,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
                                             });
                                     }
                                 } else {
-                                    if (previewOnly) {
+                                    if (options.previewOnly) {
                                         // Do nothing
                                         importedCollection.workspace.import_references.additions.push(importReference.source_name);
                                         return callback3a();
@@ -435,7 +460,7 @@ exports.importBundle = function(collection, data, previewOnly, callback) {
             },
             // Save the x-mitre-collection object
             function(callback4) {
-                if (previewOnly) {
+                if (options.previewOnly) {
                     // Do nothing
                     process.nextTick(() => callback4(null, importedCollection));
                 }

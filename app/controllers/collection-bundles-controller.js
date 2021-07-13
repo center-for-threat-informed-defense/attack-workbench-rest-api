@@ -26,10 +26,18 @@ exports.importBundle = function(req, res) {
         return res.status(400).send('Unable to import collection bundle. x-mitre-collection missing id.');
     }
 
-    const previewOnly = req.query.previewOnly || req.query.checkOnly;
+    const validationResult = collectionBundlesService.validateBundle(collectionBundleData);
+    if (validationResult.errors.length > 0) {
+        logger.warn('Unable to import collection bundle. Validation failed');
+        return res.status(400).send('Unable to import collection, validation failed.');
+    }
+
+    const options = {
+        previewOnly: req.query.previewOnly || req.query.checkOnly
+    }
 
     // Import the collection bundle
-    collectionBundlesService.importBundle(collections[0], collectionBundleData, previewOnly, function(err, importedCollection) {
+    collectionBundlesService.importBundle(collections[0], collectionBundleData, options, function(err, importedCollection) {
         if (err) {
             if (err.message === collectionBundlesService.errors.duplicateCollection) {
                 logger.error('Unable to import collection, duplicate x-mitre-collection.');

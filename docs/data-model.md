@@ -1,4 +1,4 @@
-# Workspace Data Model
+# Workbench Data Model
 
 The ATT&CK Workbench database supports the following ATT&CK object types
 (with the corresponding STIX types where applicable):
