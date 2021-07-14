@@ -46,6 +46,10 @@ tags:
     description: 'Operations on STIX bundles'
   - name: 'System Configuration'
     description: 'Operations on the system configuration'
+  - name: 'Session Management'
+    description: 'Operations on the current session'
+  - name: 'Authentication'
+    description: 'Operations for authenticating with the REST API'
 
 paths:
   # ATT&CK Objects
@@ -184,3 +188,33 @@ paths:
 
   /api/config/organization-identity:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1organization-identity'
+
+  /api/config/authn:
+    $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1authn'
+
+  # Session management
+  /api/session:
+    $ref: 'paths/session-paths.yml#/paths/~1api~1session'
+
+  # Authentication
+  /api/authn/anonymous/login:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1anonymous~1login'
+
+  /api/authn/anonymous/logout:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1anonymous~1logout'
+
+  /api/authn/oidc/login:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1oidc~1login'
+
+  /api/authn/oidc/callback:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1oidc~1callback'
+
+  /api/authn/oidc/logout:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1oidc~1logout'
+
+  /api/authn/service/login:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1service~1login'
+
+  /api/authn/service/logout:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1service~1logout'
+

@@ -1,0 +1,20 @@
+components:
+  schemas:
+    user-session:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          example: 'active'
+        role:
+          type: string
+          example: 'visitor'
+        identity:
+          $ref: 'identities.yml#/components/schemas/identity'
+        registered:
+          type: boolean
+

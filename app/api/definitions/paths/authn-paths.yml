@@ -1,0 +1,112 @@
+paths:
+  /api/authn/anonymous/login:
+    get:
+      summary: 'Logs the user into the REST API using the anonymous authentication mechanism'
+      operationId: 'authn-anonymous-log-in'
+      description: |
+        This endpoint logs the user into the REST API. It does not require credentials.
+      tags:
+        - 'Authentication'
+      responses:
+        '204':
+          description: 'The user has successfully logged into the REST API.'
+
+  /api/authn/anonymous/logout:
+    get:
+      summary: 'Logs the user out of the REST API using the anonymous authentication mechanism'
+      operationId: 'authn-anonymous-log-out'
+      description: |
+        This endpoint logs the user out of the REST API.
+      tags:
+        - 'Authentication'
+      responses:
+        '204':
+          description: 'The user has successfully logged out of the REST API.'
+
+  /api/authn/oidc/login:
+    get:
+      summary: 'Logs the user into the REST API using the OIDC authentication mechanism'
+      operationId: 'authn-oidc-log-in'
+      description: |
+        This endpoint logs the user into the REST API.
+      tags:
+        - 'Authentication'
+      parameters:
+        - name: destination
+          in: query
+          description: |
+            URL that the client will be redirected to after a successful login.
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: 'Redirect to the OIDC identity provider'
+          headers:
+            Location:
+              schema:
+                type: string
+              description: 'URL of the OIDC identity provider endpoint'
+
+  /api/authn/oidc/callback:
+    get:
+      summary: 'Receives the redirect from the OIDC identity server'
+      operationId: 'authn-oidc-callback'
+      description: |
+        This endpoint receives the redirect from the OIDC identity server after a successful log in.
+      tags:
+        - 'Authentication'
+      responses:
+        302:
+          description: 'Redirect to the URL provided in the original log in request'
+          headers:
+            Location:
+              schema:
+                type: string
+              description: 'URL provided in the original log in request'
+
+  /api/authn/oidc/logout:
+    get:
+      summary: 'Logs the user out of the REST API using the OIDC authentication mechanism'
+      operationId: 'authn-oidc-log-out'
+      description: |
+        This endpoint logs the user out of the REST API.
+      tags:
+        - 'Authentication'
+      responses:
+        '204':
+          description: 'The user has successfully logged out of the REST API.'
+
+  /api/authn/service/login:
+    post:
+      summary: 'Logs the service into the REST API'
+      operationId: 'authn-service-log-in'
+      description: |
+        This endpoint logs the service into the REST API.
+      tags:
+        - 'Authentication'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/authn.yml#/components/schemas/service-login'
+      responses:
+        '200':
+          description: 'The service has successfully logged into the REST API.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/authn.yml#/components/schemas/service-login-response'
+
+  /api/authn/service/logout:
+    get:
+      summary: 'Logs the service out of the REST API'
+      operationId: 'authn-service-log-out'
+      description: |
+        This endpoint logs the service out of the REST API.
+      tags:
+        - 'Authentication'
+      responses:
+        '204':
+          description: 'The service has successfully logged out of the REST API.'

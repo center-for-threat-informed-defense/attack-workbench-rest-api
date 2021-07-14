@@ -55,3 +55,22 @@ paths:
           description: 'Missing or invalid parameters were provided. The organization identity was not set.'
         '404':
           description: 'The identity could not be found. The organization identity was not set.'
+
+  /api/config/authn:
+    get:
+      summary: 'Get information describing the available user authentication mechanisms'
+      operationId: 'config-get-authn'
+      description: |
+        This endpoint gets information describing the available user authentication mechanisms.
+        This is intended to be used by the client to determine which authentication mechanisms are available to be used and does not require the user to be logged in.
+      tags:
+        - 'System Configuration'
+      responses:
+        '200':
+          description: 'A list of available authentication mechanisms.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/system-configuration.yml#/components/schemas/authn-mechanism'

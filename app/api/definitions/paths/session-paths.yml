@@ -1,0 +1,17 @@
+paths:
+  /api/session:
+    get:
+      summary: 'Get the current user session object for a logged in user'
+      operationId: 'session-get-current'
+      description: |
+        This endpoint retrieves the current user session object for a logged in user.
+        If the user is not logged in this endpoint returns a status 401 Not authorized.
+      tags:
+        - 'Session Management'
+      responses:
+        '200':
+          description: 'A user session object.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/sessions.yml#/components/schemas/user-session'
