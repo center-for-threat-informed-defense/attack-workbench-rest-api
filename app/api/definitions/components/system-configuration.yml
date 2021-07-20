@@ -44,6 +44,6 @@ components:
     authn-mechanism:
       type: object
       properties:
-        mechanism:
+        authnType:
           type: string
           example: 'oidc'

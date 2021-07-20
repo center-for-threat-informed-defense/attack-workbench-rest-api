@@ -87,3 +87,15 @@ exports.setOrganizationIdentity = async function(stixId) {
         await systemConfig.save();
     }
 }
+
+exports.retrieveAuthenticationConfig = async function() {
+    await SystemConfiguration.findOne();
+
+    // Stub
+    const authenticationConfig = {
+        mechanisms: [
+            { authnType: 'oidc' }
+        ]
+    };
+    return authenticationConfig;
+}

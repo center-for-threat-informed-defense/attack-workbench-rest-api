@@ -79,6 +79,28 @@ describe('System Configuration API', function () {
             });
     });
 
+    it('GET /api/config/authn returns the available authentication mechanisms', function (done) {
+        request(app)
+            .get('/api/config/authn')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the list of authentication mechanisms
+                    const authnConfig = res.body;
+                    expect(authnConfig).toBeDefined();
+                    expect(authnConfig.mechanisms).toBeDefined();
+                    expect(Array.isArray(authnConfig.mechanisms)).toBe(true);
+
+                    done();
+                }
+            });
+    });
+
     after(async function() {
         await database.closeConnection();
     });
