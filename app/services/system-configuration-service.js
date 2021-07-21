@@ -94,7 +94,7 @@ exports.retrieveAuthenticationConfig = async function() {
     // Stub
     const authenticationConfig = {
         mechanisms: [
-            { authnType: 'oidc' }
+            { authnType: 'anonymous' }
         ]
     };
     return authenticationConfig;
