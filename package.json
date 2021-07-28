@@ -8,8 +8,9 @@
     "lint": "eslint .",
     "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",
-    "test": "npm run test:openapi && npm run test:config && npm run test:api && npm run test:import",
+    "test": "npm run test:openapi && npm run test:config && npm run test:api && npm run test:import && npm run test:authn",
     "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api",
+    "test:authn": "mocha  --timeout 10000 --recursive ./app/tests/authn",
     "test:config": "mocha  --timeout 10000 --recursive ./app/tests/config",
     "test:import": "mocha  --timeout 10000 --recursive ./app/tests/import",
     "test:openapi": "mocha  --timeout 10000 ./app/tests/openapi"
@@ -23,10 +24,14 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "express-openapi-validator": "^4.12.9",
+    "express-session": "^1.17.2",
     "helmet": "^4.6.0",
     "lodash": "^4.17.21",
     "mongoose": "^5.12.7",
     "morgan": "^1.10.0",
+    "openid-client": "^4.7.4",
+    "passport": "^0.4.1",
+    "passport-anonym-uuid": "^1.0.3",
     "swagger-ui-express": "^4.1.6",
     "uuid": "^8.3.2",
     "winston": "^3.3.3",
@@ -40,6 +45,7 @@
     "mongodb-memory-server": "^6.9.6",
     "nyc": "^15.1.0",
     "openapi-schema-validator": "^7.2.3",
+    "set-cookie-parser": "^2.4.8",
     "snyk": "^1.580.0",
     "supertest": "^5.0.0"
   }

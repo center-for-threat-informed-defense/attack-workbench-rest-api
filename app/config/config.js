@@ -1,6 +1,17 @@
 'use strict';
 
 const convict = require('convict');
+const crypto = require('crypto');
+
+// Generate the default session secret
+// This runs synchronously, but only once at startup
+// Using the default session secret will limit the session cookies to one run of the server
+//   - Restarting the server will force the users to login again
+//   - Sessions cannot be shared across server instances
+const stringBase = 'base64';
+const byteLength = 48;
+const buffer = crypto.randomBytes(byteLength);
+const defaultSessionSecret = buffer.toString(stringBase);
 
 const config = convict({
     server: {
@@ -55,6 +66,35 @@ const config = convict({
             doc: 'Location of a JSON file containing configuration values',
             default: '',
             env: 'JSON_CONFIG_PATH'
+        }
+    },
+    session: {
+        secret: {
+            doc: 'Secret used to sign the session ID cookie',
+            default: defaultSessionSecret,
+            env: 'SESSION_SECRET'
+        }
+    },
+    authn: {
+        mechanism: {
+            doc: 'Authentication mechanism to use',
+            format: ['oidc', 'anonymous'],
+            default: 'anonymous',
+            env: 'AUTHN_MECHANISM'
+        },
+        oidc: {
+            issuerUrl: {
+                doc: 'OIDC Issuer URL',
+                env: 'AUTHN_OIDC_ISSUER_URL'
+            },
+            clientId: {
+                doc: 'OIDC Client ID',
+                env: 'AUTHN_OIDC_CLIENT_ID'
+            },
+            clientSecret: {
+                doc: 'OIDC Client Secret',
+                env: 'AUTHN_OIDC_CLIENT_SECRET'
+            }
         }
     }
 });

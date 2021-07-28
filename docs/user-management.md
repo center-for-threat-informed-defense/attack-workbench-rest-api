@@ -58,10 +58,9 @@ The effective roles for these users is as specified in the following table:
 | OIDC           | yes                            | active      | as assigned     | --      |
 | OIDC           | yes                            | inactive    | configurable    | `none`  |
 
-Note that the default configuration only allows registered and active users to access the system.
+Note that the default OIDC configuration only allows registered and active users to access the system.
 The system must be specifically configured to allow other users access.
-- OIDC authentication is enabled by default; the system must be specifically configured to use anonymous authentication
-- As shown in the table, the default role for users who aren't registered and active is `none`
+As shown in the table, the default role for users who aren't registered and active is `none`
 
 ## User Management Endpoints
 

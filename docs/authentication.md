@@ -8,6 +8,10 @@ The currently implemented user authentication mechanisms are:
 - Anonymous
 - OpenID Connect (OIDC)
 
+The default authentication mechanism is _anonymous_.
+This simplifies deployment of the application for users who are running the ATT&CK Workbench locally.
+However, anonymous authentication does not provide attribution of changes to individual users and is not recommended for enterprise deployments.
+
 The REST API also implements an API key authentication mechanism to support access by the ATT&CK Workbench Collection Manager and other services.
 
 The REST API uses the passport module for authentication which will facilitate the addition of other authentication mechanisms in the future.

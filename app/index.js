@@ -53,6 +53,16 @@ exports.initializeApp = async function() {
         app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
     }
 
+    // Configure server-side sessions
+    // TBD: Replace default MemoryStore with production quality session storage
+    const session = require('express-session');
+    const sessionOptions = {
+        secret: config.session.secret,
+        resave: false,
+        saveUninitialized: false
+    }
+    app.use(session(sessionOptions));
+
     // Set up the static routes
     logger.info('Configuring static routes');
     app.use(express.static('public'));
@@ -62,7 +72,11 @@ exports.initializeApp = async function() {
     const routes = require('./routes');
     app.use(routes);
 
-    // Make the config and logger accessible from the app
+    // Configure passport with the configured authentication mechanism
+    const authnConfiguration = require('./lib/authn-configuration');
+    await authnConfiguration.configurePassport();
+
+    // Make the config and logger objects accessible from the app object
     app.set('config', config);
     app.set('logger', logger);
 

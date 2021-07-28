@@ -1,16 +1,15 @@
 'use strict';
 
-const sessionService = require('../services/session-service');
+//const sessionService = require('../services/session-service');
 const logger = require('../lib/logger');
 
-exports.retrieveCurrentSession = async function(req, res) {
-    try {
-        const currentSession = await sessionService.retrieveCurrentSession();
+exports.retrieveCurrentSession = function(req, res) {
+    if (req.user) {
         logger.debug('Success: Retrieved current user session.');
-        return res.status(200).send(currentSession);
+        return res.status(200).send(req.user);
     }
-    catch(err) {
-        logger.error('Unable to retrieve current user session, failed with error: ' + err);
-        return res.status(500).send('Unable to retrieve current user session. Server error.');
+    else {
+        logger.warn('Unable to retrieve current user session, failed with error: req.user not found');
+        return res.status(401).send('Not authorized');
     }
 };

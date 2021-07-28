@@ -1,14 +1,17 @@
 'use strict';
 
-exports.retrieveCurrentSession = async function() {
-    // Stub
-    const currentSession = {
-        email: 'user@mitre.org',
-        name: 'User User',
-        status: 'active',
-        role: 'editor',
-        identity: null,
-        registered: true
-    };
+exports.retrieveCurrentSession = function(user) {
+    let currentSession;
+    if (user) {
+        currentSession = {
+            email: null,
+            name: 'anonymous',
+            status: 'active',
+            role: 'admin',
+            identity: null,
+            registered: true
+        };
+    }
+
     return currentSession;
 }

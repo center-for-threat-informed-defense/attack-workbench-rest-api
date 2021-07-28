@@ -91,10 +91,11 @@ exports.setOrganizationIdentity = async function(stixId) {
 exports.retrieveAuthenticationConfig = async function() {
     await SystemConfiguration.findOne();
 
-    // Stub
+    // We only support a one mechanism at a time, but may support multiples in the future,
+    // so return an array of mechanisms
     const authenticationConfig = {
         mechanisms: [
-            { authnType: 'anonymous' }
+            { authnType: config.authn.mechanism }
         ]
     };
     return authenticationConfig;
