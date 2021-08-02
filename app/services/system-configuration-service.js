@@ -5,14 +5,23 @@ const config = require('../config/config');
 
 const SystemConfiguration = require('../models/system-configuration-model');
 const Identity = require('../models/identity-model');
+const UserAccount = require('../models/user-account-model');
 
 let allowedValues;
 
 const errors = {
+    systemConfigurationDocumentNotFound: 'System configuration document not found',
     organizationIdentityNotFound: 'Organization identity not found',
-    organizationIdentityNotSet: 'Organization identity not set'
+    organizationIdentityNotSet: 'Organization identity not set',
+    anonymousUserAccountNotFound: 'Anonymous user account not found',
+    anonymousUserAccountNotSet: 'Anonymous user account not set'
 };
 exports.errors = errors;
+
+// NOTE: Some parts of the system configuration are stored in the systemconfiguration collection in the database
+//   (the systemconfiguration collection should have exactly one document)
+// Other parts of the system configuration are read from the config module (which is prepared at start-up
+//   based on environment variables and an optional configuration file)
 
 exports.retrieveAllowedValues = function(callback) {
     if (allowedValues) {
@@ -85,6 +94,52 @@ exports.setOrganizationIdentity = async function(stixId) {
         };
         const systemConfig = new SystemConfiguration(systemConfigData);
         await systemConfig.save();
+    }
+}
+
+exports.retrieveAnonymousUserAccountId = async function() {
+    // There should be exactly one system configuration document
+    const systemConfig = await SystemConfiguration.findOne();
+
+    if (systemConfig && systemConfig.anonymous_user_account_id) {
+        return systemConfig.anonymous_user_account_id;
+    }
+    else {
+        throw new Error(errors.anonymousUserAccountNotSet);
+    }
+}
+
+exports.retrieveAnonymousUserAccount = async function() {
+    // There should be exactly one system configuration document
+    const systemConfig = await SystemConfiguration.findOne();
+
+    if (systemConfig && systemConfig.anonymous_user_account_id) {
+        const userAccount = await UserAccount.findOne({ 'id': systemConfig.anonymous_user_account_id });
+        if (userAccount) {
+            return userAccount;
+        }
+        else {
+            const error = new Error(errors.anonymousUserAccountNotFound)
+            error.anonymousUserAccountId = systemConfig.anonymous_user_account_id;
+            throw error;
+        }
+    }
+    else {
+        throw new Error(errors.anonymousUserAccountNotSet);
+    }
+}
+
+exports.setAnonymousUserAccountId = async function(userAccountId) {
+    // There should be exactly one system configuration document
+    const systemConfig = await SystemConfiguration.findOne();
+
+    if (systemConfig) {
+        // The document exists already. Set the anonymous user account id.
+        systemConfig.anonymous_user_account_id = userAccountId;
+        await systemConfig.save();
+    }
+    else {
+        throw new Error(errors.systemConfigurationDocumentNotFound);
     }
 }
 

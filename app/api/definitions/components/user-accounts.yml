@@ -1,0 +1,20 @@
+components:
+  schemas:
+    user-account:
+      type: object
+      required:
+        - status
+        - role
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          example: 'active'
+        role:
+          type: string
+          example: 'editor'

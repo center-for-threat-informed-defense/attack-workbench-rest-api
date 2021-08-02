@@ -4,7 +4,7 @@ const logger = require('../lib/logger');
 
 exports.login = function(req, res) {
     if (req.user) {
-        logger.info(`Success: User logged in with uuid: ${ req.user.userId }`);
+        logger.info(`Success: User logged in with uuid: ${ req.user.anonymousUuid }`);
         return res.status(200).send('User logged in');
     }
     else {
@@ -15,9 +15,9 @@ exports.login = function(req, res) {
 
 exports.logout = function(req, res) {
     try {
-        const userId = req.user.userId;
+        const anonymousUuid = req.user.anonymousUuid;
         req.logout();
-        logger.info(`Success: User logged out with uuid: ${ userId }`);
+        logger.info(`Success: User logged out with uuid: ${ anonymousUuid }`);
         return res.status(200).send('User logged out');
     }
     catch(err) {

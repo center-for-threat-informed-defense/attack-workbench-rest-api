@@ -23,7 +23,7 @@ router.use(OpenApiValidator.middleware({
     validateResponses: false
 }));
 
-// Initialize passport middleware
+// Setup passport middleware
 router.use('/api', authnConfiguration.passportMiddleware());
 
 // Set up the endpoint routes

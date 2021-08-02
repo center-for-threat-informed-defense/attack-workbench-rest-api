@@ -7,10 +7,7 @@ const logger = require('./logger');
 const anonymousConfig = require('./authn-anonymous');
 const oidcConfig = require('./authn-oidc');
 
-const mechanisms = {
-    oidc: oidcConfig,
-    anonymous: anonymousConfig
-};
+const availableMechanisms = new Map([['oidc', oidcConfig], ['anonymous', anonymousConfig]]);
 
 exports.passportMiddleware = function() {
     const router = express.Router();
@@ -24,7 +21,7 @@ exports.passportMiddleware = function() {
 
 exports.configurePassport = async function() {
     // Configure passport with the selected authentication mechanism
-    const mechanism = mechanisms[config.authn.mechanism];
+    const mechanism = availableMechanisms.get(config.authn.mechanism);
     if (mechanism) {
         passport.serializeUser(mechanism.serializeUser);
         passport.deserializeUser(mechanism.deserializeUser);

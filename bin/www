@@ -23,10 +23,10 @@ async function runServer() {
 
     // Create the app
     const app = await require('../app').initializeApp();
-    const config = app.get('config');
 
     // Start the server
     logger.info('Starting the HTTP server');
+    const config = app.get('config');
     const server = app.listen(config.server.port, function () {
         const host = server.address().address;
         const port = server.address().port;

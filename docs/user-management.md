@@ -3,21 +3,21 @@
 This document describes the user management design for the ATT&CK Workbench REST API.
 Please refer to [doc ref goes here] for instructions on configuring authentication, and [doc ref goes here] for instructions on managing users.
 
-## User Document
+## User Account Document
 
-Each registered user has an associated document in the database.
+Each registered user has an associated user account document in the database.
 
-The User document has the following properties:
+The User Account document has the following properties:
 
-| property     | type   |  description                                              |
-|--------------|--------|-----------------------------------------------------------|
-| **email**    | string | User's email address                                      |
-| **username** | string | User's full name                                          |
-| **status**   | string | `pending`, `active`, or `inactive`                        |
-| **role**     | string | `none`, `visitor`, `editor`, or `admin`                   |
-| **identity** | string | STIX ID of the identity object corresponding to this user |
+| property       | type    |  description                                              |
+|----------------|---------|-----------------------------------------------------------|
+| **email**      | string  | User's email address                                      |
+| **username**   | string  | User's full name                                          |
+| **status**     | string  | `pending`, `active`, or `inactive`                        |
+| **role**       | string  | `none`, `visitor`, `editor`, or `admin`                   |
+| **identity**   | string  | STIX ID of the identity object corresponding to this user |
 
-The STIX ID of the corresponding identity object is assumed to be invariant and is used by the user management endpoints as the unique identifier for a user.
+The STIX ID of the corresponding identity object is assumed to be invariant and is used by the user management endpoints as the unique identifier for a user account.
 
 ## User Status
 
@@ -29,7 +29,7 @@ The STIX ID of the corresponding identity object is assumed to be invariant and 
 
 ### Typical User Status Workflow
 
-1. A user requests access to the system and is registered with the workspace. This results in a User document being added to the database with the `pending` status.
+1. A user requests access to the system and is registered with the workspace. This results in a User Account document being added to the database with the `pending` status.
 2. A user with the `admin` role approves the pending user and sets their role. This results in the user's status changing to `active` and their role being set appropriately.
 3. Later, a user with the `admin` role marks the user as inactive. This results in the user's status changing to `inactive`.
 
@@ -69,10 +69,10 @@ The STIX ID of the corresponding identity object is used by the user management 
 
 ##### Get Users
 ```
-GET /api/users
+GET /api/user-accounts
 ```
 
-Retrieves a list of user documents (i.e., registered users).
+Retrieves a list of user account documents (i.e., registered users).
 
 Query string parameters for searching are TBD.
 
@@ -82,7 +82,7 @@ This endpoint will only be available to users with the `admin` role.
 
 ##### Get User
 ```
-GET /api/users/:identity_id
+GET /api/user-accounts/:identity_id
 ```
 
 Retrieve a user document by the STIX id of the corresponding identity object.
@@ -93,7 +93,7 @@ This endpoint will only be available to users with the `admin` role or for a log
 
 ##### Register User
 ```
-POST /api/users/register
+POST /api/user-accounts/register
 ```
 
 Create a new user document in the database.
@@ -107,7 +107,7 @@ This endpoint will only be available for a logged in user who is in the process 
 
 ##### Update User
 ```
-PUT /api/users/:identity_id
+PUT /api/user-accounts/:identity_id
 ```
 
 Update an existing user document in the database. 
