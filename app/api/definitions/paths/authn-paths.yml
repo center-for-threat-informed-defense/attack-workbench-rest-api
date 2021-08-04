@@ -56,6 +56,21 @@ paths:
         This endpoint receives the redirect from the OIDC identity server after a successful log in.
       tags:
         - 'Authentication'
+      parameters:
+        - name: code
+          in: query
+          description: |
+            Code provided by the identity server.
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: |
+            State provided by the identity server.
+          required: true
+          schema:
+            type: string
       responses:
         302:
           description: 'Redirect to the URL provided in the original log in request'

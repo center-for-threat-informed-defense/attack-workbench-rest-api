@@ -21,15 +21,22 @@ exports.passportMiddleware = function() {
 
 exports.configurePassport = async function() {
     // Configure passport with the selected authentication mechanism
-    const mechanism = availableMechanisms.get(config.authn.mechanism);
+    const mechanism = availableMechanisms.get(config.authn.mechanism.toLowerCase());
     if (mechanism) {
-        passport.serializeUser(mechanism.serializeUser);
-        passport.deserializeUser(mechanism.deserializeUser);
+        try {
+            passport.serializeUser(mechanism.serializeUser);
+            passport.deserializeUser(mechanism.deserializeUser);
 
-        const strategy = await mechanism.getStrategy();
-        passport.use(strategy);
+            const strategy = await mechanism.getStrategy();
+            passport.use(strategy);
+            // eslint-disable-next-line require-atomic-updates
+            config.authn.strategyName = strategy.name;
 
-        logger.info(`Configured authentication mechanism: ${ config.authn.mechanism }`);
+            logger.info(`Configured authentication mechanism: ${config.authn.mechanism}`);
+        }
+        catch(err) {
+            logger.error(`Unable to configure system with authentication mechanism ${ config.authn.mechanism }`, err);
+        }
     }
     else {
         logger.error(`Unable to configure system with unknown authentication mechanism: ${ config.authn.mechanism }`);

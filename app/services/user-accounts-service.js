@@ -34,8 +34,6 @@ exports.retrieveAll = function(options, callback) {
     }
 
     // Build the aggregation
-    // - Group the documents by stix.id, sorted by stix.modified
-    // - Use the last document in each group (according to the value of stix.modified)
     // - Then apply query, skip and limit options
     const aggregation = [
         { $sort: { 'username': 1 } },
@@ -116,6 +114,28 @@ exports.retrieveById = function(userAccountId, callback) {
                 return callback(null, userAccount);
             }
         });
+};
+
+exports.retrieveByEmail = async function(email) {
+    if (!email) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'email';
+        throw error;
+    }
+
+    try {
+        const userAccount = await UserAccount.findOne({ 'email': email }).lean();
+        return userAccount;
+    }
+    catch(err) {
+        if (err.name === 'CastError') {
+            const error = new Error(errors.badlyFormattedParameter);
+            error.parameterName = 'email';
+            throw error;
+        } else {
+            throw err;
+        }
+    }
 };
 
 exports.createIsAsync = true;

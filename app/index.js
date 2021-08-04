@@ -1,5 +1,6 @@
 'use strict';
 
+const authnConfiguration = require("./lib/authn-configuration");
 let app;
 
 exports.initializeApp = async function() {
@@ -67,14 +68,14 @@ exports.initializeApp = async function() {
     logger.info('Configuring static routes');
     app.use(express.static('public'));
 
+    // Configure passport with the configured authentication mechanism
+    const authnConfiguration = require('./lib/authn-configuration');
+    await authnConfiguration.configurePassport();
+
     // Set up the api routes
     logger.info('Configuring REST API routes');
     const routes = require('./routes');
     app.use(routes);
-
-    // Configure passport with the configured authentication mechanism
-    const authnConfiguration = require('./lib/authn-configuration');
-    await authnConfiguration.configurePassport();
 
     // Make the config and logger objects accessible from the app object
     app.set('config', config);

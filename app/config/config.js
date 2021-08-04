@@ -8,6 +8,7 @@ const crypto = require('crypto');
 // Using the default session secret will limit the session cookies to one run of the server
 //   - Restarting the server will force the users to login again
 //   - Sessions cannot be shared across server instances
+// Setting the SESSION_SECRET environment variable will override this generated value
 const stringBase = 'base64';
 const byteLength = 48;
 const buffer = crypto.randomBytes(byteLength);
@@ -85,14 +86,20 @@ const config = convict({
         oidc: {
             issuerUrl: {
                 doc: 'OIDC Issuer URL',
+                format: String,
+                default: '',
                 env: 'AUTHN_OIDC_ISSUER_URL'
             },
             clientId: {
                 doc: 'OIDC Client ID',
+                format: String,
+                default: '',
                 env: 'AUTHN_OIDC_CLIENT_ID'
             },
             clientSecret: {
                 doc: 'OIDC Client Secret',
+                format: String,
+                default: '',
                 env: 'AUTHN_OIDC_CLIENT_SECRET'
             }
         }

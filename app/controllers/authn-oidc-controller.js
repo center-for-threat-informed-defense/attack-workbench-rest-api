@@ -1,40 +1,27 @@
 'use strict';
 
-const authnOidcService = require('../services/authn-oidc-service');
 const logger = require('../lib/logger');
 
-exports.login = async function(req, res) {
-    try {
-        await authnOidcService.login();
-        logger.debug('Success: OIDC user logged in.');
-        return res.status(201).send();
-    }
-    catch(err) {
-        logger.error('Unable to log in OIDC user, failed with error: ' + err);
-        return res.status(500).send('Unable to log in OIDC user. Server error.');
-    }
+exports.login = function(req, res, next) {
+    // Save the destination and call next() to trigger the redirect to the identity provider
+    req.session.oidcDestination = req.query.destination;
+    return next();
 };
 
-exports.identityProviderCallback = async function(req, res) {
-    try {
-        await authnOidcService.login();
-        logger.debug('Success: OIDC user logged in.');
-        return res.status(201).send();
-    }
-    catch(err) {
-        logger.error('Unable to log in OIDC user, failed with error: ' + err);
-        return res.status(500).send('Unable to log in OIDC user. Server error.');
-    }
+exports.identityProviderCallback = function(req, res) {
+    logger.debug('Success: OIDC user logged in.');
+    return res.redirect(req.session.oidcDestination);
 };
 
-exports.logout = async function(req, res) {
+exports.logout = function(req, res) {
     try {
-        await authnOidcService.login();
-        logger.debug('Success: OIDC user logged out.');
-        return res.status(201).send();
+        const email = req.user.email;
+        req.logout();
+        logger.info(`Success: User logged out with email: ${ email }`);
+        return res.status(200).send('User logged out');
     }
     catch(err) {
-        logger.error('Unable to log out OIDC user, failed with error: ' + err);
-        return res.status(500).send('Unable to log out OIDC user. Server error.');
+        logger.error('Unable to log out user, failed with error: ' + err);
+        return res.status(500).send('Unable to log out user. Server error.');
     }
 };
