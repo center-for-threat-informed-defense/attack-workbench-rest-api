@@ -9,6 +9,8 @@ const oidcConfig = require('./authn-oidc');
 
 const availableMechanisms = new Map([['oidc', oidcConfig], ['anonymous', anonymousConfig]]);
 
+let passportAuthenticateMiddleware;
+
 exports.passportMiddleware = function() {
     const router = express.Router();
 
@@ -29,8 +31,9 @@ exports.configurePassport = async function() {
 
             const strategy = await mechanism.getStrategy();
             passport.use(strategy);
-            // eslint-disable-next-line require-atomic-updates
-            config.authn.strategyName = strategy.name;
+
+            // Create the middleware used to authenticate requests
+            passportAuthenticateMiddleware = passport.authenticate(strategy.name);
 
             logger.info(`Configured authentication mechanism: ${config.authn.mechanism}`);
         }
@@ -42,4 +45,8 @@ exports.configurePassport = async function() {
         logger.error(`Unable to configure system with unknown authentication mechanism: ${ config.authn.mechanism }`);
         throw new Error(`Unable to configure system with unknown authentication mechanism: ${ config.authn.mechanism }`);
     }
+}
+
+exports.authenticate = function(req, res, next) {
+    passportAuthenticateMiddleware(req, res, next);
 }

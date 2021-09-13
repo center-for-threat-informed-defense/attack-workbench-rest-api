@@ -71,6 +71,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: session_state
+          in: query
+          description: |
+            Session state provided by the identity server.
+          required: true
+          schema:
+            type: string
       responses:
         302:
           description: 'Redirect to the URL provided in the original log in request'

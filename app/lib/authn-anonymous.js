@@ -8,11 +8,18 @@ const systemConfigurationService = require('../services/system-configuration-ser
  * stored in the express session for this user
  */
 exports.serializeUser = function(userSession, done) {
-    const userSessionKey = {
-        strategy: 'anonymId',
-        sessionId: userSession.anonymousUuid
+    if (userSession.strategy === 'anonymId') {
+        const userSessionKey = {
+            strategy: 'anonymId',
+            sessionId: userSession.anonymousUuid
+        }
+
+        done(null, userSessionKey);
     }
-    done(null, userSessionKey);
+    else {
+        // Try the next serializer
+        done('pass');
+    }
 };
 
 /**
@@ -26,7 +33,8 @@ exports.deserializeUser = function(userSessionKey, done) {
             .catch(err => done(err));
     }
     else {
-        throw new Error('Cannot deserialize userSessionKey, wrong strategy');
+        // Try the next deserializer
+        done('pass');
     }
 };
 
@@ -50,6 +58,7 @@ async function makeUserSession(uuid) {
 
     const userAccountData = (({ email, name, status, role }) => ({ email, name, status, role }))(anonymousUserAccount);
     const userSession = {
+        strategy: 'anonymId',
         userAccountId: anonymousUserAccount.id,
         ...userAccountData,
         registered: true,

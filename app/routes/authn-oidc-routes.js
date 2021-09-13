@@ -1,8 +1,7 @@
 'use strict';
 
 const express = require('express');
-const passport = require('passport');
-const config = require('../config/config');
+const authnConfig = require('../lib/authn-configuration');
 const authnOidcController = require('../controllers/authn-oidc-controller');
 
 const router = express.Router();
@@ -10,11 +9,11 @@ const router = express.Router();
 router.route('/authn/oidc/login')
     .get(
         authnOidcController.login,
-        passport.authenticate(config.authn.strategyName));
+        authnConfig.authenticate);
 
 router.route('/authn/oidc/callback')
     .get(
-        passport.authenticate(config.authn.strategyName),
+        authnConfig.authenticate,
         authnOidcController.identityProviderCallback);
 
 router.route('/authn/oidc/logout')

@@ -520,5 +520,9 @@ describe('Groups API', function () {
     after(async function() {
         await database.closeConnection();
     });
+    // after(function(done) {
+    //     database.closeConnection()
+    //         .then(() => done());
+    // });
 });
 

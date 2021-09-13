@@ -1,14 +1,12 @@
 'use strict';
 
-const authnConfiguration = require("./lib/authn-configuration");
 let app;
 
+/**
+ * Creates a new instance of the express app.
+ * @return The new express app
+ */
 exports.initializeApp = async function() {
-    // Only set up the express app once
-    if (app) {
-        return app;
-    }
-
     const logger = require('./lib/logger');
     logger.info('ATT&CK Workbench REST API app starting');
 

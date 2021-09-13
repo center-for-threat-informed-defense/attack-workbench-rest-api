@@ -9,11 +9,17 @@ const userAccountsService = require("../services/user-accounts-service");
  * stored in the express session for this user
  */
 exports.serializeUser = function(userSession, done) {
-    const userSessionKey = {
-        strategy: 'oidc',
-        sessionId: userSession.email
+    if (userSession.strategy === 'oidc') {
+        const userSessionKey = {
+            strategy: 'oidc',
+            sessionId: userSession.email
+        }
+        done(null, userSessionKey);
     }
-    done(null, userSessionKey);
+    else {
+        // Try the next serializer
+        done('pass');
+    }
 };
 
 /**
@@ -27,7 +33,8 @@ exports.deserializeUser = function(userSessionKey, done) {
             .catch(err => done(err));
     }
     else {
-        throw new Error('Cannot deserialize userSessionKey, wrong strategy');
+        // Try the next deserializer
+        done('pass');
     }
 };
 
@@ -47,9 +54,21 @@ exports.getStrategy = async function() {
         client,
         params: { scope: 'openid email profile' }
     };
-    const strategy = new openIdClient.Strategy(strategyOptions, (tokenSet, userInfo, done) => done(null, tokenSet.claims()));
+    const strategy = new openIdClient.Strategy(strategyOptions, verifyCallback);
 
     return strategy;
+}
+
+/**
+ * This function is called by the strategy after the user has authenticated using the oidc strategy
+ * It creates and returns the user session for this user
+ */
+function verifyCallback(tokenSet, userInfo, done) {
+    const claims = tokenSet.claims();
+
+    makeUserSession(claims.email)
+        .then(userSession => done(null, userSession))
+        .catch(err => done(err));
 }
 
 async function makeUserSession(email) {
@@ -58,6 +77,7 @@ async function makeUserSession(email) {
     if (userAccount) {
         const userAccountData = (({ email, name, status, role, registered }) => ({ email, name, status, role, registered }))(userAccount);
         const userSession = {
+            strategy: 'oidc',
             userAccountId: userAccount.id,
             ...userAccountData,
             registered: true
@@ -67,6 +87,7 @@ async function makeUserSession(email) {
     }
     else {
         const userSession = {
+            strategy: 'oidc',
             email: email,
             role: 'none',
             registered: false
@@ -75,4 +96,3 @@ async function makeUserSession(email) {
         return userSession;
     }
 }
-
