@@ -144,6 +144,44 @@
         ]
       }
     ]
+  },
+  {
+    "objectType": "data-source",
+    "properties": [
+      {
+        "propertyName": "x_mitre_collection_layers",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "host",
+              "cloud",
+              "container"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_platforms",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "Containers",
+              "Windows",
+              "Azure AD",
+              "Linux",
+              "macOS",
+              "IaaS",
+              "SaaS",
+              "Office 365",
+              "Google Workspace",
+              "Network"
+            ]
+          }
+        ]
+      }
+    ]
   }
 ]
 
