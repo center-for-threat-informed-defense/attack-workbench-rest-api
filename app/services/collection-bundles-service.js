@@ -14,6 +14,8 @@ const markingDefinitionsService = require('../services/marking-definitions-servi
 const identitiesService = require('../services/identities-service');
 const notesService = require('../services/notes-service');
 const referencesService = require('../services/references-service');
+const dataSourcesService = require('../services/data-sources-service');
+const dataComponentsService = require('../services/data-components-service');
 
 const async = require('async');
 
@@ -192,6 +194,12 @@ exports.importBundle = function(collection, data, options, callback) {
                         }
                         else if (importObject.type === 'note') {
                             service = notesService;
+                        }
+                        else if (importObject.type === 'x-mitre-data-source') {
+                            service = dataSourcesService;
+                        }
+                        else if (importObject.type === 'x-mitre-data-component') {
+                            service = dataComponentsService;
                         }
 
                         if (service) {

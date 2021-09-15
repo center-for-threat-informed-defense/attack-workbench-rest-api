@@ -18,6 +18,7 @@ describe('Collection Bundles API Full-Size Test', function () {
     let app;
     let collectionBundle72;
     let collectionBundle80;
+    let collectionBundle90;
 
     before(async function() {
         // Establish the database connection
@@ -32,9 +33,31 @@ describe('Collection Bundles API Full-Size Test', function () {
 
         collectionBundle72 = await readJson('./enterprise-attack-7.2.json');
         collectionBundle80 = await readJson('./enterprise-attack-8.0.json');
+        collectionBundle90 = await readJson('./enterprise-attack-9.0-with-mock-data-sources-collection.json');
     });
 
-    it('POST /api/collection-bundles previews the import of a collection bundle (checkOnly)', function (done) {
+    it('POST /api/collection-bundles previews the import of a 9.0 collection bundle (checkOnly)', function (done) {
+        const body = collectionBundle90;
+        request(app)
+            .post('/api/collection-bundles?checkOnly=true')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get the created collection object
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.workspace.import_categories.errors.length).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collection-bundles previews the import of a 8.0 collection bundle (checkOnly)', function (done) {
         const body = collectionBundle80;
         request(app)
             .post('/api/collection-bundles?checkOnly=true')
@@ -55,7 +78,7 @@ describe('Collection Bundles API Full-Size Test', function () {
             });
     });
 
-    it('POST /api/collection-bundles previews the import of a collection bundle (previewOnly)', function (done) {
+    it('POST /api/collection-bundles previews the import of a 8.0 collection bundle (previewOnly)', function (done) {
         const body = collectionBundle80;
         request(app)
             .post('/api/collection-bundles?previewOnly=true')
@@ -95,6 +118,36 @@ describe('Collection Bundles API Full-Size Test', function () {
                     if (collection.workspace.import_categories.errors.length > 0) {
                         console.log(collection.workspace.import_categories.errors[0]);
                     }
+                    expect(collection.workspace.import_categories.errors.length).toBe(0);
+                    console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
+                    console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);
+
+                    console.log(`categories, revocations: ${ collection.workspace.import_categories.revocations.length }`);
+                    console.log(`categories, deprecations: ${ collection.workspace.import_categories.deprecations.length }`);
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collection-bundles imports the 9.0 enterprise collection bundle', function (done) {
+        this.timeout(60000);
+        const body = collectionBundle90;
+        request(app)
+            .post('/api/collection-bundles')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get the created collection object
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+
+                    console.log(JSON.stringify(collection.workspace.import_categories.errors, null, 2));
+
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
                     console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
                     console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);

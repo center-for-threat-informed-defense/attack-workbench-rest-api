@@ -10,6 +10,7 @@ The ATT&CK Workbench database supports the following ATT&CK object types
 - Mitigation (course-of-action)
 - Tactic (x-mitre-tactic)
 - Data Source (x-mitre-data-source)
+- Data Component (x-mitre-data-component)
 - Identity (identity)
 - Marking Definition (marking-definition)
 - Relationship (relationship)

@@ -1,0 +1,238 @@
+paths:
+  /api/data-sources:
+    get:
+      summary: 'Get a list of data sources'
+      operationId: 'data-source-get-all'
+      description: |
+        This endpoint gets a list of data sources from the workspace.
+        The list of data sources may include multiple versions of each data source.
+      tags:
+        - 'Data Sources'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of data sources to retrieve.
+            The default (0) will retrieve all data sources.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of data sources to skip.
+            The default (0) will start with the first data source.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, objects will be retrieved regardless of state.
+            This parameter may be set multiple times to retrieve objects with any of the provided states.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: search
+          in: query
+          description: |
+            Only return objects where the provided search text occurs in the `name` or `description`.
+            The search is case-insensitive.
+          schema:
+            type: string
+          example: 'windows'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of data sources.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/data-sources.yml#/components/schemas/data-source'
+
+    post:
+      summary: 'Create a data source'
+      operationId: 'data-source-create'
+      description: |
+        This endpoint creates a new data source in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing data source.
+        If the `stix.id` property is not set, it creates a new data source, generating a STIX id for it.
+      tags:
+        - 'Data Sources'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/data-sources.yml#/components/schemas/data-source'
+      responses:
+        '201':
+          description: 'The data source has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/data-sources.yml#/components/schemas/data-source'
+        '400':
+          description: 'Missing or invalid parameters were provided. The data source was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The data source was not created.'
+
+  /api/data-sources/{stixId}:
+    get:
+      summary: 'Get one or more versions of a data source'
+      operationId: 'data-source-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a data source from the workspace, identified by their STIX id.
+      tags:
+        - 'Data Sources'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data source to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the data source to retrieve.
+            `all` gets all versions of the data source, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of data sources matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/data-sources.yml#/components/schemas/data-source'
+        '404':
+          description: 'A data source with the requested STIX id was not found.'
+
+  /api/data-sources/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a data source matching the STIX id and modified date'
+      operationId: 'data-source-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a data source from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Data Sources'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data source to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the data source to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a data source matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/data-sources.yml#/components/schemas/data-source'
+        '404':
+          description: 'A data source with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a data source'
+      operationId: 'data-source-update'
+      description: |
+        This endpoint updates a single version of a data source in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Data Sources'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data source to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the data source to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/data-sources.yml#/components/schemas/data-source'
+      responses:
+        '200':
+          description: 'The data source was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/data-sources.yml#/components/schemas/data-source'
+        '400':
+          description: 'Missing or invalid parameters were provided. The data source was not updated.'
+        '404':
+          description: 'A data source with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a data source'
+      operationId: 'data-source-delete'
+      description: |
+        This endpoint deletes a single version of a data source from the workspace.
+        The data source is identified by its STIX id and modified date.
+      tags:
+        - 'Data Sources'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data source to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the data source to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The data source was successfully deleted.'
+        '404':
+          description: 'A data source with the requested STIX id and modified date was not found.'
