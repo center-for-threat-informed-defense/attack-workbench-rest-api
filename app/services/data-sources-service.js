@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const DataSource = require('../models/data-source-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
+const dataComponentsService = require('./data-components-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -100,6 +101,32 @@ exports.retrieveAll = function(options, callback) {
     });
 };
 
+async function addExtraData(dataSource, retrieveDataComponents) {
+    await identitiesService.addCreatedByAndModifiedByIdentities(dataSource);
+    if (retrieveDataComponents) {
+        await addDataComponents(dataSource);
+    }
+}
+
+async function addExtraDataToAll(dataSources, retrieveDataComponents) {
+    for (const dataSource of dataSources) {
+        // eslint-disable-next-line no-await-in-loop
+        await addExtraData(dataSource, retrieveDataComponents);
+    }
+}
+
+async function addDataComponents(dataSource) {
+    // We have to work with the latest version of all data components to avoid mishandling a situation
+    // where an earlier version of a data component may reference a data source, but the latest
+    // version doesn't.
+
+    // Retrieve the latest version of all data components
+    const allDataComponents = await dataComponentsService.retrieveAllAsync({ });
+
+    // Add the data components that reference the data source
+    dataSource.dataComponents = allDataComponents.filter(dataComponent => dataComponent.stix.x_mitre_data_source_ref === dataSource.stix.id);
+}
+
 exports.retrieveById = function(stixId, options, callback) {
     // versions=all Retrieve all data sources with the stixId
     // versions=latest Retrieve the data sources with the latest modified date for this stixId
@@ -123,7 +150,7 @@ exports.retrieveById = function(stixId, options, callback) {
                         return callback(err);
                     }
                 } else {
-                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(dataSources)
+                    addExtraDataToAll(dataSources, options.retrieveDataComponents)
                         .then(() => callback(null, dataSources));
                 }
             });
@@ -146,7 +173,7 @@ exports.retrieveById = function(stixId, options, callback) {
                 else {
                     // Note: document is null if not found
                     if (dataSource) {
-                        identitiesService.addCreatedByAndModifiedByIdentities(dataSource)
+                        addExtraData(dataSource, options.retrieveDataComponents)
                             .then(() => callback(null, [ dataSource ]));
                     }
                     else {
@@ -162,7 +189,7 @@ exports.retrieveById = function(stixId, options, callback) {
     }
 };
 
-exports.retrieveVersionById = function(stixId, modified, callback) {
+exports.retrieveVersionById = function(stixId, modified, options, callback) {
     // Retrieve the versions of the data source with the matching stixId and modified date
 
     if (!stixId) {
@@ -191,7 +218,7 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
         else {
             // Note: document is null if not found
             if (dataSource) {
-                identitiesService.addCreatedByAndModifiedByIdentities(dataSource)
+                addExtraData(dataSource, options.retrieveDataComponents)
                     .then(() => callback(null, dataSource));
             }
             else {

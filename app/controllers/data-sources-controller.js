@@ -33,7 +33,8 @@ exports.retrieveAll = function(req, res) {
 
 exports.retrieveById = function(req, res) {
     const options = {
-        versions: req.query.versions || 'latest'
+        versions: req.query.versions || 'latest',
+        retrieveDataComponents: req.query.retrieveDataComponents
     }
 
     dataSourcesService.retrieveById(req.params.stixId, options, function (err, dataSources) {
@@ -64,7 +65,11 @@ exports.retrieveById = function(req, res) {
 };
 
 exports.retrieveVersionById = function(req, res) {
-    dataSourcesService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, dataSource) {
+    const options = {
+        retrieveDataComponents: req.query.retrieveDataComponents
+    }
+
+    dataSourcesService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, dataSource) {
         if (err) {
             if (err.message === dataSourcesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);

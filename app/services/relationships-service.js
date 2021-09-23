@@ -14,6 +14,7 @@ const errors = {
 };
 exports.errors = errors;
 
+// Map STIX types to ATT&CK types
 const objectTypeMap = new Map();
 objectTypeMap.set('malware', 'software');
 objectTypeMap.set('tool', 'software');
@@ -22,6 +23,7 @@ objectTypeMap.set('intrusion-set', 'group');
 objectTypeMap.set('course-of-action', 'mitigation');
 objectTypeMap.set('x-mitre-tactic', 'tactic');
 objectTypeMap.set('x-mitre-matrix', 'matrix');
+objectTypeMap.set('x-mitre-data-component', 'data-component');
 
 exports.retrieveAll = function(options, callback) {
     // Build the query
