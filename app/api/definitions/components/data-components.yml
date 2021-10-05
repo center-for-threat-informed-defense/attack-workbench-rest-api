@@ -1,0 +1,44 @@
+components:
+  schemas:
+    data-component:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/x-mitre-data-component'
+
+    x-mitre-data-component:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # data-component specific properties
+            name:
+              type: string
+              example: 'Data Component Name'
+            description:
+              type: string
+              example: 'This is a data component'
+            # ATT&CK custom properties
+            x_mitre_modified_by_ref:
+              type: string
+              example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
+            x_mitre_data_source_ref:
+              type: string
+              example: 'x-mitre-data-source--6da9ab38-437f-4e2f-b24c-f0da3a8ce441'
+            x_mitre_deprecated:
+              type: boolean
+              example: false
+            x_mitre_domains:
+              type: array
+              items:
+                type: string
+            x_mitre_version:
+              type: string
+              example: '1.0'
