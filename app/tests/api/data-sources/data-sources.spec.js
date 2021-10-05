@@ -5,6 +5,8 @@ const _ = require('lodash');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
+const dataComponentsService = require('../../../services/data-components-service');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -47,6 +49,49 @@ const initialObjectData = {
         x_mitre_modified_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5'
     }
 };
+
+const initialDataComponentData = {
+    workspace: {
+        workflow: {
+            state: 'work-in-progress'
+        }
+    },
+    stix: {
+        name: 'data-component-1',
+        spec_version: '2.1',
+        type: 'x-mitre-data-component',
+        description: 'This is a data component.',
+        external_references: [
+            { source_name: 'source-1', external_id: 's1' }
+        ],
+        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+        created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+        x_mitre_version: "1.1",
+        x_mitre_domains: [
+            'enterprise-attack'
+        ],
+        x_mitre_modified_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5'
+    }
+};
+async function loadDataComponents(baseDataComponent) {
+    const data1 = _.cloneDeep(baseDataComponent);
+    let timestamp = new Date().toISOString();
+    data1.stix.created = timestamp;
+    data1.stix.modified = timestamp;
+    await dataComponentsService.create(data1);
+
+    const data2 = _.cloneDeep(baseDataComponent);
+    timestamp = new Date().toISOString();
+    data2.stix.created = timestamp;
+    data2.stix.modified = timestamp;
+    await dataComponentsService.create(data2);
+
+    const data3 = _.cloneDeep(baseDataComponent);
+    timestamp = new Date().toISOString();
+    data3.stix.created = timestamp;
+    data3.stix.modified = timestamp;
+    await dataComponentsService.create(data3);
+}
 
 describe('Data Sources API', function () {
     let app;
@@ -197,6 +242,29 @@ describe('Data Sources API', function () {
                     done();
                 }
             });
+    });
+
+    it('GET /api/data-sources/:id returns the added data source with data components', async function () {
+        initialDataComponentData.stix.x_mitre_data_source_ref = dataSource1.stix.id;
+        await loadDataComponents(initialDataComponentData);
+
+        const res = await request(app)
+            .get(`/api/data-sources/${dataSource1.stix.id}?retrieveDataComponents=true`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/);
+
+        // We expect to get one data source in an array
+        const dataSources = res.body;
+        expect(dataSources).toBeDefined();
+        expect(Array.isArray(dataSources)).toBe(true);
+        expect(dataSources.length).toBe(1);
+        const dataSource = dataSources[0];
+        expect(dataSource).toBeDefined();
+
+        // We expect to get 3 data components that reference this data source
+        expect(dataSource.dataComponents).toBeDefined();
+        expect(dataSource.dataComponents.length).toBe(3);
     });
 
     it('PUT /api/data-sources updates a data source', function (done) {
