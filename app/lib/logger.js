@@ -1,6 +1,7 @@
 'use strict';
 
 const winston = require('winston');
+const config = require('../config/config');
 
 const consoleFormat = winston.format.combine(
     winston.format.timestamp(),
@@ -19,7 +20,7 @@ const logLevels = {
 const logger = winston.createLogger({
     format: consoleFormat,
     transports: [
-        new winston.transports.Console()
+        new winston.transports.Console({ level: config.logging.logLevel })
     ],
     levels: logLevels
 });

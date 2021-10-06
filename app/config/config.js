@@ -33,6 +33,13 @@ const config = convict({
             env: 'DATABASE_URL'
         }
     },
+    logging: {
+        logLevel: {
+            doc: 'Level of logging messages to write to console (error, warn, http, info, verbose, debug)',
+            default: 'info',
+            env: 'LOG_LEVEL'
+        }
+    },
     openApi: {
         specPath: {
             default: './app/api/definitions/openapi.yml'
