@@ -2,6 +2,23 @@
 
 let app;
 
+
+/**
+ * Do not set the upgrade-insecure-requests directive on the Content-Security-Policy header
+ * @param {object} app - express app
+ * @param {object} helmet - helmet module
+ */
+function disableUpgradeInsecureRequests(app, helmet) {
+    const defaultDirectives = helmet.contentSecurityPolicy.getDefaultDirectives();
+    delete defaultDirectives['upgrade-insecure-requests'];
+
+    app.use(helmet.contentSecurityPolicy({
+        directives: {
+            ...defaultDirectives,
+        },
+    }));
+}
+
 exports.initializeApp = async function() {
     // Only set up the express app once
     if (app) {
@@ -37,6 +54,7 @@ exports.initializeApp = async function() {
     // Set HTTP response headers
     const helmet = require("helmet");
     app.use(helmet());
+    disableUpgradeInsecureRequests(app, helmet);
 
     // Development Environment
     if (config.app.env === 'development') {
