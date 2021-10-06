@@ -17,6 +17,8 @@ const referencesService = require('../services/references-service');
 const dataSourcesService = require('../services/data-sources-service');
 const dataComponentsService = require('../services/data-components-service');
 
+const logger = require('../lib/logger');
+
 const async = require('async');
 
 const errors = {
@@ -159,8 +161,10 @@ exports.importBundle = function(collection, data, options, callback) {
                             const importError = {
                                 object_ref: importObject.id,
                                 object_modified: importObject.modified,
-                                error_type: importErrors.notInContents
+                                error_type: importErrors.notInContents,
+                                error_message: `Warning: Object in bundle but not in x_mitre_contents. Object will be saved in database.`
                             }
+                            logger.verbose(`Import Bundle Warning: Object not in x_mitre_contents. id = ${ importObject.id }, modified = ${ importObject.modified }`);
                             importedCollection.workspace.import_categories.errors.push(importError);
                         }
 
@@ -212,6 +216,7 @@ exports.importBundle = function(collection, data, options, callback) {
                                         object_modified: importObject.modified,
                                         error_type: importErrors.retrievalError
                                     }
+                                    logger.verbose(`Import Bundle Error: Unable to retrieve objects with matching STIX id. id = ${ importObject.id }, modified = ${ importObject.modified }`);
                                     importedCollection.workspace.import_categories.errors.push(importError);
                                     return callback2a();
                                 }
@@ -351,6 +356,7 @@ exports.importBundle = function(collection, data, options, callback) {
                                                                 error_type: importErrors.saveError,
                                                                 error_message: err.message
                                                             }
+                                                            logger.verbose(`Import Bundle Error: Unable to save object. id = ${ importObject.id }, modified = ${ importObject.modified }, ${ err.message }`);
                                                             importedCollection.workspace.import_categories.errors.push(importError);
                                                             return callback2a();
                                                         }
@@ -370,6 +376,7 @@ exports.importBundle = function(collection, data, options, callback) {
                                                                 error_type: importErrors.saveError,
                                                                 error_message: err.message
                                                             }
+                                                            logger.verbose(`Import Bundle Error: Unable to save object. id = ${ importObject.id }, modified = ${ importObject.modified }, ${ err.message }`);
                                                             importedCollection.workspace.import_categories.errors.push(importError);
                                                             return callback2a();
                                                         }
@@ -394,8 +401,10 @@ exports.importBundle = function(collection, data, options, callback) {
                                 const importError = {
                                     object_ref: importObject.id,
                                     object_modified: importObject.modified,
-                                    error_type: importErrors.unknownObjectType
+                                    error_type: importErrors.unknownObjectType,
+                                    error_message: `Unknown object type: ${ importObject.type }`
                                 }
+                                logger.verbose(`Import Bundle Error: Unknown object type. id = ${ importObject.id }, modified = ${ importObject.modified }, type = ${ importObject.type }`);
                                 importedCollection.workspace.import_categories.errors.push(importError);
                                 return callback2a();
                             }
@@ -408,8 +417,10 @@ exports.importBundle = function(collection, data, options, callback) {
                             const importError = {
                                 object_ref: entry.object_ref,
                                 object_modified: entry.object_modified,
-                                error_type: importErrors.missingObject
+                                error_type: importErrors.missingObject,
+                                error_message: 'Object listed in x_mitre_contents, but not in bundle'
                             }
+                            logger.verbose(`Import Bundle Error: Object in x_mitre_contents but not in bundle. id = ${ entry.object_ref }, modified = ${ entry.object_modified }`);
                             importedCollection.workspace.import_categories.errors.push(importError);
                         }
 
