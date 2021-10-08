@@ -203,6 +203,9 @@ paths:
     $ref: 'paths/stix-bundles-paths.yml#/paths/~1api~1stix-bundles'
 
   # System Configuration
+  /api/config/system-version:
+    $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1system-version'
+
   /api/config/allowed-values:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1allowed-values'
 

@@ -1,6 +1,7 @@
 'use strict';
 
 const convict = require('convict');
+const packageJson = require('../../package.json');
 
 const config = convict({
     server: {
@@ -24,6 +25,12 @@ const config = convict({
         env: {
             default: 'development',
             env: 'NODE_ENV'
+        },
+        version: {
+            default: packageJson.version
+        },
+        attackSpecVersion: {
+            default: packageJson.attackSpecVersion
         }
     },
     database: {

@@ -3,6 +3,18 @@
 const systemConfigurationService = require('../services/system-configuration-service');
 const logger = require('../lib/logger');
 
+exports.retrieveSystemVersion = function(req, res) {
+    try {
+        const systemVersionInfo = systemConfigurationService.retrieveSystemVersion();
+        logger.debug(`Success: Retrieved system version, version: ${ systemVersionInfo.version }, attackSpecVersion: ${ systemVersionInfo.attackSpecVersion }`);
+        return res.status(200).send(systemVersionInfo);
+    }
+    catch(err) {
+        logger.error("Unable to retrieve system version, failed with error: " + err);
+        return res.status(500).send("Unable to retrieve system version. Server error.");
+    }
+};
+
 exports.retrieveAllowedValues = function(req, res) {
     systemConfigurationService.retrieveAllowedValues(function(err, allowedValues) {
         if (err) {
