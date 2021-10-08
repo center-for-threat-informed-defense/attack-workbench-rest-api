@@ -2,6 +2,8 @@ const request = require('supertest');
 const expect = require('expect');
 const _ = require('lodash');
 
+const config = require('../../../config/config');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -238,6 +240,8 @@ describe('Collections (x-mitre-collection) Basic API', function () {
                     expect(collection1.stix.id).toBeDefined();
                     expect(collection1.stix.created).toBeDefined();
                     expect(collection1.stix.modified).toBeDefined();
+                    expect(collection1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -303,6 +307,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
                     expect(collection.stix.spec_version).toBe(collection1.stix.spec_version);
                     expect(collection.stix.object_marking_refs).toEqual(expect.arrayContaining(collection1.stix.object_marking_refs));
                     expect(collection.stix.created_by_ref).toBe(collection1.stix.created_by_ref);
+                    expect(collection.stix.x_mitre_attack_spec_version).toBe(collection1.stix.x_mitre_attack_spec_version);
 
                     expect(collection.contents).toBeUndefined();
 

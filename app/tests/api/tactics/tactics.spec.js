@@ -5,6 +5,8 @@ const _ = require('lodash');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
+const config = require('../../../config/config');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -108,6 +110,8 @@ describe('Tactics API', function () {
                     expect(tactic1.stix.created_by_ref).toBeDefined();
                     expect(tactic1.stix.x_mitre_modified_by_ref).toBeDefined();
                     expect(tactic1.stix.created_by_ref).toBe(tactic1.stix.x_mitre_modified_by_ref);
+                    expect(tactic1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -176,6 +180,7 @@ describe('Tactics API', function () {
                     expect(tactic.stix.object_marking_refs).toEqual(expect.arrayContaining(tactic1.stix.object_marking_refs));
                     expect(tactic.stix.created_by_ref).toBe(tactic1.stix.created_by_ref);
                     expect(tactic.stix.x_mitre_modified_by_ref).toBe(tactic1.stix.x_mitre_modified_by_ref);
+                    expect(tactic.stix.x_mitre_attack_spec_version).toBe(tactic1.stix.x_mitre_attack_spec_version);
 
                     expect(tactic.stix.x_mitre_deprecated).not.toBeDefined();
 

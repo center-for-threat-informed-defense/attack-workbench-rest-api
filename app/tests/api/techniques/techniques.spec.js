@@ -2,11 +2,13 @@ const request = require('supertest');
 const expect = require('expect');
 const _ = require('lodash');
 
-const logger = require('../../../lib/logger');
-logger.level = 'debug';
-
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
+
+const config = require('../../../config/config');
+
+const logger = require('../../../lib/logger');
+logger.level = 'debug';
 
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
@@ -113,6 +115,8 @@ describe('Techniques Basic API', function () {
                     expect(technique1.stix.id).toBeDefined();
                     expect(technique1.stix.created).toBeDefined();
                     expect(technique1.stix.modified).toBeDefined();
+                    expect(technique1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -184,6 +188,7 @@ describe('Techniques Basic API', function () {
                     expect(technique.stix.x_mitre_is_subtechnique).toBe(technique1.stix.x_mitre_is_subtechnique);
                     expect(technique.stix.x_mitre_impact_type).toEqual(expect.arrayContaining(technique1.stix.x_mitre_impact_type));
                     expect(technique.stix.x_mitre_platforms).toEqual(expect.arrayContaining(technique1.stix.x_mitre_platforms));
+                    expect(technique.stix.x_mitre_attack_spec_version).toBe(technique1.stix.x_mitre_attack_spec_version);
 
                     expect(technique.stix.x_mitre_deprecated).not.toBeDefined();
                     expect(technique.stix.x_mitre_defense_bypassed).not.toBeDefined();
