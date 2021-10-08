@@ -14,6 +14,15 @@ const errors = {
 };
 exports.errors = errors;
 
+exports.retrieveSystemVersion = function() {
+    const systemVersionInfo = {
+        version: config.app.version,
+        attackSpecVersion: config.app.attackSpecVersion
+    };
+
+    return systemVersionInfo;
+}
+
 exports.retrieveAllowedValues = function(callback) {
     if (allowedValues) {
         // Return existing object asynchronously

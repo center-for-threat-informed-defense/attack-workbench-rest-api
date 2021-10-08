@@ -22,6 +22,28 @@ describe('System Configuration API', function () {
         app = await require('../../../index').initializeApp();
     });
 
+    it('GET /api/config/system-version returns the system version info', function (done) {
+        request(app)
+            .get('/api/config/system-version')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the system version info
+                    const systemVersionInfo = res.body;
+                    expect(systemVersionInfo).toBeDefined();
+                    expect(systemVersionInfo.version).toBeDefined();
+                    expect(systemVersionInfo.attackSpecVersion).toBeDefined();
+
+                    done();
+                }
+            });
+    });
+
     it('GET /api/config/allowed-values returns the allowed values', function (done) {
         request(app)
             .get('/api/config/allowed-values')
