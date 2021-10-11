@@ -5,6 +5,8 @@ const _ = require('lodash');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
+const config = require('../../../config/config');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -111,6 +113,8 @@ describe('Data Components API', function () {
                     expect(dataComponent1.stix.id).toBeDefined();
                     expect(dataComponent1.stix.created).toBeDefined();
                     expect(dataComponent1.stix.modified).toBeDefined();
+                    expect(dataComponent1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -179,6 +183,7 @@ describe('Data Components API', function () {
                     expect(dataComponent.stix.object_marking_refs).toEqual(expect.arrayContaining(dataComponent1.stix.object_marking_refs));
                     expect(dataComponent.stix.created_by_ref).toBe(dataComponent1.stix.created_by_ref);
                     expect(dataComponent.stix.x_mitre_version).toBe(dataComponent1.stix.x_mitre_version);
+                    expect(dataComponent.stix.x_mitre_attack_spec_version).toBe(dataComponent1.stix.x_mitre_attack_spec_version);
 
                     done();
                 }

@@ -6,6 +6,8 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const Group = require('../../../models/group-model');
 
+const config = require('../../../config/config');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -110,6 +112,8 @@ describe('Groups API', function () {
                     expect(group1.stix.id).toBeDefined();
                     expect(group1.stix.created).toBeDefined();
                     expect(group1.stix.modified).toBeDefined();
+                    expect(group1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -177,6 +181,7 @@ describe('Groups API', function () {
                     expect(group.stix.spec_version).toBe(group1.stix.spec_version);
                     expect(group.stix.object_marking_refs).toEqual(expect.arrayContaining(group1.stix.object_marking_refs));
                     expect(group.stix.created_by_ref).toBe(group1.stix.created_by_ref);
+                    expect(group.stix.x_mitre_attack_spec_version).toBe(group1.stix.x_mitre_attack_spec_version);
 
                     done();
                 }

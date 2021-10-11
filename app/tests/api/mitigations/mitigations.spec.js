@@ -5,6 +5,8 @@ const _ = require('lodash');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
+const config = require('../../../config/config');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -107,6 +109,8 @@ describe('Mitigations API', function () {
                     expect(mitigation1.stix.id).toBeDefined();
                     expect(mitigation1.stix.created).toBeDefined();
                     expect(mitigation1.stix.modified).toBeDefined();
+                    expect(mitigation1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -175,6 +179,7 @@ describe('Mitigations API', function () {
                     expect(mitigation.stix.object_marking_refs).toEqual(expect.arrayContaining(mitigation1.stix.object_marking_refs));
                     expect(mitigation.stix.created_by_ref).toBe(mitigation1.stix.created_by_ref);
                     expect(mitigation.stix.x_mitre_version).toBe(mitigation1.stix.x_mitre_version);
+                    expect(mitigation.stix.x_mitre_attack_spec_version).toBe(mitigation1.stix.x_mitre_attack_spec_version);
 
                     done();
                 }

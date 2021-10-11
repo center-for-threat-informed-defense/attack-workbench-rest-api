@@ -5,6 +5,8 @@ const _ = require('lodash');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
+const config = require('../../../config/config');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -117,6 +119,8 @@ describe('Relationships API', function () {
                     expect(relationship1a.stix.id).toBeDefined();
                     expect(relationship1a.stix.created).toBeDefined();
                     expect(relationship1a.stix.modified).toBeDefined();
+                    expect(relationship1a.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -184,6 +188,7 @@ describe('Relationships API', function () {
                     expect(relationship.stix.spec_version).toBe(relationship1a.stix.spec_version);
                     expect(relationship.stix.object_marking_refs).toEqual(expect.arrayContaining(relationship1a.stix.object_marking_refs));
                     expect(relationship.stix.created_by_ref).toBe(relationship1a.stix.created_by_ref);
+                    expect(relationship.stix.x_mitre_attack_spec_version).toBe(relationship1a.stix.x_mitre_attack_spec_version);
 
                     done();
                 }
