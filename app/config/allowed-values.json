@@ -96,6 +96,53 @@
             ]
           }
         ]
+      },
+      {
+        "propertyName": "x_mitre_data_sources",
+        "domains": [
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [
+              "Network protocol analysis",
+              "Packet capture",
+              "API monitoring",
+              "Process monitoring",
+              "System calls",
+              "Sequential event recorder",
+              "Controller program",
+              "Windows event logs",
+              "Authentication logs",
+              "Application logs",
+              "Alarm history",
+              "Data historian",
+              "File monitoring",
+              "Windows error reporting",
+              "Windows registry",
+              "Process command-line parameters",
+              "Binary file metadata",
+              "Network device logs",
+              "Netflow/Enclave netflow",
+              "Controller parameters",
+              "Data loss prevention",
+              "Process use of network",
+              "Malware reverse engineering",
+              "Anti-virus",
+              "Alarm thresholds",
+              "Third-party application logs",
+              "Host network interfaces",
+              "Web proxy",
+              "Detonation chamber",
+              "Digital signatures",
+              "Web logs",
+              "Web application firewall logs",
+              "Asset management",
+              "Network intrusion detection system",
+              "Email gateway",
+              "Mail server",
+              "SSl/TLS inspection"
+            ]
+          }
+        ]
       }
     ]
   },
