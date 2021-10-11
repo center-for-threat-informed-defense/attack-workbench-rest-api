@@ -220,7 +220,7 @@ exports.create = async function(data, options) {
     options = options || {};
     if (!options.import) {
         // Set the ATT&CK Spec Version
-        technique.stix.x_mitre_attack_spec_version = config.app.attackSpecVersion;
+        technique.stix.x_mitre_attack_spec_version = technique.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
