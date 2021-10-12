@@ -1,6 +1,9 @@
 const request = require('supertest');
 const expect = require('expect');
 const _ = require('lodash');
+const semver = require('semver');
+
+const config = require('../../../config/config');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -10,6 +13,9 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 
 const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
 const collectionTimestamp = new Date().toISOString();
+
+const currentAttackSpecVersion = config.app.attackSpecVersion;
+const incrementedAttackSpecVersion = semver.inc(currentAttackSpecVersion, 'major');
 
 const collectionBundleData = {
     type: 'bundle',
@@ -367,6 +373,61 @@ const collectionBundleData4 = {
     ]
 };
 
+const collectionId5 = 'x-mitre-collection--2a5ef1a2-effb-4951-a301-e9ed333cb4cb'
+const collectionTimestamp5 = new Date().toISOString();
+
+const collectionBundleData5 = {
+    type: 'bundle',
+    id: 'bundle--45bad6cc-a31b-418b-acf8-cd8ff3a5c2ec',
+    objects: [
+        {
+            id: collectionId5,
+            created: collectionTimestamp5,
+            modified: collectionTimestamp5,
+            name: 'collection-4',
+            spec_version: '2.1',
+            type: 'x-mitre-collection',
+            description: 'This is a collection.',
+            external_references: [
+                {source_name: 'source-1', external_id: 's1'}
+            ],
+            object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            x_mitre_contents: [
+                {
+                    "object_ref": "attack-pattern--44fc382e-0b71-4f5d-9110-fb2e35452d98",
+                    "object_modified": "2021-03-30T14:03:43.761Z"
+                }
+            ]
+        },
+        {
+            id: 'attack-pattern--44fc382e-0b71-4f5d-9110-fb2e35452d98',
+            created: '2020-03-30T14:03:43.761Z',
+            modified: '2021-03-30T14:03:43.761Z',
+            name: 'attack-pattern-5',
+            x_mitre_version: '1.0',
+            spec_version: '2.1',
+            x_mitre_attack_spec_version: incrementedAttackSpecVersion,
+            type: 'attack-pattern',
+            description: 'This is a technique.',
+            external_references: [
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'attack-pattern-1 source', description: 'this is a source description'}
+            ],
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            kill_chain_phases: [
+                { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
+            ],
+            x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
+            x_mitre_detection: 'detection text',
+            x_mitre_is_subtechnique: false,
+            x_mitre_impact_type: [ 'impact-1' ],
+            x_mitre_platforms: [ 'platform-1', 'platform-2' ]
+        }
+    ]
+};
+
 describe('Collection Bundles Basic API', function () {
     let app;
 
@@ -437,6 +498,38 @@ describe('Collection Bundles Basic API', function () {
             .send(body)
             .set('Accept', 'application/json')
             .expect(400)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collection-bundles does not import a collection bundle with an attack spec version violation', function (done) {
+        const body = collectionBundleData5;
+        request(app)
+            .post('/api/collection-bundles')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(409)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collection-bundles DOES import a collection bundle with an attack spec version violation if forceImport is set', function (done) {
+        const body = collectionBundleData5;
+        request(app)
+            .post('/api/collection-bundles?forceImport=attack-spec-version-violations')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
             .end(function (err, res) {
                 if (err) {
                     done(err);
@@ -536,6 +629,22 @@ describe('Collection Bundles Basic API', function () {
             .send(body)
             .set('Accept', 'application/json')
             .expect(400)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collection-bundles DOES import a duplicate collection bundle if forceImport is set', function (done) {
+        const body = collectionBundleData;
+        request(app)
+            .post('/api/collection-bundles?forceImport=duplicate-collection')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
             .end(function (err, res) {
                 if (err) {
                     done(err);

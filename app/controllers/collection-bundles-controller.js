@@ -3,9 +3,34 @@
 const collectionBundlesService = require('../services/collection-bundles-service');
 const logger = require('../lib/logger');
 
+const availableForceImportParameters = [
+    collectionBundlesService.forceImportParameters.attackSpecVersionViolations,
+    collectionBundlesService.forceImportParameters.duplicateCollection
+];
+
+function extractForceImportParameters(req) {
+    const params = [];
+    if (req.query.forceImport) {
+        if (Array.isArray(req.query.forceImport)) {
+            params.push(...req.query.forceImport);
+        }
+        else {
+            params.push(req.query.forceImport);
+        }
+
+        if (params.find(param => param === 'all')) {
+            return availableForceImportParameters;
+        }
+    }
+
+    return params;
+}
+
 exports.importBundle = function(req, res) {
     // Get the data from the request
     const collectionBundleData = req.body;
+
+    const forceImportParameters = extractForceImportParameters(req);
 
     // Find the x-mitre-collection objects
     const collections = collectionBundleData.objects.filter(object => object.type === 'x-mitre-collection');
@@ -33,7 +58,8 @@ exports.importBundle = function(req, res) {
     }
 
     const options = {
-        previewOnly: req.query.previewOnly || req.query.checkOnly
+        previewOnly: req.query.previewOnly || req.query.checkOnly,
+        forceImportParameters
     }
 
     // Import the collection bundle
@@ -42,6 +68,10 @@ exports.importBundle = function(req, res) {
             if (err.message === collectionBundlesService.errors.duplicateCollection) {
                 logger.error('Unable to import collection, duplicate x-mitre-collection.');
                 return res.status(400).send('Unable to import collection, duplicate x-mitre-collection.');
+            }
+            else if (err.message === collectionBundlesService.errors.attackSpecVersionViolation) {
+                logger.error('Unable to import collection, ATT&CK Spec version violation.');
+                return res.status(409).send('Unable to import collection, ATT&CK Spec version violation.');
             }
             else {
                 logger.error("Unable to import collection, create collection index failed with error: " + err);
