@@ -1,6 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
+const util = require('util');
 
 const collectionsService = require('../services/collections-service');
 const techniquesService = require('../services/techniques-service');
@@ -20,6 +21,7 @@ const dataComponentsService = require('../services/data-components-service');
 const logger = require('../lib/logger');
 
 const async = require('async');
+const systemConfigurationService = require("./system-configuration-service");
 
 const errors = {
     duplicateCollection: 'Duplicate collection',
@@ -512,7 +514,7 @@ exports.importBundle = function(collection, data, options, callback) {
     );
 };
 
-function createBundle(collection, options, callback) {
+async function createBundle(collection, options) {
     // Create the bundle to hold the exported objects
     const bundle = {
         type: 'bundle',
@@ -528,49 +530,34 @@ function createBundle(collection, options, callback) {
         bundle.objects.push(attackObject.stix);
     }
 
-    if (options.previewOnly) {
-        return callback(null, bundle);
-    }
-    else {
+    await addDerivedDataSources(bundle.objects);
+
+    if (!options.previewOnly) {
         const exportData = {
             export_timestamp: new Date(),
             bundle_id: bundle.id
         }
         // Mark all of the objects as belonging to the bundle
-        collectionsService.insertExport(collection.stix.id, collection.stix.modified, exportData)
-            .then(function (err) {
-                if (err) {
-                    return callback(err);
-                } else {
-                    return callback(null, bundle);
-                }
-            });
+        await collectionsService.insertExport(collection.stix.id, collection.stix.modified, exportData);
     }
+
+    return bundle;
 }
 
-exports.exportBundle = function(options, callback) {
+exports.exportBundle = async function(options) {
     if (options.collectionModified) {
         // Retrieve the collection with the provided id and modified date
         const retrievalOptions = { retrieveContents: true };
-        collectionsService.retrieveVersionById(options.collectionId, options.collectionModified, retrievalOptions, function(err, collection) {
-            if (err) {
-                return callback(err);
-            }
-            else {
-                if (collection) {
-                    createBundle(collection, options, function (err, bundle) {
-                        if (err) {
-                            return callback(err);
-                        } else {
-                            return callback(null, bundle);
-                        }
-                    });
-                } else {
-                    const error = new Error(errors.notFound);
-                    return callback(error);
-                }
-            }
-        });
+        const retrieveCollection = util.promisify(collectionsService.retrieveVersionById);
+        const collection = await retrieveCollection(options.collectionId, options.collectionModified, retrievalOptions);
+        if (collection) {
+            const bundle = await createBundle(collection, options);
+            return bundle;
+        }
+        else {
+            const error = new Error(errors.notFound);
+            throw error;
+        }
     }
     else {
         // Retrieve the latest collection with the provided id
@@ -578,27 +565,91 @@ exports.exportBundle = function(options, callback) {
             versions: 'latest',
             retrieveContents: true
         };
-        collectionsService.retrieveById(options.collectionId, retrievalOptions, function (err, collections) {
-            if (err) {
-                return callback(err);
-            } else {
-                if (collections.length === 1) {
-                    const exportedCollection = collections[0];
-                    createBundle(exportedCollection, options, function (err, bundle) {
-                        if (err) {
-                            return callback(err);
-                        } else {
-                            return callback(null, bundle);
-                        }
-                    });
-                } else if (collections.length === 0) {
-                    const error = new Error(errors.notFound);
-                    return callback(error);
-                } else {
-                    const error = new Error('Unknown error occurred');
-                    return callback(error);
+        const retrieveCollection = util.promisify(collectionsService.retrieveById);
+        const collections = await retrieveCollection(options.collectionId, retrievalOptions);
+        if (collections.length === 1) {
+            const exportedCollection = collections[0];
+            const bundle = await createBundle(exportedCollection, options);
+            return bundle;
+        } else if (collections.length === 0) {
+            const error = new Error(errors.notFound);
+            throw error;
+        } else {
+            const error = new Error('Unknown error occurred');
+            throw error;
+        }
+    }
+}
+
+async function addDerivedDataSources(bundleObjects) {
+    // Get the data components, data sources, and techniques detected by data components
+    const dataComponents = new Map();
+    const dataSources = new Map();
+    const techniqueDetectedBy = new Map();
+    for (const bundleObject of bundleObjects) {
+        if (bundleObject.type === 'x-mitre-data-component') {
+            dataComponents.set(bundleObject.id, bundleObject);
+        }
+        else if (bundleObject.type === 'x-mitre-data-source') {
+            dataSources.set(bundleObject.id, bundleObject);
+        }
+        else if (bundleObject.type === 'relationship' && bundleObject.relationship_type === 'detects') {
+            // technique (target_ref) detected by array of data-component (source_ref)
+            const dataComponents = techniqueDetectedBy.get(bundleObject.target_ref);
+            if (dataComponents) {
+                // Add to the existing array
+                dataComponents.push(bundleObject.source_ref);
+            }
+            else {
+                // Create a new array and add to map
+                techniqueDetectedBy.set(bundleObject.target_ref, [bundleObject.source_ref]);
+            }
+        }
+    }
+
+    const icsDataSourceValues = await systemConfigurationService.retrieveAllowedValuesForTypePropertyDomain('technique', 'x_mitre_data_sources', 'ics-attack');
+    for (const bundleObject of bundleObjects) {
+        if (bundleObject.type === 'attack-pattern') {
+            const enterpriseDomain = bundleObject.x_mitre_domains.find(domain => domain === 'enterprise-attack');
+            const icsDomain = bundleObject.x_mitre_domains.find(domain => domain === 'attack-ics');
+            if (enterpriseDomain && !icsDomain) {
+                // Remove any existing data sources
+                bundleObject.x_mitre_data_sources = [];
+
+                // Add in any enterprise data sources from detects relationships
+                const dataComponentIds = techniqueDetectedBy.get(bundleObject.id);
+                if (dataComponentIds) {
+                    for (const dataComponentId of dataComponentIds) {
+                        const dataComponent = dataComponents.get(dataComponentId);
+                        const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
+                        const derivedDataSource = `${ dataSource.name }: ${ dataComponent.name }`;
+                        bundleObject.x_mitre_data_sources.push(derivedDataSource);
+                    }
                 }
             }
-        });
+            else if (icsDomain && !enterpriseDomain) {
+                // Remove any data sources that are not in the list of valid ICS data sources
+                bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.find(value => value === source));
+            }
+            else if (enterpriseDomain && icsDomain) {
+                // Remove any data sources that are not in the list of valid ICS data sources
+                bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.find(value => value === source));
+
+                // Add in any enterprise data sources from detects relationships
+                const dataComponentIds = techniqueDetectedBy.get(bundleObject.id);
+                if (dataComponentIds) {
+                    for (const dataComponentId of dataComponentIds) {
+                        const dataComponent = dataComponents.get(dataComponentId);
+                        const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
+                        const derivedDataSource = `${ dataSource.name }: ${ dataComponent.name }`;
+                        bundleObject.x_mitre_data_sources.push(derivedDataSource);
+                    }
+                }
+            }
+            else {
+                // Remove any existing data sources
+                bundleObject.x_mitre_data_sources = [];
+            }
+        }
     }
 }
