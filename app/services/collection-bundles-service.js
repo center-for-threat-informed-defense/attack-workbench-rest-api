@@ -2,6 +2,7 @@
 
 const uuid = require('uuid');
 const util = require('util');
+const semver = require('semver');
 
 const collectionsService = require('../services/collections-service');
 const techniquesService = require('../services/techniques-service');
@@ -18,24 +19,46 @@ const referencesService = require('../services/references-service');
 const dataSourcesService = require('../services/data-sources-service');
 const dataComponentsService = require('../services/data-components-service');
 
+const Collection = require('../models/collection-model');
+
 const logger = require('../lib/logger');
+const config = require('../config/config');
 
 const async = require('async');
 const systemConfigurationService = require("./system-configuration-service");
 
+const forceImportParameters = {
+    attackSpecVersionViolations: 'attack-spec-version-violations',
+    duplicateCollection: 'duplicate-collection'
+}
+exports.forceImportParameters = forceImportParameters;
+
 const errors = {
     duplicateCollection: 'Duplicate collection',
     notFound: 'Collection not found',
+    attackSpecVersionViolation: 'ATT&CK Spec version violation'
 };
 exports.errors = errors;
 
+const validationErrors = {
+    duplicateObjectInBundle: 'Duplicate object in bundle',
+    invalidAttackSpecVersion: 'Invalid ATT&CK Spec version'
+};
+exports.validationErrors = validationErrors;
+
 const importErrors = {
+    duplicateCollection: 'Duplicate collection object',
     retrievalError: 'Retrieval error',
     unknownObjectType: 'Unknown object type',
     notInContents: 'Not in contents',  // object in bundle but not in x_mitre_contents
     missingObject: 'Missing object',    // object in x_mitre_contents but not in bundle
-    saveError: 'Save error'
+    saveError: 'Save error',
+    attackSpecVersionViolation: 'ATT&CK Spec version violation'
 }
+
+// Default ATT&CK Spec version to use for objects that do not have x_mitre_attack_spec_version set
+// This isn't saved, but is used for comparisons
+const defaultAttackSpecVersion = '2.0.0';
 
 function makeKey(stixId, modified) {
     return stixId + '/' + modified;
@@ -63,23 +86,40 @@ function toEpoch(date) {
 
 exports.validateBundle = function(bundle) {
     const validationResult = {
-        errors: []
+        errors: [],
+        duplicateObjectInBundleCount: 0,
+        invalidAttackSpecVersionCount: 0
     };
 
-    // Check for duplicate objects in the bundle
+    // Validate the objects in the bundle
     const objectMap = new Map();
     for (const stixObject of bundle.objects) {
-        if (objectMap.has(makeKey(stixObject.id, stixObject.modified))) {
+        // Check for a duplicate object
+        const key = makeKey(stixObject.id, stixObject.modified);
+        if (objectMap.has(key)) {
             // Object already in map: duplicate STIX id and modified date
             const error = {
-                type: 'duplicate',
+                type: validationErrors.duplicateObjectInBundle,
                 id: stixObject.id,
                 modified: stixObject.modified
             };
             validationResult.errors.push(error);
-        }
-        else {
+            validationResult.duplicateObjectInBundleCount += 1;
+        } else {
             objectMap.set(makeKey(stixObject.id, stixObject.modified), stixObject);
+        }
+
+        // Check the ATT&CK Spec version
+        const objectAttackSpecVersion = stixObject.x_mitre_attack_spec_version ?? defaultAttackSpecVersion;
+        if (semver.gt(objectAttackSpecVersion, config.app.attackSpecVersion)) {
+            // Object's ATT&CK Spec version is newer than system can process
+            const error = {
+                type: validationErrors.invalidAttackSpecVersion,
+                id: stixObject.id,
+                modified: stixObject.modified
+            };
+            validationResult.errors.push(error);
+            validationResult.invalidAttackSpecVersionCount += 1;
         }
     }
 
@@ -132,6 +172,7 @@ exports.importBundle = function(collection, data, options, callback) {
     }
 
     const importReferences = new Map();
+    let duplicateCollection;
 
     async.series(
         [
@@ -142,10 +183,27 @@ exports.importBundle = function(collection, data, options, callback) {
                         return callback1(err);
                     }
                     else {
-                        const duplicateCollection = collections.find(collection => toEpoch(collection.stix.modified) === toEpoch(importedCollection.stix.modified));
+                        duplicateCollection = collections.find(collection => toEpoch(collection.stix.modified) === toEpoch(importedCollection.stix.modified));
                         if (duplicateCollection) {
-                            const error = new Error(errors.duplicateCollection);
-                            return callback1(error);
+                            if (options.forceImportParameters?.find(param => param === forceImportParameters.duplicateCollection)) {
+                                // Duplicate x-mitre-collection object
+                                // Client wants to reimport collection
+                                // Record the warning but continue processing the bundle
+                                const importError = {
+                                    object_ref: importedCollection.stix.id,
+                                    object_modified: importedCollection.stix.modified,
+                                    error_type: importErrors.duplicateCollection,
+                                    error_message: `Warning: Duplicate x-mitre-collection object.`
+                                }
+                                logger.verbose(`Import Bundle Warning: Duplicate x-mitre-collection object. Continuing import due to forceImport parameter.`);
+                                importedCollection.workspace.import_categories.errors.push(importError);
+
+                                return callback1();
+                            }
+                            else {
+                                const error = new Error(errors.duplicateCollection);
+                                return callback1(error);
+                            }
                         }
                         else {
                             return callback1();
@@ -168,6 +226,30 @@ exports.importBundle = function(collection, data, options, callback) {
                             }
                             logger.verbose(`Import Bundle Warning: Object not in x_mitre_contents. id = ${ importObject.id }, modified = ${ importObject.modified }`);
                             importedCollection.workspace.import_categories.errors.push(importError);
+                        }
+
+                        // Check to see if the object has a later ATT&CK Spec Version than this system can process
+                        const objectAttackSpecVersion = importObject.x_mitre_attack_spec_version ?? defaultAttackSpecVersion;
+                        if (semver.gt(objectAttackSpecVersion, config.app.attackSpecVersion)) {
+                            // Do not save the object
+                            const importError = {
+                                object_ref: importObject.id,
+                                object_modified: importObject.modified,
+                                error_type: importErrors.attackSpecVersionViolation,
+                                error_message: `Error: Object x_mitre_attack_spec_version later than system.`
+                            }
+                            logger.verbose(`Import Bundle Error: Object's x_mitre_attack_spec_version later than system. id = ${ importObject.id }, modified = ${ importObject.modified }`);
+                            importedCollection.workspace.import_categories.errors.push(importError);
+
+                            if (options.forceImportParameters.find(param => param === forceImportParameters.attackSpecVersionViolations)) {
+                                // Skip this object but continue the import
+                                return callback2a();
+                            }
+                            else {
+                                // Stop the import
+                                const error = new Error(errors.attackSpecVersionViolation);
+                                return callback2a(error);
+                            }
                         }
 
                         let service;
@@ -481,25 +563,56 @@ exports.importBundle = function(collection, data, options, callback) {
             },
             // Save the x-mitre-collection object
             function(callback4) {
-                if (options.previewOnly) {
-                    // Do nothing
-                    process.nextTick(() => callback4(null, importedCollection));
-                }
-                else {
-                    const options = { addObjectsToCollection: false, import: true };
-                    collectionsService.create(importedCollection, options)
-                        .then(function(result) {
-                            return callback4(null, result.savedCollection);
-                        })
-                        .catch(function(err) {
-                            if (err.name === 'MongoError' && err.code === 11000) {
-                                // 11000 = Duplicate index
-                                const error = new Error(errors.duplicateCollection);
-                                return callback4(error);
-                            } else {
+                if (duplicateCollection) {
+                    // The x-mitre-collection object already exists, this is a reimport
+                    // Add the results of the import to the workspace.reimports property
+                    const reimport = {
+                        imported: new Date().toISOString(),
+                        import_categories: importedCollection.workspace.import_categories,
+                        import_references: importedCollection.workspace.import_references
+                    };
+                    if (!duplicateCollection.workspace.reimports) {
+                        duplicateCollection.workspace.reimports = [];
+                    }
+                    duplicateCollection.workspace.reimports.push(reimport);
+
+                    if (options.previewOnly) {
+                        // Do nothing
+                        process.nextTick(() => callback4(null, importedCollection));
+                    }
+                    else {
+                        const options = { new: true, lean: true };
+                        Collection.findByIdAndUpdate(duplicateCollection._id, duplicateCollection, options, function (err, savedDocument) {
+                            if (err) {
                                 return callback4(err);
                             }
+                            else {
+                                return callback4(null, savedDocument);
+                            }
                         });
+                    }
+                }
+                else {
+                    // New x-mitre-collection object
+                    if (options.previewOnly) {
+                        // Do nothing
+                        process.nextTick(() => callback4(null, importedCollection));
+                    } else {
+                        const options = { addObjectsToCollection: false, import: true };
+                        collectionsService.create(importedCollection, options)
+                            .then(function (result) {
+                                return callback4(null, result.savedCollection);
+                            })
+                            .catch(function (err) {
+                                if (err.name === 'MongoError' && err.code === 11000) {
+                                    // 11000 = Duplicate index
+                                    const error = new Error(errors.duplicateCollection);
+                                    return callback4(error);
+                                } else {
+                                    return callback4(err);
+                                }
+                            });
+                    }
                 }
             }
         ],
