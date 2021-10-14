@@ -38,6 +38,12 @@ const errors = {
 };
 exports.errors = errors;
 
+const validationErrors = {
+    duplicateObjectInBundle: 'Duplicate object in bundle',
+    invalidAttackSpecVersion: 'Invalid ATT&CK Spec version'
+};
+exports.validationErrors = validationErrors;
+
 const importErrors = {
     duplicateCollection: 'Duplicate collection object',
     retrievalError: 'Retrieval error',
@@ -78,23 +84,40 @@ function toEpoch(date) {
 
 exports.validateBundle = function(bundle) {
     const validationResult = {
-        errors: []
+        errors: [],
+        duplicateObjectInBundleCount: 0,
+        invalidAttackSpecVersionCount: 0
     };
 
-    // Check for duplicate objects in the bundle
+    // Validate the objects in the bundle
     const objectMap = new Map();
     for (const stixObject of bundle.objects) {
-        if (objectMap.has(makeKey(stixObject.id, stixObject.modified))) {
+        // Check for a duplicate object
+        const key = makeKey(stixObject.id, stixObject.modified);
+        if (objectMap.has(key)) {
             // Object already in map: duplicate STIX id and modified date
             const error = {
-                type: 'duplicate',
+                type: validationErrors.duplicateObjectInBundle,
                 id: stixObject.id,
                 modified: stixObject.modified
             };
             validationResult.errors.push(error);
-        }
-        else {
+            validationResult.duplicateObjectInBundleCount += 1;
+        } else {
             objectMap.set(makeKey(stixObject.id, stixObject.modified), stixObject);
+        }
+
+        // Check the ATT&CK Spec version
+        const objectAttackSpecVersion = stixObject.x_mitre_attack_spec_version ?? defaultAttackSpecVersion;
+        if (semver.gt(objectAttackSpecVersion, config.app.attackSpecVersion)) {
+            // Object's ATT&CK Spec version is newer than system can process
+            const error = {
+                type: validationErrors.invalidAttackSpecVersion,
+                id: stixObject.id,
+                modified: stixObject.modified
+            };
+            validationResult.errors.push(error);
+            validationResult.invalidAttackSpecVersionCount += 1;
         }
     }
 

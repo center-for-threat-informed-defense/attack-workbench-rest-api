@@ -470,6 +470,9 @@ describe('Collection Bundles Basic API', function () {
                 if (err) {
                     done(err);
                 } else {
+                    const errorResult = res.body;
+                    expect(errorResult.bundleErrors.moreThanOneCollection).toBe(true);
+
                     done();
                 }
             });
@@ -486,6 +489,9 @@ describe('Collection Bundles Basic API', function () {
                 if (err) {
                     done(err);
                 } else {
+                    const errorResult = res.body;
+                    expect(errorResult.bundleErrors.noCollection).toBe(true);
+
                     done();
                 }
             });
@@ -502,6 +508,9 @@ describe('Collection Bundles Basic API', function () {
                 if (err) {
                     done(err);
                 } else {
+                    const errorResult = res.body;
+                    expect(errorResult.objectErrors.summary.duplicateObjectInBundleCount).toBe(1);
+
                     done();
                 }
             });
@@ -513,11 +522,14 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
-            .expect(409)
+            .expect(400)
             .end(function (err, res) {
                 if (err) {
                     done(err);
                 } else {
+                    const errorResult = res.body;
+                    expect(errorResult.objectErrors.summary.invalidAttackSpecVersionCount).toBe(1);
+
                     done();
                 }
             });
