@@ -241,7 +241,7 @@ rules:
   radix:
     - error
     - always
-  require-atomic-updates: error
+  require-atomic-updates: 'off'
   require-await: error
   require-jsdoc: 'off'
   require-unicode-regexp: 'off'

@@ -15,17 +15,16 @@ exports.retrieveSystemVersion = function(req, res) {
     }
 };
 
-exports.retrieveAllowedValues = function(req, res) {
-    systemConfigurationService.retrieveAllowedValues(function(err, allowedValues) {
-        if (err) {
+exports.retrieveAllowedValues = async function(req, res) {
+    try {
+        const allowedValues = await systemConfigurationService.retrieveAllowedValues();
+        logger.debug("Success: Retrieved allowed values.");
+        return res.status(200).send(allowedValues);
+    }
+    catch(err) {
             logger.error("Unable to retrieve allowed values, failed with error: " + err);
             return res.status(500).send("Unable to retrieve allowed values. Server error.");
-        }
-        else {
-            logger.debug("Success: Retrieved allowed values.");
-            return res.status(200).send(allowedValues);
-        }
-    });
+    }
 };
 
 exports.retrieveOrganizationIdentity = async function(req, res) {

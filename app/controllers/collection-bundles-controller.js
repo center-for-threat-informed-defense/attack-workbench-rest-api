@@ -61,7 +61,7 @@ exports.importBundle = function(req, res) {
     });
 };
 
-exports.exportBundle = function(req, res) {
+exports.exportBundle = async function(req, res) {
     if (req.query.collectionModified && !req.query.collectionId) {
         return res.status(400).send('collectionId is required when providing collectionModified');
     }
@@ -72,19 +72,18 @@ exports.exportBundle = function(req, res) {
         previewOnly: req.query.previewOnly
     };
 
-    collectionBundlesService.exportBundle(options, function(err, collectionBundle) {
-        if (err) {
-            if (err.message === collectionBundlesService.errors.notFound) {
-                return res.status(404).send('Collection not found');
-            }
-            else {
-                logger.error('Unable to export collection: ' + err);
-                return res.status(500).send('Unable to export collection.');
-            }
+    try {
+        const collectionBundle = await collectionBundlesService.exportBundle(options);
+        return res.status(200).send(collectionBundle);
+    }
+    catch(err) {
+        if (err.message === collectionBundlesService.errors.notFound) {
+            return res.status(404).send('Collection not found');
         }
         else {
-            return res.status(200).send(collectionBundle);
+            logger.error('Unable to export collection: ' + err);
+            return res.status(500).send('Unable to export collection.');
         }
-    })
+    }
 }
 
