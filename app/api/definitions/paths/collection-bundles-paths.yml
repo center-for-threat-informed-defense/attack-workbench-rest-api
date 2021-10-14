@@ -62,6 +62,29 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: forceImport
+          in: query
+          description: |
+            Normally, the import of a collection bundle is cancelled if any objects violate certain rules.
+            This parameter can be used to force an import of the collection bundle even if one or more objects violate a rule.
+            The value of the parameter indicates which errors to override.
+            Note that objects that violate the rule will not be imported, but the entire import will not be cancelled.
+            This parameter may be set multiple times to select multiple overrides.
+          schema:
+            oneOf:
+              - type: string
+                enum:
+                  - attack-spec-version-violations
+                  - duplicate-collection
+                  - all
+              - type: array
+                items:
+                  type: string
+                  enum:
+                    - attack-spec-version-violations
+                    - duplicate-collection
+                    - all
+          example: 'attack-spec-version-violations'
       requestBody:
         required: true
         content:
