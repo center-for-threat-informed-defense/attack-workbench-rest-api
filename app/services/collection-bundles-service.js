@@ -513,8 +513,8 @@ exports.importBundle = function(collection, data, options, callback) {
             },
             // Import the new references
             function(callback3) {
-                const options = {};
-                referencesService.retrieveAll(options)
+                const retrievalOptions = {};
+                referencesService.retrieveAll(retrievalOptions)
                     .then(function(references) {
                         const existingReferences = new Map(references.map(item => [ item.source_name, item ]));
 

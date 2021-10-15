@@ -205,7 +205,7 @@ const initialObjectData = {
             kill_chain_phases: [
                 { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
             ],
-            x_mitre_data_sources: [ 'Alarm history', 'File monitoring' ],
+            x_mitre_data_sources: [ 'Operational Databases: Device Alarm', 'Network Traffic: Network Traffic Flow' ],
             x_mitre_detection: 'detection text',
             x_mitre_is_subtechnique: false,
             x_mitre_impact_type: [ 'impact-1' ],
@@ -230,7 +230,7 @@ const initialObjectData = {
             kill_chain_phases: [
                 { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
             ],
-            x_mitre_data_sources: [ 'Command: Command Execution', 'Alarm history', 'File monitoring' ],
+            x_mitre_data_sources: [ 'Command: Command Execution', 'Operational Databases: Device Alarm', 'Network Traffic: Network Traffic Flow' ],
             x_mitre_detection: 'detection text',
             x_mitre_is_subtechnique: false,
             x_mitre_impact_type: [ 'impact-1' ],
