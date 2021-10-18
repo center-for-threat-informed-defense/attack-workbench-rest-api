@@ -111,7 +111,17 @@ exports.validateBundle = function(bundle) {
 
         // Check the ATT&CK Spec version
         const objectAttackSpecVersion = stixObject.x_mitre_attack_spec_version ?? defaultAttackSpecVersion;
-        if (semver.gt(objectAttackSpecVersion, config.app.attackSpecVersion)) {
+        if (!semver.valid(objectAttackSpecVersion)) {
+            // Object's ATT&CK Spec version isn't a correctly formatted semantic version
+            const error = {
+                type: validationErrors.invalidAttackSpecVersion,
+                id: stixObject.id,
+                modified: stixObject.modified
+            };
+            validationResult.errors.push(error);
+            validationResult.invalidAttackSpecVersionCount += 1;
+        }
+        else if (semver.gt(objectAttackSpecVersion, config.app.attackSpecVersion)) {
             // Object's ATT&CK Spec version is newer than system can process
             const error = {
                 type: validationErrors.invalidAttackSpecVersion,
