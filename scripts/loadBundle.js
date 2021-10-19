@@ -14,6 +14,9 @@ async function loadBundle() {
     console.log('Setting up the database connection');
     await require('../app/lib/database-connection').initializeConnection();
 
+    // const bundle = await readJson('../app/tests/import/enterprise-attack-7.2.json');
+    // const bundle = await readJson('../app/tests/import/enterprise-attack-8.2.json');
+    // const bundle = await readJson('../app/tests/import/enterprise-attack-9.0.json');
     const bundle = await readJson('../app/tests/import/enterprise-attack-9.0-with-mock-data-sources-collection.json');
     const options = {};
 

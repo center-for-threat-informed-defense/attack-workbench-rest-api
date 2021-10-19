@@ -17,7 +17,7 @@ async function readJson(path) {
 describe('Collection Bundles API Full-Size Test', function () {
     let app;
     let collectionBundle72;
-    let collectionBundle80;
+    let collectionBundle82;
     let collectionBundle90;
 
     before(async function() {
@@ -32,8 +32,8 @@ describe('Collection Bundles API Full-Size Test', function () {
         app = await require('../../index').initializeApp();
 
         collectionBundle72 = await readJson('./enterprise-attack-7.2.json');
-        collectionBundle80 = await readJson('./enterprise-attack-8.0.json');
-        collectionBundle90 = await readJson('./enterprise-attack-9.0-with-mock-data-sources-collection.json');
+        collectionBundle82 = await readJson('./enterprise-attack-8.2.json');
+        collectionBundle90 = await readJson('./enterprise-attack-9.0.json');
     });
 
     it('POST /api/collection-bundles previews the import of a 9.0 collection bundle (checkOnly)', function (done) {
@@ -51,14 +51,17 @@ describe('Collection Bundles API Full-Size Test', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.errors.length).toBe(0);
+
+                    // MITRE marking definition is missing from x_mitre_contents in the 9.0 bundle
+                    expect(collection.workspace.import_categories.errors.length).toBe(1);
+
                     done();
                 }
             });
     });
 
-    it('POST /api/collection-bundles previews the import of a 8.0 collection bundle (checkOnly)', function (done) {
-        const body = collectionBundle80;
+    it('POST /api/collection-bundles previews the import of a 8.2 collection bundle (checkOnly)', function (done) {
+        const body = collectionBundle82;
         request(app)
             .post('/api/collection-bundles?checkOnly=true')
             .send(body)
@@ -72,14 +75,17 @@ describe('Collection Bundles API Full-Size Test', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.errors.length).toBe(0);
+
+                    // MITRE marking definition is missing from x_mitre_contents in the 8.2 bundle
+                    expect(collection.workspace.import_categories.errors.length).toBe(1);
+
                     done();
                 }
             });
     });
 
-    it('POST /api/collection-bundles previews the import of a 8.0 collection bundle (previewOnly)', function (done) {
-        const body = collectionBundle80;
+    it('POST /api/collection-bundles previews the import of a 8.2 collection bundle (previewOnly)', function (done) {
+        const body = collectionBundle82;
         request(app)
             .post('/api/collection-bundles?previewOnly=true')
             .send(body)
@@ -93,7 +99,10 @@ describe('Collection Bundles API Full-Size Test', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.errors.length).toBe(0);
+
+                    // MITRE marking definition is missing from x_mitre_contents in the 8.2 bundle
+                    expect(collection.workspace.import_categories.errors.length).toBe(1);
+
                     done();
                 }
             });
@@ -115,15 +124,10 @@ describe('Collection Bundles API Full-Size Test', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    if (collection.workspace.import_categories.errors.length > 0) {
-                        console.log(collection.workspace.import_categories.errors[0]);
-                    }
-                    expect(collection.workspace.import_categories.errors.length).toBe(0);
-                    console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
-                    console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);
 
-                    console.log(`categories, revocations: ${ collection.workspace.import_categories.revocations.length }`);
-                    console.log(`categories, deprecations: ${ collection.workspace.import_categories.deprecations.length }`);
+                    // MITRE marking definition is missing from x_mitre_contents in the 7.2 bundle
+                    expect(collection.workspace.import_categories.errors.length).toBe(1);
+
                     done();
                 }
             });
@@ -146,22 +150,17 @@ describe('Collection Bundles API Full-Size Test', function () {
                     const collection = res.body;
                     expect(collection).toBeDefined();
 
-                    console.log(JSON.stringify(collection.workspace.import_categories.errors, null, 2));
+                    // MITRE marking definition is missing from x_mitre_contents in the 9.0 bundle
+                    expect(collection.workspace.import_categories.errors.length).toBe(1);
 
-                    expect(collection.workspace.import_categories.errors.length).toBe(0);
-                    console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
-                    console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);
-
-                    console.log(`categories, revocations: ${ collection.workspace.import_categories.revocations.length }`);
-                    console.log(`categories, deprecations: ${ collection.workspace.import_categories.deprecations.length }`);
                     done();
                 }
             });
     });
 
-    it('POST /api/collection-bundles imports the 8.0 enterprise collection bundle', function (done) {
+    it('POST /api/collection-bundles imports the 8.2 enterprise collection bundle', function (done) {
         this.timeout(60000);
-        const body = collectionBundle80;
+        const body = collectionBundle82;
         request(app)
             .post('/api/collection-bundles')
             .send(body)
@@ -175,12 +174,10 @@ describe('Collection Bundles API Full-Size Test', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.errors.length).toBe(0);
-                    console.log(`references, additions: ${ collection.workspace.import_references.additions.length }`);
-                    console.log(`references, changes: ${ collection.workspace.import_references.changes.length }`);
 
-                    console.log(`categories, revocations: ${ collection.workspace.import_categories.revocations.length }`);
-                    console.log(`categories, deprecations: ${ collection.workspace.import_categories.deprecations.length }`);
+                    // MITRE marking definition is missing from x_mitre_contents in the 8.2 bundle
+                    expect(collection.workspace.import_categories.errors.length).toBe(1);
+
                     done();
                 }
             });
