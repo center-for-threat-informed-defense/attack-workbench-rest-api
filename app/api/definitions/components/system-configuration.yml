@@ -1,5 +1,15 @@
 components:
   schemas:
+    system-version:
+      type: object
+      properties:
+        version:
+          type: string
+          description: Version of the REST API software
+        attackSpecVersion:
+          type: string
+          description: ATT&CK spec version of the REST API software
+
     allowed-values:
       type: object
       properties:

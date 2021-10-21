@@ -17,6 +17,7 @@ module.exports.attackPattern = {
     x_mitre_deprecated: Boolean,
     x_mitre_domains: [ String ],
     x_mitre_version: String,
+    x_mitre_attack_spec_version: String,
     x_mitre_contributors: [ String ]
 };
 

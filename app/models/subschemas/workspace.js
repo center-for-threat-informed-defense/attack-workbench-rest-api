@@ -23,6 +23,8 @@ module.exports.common = {
     collections: [ collectionVersionSchema ]
 };
 
+// x-mitre-collection workspace structure
+
 const exportData = {
     export_timestamp: Date,
     bundle_id: String
@@ -37,25 +39,36 @@ const importError = {
 };
 const importErrorSchema = new mongoose.Schema(importError, { _id: false });
 
+const importCategories = {
+    additions: [ String ],
+    changes: [ String ],
+    minor_changes: [ String ],
+    revocations: [ String ],
+    deprecations: [ String ],
+    supersedes_user_edits: [ String ],
+    supersedes_collection_changes: [ String ],
+    duplicates: [ String ],
+    out_of_date: [ String ],
+    errors: [ importErrorSchema ]
+};
+
+const importReferences = {
+    additions: [ String ],
+    changes: [ String ]
+};
+
+const reimportData = {
+    imported: Date,
+    import_categories: importCategories,
+    import_references: importReferences
+};
+
 module.exports.collection = {
     imported: Date,
     exported: [ exportDataSchema ],
-    import_categories: {
-        additions: [ String ],
-        changes: [ String ],
-        minor_changes: [ String ],
-        revocations: [ String ],
-        deprecations: [ String ],
-        supersedes_user_edits: [ String ],
-        supersedes_collection_changes: [ String ],
-        duplicates: [ String ],
-        out_of_date: [ String ],
-        errors: [ importErrorSchema ]
-    },
-    import_references: {
-        additions: [ String ],
-        changes: [ String ]
-    },
+    import_categories: importCategories,
+    import_references: importReferences,
+    reimports: [ reimportData ],
     workflow: {
         state: {
             type: String,

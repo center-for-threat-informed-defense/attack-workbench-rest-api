@@ -1,4 +1,20 @@
 paths:
+  /api/config/system-version:
+    get:
+      summary: 'Get the system version info'
+      operationId: 'config-get-system-version'
+      description: |
+        This endpoint gets the system version info from the package.json file.
+      tags:
+        - 'System Configuration'
+      responses:
+        '200':
+          description: 'System version info'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/system-configuration.yml#/components/schemas/system-version'
+
   /api/config/allowed-values:
     get:
       summary: 'Get the list of domain-specific allowed values'

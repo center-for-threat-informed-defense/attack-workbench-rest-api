@@ -1,0 +1,238 @@
+paths:
+  /api/data-components:
+    get:
+      summary: 'Get a list of data components'
+      operationId: 'data-component-get-all'
+      description: |
+        This endpoint gets a list of data components from the workspace.
+        The list of data components may include multiple versions of each data component.
+      tags:
+        - 'Data Components'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of data components to retrieve.
+            The default (0) will retrieve all data components.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of data components to skip.
+            The default (0) will start with the first data component.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, objects will be retrieved regardless of state.
+            This parameter may be set multiple times to retrieve objects with any of the provided states.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: search
+          in: query
+          description: |
+            Only return objects where the provided search text occurs in the `name` or `description`.
+            The search is case-insensitive.
+          schema:
+            type: string
+          example: 'windows'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of data components.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/data-components.yml#/components/schemas/data-component'
+
+    post:
+      summary: 'Create a data component'
+      operationId: 'data-component-create'
+      description: |
+        This endpoint creates a new data component in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing data component.
+        If the `stix.id` property is not set, it creates a new data component, generating a STIX id for it.
+      tags:
+        - 'Data Components'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/data-components.yml#/components/schemas/data-component'
+      responses:
+        '201':
+          description: 'The data component has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/data-components.yml#/components/schemas/data-component'
+        '400':
+          description: 'Missing or invalid parameters were provided. The data component was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The data component was not created.'
+
+  /api/data-components/{stixId}:
+    get:
+      summary: 'Get one or more versions of a data component'
+      operationId: 'data-component-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a data component from the workspace, identified by their STIX id.
+      tags:
+        - 'Data Components'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data component to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the data component to retrieve.
+            `all` gets all versions of the data component, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of data components matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/data-components.yml#/components/schemas/data-component'
+        '404':
+          description: 'A data component with the requested STIX id was not found.'
+
+  /api/data-components/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a data component matching the STIX id and modified date'
+      operationId: 'data-component-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a data component from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Data Components'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data component to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the data component to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a data component matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/data-components.yml#/components/schemas/data-component'
+        '404':
+          description: 'A data component with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a data component'
+      operationId: 'data-component-update'
+      description: |
+        This endpoint updates a single version of a data component in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Data Components'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data component to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the data component to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/data-components.yml#/components/schemas/data-component'
+      responses:
+        '200':
+          description: 'The data component was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/data-components.yml#/components/schemas/data-component'
+        '400':
+          description: 'Missing or invalid parameters were provided. The data component was not updated.'
+        '404':
+          description: 'A data component with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a data component'
+      operationId: 'data-component-delete'
+      description: |
+        This endpoint deletes a single version of a data component from the workspace.
+        The data component is identified by its STIX id and modified date.
+      tags:
+        - 'Data Components'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data component to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the data component to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The data component was successfully deleted.'
+        '404':
+          description: 'A data component with the requested STIX id and modified date was not found.'

@@ -5,6 +5,8 @@ const _ = require('lodash');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
+const config = require('../../../config/config');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -112,6 +114,8 @@ describe('Matrices API', function () {
                     expect(matrix1.stix.id).toBeDefined();
                     expect(matrix1.stix.created).toBeDefined();
                     expect(matrix1.stix.modified).toBeDefined();
+                    expect(matrix1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -181,6 +185,7 @@ describe('Matrices API', function () {
                     expect(matrix.stix.spec_version).toBe(matrix1.stix.spec_version);
                     expect(matrix.stix.object_marking_refs).toEqual(expect.arrayContaining(matrix1.stix.object_marking_refs));
                     expect(matrix.stix.created_by_ref).toBe(matrix1.stix.created_by_ref);
+                    expect(matrix.stix.x_mitre_attack_spec_version).toBe(matrix1.stix.x_mitre_attack_spec_version);
 
                     done();
                 }

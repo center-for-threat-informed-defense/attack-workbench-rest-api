@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const MarkingDefinition = require('../models/marking-definition-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
+const config = require('../config/config');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -132,6 +133,9 @@ exports.create = async function(data, options) {
 
     options = options || {};
     if (!options.import) {
+        // Set the ATT&CK Spec Version
+        markingDefinition.stix.x_mitre_attack_spec_version = markingDefinition.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
 

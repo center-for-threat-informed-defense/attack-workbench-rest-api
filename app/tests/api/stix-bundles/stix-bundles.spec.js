@@ -7,7 +7,9 @@ logger.level = 'debug';
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
-const domain = 'test-domain';
+const enterpriseDomain = 'enterprise-attack';
+const mobileDomain = 'mobile-attack';
+const icsDomain = 'attack-ics';
 
 const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
 const collectionTimestamp = new Date().toISOString();
@@ -41,6 +43,10 @@ const initialObjectData = {
                 },
                 {
                     "object_ref": "attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483",
+                    "object_modified": "2019-02-03T16:56:41.200Z"
+                },
+                {
+                    "object_ref": "attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f",
                     "object_modified": "2019-02-03T16:56:41.200Z"
                 },
                 {
@@ -78,6 +84,34 @@ const initialObjectData = {
                 {
                     "object_ref": "note--6b9456275-20bf-48b0-afb7-988d769a2f99",
                     "object_modified": "2020-04-12T15:44:47.629Z"
+                },
+                {
+                    "object_ref": "x-mitre-data-source--880b771b-17a8-4a6c-a259-9027c395010c",
+                    "object_modified": "2020-04-12T15:44:47.629Z"
+                },
+                {
+                    "object_ref": "x-mitre-data-source--3e396a50-dd74-45cf-b8a3-974ab80c9a3e",
+                    "object_modified": "2020-04-12T15:44:47.629Z"
+                },
+                {
+                    "object_ref": "x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d",
+                    "object_modified": "2020-04-12T15:44:47.629Z"
+                },
+                {
+                    "object_ref": "x-mitre-data-component--f8b4833e-a6d4-4a05-ba6e-1936d4109d0a",
+                    "object_modified": "2020-04-12T15:44:47.629Z"
+                },
+                {
+                    "object_ref": "relationship--caa8928b-0bf6-45cd-8504-6c27b9cd96a8",
+                    "object_modified": "2019-09-04T14:32:13.000Z"
+                },
+                {
+                    "object_ref": "relationship--b0c6c76c-7699-447f-9f3f-573aec51431c",
+                    "object_modified": "2019-09-04T14:32:13.000Z"
+                },
+                {
+                    "object_ref": "relationship--e7f994c6-3e08-4aea-a30e-97cc6fe610c6",
+                    "object_modified": "2019-09-04T14:32:13.000Z"
                 }
             ]
         },
@@ -122,12 +156,12 @@ const initialObjectData = {
             kill_chain_phases: [
                 { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
             ],
-            x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
+            x_mitre_data_sources: [ 'Command: Command Execution', 'Network Traffic: Network Traffic Flow' ],
             x_mitre_detection: 'detection text',
             x_mitre_is_subtechnique: false,
             x_mitre_impact_type: [ 'impact-1' ],
             x_mitre_platforms: [ 'platform-1', 'platform-2' ],
-            x_mitre_domains: [ domain ]
+            x_mitre_domains: [ enterpriseDomain ]
         },
         {
             id: 'attack-pattern--1eaebf46-e361-4437-bc23-d5d65a3b92e3',
@@ -147,13 +181,11 @@ const initialObjectData = {
             kill_chain_phases: [
                 { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
             ],
-            x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
-            x_mitre_deprecated: true,
             x_mitre_detection: 'detection text',
             x_mitre_is_subtechnique: false,
             x_mitre_impact_type: [ 'impact-1' ],
             x_mitre_platforms: [ 'platform-1', 'platform-2' ],
-            x_mitre_domains: [ domain ]
+            x_mitre_domains: [ mobileDomain ]
         },
         {
             id: 'attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483',
@@ -173,12 +205,37 @@ const initialObjectData = {
             kill_chain_phases: [
                 { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
             ],
-            x_mitre_data_sources: [ 'data-source-1', 'data-source-2' ],
+            x_mitre_data_sources: [ 'Operational Databases: Device Alarm', 'Network Traffic: Network Traffic Flow' ],
             x_mitre_detection: 'detection text',
             x_mitre_is_subtechnique: false,
             x_mitre_impact_type: [ 'impact-1' ],
             x_mitre_platforms: [ 'platform-1', 'platform-2' ],
-            x_mitre_domains: [ domain ]
+            x_mitre_domains: [ icsDomain ]
+        },
+        {
+            id: 'attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f',
+            created: '2019-02-03T16:56:41.200Z',
+            modified: '2019-02-03T16:56:41.200Z',
+            name: 'attack-pattern-4',
+            x_mitre_version: '1.0',
+            spec_version: '2.1',
+            type: 'attack-pattern',
+            description: 'This is another technique.',
+            external_references: [
+                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'attack-pattern-2 source', description: 'this is a source description 2'}
+            ],
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            kill_chain_phases: [
+                { kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }
+            ],
+            x_mitre_data_sources: [ 'Command: Command Execution', 'Operational Databases: Device Alarm', 'Network Traffic: Network Traffic Flow' ],
+            x_mitre_detection: 'detection text',
+            x_mitre_is_subtechnique: false,
+            x_mitre_impact_type: [ 'impact-1' ],
+            x_mitre_platforms: [ 'platform-1', 'platform-2' ],
+            x_mitre_domains: [ enterpriseDomain, icsDomain ]
         },
         {
             id: "course-of-action--25dc1ce8-eb55-4333-ae30-a7cb4f5894a1",
@@ -196,7 +253,7 @@ const initialObjectData = {
             modified: "2018-10-17T00:14:20.652Z",
             created: "2017-10-25T14:48:53.732Z",
             spec_version: "2.1",
-            x_mitre_domains: [ domain ]
+            x_mitre_domains: [ enterpriseDomain ]
         },
         {
             id: "course-of-action--e944670c-d03a-4e93-a21c-b3d4c53ec4c9",
@@ -214,7 +271,8 @@ const initialObjectData = {
             modified: "2018-10-17T00:14:20.652Z",
             created: "2017-10-25T14:48:53.732Z",
             spec_version: "2.1",
-            x_mitre_domains: [ domain ]
+            x_mitre_domains: [ enterpriseDomain ],
+            x_mitre_deprecated: true
         },
         {
             id: "malware--04227b24-7817-4de1-9050-b7b1b57f5866",
@@ -234,7 +292,7 @@ const initialObjectData = {
             modified: "2020-03-30T18:17:52.697Z",
             created: "2017-10-25T14:48:53.732Z",
             spec_version: "2.1",
-            x_mitre_domains: [ domain ],
+            x_mitre_domains: [ enterpriseDomain ],
             x_mitre_aliases: [ "xyzzy" ]
         },
         {
@@ -322,6 +380,96 @@ const initialObjectData = {
             object_refs: [ 'malware--04227b24-7817-4de1-9050-b7b1b57f5866' ],
             modified: "2020-04-12T15:44:47.629Z",
             created: "2019-10-22T00:14:20.652Z"
+        },
+        {
+            type: 'x-mitre-data-source',
+            id: 'x-mitre-data-source--880b771b-17a8-4a6c-a259-9027c395010c',
+            name: 'Command',
+            spec_version: '2.1',
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            modified: "2020-04-12T15:44:47.629Z",
+            created: "2019-10-22T00:14:20.652Z"
+        },
+        {
+            type: 'x-mitre-data-source',
+            id: 'x-mitre-data-source--3e396a50-dd74-45cf-b8a3-974ab80c9a3e',
+            name: 'Network Traffic',
+            spec_version: '2.1',
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            modified: "2020-04-12T15:44:47.629Z",
+            created: "2019-10-22T00:14:20.652Z"
+        },
+        {
+            type: 'x-mitre-data-component',
+            id: 'x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d',
+            name: 'Command Execution',
+            spec_version: '2.1',
+            x_mitre_data_source_ref: 'x-mitre-data-source--880b771b-17a8-4a6c-a259-9027c395010c',
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            modified: "2020-04-12T15:44:47.629Z",
+            created: "2019-10-22T00:14:20.652Z"
+        },
+        {
+            type: 'x-mitre-data-component',
+            id: 'x-mitre-data-component--f8b4833e-a6d4-4a05-ba6e-1936d4109d0a',
+            name: 'Network Traffic Flow',
+            spec_version: '2.1',
+            x_mitre_data_source_ref: 'x-mitre-data-source--3e396a50-dd74-45cf-b8a3-974ab80c9a3e',
+            object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            modified: "2020-04-12T15:44:47.629Z",
+            created: "2019-10-22T00:14:20.652Z"
+        },
+        {
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            source_ref: "x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d",
+            target_ref: "attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a",
+            external_references: [],
+            description: "Detects relationship",
+            relationship_type: "detects",
+            id: "relationship--caa8928b-0bf6-45cd-8504-6c27b9cd96a8",
+            type: "relationship",
+            modified: "2019-09-04T14:32:13.000Z",
+            created: "2019-09-04T14:28:16.426Z",
+            spec_version: "2.1"
+        },
+        {
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            source_ref: "x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d",
+            target_ref: "attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f",
+            external_references: [],
+            description: "Detects relationship",
+            relationship_type: "detects",
+            id: "relationship--e7f994c6-3e08-4aea-a30e-97cc6fe610c6",
+            type: "relationship",
+            modified: "2019-09-04T14:32:13.000Z",
+            created: "2019-09-04T14:28:16.426Z",
+            spec_version: "2.1"
+        },
+        {
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            source_ref: "x-mitre-data-component--f8b4833e-a6d4-4a05-ba6e-1936d4109d0a",
+            target_ref: "attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a",
+            external_references: [],
+            description: "Test relationship",
+            relationship_type: "detects",
+            id: "relationship--b0c6c76c-7699-447f-9f3f-573aec51431c",
+            type: "relationship",
+            modified: "2019-09-04T14:32:13.000Z",
+            created: "2019-09-04T14:28:16.426Z",
+            spec_version: "2.1"
         }
     ]
 };
@@ -357,7 +505,7 @@ describe('STIX Bundles Basic API', function () {
                     const collection = res.body;
                     console.log(JSON.stringify(collection.workspace.import_categories.errors, null, 2));
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(12);
+                    expect(collection.workspace.import_categories.additions.length).toBe(20);
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
                     done();
                 }
@@ -383,9 +531,9 @@ describe('STIX Bundles Basic API', function () {
             });
     });
 
-    it('GET /api/stix-bundles exports the STIX bundle', function (done) {
+    it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain', function (done) {
         request(app)
-            .get(`/api/stix-bundles?domain=${ domain }`)
+            .get(`/api/stix-bundles?domain=${ enterpriseDomain }`)
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
@@ -398,18 +546,18 @@ describe('STIX Bundles Basic API', function () {
                     const stixBundle = res.body;
                     expect(stixBundle).toBeDefined();
                     expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    // 5 primary objects, 1 relationship, 1 secondary object,
+                    // 4 primary objects, 4 relationship, 5 secondary object,
                     // 1 note, 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(10);
+                    expect(stixBundle.objects.length).toBe(16);
 
                     done();
                 }
             });
     });
 
-    it('GET /api/stix-bundles exports the STIX bundle including deprecated objects', function (done) {
+    it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain including deprecated objects', function (done) {
         request(app)
-            .get(`/api/stix-bundles?domain=${ domain }&includeDeprecated=true`)
+            .get(`/api/stix-bundles?domain=${ enterpriseDomain }&includeDeprecated=true`)
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
@@ -422,9 +570,56 @@ describe('STIX Bundles Basic API', function () {
                     const stixBundle = res.body;
                     expect(stixBundle).toBeDefined();
                     expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    // 6 primary objects, 1 relationship, 1 secondary object,
+                    // 5 primary objects, 4 relationship, 5 secondary object,
                     // 1 note, 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(11);
+                    expect(stixBundle.objects.length).toBe(17);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/stix-bundles exports the STIX bundle for the mobile domain', function (done) {
+        request(app)
+            .get(`/api/stix-bundles?domain=${ mobileDomain }`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported STIX bundle
+                    const stixBundle = res.body;
+                    expect(stixBundle).toBeDefined();
+                    expect(Array.isArray(stixBundle.objects)).toBe(true);
+                    // 1 primary objects, 1 identity, 1 marking definition
+                    expect(stixBundle.objects.length).toBe(3);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/stix-bundles exports the STIX bundle for the ics domain', function (done) {
+        request(app)
+            .get(`/api/stix-bundles?domain=${ icsDomain }`)
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported STIX bundle
+                    const stixBundle = res.body;
+                    expect(stixBundle).toBeDefined();
+                    expect(Array.isArray(stixBundle.objects)).toBe(true);
+                    // 2 primary objects, 1 relationship, 2 secondary object,
+                    // 1 identity, 1 marking definition
+                    expect(stixBundle.objects.length).toBe(7);
 
                     done();
                 }

@@ -79,6 +79,9 @@ components:
             x_mitre_version:
               type: string
               example: '1.0'
+            x_mitre_attack_spec_version:
+              type: string
+              example: '2.1.0'
 
     kill_chain_phase:
       type: object
