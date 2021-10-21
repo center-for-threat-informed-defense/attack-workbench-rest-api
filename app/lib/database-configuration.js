@@ -104,14 +104,25 @@ async function checkForInvalidEnterpriseCollectionId() {
     let collectionIndexUpdates = 0;
     const collectionIndexes = await CollectionIndex.find();
     for (const collectionIndex of collectionIndexes) {
+        // Check the list of collections
         let collectionIndexUpdated = false;
         for (const collection of collectionIndex.collection_index.collections) {
             if (collection.id === invalidId) {
                 collection.id = validId;
                 collectionIndexUpdated = true;
-
             }
         }
+
+        // Check the list of subscriptions
+        if (collectionIndex.workspace?.update_policy?.subscriptions) {
+            for (let i = 0; i < collectionIndex.workspace.update_policy.subscriptions.length; i++) {
+                if (collectionIndex.workspace.update_policy.subscriptions[i] === invalidId) {
+                    collectionIndex.workspace.update_policy.subscriptions[i] = validId;
+                    collectionIndexUpdated = true;
+                }
+            }
+        }
+
         if (collectionIndexUpdated) {
             // eslint-disable-next-line no-await-in-loop
             await collectionIndex.save();
