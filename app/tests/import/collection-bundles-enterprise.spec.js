@@ -13,15 +13,18 @@ const testFilePath = './test-files';
 
 // Get a list of collection bundle filenames in the test-files sub-directory
 const collectionBundleFilenames = [];
-fs.readdirSync(path.join(__dirname, testFilePath)).forEach(filename => {
-    if (filename.endsWith('.json')) {
-        collectionBundleFilenames.push(filename);
-    }
-});
+const directory = path.join(__dirname, testFilePath);
+if (fs.existsSync(directory)) {
+    fs.readdirSync(directory).forEach(filename => {
+        if (filename.endsWith('.json')) {
+            collectionBundleFilenames.push(filename);
+        }
+    });
+}
 
-async function readJson(path) {
-    const filePath = require.resolve(path);
-    const data = await fs.promises.readFile(filePath);
+async function readJson(filePath) {
+    const fullPath = require.resolve(filePath);
+    const data = await fs.promises.readFile(fullPath);
     return JSON.parse(data);
 }
 
