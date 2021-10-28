@@ -30,6 +30,10 @@ tags:
     description: 'Operations on identities'
   - name: 'Marking Definitions'
     description: 'Operations on marking definitions'
+  - name: 'Data Sources'
+    description: 'Operations on data sources'
+  - name: 'Data Components'
+    description: 'Operations on data components'
   - name: 'Relationships'
     description: 'Operations on relationships'
   - name: 'Notes'
@@ -135,6 +139,26 @@ paths:
   /api/mitigations/{stixId}/modified/{modified}:
     $ref: 'paths/mitigations-paths.yml#/paths/~1api~1mitigations~1{stixId}~1modified~1{modified}'
 
+  # Data Sources
+  /api/data-sources:
+    $ref: 'paths/data-sources-paths.yml#/paths/~1api~1data-sources'
+
+  /api/data-sources/{stixId}:
+    $ref: 'paths/data-sources-paths.yml#/paths/~1api~1data-sources~1{stixId}'
+
+  /api/data-sources/{stixId}/modified/{modified}:
+    $ref: 'paths/data-sources-paths.yml#/paths/~1api~1data-sources~1{stixId}~1modified~1{modified}'
+
+  # Data Components
+  /api/data-components:
+    $ref: 'paths/data-components-paths.yml#/paths/~1api~1data-components'
+
+  /api/data-components/{stixId}:
+    $ref: 'paths/data-components-paths.yml#/paths/~1api~1data-components~1{stixId}'
+
+  /api/data-components/{stixId}/modified/{modified}:
+    $ref: 'paths/data-components-paths.yml#/paths/~1api~1data-components~1{stixId}~1modified~1{modified}'
+
   # Relationships
   /api/relationships:
     $ref: 'paths/relationships-paths.yml#/paths/~1api~1relationships'
@@ -185,6 +209,9 @@ paths:
     $ref: 'paths/stix-bundles-paths.yml#/paths/~1api~1stix-bundles'
 
   # System Configuration
+  /api/config/system-version:
+    $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1system-version'
+
   /api/config/allowed-values:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1allowed-values'
 

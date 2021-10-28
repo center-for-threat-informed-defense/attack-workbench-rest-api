@@ -3,17 +3,28 @@
 const systemConfigurationService = require('../services/system-configuration-service');
 const logger = require('../lib/logger');
 
-exports.retrieveAllowedValues = function(req, res) {
-    systemConfigurationService.retrieveAllowedValues(function(err, allowedValues) {
-        if (err) {
-            logger.error('Unable to retrieve allowed values, failed with error: ' + err);
-            return res.status(500).send('Unable to retrieve allowed values. Server error.');
-        }
-        else {
-            logger.debug('Success: Retrieved allowed values.');
-            return res.status(200).send(allowedValues);
-        }
-    });
+exports.retrieveSystemVersion = function(req, res) {
+    try {
+        const systemVersionInfo = systemConfigurationService.retrieveSystemVersion();
+        logger.debug(`Success: Retrieved system version, version: ${ systemVersionInfo.version }, attackSpecVersion: ${ systemVersionInfo.attackSpecVersion }`);
+        return res.status(200).send(systemVersionInfo);
+    }
+    catch(err) {
+        logger.error("Unable to retrieve system version, failed with error: " + err);
+        return res.status(500).send("Unable to retrieve system version. Server error.");
+    }
+};
+
+exports.retrieveAllowedValues = async function(req, res) {
+    try {
+        const allowedValues = await systemConfigurationService.retrieveAllowedValues();
+        logger.debug("Success: Retrieved allowed values.");
+        return res.status(200).send(allowedValues);
+    }
+    catch(err) {
+            logger.error("Unable to retrieve allowed values, failed with error: " + err);
+            return res.status(500).send("Unable to retrieve allowed values. Server error.");
+    }
 };
 
 exports.retrieveOrganizationIdentity = async function(req, res) {

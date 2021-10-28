@@ -5,7 +5,6 @@ components:
       required:
         - id
         - type
-        - spec_version
         - objects
       properties:
         id:

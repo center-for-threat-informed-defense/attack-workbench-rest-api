@@ -139,5 +139,8 @@ Temporary Items
 
 # End of https://www.toptal.com/developers/gitignore/api/macos
 
+# Webstorm IDE config
 .idea/
 
+# Directory holding Collection Bundles for testing
+/app/tests/import/test-files/

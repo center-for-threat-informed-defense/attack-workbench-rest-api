@@ -5,6 +5,8 @@ const _ = require('lodash');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
+const config = require('../../../config/config');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -103,6 +105,8 @@ describe('Identity API', function () {
                     expect(identity1.stix.id).toBeDefined();
                     expect(identity1.stix.created).toBeDefined();
                     expect(identity1.stix.modified).toBeDefined();
+                    expect(identity1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -170,6 +174,7 @@ describe('Identity API', function () {
                     expect(identity.stix.spec_version).toBe(identity1.stix.spec_version);
                     expect(identity.stix.object_marking_refs).toEqual(expect.arrayContaining(identity1.stix.object_marking_refs));
                     expect(identity.stix.created_by_ref).toBe(identity1.stix.created_by_ref);
+                    expect(identity.stix.x_mitre_attack_spec_version).toBe(identity1.stix.x_mitre_attack_spec_version);
 
                     done();
                 }

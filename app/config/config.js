@@ -2,6 +2,7 @@
 
 const convict = require('convict');
 const crypto = require('crypto');
+const packageJson = require('../../package.json');
 
 // Generate the default session secret
 // This runs synchronously, but only once at startup
@@ -37,6 +38,12 @@ function loadConfig() {
             env: {
                 default: 'development',
                 env: 'NODE_ENV'
+            },
+            version: {
+                default: packageJson.version
+            },
+            attackSpecVersion: {
+                default: packageJson.attackSpecVersion
             }
         },
         database: {
@@ -44,6 +51,13 @@ function loadConfig() {
                 doc: 'URL of the MongoDB server',
                 default: '',
                 env: 'DATABASE_URL'
+            }
+        },
+        logging: {
+            logLevel: {
+                doc: 'Level of logging messages to write to console (error, warn, http, info, verbose, debug)',
+                default: 'info',
+                env: 'LOG_LEVEL'
             }
         },
         openApi: {

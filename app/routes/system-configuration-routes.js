@@ -5,6 +5,9 @@ const systemConfigurationController = require('../controllers/system-configurati
 
 const router = express.Router();
 
+router.route('/config/system-version')
+    .get(systemConfigurationController.retrieveSystemVersion);
+
 router.route('/config/allowed-values')
     .get(systemConfigurationController.retrieveAllowedValues);
 

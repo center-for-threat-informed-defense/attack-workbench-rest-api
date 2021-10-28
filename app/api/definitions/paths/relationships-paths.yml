@@ -89,6 +89,7 @@ paths:
               - group
               - mitigation
               - software
+              - data-component
         - name: targetType
           in: query
           description: |

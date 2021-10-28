@@ -32,12 +32,14 @@
             "allowedValues": [
               "Field Controller/RTU/PLC/IED",
               "Safety Instrumented System/Protection Relay",
+              "Device Configuration/Parameters",
               "Control Server",
               "Input/Output Server",
-              "Windows",
+              "Data Historian",
               "Human-Machine Interface",
               "Engineering Workstation",
-              "Data Historian"
+              "None",
+              "Windows"
             ]
           }
         ]
@@ -96,6 +98,49 @@
             ]
           }
         ]
+      },
+      {
+        "propertyName": "x_mitre_data_sources",
+        "domains": [
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [
+              "Network Traffic: Network Traffic Content",
+              "Application Log: Application Log Content",
+              "Operational Databases: Device Alarm",
+              "Operational Databases: Process History/Live Data",
+              "Operational Databases: Process/Event Alarm",
+              "Command: Command Execution",
+              "File: File Access",
+              "Script: Script Execution",
+              "Network Traffic: Network Traffic Flow",
+              "Network Traffic: Network Connection Creation",
+              "Process: Process Termination",
+              "Process: Process Creation",
+              "Module: Module Load",
+              "File: File Deletion",
+              "File: File Modification",
+              "Logon Session: Logon Session Creation",
+              "File: File Creation",
+              "Process: OS API Execution",
+              "Logon Session: Logon Session Metadata",
+              "Asset: Software/Firmware",
+              "File: File Metadata",
+              "User Account: User Account Authentication",
+              "Windows Registry: Windows Registry Key Deletion",
+              "Windows Registry: Windows Registry Key Modification",
+              "Scheduled Job: Scheduled Job Metadata",
+              "Scheduled Job: Scheduled Job Modification",
+              "Service: Service Creation",
+              "Service: Service Metadata",
+              "Asset: Device Configuration/Parameters",
+              "Firmware: Firmware Modification",
+              "Network Share: Network Share Access",
+              "Drive: Drive Creation",
+              "Drive: Drive Modification"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -139,6 +184,44 @@
               "Human-Machine Interface",
               "Engineering Workstation",
               "Data Historian"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "objectType": "data-source",
+    "properties": [
+      {
+        "propertyName": "x_mitre_collection_layers",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "host",
+              "cloud",
+              "container"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_platforms",
+        "domains": [
+          {
+            "domainName": "enterprise-attack",
+            "allowedValues": [
+              "Containers",
+              "Windows",
+              "Azure AD",
+              "Linux",
+              "macOS",
+              "IaaS",
+              "SaaS",
+              "Office 365",
+              "Google Workspace",
+              "Network"
             ]
           }
         ]

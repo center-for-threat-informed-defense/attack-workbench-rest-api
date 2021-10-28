@@ -23,28 +23,47 @@ exports.errors = errors;
 // Other parts of the system configuration are read from the config module (which is prepared at start-up
 //   based on environment variables and an optional configuration file)
 
-exports.retrieveAllowedValues = function(callback) {
+exports.retrieveSystemVersion = function() {
+    const systemVersionInfo = {
+        version: config.app.version,
+        attackSpecVersion: config.app.attackSpecVersion
+    };
+
+    return systemVersionInfo;
+}
+
+async function retrieveAllowedValues() {
     if (allowedValues) {
-        // Return existing object asynchronously
-        process.nextTick(() => callback(null, allowedValues));
+        return allowedValues;
     }
     else {
-        fs.readFile(config.configurationFiles.allowedValues, (err, data) => {
-            if (err) {
-                return callback(err);
-            }
-            else {
-                try {
-                    allowedValues = JSON.parse(data);
-                    return callback(null, allowedValues);
-                }
-                catch (error) {
-                    return callback(error);
-                }
-            }
-        });
+        const data = await fs.promises.readFile(config.configurationFiles.allowedValues);
+        allowedValues = JSON.parse(data);
+        return allowedValues;
     }
 }
+exports.retrieveAllowedValues = retrieveAllowedValues;
+
+async function retrieveAllowedValuesForType(objectType) {
+    const values = await retrieveAllowedValues();
+
+    return values.find(element => element.objectType === objectType);
+}
+exports.retrieveAllowedValuesForType = retrieveAllowedValuesForType;
+
+async function retrieveAllowedValuesForTypeAndProperty(type, propertyName) {
+    const values = await retrieveAllowedValuesForType(type);
+
+    return values?.properties.find(element => element.propertyName === propertyName);
+}
+exports.retrieveAllowedValuesForTypeAndProperty = retrieveAllowedValuesForTypeAndProperty;
+
+async function retrieveAllowedValuesForTypePropertyDomain(objectType, propertyName, domainName) {
+    const values = await retrieveAllowedValuesForTypeAndProperty(objectType, propertyName);
+
+    return values?.domains.find(element => element.domainName === domainName);
+}
+exports.retrieveAllowedValuesForTypePropertyDomain = retrieveAllowedValuesForTypePropertyDomain;
 
 exports.retrieveOrganizationIdentityRef = async function() {
     // There should be exactly one system configuration document

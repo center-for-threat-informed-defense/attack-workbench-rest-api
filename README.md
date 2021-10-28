@@ -80,7 +80,7 @@ Note that any values set in a configuration file take precedence over values set
 | **AUTHN_MECHANISM**         | no       | `anonymous`   | Mechanism to use for authenticating users                          |
 | **DEFAULT_INTERVAL**        | no       | `300`         | How often collection indexes should check for updates (in seconds) |
 | **JSON_CONFIG_PATH**        | no       | ``            | Location of a JSON file containing configuration values            |
-
+| **LOG_LEVEL**               | no       | `info`        | Level of messages to be written to the log (error, warn, http, info, verbose, debug) |
 
 A typical value for DATABASE_URL when running on a development machine is `mongodb://localhost/attack-workspace`.
 This assumes that a MongoDB server is running on the same machine and is listening on the standard port of 27017.
@@ -97,6 +97,7 @@ If the `JSON_CONFIG_PATH` environment variable is set, the app will also read co
 | **app.env**                         | string   | NODE_ENV                           |
 | **database.url**                    | string   | DATABASE_URL                       |
 | **collectionIndex.defaultInterval** | int      | DEFAULT_INTERVAL                   |
+| **logging.logLevel**                | string   | LOG_LEVEL                          |
 
 Sample configuration file setting the server port and database url:
 
@@ -153,15 +154,6 @@ to run the Snyk validator on the currently installed modules.
 This will check the modules for known security flaws.
 
 Note that this requires the `SNYK_TOKEN` environment variable to be set to a valid Snyk token to run.
-
-### Generate REST API Documentation
-
-In addition to the Swagger UI that is available when the app is running, a static set of files describing the REST API can be generated.
-Use the command:
-
-`npm run api:generate-all`
-
-to generate the set of static HTML files that document the REST API.
 
 ## Github Workflow
 

@@ -4,6 +4,8 @@ const expect = require('expect');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
+const config = require('../../../config/config');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -100,6 +102,8 @@ describe('Marking Definitions API', function () {
                     expect(markingDefinition1.stix.id).toBeDefined();
                     expect(markingDefinition1.stix.created).toBeDefined();
                     // stix.modified does not exist for marking definitions
+                    expect(markingDefinition1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
                     done();
                 }
             });
@@ -167,6 +171,7 @@ describe('Marking Definitions API', function () {
                     expect(markingDefinition.stix.spec_version).toBe(markingDefinition1.stix.spec_version);
                     expect(markingDefinition.stix.object_marking_refs).toEqual(expect.arrayContaining(markingDefinition1.stix.object_marking_refs));
                     expect(markingDefinition.stix.created_by_ref).toBe(markingDefinition1.stix.created_by_ref);
+                    expect(markingDefinition.stix.x_mitre_attack_spec_version).toBe(markingDefinition1.stix.x_mitre_attack_spec_version);
 
                     done();
                 }

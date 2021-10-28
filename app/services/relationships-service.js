@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const Relationship = require('../models/relationship-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
+const config = require('../config/config');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -14,6 +15,7 @@ const errors = {
 };
 exports.errors = errors;
 
+// Map STIX types to ATT&CK types
 const objectTypeMap = new Map();
 objectTypeMap.set('malware', 'software');
 objectTypeMap.set('tool', 'software');
@@ -22,6 +24,7 @@ objectTypeMap.set('intrusion-set', 'group');
 objectTypeMap.set('course-of-action', 'mitigation');
 objectTypeMap.set('x-mitre-tactic', 'tactic');
 objectTypeMap.set('x-mitre-matrix', 'matrix');
+objectTypeMap.set('x-mitre-data-component', 'data-component');
 
 exports.retrieveAll = function(options, callback) {
     // Build the query
@@ -276,6 +279,9 @@ exports.create = async function(data, options) {
 
     options = options || {};
     if (!options.import) {
+        // Set the ATT&CK Spec Version
+        relationship.stix.x_mitre_attack_spec_version = relationship.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
 
