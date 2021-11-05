@@ -20,6 +20,9 @@ const oidcRealm = 'test-oidc-realm';
 const oidcClientId = 'attack-workbench-test';
 const oidcClientSecret = 'a58c55d9-8408-45de-a9ef-a55b433291de';
 
+const localServerHost = 'localhost';
+const localServerPort = 3000;
+
 function extractFormAction(html) {
     const documentRoot = parse5.parse(html);
     const formElement = parse5Query.queryOne(documentRoot).getElementsByTagName('form');
@@ -70,7 +73,7 @@ describe('OIDC Authentication', function () {
         app = await require('../../index').initializeApp();
 
         // Open a port to receive redirects from the identity provider
-        startServer(app, 3000);
+        startServer(app, localServerPort);
     });
 
     it('GET /api/session returns not authorized (before logging in)', function (done) {
@@ -89,10 +92,11 @@ describe('OIDC Authentication', function () {
 
     const apiCookies = [];
     let redirectPath;
+    const destination = `${ localServerHost }:${ localServerPort }/login-page`;
     it('GET /api/authn/oidc/login successfully receives a redirect to the identity provider', function (done) {
-        const destination = encodeURIComponent('localhost:3000');
+        const encodedDestination = encodeURIComponent(destination);
         request(app)
-            .get(`/api/authn/oidc/login?destination=${ destination }`)
+            .get(`/api/authn/oidc/login?destination=${ encodedDestination }`)
             .expect(302)
             .end(function (err, res) {
                 if (err) {
@@ -181,6 +185,9 @@ describe('OIDC Authentication', function () {
                 } else {
                     // Get the redirect location
                     redirectPath = res.headers.location;
+
+                    // This should be the destination provided at the start of the sign in process
+                    expect(redirectPath).toBe(destination);
 
                     done();
                 }

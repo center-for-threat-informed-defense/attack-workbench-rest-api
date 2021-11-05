@@ -1,7 +1,5 @@
 'use strict';
 
-let app;
-
 /**
  * Do not set the upgrade-insecure-requests directive on the Content-Security-Policy header
  * @param {object} app - express app
@@ -33,7 +31,7 @@ exports.initializeApp = async function() {
     // Create the express application
     logger.info('Starting express');
     const express = require('express');
-    app = express();
+    const app = express();
 
     // Allow CORS
     if (config.server.enableCorsAnyOrigin) {

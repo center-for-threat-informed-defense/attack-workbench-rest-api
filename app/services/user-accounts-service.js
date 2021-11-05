@@ -139,7 +139,7 @@ exports.retrieveByEmail = async function(email) {
 };
 
 exports.createIsAsync = true;
-exports.create = async function(data, options) {
+exports.create = async function(data) {
     // Create the document
     const userAccount = new UserAccount(data);
 

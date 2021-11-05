@@ -9,15 +9,13 @@ Each registered user has an associated user account document in the database.
 
 The User Account document has the following properties:
 
-| property       | type    |  description                                              |
-|----------------|---------|-----------------------------------------------------------|
-| **email**      | string  | User's email address                                      |
-| **username**   | string  | User's full name                                          |
-| **status**     | string  | `pending`, `active`, or `inactive`                        |
-| **role**       | string  | `none`, `visitor`, `editor`, or `admin`                   |
-| **identity**   | string  | STIX ID of the identity object corresponding to this user |
-
-The STIX ID of the corresponding identity object is assumed to be invariant and is used by the user management endpoints as the unique identifier for a user account.
+| property       | type    |  description                                                       |
+|----------------|---------|--------------------------------------------------------------------|
+| **id**         | string  | Unique id for this user, assigned when the user account is created |
+| **email**      | string  | User's email address                                               |
+| **username**   | string  | User's full name                                                   |
+| **status**     | string  | `pending`, `active`, or `inactive`                                 |
+| **role**       | string  | `visitor`, `editor`, `admin`, or undefined                         |
 
 ## User Status
 
@@ -29,7 +27,7 @@ The STIX ID of the corresponding identity object is assumed to be invariant and 
 
 ### Typical User Status Workflow
 
-1. A user requests access to the system and is registered with the workspace. This results in a User Account document being added to the database with the `pending` status.
+1. A user requests access to the system and is registered with the workspace. This results in a User Account document being added to the database with the status set to `pending` and the role set to undefined
 2. A user with the `admin` role approves the pending user and sets their role. This results in the user's status changing to `active` and their role being set appropriately.
 3. Later, a user with the `admin` role marks the user as inactive. This results in the user's status changing to `inactive`.
 
@@ -42,6 +40,10 @@ The ATT&CK Workbench supports the following roles:
 | `visitor` | Read access to all of the ATT&CK objects in the workspace.                          |
 | `editor`  | Read and write access to all of the ATT&CK objects in the workspace, except for ??? |
 | `admin`   | Full access to all capabilities of the system.                                      |
+
+Note that `none` is not a valid value for a user account saved in the database.
+It is only used as a possible effective role for pending and inactive users accounts.
+The `role` property of pending and inactive user accounts in the database should be undefined.
 
 ### Effective User Roles
 

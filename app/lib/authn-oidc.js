@@ -1,6 +1,8 @@
 'use strict';
 
 const openIdClient = require('openid-client');
+const retry = require('async-await-retry');
+
 const config = require('../config/config');
 const userAccountsService = require("../services/user-accounts-service");
 
@@ -39,7 +41,9 @@ exports.deserializeUser = function(userSessionKey, done) {
 };
 
 exports.getStrategy = async function() {
-    const issuer = await openIdClient.Issuer.discover(config.authn.oidc.issuerUrl);
+    // Retry to give the identity provider time to start (when using docker-compose)
+    const retryOptions = { interval: 1000 };
+    const issuer = await retry(openIdClient.Issuer.discover, [config.authn.oidc.issuerUrl], retryOptions);
 
     const clientOptions = {
         client_id: config.authn.oidc.clientId,

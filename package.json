@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",
-    "test": "npm run test:openapi && npm run test:config && npm run test:api && npm run test:import && npm run test:authn",
+    "test": "npm run test:openapi && npm run test:config && npm run test:api && npm run test:import",
     "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api",
     "test:authn": "mocha  --timeout 10000 --recursive ./app/tests/authn",
     "test:config": "mocha  --timeout 10000 --recursive ./app/tests/config",
@@ -19,6 +19,7 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^9.0.9",
     "async": "^3.2.1",
+    "async-await-retry": "^1.2.3",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
     "convict": "^6.2.0",

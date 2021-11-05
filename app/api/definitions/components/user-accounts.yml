@@ -4,17 +4,18 @@ components:
       type: object
       required:
         - status
-        - role
       properties:
         id:
           type: string
         email:
           type: string
-        name:
+        username:
           type: string
         status:
           type: string
+          enum: [ 'pending', 'active', 'inactive' ]
           example: 'active'
         role:
           type: string
+          enum: [ 'visitor', 'editor', 'admin' ]
           example: 'editor'

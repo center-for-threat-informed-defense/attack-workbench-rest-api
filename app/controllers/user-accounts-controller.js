@@ -58,9 +58,14 @@ exports.create = async function(req, res) {
     // Get the data from the request
     const userAccountData = req.body;
 
+    if (userAccountData.status !== 'active' && userAccountData.role ) {
+        logger.warn('Unable to create user account, role not allowed when status is not active');
+        return res.status(400).send('role not allowed when status is not active');
+    }
+
     // Create the user account
     try {
-        const userAccount = await userAccountsService.create(userAccountData, { import: false });
+        const userAccount = await userAccountsService.create(userAccountData);
 
         logger.debug("Success: Created user account with id " + userAccount.id);
         return res.status(201).send(userAccount);    }
