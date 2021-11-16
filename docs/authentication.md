@@ -120,11 +120,19 @@ It does not log the user out of the OIDC Identity Provider.
    * If logged in, will receive the user session object
    * If not logged in, will receive 401 Not Authorized
 
-2. To log in, the client will call `GET /api/config/authn` to get the authentication config object
+2. To log in, the client will first call `GET /api/config/authn` to get the authentication config object
+
+3. After getting the authentication config object
    * If the supported authentication is anonymous, call `GET /api/authn/anonymous/login`
    * If the supported authentication is oidc, navigate to `GET /api/authn/oidc/login`
 
-3. After logging in, call `GET /api/session` to get the user session object
+4. After logging in, call `GET /api/session` to get the user session object
+
+![User Authentication Sequence](images/user-authentication-sequence.png)
+
+![Anonymoust Login Sequence](images/anonymous-login-sequence.png)
+
+![OIDC Login Sequence](images/oidc-login-sequence.png)
 
 ### Authenticating REST API Calls
 
