@@ -93,7 +93,11 @@ exports.create = async function(req, res) {
 
     // Create the note
     try {
-        const note = await notesService.create(noteData, { import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const note = await notesService.create(noteData, options);
         logger.debug("Success: Created note with id " + note.stix.id);
         return res.status(201).send(note);
     }

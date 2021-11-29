@@ -223,3 +223,31 @@ exports.delete = function (userAccountId, callback) {
     });
 };
 
+async function getLatest(userAccountId) {
+    const userAccount = await UserAccount
+        .findOne({ 'id': userAccountId })
+        .lean()
+        .exec();
+
+    return userAccount;
+}
+
+async function addCreatedByUserAccount(attackObject) {
+    if (attackObject?.workspace?.workflow?.created_by_user_account) {
+        try {
+            // eslint-disable-next-line require-atomic-updates
+            attackObject.created_by_user_account = await getLatest(attackObject.workspace.workflow.created_by_user_account);
+        }
+        catch(err) {
+            // Ignore lookup errors
+        }
+    }
+}
+exports.addCreatedByUserAccount = addCreatedByUserAccount;
+
+exports.addCreatedByUserAccountToAll = async function(attackObjects) {
+    for (const attackObject of attackObjects) {
+        // eslint-disable-next-line no-await-in-loop
+        await addCreatedByUserAccount(attackObject);
+    }
+}

@@ -91,7 +91,11 @@ exports.create = async function(req, res) {
 
     // Create the identity
     try {
-        const identity = await identitiesService.create(identityData, { import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const identity = await identitiesService.create(identityData, options);
         logger.debug("Success: Created identity with id " + identity.stix.id);
         return res.status(201).send(identity);
     }

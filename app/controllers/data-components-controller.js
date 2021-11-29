@@ -92,7 +92,11 @@ exports.create = async function(req, res) {
 
     // Create the data component
     try {
-        const dataComponent = await dataComponentsService.create(dataComponentData, { import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const dataComponent = await dataComponentsService.create(dataComponentData, options);
         logger.debug("Success: Created data component with id " + dataComponent.stix.id);
         return res.status(201).send(dataComponent);
     }

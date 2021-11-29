@@ -97,7 +97,11 @@ exports.create = async function(req, res) {
 
     // Create the data source
     try {
-        const dataSource = await dataSourcesService.create(dataSourceData, { import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const dataSource = await dataSourcesService.create(dataSourceData, options);
         logger.debug("Success: Created data source with id " + dataSource.stix.id);
         return res.status(201).send(dataSource);
     }

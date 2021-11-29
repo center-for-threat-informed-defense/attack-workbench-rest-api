@@ -4,6 +4,7 @@ const expect = require('expect');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const AttackObject = require('../../../models/attack-object-model');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -198,6 +199,7 @@ const markingDefinitionData = {
 
 describe('ATT&CK Objects API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -212,12 +214,16 @@ describe('ATT&CK Objects API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/attack-objects returns only the placeholder identity', function (done) {
         request(app)
             .get('/api/attack-objects')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -244,6 +250,7 @@ describe('ATT&CK Objects API', function () {
             .post('/api/collections')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -267,6 +274,7 @@ describe('ATT&CK Objects API', function () {
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -291,6 +299,7 @@ describe('ATT&CK Objects API', function () {
             .post('/api/identities')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -314,6 +323,7 @@ describe('ATT&CK Objects API', function () {
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -338,6 +348,7 @@ describe('ATT&CK Objects API', function () {
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -362,6 +373,7 @@ describe('ATT&CK Objects API', function () {
             .post('/api/software')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -386,6 +398,7 @@ describe('ATT&CK Objects API', function () {
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -410,6 +423,7 @@ describe('ATT&CK Objects API', function () {
             .post('/api/techniques')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -428,6 +442,7 @@ describe('ATT&CK Objects API', function () {
         request(app)
             .get('/api/attack-objects')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -449,6 +464,7 @@ describe('ATT&CK Objects API', function () {
         request(app)
             .get('/api/attack-objects?attackId=T1234')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -470,6 +486,7 @@ describe('ATT&CK Objects API', function () {
         request(app)
             .get('/api/attack-objects?attackId=G1111')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -493,6 +510,7 @@ describe('ATT&CK Objects API', function () {
         request(app)
             .get('/api/attack-objects?attackId=S3333')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -517,6 +535,7 @@ describe('ATT&CK Objects API', function () {
         request(app)
             .get('/api/attack-objects?attackId=T9999')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -538,6 +557,7 @@ describe('ATT&CK Objects API', function () {
         request(app)
             .get('/api/attack-objects?search=tactic')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

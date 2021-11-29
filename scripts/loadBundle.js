@@ -1,3 +1,5 @@
+#!/bin/node
+
 'use strict';
 
 const collectionBundleService = require('../app/services/collection-bundles-service');
@@ -33,7 +35,6 @@ async function loadBundle() {
     else if (collections.length > 1) {
         console.warn("Unable to import collection bundle. More than one x-mitre-collection object.");
         throw(new Error('Unable to import collection bundle. More than one x-mitre-collection object.'));
-
     }
 
     // The collection must have an id.
@@ -42,15 +43,23 @@ async function loadBundle() {
         throw(new Error('Unable to import collection bundle. x-mitre-collection missing id'));
     }
 
-    console.log('Importing bundle into database...')
-    collectionBundleService.importBundle(collections[0], bundle, options, function(err, importedCollection) {
-        if (err) {
-            throw err;
-        }
-        else {
-            console.log('Bundle imported');
-        }
+    console.log('Importing bundle into database...');
+    return new Promise((resolve, reject) => {
+        collectionBundleService.importBundle(collections[0], bundle, options, (err, importedCollection) => {
+            if (err) {
+                reject(err);
+            }
+            else {
+                console.log('Bundle imported');
+                resolve();
+            }
+        });
     });
 }
 
-loadBundle();
+loadBundle()
+    .then(() => process.exit())
+    .catch(err => {
+        console.log('loadBundle() - Error: ' + err);
+        process.exit(1);
+    });

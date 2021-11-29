@@ -136,6 +136,11 @@ exports.create = async function(data, options) {
         // Set the ATT&CK Spec Version
         markingDefinition.stix.x_mitre_attack_spec_version = markingDefinition.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
+        // Record the user account that created the object
+        if (options.userAccountId) {
+            markingDefinition.workspace.workflow.created_by_user_account = options.userAccountId;
+        }
+
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
 

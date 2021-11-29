@@ -92,10 +92,15 @@ exports.create = async function(req, res) {
 
     // Create the technique
     try {
-        const technique = await techniquesService.create(techniqueData, { import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const technique = await techniquesService.create(techniqueData, options);
 
         logger.debug("Success: Created technique with id " + technique.stix.id);
-        return res.status(201).send(technique);    }
+        return res.status(201).send(technique);
+    }
     catch(err) {
         if (err.message === techniquesService.errors.duplicateId) {
             logger.warn("Duplicate stix.id and stix.modified");

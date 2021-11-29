@@ -67,7 +67,11 @@ exports.create = async function(req, res) {
 
     // Create the marking definition
     try {
-        const markingDefinition = await markingDefinitionsService.create(markingDefinitionData, { import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const markingDefinition = await markingDefinitionsService.create(markingDefinitionData, options);
         logger.debug("Success: Created marking definition with id " + markingDefinition.stix.id);
         return res.status(201).send(markingDefinition);
     }

@@ -1,3 +1,5 @@
+#!/bin/node
+
 'use strict';
 
 const AttackObject = require('../app/models/attack-object-model');
@@ -15,4 +17,9 @@ async function clearDatabase() {
     console.log(`Deleted ${ result.deletedCount } objects from the references collection.`);
 }
 
-clearDatabase();
+clearDatabase()
+    .then(() => process.exit())
+    .catch(err => {
+        console.log('clearDatabase() - Error: ' + err);
+        process.exit(1);
+    });

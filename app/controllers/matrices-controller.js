@@ -92,7 +92,11 @@ exports.create = async function(req, res) {
 
     // Create the matrix
     try {
-        const matrix = await matricesService.create(matrixData, { import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const matrix = await matricesService.create(matrixData, options);
         logger.debug("Success: Created matrix with id " + matrix.stix.id);
         return res.status(201).send(matrix);
     }

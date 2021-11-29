@@ -37,10 +37,11 @@ exports.initializeApp = async function() {
     if (config.server.enableCorsAnyOrigin) {
         logger.info('CORS is enabled');
         const cors = require('cors');
-        app.use(cors({
+        const corsOptions = {
             credentials: true,
             origin: true
-        }));
+        };
+        app.use(cors(corsOptions));
     }
     else {
         logger.info('CORS is not enabled');

@@ -3,6 +3,7 @@
 const uuid = require('uuid');
 const Identity = require('../models/identity-model');
 const config = require('../config/config');
+const userAccountsService = require('./user-accounts-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -206,6 +207,11 @@ exports.create = async function(data, options) {
         // Set the ATT&CK Spec Version
         identity.stix.x_mitre_attack_spec_version = identity.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
+        // Record the user account that created the object
+        if (options.userAccountId) {
+            identity.workspace.workflow.created_by_user_account = options.userAccountId;
+        }
+
         // Assign a new STIX id if not already provided
         identity.stix.id = identity.stix.id || `identity--${uuid.v4()}`;
     }
@@ -330,6 +336,9 @@ async function addCreatedByAndModifiedByIdentities(attackObject) {
             // Ignore lookup errors
         }
     }
+
+    // Add user account data
+    await userAccountsService.addCreatedByUserAccount(attackObject);
 }
 exports.addCreatedByAndModifiedByIdentities = addCreatedByAndModifiedByIdentities;
 

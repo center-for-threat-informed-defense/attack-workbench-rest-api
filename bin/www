@@ -15,7 +15,14 @@ async function runServer() {
 
     // Establish the database connection
     logger.info('Setting up the database connection');
-    await require('../app/lib/database-connection').initializeConnection();
+    try {
+        await require('../app/lib/database-connection').initializeConnection();
+    }
+    catch(err) {
+        logger.error('Unable to connect to database: ' + err);
+        logger.error('Database connection is required. Terminating app.');
+        process.exit(1);
+    }
 
     // Check for valid database configuration
     const databaseConfiguration = require('../app/lib/database-configuration');
@@ -33,7 +40,7 @@ async function runServer() {
 
         logger.info(`Listening at http://${host}:${port}`);
         logger.info('ATT&CK Workbench REST API start up complete');
-    })
+    });
 }
 
 runServer();

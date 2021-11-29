@@ -91,7 +91,11 @@ exports.create = async function(req, res) {
     const collectionData = req.body;
 
     // Create the collection
-    const options = { addObjectsToCollection: true, import: false };
+    const options = {
+        addObjectsToCollection: true,
+        import: false,
+        userAccountId: req.user?.userAccountId
+    };
     try {
         const { savedCollection, insertionErrors } = await collectionsService.create(collectionData, options);
         logger.debug('Success: Created collection with id ' + savedCollection.stix.id);

@@ -92,7 +92,11 @@ exports.create = async function(req, res) {
 
     // Create the tactic
     try {
-        const tactic = await tacticsService.create(tacticData, { import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const tactic = await tacticsService.create(tacticData, options);
 
         logger.debug("Success: Created tactic with id " + tactic.stix.id);
         return res.status(201).send(tactic);
