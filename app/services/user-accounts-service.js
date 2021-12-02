@@ -7,6 +7,7 @@ const errors = {
     missingParameter: 'Missing required parameter',
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
+    duplicateEmail: 'Duplicate email',
     notFound: 'Document not found',
     invalidQueryStringParameter: 'Invalid query string parameter'
 };
@@ -140,6 +141,19 @@ exports.retrieveByEmail = async function(email) {
 
 exports.createIsAsync = true;
 exports.create = async function(data) {
+    // Check for a duplicate email
+    if (data.email) {
+        // Note: We could try to insert the new document without this check and allow Mongoose to throw a duplicate
+        // index error. But the Error that's thrown doesn't allow us to distinguish between a duplicate id (which is
+        // unexpected and may indicate a deeper problem) and a duplicate email (which is likely a client error).
+        // So we perform this check here to catch the duplicate email and then treat the duplicate index as a server
+        // error if it occurs.
+        const userAccount = await UserAccount.findOne({ 'email': data.email }).lean();
+        if (userAccount) {
+            throw (new Error(errors.duplicateEmail));
+        }
+    }
+
     // Create the document
     const userAccount = new UserAccount(data);
 

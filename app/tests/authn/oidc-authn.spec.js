@@ -22,6 +22,13 @@ const oidcClientSecret = 'a58c55d9-8408-45de-a9ef-a55b433291de';
 
 const localServerHost = 'localhost';
 const localServerPort = 3000;
+const localServerRedirectUrl = `http://${ localServerHost }:${localServerPort }/api/authn/oidc/*`;
+
+const testUser = {
+    email: 'test@test.com',
+    username: 'testuser',
+    password: 'testuser'
+}
 
 function extractFormAction(html) {
     const documentRoot = parse5.parse(html);
@@ -65,9 +72,20 @@ describe('OIDC Authentication', function () {
         await databaseConfiguration.checkSystemConfiguration();
 
         // Initialize the OIDC server
-        const clientCredentials = await keycloak.initializeKeycloak(oidcHost, oidcRealm, oidcClientId, oidcClientSecret);
+        const options = {
+            basePath: oidcHost,
+            realmName: oidcRealm,
+            clientId: oidcClientId,
+            description: 'client',
+            redirectUris: [ localServerRedirectUrl ],
+            clientSecret: oidcClientSecret
+        };
+        const clientCredentials = await keycloak.initializeKeycloak(options);
         // eslint-disable-next-line require-atomic-updates
         config.authn.oidc.clientSecret = clientCredentials.value;
+
+        // Add a test user
+        await keycloak.addUsersToKeycloak(options, testUser);
 
         // Initialize the express app
         app = await require('../../index').initializeApp();
@@ -154,8 +172,8 @@ describe('OIDC Authentication', function () {
         request(server)
             .post(path + search)
             .set('Cookie', ipCookies)
-            .send('username=testuser')
-            .send('password=testuser')
+            .send(`username=${ testUser.username }`)
+            .send(`password=${ testUser.password }`)
             .send('credentialId=')
             .expect(302)
             .end(function (err, res) {
@@ -236,6 +254,34 @@ describe('OIDC Authentication', function () {
             .set('Accept', 'application/json')
             .set('Cookie', apiCookies)
             .expect(401)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/authn/anonymous/login cannot log in using incorrect authentication mechanism', function (done) {
+        request(app)
+            .get('/api/authn/anonymous/login')
+            .set('Accept', 'application/json')
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/authn/anonymous/logout cannot log out using incorrect authentication mechanism', function (done) {
+        request(app)
+            .get('/api/authn/anonymous/logout')
+            .set('Accept', 'application/json')
+            .expect(404)
             .end(function (err, res) {
                 if (err) {
                     done(err);

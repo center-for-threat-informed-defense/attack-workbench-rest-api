@@ -15,6 +15,29 @@ const byteLength = 48;
 const buffer = crypto.randomBytes(byteLength);
 const defaultSessionSecret = buffer.toString(stringBase);
 
+const authnMechanismValues = ['anonymous', 'oidc'];
+convict.addFormat(enumFormat('authn-mechanism', authnMechanismValues, true));
+
+// Creates a new convict format for a list of enumerated values
+function enumFormat(name, values, coerceLower) {
+    return {
+        name,
+        validate: function (val) {
+            if (!values.includes(val)) {
+                throw new Error(`Invalid ${ name } value`);
+            }
+        },
+        coerce: function (val) {
+            if (coerceLower) {
+                return val.toLowerCase();
+            }
+            else {
+                return val;
+            }
+        }
+    }
+}
+
 function loadConfig() {
     const config = convict({
         server: {
@@ -94,7 +117,7 @@ function loadConfig() {
         authn: {
             mechanism: {
                 doc: 'Authentication mechanism to use',
-                format: ['oidc', 'anonymous'],
+                format: 'authn-mechanism',
                 default: 'anonymous',
                 env: 'AUTHN_MECHANISM'
             },

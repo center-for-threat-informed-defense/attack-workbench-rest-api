@@ -67,11 +67,18 @@ exports.create = async function(req, res) {
     try {
         const userAccount = await userAccountsService.create(userAccountData);
 
-        logger.debug("Success: Created user account with id " + userAccount.id);
-        return res.status(201).send(userAccount);    }
+        logger.debug(`Success: Created user account with id ${ userAccount.id }`);
+        return res.status(201).send(userAccount);
+    }
     catch(err) {
-        logger.error("Failed with error: " + err);
-        return res.status(500).send("Unable to create user account. Server error.");
+        if (err.message === userAccountsService.errors.duplicateEmail) {
+            logger.warn(`Unable to create user account, duplicate email: ${ userAccountData.email }`);
+            return res.status(400).send('Duplicate email');
+        }
+        else {
+            logger.error("Failed with error: " + err);
+            return res.status(500).send('Unable to create user account. Server error.');
+        }
     }
 };
 

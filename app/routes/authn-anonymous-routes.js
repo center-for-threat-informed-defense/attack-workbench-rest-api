@@ -8,10 +8,14 @@ const router = express.Router();
 
 router.route('/authn/anonymous/login')
     .get(
+        authnConfig.checkAuthenticationMechanism('anonymous'),
         authnConfig.authenticate,
         authnAnonymousController.login);
 
 router.route('/authn/anonymous/logout')
-    .get(authnAnonymousController.logout);
+    .get(
+        authnConfig.checkAuthenticationMechanism('anonymous'),
+        authnAnonymousController.logout
+    );
 
 module.exports = router;

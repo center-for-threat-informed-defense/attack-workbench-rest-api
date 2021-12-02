@@ -6,6 +6,7 @@ logger.level = 'debug';
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
+const UserAccount = require('../../../models/user-account-model');
 
 // userId property will be created by REST API
 const initialObjectData = {
@@ -31,6 +32,9 @@ describe('User Accounts API', function () {
 
         // Check for a valid database configuration
         await databaseConfiguration.checkSystemConfiguration();
+
+        // Wait until the indexes are created
+        await UserAccount.init();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
@@ -191,6 +195,22 @@ describe('User Accounts API', function () {
                     expect(Array.isArray(userAccounts)).toBe(true);
                     expect(userAccounts.length).toBe(1);
 
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/user-accounts does not create a user account with a duplicate email', function (done) {
+        const body = initialObjectData;
+        request(app)
+            .post('/api/user-accounts')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
                     done();
                 }
             });

@@ -23,7 +23,7 @@ exports.passportMiddleware = function() {
 
 exports.configurePassport = async function() {
     // Configure passport with the selected authentication mechanism
-    const mechanism = availableMechanisms.get(config.authn.mechanism.toLowerCase());
+    const mechanism = availableMechanisms.get(config.authn.mechanism);
     if (mechanism) {
         try {
             passport.serializeUser(mechanism.serializeUser);
@@ -49,4 +49,17 @@ exports.configurePassport = async function() {
 
 exports.authenticate = function(req, res, next) {
     passportAuthenticateMiddleware(req, res, next);
+}
+
+// Middleware that will return a 404 if the routeMechanism doesn't match the configured authentication mechanism
+// This can be used to prevent access to routes that don't match the current configuration
+exports.checkAuthenticationMechanism = function(routeMechanism) {
+    return function(req, res, next) {
+        if (config.authn.mechanism === routeMechanism) {
+            next();
+        }
+        else {
+            return res.status(404).send('Incorrect authentication mechanism');
+        }
+    }
 }

@@ -112,6 +112,35 @@ describe('Anonymous Authentication', function () {
             });
     });
 
+    it('GET /api/authn/oidc/login cannot log in using incorrect authentication mechanism', function (done) {
+        const encodedDestination = encodeURIComponent('http://localhost/startPage');
+        request(app)
+            .get(`/api/authn/oidc/login?destination=${ encodedDestination }`)
+            .set('Accept', 'application/json')
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/authn/oidc/logout cannot log out using incorrect authentication mechanism', function (done) {
+        request(app)
+            .get('/api/authn/oidc/logout')
+            .set('Accept', 'application/json')
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
     after(async function() {
         await database.closeConnection();
     });

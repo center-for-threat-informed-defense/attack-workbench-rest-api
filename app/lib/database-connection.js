@@ -1,10 +1,12 @@
 'use strict';
 
-exports.initializeConnection = async function() {
+exports.initializeConnection = async function(options) {
     const logger = require('./logger');
     const config = require('../config/config');
 
-    if (!config.database.url) {
+    const databaseUrl = options?.databaseUrl || config.database.url;
+
+    if (!databaseUrl) {
         throw new Error('The URL for the MongoDB database was not set in the DATABASE_URL environment variable.');
     }
 
@@ -20,8 +22,8 @@ exports.initializeConnection = async function() {
     mongoose.set('useCreateIndex', true);
 
     // Bootstrap db connection
-    logger.info('Mongoose attempting to connect to ' + config.database.url);
-    await mongoose.connect(config.database.url, { useNewUrlParser: true, useUnifiedTopology: true });
+    logger.info('Mongoose attempting to connect to ' + databaseUrl);
+    await mongoose.connect(databaseUrl, { useNewUrlParser: true, useUnifiedTopology: true });
 
-    logger.info('Mongoose connected to ' + config.database.url);
+    logger.info('Mongoose connected to ' + databaseUrl);
 }
