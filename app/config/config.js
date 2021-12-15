@@ -10,13 +10,23 @@ const packageJson = require('../../package.json');
 //   - Restarting the server will force the users to login again
 //   - Sessions cannot be shared across server instances
 // Setting the SESSION_SECRET environment variable will override this generated value
-const stringBase = 'base64';
-const byteLength = 48;
-const buffer = crypto.randomBytes(byteLength);
-const defaultSessionSecret = buffer.toString(stringBase);
+function generateSecret() {
+    const stringBase = 'base64';
+    const byteLength = 48;
+    const buffer = crypto.randomBytes(byteLength);
+    const secret = buffer.toString(stringBase);
 
-const authnMechanismValues = ['anonymous', 'oidc'];
-convict.addFormat(enumFormat('authn-mechanism', authnMechanismValues, true));
+    return secret;
+}
+
+const defaultSessionSecret = generateSecret();
+const defaultTokenSigningSecret = generateSecret();
+
+const userAuthnMechanismValues = ['anonymous', 'oidc'];
+convict.addFormat(enumFormat('user-authn-mechanism', userAuthnMechanismValues, true));
+
+const serviceRoleValues = ['read-only', 'collection-manager'];
+convict.addFormat(enumFormat('service-role', serviceRoleValues, true));
 
 // Creates a new convict format for a list of enumerated values
 function enumFormat(name, values, coerceLower) {
@@ -37,6 +47,23 @@ function enumFormat(name, values, coerceLower) {
         }
     }
 }
+
+function arrayFormat(name) {
+    return {
+        name,
+        validate: function(entries, schema) {
+            if (!Array.isArray(entries)) {
+                throw new Error('Property must be of type Array');
+            }
+
+            for (const entry of entries) {
+                convict(schema.children).load(entry).validate();
+            }
+        }
+    }
+}
+convict.addFormat(arrayFormat('oidc-client'));
+convict.addFormat(arrayFormat('service-account'));
 
 function loadConfig() {
     const config = convict({
@@ -114,10 +141,10 @@ function loadConfig() {
                 env: 'SESSION_SECRET'
             }
         },
-        authn: {
+        userAuthn: {
             mechanism: {
-                doc: 'Authentication mechanism to use',
-                format: 'authn-mechanism',
+                doc: 'Authentication mechanism to use for user log in',
+                format: 'user-authn-mechanism',
                 default: 'anonymous',
                 env: 'AUTHN_MECHANISM'
             },
@@ -139,6 +166,80 @@ function loadConfig() {
                     format: String,
                     default: '',
                     env: 'AUTHN_OIDC_CLIENT_SECRET'
+                }
+            }
+        },
+        serviceAuthn: {
+            oidcClientCredentials: {
+                enable: {
+                    doc: 'Enable OIDC Client Credentials Flow for service accounts',
+                    format: Boolean,
+                    default: false,
+                    env: 'SERVICE_ACCOUNT_OIDC_ENABLE'
+                },
+                jwksUri: {
+                    doc: 'JWKS URI for obtaining the public key from the OIDC identity provider',
+                    format: String,
+                    default: '',
+                    env: 'JWKS_URI'
+                },
+                clients: {
+                    doc: 'Services (OIDC clients) that may access the REST API',
+                    format: 'oidc-client',
+                    default: [],
+                    children: {
+                        clientId: {
+                            doc: 'clientId for the service',
+                            format: String,
+                            default: null
+                        },
+                        serviceRole: {
+                            doc: 'The role determines which endpoints the service is permitted to access',
+                            format: 'service-role',
+                            default: 'read-only'
+                        }
+                    }
+                }
+            },
+            apikey: {
+                enable: {
+                    doc: 'Enable apikey authentication for service accounts',
+                    format: Boolean,
+                    default: true,
+                    env: 'SERVICE_ACCOUNT_APIKEY_ENABLE'
+                },
+                secret: {
+                    doc: 'Secret used to sign the tokens issued to service accounts',
+                    default: defaultTokenSigningSecret,
+                    env: 'TOKEN_SIGNING_SECRET'
+                },
+                tokenTimeout: {
+                    doc: 'Timeout of the token',
+                    format: 'int',
+                    default: 300,
+                    env: 'TOKEN_TIMEOUT'
+                },
+                serviceAccounts: {
+                    doc: 'Services accounts that may access the REST API',
+                    format: 'service-account',
+                    default: [],
+                    children: {
+                        name: {
+                            doc: 'Name of the service account',
+                            format: String,
+                            default: null
+                        },
+                        apikey: {
+                            doc: 'apikey of the service account (shared secret)',
+                            format: String,
+                            default: null
+                        },
+                        serviceRole: {
+                            doc: 'The role determines which endpoints the service is permitted to access',
+                            format: 'service-role',
+                            default: 'read-only'
+                        }
+                    }
                 }
             }
         }

@@ -141,43 +141,79 @@ The user's browser will receive a session cookie with the generated login Sessio
 This cookie must be provided on all REST API calls in order to authenticate the user.
 This will generally be handled automatically by the browser.
 
-## Server Authentication
+## Service Authentication
 
-### Server Authentication Endpoints
+The REST API support two methods of authenticating services: API Key Authentication and OIDC Client Credentials Flow.
+Both enable the service to provide an access token in requests in order to access resources, but differ in how the access token is obtained.
 
-#### API Key Endpoints
+### API Key Authentication
 
-The API key endpoints are intended to support other ATT&CK Workbench services.
+API key authentication works by configuring both the REST API and the service with a secret value that is used to authenticate the service to the REST API.
 
-Note: Rather than allow a service to use its API key directly in requests to the REST API, a service is required to log in using its API key and obtain a JSON Web Token (JWT).
+Note: Rather than allow a service to use its API key directly in requests to the REST API, a service is required to use the api key to obtain an access token in the form of a JSON Web Token (JWT).
 The JWT must then be provided in subsequent requests.
-This extra step is intended to provide an additional layer of security.
-For example, the deployment could be configured such that the service log-in endpoint is secured separately from the other endpoints, with access only allowed from particular hosts (those running the authorized services).
-This would make it more difficult for a malicious user to utilize a stolen API key.
-The use of a JWT also allows for a login session to expire, forcing the service to periodically log in again.
+The use of a JWT allows for a login session to expire, forcing the service to periodically obtain a new token.
 
-##### Log In
-```
-GET /api/authn/service/login
-```
+The service obtains the access token through a challenge-response protocol:
+1. The service starts by sending a request to the REST API challenge endpoint. It will receive a nonce (a base-64 encoded string generated using the Node crypto module) in the response.
+2. The service must then create a SHA256 hash of the nonce using its configured API key.
+3. The service then sends the hash to the REST API token endpoint. It will receive a JWT in the response.
+4. The service must include the JWT in requests when accessing resource endpoints.
 
-Logs the service into the REST API. The request must include the API key configured for that service.
-The response will include a JWT that must be provided on subsequent requests.
-
-##### Log Out
+#### Request Challenge Endpoint
 ```
-GET /api/authn/service/logout
+GET /api/authn/service/apikey-challenge?serviceName=MyServiceName
 ```
 
-Logs the service out of the REST API.
+Requests a challenge string from the REST API. The request must include the service name as a query parameter.
+The response will include the challenge that can be used when requesting an access token.
+
+Sample response:
+```json
+{
+   "challenge": "PH2ev0gz+DEUVMbB9d8jT8uowru5Qp495yAHqASi1axVxywVZ4/GxTnuPlpfayJ+"
+}
+```
+
+#### Request Token endpoint
+```
+GET /api/authn/service/apikey-token?serviceName=MyServiceName
+Authorization: Apikey 1092d306081afd94d405b15887312373066bc96c222b04a03cfef436a0b0ecaa
+```
+
+Requests the access token (JWT) that the service will use to authenticate with the REST API when making requests for resources.
+The request must include the service name as a query parameter and a hash of the challenge in the `Authorization` header using the `Apikey` authentication scheme.
+The hash must be a SHA256 hash of the challenge using the shared api key value.
+The response will include the JWT.
+
+Sample response:
+```json
+{
+   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXJ2aWNlTmFtZSI6ImFwaWtleS10ZXN0LXNlcnZpY2UiLCJleHAiOjE2Mzk2MDQ5NDEsImlhdCI6MTYzOTYwNDY0MX0.QHPTHMzceeONvMdPpr2h6tCBwrpkpGydOV6i0DUhNMw"
+}
+```
+
+### OIDC Client Credentials Flow Authentication
+
+As an alternative to the API key authentication method, the REST API supports authenticating using the OIDC Client Credentials Flow.
+This method has the advantage of not needing to maintain a shared secret in both the REST API and the service.
+Instead, the service must be configured as a client with the OIDC Identity Provider and have Client Credentials Flow enabled.
+When running, the service must obtain an access token from the OIDC Identity Provider using `grant_type=client_credentials`.
+The token must be in the form of a JWT.
+Once the service obtains the access token, it must be included in all requests to the REST API to access resources.
+The method of obtaining the token is dependent on the OIDC vendor, but generally requires calling an OIDC Identity Provider endpoint with the service's `clientId` and `clientSecret`.
+
+Note that this authentication method requires that the REST API is also configured as a client with the OIDC Identity Provider and that the two clients are linked appropriately.
+The method of linking the two clients is vendor specific. For example, using the Keycloak OIDC server, both clients must be in the same realm.
+This may differ for other vendors.
 
 ### Authenticating REST API Calls
 
-A successful log in will result in the creation of a persistent login session on the server.
-The response to the login endpoint will contain a JWT.
-This JWT must be provided on all REST API calls in order to authenticate the service.
+The access token (JWT), whether obtained through the API key or OIDC Client Credentials Flow authentication method, must be provided on all REST API calls in order to authenticate the service.
 The JWT must be provided using the `Authorization` header with the `Bearer` authentication scheme:
 
+Sample request
 ```
-Authorization: Bearer <jwt>
+GET /api/techniques
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXJ2aWNlTmFtZSI6ImFwaWtleS10ZXN0LXNlcnZpY2UiLCJleHAiOjE2Mzk2MDQ5NDEsImlhdCI6MTYzOTYwNDY0MX0.QHPTHMzceeONvMdPpr2h6tCBwrpkpGydOV6i0DUhNMw
 ```

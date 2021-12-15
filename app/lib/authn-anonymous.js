@@ -1,7 +1,13 @@
 'use strict';
 
 const AnonymousUuidStrategy = require('passport-anonym-uuid');
+
 const systemConfigurationService = require('../services/system-configuration-service');
+
+let strategyName;
+exports.strategyName = function() {
+    return strategyName;
+}
 
 /**
  * This function takes the user session object and returns the value (the userSessionKey) that will be
@@ -39,7 +45,10 @@ exports.deserializeUser = function(userSessionKey, done) {
 };
 
 exports.getStrategy = function() {
-    return new AnonymousUuidStrategy(verifyCallback);
+    const strategy = new AnonymousUuidStrategy(verifyCallback);
+    strategyName = strategy.name;
+
+    return strategy;
 }
 
 /**

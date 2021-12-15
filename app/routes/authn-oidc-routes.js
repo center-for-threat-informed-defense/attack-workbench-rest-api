@@ -1,26 +1,28 @@
 'use strict';
 
 const express = require('express');
+const passport = require('passport');
+
 const authnConfig = require('../lib/authn-configuration');
+const authnOidc = require('../lib/authn-oidc');
 const authnOidcController = require('../controllers/authn-oidc-controller');
 
 const router = express.Router();
-
 router.route('/authn/oidc/login')
     .get(
-        authnConfig.checkAuthenticationMechanism('oidc'),
+        authnConfig.isUserAuthenticationMechanismEnabled('oidc'),
         authnOidcController.login,
-        authnConfig.authenticate);
+        passport.authenticate(authnOidc.strategyName()));
 
 router.route('/authn/oidc/callback')
     .get(
-        authnConfig.checkAuthenticationMechanism('oidc'),
-        authnConfig.authenticate,
+        authnConfig.isUserAuthenticationMechanismEnabled('oidc'),
+        passport.authenticate(authnOidc.strategyName()),
         authnOidcController.identityProviderCallback);
 
 router.route('/authn/oidc/logout')
     .get(
-        authnConfig.checkAuthenticationMechanism('oidc'),
+        authnConfig.isUserAuthenticationMechanismEnabled('oidc'),
         authnOidcController.logout
     );
 

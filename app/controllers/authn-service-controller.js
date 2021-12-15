@@ -3,26 +3,71 @@
 const authnServiceService = require('../services/authn-service-service');
 const logger = require('../lib/logger');
 
-exports.login = async function(req, res) {
+exports.apikeyGetChallenge = function(req, res) {
     try {
-        await authnServiceService.login();
-        logger.debug('Success: Service logged in.');
-        return res.status(201).send();
+        const serviceName = req.query.serviceName;
+        if (!serviceName) {
+            logger.warn('Unable to send service account challenge, missing service name');
+            return res.status(400).send('Service name is required');
+        }
+
+        const challenge = authnServiceService.createChallenge(serviceName);
+        logger.debug('Success: Service account challenge created.');
+        return res.status(200).send(challenge);
     }
     catch(err) {
-        logger.error('Unable to log in service, failed with error: ' + err);
-        return res.status(500).send('Unable to log in service. Server error.');
+        if (err.message === authnServiceService.errors.serviceNotFound) {
+            logger.warn('Unable to create service account challenge, service not found');
+            return res.status(404).send('Service not found');
+        }
+        else {
+            logger.error('Unable to create service account challenge, failed with error: ' + err);
+            return res.status(500).send('Unable to create service account challenge. Server error.');
+        }
     }
 };
 
-exports.logout = async function(req, res) {
+exports.apikeyGetToken = function(req, res) {
     try {
-        await authnServiceService.login();
-        logger.debug('Success: Service logged out.');
-        return res.status(201).send();
+        const serviceName = req.query.serviceName;
+        if (!serviceName) {
+            logger.warn('Unable to send service account token, missing service name');
+            return res.status(400).send('Service name is required');
+        }
+
+        const authorizationHeader = req.get('Authorization');
+        if (!authorizationHeader) {
+            logger.warn('Unable to send service account token, missing Authorization header');
+            return res.status(400).send('Authorization header is required');
+        }
+
+        const headerChunks = authorizationHeader.split(' ');
+        if (headerChunks.length !== 2) {
+            return res.status(400).send('Badly formatted request');
+        }
+
+        if (headerChunks[0].toLowerCase() !== 'apikey') {
+            return res.status(400).send('Badly formatted request');
+        }
+
+        const challengeHash = headerChunks[1];
+
+        const token = authnServiceService.createToken(serviceName, challengeHash);
+        logger.debug('Success: Service account token created.');
+        return res.status(200).send(token);
     }
     catch(err) {
-        logger.error('Unable to log out service, failed with error: ' + err);
-        return res.status(500).send('Unable to log out service. Server error.');
+        if (err.message === authnServiceService.errors.invalidChallengeHash) {
+            logger.warn('Unable to create service account token, invalid challenge hash');
+            return res.status(400).send('Invalid challenge hash');
+        }
+        else if (err.message === authnServiceService.errors.challengeNotFound) {
+            logger.warn('Unable to create service account token, challenge not found');
+            return res.status(400).send('Challenge not found');
+        }
+        else {
+            logger.error('Unable to create service account token, failed with error: ' + err);
+            return res.status(500).send('Unable to create service account token. Server error.');
+        }
     }
 };

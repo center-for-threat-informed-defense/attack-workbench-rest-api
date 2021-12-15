@@ -169,7 +169,7 @@ exports.retrieveAuthenticationConfig = async function() {
     // so return an array of mechanisms
     const authenticationConfig = {
         mechanisms: [
-            { authnType: config.authn.mechanism }
+            { authnType: config.userAuthn.mechanism }
         ]
     };
     return authenticationConfig;

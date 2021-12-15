@@ -6,6 +6,11 @@ const retry = require('async-await-retry');
 const config = require('../config/config');
 const userAccountsService = require("../services/user-accounts-service");
 
+let strategyName;
+exports.strategyName = function() {
+    return strategyName;
+}
+
 /**
  * This function takes the user session object and returns the value (the userSessionKey) that will be
  * stored in the express session for this user
@@ -43,11 +48,11 @@ exports.deserializeUser = function(userSessionKey, done) {
 exports.getStrategy = async function() {
     // Retry to give the identity provider time to start (when using docker-compose)
     const retryOptions = { interval: 1000 };
-    const issuer = await retry(openIdClient.Issuer.discover, [config.authn.oidc.issuerUrl], retryOptions);
+    const issuer = await retry(openIdClient.Issuer.discover, [config.userAuthn.oidc.issuerUrl], retryOptions);
 
     const clientOptions = {
-        client_id: config.authn.oidc.clientId,
-        client_secret: config.authn.oidc.clientSecret,
+        client_id: config.userAuthn.oidc.clientId,
+        client_secret: config.userAuthn.oidc.clientSecret,
         redirect_uris: ['http://localhost:3000/api/authn/oidc/callback'],
         response_types: ['code']
     };
@@ -59,9 +64,10 @@ exports.getStrategy = async function() {
         params: { scope: 'openid email profile' }
     };
     const strategy = new openIdClient.Strategy(strategyOptions, verifyCallback);
+    strategyName = strategy.name;
 
     return strategy;
-}
+};
 
 /**
  * This function is called by the strategy after the user has authenticated using the oidc strategy

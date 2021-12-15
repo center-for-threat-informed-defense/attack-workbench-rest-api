@@ -20,8 +20,7 @@ async function runServer() {
     }
     catch(err) {
         logger.error('Unable to connect to database: ' + err);
-        logger.error('Database connection is required. Terminating app.');
-        process.exit(1);
+        throw new Error('Database connection is required. Terminating app.');
     }
 
     // Check for valid database configuration
@@ -43,5 +42,9 @@ async function runServer() {
     });
 }
 
-runServer();
-
+runServer()
+    .then(() => process.exit())
+    .catch(err => {
+        console.log('runServer() - Error: ' + err);
+        process.exit(1);
+    });

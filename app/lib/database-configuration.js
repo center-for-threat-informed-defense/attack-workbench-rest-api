@@ -88,7 +88,7 @@ async function checkForAnonymousUserAccount() {
     const config = require('../config/config');
 
     // Only check for an anonymous user account if the system has been configured to use the anonymous authn mechanism
-    if (config.authn.mechanism === 'anonymous') {
+    if (config.userAuthn.mechanism === 'anonymous') {
         try {
             const anonymousUserAccount = await systemConfigurationService.retrieveAnonymousUserAccount();
             logger.info(`Success: Anonymous user account is set to ${ anonymousUserAccount.id }`);

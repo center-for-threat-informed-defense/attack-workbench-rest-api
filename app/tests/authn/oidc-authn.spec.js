@@ -17,7 +17,7 @@ logger.level = 'debug';
 
 const oidcHost = 'localhost:8080';
 const oidcRealm = 'test-oidc-realm';
-const oidcClientId = 'attack-workbench-test';
+const oidcClientId = 'attack-workbench-rest-api';
 const oidcClientSecret = 'a58c55d9-8408-45de-a9ef-a55b433291de';
 
 const localServerHost = 'localhost';
@@ -77,12 +77,13 @@ describe('OIDC Authentication', function () {
             realmName: oidcRealm,
             clientId: oidcClientId,
             description: 'client',
+            standardFlowEnabled: true,
             redirectUris: [ localServerRedirectUrl ],
             clientSecret: oidcClientSecret
         };
         const clientCredentials = await keycloak.initializeKeycloak(options);
         // eslint-disable-next-line require-atomic-updates
-        config.authn.oidc.clientSecret = clientCredentials.value;
+        config.userAuthn.oidc.clientSecret = clientCredentials.value;
 
         // Add a test user
         await keycloak.addUsersToKeycloak(options, testUser);

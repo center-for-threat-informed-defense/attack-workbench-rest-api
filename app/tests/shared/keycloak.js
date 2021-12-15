@@ -51,7 +51,9 @@ async function createClient(options, token) {
         name: options.clientId,
         description: options.description,
         enabled: true,
-        redirectUris: options.redirectUris
+        redirectUris: options.redirectUris,
+        standardFlowEnabled: options.standardFlowEnabled,
+        serviceAccountsEnabled: options.serviceAccountsEnabled
     };
     if (options.clientSecret) {
         clientData.secret = options.clientSecret;
@@ -185,4 +187,28 @@ exports.addUsersToKeycloak = async function (serverOptions, users) {
         // eslint-disable-next-line no-await-in-loop
         await createUser(serverOptions.basePath, serverOptions.realmName, user, adminAccessToken);
     }
+}
+
+exports.addClientToKeycloak = async function(clientOptions) {
+    const adminAccessToken = await getAuthorizationToken(clientOptions.basePath);
+
+    // Configure the server
+    await createClient(clientOptions, adminAccessToken);
+    const client = await getClient(clientOptions, adminAccessToken);
+    if (!clientOptions.clientSecret) {
+        console.info(`clientSecret not provided, creating new clientSecret`);
+        await createClientSecret(clientOptions.basePath, clientOptions.realmName, client.id, adminAccessToken);
+    }
+}
+
+exports.getAccessTokenToClient = async function(clientOptions) {
+    console.info(`Requesting client access token for ${ clientOptions.clientId } from ${ clientOptions.basePath }`);
+    const res = await request
+        .post(`${ clientOptions.basePath }/auth/realms/${ clientOptions.realmName }/protocol/openid-connect/token`)
+        .send(`client_id=${ clientOptions.clientId }`)
+        .send(`client_secret=${ clientOptions.clientSecret }`)
+        .send(`grant_type=client_credentials`);
+
+    const clientAccessToken = res.body.access_token;
+    return clientAccessToken;
 }

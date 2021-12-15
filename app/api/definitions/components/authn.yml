@@ -1,6 +1,6 @@
 components:
   schemas:
-    service-login:
+    service-apikey-challenge-response:
       type: object
       required:
         - api-key
@@ -9,7 +9,7 @@ components:
           type: string
           description: 'API key for this service'
 
-    service-login-response:
+    service-apikey-token-response:
       type: object
       properties:
         token:

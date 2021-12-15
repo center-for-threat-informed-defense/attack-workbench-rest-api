@@ -7,7 +7,7 @@ const userAccountService = require('../app/services/user-accounts-service');
 
 const oidcHost = 'localhost:8080';
 const oidcRealm = 'test-oidc-realm';
-const oidcClientId = 'attack-workbench-test';
+const oidcClientId = 'attack-workbench-rest-api';
 const oidcClientSecret = 'a58c55d9-8408-45de-a9ef-a55b433291de';
 const oidcClientRedirectUrl = 'http://localhost:3000/api/authn/oidc/*';
 
@@ -20,6 +20,7 @@ async function configureKeycloak() {
         realmName: oidcRealm,
         clientId: oidcClientId,
         description: 'client',
+        standardFlowEnabled: true,
         redirectUris: [ oidcClientRedirectUrl ],
         clientSecret: oidcClientSecret
     };

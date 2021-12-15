@@ -18,14 +18,8 @@ const initialObjectData = {
 
 describe('User Accounts API', function () {
     let app;
-    let originalAuthnMechanism;
-    const config = require('../../../config/config');
 
     before(async function() {
-        // Not anonymous--we don't want to start with an anonymous user account
-        originalAuthnMechanism = config.authn.mechanism;
-        config.authn.mechanism = 'oidc';
-
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
@@ -40,7 +34,7 @@ describe('User Accounts API', function () {
         app = await require('../../../index').initializeApp();
     });
 
-    it('GET /api/user-accounts returns an empty array of user accounts', function (done) {
+    it('GET /api/user-accounts returns an array with the anonymous user account', function (done) {
         request(app)
             .get('/api/user-accounts')
             .set('Accept', 'application/json')
@@ -50,11 +44,12 @@ describe('User Accounts API', function () {
                 if (err) {
                     done(err);
                 } else {
-                    // We expect to get an empty array
+                    // We expect to get an array with one entry (the anonymous user account)
                     const userAccounts = res.body;
                     expect(userAccounts).toBeDefined();
                     expect(Array.isArray(userAccounts)).toBe(true);
-                    expect(userAccounts.length).toBe(0);
+                    expect(userAccounts.length).toBe(1);
+
                     done();
                 }
             });
@@ -108,11 +103,11 @@ describe('User Accounts API', function () {
                 if (err) {
                     done(err);
                 } else {
-                    // We expect to get one user account in an array
+                    // We expect to get the added user account and the anonymous user account
                     const userAccounts = res.body;
                     expect(userAccounts).toBeDefined();
                     expect(Array.isArray(userAccounts)).toBe(true);
-                    expect(userAccounts.length).toBe(1);
+                    expect(userAccounts.length).toBe(2);
                     done();
                 }
             });
@@ -229,7 +224,7 @@ describe('User Accounts API', function () {
             });
     });
 
-    it('GET /api/user-accounts returns an empty array of user account', function (done) {
+    it('GET /api/user-accounts returns an array with the anonymous user account', function (done) {
         request(app)
             .get('/api/user-accounts')
             .set('Accept', 'application/json')
@@ -243,7 +238,7 @@ describe('User Accounts API', function () {
                     const userAccount = res.body;
                     expect(userAccount).toBeDefined();
                     expect(Array.isArray(userAccount)).toBe(true);
-                    expect(userAccount.length).toBe(0);
+                    expect(userAccount.length).toBe(1);
                     done();
                 }
             });
@@ -251,7 +246,5 @@ describe('User Accounts API', function () {
 
     after(async function() {
         await database.closeConnection();
-
-        config.authn.mechanism = originalAuthnMechanism;
     });
 });

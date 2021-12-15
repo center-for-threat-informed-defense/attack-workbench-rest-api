@@ -85,9 +85,19 @@ exports.initializeApp = async function() {
     logger.info('Configuring static routes');
     app.use(express.static('public'));
 
-    // Configure passport with the configured authentication mechanism
+    // Configure passport with the user authentication mechanism
     const authnConfiguration = require('./lib/authn-configuration');
-    await authnConfiguration.configurePassport();
+    if (config.userAuthn.mechanism === 'oidc') {
+        await authnConfiguration.configurePassport('oidc');
+    }
+    else if (config.userAuthn.mechanism === 'anonymous') {
+        await authnConfiguration.configurePassport('anonymous');
+    }
+
+    // Configure passport for service authentication if enabled
+    if (config.serviceAuthn.oidcClientCredentials.enable || config.serviceAuthn.apikey.enable) {
+        await authnConfiguration.configurePassport('bearer');
+    }
 
     // Set up the api routes
     logger.info('Configuring REST API routes');

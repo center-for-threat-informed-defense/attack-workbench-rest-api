@@ -241,11 +241,11 @@ paths:
   /api/authn/oidc/logout:
     $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1oidc~1logout'
 
-  /api/authn/service/login:
-    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1service~1login'
+  /api/authn/service/apikey-challenge:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1service~1apikey-challenge'
 
-  /api/authn/service/logout:
-    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1service~1logout'
+  /api/authn/service/apikey-token:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1service~1apikey-token'
 
   # User Accounts
   /api/user-accounts:
