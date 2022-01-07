@@ -40,10 +40,31 @@ async function runServer() {
         logger.info(`Listening at http://${host}:${port}`);
         logger.info('ATT&CK Workbench REST API start up complete');
     });
+
+    // Listen for a ctrl-c
+    process.on('SIGINT', () => {
+        logger.info('SIGINT received, stopping HTTP server');
+        server.close();
+    });
+
+    // Docker terminates a container with a SIGTERM
+    process.on('SIGTERM', () => {
+        logger.info('SIGTERM received, stopping HTTP server');
+        server.close();
+    });
+
+    // Wait for the server to close
+    const events = require('events');
+    await events.once(server, 'close');
+
+    logger.info('ATT&CK Workbench REST API terminating');
 }
 
 runServer()
-    .then(() => process.exit())
+    .then(() => {
+        console.log('runServer() - Terminating normally');
+        process.exit();
+    })
     .catch(err => {
         console.log('runServer() - Error: ' + err);
         process.exit(1);
