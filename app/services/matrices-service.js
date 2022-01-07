@@ -244,7 +244,7 @@ exports.create = async function(data, options) {
         else {
             // New object
             // Assign a new STIX id if not already provided
-            matrix.stix.id = `x-mitre-matrix--${uuid.v4()}`;
+            matrix.stix.id = matrix.stix.id || `x-mitre-matrix--${uuid.v4()}`;
 
             // Set the created_by_ref and x_mitre_modified_by_ref properties
             matrix.stix.created_by_ref = organizationIdentityRef;
