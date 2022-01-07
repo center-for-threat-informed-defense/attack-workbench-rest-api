@@ -71,3 +71,42 @@ paths:
           description: 'Missing or invalid parameters were provided. The organization identity was not set.'
         '404':
           description: 'The identity could not be found. The organization identity was not set.'
+
+  /api/config/default-marking-definitions:
+    get:
+      summary: 'Get the default marking definitions'
+      operationId: 'config-get-default-marking-definitions'
+      description: |
+        This endpoint gets the default marking definition objects for the system.
+      tags:
+        - 'System Configuration'
+      responses:
+        '200':
+          description: 'An array of marking definition objects.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/marking-definitions.yml#/components/schemas/marking-definition'
+    post:
+      summary: 'Set the default marking definitions'
+      operationId: 'config-set-default-marking-definitions'
+      description: |
+        This endpoint sets the default marking definitions for the system.
+        The marking definitions must already exist.
+      tags:
+        - 'System Configuration'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/system-configuration.yml#/components/schemas/default-marking-definition-ids'
+      responses:
+        '204':
+          description: 'The default marking definitions have been successfully set.'
+        '400':
+          description: 'Missing or invalid parameters were provided. The default marking definitions were not set.'
+        '404':
+          description: 'A marking definition could not be found. The default marking definitions were not set.'

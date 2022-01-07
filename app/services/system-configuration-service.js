@@ -5,12 +5,15 @@ const config = require('../config/config');
 
 const SystemConfiguration = require('../models/system-configuration-model');
 const Identity = require('../models/identity-model');
+const MarkingDefinition = require('../models/marking-definition-model');
 
 let allowedValues;
 
 const errors = {
     organizationIdentityNotFound: 'Organization identity not found',
-    organizationIdentityNotSet: 'Organization identity not set'
+    organizationIdentityNotSet: 'Organization identity not set',
+    defaultMarkingDefinitionNotFound: 'Default marking definition not found',
+    systemConfigurationNotFound: 'System configuration not found'
 };
 exports.errors = errors;
 
@@ -73,7 +76,7 @@ exports.retrieveOrganizationIdentity = async function() {
     const systemConfig = await SystemConfiguration.findOne();
 
     if (systemConfig && systemConfig.organization_identity_ref) {
-        const identity = Identity.findOne({ 'stix.id': systemConfig.organization_identity_ref });
+        const identity = await Identity.findOne({ 'stix.id': systemConfig.organization_identity_ref }).lean();
         if (identity) {
             return identity;
         }
@@ -101,6 +104,56 @@ exports.setOrganizationIdentity = async function(stixId) {
         // The document doesn't exist yet. Create a new one.
         const systemConfigData = {
             organization_identity_ref: stixId
+        };
+        const systemConfig = new SystemConfiguration(systemConfigData);
+        await systemConfig.save();
+    }
+}
+
+exports.retrieveDefaultMarkingDefinitions = async function() {
+    // There should be exactly one system configuration document
+    const systemConfig = await SystemConfiguration.findOne();
+
+    if (systemConfig) {
+        if (systemConfig.default_marking_definitions) {
+            const defaultMarkingDefinitions = [];
+            for (const stixId of systemConfig.default_marking_definitions) {
+                // eslint-disable-next-line no-await-in-loop
+                const markingDefinition = await MarkingDefinition.findOne({ 'stix.id': stixId }).lean();
+                if (markingDefinition) {
+                    defaultMarkingDefinitions.push(markingDefinition);
+                } else {
+                    const error = new Error(errors.defaultMarkingDefinitionNotFound)
+                    error.markingDefinitionRef = stixId;
+                    throw error;
+                }
+            }
+
+            return defaultMarkingDefinitions;
+        }
+        else {
+            // default_marking_defintions not set
+            return [];
+        }
+    }
+    else {
+        throw new Error(errors.systemConfigurationNotFound);
+    }
+}
+
+exports.setDefaultMarkingDefinitions = async function(stixIds) {
+    // There should be exactly one system configuration document
+    const systemConfig = await SystemConfiguration.findOne();
+
+    if (systemConfig) {
+        // The document exists already. Set the default marking definitions.
+        systemConfig.default_marking_definitions = stixIds;
+        await systemConfig.save();
+    }
+    else {
+        // The document doesn't exist yet. Create a new one.
+        const systemConfigData = {
+            default_marking_definitions: stixIds
         };
         const systemConfig = new SystemConfiguration(systemConfigData);
         await systemConfig.save();

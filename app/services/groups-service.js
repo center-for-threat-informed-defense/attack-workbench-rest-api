@@ -11,7 +11,8 @@ const errors = {
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
     notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
+    invalidQueryStringParameter: 'Invalid query string parameter',
+    invalidType: 'Invalid stix.type'
 };
 exports.errors = errors;
 
@@ -210,6 +211,10 @@ exports.create = async function(data, options) {
     //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
     //   2. This is a new version of an existing object. Create a new object with the specified id.
     //      Set stix.x_mitre_modified_by_ref to the organization identity.
+
+    if (data.stix.type !== 'intrusion-set') {
+        throw new Error(errors.invalidType);
+    }
 
     // Create the document
     const group = new Group(data);

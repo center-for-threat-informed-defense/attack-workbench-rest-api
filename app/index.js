@@ -37,6 +37,10 @@ exports.initializeApp = async function() {
     const express = require('express');
     app = express();
 
+    // Add a unique id to each request
+    const requestId = require('./lib/requestId');
+    app.use(requestId);
+
     // Allow CORS
     if (config.server.enableCorsAnyOrigin) {
         logger.info('CORS is enabled');
@@ -62,6 +66,8 @@ exports.initializeApp = async function() {
         logger.info('Enabling HTTP request logging');
         const morgan = require('morgan');
         app.use(morgan('dev', {stream: logger.stream}));
+//        morgan.token('requestId', req => req.id);
+//        app.use(morgan('[:requestId] :method :url :status :response-time ms - :res[content-length]', { stream: logger.stream }));
 
         // Enable Swagger UI
         logger.info('Enabling Swagger UI');

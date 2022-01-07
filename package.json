@@ -28,6 +28,7 @@
     "lodash": "^4.17.21",
     "mongoose": "^5.13.10",
     "morgan": "^1.10.0",
+    "nanoid": "^3.1.30",
     "semver": "^7.3.5",
     "swagger-ui-express": "^4.1.6",
     "uuid": "^8.3.2",
