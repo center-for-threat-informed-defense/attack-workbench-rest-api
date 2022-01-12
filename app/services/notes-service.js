@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const Note = require('../models/note-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
+const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 
 const errors = {
@@ -218,6 +219,9 @@ exports.create = async function(data, options) {
     if (!options.import) {
         // Set the ATT&CK Spec Version
         note.stix.x_mitre_attack_spec_version = note.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+
+        // Set the default marking definitions
+        await attackObjectsService.setDefaultMarkingDefinitions(note);
 
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();

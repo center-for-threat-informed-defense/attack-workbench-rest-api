@@ -2,6 +2,7 @@
 
 const AttackObject = require('../models/attack-object-model');
 const identitiesService = require('./identities-service');
+const systemConfigurationService = require('./system-configuration-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -152,3 +153,14 @@ exports.insertCollection = async function(stixId, modified, collectionId, collec
         throw new Error(errors.notFound);
     }
 };
+
+exports.setDefaultMarkingDefinitions = async function(attackObject) {
+    // Add any default marking definitions that are not in the current list for this object
+    const defaultMarkingDefinitions = await systemConfigurationService.retrieveDefaultMarkingDefinitions({ refOnly: true });
+    if (attackObject.stix.object_marking_refs) {
+        attackObject.stix.object_marking_refs = attackObject.stix.object_marking_refs.concat(defaultMarkingDefinitions.filter(e => !attackObject.stix.object_marking_refs.includes(e)));
+    }
+    else {
+        attackObject.stix.object_marking_refs = defaultMarkingDefinitions;
+    }
+}

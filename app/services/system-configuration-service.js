@@ -110,34 +110,42 @@ exports.setOrganizationIdentity = async function(stixId) {
     }
 }
 
-exports.retrieveDefaultMarkingDefinitions = async function() {
+exports.retrieveDefaultMarkingDefinitions = async function(options) {
+    options = options ?? {};
+
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfiguration.findOne();
+    const systemConfig = await SystemConfiguration.findOne().lean();
 
     if (systemConfig) {
         if (systemConfig.default_marking_definitions) {
-            const defaultMarkingDefinitions = [];
-            for (const stixId of systemConfig.default_marking_definitions) {
-                // eslint-disable-next-line no-await-in-loop
-                const markingDefinition = await MarkingDefinition.findOne({ 'stix.id': stixId }).lean();
-                if (markingDefinition) {
-                    defaultMarkingDefinitions.push(markingDefinition);
-                } else {
-                    const error = new Error(errors.defaultMarkingDefinitionNotFound)
-                    error.markingDefinitionRef = stixId;
-                    throw error;
-                }
+            if (options.refOnly) {
+                return systemConfig.default_marking_definitions;
             }
+            else {
+                const defaultMarkingDefinitions = [];
+                for (const stixId of systemConfig.default_marking_definitions) {
+                    // eslint-disable-next-line no-await-in-loop
+                    const markingDefinition = await MarkingDefinition.findOne({ 'stix.id': stixId }).lean();
+                    if (markingDefinition) {
+                        defaultMarkingDefinitions.push(markingDefinition);
+                    } else {
+                        const error = new Error(errors.defaultMarkingDefinitionNotFound)
+                        error.markingDefinitionRef = stixId;
+                        throw error;
+                    }
+                }
 
-            return defaultMarkingDefinitions;
+                return defaultMarkingDefinitions;
+            }
         }
         else {
-            // default_marking_defintions not set
+            // default_marking_definitions not set
             return [];
         }
     }
     else {
-        throw new Error(errors.systemConfigurationNotFound);
+        // No system config
+        return [];
     }
 }
 
