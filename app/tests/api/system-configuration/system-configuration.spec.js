@@ -7,6 +7,8 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
+const amberStixId = 'marking-definition--f88d31f6-486f-44da-b317-01333bde0b82';
+
 const markingDefinitionData = {
     workspace: {
         workflow: {
@@ -116,6 +118,7 @@ describe('System Configuration API', function () {
             });
     });
 
+    let amberTlpMarkingDefinition;
     it('GET /api/marking-definitions returns the static TLP marking definitions', function (done) {
         request(app)
             .get('/api/marking-definitions')
@@ -133,11 +136,30 @@ describe('System Configuration API', function () {
                     expect(Array.isArray(markingDefinitions)).toBe(true)
                     expect(markingDefinitions.length).toBe(4);
 
+                    amberTlpMarkingDefinition = markingDefinitions.find(x => x.stix.id === amberStixId);
+                    expect(amberTlpMarkingDefinition).toBeDefined();
+
                     done();
                 }
             });
     });
 
+    it('PUT /api/marking-definitions fails to update a static marking definition', function (done) {
+        amberTlpMarkingDefinition.stix.description = 'This is an updated marking definition.'
+        const body = amberTlpMarkingDefinition;
+        request(app)
+            .put('/api/marking-definitions/' + amberTlpMarkingDefinition.stix.id)
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
 
     it('GET /api/config/default-marking-definitions returns an empty array since no default has been set', function (done) {
         request(app)

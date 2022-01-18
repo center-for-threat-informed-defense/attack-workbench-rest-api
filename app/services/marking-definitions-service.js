@@ -11,7 +11,8 @@ const errors = {
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
     notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
+    invalidQueryStringParameter: 'Invalid query string parameter',
+    cannotUpdateStaticObject: ' Cannot update static object'
 };
 exports.errors = errors;
 
@@ -183,6 +184,10 @@ exports.updateFull = function(stixId, data, callback) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
         return callback(error);
+    }
+
+    if (data?.workspace?.workflow?.state === 'static') {
+        return callback(new Error(errors.cannotUpdateStaticObject));
     }
 
     MarkingDefinition.findOne({ 'stix.id': stixId }, function(err, document) {
