@@ -15,7 +15,8 @@ module.exports.common = {
             enum: [
                 'work-in-progress',
                 'awaiting-review',
-                'reviewed'
+                'reviewed',
+                'static'
             ]
         }
     },

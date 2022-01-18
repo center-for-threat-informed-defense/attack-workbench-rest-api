@@ -116,6 +116,29 @@ describe('System Configuration API', function () {
             });
     });
 
+    it('GET /api/marking-definitions returns the static TLP marking definitions', function (done) {
+        request(app)
+            .get('/api/marking-definitions')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the pre-defined TLP marking definitions
+                    const markingDefinitions = res.body;
+                    expect(markingDefinitions).toBeDefined();
+                    expect(Array.isArray(markingDefinitions)).toBe(true)
+                    expect(markingDefinitions.length).toBe(4);
+
+                    done();
+                }
+            });
+    });
+
+
     it('GET /api/config/default-marking-definitions returns an empty array since no default has been set', function (done) {
         request(app)
             .get('/api/config/default-marking-definitions')
