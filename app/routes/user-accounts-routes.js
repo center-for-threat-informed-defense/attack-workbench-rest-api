@@ -14,4 +14,7 @@ router.route('/user-accounts/:id')
     .put(userAccountsController.updateFull)
     .delete(userAccountsController.delete);
 
+router.route('/user-accounts/register')
+    .post(userAccountsController.register);
+
 module.exports = router;

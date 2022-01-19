@@ -84,14 +84,14 @@ This endpoint will only be available to users with the `admin` role.
 
 ##### Get User
 ```
-GET /api/user-accounts/:identity_id
+GET /api/user-accounts/:id
 ```
 
-Retrieve a user document by the STIX id of the corresponding identity object.
+Retrieve a user account document by its id.
 
 ###### Authorization
 
-This endpoint will only be available to users with the `admin` role or for a logged in user with the matching `identitiy_id`.
+This endpoint will only be available to users with the `admin` role or for a logged in user with the matching user account `id`.
 
 ##### Register User
 ```
@@ -99,7 +99,7 @@ POST /api/user-accounts/register
 ```
 
 Create a new user document in the database.
-This results in a registered user. This will also result in the creation of a corresponding identity object.
+This results in a registered user.
 The user document will have the `email` and `username` properties set based on the log in data.
 `status` will be set to pending and `role` will be set to null.
 
@@ -109,7 +109,7 @@ This endpoint will only be available for a logged in user who is in the process 
 
 ##### Update User
 ```
-PUT /api/user-accounts/:identity_id
+PUT /api/user-accounts/:id
 ```
 
 Update an existing user document in the database. 

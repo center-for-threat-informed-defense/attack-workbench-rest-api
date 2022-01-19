@@ -2,6 +2,7 @@
 
 const userAccountsService = require('../services/user-accounts-service');
 const logger = require('../lib/logger');
+const config = require('../config/config');
 
 exports.retrieveAll = function(req, res) {
     const options = {
@@ -118,4 +119,44 @@ exports.delete = function(req, res) {
             }
         }
     });
+};
+
+exports.register = async function(req, res) {
+    if (config.userAuthn.mechanism === 'anonymous') {
+        logger.warn('Unable to register user account, app configured to use anonymous authentication');
+        return res.status(400).send('Cannot register user accounts when anonymous authentication is enabled');
+    }
+    else if (!req.user) {
+        logger.warn('Unable to register user account, not logged in');
+        return res.status(400).send('Must login before registering');
+    }
+    else if (req.user.registered) {
+        logger.warn('Unable to register user account, already registered');
+        return res.status(400).send('Already registered');
+    }
+
+    const userAccountData = {
+        email: req.user.email,
+        username: req.user.name,
+        status: 'pending',
+        role: null
+    }
+
+    // Register (create) the user account
+    try {
+        const userAccount = await userAccountsService.create(userAccountData);
+
+        logger.debug(`Success: Registed user account with id ${ userAccount.id }`);
+        return res.status(201).send(userAccount);
+    }
+    catch(err) {
+        if (err.message === userAccountsService.errors.duplicateEmail) {
+            logger.warn(`Unable to register user account, duplicate email: ${ userAccountData.email }`);
+            return res.status(400).send('Duplicate email');
+        }
+        else {
+            logger.error("Failed with error: " + err);
+            return res.status(500).send('Unable to register user account. Server error.');
+        }
+    }
 };

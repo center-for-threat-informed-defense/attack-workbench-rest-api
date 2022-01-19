@@ -175,3 +175,23 @@ paths:
           description: 'The user account was successfully deleted.'
         '404':
           description: 'A user account with the requested user account id was not found.'
+
+  /api/user-accounts/register:
+    post:
+      summary: 'Register a user account'
+      operationId: 'user-account-register'
+      description: |
+        This endpoint creates a new user account in the workspace, using the log in information from the currently
+        logged in user.
+        The endpoint will generate a new id for the user account.
+      tags:
+        - 'User Accounts'
+      responses:
+        '201':
+          description: 'The user account has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/user-accounts.yml#/components/schemas/user-account'
+        '400':
+          description: 'Missing or invalid parameters were provided. The user account was not created.'

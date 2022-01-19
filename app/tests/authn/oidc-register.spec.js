@@ -53,7 +53,7 @@ function startServer(app, port) {
     })
 }
 
-describe('OIDC Authentication', function () {
+describe('OIDC User Account Registration', function () {
     let app;
 
     before(async function() {
@@ -93,20 +93,6 @@ describe('OIDC Authentication', function () {
 
         // Open a port to receive redirects from the identity provider
         startServer(app, localServerPort);
-    });
-
-    it('GET /api/session returns not authorized (before logging in)', function (done) {
-        request(app)
-            .get('/api/session')
-            .set('Accept', 'application/json')
-            .expect(401)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
     });
 
     const apiCookies = [];
@@ -228,6 +214,29 @@ describe('OIDC Authentication', function () {
                     const session = res.body;
                     expect(session).toBeDefined();
                     expect(session.email).toBe('test@test.com');
+                    expect(session.registered).toBe(false);
+
+                    done();
+                }
+            });
+    });
+
+    let userAccount;
+    it('POST /api/user-accounts/register successfully registers the user', function (done) {
+        request(app)
+            .post('/api/user-accounts/register')
+            .set('Cookie', apiCookies)
+            .expect(201)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get the new user account
+                    userAccount = res.body;
+                    expect(userAccount).toBeDefined();
+                    expect(userAccount.email).toBe('test@test.com');
+                    expect(userAccount.status).toBe('pending');
+                    expect(userAccount.role).toBe(null);
 
                     done();
                 }
@@ -264,25 +273,35 @@ describe('OIDC Authentication', function () {
             });
     });
 
-    it('GET /api/authn/anonymous/login cannot log in using incorrect authentication mechanism', function (done) {
+    it('GET /api/user-accounts/:id returns the added user account', function (done) {
         request(app)
-            .get('/api/authn/anonymous/login')
+            .get('/api/user-accounts/' + userAccount.id)
             .set('Accept', 'application/json')
-            .expect(404)
+            .expect(200)
+            .expect('Content-Type', /json/)
             .end(function (err, res) {
                 if (err) {
                     done(err);
                 } else {
+                    // We expect to get one user account in an array
+                    const userAccount = res.body;
+                    expect(userAccount).toBeDefined();
+                    expect(userAccount.id).toBe(userAccount.id);
+                    expect(userAccount.email).toBe(userAccount.email);
+                    expect(userAccount.username).toBe(userAccount.username);
+                    expect(userAccount.status).toBe(userAccount.status);
+                    expect(userAccount.role).toBe(userAccount.role);
+
                     done();
                 }
             });
     });
 
-    it('GET /api/authn/anonymous/logout cannot log out using incorrect authentication mechanism', function (done) {
+    it('POST /api/user-accounts/register does not register a user when logged out', function (done) {
         request(app)
-            .get('/api/authn/anonymous/logout')
-            .set('Accept', 'application/json')
-            .expect(404)
+            .post('/api/user-accounts/register')
+            .set('Cookie', apiCookies)
+            .expect(400)
             .end(function (err, res) {
                 if (err) {
                     done(err);
