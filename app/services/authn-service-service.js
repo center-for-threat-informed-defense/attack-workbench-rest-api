@@ -6,6 +6,10 @@ const NodeCache = require('node-cache');
 
 const config = require('../config/config');
 
+/**
+ * Each challenge/apikey pair for a service is cached when the challenge is created. The cached value is used to
+ * verify the hashed value provided by the client when requesting a token.
+ */
 const cache = new NodeCache();
 
 function generateNonce() {
@@ -32,35 +36,42 @@ exports.createChallenge = function(serviceName) {
         throw new Error(errors.serviceNotFound);
     }
 
+    // Generate the challenge string
     const challenge = generateNonce();
-    const apikey = service.apikey;
 
-    cache.set(serviceName, { challenge, apikey }, 60);
+    // Save the challenge string and apikey in the cache
+    cache.set(serviceName, { challenge, apikey: service.apikey }, 60);
 
-    return { challenge };
+    // Return the challenge
+    return challenge;
 }
 
 exports.createToken = function(serviceName, challengeHash) {
+    // Get the cached challenge and apikey
     const cachedValue = cache.take(serviceName);
-
     if (!cachedValue) {
         throw new Error(errors.challengeNotFound);
     }
     const { challenge, apikey } = cachedValue;
 
+    // Generate the hash
     const hmac = crypto.createHmac('sha256', apikey);
     hmac.update(challenge);
     const digest = hmac.digest('hex');
 
+    // Does the generated hash match the hash provided in the request?
     if (digest !== challengeHash) {
         throw new Error(errors.invalidChallengeHash);
     }
 
+    // Create the payload
+    const timeout = config.serviceAuthn.apikey.tokenTimeout;
     const payload = {
         serviceName,
-        exp: Math.floor(Date.now() / 1000) + config.serviceAuthn.apikey.tokenTimeout
+        exp: Math.floor(Date.now() / 1000) + timeout
     };
-    const token = jwt.sign(payload, config.serviceAuthn.apikey.secret);
 
-    return { token };
+    // Generate the access token and return it
+    const token = jwt.sign(payload, config.serviceAuthn.apikey.secret);
+    return { token, expiresIn: timeout };
 }

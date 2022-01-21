@@ -1,5 +1,17 @@
 #!/bin/node
 
+/**
+ * This script loads a collection bundle into the ATT&CK Workbench database.
+ *
+ * It requires the database URL to be provided in the DATABASE_URL environment variable.
+ *
+ * The filename and directory of the collection bundle to load are currently hardcoded in this script.
+ *
+ * Usage:
+ *   DATABASE_URL=mongodb://localhost/attack-workspace node ./scripts/loadBundle.js
+ *
+ */
+
 'use strict';
 
 const collectionBundleService = require('../app/services/collection-bundles-service');

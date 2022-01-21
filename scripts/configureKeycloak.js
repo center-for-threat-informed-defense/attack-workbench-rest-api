@@ -1,5 +1,22 @@
 #!/bin/node
 
+/**
+ * This script configures the keycloak server for testing with ATT&CK Workbench.
+ *
+ * The Keycloak server URL is currently hardcoded in this script at localhost:8080.
+ * The URL for the ATT&CK Database is also hardcoded (mongodb://localhost/attack-workspace).
+ *
+ * Configuring the keycloak server includes:
+ *   - Adding a realm (test-oidc-realm)
+ *   - Adding a client (attack-workbench-rest-api)
+ *   - Adding users to keycloak (admin@test.com, editor@test.com, visitor@test.com)
+ *   - Adding the same users as user accounts on ATT&CK Workbench
+ *
+ * Usage:
+ *   node ./scripts/configureKeycloak.js
+ *
+ */
+
 'use strict';
 
 const keycloak = require('../app/tests/shared/keycloak');

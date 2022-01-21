@@ -32,16 +32,18 @@ function defaultBearerAuthenticate(req, res, next) {
 }
 
 /**
+ * Note that the bearer strategy calls the verify callback on every request, and uses the user session
+ * returned by that function. Therefore, serializeUser() and deserializeUser() in this module only need
+ * to mock the normal serialization/deserialization process.
+ */
+
+/**
  * This function takes the user session object and returns the value (the userSessionKey) that will be
  * stored in the express session for this user
  */
 exports.serializeUser = function(userSession, done) {
     if (userSession.strategy === 'bearer') {
-        const userSessionKey = {
-            strategy: 'bearer',
-            sessionId: userSession.clientId
-        }
-
+        const userSessionKey = { strategy: 'bearer' };
         done(null, userSessionKey);
     }
     else {
@@ -56,9 +58,7 @@ exports.serializeUser = function(userSession, done) {
  */
 exports.deserializeUser = function(userSessionKey, done) {
     if (userSessionKey.strategy === 'bearer') {
-        makeUserSession(userSessionKey.sessionId)
-            .then(userSession => done(null, userSession))
-            .catch(err => done(err));
+        done(null, {});
     }
     else {
         // Try the next deserializer

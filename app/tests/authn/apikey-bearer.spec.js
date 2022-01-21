@@ -139,7 +139,7 @@ describe('Apikey Authentication', function () {
     });
 
     let token;
-    it('GET /api/authn/service/apikey-token returns the token', function (done) {
+    it('GET /api/authn/service/apikey-token returns the access token', function (done) {
         const hmac = crypto.createHmac('sha256', apikey);
         hmac.update(challengeString);
         const challengeHash = hmac.digest('hex');
@@ -156,9 +156,9 @@ describe('Apikey Authentication', function () {
                     // We expect to get the current session
                     const data = res.body;
                     expect(data).toBeDefined();
-                    expect(data.token).toBeDefined();
+                    expect(data.access_token).toBeDefined();
 
-                    token = data.token;
+                    token = data.access_token;
 
                     done();
                 }

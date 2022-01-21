@@ -243,6 +243,28 @@ describe('OIDC User Account Registration', function () {
             });
     });
 
+    it('GET /api/session returns the user session', function (done) {
+        request(app)
+            .get('/api/session')
+            .set('Accept', 'application/json')
+            .set('Cookie', apiCookies)
+            .expect(200)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the current session with a registered user
+                    const session = res.body;
+                    expect(session).toBeDefined();
+                    expect(session.email).toBe('test@test.com');
+                    expect(session.registered).toBe(true);
+
+                    done();
+                }
+            });
+    });
+
     it('GET /api/authn/oidc/logout successfully logs the user out', function (done) {
         request(app)
             .get('/api/authn/oidc/logout')

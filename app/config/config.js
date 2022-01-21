@@ -214,7 +214,7 @@ function loadConfig() {
                     env: 'TOKEN_SIGNING_SECRET'
                 },
                 tokenTimeout: {
-                    doc: 'Timeout of the token',
+                    doc: 'Access token timeout in seconds',
                     format: 'int',
                     default: 300,
                     env: 'TOKEN_TIMEOUT'

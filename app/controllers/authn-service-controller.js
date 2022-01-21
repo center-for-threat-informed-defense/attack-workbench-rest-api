@@ -13,7 +13,7 @@ exports.apikeyGetChallenge = function(req, res) {
 
         const challenge = authnServiceService.createChallenge(serviceName);
         logger.debug('Success: Service account challenge created.');
-        return res.status(200).send(challenge);
+        return res.status(200).send({ challenge });
     }
     catch(err) {
         if (err.message === authnServiceService.errors.serviceNotFound) {
@@ -54,7 +54,11 @@ exports.apikeyGetToken = function(req, res) {
 
         const token = authnServiceService.createToken(serviceName, challengeHash);
         logger.debug('Success: Service account token created.');
-        return res.status(200).send(token);
+        const message = {
+            access_token: token.token,
+            expires_in: token.expiresIn
+        }
+        return res.status(200).send(message);
     }
     catch(err) {
         if (err.message === authnServiceService.errors.invalidChallengeHash) {
