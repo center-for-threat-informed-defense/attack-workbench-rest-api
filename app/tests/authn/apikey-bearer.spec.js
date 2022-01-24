@@ -3,10 +3,7 @@ const expect = require('expect');
 const crypto = require('crypto');
 
 // Tell config to read from a config file
-process.env.JSON_CONFIG_PATH = './app/tests/authn/service-accounts.json';
-
-// Enable apikey authentication
-process.env.SERVICE_ACCOUNT_APIKEY_ENABLE = true;
+process.env.JSON_CONFIG_PATH = './app/tests/authn/apikey-service-account.json';
 
 const database = require('../../lib/database-in-memory');
 const databaseConfiguration = require('../../lib/database-configuration');
@@ -17,7 +14,7 @@ const serviceName = 'apikey-test-service';
 const logger = require('../../lib/logger');
 logger.level = 'debug';
 
-describe('Apikey Authentication', function () {
+describe('Apikey Service Authentication', function () {
     let app;
 
     before(async function() {

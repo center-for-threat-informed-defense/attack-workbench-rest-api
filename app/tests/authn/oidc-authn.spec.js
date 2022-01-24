@@ -53,7 +53,7 @@ function startServer(app, port) {
     })
 }
 
-describe('OIDC Authentication', function () {
+describe('OIDC User Authentication', function () {
     let app;
 
     before(async function() {

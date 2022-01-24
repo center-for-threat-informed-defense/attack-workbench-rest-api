@@ -10,7 +10,7 @@ logger.level = 'debug';
 
 const passportCookieName = 'connect.sid';
 
-describe('Anonymous Authentication', function () {
+describe('Anonymous User Authentication', function () {
     let app;
 
     before(async function() {

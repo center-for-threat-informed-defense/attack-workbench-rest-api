@@ -79,6 +79,7 @@ exports.getStrategy = function() {
 }
 
 function verifyApikeyToken(token, done) {
+    // Do not attempt to verify the token unless apikey authentication is enabled
     if (!config.serviceAuthn.apikey.enable) {
         return done(null, false, { message: 'Authentication mechanism not found' });
     }
@@ -103,6 +104,11 @@ function verifyApikeyToken(token, done) {
 }
 
 function verifyClientCredentialsToken(token, decodedHeader, done) {
+    // Do not attempt to verify the token unless client credentials authentication is enabled
+    if (!config.serviceAuthn.oidcClientCredentials.enable) {
+        return done(null, false, { message: 'Authentication mechanism not found' });
+    }
+
     jwksClient.getSigningKey(decodedHeader.kid)
         .then(function (signingKey) {
             let payload;

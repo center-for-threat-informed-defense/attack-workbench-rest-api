@@ -98,6 +98,12 @@ exports.initializeApp = async function() {
     if (config.serviceAuthn.oidcClientCredentials.enable || config.serviceAuthn.apikey.enable) {
         await authnConfiguration.configurePassport('bearer');
     }
+    if (config.serviceAuthn.oidcClientCredentials.enable) {
+        logger.info('Enabled service authentication: client credentials');
+    }
+    if (config.serviceAuthn.apikey.enable) {
+        logger.info('Enabled service authentication: apikey');
+    }
 
     // Set up the api routes
     logger.info('Configuring REST API routes');

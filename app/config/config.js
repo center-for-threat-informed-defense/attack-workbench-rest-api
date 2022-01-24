@@ -205,7 +205,7 @@ function loadConfig() {
                 enable: {
                     doc: 'Enable apikey authentication for service accounts',
                     format: Boolean,
-                    default: true,
+                    default: false,
                     env: 'SERVICE_ACCOUNT_APIKEY_ENABLE'
                 },
                 secret: {

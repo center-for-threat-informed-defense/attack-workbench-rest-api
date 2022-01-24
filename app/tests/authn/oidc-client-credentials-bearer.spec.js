@@ -2,7 +2,7 @@ const request = require('supertest');
 const expect = require('expect');
 
 // Tell config to read from a config file
-process.env.JSON_CONFIG_PATH = './app/tests/authn/service-accounts.json';
+process.env.JSON_CONFIG_PATH = './app/tests/authn/oidc-client-credentials-service-account.json';
 
 const database = require('../../lib/database-in-memory');
 const databaseConfiguration = require('../../lib/database-configuration');
@@ -26,7 +26,7 @@ const localServerPort = 3000;
 const localServerRedirectUrl = `http://${ localServerHost }:${localServerPort }/api/authn/oidc/*`;
 const jwksUri = `http://${ oidcHost }/auth/realms/${ oidcRealm }/protocol/openid-connect/certs`;
 
-describe('Client Credentials Authentication', function () {
+describe('Client Credentials Service Authentication', function () {
     let app;
     let accessToken;
 
