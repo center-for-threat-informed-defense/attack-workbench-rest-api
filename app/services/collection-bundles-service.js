@@ -718,10 +718,10 @@ async function addDerivedDataSources(bundleObjects) {
         }
         else if (bundleObject.type === 'relationship' && bundleObject.relationship_type === 'detects') {
             // technique (target_ref) detected by array of data-component (source_ref)
-            const dataComponents = techniqueDetectedBy.get(bundleObject.target_ref);
-            if (dataComponents) {
+            const techniqueDataComponents = techniqueDetectedBy.get(bundleObject.target_ref);
+            if (techniqueDataComponents) {
                 // Add to the existing array
-                dataComponents.push(bundleObject.source_ref);
+                techniqueDataComponents.push(bundleObject.source_ref);
             }
             else {
                 // Create a new array and add to map
@@ -744,9 +744,19 @@ async function addDerivedDataSources(bundleObjects) {
                 if (dataComponentIds) {
                     for (const dataComponentId of dataComponentIds) {
                         const dataComponent = dataComponents.get(dataComponentId);
-                        const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
-                        const derivedDataSource = `${ dataSource.name }: ${ dataComponent.name }`;
-                        bundleObject.x_mitre_data_sources.push(derivedDataSource);
+                        if (dataComponent) {
+                            const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
+                            if (dataSource) {
+                                const derivedDataSource = `${ dataSource.name }: ${ dataComponent.name }`;
+                                bundleObject.x_mitre_data_sources.push(derivedDataSource);
+                            }
+                            else {
+                                console.log(`Referenced data source not found: ${ dataComponent.x_mitre_data_source_ref }`);
+                            }
+                        }
+                        else {
+                            console.log(`Referenced data component not found: ${ dataComponentId }`);
+                        }
                     }
                 }
             }
@@ -763,9 +773,19 @@ async function addDerivedDataSources(bundleObjects) {
                 if (dataComponentIds) {
                     for (const dataComponentId of dataComponentIds) {
                         const dataComponent = dataComponents.get(dataComponentId);
-                        const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
-                        const derivedDataSource = `${ dataSource.name }: ${ dataComponent.name }`;
-                        bundleObject.x_mitre_data_sources.push(derivedDataSource);
+                        if (dataComponent) {
+                            const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
+                            if (dataSource) {
+                                const derivedDataSource = `${ dataSource.name }: ${ dataComponent.name }`;
+                                bundleObject.x_mitre_data_sources.push(derivedDataSource);
+                            }
+                            else {
+                                console.log(`Referenced data source not found: ${ dataComponent.x_mitre_data_source_ref }`);
+                            }
+                        }
+                        else {
+                            console.log(`Referenced data component not found: ${ dataComponentId }`);
+                        }
                     }
                 }
             }
