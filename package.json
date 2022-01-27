@@ -40,7 +40,7 @@
     "passport-anonym-uuid": "^1.0.3",
     "passport-http-bearer": "^1.0.1",
     "semver": "^7.3.5",
-    "swagger-ui-express": "^4.1.6",
+    "swagger-ui-express": "^4.3.0",
     "uuid": "^8.3.2",
     "winston": "^3.3.3",
     "yamljs": "^0.3.0"
