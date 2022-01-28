@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",
-    "test": "npm run test:openapi && npm run test:config && npm run test:api && npm run test:import",
+    "test": "npm run test:openapi && npm run test:config && npm run test:api",
     "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api",
     "test:config": "mocha  --timeout 10000 --recursive ./app/tests/config",
     "test:import": "mocha  --timeout 10000 --recursive ./app/tests/import",
