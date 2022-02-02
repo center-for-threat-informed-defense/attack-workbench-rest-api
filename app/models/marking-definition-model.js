@@ -4,7 +4,8 @@ const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 
 const markingObject = {
-    statement: String
+    statement: String,
+    tlp: String
 };
 
 // TBD: Marking Definition should not have modified or revoked properties.
