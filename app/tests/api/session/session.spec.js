@@ -7,7 +7,7 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
-describe('System Configuration API', function () {
+describe('Session API', function () {
     let app;
 
     before(async function() {

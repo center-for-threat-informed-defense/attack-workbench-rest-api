@@ -4,7 +4,7 @@
       "enable": true,
       "clients": [
         {
-          "clientId": "collection-manager",
+          "clientId": "attack-workbench-collection-manager",
           "serviceRole": "collection-manager"
         }
       ]

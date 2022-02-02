@@ -1,0 +1,14 @@
+{
+  "serviceAuthn": {
+    "apikey": {
+      "enable": true,
+      "serviceAccounts": [
+        {
+          "name": "apikey-test-service",
+          "apikey": "xyzzy",
+          "serviceRole": "read-only"
+        }
+      ]
+    }
+  }
+}

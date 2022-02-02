@@ -15,34 +15,14 @@ exports.strategyName = function() {
     return strategyName;
 }
 
-let authenticateWithBearerToken = defaultBearerAuthenticate;
-
-/**
- * This function provides a default handler for authentication when bearer authentication is not enabled
- * If bearer authentication is enabled, this function will be replaced with a passport.authenticate() function.
- */
-function defaultBearerAuthenticate(req, res, next) {
-    if (req.isAuthenticated()) {
-        // User has been authenticated using a non-Bearer method
-        next();
-    }
-    else {
-        return res.status(401).send('Not authorized');
-    }
-}
-
-/**
- * Note that the bearer strategy calls the verify callback on every request, and uses the user session
- * returned by that function. Therefore, serializeUser() and deserializeUser() in this module only need
- * to mock the normal serialization/deserialization process.
- */
-
 /**
  * This function takes the user session object and returns the value (the userSessionKey) that will be
  * stored in the express session for this user
  */
 exports.serializeUser = function(userSession, done) {
     if (userSession.strategy === 'bearer') {
+        // This indicates that the client has been authenticated using the Bearer strategy. This will be used when
+        // deserializing.
         const userSessionKey = { strategy: 'bearer' };
         done(null, userSessionKey);
     }
@@ -54,11 +34,18 @@ exports.serializeUser = function(userSession, done) {
 
 /**
  * This function takes the userSessionKey (the value stored in the express session for this user) and
- * returns the user session object
+ * returns the user session object.
+ *
+ * This implementations returns a null value if the strategy is 'bearer'. This causes req.user to be set to null.
+ * Since other strategies depend on req.user being set to indicate that the user is authenticated, this prevents
+ * those strategies from incorrectly believing the user is authenticated.
+ *
+ * Note that req.user will be set to the correct value after the strategy calls verifyCallback() and the Bearer token
+ * is verified.
  */
 exports.deserializeUser = function(userSessionKey, done) {
     if (userSessionKey.strategy === 'bearer') {
-        done(null, {});
+        done(null, null);
     }
     else {
         // Try the next deserializer
@@ -66,6 +53,7 @@ exports.deserializeUser = function(userSessionKey, done) {
     }
 };
 
+let authenticateWithBearerToken;
 exports.getStrategy = function() {
     // Create the JWKS client
     jwksClient = jwks({
@@ -73,6 +61,9 @@ exports.getStrategy = function() {
     });
 
     const strategy = new BearerStrategy(verifyCallback);
+    strategyName = strategy.name;
+
+    // Get a passport authenticate middleware function for this strategy
     authenticateWithBearerToken = passport.authenticate(strategy.name);
 
     return strategy;
@@ -137,8 +128,10 @@ function verifyClientCredentialsToken(token, decodedHeader, done) {
 }
 
 /**
- * This function is called by the strategy when the user is authenticating using the bearer strategy
- * It verifies that the token is valid, then creates and returns the user session for this user
+ * This function is called by the strategy when the user is authenticating using the bearer strategy.
+ * It verifies that the token is valid, then creates and returns the user session for this user.
+ * It makes the assumption that if the alg property of the token header is 'RS256' that the token comes from
+ * the OIDC client credentials flow, and if the alg property is 'HS256' that the token was generated from an apikey.
  */
 function verifyCallback(token, done) {
     if (!token) {
@@ -156,8 +149,11 @@ function verifyCallback(token, done) {
     if (decodedHeader.alg === 'RS256') {
         return verifyClientCredentialsToken(token, decodedHeader, done);
     }
-    else {
+    else if (decodedHeader.alg === 'HS256') {
         return verifyApikeyToken(token, done);
+    }
+    else {
+        return done(null, false, { message: 'Unknown token' });
     }
 }
 
@@ -171,18 +167,17 @@ function makeUserSession(clientId, serviceName) {
     return userSession;
 }
 
+/**
+ * The bearer strategy requires the Bearer token to be validated for every request. This middleware function
+ * calls the authenticate() function for the Bearer strategy (which cause the token to be validated).
+ *
+ */
 exports.authenticate = function(req, res, next) {
-    if (req.get('Authorization')) {
-        // Authorization header found
-        // Authenticate the user using the Bearer token
+    if (authenticateWithBearerToken) {
         authenticateWithBearerToken(req, res, next);
     }
-    else if (req.isAuthenticated()) {
-        // User has been authenticated using a non-Bearer method
-        next();
-    }
     else {
-        return res.status(401).send('Not authorized');
+        throw new Error('Bearer strategy not configured');
     }
 }
 

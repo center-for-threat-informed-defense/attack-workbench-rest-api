@@ -2,19 +2,34 @@
 
 const express = require('express');
 const collectionIndexesController = require('../controllers/collection-indexes-controller');
+//const authnService = require('../services/authn-service');
 
 const router = express.Router();
 
 router.route('/collection-indexes')
-    .get(collectionIndexesController.retrieveAll)
-    .post(collectionIndexesController.create);
+    .get(
+//        authnService.authenticate,
+        collectionIndexesController.retrieveAll
+    )
+    .post(
+//        authnService.authenticate,
+        collectionIndexesController.create
+    );
 
 router.route('/collection-indexes/:id')
-    .get(collectionIndexesController.retrieveById);
+    .get(
+//        authnService.authenticate,
+        collectionIndexesController.retrieveById
+    );
 
 router.route('/collection-indexes/:id')
-    .put(collectionIndexesController.updateFull)
-    //    .patch(collectionIndexesController.updatePartial)
-    .delete(collectionIndexesController.delete);
+    .put(
+//        authnService.authenticate,
+        collectionIndexesController.updateFull
+    )
+    .delete(
+//        authnService.authenticate,
+        collectionIndexesController.delete
+    );
 
 module.exports = router;

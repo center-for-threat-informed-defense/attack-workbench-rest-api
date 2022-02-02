@@ -236,7 +236,7 @@ describe('OIDC User Account Registration', function () {
                     expect(userAccount).toBeDefined();
                     expect(userAccount.email).toBe('test@test.com');
                     expect(userAccount.status).toBe('pending');
-                    expect(userAccount.role).toBe(null);
+                    expect(userAccount.role).toBe('none');
 
                     done();
                 }

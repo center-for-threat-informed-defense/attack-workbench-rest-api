@@ -2,13 +2,13 @@
 
 const express = require('express');
 const sessionController = require('../controllers/session-controller');
-const authnBearer = require('../lib/authn-bearer');
+const authnService = require('../services/authn-service');
 
 const router = express.Router();
 
 router.route('/session')
     .get(
-        authnBearer.authenticate,
+        authnService.authenticate,
         sessionController.retrieveCurrentSession
     );
 
