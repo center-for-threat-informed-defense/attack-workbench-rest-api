@@ -139,7 +139,7 @@ exports.register = async function(req, res) {
         email: req.user.email,
         username: req.user.name,
         status: 'pending',
-        role: null
+        role: 'none'
     }
 
     // Register (create) the user account
