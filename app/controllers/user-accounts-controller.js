@@ -138,8 +138,7 @@ exports.register = async function(req, res) {
     const userAccountData = {
         email: req.user.email,
         username: req.user.name,
-        status: 'pending',
-        role: 'none'
+        status: 'pending'
     }
 
     // Register (create) the user account
