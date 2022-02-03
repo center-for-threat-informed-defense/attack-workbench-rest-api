@@ -13,6 +13,14 @@ const errors = {
 };
 exports.errors = errors;
 
+function addEffectiveRole(userAccount) {
+    // Initially, this forces all pending and inactive accounts to have the role 'none'.
+    // TBD: Make the role configurable
+    if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
+        userAccount.role = 'none';
+    }
+}
+
 exports.retrieveAll = function(options, callback) {
     // Build the query
     const query = {};
@@ -72,6 +80,9 @@ exports.retrieveAll = function(options, callback) {
             return callback(err);
         }
         else {
+            const userAccounts = results[0].documents;
+            userAccounts.forEach(userAccount => addEffectiveRole(userAccount));
+
             if (options.includePagination) {
                 let derivedTotalCount = 0;
                 if (results[0].totalCount.length > 0) {
@@ -83,11 +94,11 @@ exports.retrieveAll = function(options, callback) {
                         offset: options.offset,
                         limit: options.limit
                     },
-                    data: results[0].documents
+                    data: userAccounts
                 };
                 return callback(null, returnValue);
             } else {
-                return callback(null, results[0].documents);
+                return callback(null, userAccounts);
             }
         }
     });
@@ -112,6 +123,7 @@ exports.retrieveById = function(userAccountId, callback) {
                     return callback(err);
                 }
             } else {
+                addEffectiveRole(userAccount);
                 return callback(null, userAccount);
             }
         });
@@ -126,6 +138,8 @@ exports.retrieveByEmail = async function(email) {
 
     try {
         const userAccount = await UserAccount.findOne({ 'email': email }).lean();
+        addEffectiveRole(userAccount);
+
         return userAccount;
     }
     catch(err) {
@@ -162,6 +176,8 @@ exports.create = async function(data) {
     // Save the document in the database
     try {
         const savedUserAccount = await userAccount.save();
+        addEffectiveRole(savedUserAccount);
+
         return savedUserAccount;
     }
     catch (err) {
@@ -242,6 +258,7 @@ async function getLatest(userAccountId) {
         .findOne({ 'id': userAccountId })
         .lean()
         .exec();
+    addEffectiveRole(userAccount);
 
     return userAccount;
 }
