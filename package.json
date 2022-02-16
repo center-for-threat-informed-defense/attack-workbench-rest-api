@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",
-    "test": "npm run test:openapi && npm run test:config && npm run test:api && npm run test:import",
+    "test": "npm run test:openapi && npm run test:config && npm run test:api",
     "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api",
     "test:config": "mocha  --timeout 10000 --recursive ./app/tests/config",
     "test:import": "mocha  --timeout 10000 --recursive ./app/tests/import",
@@ -30,7 +30,7 @@
     "morgan": "^1.10.0",
     "nanoid": "^3.1.30",
     "semver": "^7.3.5",
-    "swagger-ui-express": "^4.1.6",
+    "swagger-ui-express": "^4.3.0",
     "uuid": "^8.3.2",
     "winston": "^3.3.3",
     "yamljs": "^0.3.0"
