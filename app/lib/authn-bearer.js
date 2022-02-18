@@ -107,8 +107,11 @@ function verifyClientCredentialsToken(token, decodedHeader, done) {
                 payload = jwt.verify(token, signingKey.getPublicKey(), { algorithms: ['RS256'] });
 
                 // Make sure the client is allowed to access the REST API
+                // Okta returns the client id in payload.cid
+                // Keycloak returns the client id in payload.clientId
+                const clientId = payload.cid || payload.clientId;
                 const clients = config.serviceAuthn.oidcClientCredentials.clients;
-                const client = clients.find(c => c.clientId === payload.clientId);
+                const client = clients.find(c => c.clientId === clientId);
                 if (!client) {
                     return done(null, false, { message: 'Client not found' });
                 }
@@ -124,7 +127,14 @@ function verifyClientCredentialsToken(token, decodedHeader, done) {
 
             return done(null, userSession);
         })
-        .catch(err => done(err));
+        .catch(err => {
+            if (err.name === 'SigningKeyNotFoundError') {
+                return done(null, false, { message: 'Signing key not found'});
+            }
+            else {
+                return done(err);
+            }
+        });
 }
 
 /**
