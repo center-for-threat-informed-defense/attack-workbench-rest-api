@@ -276,6 +276,9 @@ exports.create = async function(data, options) {
         // Set the ATT&CK Spec Version
         collection.stix.x_mitre_attack_spec_version = collection.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
+        // Set the default marking definitions
+        await attackObjectsService.setDefaultMarkingDefinitions(collection);
+
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
 

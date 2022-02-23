@@ -5,6 +5,7 @@ const DataSource = require('../models/data-source-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
 const dataComponentsService = require('./data-components-service');
+const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 
 const errors = {
@@ -245,6 +246,9 @@ exports.create = async function(data, options) {
     if (!options.import) {
         // Set the ATT&CK Spec Version
         dataSource.stix.x_mitre_attack_spec_version = dataSource.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+
+        // Set the default marking definitions
+        await attackObjectsService.setDefaultMarkingDefinitions(dataSource);
 
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();

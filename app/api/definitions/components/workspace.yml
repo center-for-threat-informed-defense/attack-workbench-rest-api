@@ -9,6 +9,7 @@ components:
           properties:
             state:
               type: string
+              enum: ['work-in-progress', 'awaiting-review', 'reviewed', 'static']
         attackId:
           type: string
           example: 'T9999'

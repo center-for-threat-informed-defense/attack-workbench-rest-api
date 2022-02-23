@@ -225,11 +225,17 @@ describe('ATT&CK Objects API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get an empty array
+                    // We expect to get an array with the placeholder identity and the pre-defined TLP marking defintions
                     const attackObjects = res.body;
                     expect(attackObjects).toBeDefined();
                     expect(Array.isArray(attackObjects)).toBe(true);
-                    expect(attackObjects.length).toBe(1);
+
+                    const identities = attackObjects.filter(x => x.stix.type === 'identity');
+                    expect(identities.length).toBe(1);
+
+                    const markingDefinitions = attackObjects.filter(x => x.stix.type === 'marking-definition');
+                    expect(markingDefinitions.length).toBe(4);
+
                     done();
                 }
             });
@@ -439,7 +445,7 @@ describe('ATT&CK Objects API', function () {
                     const attackObjects = res.body;
                     expect(attackObjects).toBeDefined();
                     expect(Array.isArray(attackObjects)).toBe(true);
-                    expect(attackObjects.length).toBe(9);
+                    expect(attackObjects.length).toBe(13);
                     done();
                 }
             });

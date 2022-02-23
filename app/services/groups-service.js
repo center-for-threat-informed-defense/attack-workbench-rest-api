@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const Group = require('../models/group-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
+const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 
 const errors = {
@@ -11,7 +12,8 @@ const errors = {
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
     notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
+    invalidQueryStringParameter: 'Invalid query string parameter',
+    invalidType: 'Invalid stix.type'
 };
 exports.errors = errors;
 
@@ -211,6 +213,10 @@ exports.create = async function(data, options) {
     //   2. This is a new version of an existing object. Create a new object with the specified id.
     //      Set stix.x_mitre_modified_by_ref to the organization identity.
 
+    if (data.stix.type !== 'intrusion-set') {
+        throw new Error(errors.invalidType);
+    }
+
     // Create the document
     const group = new Group(data);
 
@@ -218,6 +224,9 @@ exports.create = async function(data, options) {
     if (!options.import) {
         // Set the ATT&CK Spec Version
         group.stix.x_mitre_attack_spec_version = group.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+
+        // Set the default marking definitions
+        await attackObjectsService.setDefaultMarkingDefinitions(group);
 
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();

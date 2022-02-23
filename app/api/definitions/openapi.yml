@@ -211,3 +211,6 @@ paths:
 
   /api/config/organization-identity:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1organization-identity'
+
+  /api/config/default-marking-definitions:
+    $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1default-marking-definitions'

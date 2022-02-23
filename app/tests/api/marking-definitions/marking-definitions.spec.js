@@ -41,7 +41,7 @@ describe('Marking Definitions API', function () {
         app = await require('../../../index').initializeApp();
     });
 
-    it('GET /api/marking-definitions returns an empty array of marking definitions', function (done) {
+    it('GET /api/marking-definitions returns the pre-defined marking definitions', function (done) {
         request(app)
             .get('/api/marking-definitions')
             .set('Accept', 'application/json')
@@ -56,7 +56,7 @@ describe('Marking Definitions API', function () {
                     const markingDefinitions = res.body;
                     expect(markingDefinitions).toBeDefined();
                     expect(Array.isArray(markingDefinitions)).toBe(true);
-                    expect(markingDefinitions.length).toBe(0);
+                    expect(markingDefinitions.length).toBe(4);
                     done();
                 }
             });
@@ -120,11 +120,14 @@ describe('Marking Definitions API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get one marking definition in an array
+                    // We expect to get one additional marking definition in an array
                     const markingDefinitions = res.body;
                     expect(markingDefinitions).toBeDefined();
                     expect(Array.isArray(markingDefinitions)).toBe(true);
-                    expect(markingDefinitions.length).toBe(1);
+
+                    const addedMarkingDefinitions = markingDefinitions.filter(x => x.workspace.workflow.state === 'work-in-progress');
+                    expect(addedMarkingDefinitions.length).toBe(1);
+
                     done();
                 }
             });
@@ -232,7 +235,7 @@ describe('Marking Definitions API', function () {
             });
     });
 
-    it('GET /api/marking-definitions returns an empty array of marking definitions', function (done) {
+    it('GET /api/marking-definitions returns the pre-defined marking definitions', function (done) {
         request(app)
             .get('/api/marking-definitions')
             .set('Accept', 'application/json')
@@ -247,7 +250,7 @@ describe('Marking Definitions API', function () {
                     const markingDefinitions = res.body;
                     expect(markingDefinitions).toBeDefined();
                     expect(Array.isArray(markingDefinitions)).toBe(true);
-                    expect(markingDefinitions.length).toBe(0);
+                    expect(markingDefinitions.length).toBe(4);
                     done();
                 }
             });
