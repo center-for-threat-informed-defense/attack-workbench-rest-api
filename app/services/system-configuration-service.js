@@ -211,7 +211,7 @@ exports.setAnonymousUserAccountId = async function(userAccountId) {
     }
 }
 
-exports.retrieveAuthenticationConfig = async function() {
+exports.retrieveAuthenticationConfig = function() {
     // We only support a one mechanism at a time, but may support multiples in the future,
     // so return an array of mechanisms
     const authenticationConfig = {

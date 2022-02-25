@@ -57,9 +57,9 @@ exports.setOrganizationIdentity = async function(req, res) {
     }
 };
 
-exports.retrieveAuthenticationConfig = async function(req, res) {
+exports.retrieveAuthenticationConfig = function(req, res) {
     try {
-        const authenticationConfig = await systemConfigurationService.retrieveAuthenticationConfig();
+        const authenticationConfig = systemConfigurationService.retrieveAuthenticationConfig();
         logger.debug('Success: Retrieved authentication configuration.');
         return res.status(200).send(authenticationConfig);
     }
