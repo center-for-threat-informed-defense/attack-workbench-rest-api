@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const Mitigation = require('../models/mitigation-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
+const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 
 const errors = {
@@ -224,6 +225,9 @@ exports.create = async function(data, options) {
         if (options.userAccountId) {
             mitigation.workspace.workflow.created_by_user_account = options.userAccountId;
         }
+
+        // Set the default marking definitions
+        await attackObjectsService.setDefaultMarkingDefinitions(mitigation);
 
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();

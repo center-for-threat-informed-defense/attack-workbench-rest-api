@@ -1,11 +1,15 @@
 'use strict';
 
+const fs = require('fs').promises;
+const path = require('path');
+
 const identitiesService = require('../services/identities-service');
 const userAccountsService = require('../services/user-accounts-service');
 const systemConfigurationService = require('../services/system-configuration-service');
 const logger = require('../lib/logger');
 const AttackObject = require('../models/attack-object-model');
 const CollectionIndex = require('../models/collection-index-model');
+const MarkingDefinition = require('../models/marking-definition-model');
 
 async function createPlaceholderOrganizationIdentity() {
     // Create placeholder identity object
@@ -193,9 +197,48 @@ async function checkForInvalidEnterpriseCollectionId() {
     }
 }
 
+async function checkForStaticMarkingDefinitions() {
+    // Get the list static marking definitions configured for the system
+    const files = await fs.readdir('./app/lib/default-static-marking-definitions');
+
+    try {
+        for (const file of files.filter(file => path.extname(file) === '.json')) {
+            const filePath = './app/lib/default-static-marking-definitions/' + file;
+            const fileData = await fs.readFile(filePath);
+            const staticMarkingDefinitionList = JSON.parse(fileData.toString());
+
+            for (const staticMarkingDefinition of staticMarkingDefinitionList) {
+                const markingDefinition = await MarkingDefinition.findOne({ 'stix.id': staticMarkingDefinition.id }).lean();
+                if (!markingDefinition) {
+                    const newMarkingDefinitionData = {
+                        workspace: {
+                            workflow: {
+                                state: 'static'
+                            }
+                        },
+                        stix: staticMarkingDefinition
+                    };
+                    try {
+                        const newMarkingDefinition = new MarkingDefinition(newMarkingDefinitionData);
+                        await newMarkingDefinition.save();
+                        logger.info(`Created static marking definition ${newMarkingDefinition.stix.name}`);
+                    }
+                    catch(err) {
+                        logger.error(`Unable to create static marking definition ${ staticMarkingDefinition.name }`);
+                    }
+                }
+            }
+        }
+    }
+    catch(err) {
+        logger.error('Unable to parse default static marking definitions');
+    }
+}
+
 exports.checkSystemConfiguration = async function() {
     logger.info(`Performing system configuration check...`);
     await checkForOrganizationIdentity();
     await checkForAnonymousUserAccount();
     await checkForInvalidEnterpriseCollectionId();
+    await checkForStaticMarkingDefinitions();
 }

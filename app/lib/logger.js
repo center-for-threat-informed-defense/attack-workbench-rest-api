@@ -3,9 +3,22 @@
 const winston = require('winston');
 const config = require('../config/config');
 
+// function formatId(info) {
+//     if (info.level.toUpperCase() === 'HTTP') {
+//         return '';
+//     }
+//     else if (info.id) {
+//         return `[${ info.id }] `;
+//     }
+//     else {
+//         return '[ 000000000000 ] ';
+//     }
+// }
+
 const consoleFormat = winston.format.combine(
     winston.format.timestamp(),
     winston.format.printf(info => `${ info.timestamp } [${ info.level.toUpperCase() }] ${ info.message }`)
+    // winston.format.printf(info => `${ info.timestamp } [${ info.level.toUpperCase() }] ${ formatId(info) }${ info.message }`)
 );
 
 const logLevels = {

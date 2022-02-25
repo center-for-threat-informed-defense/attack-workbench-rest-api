@@ -94,8 +94,14 @@ exports.updateFull = function(req, res) {
     // Create the marking definition
     markingDefinitionsService.updateFull(req.params.stixId, markingDefinitionData, function(err, markingDefinition) {
         if (err) {
-            logger.error("Failed with error: " + err);
-            return res.status(500).send("Unable to update marking definition. Server error.");
+            if (err.message === markingDefinitionsService.errors.cannotUpdateStaticObject) {
+                logger.warn('Unable to update marking definition, cannot update static object');
+                return res.status(400).send('Cannot update static object');
+            }
+            else {
+                logger.error("Failed with error: " + err);
+                return res.status(500).send("Unable to update marking definition. Server error.");
+            }
         }
         else {
             if (!markingDefinition) {

@@ -2,6 +2,7 @@
 
 const uuid = require('uuid');
 const Identity = require('../models/identity-model');
+const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
 
@@ -211,6 +212,9 @@ exports.create = async function(data, options) {
         if (options.userAccountId) {
             identity.workspace.workflow.created_by_user_account = options.userAccountId;
         }
+
+        // Set the default marking definitions
+        await attackObjectsService.setDefaultMarkingDefinitions(identity);
 
         // Assign a new STIX id if not already provided
         identity.stix.id = identity.stix.id || `identity--${uuid.v4()}`;

@@ -68,3 +68,37 @@ exports.retrieveAuthenticationConfig = async function(req, res) {
         return res.status(500).send('Unable to retrieve authentication configuration. Server error.');
     }
 };
+
+exports.retrieveDefaultMarkingDefinitions = async function(req, res) {
+    try {
+        const defaultMarkingDefinitions = await systemConfigurationService.retrieveDefaultMarkingDefinitions();
+        logger.debug("Success: Retrieved default marking definitions.");
+        return res.status(200).send(defaultMarkingDefinitions);
+    }
+    catch(err) {
+        logger.error("Unable to retrieve default marking definitions, failed with error: " + err);
+        return res.status(500).send("Unable to retrieve default marking definitions. Server error.");
+    }
+};
+
+exports.setDefaultMarkingDefinitions = async function(req, res) {
+    const defaultMarkingDefinitionIds = req.body;
+    if (!defaultMarkingDefinitionIds) {
+        logger.warn('Missing default marking definition ids');
+        return res.status(400).send('Missing default marking definition ids');
+    }
+    else if (!Array.isArray(defaultMarkingDefinitionIds)) {
+        logger.warn('Default marking definition ids not an array');
+        return res.status(400).send('Request must contain an array of marking definition ids');
+    }
+
+    try {
+        await systemConfigurationService.setDefaultMarkingDefinitions(defaultMarkingDefinitionIds);
+        logger.debug(`Success: Set default marking definitions`);
+        return res.status(204).send();
+    }
+    catch(err) {
+        logger.error("Unable to set default marking definitions, failed with error: " + err);
+        return res.status(500).send("Unable to default marking definitions. Server error.");
+    }
+};

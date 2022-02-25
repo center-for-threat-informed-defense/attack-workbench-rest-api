@@ -5,6 +5,8 @@ const _ = require('lodash');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const Group = require('../../../models/group-model');
+const markingDefinitionService = require('../../../services/marking-definitions-service');
+const systemConfigurationService = require('../../../services/system-configuration-service');
 
 const config = require('../../../config/config');
 
@@ -23,17 +25,46 @@ const initialObjectData = {
         name: 'intrusion-set-1',
         spec_version: '2.1',
         type: 'intrusion-set',
-        description: 'This is a group. Blue.',
-        external_references: [
-            { source_name: 'source-1', external_id: 's1' }
-        ],
-        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+        description: 'This is a marking definition. Blue.',
         created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab"
     }
 };
 
+const markingDefinitionData = {
+    workspace: {
+        workflow: {
+            state: 'reviewed'
+        }
+    },
+    stix: {
+        spec_version: '2.1',
+        type: 'marking-definition',
+        definition_type: 'statement',
+        definition: { statement: 'This is a marking definition.' },
+        created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab"
+    }
+};
+
+async function addDefaultMarkingDefinition(markingDefinitionData) {
+    // Save the marking definition
+    const timestamp = new Date().toISOString();
+    markingDefinitionData.stix.created = timestamp;
+    const savedMarkingDefinition = await markingDefinitionService.create(markingDefinitionData);
+
+    // Get the current list of default marking definitions
+    const defaultMarkingDefinitions = await systemConfigurationService.retrieveDefaultMarkingDefinitions({ refOnly: true });
+
+    // Add the new marking definition to the list and save it
+    defaultMarkingDefinitions.push(savedMarkingDefinition.stix.id);
+    await systemConfigurationService.setDefaultMarkingDefinitions(defaultMarkingDefinitions);
+
+    return savedMarkingDefinition;
+}
+
 describe('Groups API', function () {
     let app;
+    let defaultMarkingDefinition1;
+    let defaultMarkingDefinition2;
 
     before(async function() {
         // Establish the database connection
@@ -48,6 +79,8 @@ describe('Groups API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        defaultMarkingDefinition1 = await addDefaultMarkingDefinition(markingDefinitionData);
     });
 
     it('GET /api/groups returns an empty array of groups', function (done) {
@@ -113,6 +146,12 @@ describe('Groups API', function () {
                     expect(group1.stix.created).toBeDefined();
                     expect(group1.stix.modified).toBeDefined();
                     expect(group1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
+                    // object_marking_refs should contain the default marking definition
+                    expect(group1.stix.object_marking_refs).toBeDefined();
+                    expect(Array.isArray(group1.stix.object_marking_refs)).toBe(true);
+                    expect(group1.stix.object_marking_refs.length).toBe(1);
+                    expect(group1.stix.object_marking_refs[0]).toBe(defaultMarkingDefinition1.stix.id);
 
                     done();
                 }
@@ -233,7 +272,11 @@ describe('Groups API', function () {
     });
 
     let group2;
-    it('POST /api/groups should create a new version of a group with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/groups should create a new version of a group with a duplicate stix.id but different stix.modified date', async function () {
+        // Add another default marking definition
+        markingDefinitionData.stix.definition = 'This is the second default marking definition';
+        defaultMarkingDefinition2 = await addDefaultMarkingDefinition(markingDefinitionData);
+
         group2 = _.cloneDeep(group1);
         group2._id = undefined;
         group2.__t = undefined;
@@ -241,24 +284,18 @@ describe('Groups API', function () {
         const timestamp = new Date().toISOString();
         group2.stix.modified = timestamp;
         group2.stix.description = 'This is a new version of a group. Green.';
+
         const body = group2;
-        request(app)
+        const res = await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created group
-                    const group = res.body;
-                    expect(group).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created group
+        const group = res.body;
+        expect(group).toBeDefined();
     });
 
     it('GET /api/groups returns the latest added group', function (done) {
@@ -280,6 +317,14 @@ describe('Groups API', function () {
                     const group = groups[0];
                     expect(group.stix.id).toBe(group2.stix.id);
                     expect(group.stix.modified).toBe(group2.stix.modified);
+
+                    // object_marking_refs should contain the two default marking definition
+                    expect(group.stix.object_marking_refs).toBeDefined();
+                    expect(Array.isArray(group.stix.object_marking_refs)).toBe(true);
+                    expect(group.stix.object_marking_refs.length).toBe(2);
+                    expect(group.stix.object_marking_refs.includes(defaultMarkingDefinition1.stix.id)).toBe(true);
+                    expect(group.stix.object_marking_refs.includes(defaultMarkingDefinition2.stix.id)).toBe(true);
+
                     done();
                 }
             });

@@ -96,18 +96,23 @@ exports.create = async function(req, res) {
             import: false,
             userAccountId: req.user?.userAccountId
         };
+
         const group = await groupsService.create(groupData, options);
-        logger.debug("Success: Created group with id " + group.stix.id);
+        logger.debug('Success: Created group with id ' + group.stix.id);
         return res.status(201).send(group);
     }
     catch(err) {
         if (err.message === groupsService.errors.duplicateId) {
-            logger.warn("Duplicate stix.id and stix.modified");
+            logger.warn('Duplicate stix.id and stix.modified');
             return res.status(409).send('Unable to create group. Duplicate stix.id and stix.modified properties.');
         }
+        else if (err.message === groupsService.errors.invalidType) {
+            logger.warn('Invalid stix.type');
+            return res.status(400).send('Unable to create group. stix.type must be intrusion-set');
+        }
         else {
-            logger.error("Failed with error: " + err);
-            return res.status(500).send("Unable to create group. Server error.");
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to create group. Server error.');
         }
     }
 };

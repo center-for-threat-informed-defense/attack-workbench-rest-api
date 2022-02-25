@@ -281,6 +281,9 @@ exports.create = async function(data, options) {
             collection.workspace.workflow.created_by_user_account = options.userAccountId;
         }
 
+        // Set the default marking definitions
+        await attackObjectsService.setDefaultMarkingDefinitions(collection);
+
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
 

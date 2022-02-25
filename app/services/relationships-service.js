@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const Relationship = require('../models/relationship-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
+const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 
 const errors = {
@@ -286,6 +287,9 @@ exports.create = async function(data, options) {
         if (options.userAccountId) {
             relationship.workspace.workflow.created_by_user_account = options.userAccountId;
         }
+
+        // Set the default marking definitions
+        await attackObjectsService.setDefaultMarkingDefinitions(relationship);
 
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();

@@ -6,6 +6,7 @@ const config = require('../config/config');
 const SystemConfiguration = require('../models/system-configuration-model');
 const Identity = require('../models/identity-model');
 const UserAccount = require('../models/user-account-model');
+const MarkingDefinition = require('../models/marking-definition-model');
 
 let allowedValues;
 
@@ -14,7 +15,9 @@ const errors = {
     organizationIdentityNotFound: 'Organization identity not found',
     organizationIdentityNotSet: 'Organization identity not set',
     anonymousUserAccountNotFound: 'Anonymous user account not found',
-    anonymousUserAccountNotSet: 'Anonymous user account not set'
+    anonymousUserAccountNotSet: 'Anonymous user account not set',
+    defaultMarkingDefinitionNotFound: 'Default marking definition not found',
+    systemConfigurationNotFound: 'System configuration not found'
 };
 exports.errors = errors;
 
@@ -82,7 +85,7 @@ exports.retrieveOrganizationIdentity = async function() {
     const systemConfig = await SystemConfiguration.findOne();
 
     if (systemConfig && systemConfig.organization_identity_ref) {
-        const identity = Identity.findOne({ 'stix.id': systemConfig.organization_identity_ref });
+        const identity = await Identity.findOne({ 'stix.id': systemConfig.organization_identity_ref }).lean();
         if (identity) {
             return identity;
         }
@@ -116,15 +119,61 @@ exports.setOrganizationIdentity = async function(stixId) {
     }
 }
 
-exports.retrieveAnonymousUserAccountId = async function() {
+exports.retrieveDefaultMarkingDefinitions = async function(options) {
+    options = options ?? {};
+
+    // There should be exactly one system configuration document
+    const systemConfig = await SystemConfiguration.findOne().lean();
+
+    if (systemConfig) {
+        if (systemConfig.default_marking_definitions) {
+            if (options.refOnly) {
+                return systemConfig.default_marking_definitions;
+            }
+            else {
+                const defaultMarkingDefinitions = [];
+                for (const stixId of systemConfig.default_marking_definitions) {
+                    // eslint-disable-next-line no-await-in-loop
+                    const markingDefinition = await MarkingDefinition.findOne({ 'stix.id': stixId }).lean();
+                    if (markingDefinition) {
+                        defaultMarkingDefinitions.push(markingDefinition);
+                    } else {
+                        const error = new Error(errors.defaultMarkingDefinitionNotFound)
+                        error.markingDefinitionRef = stixId;
+                        throw error;
+                    }
+                }
+
+                return defaultMarkingDefinitions;
+            }
+        }
+        else {
+            // default_marking_definitions not set
+            return [];
+        }
+    }
+    else {
+        // No system config
+        return [];
+    }
+}
+
+exports.setDefaultMarkingDefinitions = async function(stixIds) {
     // There should be exactly one system configuration document
     const systemConfig = await SystemConfiguration.findOne();
 
-    if (systemConfig && systemConfig.anonymous_user_account_id) {
-        return systemConfig.anonymous_user_account_id;
+    if (systemConfig) {
+        // The document exists already. Set the default marking definitions.
+        systemConfig.default_marking_definitions = stixIds;
+        await systemConfig.save();
     }
     else {
-        throw new Error(errors.anonymousUserAccountNotSet);
+        // The document doesn't exist yet. Create a new one.
+        const systemConfigData = {
+            default_marking_definitions: stixIds
+        };
+        const systemConfig = new SystemConfiguration(systemConfigData);
+        await systemConfig.save();
     }
 }
 
@@ -163,8 +212,6 @@ exports.setAnonymousUserAccountId = async function(userAccountId) {
 }
 
 exports.retrieveAuthenticationConfig = async function() {
-    await SystemConfiguration.findOne();
-
     // We only support a one mechanism at a time, but may support multiples in the future,
     // so return an array of mechanisms
     const authenticationConfig = {

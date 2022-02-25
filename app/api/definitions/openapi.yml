@@ -221,6 +221,9 @@ paths:
   /api/config/authn:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1authn'
 
+  /api/config/default-marking-definitions:
+    $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1default-marking-definitions'
+
   # Session Management
   /api/session:
     $ref: 'paths/session-paths.yml#/paths/~1api~1session'

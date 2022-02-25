@@ -34,6 +34,7 @@
     "lodash": "^4.17.21",
     "mongoose": "^5.13.10",
     "morgan": "^1.10.0",
+    "nanoid": "^3.3.0",
     "node-cache": "^5.1.2",
     "openid-client": "^4.7.4",
     "passport": "^0.4.1",

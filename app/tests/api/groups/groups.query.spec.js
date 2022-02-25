@@ -104,7 +104,7 @@ async function loadGroups(groups) {
     }
 }
 
-describe('Groups Query API', function () {
+describe('Groups API Queries', function () {
     let app;
 
     before(async function() {
@@ -134,7 +134,7 @@ describe('Groups Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the groups
+                    // We expect to get both of the non-deprecated, non-revoked groups
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
@@ -155,7 +155,7 @@ describe('Groups Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the groups
+                    // We expect to get both of the non-deprecated, non-revoked groups
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
@@ -176,7 +176,7 @@ describe('Groups Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the groups
+                    // We expect to get all the non-revoked groups
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
@@ -197,7 +197,7 @@ describe('Groups Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the groups
+                    // We expect to get all the non-revoked groups
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
@@ -218,7 +218,7 @@ describe('Groups Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the groups
+                    // We expect to get all the non-deprecated groups
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
@@ -239,7 +239,7 @@ describe('Groups Query API', function () {
                     done(err);
                 }
                 else {
-                    // We expect to get all the groups
+                    // We expect to get the group with the correct workflow.state
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);

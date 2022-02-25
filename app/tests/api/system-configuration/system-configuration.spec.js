@@ -7,6 +7,23 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
+const amberStixId = 'marking-definition--f88d31f6-486f-44da-b317-01333bde0b82';
+
+const markingDefinitionData = {
+    workspace: {
+        workflow: {
+            state: 'work-in-progress'
+        }
+    },
+    stix: {
+        spec_version: '2.1',
+        type: 'marking-definition',
+        definition_type: 'statement',
+        definition: { statement: 'This is a marking definition.' },
+        created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab"
+    }
+};
+
 describe('System Configuration API', function () {
     let app;
 
@@ -117,7 +134,137 @@ describe('System Configuration API', function () {
                     expect(authnConfig).toBeDefined();
                     expect(authnConfig.mechanisms).toBeDefined();
                     expect(Array.isArray(authnConfig.mechanisms)).toBe(true);
+                    done();
+                }
+            });
+    });
 
+    let amberTlpMarkingDefinition;
+    it('GET /api/marking-definitions returns the static TLP marking definitions', function (done) {
+        request(app)
+            .get('/api/marking-definitions')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the pre-defined TLP marking definitions
+                    const markingDefinitions = res.body;
+                    expect(markingDefinitions).toBeDefined();
+                    expect(Array.isArray(markingDefinitions)).toBe(true)
+                    expect(markingDefinitions.length).toBe(4);
+
+                    amberTlpMarkingDefinition = markingDefinitions.find(x => x.stix.id === amberStixId);
+                    expect(amberTlpMarkingDefinition).toBeDefined();
+
+                    done();
+                }
+            });
+    });
+
+
+    it('PUT /api/marking-definitions fails to update a static marking definition', function (done) {
+        amberTlpMarkingDefinition.stix.description = 'This is an updated marking definition.'
+        const body = amberTlpMarkingDefinition;
+        request(app)
+            .put('/api/marking-definitions/' + amberTlpMarkingDefinition.stix.id)
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(400)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/config/default-marking-definitions returns an empty array since no default has been set', function (done) {
+        request(app)
+            .get('/api/config/default-marking-definitions')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get an empty array
+                    const defaultMarkingDefinitions = res.body;
+                    expect(defaultMarkingDefinitions).toBeDefined();
+                    expect(Array.isArray(defaultMarkingDefinitions)).toBe(true)
+                    expect(defaultMarkingDefinitions.length).toBe(0);
+
+                    done();
+                }
+            });
+    });
+
+    let markingDefinition;
+    it('POST /api/marking-definitions creates a marking definition', function (done) {
+        const timestamp = new Date().toISOString();
+        markingDefinitionData.stix.created = timestamp;
+        const body = markingDefinitionData;
+        request(app)
+            .post('/api/marking-definitions')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created marking definition
+                    markingDefinition = res.body;
+                    expect(markingDefinition).toBeDefined();
+
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/config/default-marking-definitions sets the default marking definitions', function (done) {
+        const body = [ markingDefinition.stix.id ];
+        request(app)
+            .post('/api/config/default-marking-definitions')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect the response body to be empty
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/config/default-marking-definitions returns an array containing the marking definition', function (done) {
+        request(app)
+            .get('/api/config/default-marking-definitions')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get an empty array
+                    const defaultMarkingDefinitions = res.body;
+                    expect(defaultMarkingDefinitions).toBeDefined();
+                    expect(Array.isArray(defaultMarkingDefinitions)).toBe(true)
+                    expect(defaultMarkingDefinitions.length).toBe(1);
+                    expect(defaultMarkingDefinitions[0].stix.id).toBe(markingDefinition.stix.id);
                     done();
                 }
             });

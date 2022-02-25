@@ -18,4 +18,8 @@ router.route('/config/organization-identity')
 router.route('/config/authn')
     .get(systemConfigurationController.retrieveAuthenticationConfig);
 
+router.route('/config/default-marking-definitions')
+    .get(systemConfigurationController.retrieveDefaultMarkingDefinitions)
+    .post(systemConfigurationController.setDefaultMarkingDefinitions);
+
 module.exports = router;
