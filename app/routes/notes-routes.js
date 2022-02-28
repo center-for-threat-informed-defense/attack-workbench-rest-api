@@ -6,8 +6,12 @@ const notesController = require('../controllers/notes-controller');
 const router = express.Router();
 
 router.route('/notes')
-    .get(notesController.retrieveAll)
-    .post(notesController.create);
+    .get(
+        notesController.retrieveAll
+    )
+    .post(
+        notesController.create
+    );
 
 router.route('/notes/:stixId')
     .get(notesController.retrieveById)

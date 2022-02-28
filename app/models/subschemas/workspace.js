@@ -8,6 +8,9 @@ const collectionVersion = {
 }
 const collectionVersionSchema = new mongoose.Schema(collectionVersion, { _id: false });
 
+/**
+ * Workspace property definition for most object types
+ */
 module.exports.common = {
     workflow: {
         state: {
@@ -18,7 +21,8 @@ module.exports.common = {
                 'reviewed',
                 'static'
             ]
-        }
+        },
+        created_by_user_account: String
     },
     attack_id: String,
     collections: [ collectionVersionSchema ]
@@ -40,6 +44,9 @@ const importError = {
 };
 const importErrorSchema = new mongoose.Schema(importError, { _id: false });
 
+/**
+ * Workspace property definition for collection objects
+ */
 const importCategories = {
     additions: [ String ],
     changes: [ String ],
@@ -79,6 +86,7 @@ module.exports.collection = {
                 'reviewed'
             ]
         },
+        created_by_user_account: String,
         release: Boolean
     }
 };

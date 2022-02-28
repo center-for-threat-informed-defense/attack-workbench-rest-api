@@ -92,7 +92,11 @@ exports.create = async function(req, res) {
 
     // Create the software
     try {
-        const software = await softwareService.create(softwareData, { import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const software = await softwareService.create(softwareData, options);
         logger.debug("Success: Created software with id " + software.stix.id);
         return res.status(201).send(software);
     }

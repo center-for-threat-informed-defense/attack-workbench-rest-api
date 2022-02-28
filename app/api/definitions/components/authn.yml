@@ -1,0 +1,17 @@
+components:
+  schemas:
+    service-apikey-challenge-response:
+      type: object
+      required:
+        - api-key
+      properties:
+        api-key:
+          type: string
+          description: 'API key for this service'
+
+    service-apikey-token-response:
+      type: object
+      properties:
+        token:
+          type: string
+          description: 'JWT that must be provided on subsequent requests.'

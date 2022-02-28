@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 const identitiesService = require('../services/identities-service');
+const userAccountsService = require('../services/user-accounts-service');
 const systemConfigurationService = require('../services/system-configuration-service');
 const logger = require('../lib/logger');
 const AttackObject = require('../models/attack-object-model');
@@ -43,6 +44,28 @@ async function createPlaceholderOrganizationIdentity() {
     }
 }
 
+async function createAnonymousUserAccount() {
+    // Create the anonymous user account
+    const anonymousUserAccount = {
+        email: null,
+        username: 'anonymous',
+        status: 'active',
+        role: 'admin'
+    };
+
+    try {
+        const newUserAccount = await userAccountsService.create(anonymousUserAccount);
+
+        // Set the anonymous user account id to the new user account id
+        await systemConfigurationService.setAnonymousUserAccountId(newUserAccount.id);
+        logger.info(`Anonymous user account set to user account with id: ${ newUserAccount.id }`);
+    }
+    catch(err) {
+        logger.error('Unable to create or set anonymous user account: ' + err);
+        throw err;
+    }
+}
+
 async function checkForOrganizationIdentity() {
     try {
         const identity = await systemConfigurationService.retrieveOrganizationIdentity();
@@ -61,6 +84,33 @@ async function checkForOrganizationIdentity() {
             logger.error("Unable to retrieve organization identity, failed with error: " + err);
             logger.warn(`Attempting to set organization identity to placeholder identity`);
             await createPlaceholderOrganizationIdentity();
+        }
+    }
+}
+
+async function checkForAnonymousUserAccount() {
+    const config = require('../config/config');
+
+    // Only check for an anonymous user account if the system has been configured to use the anonymous authn mechanism
+    if (config.userAuthn.mechanism === 'anonymous') {
+        try {
+            const anonymousUserAccount = await systemConfigurationService.retrieveAnonymousUserAccount();
+            logger.info(`Success: Anonymous user account is set to ${ anonymousUserAccount.id }`);
+        }
+        catch (err) {
+            if (err.message === systemConfigurationService.errors.anonymousUserAccountNotFound) {
+                logger.warn(`Anonymous user account with id ${ err.anonymousUserAccountId } not found, creating new anonymous user account`);
+                await createAnonymousUserAccount();
+            }
+            else if (err.message === systemConfigurationService.errors.anonymousUserAccountNotSet) {
+                logger.warn(`Anonymous user account not set, creating new anonymous user account`);
+                await createAnonymousUserAccount();
+            }
+            else {
+                logger.error("Unable to retrieve anonymous user account, failed with error: " + err);
+                logger.warn(`Attempting to create new anonymous user account`);
+                await createAnonymousUserAccount();
+            }
         }
     }
 }
@@ -188,6 +238,7 @@ async function checkForStaticMarkingDefinitions() {
 exports.checkSystemConfiguration = async function() {
     logger.info(`Performing system configuration check...`);
     await checkForOrganizationIdentity();
+    await checkForAnonymousUserAccount();
     await checkForInvalidEnterpriseCollectionId();
     await checkForStaticMarkingDefinitions();
 }

@@ -6,6 +6,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -43,6 +44,7 @@ const initialObjectData = {
 
 describe('Techniques Basic API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -54,12 +56,16 @@ describe('Techniques Basic API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/techniques returns an empty array of techniques', function (done) {
         request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -82,6 +88,7 @@ describe('Techniques Basic API', function () {
             .post('/api/techniques')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -102,6 +109,7 @@ describe('Techniques Basic API', function () {
             .post('/api/techniques')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -116,6 +124,7 @@ describe('Techniques Basic API', function () {
                     expect(technique1.stix.created).toBeDefined();
                     expect(technique1.stix.modified).toBeDefined();
                     expect(technique1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+                    expect(technique1.workspace.workflow.created_by_user_account).toBeDefined();
 
                     done();
                 }
@@ -126,6 +135,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -146,6 +156,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques/not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -160,6 +171,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques/' + technique1.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -198,6 +210,7 @@ describe('Techniques Basic API', function () {
 
                     expect(technique.created_by_identity).toBeDefined();
                     expect(technique.modified_by_identity).toBeDefined();
+                    expect(technique.created_by_user_account).toBeDefined();
 
                     done();
                 }
@@ -214,6 +227,7 @@ describe('Techniques Basic API', function () {
             .put('/api/techniques/' + technique1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -236,6 +250,7 @@ describe('Techniques Basic API', function () {
             .post('/api/techniques')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(409)
             .end(function (err, res) {
                 if (err) {
@@ -260,6 +275,7 @@ describe('Techniques Basic API', function () {
             .post('/api/techniques')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -278,6 +294,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques/' + technique2.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -301,6 +318,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques/' + technique1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -321,6 +339,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -342,6 +361,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques/' + technique2.stix.id + '/modified/' + technique2.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -363,6 +383,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques?search=purple')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -391,6 +412,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques?search=orange')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -411,6 +433,7 @@ describe('Techniques Basic API', function () {
     it('DELETE /api/techniques deletes a technique', function (done) {
         request(app)
             .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function (err, res) {
                 if (err) {
@@ -424,6 +447,7 @@ describe('Techniques Basic API', function () {
     it('DELETE /api/techniques should delete the second technique', function (done) {
         request(app)
             .delete('/api/techniques/' + technique2.stix.id + '/modified/' + technique2.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function (err, res) {
                 if (err) {
@@ -438,6 +462,7 @@ describe('Techniques Basic API', function () {
         request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {

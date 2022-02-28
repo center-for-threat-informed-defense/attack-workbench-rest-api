@@ -4,10 +4,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const OpenApiValidator = require('express-openapi-validator');
 const fs = require('fs');
-const path = require("path");
+const path = require('path');
 
 const errorHandler = require('../lib/error-handler');
 const config = require('../config/config');
+const authnConfiguration = require('../lib/authn-configuration');
 
 const router = express.Router();
 
@@ -21,6 +22,9 @@ router.use(OpenApiValidator.middleware({
     validateRequests: true,
     validateResponses: false
 }));
+
+// Setup passport middleware
+router.use('/api', authnConfiguration.passportMiddleware());
 
 // Set up the endpoint routes
 //   All files in this directory that end in '-routes.js' will be added as endpoint routes

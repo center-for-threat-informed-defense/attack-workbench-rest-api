@@ -98,7 +98,11 @@ exports.create = async function(req, res) {
 
     // Create the relationship
     try {
-        const relationship = await relationshipsService.create(relationshipData, {  import: false });
+        const options = {
+            import: false,
+            userAccountId: req.user?.userAccountId
+        };
+        const relationship = await relationshipsService.create(relationshipData, options);
         logger.debug("Success: Created relationship with id " + relationship.stix.id);
         return res.status(201).send(relationship);
     }

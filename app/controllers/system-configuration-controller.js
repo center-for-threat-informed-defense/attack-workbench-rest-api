@@ -30,11 +30,11 @@ exports.retrieveAllowedValues = async function(req, res) {
 exports.retrieveOrganizationIdentity = async function(req, res) {
     try {
         const identity = await systemConfigurationService.retrieveOrganizationIdentity();
-        logger.debug("Success: Retrieved organization identity.");
+        logger.debug('Success: Retrieved organization identity.');
         return res.status(200).send(identity);
     }
     catch(err) {
-        logger.error("Unable to retrieve organization identity, failed with error: " + err);
+        logger.error('Unable to retrieve organization identity, failed with error: ' + err);
         return res.status(500).send("Unable to retrieve organization identity. Server error.");
     }
 };
@@ -52,8 +52,20 @@ exports.setOrganizationIdentity = async function(req, res) {
         return res.status(204).send();
     }
     catch(err) {
-        logger.error("Unable to set organization identity, failed with error: " + err);
-        return res.status(500).send("Unable to set organization identity. Server error.");
+        logger.error('Unable to set organization identity, failed with error: ' + err);
+        return res.status(500).send('Unable to set organization identity. Server error.');
+    }
+};
+
+exports.retrieveAuthenticationConfig = function(req, res) {
+    try {
+        const authenticationConfig = systemConfigurationService.retrieveAuthenticationConfig();
+        logger.debug('Success: Retrieved authentication configuration.');
+        return res.status(200).send(authenticationConfig);
+    }
+    catch(err) {
+        logger.error('Unable to retrieve authentication configuration, failed with error: ' + err);
+        return res.status(500).send('Unable to retrieve authentication configuration. Server error.');
     }
 };
 

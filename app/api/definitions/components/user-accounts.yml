@@ -1,0 +1,21 @@
+components:
+  schemas:
+    user-account:
+      type: object
+      required:
+        - status
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        username:
+          type: string
+        status:
+          type: string
+          enum: [ 'pending', 'active', 'inactive' ]
+          example: 'active'
+        role:
+          type: string
+          enum: [ 'visitor', 'editor', 'admin' ]
+          example: 'editor'

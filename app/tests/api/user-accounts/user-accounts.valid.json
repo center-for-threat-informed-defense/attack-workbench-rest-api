@@ -1,0 +1,30 @@
+[
+  {
+    "email": "user1@test.com",
+    "username": "user1",
+    "status": "active",
+    "role": "visitor"
+  },
+  {
+    "email": "user2@test.com",
+    "username": "user2",
+    "status": "active",
+    "role": "editor"
+  },
+  {
+    "email": "user3@test.com",
+    "username": "user3",
+    "status": "active",
+    "role": "admin"
+  },
+  {
+    "email": "user4@test.com",
+    "username": "user4",
+    "status": "inactive"
+  },
+  {
+    "email": "user5@test.com",
+    "username": "user5",
+    "status": "pending"
+  }
+]

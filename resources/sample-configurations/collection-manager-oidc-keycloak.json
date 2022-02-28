@@ -1,0 +1,13 @@
+{
+  "serviceAuthn": {
+    "oidcClientCredentials": {
+      "enable": true,
+      "clients": [
+        {
+          "clientId": "attack-workbench-collection-manager",
+          "serviceRole": "collection-manager"
+        }
+      ]
+    }
+  }
+}

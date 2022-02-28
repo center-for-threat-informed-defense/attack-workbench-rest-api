@@ -51,8 +51,16 @@ components:
           type: string
           example: 'identity--76abfbed-a92f-4e2a-953e-dc83f90ecddc'
 
+    authn-mechanism:
+      type: object
+      properties:
+        authnType:
+          type: string
+          example: 'oidc'
+
     default-marking-definition-ids:
       type: array
       items:
         type: string
         example: 'marking-definition--a0262641-9222-4e26-b5f5-f44c59fb3230'
+

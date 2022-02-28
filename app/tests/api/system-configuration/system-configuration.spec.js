@@ -118,6 +118,27 @@ describe('System Configuration API', function () {
             });
     });
 
+    it('GET /api/config/authn returns the available authentication mechanisms', function (done) {
+        request(app)
+            .get('/api/config/authn')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the list of authentication mechanisms
+                    const authnConfig = res.body;
+                    expect(authnConfig).toBeDefined();
+                    expect(authnConfig.mechanisms).toBeDefined();
+                    expect(Array.isArray(authnConfig.mechanisms)).toBe(true);
+                    done();
+                }
+            });
+    });
+
     let amberTlpMarkingDefinition;
     it('GET /api/marking-definitions returns the static TLP marking definitions', function (done) {
         request(app)
@@ -143,6 +164,7 @@ describe('System Configuration API', function () {
                 }
             });
     });
+
 
     it('PUT /api/marking-definitions fails to update a static marking definition', function (done) {
         amberTlpMarkingDefinition.stix.description = 'This is an updated marking definition.'
@@ -243,7 +265,6 @@ describe('System Configuration API', function () {
                     expect(Array.isArray(defaultMarkingDefinitions)).toBe(true)
                     expect(defaultMarkingDefinitions.length).toBe(1);
                     expect(defaultMarkingDefinitions[0].stix.id).toBe(markingDefinition.stix.id);
-
                     done();
                 }
             });

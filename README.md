@@ -77,6 +77,7 @@ Note that any values set in a configuration file take precedence over values set
 | **ENABLE_CORS_ANY_ORIGIN**  | no       | `true`        | Allows requests from any domain to access the REST API endpoints   |
 | **NODE_ENV**                | no       | `development` | Environment that the app is running in                             |
 | **DATABASE_URL**            | yes      | none          | URL of the MongoDB server                                          |
+| **AUTHN_MECHANISM**         | no       | `anonymous`   | Mechanism to use for authenticating users                          |
 | **DEFAULT_INTERVAL**        | no       | `300`         | How often collection indexes should check for updates (in seconds) |
 | **JSON_CONFIG_PATH**        | no       | ``            | Location of a JSON file containing configuration values            |
 | **LOG_LEVEL**               | no       | `info`        | Level of messages to be written to the log (error, warn, http, info, verbose, debug) |

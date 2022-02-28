@@ -1,8 +1,5 @@
 'use strict';
 
-let app;
-
-
 /**
  * Do not set the upgrade-insecure-requests directive on the Content-Security-Policy header
  * @param {object} app - express app
@@ -19,12 +16,11 @@ function disableUpgradeInsecureRequests(app, helmet) {
     }));
 }
 
+/**
+ * Creates a new instance of the express app.
+ * @return The new express app
+ */
 exports.initializeApp = async function() {
-    // Only set up the express app once
-    if (app) {
-        return app;
-    }
-
     const logger = require('./lib/logger');
     logger.info('ATT&CK Workbench REST API app starting');
 
@@ -35,7 +31,7 @@ exports.initializeApp = async function() {
     // Create the express application
     logger.info('Starting express');
     const express = require('express');
-    app = express();
+    const app = express();
 
     // Add a unique id to each request
     const requestId = require('./lib/requestId');
@@ -45,7 +41,11 @@ exports.initializeApp = async function() {
     if (config.server.enableCorsAnyOrigin) {
         logger.info('CORS is enabled');
         const cors = require('cors');
-        app.use(cors());
+        const corsOptions = {
+            credentials: true,
+            origin: true
+        };
+        app.use(cors(corsOptions));
     }
     else {
         logger.info('CORS is not enabled');
@@ -77,16 +77,46 @@ exports.initializeApp = async function() {
         app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDoc));
     }
 
+    // Configure server-side sessions
+    // TBD: Replace default MemoryStore with production quality session storage
+    const session = require('express-session');
+    const sessionOptions = {
+        secret: config.session.secret,
+        resave: false,
+        saveUninitialized: false
+    }
+    app.use(session(sessionOptions));
+
     // Set up the static routes
     logger.info('Configuring static routes');
     app.use(express.static('public'));
+
+    // Configure passport with the user authentication mechanism
+    const authnConfiguration = require('./lib/authn-configuration');
+    if (config.userAuthn.mechanism === 'oidc') {
+        await authnConfiguration.configurePassport('oidc');
+    }
+    else if (config.userAuthn.mechanism === 'anonymous') {
+        await authnConfiguration.configurePassport('anonymous');
+    }
+
+    // Configure passport for service authentication if enabled
+    if (config.serviceAuthn.oidcClientCredentials.enable || config.serviceAuthn.apikey.enable) {
+        await authnConfiguration.configurePassport('bearer');
+    }
+    if (config.serviceAuthn.oidcClientCredentials.enable) {
+        logger.info('Enabled service authentication: client credentials');
+    }
+    if (config.serviceAuthn.apikey.enable) {
+        logger.info('Enabled service authentication: apikey');
+    }
 
     // Set up the api routes
     logger.info('Configuring REST API routes');
     const routes = require('./routes');
     app.use(routes);
 
-    // Make the config and logger accessible from the app
+    // Make the config and logger objects accessible from the app object
     app.set('config', config);
     app.set('logger', logger);
 

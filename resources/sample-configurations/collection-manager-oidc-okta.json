@@ -1,0 +1,13 @@
+{
+  "serviceAuthn": {
+    "oidcClientCredentials": {
+      "enable": true,
+      "clients": [
+        {
+          "clientId": "0oa3xb9oz3QLY1avc5d7",
+          "serviceRole": "collection-manager"
+        }
+      ]
+    }
+  }
+}

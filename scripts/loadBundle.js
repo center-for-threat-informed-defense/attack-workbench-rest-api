@@ -1,3 +1,17 @@
+#!/bin/node
+
+/**
+ * This script loads a collection bundle into the ATT&CK Workbench database.
+ *
+ * It requires the database URL to be provided in the DATABASE_URL environment variable.
+ *
+ * The filename and directory of the collection bundle to load are currently hardcoded in this script.
+ *
+ * Usage:
+ *   DATABASE_URL=mongodb://localhost/attack-workspace node ./scripts/loadBundle.js
+ *
+ */
+
 'use strict';
 
 const collectionBundleService = require('../app/services/collection-bundles-service');
@@ -33,7 +47,6 @@ async function loadBundle() {
     else if (collections.length > 1) {
         console.warn("Unable to import collection bundle. More than one x-mitre-collection object.");
         throw(new Error('Unable to import collection bundle. More than one x-mitre-collection object.'));
-
     }
 
     // The collection must have an id.
@@ -42,15 +55,23 @@ async function loadBundle() {
         throw(new Error('Unable to import collection bundle. x-mitre-collection missing id'));
     }
 
-    console.log('Importing bundle into database...')
-    collectionBundleService.importBundle(collections[0], bundle, options, function(err, importedCollection) {
-        if (err) {
-            throw err;
-        }
-        else {
-            console.log('Bundle imported');
-        }
+    console.log('Importing bundle into database...');
+    return new Promise((resolve, reject) => {
+        collectionBundleService.importBundle(collections[0], bundle, options, (err, importedCollection) => {
+            if (err) {
+                reject(err);
+            }
+            else {
+                console.log('Bundle imported');
+                resolve();
+            }
+        });
     });
 }
 
-loadBundle();
+loadBundle()
+    .then(() => process.exit())
+    .catch(err => {
+        console.log('loadBundle() - Error: ' + err);
+        process.exit(1);
+    });

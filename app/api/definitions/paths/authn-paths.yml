@@ -1,0 +1,146 @@
+paths:
+  /api/authn/anonymous/login:
+    get:
+      summary: 'Logs the user into the REST API using the anonymous authentication mechanism'
+      operationId: 'authn-anonymous-log-in'
+      description: |
+        This endpoint logs the user into the REST API. It does not require credentials.
+      tags:
+        - 'Authentication'
+      responses:
+        '204':
+          description: 'The user has successfully logged into the REST API.'
+
+  /api/authn/anonymous/logout:
+    get:
+      summary: 'Logs the user out of the REST API using the anonymous authentication mechanism'
+      operationId: 'authn-anonymous-log-out'
+      description: |
+        This endpoint logs the user out of the REST API.
+      tags:
+        - 'Authentication'
+      responses:
+        '204':
+          description: 'The user has successfully logged out of the REST API.'
+
+  /api/authn/oidc/login:
+    get:
+      summary: 'Logs the user into the REST API using the OIDC authentication mechanism'
+      operationId: 'authn-oidc-log-in'
+      description: |
+        This endpoint logs the user into the REST API.
+      tags:
+        - 'Authentication'
+      parameters:
+        - name: destination
+          in: query
+          description: |
+            URL that the client will be redirected to after a successful login.
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: 'Redirect to the OIDC identity provider'
+          headers:
+            Location:
+              schema:
+                type: string
+              description: 'URL of the OIDC identity provider endpoint'
+
+  /api/authn/oidc/callback:
+    get:
+      summary: 'Receives the redirect from the OIDC identity server'
+      operationId: 'authn-oidc-callback'
+      description: |
+        This endpoint receives the redirect from the OIDC identity server after a successful log in.
+      tags:
+        - 'Authentication'
+      parameters:
+        - name: code
+          in: query
+          description: |
+            Code provided by the identity server.
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: |
+            State provided by the identity server.
+          required: true
+          schema:
+            type: string
+        - name: session_state
+          in: query
+          description: |
+            Session state provided by the identity server.
+          required: true
+          schema:
+            type: string
+      responses:
+        302:
+          description: 'Redirect to the URL provided in the original log in request'
+          headers:
+            Location:
+              schema:
+                type: string
+              description: 'URL provided in the original log in request'
+
+  /api/authn/oidc/logout:
+    get:
+      summary: 'Logs the user out of the REST API using the OIDC authentication mechanism'
+      operationId: 'authn-oidc-log-out'
+      description: |
+        This endpoint logs the user out of the REST API.
+      tags:
+        - 'Authentication'
+      responses:
+        '204':
+          description: 'The user has successfully logged out of the REST API.'
+
+  /api/authn/service/apikey-challenge:
+    get:
+      summary: 'Requests a challenge string from the REST API for a service account'
+      operationId: 'authn-service-apikey-challenge'
+      description: |
+        This endpoint returns a challenge string.
+      tags:
+        - 'Authentication'
+      parameters:
+        - name: serviceName
+          in: query
+          description: |
+            Name of the service account.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The challenge string.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/authn.yml#/components/schemas/service-apikey-challenge-response'
+
+  /api/authn/service/apikey-token:
+    get:
+      summary: 'Requests a token for the service account to access the REST API'
+      operationId: 'authn-service-apikey-token'
+      description: |
+        This endpoint returns a token that the service account can use to access the REST API.
+      tags:
+        - 'Authentication'
+      parameters:
+        - name: serviceName
+          in: query
+          description: |
+            Name of the service account.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The token the service account can use to access the REST API.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/authn.yml#/components/schemas/service-apikey-token-response'

@@ -50,6 +50,12 @@ tags:
     description: 'Operations on STIX bundles'
   - name: 'System Configuration'
     description: 'Operations on the system configuration'
+  - name: 'Session Management'
+    description: 'Operations on the current session'
+  - name: 'Authentication'
+    description: 'Operations for authenticating with the REST API'
+  - name: 'User Accounts'
+    description: 'Operations on user accounts'
 
 paths:
   # ATT&CK Objects
@@ -212,5 +218,44 @@ paths:
   /api/config/organization-identity:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1organization-identity'
 
+  /api/config/authn:
+    $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1authn'
+
   /api/config/default-marking-definitions:
     $ref: 'paths/system-configuration-paths.yml#/paths/~1api~1config~1default-marking-definitions'
+
+  # Session Management
+  /api/session:
+    $ref: 'paths/session-paths.yml#/paths/~1api~1session'
+
+  # Authentication
+  /api/authn/anonymous/login:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1anonymous~1login'
+
+  /api/authn/anonymous/logout:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1anonymous~1logout'
+
+  /api/authn/oidc/login:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1oidc~1login'
+
+  /api/authn/oidc/callback:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1oidc~1callback'
+
+  /api/authn/oidc/logout:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1oidc~1logout'
+
+  /api/authn/service/apikey-challenge:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1service~1apikey-challenge'
+
+  /api/authn/service/apikey-token:
+    $ref: 'paths/authn-paths.yml#/paths/~1api~1authn~1service~1apikey-token'
+
+  # User Accounts
+  /api/user-accounts:
+    $ref: 'paths/user-accounts-paths.yml#/paths/~1api~1user-accounts'
+
+  /api/user-accounts/{id}:
+    $ref: 'paths/user-accounts-paths.yml#/paths/~1api~1user-accounts~1{id}'
+
+  /api/user-accounts/register:
+    $ref: 'paths/user-accounts-paths.yml#/paths/~1api~1user-accounts~1register'

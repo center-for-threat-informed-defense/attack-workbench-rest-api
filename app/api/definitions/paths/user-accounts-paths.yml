@@ -1,0 +1,197 @@
+paths:
+  /api/user-accounts:
+    get:
+      summary: 'Get a list of user accounts'
+      operationId: 'user-account-get-all'
+      description: |
+        This endpoint gets a list of user accounts from the workspace.
+      tags:
+        - 'User Accounts'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of user accounts to retrieve.
+            The default (0) will retrieve all user accounts.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of user accounts to skip.
+            The default (0) will start with the first user account.
+          schema:
+            type: number
+            default: 0
+        - name: status
+          in: query
+          description: |
+            Status of the user account.
+            If this parameter is not set, user accounts will be retrieved regardless of status.
+            This parameter may be set multiple times to retrieve objects with any of the provided statuses.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'active'
+        - name: role
+          in: query
+          description: |
+            Role assigned to the user account.
+            If this parameter is not set, user accounts will be retrieved regardless of role.
+            This parameter may be set multiple times to retrieve objects with any of the provided roles.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'editor'
+        - name: search
+          in: query
+          description: |
+            Only return objects where the provided search text occurs in the `username` or `email` properties.
+            The search is case-insensitive.
+          schema:
+            type: string
+          example: 'smith'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of user accounts.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/user-accounts.yml#/components/schemas/user-account'
+
+    post:
+      summary: 'Create a user account'
+      operationId: 'user-account-create'
+      description: |
+        This endpoint creates a new user account in the workspace.
+        The endpoint will generate a new id for the user account.
+      tags:
+        - 'User Accounts'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/user-accounts.yml#/components/schemas/user-account'
+      responses:
+        '201':
+          description: 'The user account has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/user-accounts.yml#/components/schemas/user-account'
+        '400':
+          description: 'Missing or invalid parameters were provided. The user account was not created.'
+
+  /api/user-accounts/{id}:
+    get:
+      summary: 'Get one user account'
+      operationId: 'user-account-get-one-id'
+      description: |
+        This endpoint gets one user account from the workspace, identified by the user account id.
+      tags:
+        - 'User Accounts'
+      parameters:
+        - name: id
+          in: path
+          description: 'User account id of the user account to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A single user account matching the requested user account id.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/user-accounts.yml#/components/schemas/user-account'
+        '404':
+          description: 'A user account with the requested user account id was not found.'
+    put:
+      summary: 'Update a user account'
+      operationId: 'user-account-update'
+      description: |
+        This endpoint updates a single user account, identified by user account id.
+      tags:
+        - 'User Accounts'
+      parameters:
+        - name: id
+          in: path
+          description: 'User account id of the user account to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/user-accounts.yml#/components/schemas/user-account'
+      responses:
+        '200':
+          description: 'The user account was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/user-accounts.yml#/components/schemas/user-account'
+        '400':
+          description: 'Missing or invalid parameters were provided. The user account was not updated.'
+        '404':
+          description: 'A user account with the requested user account id was not found.'
+    delete:
+      summary: 'Delete a user account'
+      operationId: 'user-account-delete'
+      description: |
+        This endpoint deletes a single user account from the workspace.
+        The user account is identified by the user account id.
+      tags:
+        - 'User Accounts'
+      parameters:
+        - name: id
+          in: path
+          description: 'User account id of the user account to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The user account was successfully deleted.'
+        '404':
+          description: 'A user account with the requested user account id was not found.'
+
+  /api/user-accounts/register:
+    post:
+      summary: 'Register a user account'
+      operationId: 'user-account-register'
+      description: |
+        This endpoint creates a new user account in the workspace, using the log in information from the currently
+        logged in user.
+        The endpoint will generate a new id for the user account.
+      tags:
+        - 'User Accounts'
+      responses:
+        '201':
+          description: 'The user account has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/user-accounts.yml#/components/schemas/user-account'
+        '400':
+          description: 'Missing or invalid parameters were provided. The user account was not created.'

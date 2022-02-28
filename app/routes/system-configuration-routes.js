@@ -15,6 +15,9 @@ router.route('/config/organization-identity')
     .get(systemConfigurationController.retrieveOrganizationIdentity)
     .post(systemConfigurationController.setOrganizationIdentity);
 
+router.route('/config/authn')
+    .get(systemConfigurationController.retrieveAuthenticationConfig);
+
 router.route('/config/default-marking-definitions')
     .get(systemConfigurationController.retrieveDefaultMarkingDefinitions)
     .post(systemConfigurationController.setDefaultMarkingDefinitions);
