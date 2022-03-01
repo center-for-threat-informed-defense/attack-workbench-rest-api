@@ -39,235 +39,203 @@ describe('System Configuration API', function () {
         app = await require('../../../index').initializeApp();
     });
 
-    it('GET /api/config/system-version returns the system version info', function (done) {
-        request(app)
+    it('GET /api/config/system-version returns the system version info', async function () {
+        const res = await request(app)
             .get('/api/config/system-version')
             .set('Accept', 'application/json')
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the system version info
-                    const systemVersionInfo = res.body;
-                    expect(systemVersionInfo).toBeDefined();
-                    expect(systemVersionInfo.version).toBeDefined();
-                    expect(systemVersionInfo.attackSpecVersion).toBeDefined();
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the system version info
+        const systemVersionInfo = res.body;
+        expect(systemVersionInfo).toBeDefined();
+        expect(systemVersionInfo.version).toBeDefined();
+        expect(systemVersionInfo.attackSpecVersion).toBeDefined();
     });
 
-    it('GET /api/config/allowed-values returns the allowed values', function (done) {
-        request(app)
+    it('GET /api/config/allowed-values returns the allowed values', async function () {
+        const res = await request(app)
             .get('/api/config/allowed-values')
             .set('Accept', 'application/json')
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the list of allowed values
-                    const allowedValues = res.body;
-                    expect(allowedValues).toBeDefined();
-                    expect(Array.isArray(allowedValues)).toBe(true);
+            .expect('Content-Type', /json/);
 
-                    const expectedObjectType = 'technique';
-                    const expectedPropertyName = 'x_mitre_platforms';
-                    const expectedDomainName = 'enterprise-attack';
-                    const expectedPropertyValue = 'Linux';
+        // We expect to get the list of allowed values
+        const allowedValues = res.body;
+        expect(allowedValues).toBeDefined();
+        expect(Array.isArray(allowedValues)).toBe(true);
 
-                    // Test some content
-                    const techniqueAllowedValues = allowedValues.find(item => item.objectType === expectedObjectType);
-                    expect(techniqueAllowedValues).toBeDefined();
+        const expectedObjectType = 'technique';
+        const expectedPropertyName = 'x_mitre_platforms';
+        const expectedDomainName = 'enterprise-attack';
+        const expectedPropertyValue = 'Linux';
 
-                    const propertyAllowedValues = techniqueAllowedValues.properties.find(item => item.propertyName === expectedPropertyName);
-                    expect(propertyAllowedValues).toBeDefined();
+        // Test some content
+        const techniqueAllowedValues = allowedValues.find(item => item.objectType === expectedObjectType);
+        expect(techniqueAllowedValues).toBeDefined();
 
-                    const domainAllowedValues = propertyAllowedValues.domains.find(item => item.domainName === expectedDomainName);
-                    expect(domainAllowedValues).toBeDefined();
-                    expect(domainAllowedValues.allowedValues).toContain(expectedPropertyValue);
+        const propertyAllowedValues = techniqueAllowedValues.properties.find(item => item.propertyName === expectedPropertyName);
+        expect(propertyAllowedValues).toBeDefined();
 
-                    done();
-                }
-            });
+        const domainAllowedValues = propertyAllowedValues.domains.find(item => item.domainName === expectedDomainName);
+        expect(domainAllowedValues).toBeDefined();
+        expect(domainAllowedValues.allowedValues).toContain(expectedPropertyValue);
     });
 
-    it('GET /api/config/organization-identity returns the organizaton identity', function (done) {
-        request(app)
+    it('GET /api/config/organization-identity returns the organizaton identity', async function () {
+        const res = await request(app)
             .get('/api/config/organization-identity')
             .set('Accept', 'application/json')
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the organization identity
-                    const identity = res.body;
-                    expect(identity).toBeDefined();
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the organization identity
+        const identity = res.body;
+        expect(identity).toBeDefined();
     });
 
-    it('GET /api/config/authn returns the available authentication mechanisms', function (done) {
-        request(app)
+    it('GET /api/config/authn returns the available authentication mechanisms', async function () {
+        const res = await request(app)
             .get('/api/config/authn')
             .set('Accept', 'application/json')
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the list of authentication mechanisms
-                    const authnConfig = res.body;
-                    expect(authnConfig).toBeDefined();
-                    expect(authnConfig.mechanisms).toBeDefined();
-                    expect(Array.isArray(authnConfig.mechanisms)).toBe(true);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the list of authentication mechanisms
+        const authnConfig = res.body;
+        expect(authnConfig).toBeDefined();
+        expect(authnConfig.mechanisms).toBeDefined();
+        expect(Array.isArray(authnConfig.mechanisms)).toBe(true);
     });
 
     let amberTlpMarkingDefinition;
-    it('GET /api/marking-definitions returns the static TLP marking definitions', function (done) {
-        request(app)
+    it('GET /api/marking-definitions returns the static TLP marking definitions', async function () {
+        const res = await request(app)
             .get('/api/marking-definitions')
             .set('Accept', 'application/json')
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the pre-defined TLP marking definitions
-                    const markingDefinitions = res.body;
-                    expect(markingDefinitions).toBeDefined();
-                    expect(Array.isArray(markingDefinitions)).toBe(true)
-                    expect(markingDefinitions.length).toBe(4);
+            .expect('Content-Type', /json/);
 
-                    amberTlpMarkingDefinition = markingDefinitions.find(x => x.stix.id === amberStixId);
-                    expect(amberTlpMarkingDefinition).toBeDefined();
+        // We expect to get the pre-defined TLP marking definitions
+        const markingDefinitions = res.body;
+        expect(markingDefinitions).toBeDefined();
+        expect(Array.isArray(markingDefinitions)).toBe(true)
+        expect(markingDefinitions.length).toBe(4);
 
-                    done();
-                }
-            });
+        amberTlpMarkingDefinition = markingDefinitions.find(x => x.stix.id === amberStixId);
+        expect(amberTlpMarkingDefinition).toBeDefined();
     });
 
 
-    it('PUT /api/marking-definitions fails to update a static marking definition', function (done) {
+    it('PUT /api/marking-definitions fails to update a static marking definition', async function () {
         amberTlpMarkingDefinition.stix.description = 'This is an updated marking definition.'
         const body = amberTlpMarkingDefinition;
-        request(app)
+        await request(app)
             .put('/api/marking-definitions/' + amberTlpMarkingDefinition.stix.id)
             .send(body)
             .set('Accept', 'application/json')
-            .expect(400)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
-    it('GET /api/config/default-marking-definitions returns an empty array since no default has been set', function (done) {
-        request(app)
+    it('GET /api/config/default-marking-definitions returns an empty array since no default has been set', async function () {
+        const res = await request(app)
             .get('/api/config/default-marking-definitions')
             .set('Accept', 'application/json')
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const defaultMarkingDefinitions = res.body;
-                    expect(defaultMarkingDefinitions).toBeDefined();
-                    expect(Array.isArray(defaultMarkingDefinitions)).toBe(true)
-                    expect(defaultMarkingDefinitions.length).toBe(0);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get an empty array
+        const defaultMarkingDefinitions = res.body;
+        expect(defaultMarkingDefinitions).toBeDefined();
+        expect(Array.isArray(defaultMarkingDefinitions)).toBe(true)
+        expect(defaultMarkingDefinitions.length).toBe(0);
     });
 
     let markingDefinition;
-    it('POST /api/marking-definitions creates a marking definition', function (done) {
+    it('POST /api/marking-definitions creates a marking definition', async function () {
         const timestamp = new Date().toISOString();
         markingDefinitionData.stix.created = timestamp;
         const body = markingDefinitionData;
-        request(app)
+        const res = await request(app)
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created marking definition
-                    markingDefinition = res.body;
-                    expect(markingDefinition).toBeDefined();
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the created marking definition
+        markingDefinition = res.body;
+        expect(markingDefinition).toBeDefined();
     });
 
-    it('POST /api/config/default-marking-definitions sets the default marking definitions', function (done) {
-        const body = [ markingDefinition.stix.id ];
-        request(app)
+    it('POST /api/config/default-marking-definitions sets the default marking definitions', async function () {
+        const body = [markingDefinition.stix.id];
+        const res = await request(app)
             .post('/api/config/default-marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect the response body to be empty
-                    done();
-                }
-            });
+            .expect(204);
+
+        // We expect the response body to be an empty object
+        expect(res.body).toBeDefined();
+        expect(Object.getOwnPropertyNames(res.body)).toHaveLength(0);
     });
 
-    it('GET /api/config/default-marking-definitions returns an array containing the marking definition', function (done) {
-        request(app)
+    it('GET /api/config/default-marking-definitions returns an array containing the marking definition', async function () {
+        const res = await request(app)
             .get('/api/config/default-marking-definitions')
             .set('Accept', 'application/json')
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const defaultMarkingDefinitions = res.body;
-                    expect(defaultMarkingDefinitions).toBeDefined();
-                    expect(Array.isArray(defaultMarkingDefinitions)).toBe(true)
-                    expect(defaultMarkingDefinitions.length).toBe(1);
-                    expect(defaultMarkingDefinitions[0].stix.id).toBe(markingDefinition.stix.id);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const defaultMarkingDefinitions = res.body;
+        expect(defaultMarkingDefinitions).toBeDefined();
+        expect(Array.isArray(defaultMarkingDefinitions)).toBe(true)
+        expect(defaultMarkingDefinitions.length).toBe(1);
+        expect(defaultMarkingDefinitions[0].stix.id).toBe(markingDefinition.stix.id);
+    });
+
+    it('GET /api/config/organization-namespace returns the default namespace', async function () {
+        const res = await request(app)
+            .get('/api/config/organization-namespace')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/);
+
+        // We expect to get the default namespace
+        const namespace = res.body;
+        expect(namespace).toBeDefined();
+        expect(namespace.range_start).toBeNull();
+        expect(namespace.prefix).toBeNull();
+    });
+
+    const testNamespace = {  range_start: 3000, prefix: 'TESTORG' };
+    it('POST /api/config/organization-namespace sets the organization namespace', async function () {
+        const body = testNamespace;
+        const res = await request(app)
+            .post('/api/config/organization-namespace')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(204);
+
+        // We expect the response body to be an empty object
+        expect(res.body).toBeDefined();
+        expect(Object.getOwnPropertyNames(res.body)).toHaveLength(0);
+    });
+
+    it('GET /api/config/organization-namespace returns the updated namespace', async function () {
+        const res = await request(app)
+            .get('/api/config/organization-namespace')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/);
+
+        // We expect to get the default namespace
+        const namespace = res.body;
+        expect(namespace).toBeDefined();
+        expect(namespace.range_start).toBe(testNamespace.range_start);
+        expect(namespace.prefix).toBe(testNamespace.prefix);
     });
 
     after(async function() {
