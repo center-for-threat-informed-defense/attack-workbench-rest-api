@@ -22,4 +22,8 @@ router.route('/config/default-marking-definitions')
     .get(systemConfigurationController.retrieveDefaultMarkingDefinitions)
     .post(systemConfigurationController.setDefaultMarkingDefinitions);
 
+router.route('/config/organization-namespace')
+    .get(systemConfigurationController.retrieveOrganizationNamespace)
+    .post(systemConfigurationController.setOrganizationNamespace);
+
 module.exports = router;

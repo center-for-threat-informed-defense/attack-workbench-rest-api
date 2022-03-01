@@ -64,3 +64,12 @@ components:
         type: string
         example: 'marking-definition--a0262641-9222-4e26-b5f5-f44c59fb3230'
 
+    organization-namespace:
+      type: object
+      properties:
+        range_start:
+          type: number
+          example: 4000
+        prefix:
+          type: string
+          example: 'MYORG'

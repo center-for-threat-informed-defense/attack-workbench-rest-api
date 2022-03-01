@@ -270,6 +270,69 @@ describe('System Configuration API', function () {
             });
     });
 
+    it('GET /api/config/organization-namespace returns the default namespace', function (done) {
+        request(app)
+            .get('/api/config/organization-namespace')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the default namespace
+                    const namespace = res.body;
+                    expect(namespace).toBeDefined();
+                    expect(namespace.range_start).toBeNull();
+                    expect(namespace.prefix).toBeNull();
+
+                    done();
+                }
+            });
+    });
+
+    const testNamespace = {  range_start: 3000, prefix: 'TESTORG' };
+    it('POST /api/config/organization-namespace sets the organization namespace', function (done) {
+        const body = testNamespace;
+        request(app)
+            .post('/api/config/organization-namespace')
+            .send(body)
+            .set('Accept', 'application/json')
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect the response body to be empty
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/config/organization-namespace returns the updated namespace', function (done) {
+        request(app)
+            .get('/api/config/organization-namespace')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the default namespace
+                    const namespace = res.body;
+                    expect(namespace).toBeDefined();
+                    expect(namespace.range_start).toBe(testNamespace.range_start);
+                    expect(namespace.prefix).toBe(testNamespace.prefix);
+
+                    done();
+                }
+            });
+    });
+
     after(async function() {
         await database.closeConnection();
     });

@@ -129,3 +129,37 @@ paths:
           description: 'Missing or invalid parameters were provided. The default marking definitions were not set.'
         '404':
           description: 'A marking definition could not be found. The default marking definitions were not set.'
+
+  /api/config/organization-namespace:
+    get:
+      summary: 'Get the designated organization namespace'
+      operationId: 'config-get-organization-namespace'
+      description: |
+        This endpoint gets the organization namespace definition (if any) defined for the system.
+      tags:
+        - 'System Configuration'
+      responses:
+        '200':
+          description: 'A namespace object.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/system-configuration.yml#/components/schemas/organization-namespace'
+    post:
+      summary: 'Set the designated organization namespace'
+      operationId: 'config-set-organization-namespace'
+      description: |
+        This endpoint sets the organization namespace for the system.
+      tags:
+        - 'System Configuration'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/system-configuration.yml#/components/schemas/organization-namespace'
+      responses:
+        '204':
+          description: 'The organization namespace has been successfully set.'
+        '400':
+          description: 'Missing or invalid parameters were provided. The organization namespace was not set.'

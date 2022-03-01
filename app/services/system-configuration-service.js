@@ -221,3 +221,28 @@ exports.retrieveAuthenticationConfig = function() {
     };
     return authenticationConfig;
 }
+
+exports.retrieveOrganizationNamespace = async function() {
+    // There should be exactly one system configuration document
+    const systemConfig = await SystemConfiguration.findOne();
+
+    if (systemConfig) {
+        return systemConfig.organization_namespace;
+    }
+    else {
+        throw new Error(errors.systemConfigurationDocumentNotFound);
+    }
+}
+
+exports.setOrganizationNamespace = async function(namespace) {
+    // There should be exactly one system configuration document
+    const systemConfig = await SystemConfiguration.findOne();
+
+    if (systemConfig) {
+        systemConfig.organization_namespace = namespace;
+        await systemConfig.save();
+    }
+    else {
+        throw new Error(errors.systemConfigurationDocumentNotFound);
+    }
+}

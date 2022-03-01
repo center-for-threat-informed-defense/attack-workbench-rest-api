@@ -102,3 +102,29 @@ exports.setDefaultMarkingDefinitions = async function(req, res) {
         return res.status(500).send("Unable to default marking definitions. Server error.");
     }
 };
+
+exports.retrieveOrganizationNamespace = async function(req, res) {
+    try {
+        const namespace = await systemConfigurationService.retrieveOrganizationNamespace();
+        logger.debug('Success: Retrieved organization namespace.');
+        return res.status(200).send(namespace);
+    }
+    catch(err) {
+        logger.error('Unable to retrieve organization namespace, failed with error: ' + err);
+        return res.status(500).send("Unable to retrieve organization namespace. Server error.");
+    }
+};
+
+exports.setOrganizationNamespace = async function(req, res) {
+    const organizationNamespace = req.body;
+
+    try {
+        await systemConfigurationService.setOrganizationNamespace(organizationNamespace);
+        logger.debug(`Success: Set organization namespace to: ${ organizationNamespace.prefix }`);
+        return res.status(204).send();
+    }
+    catch(err) {
+        logger.error('Unable to set organization namespace, failed with error: ' + err);
+        return res.status(500).send('Unable to set organization namespace. Server error.');
+    }
+};

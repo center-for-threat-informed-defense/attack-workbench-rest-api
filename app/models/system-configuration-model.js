@@ -6,7 +6,11 @@ const mongoose = require('mongoose');
 const systemConfigurationDefinition = {
     organization_identity_ref: { type: String, required: true },
     anonymous_user_account_id: String,
-    default_marking_definitions: [ String ]
+    default_marking_definitions: [ String ],
+    organization_namespace: {
+        range_start: { type: Number, default: null },
+        prefix: { type: String, default: null }
+    }
 };
 
 // Create the schema
