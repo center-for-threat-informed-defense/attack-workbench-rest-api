@@ -3,6 +3,21 @@
   "version": "1.1.0",
   "attackSpecVersion": "2.1.0",
   "description": "An application allowing users to explore, create, annotate, and share extensions of the MITRE ATT&CK® knowledge base. This repository contains the REST API service for storing, querying, and editing ATT&CK objects.",
+  "keywords": [
+    "cti",
+    "cyber-threat-intelligence",
+    "attack",
+    "mitre-attack",
+    "mitre-corporation",
+    "ctid",
+    "center-for-threat-informed-defense",
+    "cybersecurity",
+    "stix"
+  ],
+  "license": {
+    "type": "Apache-2.0",
+    "url": "https://opensource.org/licenses/apache2.0.php"
+  },
   "main": "index.js",
   "scripts": {
     "coverage": "nyc npm test",

@@ -144,3 +144,6 @@ Temporary Items
 
 # Directory holding Collection Bundles for testing
 /app/tests/import/test-files/
+
+# Directory holding files that are for local use only
+/local-only
