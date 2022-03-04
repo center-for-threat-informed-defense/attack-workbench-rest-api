@@ -13,7 +13,9 @@ const userAccountDefinition = {
     },
     username: { type: String, required: true },
     status: { type: String, required: true },
-    role: { type: String }
+    role: { type: String },
+    created: { type: Date, required: true },
+    modified: { type: Date, required: true }
 };
 
 // Create the schema
