@@ -171,7 +171,19 @@ exports.create = async function(data) {
     // Create the document
     const userAccount = new UserAccount(data);
 
+    // Create a unique id for this user
     userAccount.id = `user-account--${uuid.v4()}`;
+
+    // Add a timestamp recording when the user account was first created
+    // This should usually be undefined. It will only be defined when migrating user accounts from another system.
+    if (!userAccount.created) {
+        userAccount.created = new Date().toISOString();
+    }
+
+    // Add a timestamp recording when the user account was last modified
+    if (!userAccount.modified) {
+        userAccount.modified = userAccount.created;
+    }
 
     // Save the document in the database
     try {
@@ -215,8 +227,16 @@ exports.updateFull = function(userAccountId, data, callback) {
             return callback(null);
         }
         else {
-            // Copy data to found document and save
-            Object.assign(document, data);
+            // Copy data to found document
+            document.email = data.email;
+            document.username = data.username;
+            document.status = data.status;
+            document.role = data.role;
+
+            // Set the modified timestamp
+            document.modified = new Date().toISOString();
+
+            // And save
             document.save(function(err, savedDocument) {
                 if (err) {
                     if (err.name === 'MongoError' && err.code === 11000) {

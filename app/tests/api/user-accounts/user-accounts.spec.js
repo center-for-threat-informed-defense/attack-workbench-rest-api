@@ -146,6 +146,11 @@ describe('User Accounts API', function () {
                     expect(userAccount.status).toBe(userAccount1.status);
                     expect(userAccount.role).toBe(userAccount1.role);
 
+                    // The created and modified timestamps should match
+                    expect(userAccount.created).toBeDefined();
+                    expect(userAccount.modified).toBeDefined();
+                    expect(userAccount.created).toEqual(userAccount.modified);
+
                     done();
                 }
             });
@@ -168,6 +173,12 @@ describe('User Accounts API', function () {
                     const userAccount = res.body;
                     expect(userAccount).toBeDefined();
                     expect(userAccount.identity).toBe(userAccount1.identity);
+
+                    // The modified timestamp should be different from the created timestamp
+                    expect(userAccount.created).toBeDefined();
+                    expect(userAccount.modified).toBeDefined();
+                    expect(userAccount.created).not.toEqual(userAccount.modified);
+
                     done();
                 }
             });
