@@ -54,7 +54,7 @@ exports.getStrategy = async function() {
     const clientOptions = {
         client_id: config.userAuthn.oidc.clientId,
         client_secret: config.userAuthn.oidc.clientSecret,
-        redirect_uris: ['http://localhost:3000/api/authn/oidc/callback'],
+        redirect_uris: [`${ config.userAuthn.oidc.redirectOrigin }/api/authn/oidc/callback`],
         response_types: ['code']
     };
     const client = new issuer.Client(clientOptions);

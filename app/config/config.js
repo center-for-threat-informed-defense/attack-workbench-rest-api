@@ -166,6 +166,12 @@ function loadConfig() {
                     format: String,
                     default: '',
                     env: 'AUTHN_OIDC_CLIENT_SECRET'
+                },
+                redirectOrigin: {
+                    doc: 'Origin (protocol and host) to use in building the OIDC redirect URI',
+                    format: String,
+                    default: 'http://localhost:3000',
+                    env: 'AUTHN_OIDC_REDIRECT_ORIGIN'
                 }
             }
         },

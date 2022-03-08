@@ -75,7 +75,6 @@ paths:
           in: query
           description: |
             Session state provided by the identity server.
-          required: true
           schema:
             type: string
       responses:
