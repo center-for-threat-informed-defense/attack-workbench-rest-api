@@ -8,6 +8,8 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const UserAccount = require('../../../models/user-account-model');
 
+const login = require('../../shared/login');
+
 // userId property will be created by REST API
 const initialObjectData = {
     email: 'user@org.com',
@@ -19,6 +21,7 @@ const initialObjectData = {
 
 describe('User Accounts API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -33,12 +36,16 @@ describe('User Accounts API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/user-accounts returns an array with the anonymous user account', function (done) {
         request(app)
             .get('/api/user-accounts')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -62,6 +69,7 @@ describe('User Accounts API', function () {
             .post('/api/user-accounts')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -79,6 +87,7 @@ describe('User Accounts API', function () {
             .post('/api/user-accounts')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -98,6 +107,7 @@ describe('User Accounts API', function () {
         request(app)
             .get('/api/user-accounts')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -118,6 +128,7 @@ describe('User Accounts API', function () {
         request(app)
             .get('/api/user-accounts/not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -132,6 +143,7 @@ describe('User Accounts API', function () {
         request(app)
             .get('/api/user-accounts/' + userAccount1.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -204,6 +216,7 @@ describe('User Accounts API', function () {
             .put('/api/user-accounts/' + userAccount1.id)
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -229,6 +242,7 @@ describe('User Accounts API', function () {
         request(app)
             .get('/api/user-accounts?search=first')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -253,6 +267,7 @@ describe('User Accounts API', function () {
             .post('/api/user-accounts')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -266,6 +281,7 @@ describe('User Accounts API', function () {
     it('DELETE /api/user-accounts deletes a user account', function (done) {
         request(app)
             .delete('/api/user-accounts/' + userAccount1.id)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function (err, res) {
                 if (err) {
@@ -280,6 +296,7 @@ describe('User Accounts API', function () {
         request(app)
             .get('/api/user-accounts')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {

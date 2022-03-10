@@ -2,19 +2,47 @@
 
 const express = require('express');
 const userAccountsController = require('../controllers/user-accounts-controller');
+const authnService = require('../services/authn-service');
+const authzService = require('../services/authz-service');
 
 const router = express.Router();
 
+const adminRole = [ authzService.roles.admin ];
+
 router.route('/user-accounts')
-    .get(userAccountsController.retrieveAll)
-    .post(userAccountsController.create);
+    .get(
+        authnService.authenticate,
+        authzService.requireRole(adminRole),
+        userAccountsController.retrieveAll
+    )
+    .post(
+        authnService.authenticate,
+        authzService.requireRole(adminRole),
+        userAccountsController.create
+    );
 
 router.route('/user-accounts/:id')
-    .get(userAccountsController.retrieveById)
-    .put(userAccountsController.updateFull)
-    .delete(userAccountsController.delete);
+    .get(
+        authnService.authenticate,
+        authzService.requireRole(adminRole),
+        userAccountsController.retrieveById
+    )
+    .put(
+        authnService.authenticate,
+        authzService.requireRole(adminRole),
+        userAccountsController.updateFull
+    )
+    .delete(
+        authnService.authenticate,
+        authzService.requireRole(adminRole),
+        userAccountsController.delete
+    );
 
 router.route('/user-accounts/register')
-    .post(userAccountsController.register);
+    .post(
+        authnService.authenticate,
+        authzService.requireRole(adminRole),
+        userAccountsController.register
+    );
 
 module.exports = router;

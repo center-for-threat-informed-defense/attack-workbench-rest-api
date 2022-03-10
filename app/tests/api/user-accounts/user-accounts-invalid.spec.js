@@ -8,8 +8,11 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 
 const userAccounts = require('./user-accounts.invalid.json');
 
+const login = require('../../shared/login');
+
 describe('User Accounts API Test Invalid Data', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -21,6 +24,9 @@ describe('User Accounts API Test Invalid Data', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     for (const userAccountData of userAccounts) {
@@ -30,6 +36,7 @@ describe('User Accounts API Test Invalid Data', function () {
                 .post('/api/user-accounts')
                 .send(body)
                 .set('Accept', 'application/json')
+                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                 .expect(400);
         });
     }
