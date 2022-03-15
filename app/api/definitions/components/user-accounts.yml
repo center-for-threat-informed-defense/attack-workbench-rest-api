@@ -11,6 +11,8 @@ components:
           type: string
         username:
           type: string
+        displayName:
+          type: string
         status:
           type: string
           enum: [ 'pending', 'active', 'inactive' ]

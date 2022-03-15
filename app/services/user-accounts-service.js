@@ -52,7 +52,8 @@ exports.retrieveAll = function(options, callback) {
     if (typeof options.search !== 'undefined') {
         const match = { $match: { $or: [
                     { 'username': { '$regex': options.search, '$options': 'i' }},
-                    { 'email': { '$regex': options.search, '$options': 'i' }}
+                    { 'email': { '$regex': options.search, '$options': 'i' }},
+                    { 'displayName': { '$regex': options.search, '$options': 'i' }}
                 ]}};
         aggregation.push(match);
     }
@@ -172,7 +173,10 @@ exports.create = async function(data) {
     const userAccount = new UserAccount(data);
 
     // Create a unique id for this user
-    userAccount.id = `user-account--${uuid.v4()}`;
+    // This should usually be undefined. It will only be defined when migrating user accounts from another system.
+    if (!userAccount.id) {
+        userAccount.id = `identity--${uuid.v4()}`;
+    }
 
     // Add a timestamp recording when the user account was first created
     // This should usually be undefined. It will only be defined when migrating user accounts from another system.
@@ -230,6 +234,7 @@ exports.updateFull = function(userAccountId, data, callback) {
             // Copy data to found document
             document.email = data.email;
             document.username = data.username;
+            document.displayName = data.displayName;
             document.status = data.status;
             document.role = data.role;
 

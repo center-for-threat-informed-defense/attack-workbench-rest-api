@@ -20,7 +20,8 @@ exports.serializeUser = function(userSession, done) {
         const userSessionKey = {
             strategy: 'oidc',
             sessionId: userSession.email,
-            username: userSession.name
+            username: userSession.name,
+            displayName: userSession.displayName
         }
         done(null, userSessionKey);
     }
@@ -36,7 +37,7 @@ exports.serializeUser = function(userSession, done) {
  */
 exports.deserializeUser = function(userSessionKey, done) {
     if (userSessionKey.strategy === 'oidc') {
-        makeUserSession(userSessionKey.sessionId, userSessionKey.username)
+        makeUserSession(userSessionKey.sessionId, userSessionKey.username, userSessionKey.displayName)
             .then(userSession => done(null, userSession))
             .catch(err => done(err));
     }
@@ -77,17 +78,17 @@ exports.getStrategy = async function() {
 function verifyCallback(tokenSet, userInfo, done) {
     const claims = tokenSet.claims();
 
-    makeUserSession(claims.email, claims.preferred_username)
+    makeUserSession(claims.email, claims.preferred_username, claims.name)
         .then(userSession => done(null, userSession))
         .catch(err => done(err));
 }
 
-async function makeUserSession(email, username) {
+async function makeUserSession(email, username, displayName) {
     // Create the user session from the user account in the database
     let userSession = await makeRegisteredUserSession(email);
     if (!userSession) {
         // Not in the database, unregistered user
-        userSession = makeUnregisteredUserSession(email, username);
+        userSession = makeUnregisteredUserSession(email, username, displayName);
     }
 
     return userSession;
@@ -97,7 +98,7 @@ async function makeRegisteredUserSession(email) {
     const userAccount = await userAccountsService.retrieveByEmail(email);
 
     if (userAccount) {
-        const userAccountData = (({ email, status, role }) => ({ email, status, role }))(userAccount);
+        const userAccountData = (({ email, status, role, displayName }) => ({ email, status, role, displayName }))(userAccount);
         const userSession = {
             strategy: 'oidc',
             userAccountId: userAccount.id,
@@ -113,12 +114,13 @@ async function makeRegisteredUserSession(email) {
     }
 }
 
-function makeUnregisteredUserSession(email, username) {
+function makeUnregisteredUserSession(email, username, displayName) {
     const userSession = {
         strategy: 'oidc',
         email: email,
         role: 'none',
         name: username,
+        displayName: displayName,
         registered: false
     };
 

@@ -1,19 +1,22 @@
 [
   {
     "email": "user1@test.com",
-    "username": "user1",
+    "username": "user1@test.com",
+    "displayName": "User 1",
     "status": "active",
     "role": "visitor"
   },
   {
     "email": "user2@test.com",
-    "username": "user2",
+    "username": "user2@test.com",
+    "displayName": "User 2",
     "status": "active",
     "role": "editor"
   },
   {
     "email": "user3@test.com",
-    "username": "user3",
+    "username": "user3@test.com",
+    "displayName": "User 3",
     "status": "active",
     "role": "admin"
   },

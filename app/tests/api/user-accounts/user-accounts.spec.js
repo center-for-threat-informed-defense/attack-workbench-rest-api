@@ -11,7 +11,8 @@ const UserAccount = require('../../../models/user-account-model');
 // userId property will be created by REST API
 const initialObjectData = {
     email: 'user@org.com',
-    username: 'UserFirst UserLast',
+    username: 'user@org.com',
+    displayName: 'UserFirst UserLast',
     status: 'active',
     role: 'editor'
 };
@@ -143,6 +144,7 @@ describe('User Accounts API', function () {
                     expect(userAccount.id).toBe(userAccount1.id);
                     expect(userAccount.email).toBe(userAccount1.email);
                     expect(userAccount.username).toBe(userAccount1.username);
+                    expect(userAccount.displayName).toBe(userAccount1.displayName);
                     expect(userAccount.status).toBe(userAccount1.status);
                     expect(userAccount.role).toBe(userAccount1.role);
 
