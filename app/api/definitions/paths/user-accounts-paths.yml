@@ -66,6 +66,13 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: includeStixIdentity
+          in: query
+          description: |
+            Whether to include an equivalent STIX identity object in each retrieved user account
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'A list of user accounts.'
@@ -115,6 +122,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: includeStixIdentity
+          in: query
+          description: |
+            Whether to include an equivalent STIX identity object in the retrieved user account
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'A single user account matching the requested user account id.'

@@ -21,6 +21,18 @@ function addEffectiveRole(userAccount) {
     }
 }
 
+function userAccountAsIdentity(userAccount) {
+    return {
+        type: 'identity',
+        spec_version: '2.1',
+        id: userAccount.id,
+        created: userAccount.created,
+        modified: userAccount.modified,
+        name: userAccount.displayName,
+        identity_class: 'individual'
+    };
+}
+
 exports.retrieveAll = function(options, callback) {
     // Build the query
     const query = {};
@@ -82,7 +94,12 @@ exports.retrieveAll = function(options, callback) {
         }
         else {
             const userAccounts = results[0].documents;
-            userAccounts.forEach(userAccount => addEffectiveRole(userAccount));
+            userAccounts.forEach(userAccount => {
+                addEffectiveRole(userAccount);
+                if (options.includeStixIdentity) {
+                    userAccount.identity = userAccountAsIdentity(userAccount);
+                }
+            });
 
             if (options.includePagination) {
                 let derivedTotalCount = 0;
@@ -105,7 +122,7 @@ exports.retrieveAll = function(options, callback) {
     });
 };
 
-exports.retrieveById = function(userAccountId, callback) {
+exports.retrieveById = function(userAccountId, options, callback) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'userId';
@@ -125,6 +142,9 @@ exports.retrieveById = function(userAccountId, callback) {
                 }
             } else {
                 addEffectiveRole(userAccount);
+                if (options.includeStixIdentity) {
+                    userAccount.identity = userAccountAsIdentity(userAccount);
+                }
                 return callback(null, userAccount);
             }
         });
