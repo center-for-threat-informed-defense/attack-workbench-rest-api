@@ -53,7 +53,7 @@ paths:
         - name: search
           in: query
           description: |
-            Only return objects where the provided search text occurs in the `username` or `email` properties.
+            Only return objects where the provided search text occurs in the `username`, `displayName, or `email` properties.
             The search is case-insensitive.
           schema:
             type: string
@@ -63,6 +63,13 @@ paths:
           description: |
             Whether to include pagination data in the returned value.
             Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+        - name: includeStixIdentity
+          in: query
+          description: |
+            Whether to include an equivalent STIX identity object in each retrieved user account
           schema:
             type: boolean
             default: false
@@ -115,6 +122,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: includeStixIdentity
+          in: query
+          description: |
+            Whether to include an equivalent STIX identity object in the retrieved user account
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'A single user account matching the requested user account id.'

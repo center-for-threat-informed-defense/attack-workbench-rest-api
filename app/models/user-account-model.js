@@ -12,6 +12,7 @@ const userAccountDefinition = {
         }
     },
     username: { type: String, required: true },
+    displayName: { type: String },
     status: { type: String, required: true },
     role: { type: String },
     created: { type: Date, required: true },

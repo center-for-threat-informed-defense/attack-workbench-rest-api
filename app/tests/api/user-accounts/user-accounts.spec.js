@@ -11,7 +11,8 @@ const UserAccount = require('../../../models/user-account-model');
 // userId property will be created by REST API
 const initialObjectData = {
     email: 'user@org.com',
-    username: 'UserFirst UserLast',
+    username: 'user@org.com',
+    displayName: 'UserFirst UserLast',
     status: 'active',
     role: 'editor'
 };
@@ -143,6 +144,7 @@ describe('User Accounts API', function () {
                     expect(userAccount.id).toBe(userAccount1.id);
                     expect(userAccount.email).toBe(userAccount1.email);
                     expect(userAccount.username).toBe(userAccount1.username);
+                    expect(userAccount.displayName).toBe(userAccount1.displayName);
                     expect(userAccount.status).toBe(userAccount1.status);
                     expect(userAccount.role).toBe(userAccount1.role);
 
@@ -150,6 +152,45 @@ describe('User Accounts API', function () {
                     expect(userAccount.created).toBeDefined();
                     expect(userAccount.modified).toBeDefined();
                     expect(userAccount.created).toEqual(userAccount.modified);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/user-accounts/:id returns the added user account with an equivalent STIX Identity object', function (done) {
+        request(app)
+            .get('/api/user-accounts/' + userAccount1.id + '?includeStixIdentity=true')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get one user account in an array
+                    const userAccount = res.body;
+                    expect(userAccount).toBeDefined();
+                    expect(userAccount.id).toBe(userAccount1.id);
+                    expect(userAccount.email).toBe(userAccount1.email);
+                    expect(userAccount.username).toBe(userAccount1.username);
+                    expect(userAccount.displayName).toBe(userAccount1.displayName);
+                    expect(userAccount.status).toBe(userAccount1.status);
+                    expect(userAccount.role).toBe(userAccount1.role);
+
+                    // The created and modified timestamps should match
+                    expect(userAccount.created).toBeDefined();
+                    expect(userAccount.modified).toBeDefined();
+                    expect(userAccount.created).toEqual(userAccount.modified);
+
+                    // The added STIX identity should have the correct data
+                    const identity = userAccount.identity;
+                    expect(identity).toBeDefined();
+                    expect(identity.id).toBe(userAccount1.id);
+                    expect(identity.type).toBe('identity');
+                    expect(identity.created).toBe(userAccount1.created);
+                    expect(identity.modified).toBe(userAccount1.modified);
+                    expect(identity.identity_class).toBe('individual');
 
                     done();
                 }

@@ -9,13 +9,14 @@ Each registered user has an associated user account document in the database.
 
 The User Account document has the following properties:
 
-| property       | type    |  description                                                       |
-|----------------|---------|--------------------------------------------------------------------|
-| **id**         | string  | Unique id for this user, assigned when the user account is created |
-| **email**      | string  | User's email address                                               |
-| **username**   | string  | User's full name                                                   |
-| **status**     | string  | `pending`, `active`, or `inactive`                                 |
-| **role**       | string  | `visitor`, `editor`, `admin`, or undefined                         |
+| property        | type    | description                                                                              |
+|-----------------|---------|------------------------------------------------------------------------------------------|
+| **id**          | string  | Unique id for this user, assigned when the user account is created                       |
+| **email**       | string  | User's email address                                                                     |
+| **username**    | string  | Name used to authenticate with the identity provider (commonly the user's email address) |
+| **displayName** | string  | User's display name                                                                      |
+| **status**      | string  | `pending`, `active`, or `inactive`                                                       |
+| **role**        | string  | `visitor`, `editor`, `admin`, or undefined                                               |
 
 ## User Status
 

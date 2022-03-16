@@ -24,10 +24,13 @@ const localServerHost = 'localhost';
 const localServerPort = 3000;
 const localServerRedirectUrl = `http://${ localServerHost }:${localServerPort }/api/authn/oidc/*`;
 
+// Keycloak stores firstName and lastName separately, but combines them to make the name claim
 const testUser = {
     email: 'test@test.com',
-    username: 'test user',
-    password: 'testuser'
+    username: 'test@test.com',
+    password: 'testuser',
+    firstName: 'Test',
+    lastName: 'User'
 }
 
 function extractFormAction(html) {

@@ -49,6 +49,7 @@ async function createAnonymousUserAccount() {
     const anonymousUserAccount = {
         email: null,
         username: 'anonymous',
+        displayName: 'Anonymous User',
         status: 'active',
         role: 'admin'
     };

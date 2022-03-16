@@ -123,6 +123,8 @@ async function createUser(basePath, realmName, userOptions, token) {
     const userData = {
         email: userOptions.email,
         username: userOptions.username,
+        firstName: userOptions.firstName,
+        lastName: userOptions.lastName,
         enabled: true,
         credentials: [
             {

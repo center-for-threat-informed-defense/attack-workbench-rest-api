@@ -21,6 +21,18 @@ function addEffectiveRole(userAccount) {
     }
 }
 
+function userAccountAsIdentity(userAccount) {
+    return {
+        type: 'identity',
+        spec_version: '2.1',
+        id: userAccount.id,
+        created: userAccount.created,
+        modified: userAccount.modified,
+        name: userAccount.displayName,
+        identity_class: 'individual'
+    };
+}
+
 exports.retrieveAll = function(options, callback) {
     // Build the query
     const query = {};
@@ -52,7 +64,8 @@ exports.retrieveAll = function(options, callback) {
     if (typeof options.search !== 'undefined') {
         const match = { $match: { $or: [
                     { 'username': { '$regex': options.search, '$options': 'i' }},
-                    { 'email': { '$regex': options.search, '$options': 'i' }}
+                    { 'email': { '$regex': options.search, '$options': 'i' }},
+                    { 'displayName': { '$regex': options.search, '$options': 'i' }}
                 ]}};
         aggregation.push(match);
     }
@@ -81,7 +94,12 @@ exports.retrieveAll = function(options, callback) {
         }
         else {
             const userAccounts = results[0].documents;
-            userAccounts.forEach(userAccount => addEffectiveRole(userAccount));
+            userAccounts.forEach(userAccount => {
+                addEffectiveRole(userAccount);
+                if (options.includeStixIdentity) {
+                    userAccount.identity = userAccountAsIdentity(userAccount);
+                }
+            });
 
             if (options.includePagination) {
                 let derivedTotalCount = 0;
@@ -104,7 +122,7 @@ exports.retrieveAll = function(options, callback) {
     });
 };
 
-exports.retrieveById = function(userAccountId, callback) {
+exports.retrieveById = function(userAccountId, options, callback) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'userId';
@@ -124,6 +142,9 @@ exports.retrieveById = function(userAccountId, callback) {
                 }
             } else {
                 addEffectiveRole(userAccount);
+                if (options.includeStixIdentity) {
+                    userAccount.identity = userAccountAsIdentity(userAccount);
+                }
                 return callback(null, userAccount);
             }
         });
@@ -172,7 +193,10 @@ exports.create = async function(data) {
     const userAccount = new UserAccount(data);
 
     // Create a unique id for this user
-    userAccount.id = `user-account--${uuid.v4()}`;
+    // This should usually be undefined. It will only be defined when migrating user accounts from another system.
+    if (!userAccount.id) {
+        userAccount.id = `identity--${uuid.v4()}`;
+    }
 
     // Add a timestamp recording when the user account was first created
     // This should usually be undefined. It will only be defined when migrating user accounts from another system.
@@ -230,6 +254,7 @@ exports.updateFull = function(userAccountId, data, callback) {
             // Copy data to found document
             document.email = data.email;
             document.username = data.username;
+            document.displayName = data.displayName;
             document.status = data.status;
             document.role = data.role;
 

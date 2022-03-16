@@ -26,8 +26,10 @@ const localServerRedirectUrl = `http://${ localServerHost }:${localServerPort }/
 
 const testUser = {
     email: 'test@test.com',
-    username: 'test user',
-    password: 'testuser'
+    username: 'test@test.com',
+    password: 'testuser',
+    firstName: 'Test',
+    lastName: 'User'
 }
 
 function extractFormAction(html) {
@@ -213,8 +215,10 @@ describe('OIDC User Account Registration', function () {
                     // We expect to get the current session
                     const session = res.body;
                     expect(session).toBeDefined();
-                    expect(session.email).toBe('test@test.com');
+                    expect(session.email).toBe(testUser.email);
                     expect(session.registered).toBe(false);
+                    expect(session.name).toBe(testUser.username)
+                    expect(session.displayName).toBe(`${ testUser.firstName} ${ testUser.lastName }`);
 
                     done();
                 }
@@ -234,7 +238,9 @@ describe('OIDC User Account Registration', function () {
                     // We expect to get the new user account
                     userAccount = res.body;
                     expect(userAccount).toBeDefined();
-                    expect(userAccount.email).toBe('test@test.com');
+                    expect(userAccount.email).toBe(testUser.email);
+                    expect(userAccount.username).toBe(testUser.username);
+                    expect(userAccount.displayName).toBe(`${ testUser.firstName} ${ testUser.lastName }`);
                     expect(userAccount.status).toBe('pending');
                     expect(userAccount.role).toBe('none');
 
@@ -257,8 +263,10 @@ describe('OIDC User Account Registration', function () {
                     // We expect to get the current session with a registered user
                     const session = res.body;
                     expect(session).toBeDefined();
-                    expect(session.email).toBe('test@test.com');
+                    expect(session.email).toBe(testUser.email);
                     expect(session.registered).toBe(true);
+                    expect(session.name).toBe(testUser.username);
+                    expect(session.displayName).toBe(`${ testUser.firstName} ${ testUser.lastName }`);
 
                     done();
                 }
@@ -306,13 +314,14 @@ describe('OIDC User Account Registration', function () {
                     done(err);
                 } else {
                     // We expect to get one user account in an array
-                    const userAccount = res.body;
-                    expect(userAccount).toBeDefined();
-                    expect(userAccount.id).toBe(userAccount.id);
-                    expect(userAccount.email).toBe(userAccount.email);
-                    expect(userAccount.username).toBe(userAccount.username);
-                    expect(userAccount.status).toBe(userAccount.status);
-                    expect(userAccount.role).toBe(userAccount.role);
+                    const retrievedUserAccount = res.body;
+                    expect(retrievedUserAccount).toBeDefined();
+                    expect(retrievedUserAccount.id).toBe(userAccount.id);
+                    expect(retrievedUserAccount.email).toBe(userAccount.email);
+                    expect(retrievedUserAccount.username).toBe(userAccount.username);
+                    expect(retrievedUserAccount.displayName).toBe(userAccount.displayName);
+                    expect(retrievedUserAccount.status).toBe(userAccount.status);
+                    expect(retrievedUserAccount.role).toBe(userAccount.role);
 
                     done();
                 }

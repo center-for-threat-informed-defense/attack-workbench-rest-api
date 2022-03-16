@@ -11,8 +11,9 @@ exports.retrieveAll = function(req, res) {
         status: req.query.status,
         role: req.query.role,
         search: req.query.search,
-        includePagination: req.query.includePagination
-    }
+        includePagination: req.query.includePagination,
+        includeStixIdentity: req.query.includeStixIdentity
+    };
 
     userAccountsService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -32,7 +33,11 @@ exports.retrieveAll = function(req, res) {
 };
 
 exports.retrieveById = function(req, res) {
-    userAccountsService.retrieveById(req.params.id, function (err, userAccount) {
+    const options = {
+        includeStixIdentity: req.query.includeStixIdentity
+    };
+
+    userAccountsService.retrieveById(req.params.id, options, function (err, userAccount) {
         if (err) {
             if (err.message === userAccountsService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted user account id: ' + req.params.id);
@@ -138,6 +143,7 @@ exports.register = async function(req, res) {
     const userAccountData = {
         email: req.user.email,
         username: req.user.name,
+        displayName: req.user.displayName,
         status: 'pending'
     }
 

@@ -44,9 +44,9 @@ async function configureKeycloak() {
     await keycloak.initializeKeycloak(options);
 
     // Add the initial user accounts to Keycloak
-    const adminUser = { email: 'admin@test.com', username: 'Admin User', password: 'testuser' };
-    const editorUser = { email: 'editor@test.com', username: 'Editor User', password: 'testuser' };
-    const visitorUser = { email: 'visitor@test.com', username: 'Visitor User', password: 'testuser' };
+    const adminUser = { email: 'admin@test.com', username: 'admin@test.com', password: 'testuser', firstName: 'Admin', lastName: 'User' };
+    const editorUser = { email: 'editor@test.com', username: 'editor@test.com', password: 'testuser', firstName: 'Editor', lastName: 'User' };
+    const visitorUser = { email: 'visitor@test.com', username: 'visitor@test.com', password: 'testuser', firstName: 'Visitor', lastName: 'User' };
     const keycloakUsers = [ adminUser, editorUser, visitorUser ];
     await keycloak.addUsersToKeycloak(options, keycloakUsers);
 
@@ -55,9 +55,9 @@ async function configureKeycloak() {
     await require('../app/lib/database-connection').initializeConnection({ databaseUrl });
 
     // Add the initial user accounts to the REST API
-    const adminWBUser = { email: adminUser.email, username: adminUser.username, status: 'active', role: 'admin' };
-    const editorWBUser = { email: editorUser.email, username: editorUser.username, status: 'active', role: 'editor' };
-    const visitorWBUser = { email: visitorUser.email, username: visitorUser.username, status: 'active', role: 'visitor' };
+    const adminWBUser = { email: adminUser.email, username: adminUser.username, displayName: `${ adminUser.firstName } ${ adminUser.lastName }`, status: 'active', role: 'admin' };
+    const editorWBUser = { email: editorUser.email, username: editorUser.username, displayName: `${ editorUser.firstName } ${ editorUser.lastName }`, status: 'active', role: 'editor' };
+    const visitorWBUser = { email: visitorUser.email, username: visitorUser.username, displayName: `${ visitorUser.firstName } ${ visitorUser.lastName }`, status: 'active', role: 'visitor' };
     const workbenchUsers = [ adminWBUser, editorWBUser, visitorWBUser ];
     for (const user of workbenchUsers) {
         try {
