@@ -127,6 +127,9 @@ exports.exportBundle = async function(options) {
     // Iterate over the relationships, keeping any that have a source_ref or target_ref that points at a primary object
     const relationships = [];
     for (const relationship of allRelationships) {
+	if(relationship.stix.x_mitre_domains.length === 0){
+	    relationship.stix.x_mitre_domains.push(options.domain)
+	}
         if (objectsMap.has(relationship.stix.source_ref) || objectsMap.has(relationship.stix.target_ref)) {
             relationships.push(relationship);
         }
@@ -145,6 +148,9 @@ exports.exportBundle = async function(options) {
         if (!objectsMap.has(relationship.stix.source_ref)) {
             const secondaryObject = await getAttackObject(relationship.stix.source_ref);
             if (secondaryObject) {
+		if(secondaryObject.stix.x_mitre_domains.length === 0){
+		    secondaryObject.stix.x_mitre_domains.push(options.domain)
+		}
                 secondaryObjects.push(secondaryObject);
                 objectsMap.set(secondaryObject.stix.id, true);
             }
