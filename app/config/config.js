@@ -132,6 +132,11 @@ function loadConfig() {
                 doc: 'Location of a JSON file containing configuration values',
                 default: '',
                 env: 'JSON_CONFIG_PATH'
+            },
+            staticMarkingDefinitionsPath: {
+                doc: 'Location of a directory containing one or more JSON files with the static marking definitions to load into the system',
+                default: './app/lib/default-static-marking-definitions/',
+                env: 'WB_REST_STATIC_MARKING_DEFS_PATH'
             }
         },
         session: {
