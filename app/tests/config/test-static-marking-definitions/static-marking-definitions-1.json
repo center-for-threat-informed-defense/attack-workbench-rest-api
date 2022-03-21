@@ -1,0 +1,13 @@
+[
+  {
+    "type": "marking-definition",
+    "spec_version": "2.1",
+    "id": "marking-definition--840f7f6c-c95f-47c0-82f8-43b0d7c6cb95",
+    "created": "2022-01-01T00:00:00.000Z",
+    "definition_type": "statement",
+    "name": "Test Marking Definition 1",
+    "definition": {
+      "statement": "This is a test (1)"
+    }
+  }
+]

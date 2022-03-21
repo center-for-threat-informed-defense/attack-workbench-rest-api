@@ -3,6 +3,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 
+const config = require('../config/config');
 const identitiesService = require('../services/identities-service');
 const userAccountsService = require('../services/user-accounts-service');
 const systemConfigurationService = require('../services/system-configuration-service');
@@ -200,11 +201,16 @@ async function checkForInvalidEnterpriseCollectionId() {
 
 async function checkForStaticMarkingDefinitions() {
     // Get the list static marking definitions configured for the system
-    const files = await fs.readdir('./app/lib/default-static-marking-definitions');
+    const directoryPath = config.configurationFiles.staticMarkingDefinitionsPath;
+    if (!directoryPath) {
+        logger.info('No path provided for static marking definitions.');
+        return;
+    }
 
+    const files = await fs.readdir(directoryPath);
     try {
         for (const file of files.filter(file => path.extname(file) === '.json')) {
-            const filePath = './app/lib/default-static-marking-definitions/' + file;
+            const filePath = path.join(directoryPath, file);
             const fileData = await fs.readFile(filePath);
             const staticMarkingDefinitionList = JSON.parse(fileData.toString());
 
@@ -222,7 +228,7 @@ async function checkForStaticMarkingDefinitions() {
                     try {
                         const newMarkingDefinition = new MarkingDefinition(newMarkingDefinitionData);
                         await newMarkingDefinition.save();
-                        logger.info(`Created static marking definition ${newMarkingDefinition.stix.name}`);
+                        logger.info(`Created static marking definition ${ newMarkingDefinition.stix.name }`);
                     }
                     catch(err) {
                         logger.error(`Unable to create static marking definition ${ staticMarkingDefinition.name }`);
@@ -232,7 +238,7 @@ async function checkForStaticMarkingDefinitions() {
         }
     }
     catch(err) {
-        logger.error('Unable to parse default static marking definitions');
+        logger.error('Unable to parse static marking definitions');
     }
 }
 

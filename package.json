@@ -72,6 +72,7 @@
     "openapi-schema-validator": "^7.2.3",
     "parse5": "^6.0.1",
     "parse5-query-domtree": "^1.0.2",
+    "read-json-lines-sync": "^2.2.0",
     "set-cookie-parser": "^2.4.8",
     "snyk": "^1.733.0",
     "superagent": "^6.1.0",
