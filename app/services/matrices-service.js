@@ -47,6 +47,7 @@ exports.retrieveAll = function(options, callback) {
     ];
 
     if (typeof options.search !== 'undefined') {
+        options.search = decodeURIComponent(decodeURIComponent(options.search))
         const match = { $match: { $or: [
                     { 'stix.name': { '$regex': options.search, '$options': 'i' }},
                     { 'stix.description': { '$regex': options.search, '$options': 'i' }}
