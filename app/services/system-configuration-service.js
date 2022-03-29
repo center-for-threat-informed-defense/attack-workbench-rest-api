@@ -138,7 +138,7 @@ exports.retrieveDefaultMarkingDefinitions = async function(options) {
                     if (markingDefinition) {
                         defaultMarkingDefinitions.push(markingDefinition);
                     } else {
-                        const error = new Error(errors.defaultMarkingDefinitionNotFound)
+                        const error = new Error(errors.defaultMarkingDefinitionNotFound);
                         error.markingDefinitionRef = stixId;
                         throw error;
                     }

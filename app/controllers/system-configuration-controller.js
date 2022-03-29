@@ -71,12 +71,13 @@ exports.retrieveAuthenticationConfig = function(req, res) {
 
 exports.retrieveDefaultMarkingDefinitions = async function(req, res) {
     try {
-        const defaultMarkingDefinitions = await systemConfigurationService.retrieveDefaultMarkingDefinitions();
-        logger.debug("Success: Retrieved default marking definitions.");
+        const options = { refOnly: req.query.refOnly };
+        const defaultMarkingDefinitions = await systemConfigurationService.retrieveDefaultMarkingDefinitions(options);
+        logger.debug('Success: Retrieved default marking definitions.');
         return res.status(200).send(defaultMarkingDefinitions);
     }
     catch(err) {
-        logger.error("Unable to retrieve default marking definitions, failed with error: " + err);
+        logger.error(`Unable to retrieve default marking definitions, failed with error: ${ err } (${ err.markingDefinitionRef })`);
         return res.status(500).send("Unable to retrieve default marking definitions. Server error.");
     }
 };
@@ -98,8 +99,8 @@ exports.setDefaultMarkingDefinitions = async function(req, res) {
         return res.status(204).send();
     }
     catch(err) {
-        logger.error("Unable to set default marking definitions, failed with error: " + err);
-        return res.status(500).send("Unable to default marking definitions. Server error.");
+        logger.error('Unable to set default marking definitions, failed with error: ' + err);
+        return res.status(500).send('Unable to default marking definitions. Server error.');
     }
 };
 

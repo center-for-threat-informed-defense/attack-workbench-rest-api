@@ -196,6 +196,21 @@ describe('System Configuration API', function () {
         expect(defaultMarkingDefinitions[0].stix.id).toBe(markingDefinition.stix.id);
     });
 
+    it('GET /api/config/default-marking-definitions returns an array containing the marking definition reference', async function () {
+        const res = await request(app)
+            .get('/api/config/default-marking-definitions?refOnly=true')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const defaultMarkingDefinitions = res.body;
+        expect(defaultMarkingDefinitions).toBeDefined();
+        expect(Array.isArray(defaultMarkingDefinitions)).toBe(true)
+        expect(defaultMarkingDefinitions.length).toBe(1);
+        expect(defaultMarkingDefinitions[0]).toBe(markingDefinition.stix.id);
+    });
+
     it('GET /api/config/organization-namespace returns the default namespace', async function () {
         const res = await request(app)
             .get('/api/config/organization-namespace')
