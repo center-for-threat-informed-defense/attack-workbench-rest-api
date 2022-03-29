@@ -99,6 +99,14 @@ paths:
         This endpoint gets the default marking definition objects for the system.
       tags:
         - 'System Configuration'
+      parameters:
+        - name: refOnly
+          in: query
+          description: |
+            Only return the STIX ID of the default marking definitions instead of the objects.
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'An array of marking definition objects.'
