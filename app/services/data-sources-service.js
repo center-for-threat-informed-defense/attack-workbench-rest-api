@@ -50,7 +50,8 @@ exports.retrieveAll = function(options, callback) {
     if (typeof options.search !== 'undefined') {
         const match = { $match: { $or: [
                     { 'stix.name': { '$regex': options.search, '$options': 'i' }},
-                    { 'stix.description': { '$regex': options.search, '$options': 'i' }}
+                    { 'stix.description': { '$regex': options.search, '$options': 'i' }},
+                    { 'workspace.attack_id': { '$regex': options.search, '$options': 'i' }}
                 ]}};
         aggregation.push(match);
     }

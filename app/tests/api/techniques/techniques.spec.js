@@ -125,6 +125,7 @@ describe('Techniques Basic API', function () {
                     expect(technique1.stix.modified).toBeDefined();
                     expect(technique1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
                     expect(technique1.workspace.workflow.created_by_user_account).toBeDefined();
+                    expect(technique1.workspace.attack_id).toBeDefined();
 
                     done();
                 }
@@ -201,6 +202,8 @@ describe('Techniques Basic API', function () {
                     expect(technique.stix.x_mitre_impact_type).toEqual(expect.arrayContaining(technique1.stix.x_mitre_impact_type));
                     expect(technique.stix.x_mitre_platforms).toEqual(expect.arrayContaining(technique1.stix.x_mitre_platforms));
                     expect(technique.stix.x_mitre_attack_spec_version).toBe(technique1.stix.x_mitre_attack_spec_version);
+
+                    expect(technique.workspace.attack_id).toEqual(technique1.workspace.attack_id);
 
                     expect(technique.stix.x_mitre_deprecated).not.toBeDefined();
                     expect(technique.stix.x_mitre_defense_bypassed).not.toBeDefined();
@@ -382,6 +385,35 @@ describe('Techniques Basic API', function () {
     it('GET /api/techniques uses the search parameter to return the latest version of the technique', function (done) {
         request(app)
             .get('/api/techniques?search=purple')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one technique in an array
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(1);
+
+                    // We expect it to be the latest version of the technique
+                    const technique = techniques[0];
+                    expect(technique).toBeDefined();
+                    expect(technique.stix).toBeDefined();
+                    expect(technique.stix.id).toBe(technique2.stix.id);
+                    expect(technique.stix.modified).toBe(technique2.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques uses the search parameter (ATT&CK ID) to return the latest version of the technique', function (done) {
+        request(app)
+            .get('/api/techniques?search=T9999')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)

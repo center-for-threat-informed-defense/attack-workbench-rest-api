@@ -22,14 +22,20 @@ async function readJson(path) {
     return JSON.parse(data);
 }
 
+function makeExternalReference(attackId) {
+    return { source_name: 'mitre-attack', external_id: attackId, url: `https://attack.mitre.org/groups/${ attackId }` };
+}
+
 async function configureGroups(baseGroup) {
     const groups = [];
     // x_mitre_deprecated,revoked undefined
     const data1 = _.cloneDeep(baseGroup);
+    data1.stix.external_references.push(makeExternalReference('G0001'));
     groups.push(data1);
 
     // x_mitre_deprecated = false, revoked = false
     const data2 = _.cloneDeep(baseGroup);
+    data2.stix.external_references.push(makeExternalReference('G0002'));
     data2.stix.x_mitre_deprecated = false;
     data2.stix.revoked = false;
     data2.workspace.workflow = { state: 'work-in-progress' };
@@ -37,6 +43,7 @@ async function configureGroups(baseGroup) {
 
     // x_mitre_deprecated = true, revoked = false
     const data3 = _.cloneDeep(baseGroup);
+    data3.stix.external_references.push(makeExternalReference('G0003'));
     data3.stix.x_mitre_deprecated = true;
     data3.stix.revoked = false;
     data3.workspace.workflow = { state: 'awaiting-review' };
@@ -44,6 +51,7 @@ async function configureGroups(baseGroup) {
 
     // x_mitre_deprecated = false, revoked = true
     const data4 = _.cloneDeep(baseGroup);
+    data4.stix.external_references.push(makeExternalReference('G0004'));
     data4.stix.x_mitre_deprecated = false;
     data4.stix.revoked = true;
     data4.workspace.workflow = { state: 'awaiting-review' };
@@ -52,6 +60,7 @@ async function configureGroups(baseGroup) {
     // multiple versions, last version has x_mitre_deprecated = true, revoked = true
     const data5a = _.cloneDeep(baseGroup);
     const id = `attack-pattern--${uuid.v4()}`;
+    data5a.stix.external_references.push(makeExternalReference('G0005'));
     data5a.stix.id = id;
     data5a.stix.name = 'multiple-versions'
     data5a.workspace.workflow = { state: 'awaiting-review' };
@@ -62,6 +71,7 @@ async function configureGroups(baseGroup) {
 
     await asyncWait(10); // wait so the modified timestamp can change
     const data5b = _.cloneDeep(baseGroup);
+    data5b.stix.external_references.push(makeExternalReference('G0005'));
     data5b.stix.id = id;
     data5b.stix.name = 'multiple-versions'
     data5b.workspace.workflow = { state: 'awaiting-review' };
@@ -72,6 +82,7 @@ async function configureGroups(baseGroup) {
 
     await asyncWait(10);
     const data5c = _.cloneDeep(baseGroup);
+    data5c.stix.external_references.push(makeExternalReference('G0005'));
     data5c.stix.id = id;
     data5c.stix.name = 'multiple-versions'
     data5c.workspace.workflow = { state: 'awaiting-review' };
@@ -240,6 +251,27 @@ describe('Groups API Queries', function () {
                 }
                 else {
                     // We expect to get the group with the correct workflow.state
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups should return groups with the ATT&CK ID G0001', function (done) {
+        request(app)
+            .get('/api/groups?search=G0001')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the latest group with the correct ATT&CK ID
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
