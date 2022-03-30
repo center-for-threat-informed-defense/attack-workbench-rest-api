@@ -8,6 +8,8 @@ logger.level = 'debug';
 const database = require('../../lib/database-in-memory');
 const databaseConfiguration = require('../../lib/database-configuration');
 
+const login = require('./login');
+
 function PaginationTests(service, initialObjectAData, options) {
     this.service = service;
     this.initialObjectData = initialObjectAData;
@@ -48,6 +50,7 @@ PaginationTests.prototype.executeTests = function() {
 
     describe(`${ this.options.label } Pagination API`, function () {
         let app;
+        let passportCookie;
 
         before(async function() {
             // Establish the database connection
@@ -59,12 +62,16 @@ PaginationTests.prototype.executeTests = function() {
 
             // Initialize the express app
             app = await require('../../index').initializeApp();
+
+            // Log into the app
+            passportCookie = await login.loginAnonymous(app);
         });
 
         it(`GET ${ self.options.baseUrl } return an empty page`, function (done) {
             request(app)
                 .get(`${ self.options.baseUrl }?offset=0&limit=10${ self.options.stateQuery }`)
                 .set('Accept', 'application/json')
+                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .end(function (err, res) {
@@ -85,6 +92,7 @@ PaginationTests.prototype.executeTests = function() {
             request(app)
                 .get(`${ self.options.baseUrl }?offset=10&limit=10${ self.options.stateQuery }`)
                 .set('Accept', 'application/json')
+                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .end(function (err, res) {
@@ -105,6 +113,7 @@ PaginationTests.prototype.executeTests = function() {
             request(app)
                 .get(`${ self.options.baseUrl }?offset=0&limit=10&includePagination=true${ self.options.stateQuery }`)
                 .set('Accept', 'application/json')
+                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .end(function (err, res) {
@@ -133,6 +142,7 @@ PaginationTests.prototype.executeTests = function() {
             request(app)
                 .get(`${ self.options.baseUrl }?offset=10&limit=10&includePagination=true${ self.options.stateQuery }`)
                 .set('Accept', 'application/json')
+                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .end(function (err, res) {
@@ -162,6 +172,7 @@ PaginationTests.prototype.executeTests = function() {
             const res = await request(app)
                 .get(`${ self.options.baseUrl }?offset=0${ self.options.stateQuery }`)
                 .set('Accept', 'application/json')
+                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .send();
@@ -180,6 +191,7 @@ PaginationTests.prototype.executeTests = function() {
                 request(app)
                     .get(`${ self.options.baseUrl }?offset=${ offset }&limit=${ pageSize }${ self.options.stateQuery }`)
                     .set('Accept', 'application/json')
+                    .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                     .expect(200)
                     .expect('Content-Type', /json/)
                     .end(function (err, res) {
@@ -200,6 +212,7 @@ PaginationTests.prototype.executeTests = function() {
                 request(app)
                     .get(`${ self.options.baseUrl }?offset=${ offset }&limit=${ pageSize }&includePagination=true${ self.options.stateQuery }`)
                     .set('Accept', 'application/json')
+                    .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                     .expect(200)
                     .expect('Content-Type', /json/)
                     .end(function (err, res) {
@@ -229,6 +242,7 @@ PaginationTests.prototype.executeTests = function() {
             request(app)
                 .get(`${ self.options.baseUrl }?offset=40&limit=20${ self.options.stateQuery }`)
                 .set('Accept', 'application/json')
+                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .end(function (err, res) {
@@ -249,6 +263,7 @@ PaginationTests.prototype.executeTests = function() {
             request(app)
                 .get(`${ self.options.baseUrl }?offset=40&limit=20&includePagination=true${ self.options.stateQuery }`)
                 .set('Accept', 'application/json')
+                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .end(function (err, res) {

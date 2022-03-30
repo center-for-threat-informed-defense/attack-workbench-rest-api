@@ -170,10 +170,11 @@ describe('User Accounts API', function () {
             });
     });
 
-    it('GET /api/user-accounts/:id returns the added user account with an equivalent STIX Identity object', function (done) {
+    it('GET /api/user-accounts/:id returns the added user account with a derived STIX Identity object', function (done) {
         request(app)
             .get('/api/user-accounts/' + userAccount1.id + '?includeStixIdentity=true')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
