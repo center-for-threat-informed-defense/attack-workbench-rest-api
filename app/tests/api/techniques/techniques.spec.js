@@ -406,6 +406,7 @@ describe('Techniques Basic API', function () {
                     expect(technique.stix).toBeDefined();
                     expect(technique.stix.id).toBe(technique2.stix.id);
                     expect(technique.stix.modified).toBe(technique2.stix.modified);
+                    
                     done();
                 }
             });
@@ -435,6 +436,8 @@ describe('Techniques Basic API', function () {
                     expect(technique.stix).toBeDefined();
                     expect(technique.stix.id).toBe(technique2.stix.id);
                     expect(technique.stix.modified).toBe(technique2.stix.modified);
+                    expect(technique.workspace.attack_id).toEqual('T9999');
+
                     done();
                 }
             });

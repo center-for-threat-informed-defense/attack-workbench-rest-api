@@ -255,6 +255,10 @@ describe('Groups API Queries', function () {
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
                     expect(groups.length).toBe(1);
+
+                    const group = groups[0];
+                    expect(group.workspace.workflow.state).toEqual('work-in-progress');
+
                     done();
                 }
             });
@@ -276,6 +280,10 @@ describe('Groups API Queries', function () {
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
                     expect(groups.length).toBe(1);
+
+                    const group = groups[0];
+                    expect(group.workspace.attack_id).toEqual('G0001');
+
                     done();
                 }
             });
