@@ -13,7 +13,7 @@ const matrixProperties = {
     tactic_refs: [ String ],
     x_mitre_modified_by_ref: String,
     x_mitre_deprecated: Boolean,
-    x_mitre_domains: [ String ],
+    x_mitre_domains: [ String ], // TBD drop this property
     x_mitre_version: String,
     x_mitre_attack_spec_version: String
 };
