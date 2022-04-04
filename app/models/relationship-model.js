@@ -1,7 +1,8 @@
 'use strict';
 
 const mongoose = require('mongoose');
-const AttackObject = require('./attack-object-model');
+const workspaceDefinitions = require('./subschemas/workspace');
+const stixCoreDefinitions = require('./subschemas/stix-core');
 
 const relationshipProperties = {
     // relationship specific properties
@@ -17,14 +18,18 @@ const relationshipProperties = {
     // ATT&CK custom stix properties
     x_mitre_modified_by_ref: String,
     x_mitre_deprecated: Boolean,
-    x_mitre_domains: [ String ],
     x_mitre_version: String,
     x_mitre_attack_spec_version: String
 };
 
 // Create the definition
 const relationshipDefinition = {
+    workspace: {
+        ...workspaceDefinitions.common
+    },
     stix: {
+        ...stixCoreDefinitions.commonRequiredSDO,
+        ...stixCoreDefinitions.commonOptionalSDO,
         ...relationshipProperties
     }
 };
@@ -32,7 +37,9 @@ const relationshipDefinition = {
 // Create the schema
 const relationshipSchema = new mongoose.Schema(relationshipDefinition);
 
+relationshipSchema.index({ 'stix.id': 1, 'stix.modified': -1 }, { unique: true });
+
 // Create the model
-const RelationshipModel = AttackObject.discriminator('RelationshipModel', relationshipSchema);
+const RelationshipModel = mongoose.model('Relationship', relationshipSchema);
 
 module.exports = RelationshipModel;
