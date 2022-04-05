@@ -41,19 +41,24 @@ exports.exportBundle = async function(options) {
     // Get the primary objects (objects that match the domain)
 
     // Build the query
-    const query = { 'stix.x_mitre_domains': options.domain };
+    const primaryObjectsQuery = { 'stix.x_mitre_domains': options.domain };
+    const matrixQuery = {  };
     if (!options.includeRevoked) {
-        query['stix.revoked'] = { $in: [null, false] };
+        primaryObjectsQuery['stix.revoked'] = { $in: [null, false] };
+        matrixQuery['stix.revoked'] = { $in: [null, false] };
     }
     if (!options.includeDeprecated) {
-        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
+        primaryObjectsQuery['stix.x_mitre_deprecated'] = { $in: [null, false] };
+        matrixQuery['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
         if (Array.isArray(options.state)) {
-            query['workspace.workflow.state'] = { $in: options.state };
+            primaryObjectsQuery['workspace.workflow.state'] = { $in: options.state };
+            matrixQuery['workspace.workflow.state'] = { $in: options.state };
         }
         else {
-            query['workspace.workflow.state'] = options.state;
+            primaryObjectsQuery['workspace.workflow.state'] = options.state;
+            matrixQuery['workspace.workflow.state'] = options.state;
         }
     }
 
@@ -66,16 +71,21 @@ exports.exportBundle = async function(options) {
         { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
         { $replaceRoot: { newRoot: '$document' }},
         { $sort: { 'stix.id': 1 }},
-        { $match: query }
+        { $match: primaryObjectsQuery }
     ];
 
     // Retrieve the primary objects
     const domainGroups = await Group.aggregate(aggregation);
-    const domainMatrices = await Matrix.aggregate(aggregation);
     const domainMitigations = await Mitigation.aggregate(aggregation);
     const domainSoftware = await Software.aggregate(aggregation);
     const domainTactics = await Tactic.aggregate(aggregation);
     const domainTechniques = await Technique.aggregate(aggregation);
+
+    // Retrieve the matrices
+    const matrixAggregation = aggregation.filter(val => !val.$match);
+    matrixAggregation.push({ $match: matrixQuery });
+    const allMatrices = await Matrix.aggregate(matrixAggregation);
+    const domainMatrices = allMatrices.filter(matrix => matrix?.stix?.external_references.length && matrix.stix.external_references[0].external_id === options.domain);
 
     const primaryObjects = [...domainGroups, ...domainMatrices, ...domainMitigations, ...domainSoftware, ...domainTactics, ...domainTechniques];
 
