@@ -71,6 +71,7 @@ paths:
             The search is case-insensitive.
           schema:
             type: string
+          allowReserved: true
           example: 'windows'
       responses:
         '200':

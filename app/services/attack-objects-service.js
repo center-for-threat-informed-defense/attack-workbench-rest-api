@@ -3,6 +3,7 @@
 const AttackObject = require('../models/attack-object-model');
 const identitiesService = require('./identities-service');
 const systemConfigurationService = require('./system-configuration-service');
+const regexValidator = require('../lib/regex');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -47,6 +48,7 @@ exports.retrieveAll = async function(options) {
     aggregation.push({ $match: query });
 
     if (typeof options.search !== 'undefined') {
+        options.search = regexValidator.sanitizeRegex(options.search);
         const match = { $match: { $or: [
                     { 'stix.name': { '$regex': options.search, '$options': 'i' }},
                     { 'stix.description': { '$regex': options.search, '$options': 'i' }}
