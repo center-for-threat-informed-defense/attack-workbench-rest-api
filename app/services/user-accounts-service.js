@@ -2,6 +2,7 @@
 
 const uuid = require('uuid');
 const UserAccount = require('../models/user-account-model');
+const regexValidator = require('../lib/regex');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -62,6 +63,7 @@ exports.retrieveAll = function(options, callback) {
     ];
 
     if (typeof options.search !== 'undefined') {
+        options.search = regexValidator.sanitizeRegex(options.search);
         const match = { $match: { $or: [
                     { 'username': { '$regex': options.search, '$options': 'i' }},
                     { 'email': { '$regex': options.search, '$options': 'i' }},
