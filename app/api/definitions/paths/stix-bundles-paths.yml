@@ -44,6 +44,14 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: includeMissingAttackId
+          in: query
+          description: |
+            Whether to include objects that should have an ATT&CK ID set but do not.
+          schema:
+            type: boolean
+            default: false
+
       responses:
         '200':
           description: 'An exported stix bundle.'
