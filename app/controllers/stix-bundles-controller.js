@@ -12,7 +12,8 @@ exports.exportBundle = async function(req, res) {
         domain: req.query.domain,
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
-        includeDeprecated: req.query.includeDeprecated
+        includeDeprecated: req.query.includeDeprecated,
+        includeMissingAttackId: req.query.includeMissingAttackId
     };
 
     try {

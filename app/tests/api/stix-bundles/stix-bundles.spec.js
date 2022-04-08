@@ -27,9 +27,7 @@ const initialObjectData = {
             spec_version: '2.1',
             type: 'x-mitre-collection',
             description: 'This is a collection.',
-            external_references: [
-                {source_name: 'source-1', external_id: 's1'}
-            ],
+            external_references: [],
             object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
             created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
             x_mitre_contents: [
@@ -148,7 +146,7 @@ const initialObjectData = {
             type: 'attack-pattern',
             description: 'This is a technique.',
             external_references: [
-                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'mitre-attack', external_id: 'T1' },
                 { source_name: 'attack-pattern-1 source', description: 'this is a source description'}
             ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
@@ -173,7 +171,7 @@ const initialObjectData = {
             type: 'attack-pattern',
             description: 'This is a technique.',
             external_references: [
-                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'mitre-attack', external_id: 'T1' },
                 { source_name: 'attack-pattern-1 source', description: 'this is a source description'}
             ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
@@ -197,7 +195,7 @@ const initialObjectData = {
             type: 'attack-pattern',
             description: 'This is another technique.',
             external_references: [
-                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'mitre-attack', external_id: 'T1' },
                 { source_name: 'attack-pattern-2 source', description: 'this is a source description 2'}
             ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
@@ -222,7 +220,7 @@ const initialObjectData = {
             type: 'attack-pattern',
             description: 'This is another technique.',
             external_references: [
-                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'mitre-attack', external_id: 'T1' },
                 { source_name: 'attack-pattern-2 source', description: 'this is a source description 2'}
             ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
@@ -244,7 +242,7 @@ const initialObjectData = {
             name: "mitigation-1",
             description: "This is a mitigation",
             external_references: [
-                { source_name: 'source-1', external_id: 's1' }
+                { source_name: 'mitre-attack', external_id: 'M1' }
             ],
             object_marking_refs: [
                 "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
@@ -262,7 +260,7 @@ const initialObjectData = {
             name: "mitigation-2",
             description: "This is a mitigation that isn't in the contents",
             external_references: [
-                { source_name: 'source-1', external_id: 's1' }
+                { source_name: 'mitre-attack', external_id: 'M1' }
             ],
             object_marking_refs: [
                 "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
@@ -281,7 +279,7 @@ const initialObjectData = {
             name: "software-1",
             description: "This is a software with an alias",
             external_references: [
-                { source_name: 'source-1', external_id: 's1' },
+                { source_name: 'mitre-attack', external_id: 'S1' },
                 { source_name: 'malware-1 source', description: 'this is a source description'},
                 { source_name: 'xyzzy', description: '(Citation: Adventure 1975)'}
             ],
@@ -372,9 +370,6 @@ const initialObjectData = {
                 'Author 1',
                 'Author 2'
             ],
-            external_references: [
-                { source_name: 'source-1', external_id: 's1' }
-            ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
             created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
             object_refs: [ 'malware--04227b24-7817-4de1-9050-b7b1b57f5866' ],
@@ -389,7 +384,10 @@ const initialObjectData = {
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
             created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
             modified: "2020-04-12T15:44:47.629Z",
-            created: "2019-10-22T00:14:20.652Z"
+            created: "2019-10-22T00:14:20.652Z",
+            external_references: [
+                {source_name: 'mitre-attack', external_id: 'DS1'}
+            ],
         },
         {
             type: 'x-mitre-data-source',
@@ -399,7 +397,10 @@ const initialObjectData = {
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
             created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
             modified: "2020-04-12T15:44:47.629Z",
-            created: "2019-10-22T00:14:20.652Z"
+            created: "2019-10-22T00:14:20.652Z",
+            external_references: [
+                {source_name: 'mitre-attack', external_id: 'DS1'}
+            ],
         },
         {
             type: 'x-mitre-data-component',
