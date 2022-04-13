@@ -2,7 +2,6 @@
 
 const express = require('express');
 const collectionIndexesController = require('../controllers/collection-indexes-controller');
-//const authnService = require('../services/authn-service');
 
 const router = express.Router();
 

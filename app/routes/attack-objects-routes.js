@@ -2,16 +2,16 @@
 
 const express = require('express');
 const attackObjectsController = require('../controllers/attack-objects-controller');
-const authnService = require('../services/authn-service');
-const authzService = require('../services/authz-service');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
-const adminEditorVisitorRole = [ authzService.roles.admin, authzService.roles.editor, authzService.roles.visitor ];
+const adminEditorVisitorRole = [ authz.roles.admin, authz.roles.editor, authz.roles.visitor ];
 
 router.route('/attack-objects')
     .get(
-        authnService.authenticate,
-        authzService.requireRole(adminEditorVisitorRole),
+        authn.authenticate,
+        authz.requireRole(adminEditorVisitorRole),
         attackObjectsController.retrieveAll
     );
 
