@@ -39,11 +39,13 @@ function requiresAttackId(attackObject) {
 
 const sourceNames = ['mitre-attack', 'mitre-mobile-attack', 'mobile-attack', 'mitre-ics-attack'];
 function hasAttackId(attackObject) {
-    const externalReferences = attackObject?.stix.external_references;
-    if (Array.isArray(externalReferences) && externalReferences.length > 0) {
-        const mitreAttackReference = externalReferences.find(ref => sourceNames.includes(ref.source_name));
-        if (mitreAttackReference?.external_id) {
-            return true;
+    if (attackObject) {
+        const externalReferences = attackObject?.stix?.external_references;
+        if (Array.isArray(externalReferences) && externalReferences.length > 0) {
+            const mitreAttackReference = externalReferences.find(ref => sourceNames.includes(ref.source_name));
+            if (mitreAttackReference?.external_id) {
+                return true;
+            }
         }
     }
 
@@ -129,18 +131,15 @@ exports.exportBundle = async function(options) {
     }
 
     // Put the primary objects in the bundle
+    // Also create a map of the primary objects (only use the id, since relationships only reference the id)
+    const objectsMap = new Map();
     for (const primaryObject of primaryObjects) {
         bundle.objects.push(primaryObject.stix);
+        objectsMap.set(primaryObject.stix.id, true);
         addAttackObjectToMap(primaryObject);
     }
 
     // Get the relationships that point at primary objects (removing duplicates)
-
-    // Create a map of the primary objects (only use the id, since relationships only reference the id)
-    const objectsMap = new Map();
-    for (const primaryObject of primaryObjects) {
-        objectsMap.set(primaryObject.stix.id, true);
-    }
 
     // Get all of the relationships
     // Use the aggregation to only get the last version of each relationship and
@@ -176,29 +175,37 @@ exports.exportBundle = async function(options) {
         }
     }
 
-    // Put the relationships in the bundle
-    for (const relationship of relationships) {
-        bundle.objects.push(relationship.stix);
+    const domainCheckTypes = ['attack-pattern', 'course-of-action', 'malware', 'tool', 'x-mitre-tactic'];
+    function isCorrectDomain(attackObject) {
+        return !domainCheckTypes.includes(attackObject?.stix?.type) || (attackObject?.stix?.x_mitre_domains && attackObject.stix.x_mitre_domains.includes(options.domain));
     }
 
     function secondaryObjectIsValid(secondaryObject) {
-        // The object must exist and at least one of these conditions must apply:
-        //   1) The request allows objects that are missing an ATT&CK ID
-        //   2) The objects is a type that doesn't require an ATT&CK ID
-        //   3) The object has an ATT&CK ID
-        return (secondaryObject && (options.includeMissingAttackId || !requiresAttackId(secondaryObject) || hasAttackId(secondaryObject)));
+        return (
+            secondaryObject &&
+            (options.includeMissingAttackId || !requiresAttackId(secondaryObject) || hasAttackId(secondaryObject)) &&
+            (options.includeDeprecated || !secondaryObject.stix.x_mitre_deprecated) &&
+            (options.includeRevoked || !secondaryObject.stix.revoked) &&
+            (options.state === undefined || secondaryObject.workspace.workflow.state === options.state) &&
+            isCorrectDomain(secondaryObject)
+        );
     }
 
     // Get the secondary objects (additional objects pointed to by a relationship)
     const secondaryObjects = [];
     const dataComponents = new Map();
     for (const relationship of relationships) {
-        // Check source_ref
-        if (!objectsMap.has(relationship.stix.source_ref)) {
+        if (objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)) {
+            // source_ref (primary) => target_ref (primary)
+            bundle.objects.push(relationship.stix);
+        }
+        else if (!objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)) {
+            // source_ref (secondary) => target_ref (primary)
             const secondaryObject = await getAttackObject(relationship.stix.source_ref);
             if (secondaryObjectIsValid(secondaryObject)) {
                 secondaryObjects.push(secondaryObject);
                 objectsMap.set(secondaryObject.stix.id, true);
+                bundle.objects.push(relationship.stix);
             }
 
             // Save data components for later
@@ -206,13 +213,13 @@ exports.exportBundle = async function(options) {
                 dataComponents.set(secondaryObject.stix.id, secondaryObject.stix);
             }
         }
-
-        // Check target_ref
-        if (!objectsMap.has(relationship.stix.target_ref)) {
+        else if (objectsMap.has(relationship.stix.source_ref) && !objectsMap.has(relationship.stix.target_ref)) {
+            // source_ref (primary) => target_ref (secondary)
             const secondaryObject = await getAttackObject(relationship.stix.target_ref);
             if (secondaryObjectIsValid(secondaryObject)) {
                 secondaryObjects.push(secondaryObject);
                 objectsMap.set(secondaryObject.stix.id, true);
+                bundle.objects.push(relationship.stix);
             }
         }
     }
@@ -240,7 +247,7 @@ exports.exportBundle = async function(options) {
     const dataSources = new Map();
     for (const dataSourceId of dataSourceIds.keys()) {
         const dataSource = await getAttackObject(dataSourceId);
-        if (options.includeMissingAttackId || hasAttackId(dataSource)) {
+        if (secondaryObjectIsValid(dataSource)) {
             bundle.objects.push(dataSource.stix);
             dataSources.set(dataSourceId, dataSource.stix);
             addAttackObjectToMap(dataSource);
@@ -344,15 +351,17 @@ exports.exportBundle = async function(options) {
     // Iterate over the notes, keeping any that have an object_ref that points at an object in the bundle
     const notes = [];
     for (const note of allNotes) {
-        let includeNote = false;
-        for (const objectRef of note.stix.object_refs) {
-            if (objectsMap.has(objectRef) || relationshipsMap.has(objectRef)) {
-                includeNote = true;
-                break;
+        if (Array.isArray(note?.stix?.object_refs)) {
+            let includeNote = false;
+            for (const objectRef of note.stix.object_refs) {
+                if (objectsMap.has(objectRef) || relationshipsMap.has(objectRef)) {
+                    includeNote = true;
+                    break;
+                }
             }
-        }
-        if (includeNote) {
-            notes.push(note);
+            if (includeNote) {
+                notes.push(note);
+            }
         }
     }
 
@@ -397,7 +406,7 @@ exports.exportBundle = async function(options) {
 
     for (const stixId of identitiesMap.keys()) {
         const identity = await getAttackObject(stixId);
-        if (identity) {
+        if (secondaryObjectIsValid(identity)) {
             bundle.objects.push(identity.stix);
         }
         else {
@@ -407,7 +416,21 @@ exports.exportBundle = async function(options) {
 
     for (const stixId of markingDefinitionsMap.keys()) {
         const markingDefinition = await getAttackObject(stixId);
-        bundle.objects.push(markingDefinition.stix);
+        if (secondaryObjectIsValid(markingDefinition)) {
+            bundle.objects.push(markingDefinition.stix);
+        }
+    }
+
+    // Verify that there are no relationships with orphaned references
+    for (const stixObject of bundle.objects) {
+        if (stixObject.type === 'relationship') {
+            if (!objectsMap.has(stixObject.source_ref)) {
+                console.warn(`source_ref not found ${stixObject.source_ref} ${stixObject.relationship_type} ${stixObject.target_ref}`);
+            }
+            if (!objectsMap.has(stixObject.target_ref)) {
+                console.warn(`target_ref not found ${stixObject.source_ref} ${stixObject.relationship_type} ${stixObject.target_ref}`);
+            }
+        }
     }
 
     // TBD: A marking definition can contain a created_by_ref
