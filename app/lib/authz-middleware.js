@@ -2,11 +2,15 @@
 
 const logger = require('../lib/logger');
 
-exports.roles = {
+const roles = {
     admin: 'admin',
     editor: 'editor',
     visitor: 'visitor'
 }
+exports.roles = roles;
+exports.admin = [ roles.admin ];
+exports.editorOrHigher = [ roles.admin, roles.editor ];
+exports.vistorOrHigher = [ roles.admin, roles.editor, roles.visitor ];
 
 /**
  * This middleware function verifies that a request is authorized.

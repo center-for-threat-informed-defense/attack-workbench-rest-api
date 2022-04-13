@@ -6,12 +6,11 @@ const authn = require('../lib/authn-middleware');
 const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
-const adminEditorVisitorRole = [ authz.roles.admin, authz.roles.editor, authz.roles.visitor ];
 
 router.route('/attack-objects')
     .get(
         authn.authenticate,
-        authz.requireRole(adminEditorVisitorRole),
+        authz.requireRole(authz.vistorOrHigher),
         attackObjectsController.retrieveAll
     );
 
