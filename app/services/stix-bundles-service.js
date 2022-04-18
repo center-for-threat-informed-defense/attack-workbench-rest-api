@@ -194,13 +194,20 @@ exports.exportBundle = async function(options) {
         );
     }
 
+    function relationshipIsActive(relationship) {
+        // Include the source and target of inactive relationships, but don't include the relationship itself
+        return !relationship.stix.x_mitre_deprecated && !relationship.stix.revoked;
+    }
+
     // Get the secondary objects (additional objects pointed to by a relationship)
     const secondaryObjects = [];
     const dataComponents = new Map();
     for (const relationship of primaryObjectRelationships) {
         if (objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)) {
             // source_ref (primary) => target_ref (primary)
-            bundle.objects.push(relationship.stix);
+            if (relationshipIsActive(relationship)) {
+                bundle.objects.push(relationship.stix);
+            }
         }
         else if (!objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)) {
             // source_ref (secondary) => target_ref (primary)
@@ -208,7 +215,9 @@ exports.exportBundle = async function(options) {
             if (secondaryObjectIsValid(secondaryObject)) {
                 secondaryObjects.push(secondaryObject);
                 objectsMap.set(secondaryObject.stix.id, true);
-                bundle.objects.push(relationship.stix);
+                if (relationshipIsActive(relationship)) {
+                    bundle.objects.push(relationship.stix);
+                }
             }
 
             // Save data components for later
@@ -222,7 +231,9 @@ exports.exportBundle = async function(options) {
             if (secondaryObjectIsValid(secondaryObject)) {
                 secondaryObjects.push(secondaryObject);
                 objectsMap.set(secondaryObject.stix.id, true);
-                bundle.objects.push(relationship.stix);
+                if (relationshipIsActive(relationship)) {
+                    bundle.objects.push(relationship.stix);
+                }
             }
         }
     }
@@ -356,8 +367,10 @@ exports.exportBundle = async function(options) {
         if (relationship.stix.relationship_type === 'revoked-by' && !relationshipsMap.has(relationship.stix.id) &&
             objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref))
         {
-            bundle.objects.push(relationship.stix);
-            relationshipsMap.set(relationship.stix.id, true);
+            if (relationshipIsActive(relationship)) {
+                bundle.objects.push(relationship.stix);
+                relationshipsMap.set(relationship.stix.id, true);
+            }
         }
     }
 
