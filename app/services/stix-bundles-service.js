@@ -131,7 +131,7 @@ exports.exportBundle = async function(options) {
     }
 
     // Put the primary objects in the bundle
-    // Also create a map of the primary objects (only use the id, since relationships only reference the id)
+    // Also create a map of the objects added to the bundle (only use the id, since relationships only reference the id)
     const objectsMap = new Map();
     for (const primaryObject of primaryObjects) {
         bundle.objects.push(primaryObject.stix);
@@ -168,18 +168,21 @@ exports.exportBundle = async function(options) {
     const allRelationships = await Relationship.aggregate(relationshipAggregation);
 
     // Iterate over the relationships, keeping any that have a source_ref or target_ref that points at a primary object
-    const relationships = [];
+    const primaryObjectRelationships = [];
     for (const relationship of allRelationships) {
         if (objectsMap.has(relationship.stix.source_ref) || objectsMap.has(relationship.stix.target_ref)) {
-            relationships.push(relationship);
+            primaryObjectRelationships.push(relationship);
         }
     }
 
+    // function to test if an object belongs to the domain
+    // Only applies to certain object types
     const domainCheckTypes = ['attack-pattern', 'course-of-action', 'malware', 'tool', 'x-mitre-tactic'];
     function isCorrectDomain(attackObject) {
         return !domainCheckTypes.includes(attackObject?.stix?.type) || (attackObject?.stix?.x_mitre_domains && attackObject.stix.x_mitre_domains.includes(options.domain));
     }
 
+    // function to test if a secondary object is valid and should be included in the bundle
     function secondaryObjectIsValid(secondaryObject) {
         return (
             secondaryObject &&
@@ -194,7 +197,7 @@ exports.exportBundle = async function(options) {
     // Get the secondary objects (additional objects pointed to by a relationship)
     const secondaryObjects = [];
     const dataComponents = new Map();
-    for (const relationship of relationships) {
+    for (const relationship of primaryObjectRelationships) {
         if (objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)) {
             // source_ref (primary) => target_ref (primary)
             bundle.objects.push(relationship.stix);
@@ -255,8 +258,9 @@ exports.exportBundle = async function(options) {
     }
 
     // Create a map of techniques detected by data components
+    // key = technique id, value = array of data component refs
     const techniqueDetectedBy = new Map();
-    for (const relationship of relationships) {
+    for (const relationship of primaryObjectRelationships) {
         if (relationship.stix.relationship_type === 'detects') {
             // technique (target_ref) detected by array of data-component (source_ref)
             const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
@@ -278,18 +282,19 @@ exports.exportBundle = async function(options) {
             const enterpriseDomain = bundleObject.x_mitre_domains.find(domain => domain === 'enterprise-attack');
             const icsDomain = bundleObject.x_mitre_domains.find(domain => domain === 'attack-ics');
             if (enterpriseDomain && !icsDomain) {
-                // Remove any existing data sources
+                // Remove any existing data source string entries
                 bundleObject.x_mitre_data_sources = [];
 
-                // Add in any enterprise data sources from detects relationships
+                // Add data source string entries based on the data sources associated with the technique
+                //   data component detects technique AND data component refers to data source
                 const dataComponentIds = techniqueDetectedBy.get(bundleObject.id);
                 if (dataComponentIds) {
                     for (const dataComponentId of dataComponentIds) {
                         const dataComponent = dataComponents.get(dataComponentId);
                         if (dataComponent) {
-                            const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
-                            if (dataSource) {
-                                const derivedDataSource = `${ dataSource.name }: ${ dataComponent.name }`;
+                            const dataSourceForTechnique = dataSources.get(dataComponent.x_mitre_data_source_ref);
+                            if (dataSourceForTechnique) {
+                                const derivedDataSource = `${ dataSourceForTechnique.name }: ${ dataComponent.name }`;
                                 bundleObject.x_mitre_data_sources.push(derivedDataSource);
                             }
                             else {
@@ -303,22 +308,23 @@ exports.exportBundle = async function(options) {
                 }
             }
             else if (icsDomain && !enterpriseDomain) {
-                // Remove any data sources that are not in the list of valid ICS data sources
+                // Remove any existing data source string entries that are not in the list of valid ICS data sources
                 bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.find(value => value === source));
             }
             else if (enterpriseDomain && icsDomain) {
-                // Remove any data sources that are not in the list of valid ICS data sources
+                // Remove any existing data source string entries that are not in the list of valid ICS data sources
                 bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.find(value => value === source));
 
-                // Add in any enterprise data sources from detects relationships
+                // Add data source string entries based on the data sources associated with the technique
+                //   data component detects technique AND data component refers to data source
                 const dataComponentIds = techniqueDetectedBy.get(bundleObject.id);
                 if (dataComponentIds) {
                     for (const dataComponentId of dataComponentIds) {
                         const dataComponent = dataComponents.get(dataComponentId);
                         if (dataComponent) {
-                            const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
-                            if (dataSource) {
-                                const derivedDataSource = `${dataSource.name}: ${dataComponent.name}`;
+                            const dataSourceForTechnique = dataSources.get(dataComponent.x_mitre_data_source_ref);
+                            if (dataSourceForTechnique) {
+                                const derivedDataSource = `${dataSourceForTechnique.name}: ${dataComponent.name}`;
                                 bundleObject.x_mitre_data_sources.push(derivedDataSource);
                             }
                             else {
@@ -340,8 +346,19 @@ exports.exportBundle = async function(options) {
 
     // Create a map of relationship ids
     const relationshipsMap = new Map();
-    for (const relationship of relationships) {
+    for (const relationship of primaryObjectRelationships) {
         relationshipsMap.set(relationship.stix.id, true);
+    }
+
+    // Add secondary object-to-secondary object revoked-by relationships
+    // (any revoked-by relationship for a primary object should already be included)
+    for (const relationship of allRelationships) {
+        if (relationship.stix.relationship_type === 'revoked-by' && !relationshipsMap.has(relationship.stix.id) &&
+            objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref))
+        {
+            bundle.objects.push(relationship.stix);
+            relationshipsMap.set(relationship.stix.id, true);
+        }
     }
 
     // Get any note that references an object in the bundle
