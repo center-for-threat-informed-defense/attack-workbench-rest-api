@@ -6,6 +6,7 @@ logger.level = 'debug';
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
+const login = require('../../shared/login');
 
 // modified and created properties will be set before calling REST API
 const initialObjectData = {
@@ -63,6 +64,7 @@ const initialObjectData = {
 
 describe('Collection Indexes Basic API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -74,12 +76,16 @@ describe('Collection Indexes Basic API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/collection-indexes returns an empty array', function (done) {
         request(app)
             .get('/api/collection-indexes')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -102,6 +108,7 @@ describe('Collection Indexes Basic API', function () {
             .post('/api/collection-indexes')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -122,6 +129,7 @@ describe('Collection Indexes Basic API', function () {
             .post('/api/collection-indexes')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -144,6 +152,7 @@ describe('Collection Indexes Basic API', function () {
         request(app)
             .get('/api/collection-indexes')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -164,6 +173,7 @@ describe('Collection Indexes Basic API', function () {
         request(app)
             .get('/api/collection-indexes/not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -178,6 +188,7 @@ describe('Collection Indexes Basic API', function () {
         request(app)
             .get('/api/collection-indexes/' + collectionIndex1.collection_index.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -204,6 +215,7 @@ describe('Collection Indexes Basic API', function () {
             .put('/api/collection-indexes/' + collectionIndex1.collection_index.id)
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -226,6 +238,7 @@ describe('Collection Indexes Basic API', function () {
             .post('/api/collection-indexes')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(409)
             .end(function (err, res) {
                 if (err) {
@@ -239,6 +252,7 @@ describe('Collection Indexes Basic API', function () {
     it('DELETE /api/collection-indexes deletes a collection index', function (done) {
         request(app)
             .delete('/api/collection-indexes/' + collectionIndex1.collection_index.id)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function (err, res) {
                 if (err) {
@@ -253,6 +267,7 @@ describe('Collection Indexes Basic API', function () {
         request(app)
             .get('/api/collection-indexes')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function (err, res) {

@@ -10,6 +10,7 @@ logger.level = 'debug';
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
+const login = require('../../shared/login');
 
 const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
 const collectionTimestamp = new Date().toISOString();
@@ -430,6 +431,7 @@ const collectionBundleData5 = {
 
 describe('Collection Bundles Basic API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -441,6 +443,9 @@ describe('Collection Bundles Basic API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('POST /api/collection-bundles does not import an empty collection bundle', function (done) {
@@ -449,6 +454,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -465,6 +471,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -484,6 +491,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -503,6 +511,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -522,6 +531,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -541,6 +551,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles?forceImport=attack-spec-version-violations')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .end(function (err, res) {
                 if (err) {
@@ -557,6 +568,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles?checkOnly=true')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -580,6 +592,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles?previewOnly=true')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -602,6 +615,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -624,6 +638,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles?checkOnly=true')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -640,6 +655,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function (err, res) {
                 if (err) {
@@ -656,6 +672,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles?forceImport=duplicate-collection')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .end(function (err, res) {
                 if (err) {
@@ -679,6 +696,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -700,6 +718,7 @@ describe('Collection Bundles Basic API', function () {
         request(app)
             .get('/api/references?sourceName=' + encodeURIComponent('malware-1 source'))
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -722,6 +741,7 @@ describe('Collection Bundles Basic API', function () {
         request(app)
             .get('/api/references?sourceName=' + encodeURIComponent('xyzzy'))
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -744,6 +764,7 @@ describe('Collection Bundles Basic API', function () {
         request(app)
             .get('/api/references?sourceName=' + encodeURIComponent('group source'))
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -766,6 +787,7 @@ describe('Collection Bundles Basic API', function () {
         request(app)
             .get('/api/references?sourceName=' + encodeURIComponent('group-xyzzy'))
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -788,6 +810,7 @@ describe('Collection Bundles Basic API', function () {
         request(app)
             .get('/api/collection-bundles?collectionId=not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -802,6 +825,7 @@ describe('Collection Bundles Basic API', function () {
         request(app)
             .get(`/api/collection-bundles?previewOnly=true&collectionId=x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647`)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -824,6 +848,7 @@ describe('Collection Bundles Basic API', function () {
         request(app)
             .get(`/api/collection-bundles?collectionId=${ collectionId }`)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -847,6 +872,7 @@ describe('Collection Bundles Basic API', function () {
         request(app)
             .get(`/api/collection-bundles?collectionId=${ collectionId }&collectionModified=${ encodeURIComponent(collectionTimestamp) }`)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -879,6 +905,7 @@ describe('Collection Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {

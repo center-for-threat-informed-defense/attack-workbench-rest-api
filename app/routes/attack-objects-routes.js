@@ -10,7 +10,7 @@ const router = express.Router();
 router.route('/attack-objects')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.vistorOrHigher),
+        authz.requireRole(authz.visitorOrHigher),
         attackObjectsController.retrieveAll
     );
 

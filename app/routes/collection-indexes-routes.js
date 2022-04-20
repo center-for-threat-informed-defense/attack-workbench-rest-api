@@ -2,32 +2,39 @@
 
 const express = require('express');
 const collectionIndexesController = require('../controllers/collection-indexes-controller');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
 router.route('/collection-indexes')
     .get(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
         collectionIndexesController.retrieveAll
     )
     .post(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
         collectionIndexesController.create
     );
 
 router.route('/collection-indexes/:id')
     .get(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
         collectionIndexesController.retrieveById
     );
 
 router.route('/collection-indexes/:id')
     .put(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
         collectionIndexesController.updateFull
     )
     .delete(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.admin),
         collectionIndexesController.delete
     );
 

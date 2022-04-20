@@ -10,7 +10,7 @@ const roles = {
 exports.roles = roles;
 exports.admin = [ roles.admin ];
 exports.editorOrHigher = [ roles.admin, roles.editor ];
-exports.vistorOrHigher = [ roles.admin, roles.editor, roles.visitor ];
+exports.visitorOrHigher = [ roles.admin, roles.editor, roles.visitor ];
 
 /**
  * This middleware function verifies that a request is authorized.
