@@ -534,7 +534,7 @@ describe('STIX Bundles Basic API', function () {
 
     it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain', function (done) {
         request(app)
-            .get(`/api/stix-bundles?domain=${ enterpriseDomain }`)
+            .get(`/api/stix-bundles?domain=${ enterpriseDomain }&includeNotes=true`)
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
@@ -558,7 +558,7 @@ describe('STIX Bundles Basic API', function () {
 
     it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain including deprecated objects', function (done) {
         request(app)
-            .get(`/api/stix-bundles?domain=${ enterpriseDomain }&includeDeprecated=true`)
+            .get(`/api/stix-bundles?domain=${ enterpriseDomain }&includeDeprecated=true&includeNotes=true`)
             .set('Accept', 'application/json')
             .expect(200)
             .expect('Content-Type', /json/)
