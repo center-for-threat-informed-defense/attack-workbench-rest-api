@@ -67,7 +67,7 @@ function conformToStixVersion(stixObject, stixVersion) {
             }
 
             // STIX 2.0 malware must have the property labels
-            stixObject.labels = stixObject.labels ?? [ 'malware' ];
+            stixObject.labels = [ 'malware' ];
         }
 
         if (stixObject.type === 'tool') {
@@ -78,7 +78,7 @@ function conformToStixVersion(stixObject, stixVersion) {
             }
 
             // STIX 2.0 tools must have the property labels
-            stixObject.labels = stixObject.labels ?? [ 'tool' ];
+            stixObject.labels = [ 'tool' ];
         }
     }
     else if (stixVersion === '2.1') {
