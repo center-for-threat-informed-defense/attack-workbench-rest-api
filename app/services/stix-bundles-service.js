@@ -58,9 +58,20 @@ function conformToStixVersion(stixObject, stixVersion) {
         if (stixObject.hasOwnProperty('spec_version')) {
             stixObject.spec_version = undefined;
         }
+
+        // STIX 2.0 malware may not have the property is_family
+        // eslint-disable-next-line no-prototype-builtins
+        if (stixObject.type === 'malware' && stixObject.hasOwnProperty('is_family')) {
+            stixObject.is_family = undefined;
+        }
     }
     else if (stixVersion === '2.1') {
         stixObject.spec_version = '2.1';
+
+        // STIX 2.1 malware must have the property is_family
+        if (stixObject.type === 'malware') {
+            stixObject.is_family = stixObject.is_family ?? true;
+        }
     }
 }
 
