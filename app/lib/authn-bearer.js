@@ -171,7 +171,8 @@ function makeUserSession(clientId, serviceName) {
     const userSession = {
         strategy: 'bearer',
         clientId,
-        serviceName
+        serviceName,
+        service: true
     };
 
     return userSession;

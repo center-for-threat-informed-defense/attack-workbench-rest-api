@@ -127,6 +127,8 @@ exports.delete = function(req, res) {
 };
 
 exports.register = async function(req, res) {
+    // The function supports self-registration of a logged in user
+
     if (config.userAuthn.mechanism === 'anonymous') {
         logger.warn('Unable to register user account, app configured to use anonymous authentication');
         return res.status(400).send('Cannot register user accounts when anonymous authentication is enabled');
@@ -138,6 +140,10 @@ exports.register = async function(req, res) {
     else if (req.user.registered) {
         logger.warn('Unable to register user account, already registered');
         return res.status(400).send('Already registered');
+    }
+    else if (req.user.service) {
+        logger.warn('Unable to register service account');
+        return res.status(400).send('Cannot register service account');
     }
 
     const userAccountData = {

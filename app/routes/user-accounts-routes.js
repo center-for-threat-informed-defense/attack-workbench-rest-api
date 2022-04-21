@@ -38,8 +38,7 @@ router.route('/user-accounts/:id')
 
 router.route('/user-accounts/register')
     .post(
-        authn.authenticate,
-        authz.requireRole(authz.admin),
+        // authn and authz handled in controller
         userAccountsController.register
     );
 
