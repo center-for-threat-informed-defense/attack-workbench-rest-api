@@ -52,6 +52,18 @@ function hasAttackId(attackObject) {
     return false;
 }
 
+function conformToStixVersion(stixObject, stixVersion) {
+    if (stixVersion === '2.0') {
+        // eslint-disable-next-line no-prototype-builtins
+        if (stixObject.hasOwnProperty('spec_version')) {
+            stixObject.spec_version = undefined;
+        }
+    }
+    else if (stixVersion === '2.1') {
+        stixObject.spec_version = '2.1';
+    }
+}
+
 exports.exportBundle = async function(options) {
     // The attackObjectMap maps attack IDs to  attack objects and is used to make the LinkById conversion
     // more efficient.
@@ -68,6 +80,12 @@ exports.exportBundle = async function(options) {
         id: `bundle--${uuid.v4()}`,
         objects: []
     };
+
+    // STIX 2.0: The bundle must have the spec_version property
+    // STIX 2.1: The bundle may not have the spec_version property
+    if (options.stixVersion === '2.0') {
+        bundle.spec_version = '2.0';
+    }
 
     // Get the primary objects (objects that match the domain)
 
@@ -268,6 +286,25 @@ exports.exportBundle = async function(options) {
         }
     }
 
+    // Add secondary objects that were revoked-by other secondary objects
+    //   It's possible that a revoked object is not referenced in a relationship to a primary object
+    //   Include it if the object that revoked it is already included
+    for (const relationship of allRelationships) {
+        if (relationship.stix.relationship_type === 'revoked-by') {
+            if (!objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)) {
+                const revokedObject = await getAttackObject(relationship.stix.source_ref);
+                if (secondaryObjectIsValid(revokedObject)) {
+                    if (revokedObject.stix.type === 'intrusion-set') {
+                        revokedObject.stix.x_mitre_domains = [ options.domain ];
+                    }
+                    bundle.objects.push(revokedObject.stix);
+                    addAttackObjectToMap(revokedObject);
+                }
+            }
+        }
+    }
+
+
     // Create a map of techniques detected by data components
     // key = technique id, value = array of data component refs
     const techniqueDetectedBy = new Map();
@@ -374,30 +411,32 @@ exports.exportBundle = async function(options) {
         }
     }
 
-    // Get any note that references an object in the bundle
-    // Start by getting all notes
-    const allNotes = await Note.aggregate(relationshipAggregation);
+    if (options.includeNotes) {
+        // Get any note that references an object in the bundle
+        // Start by getting all notes
+        const allNotes = await Note.aggregate(relationshipAggregation);
 
-    // Iterate over the notes, keeping any that have an object_ref that points at an object in the bundle
-    const notes = [];
-    for (const note of allNotes) {
-        if (Array.isArray(note?.stix?.object_refs)) {
-            let includeNote = false;
-            for (const objectRef of note.stix.object_refs) {
-                if (objectsMap.has(objectRef) || relationshipsMap.has(objectRef)) {
-                    includeNote = true;
-                    break;
+        // Iterate over the notes, keeping any that have an object_ref that points at an object in the bundle
+        const notes = [];
+        for (const note of allNotes) {
+            if (Array.isArray(note?.stix?.object_refs)) {
+                let includeNote = false;
+                for (const objectRef of note.stix.object_refs) {
+                    if (objectsMap.has(objectRef) || relationshipsMap.has(objectRef)) {
+                        includeNote = true;
+                        break;
+                    }
+                }
+                if (includeNote) {
+                    notes.push(note);
                 }
             }
-            if (includeNote) {
-                notes.push(note);
-            }
         }
-    }
 
-    // Put the notes in the bundle
-    for (const note of notes) {
-        bundle.objects.push(note.stix);
+        // Put the notes in the bundle
+        for (const note of notes) {
+            bundle.objects.push(note.stix);
+        }
     }
 
     // Create the function to be used by the LinkById conversion process
@@ -449,6 +488,11 @@ exports.exportBundle = async function(options) {
         if (secondaryObjectIsValid(markingDefinition)) {
             bundle.objects.push(markingDefinition.stix);
         }
+    }
+
+    // Modify the bundle objects to conform to the selected STIX version
+    for (const stixObject of bundle.objects) {
+        conformToStixVersion(stixObject, options.stixVersion);
     }
 
     // Verify that there are no relationships with orphaned references

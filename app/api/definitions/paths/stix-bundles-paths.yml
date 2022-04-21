@@ -44,10 +44,24 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: stixVersion
+          in: query
+          description: |
+            STIX version that the exported bundle should conform to.
+          schema:
+            type: string
+            default: '2.0'
         - name: includeMissingAttackId
           in: query
           description: |
             Whether to include objects that should have an ATT&CK ID set but do not.
+          schema:
+            type: boolean
+            default: false
+        - name: includeNotes
+          in: query
+          description: |
+            Whether to include notes in the bundle.
           schema:
             type: boolean
             default: false
