@@ -59,10 +59,26 @@ function conformToStixVersion(stixObject, stixVersion) {
             stixObject.spec_version = undefined;
         }
 
-        // STIX 2.0 malware may not have the property is_family
-        // eslint-disable-next-line no-prototype-builtins
-        if (stixObject.type === 'malware' && stixObject.hasOwnProperty('is_family')) {
-            stixObject.is_family = undefined;
+        if (stixObject.type === 'malware') {
+            // STIX 2.0 malware may not have the property is_family
+            // eslint-disable-next-line no-prototype-builtins
+            if (stixObject.hasOwnProperty('is_family')) {
+                stixObject.is_family = undefined;
+            }
+
+            // STIX 2.0 malware must have the property labels
+            stixObject.labels = stixObject.labels ?? [ 'malware' ];
+        }
+
+        if (stixObject.type === 'tool') {
+            // STIX 2.0 tools may not have the property is_family
+            // eslint-disable-next-line no-prototype-builtins
+            if (stixObject.hasOwnProperty('is_family')) {
+                stixObject.is_family = undefined;
+            }
+
+            // STIX 2.0 tools must have the property labels
+            stixObject.labels = stixObject.labels ?? [ 'tool' ];
         }
     }
     else if (stixVersion === '2.1') {
