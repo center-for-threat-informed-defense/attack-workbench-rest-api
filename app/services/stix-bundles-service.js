@@ -326,6 +326,7 @@ exports.exportBundle = async function(options) {
                     }
                     bundle.objects.push(revokedObject.stix);
                     addAttackObjectToMap(revokedObject);
+                    objectsMap.set(revokedObject.stix.id, true);
                 }
             }
         }
