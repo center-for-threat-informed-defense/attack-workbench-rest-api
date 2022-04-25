@@ -4,6 +4,7 @@ const _ = require('lodash');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const Group = require('../../../models/group-model');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -104,6 +105,7 @@ function executeTests(getApp, propertyName, options) {
 
 describe('Groups API Input Validation', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -118,6 +120,9 @@ describe('Groups API Input Validation', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('POST /api/groups does not create an empty group', function (done) {
@@ -126,6 +131,7 @@ describe('Groups API Input Validation', function () {
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -147,6 +153,7 @@ describe('Groups API Input Validation', function () {
             .post('/api/groups?not-a-parameter=unexpectedvalue')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -169,6 +176,7 @@ describe('Groups API Input Validation', function () {
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -191,6 +199,7 @@ describe('Groups API Input Validation', function () {
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {

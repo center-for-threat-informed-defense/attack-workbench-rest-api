@@ -1,21 +1,47 @@
 'use strict';
 
 const express = require('express');
+
 const techniquesController = require('../controllers/techniques-controller');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
 router.route('/techniques')
-    .get(techniquesController.retrieveAll)
-    .post(techniquesController.create);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        techniquesController.retrieveAll
+    )
+    .post(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        techniquesController.create
+    );
 
 router.route('/techniques/:stixId')
-    .get(techniquesController.retrieveById);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        techniquesController.retrieveById
+    );
 
 router.route('/techniques/:stixId/modified/:modified')
-    .get(techniquesController.retrieveVersionById)
-    .put(techniquesController.updateFull)
-//    .patch(techniquesController.updatePartial)
-    .delete(techniquesController.delete);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        techniquesController.retrieveVersionById
+    )
+    .put(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        techniquesController.updateFull
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        techniquesController.delete
+    );
 
 module.exports = router;

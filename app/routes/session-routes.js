@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+
 const sessionController = require('../controllers/session-controller');
 const authn = require('../lib/authn-middleware');
 

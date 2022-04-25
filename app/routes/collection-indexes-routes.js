@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+
 const collectionIndexesController = require('../controllers/collection-indexes-controller');
 const authn = require('../lib/authn-middleware');
 const authz = require('../lib/authz-middleware');

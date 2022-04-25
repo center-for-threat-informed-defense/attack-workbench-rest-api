@@ -6,6 +6,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -38,6 +39,7 @@ const initialObjectData = {
 
 describe('Notes API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -49,12 +51,16 @@ describe('Notes API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/notes should return an empty array of notes', function (done) {
         request(app)
             .get('/api/notes')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -78,6 +84,7 @@ describe('Notes API', function () {
             .post('/api/notes')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -99,6 +106,7 @@ describe('Notes API', function () {
             .post('/api/notes')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -124,6 +132,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -145,6 +154,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes/not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -159,6 +169,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes/' + note1.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -199,6 +210,7 @@ describe('Notes API', function () {
             .put('/api/notes/' + note1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -222,6 +234,7 @@ describe('Notes API', function () {
             .post('/api/notes')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(409)
             .end(function(err, res) {
                 if (err) {
@@ -248,6 +261,7 @@ describe('Notes API', function () {
             .post('/api/notes')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -267,6 +281,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes/' + note2.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -303,6 +318,7 @@ describe('Notes API', function () {
             .post('/api/notes')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -333,6 +349,7 @@ describe('Notes API', function () {
             .post('/api/notes')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -352,6 +369,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes/' + note1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -373,6 +391,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes/' + note1.stix.id + '/modified/' + note1.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -395,6 +414,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes/' + note2.stix.id + '/modified/' + note2.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -417,6 +437,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes/')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -438,6 +459,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes?search=PARCHMENT')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -459,6 +481,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes?search=IVORY')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -479,6 +502,7 @@ describe('Notes API', function () {
     it('DELETE /api/notes/:id should not delete a note when the id cannot be found', function (done) {
         request(app)
             .delete('/api/notes/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function(err, res) {
                 if (err) {
@@ -493,6 +517,7 @@ describe('Notes API', function () {
     it('DELETE /api/notes/:id/modified/:modified should delete the first version of the note', function (done) {
         request(app)
             .delete('/api/notes/' + note1.stix.id + '/modified/' + note1.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -507,6 +532,7 @@ describe('Notes API', function () {
     it('DELETE /api/notes/:id/modified/:modified should delete the second version of the note', function (done) {
         request(app)
             .delete('/api/notes/' + note2.stix.id + '/modified/' + note2.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -521,6 +547,7 @@ describe('Notes API', function () {
     it('DELETE /api/notes/:id should delete all versions of the note', function (done) {
         request(app)
             .delete('/api/notes/' + note3.stix.id)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -536,6 +563,7 @@ describe('Notes API', function () {
         request(app)
             .get('/api/notes')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

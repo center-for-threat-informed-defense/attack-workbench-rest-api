@@ -5,6 +5,7 @@ const uuid = require('uuid');
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -45,6 +46,7 @@ const newIdentityData = {
 
 describe('Create Object with Organization Identity API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -56,6 +58,9 @@ describe('Create Object with Organization Identity API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     let placeholderIdentity;
@@ -63,6 +68,7 @@ describe('Create Object with Organization Identity API', function () {
         request(app)
             .get('/api/config/organization-identity')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -90,6 +96,7 @@ describe('Create Object with Organization Identity API', function () {
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -123,6 +130,7 @@ describe('Create Object with Organization Identity API', function () {
             .post('/api/identities')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -150,6 +158,7 @@ describe('Create Object with Organization Identity API', function () {
             .post('/api/config/organization-identity')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -174,6 +183,7 @@ describe('Create Object with Organization Identity API', function () {
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

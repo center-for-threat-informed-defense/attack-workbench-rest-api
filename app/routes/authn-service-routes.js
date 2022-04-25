@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+
 const authnServiceController = require('../controllers/authn-service-controller');
 const authnConfig = require('../lib/authn-configuration');
 

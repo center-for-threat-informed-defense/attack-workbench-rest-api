@@ -9,6 +9,7 @@ const markingDefinitionService = require('../../../services/marking-definitions-
 const systemConfigurationService = require('../../../services/system-configuration-service');
 
 const config = require('../../../config/config');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -65,6 +66,7 @@ describe('Groups API', function () {
     let app;
     let defaultMarkingDefinition1;
     let defaultMarkingDefinition2;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -80,6 +82,9 @@ describe('Groups API', function () {
         // Initialize the express app
         app = await require('../../../index').initializeApp();
 
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
+
         defaultMarkingDefinition1 = await addDefaultMarkingDefinition(markingDefinitionData);
     });
 
@@ -87,6 +92,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -110,6 +116,7 @@ describe('Groups API', function () {
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -131,6 +138,7 @@ describe('Groups API', function () {
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -162,6 +170,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -183,6 +192,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups/not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -197,6 +207,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups/' + group1.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -237,6 +248,7 @@ describe('Groups API', function () {
             .put('/api/groups/' + group1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -260,6 +272,7 @@ describe('Groups API', function () {
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(409)
             .end(function(err, res) {
                 if (err) {
@@ -290,6 +303,7 @@ describe('Groups API', function () {
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/);
 
@@ -302,6 +316,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups/' + group2.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -334,6 +349,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups/' + group1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -355,6 +371,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -377,6 +394,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups/' + group2.stix.id + '/modified/' + group2.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -412,6 +430,7 @@ describe('Groups API', function () {
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -431,6 +450,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups?search=green')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -459,6 +479,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups?search=blue')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -480,6 +501,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups?search=brown')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -507,6 +529,7 @@ describe('Groups API', function () {
     it('DELETE /api/groups deletes a group', function (done) {
         request(app)
             .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -521,6 +544,7 @@ describe('Groups API', function () {
     it('DELETE /api/groups should delete the second group', function (done) {
         request(app)
             .delete('/api/groups/' + group2.stix.id + '/modified/' + group2.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -535,6 +559,7 @@ describe('Groups API', function () {
     it('DELETE /api/groups should delete the third group', function (done) {
         request(app)
             .delete('/api/groups/' + group3.stix.id + '/modified/' + group3.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -550,6 +575,7 @@ describe('Groups API', function () {
         request(app)
             .get('/api/groups')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

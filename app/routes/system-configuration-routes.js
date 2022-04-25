@@ -1,29 +1,67 @@
 'use strict';
 
 const express = require('express');
+
 const systemConfigurationController = require('../controllers/system-configuration-controller');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
 router.route('/config/system-version')
-    .get(systemConfigurationController.retrieveSystemVersion);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        systemConfigurationController.retrieveSystemVersion
+    );
 
 router.route('/config/allowed-values')
-    .get(systemConfigurationController.retrieveAllowedValues);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        systemConfigurationController.retrieveAllowedValues
+    );
 
 router.route('/config/organization-identity')
-    .get(systemConfigurationController.retrieveOrganizationIdentity)
-    .post(systemConfigurationController.setOrganizationIdentity);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        systemConfigurationController.retrieveOrganizationIdentity
+    )
+    .post(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        systemConfigurationController.setOrganizationIdentity
+    );
 
 router.route('/config/authn')
-    .get(systemConfigurationController.retrieveAuthenticationConfig);
+    .get(
+        // No authentication or authorization required
+        systemConfigurationController.retrieveAuthenticationConfig
+    );
 
 router.route('/config/default-marking-definitions')
-    .get(systemConfigurationController.retrieveDefaultMarkingDefinitions)
-    .post(systemConfigurationController.setDefaultMarkingDefinitions);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        systemConfigurationController.retrieveDefaultMarkingDefinitions
+    )
+    .post(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        systemConfigurationController.setDefaultMarkingDefinitions
+    );
 
 router.route('/config/organization-namespace')
-    .get(systemConfigurationController.retrieveOrganizationNamespace)
-    .post(systemConfigurationController.setOrganizationNamespace);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        systemConfigurationController.retrieveOrganizationNamespace
+    )
+    .post(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        systemConfigurationController.setOrganizationNamespace
+    );
 
 module.exports = router;

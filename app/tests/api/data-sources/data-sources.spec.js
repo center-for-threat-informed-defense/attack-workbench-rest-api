@@ -6,6 +6,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
+const login = require('../../shared/login');
 
 const dataComponentsService = require('../../../services/data-components-service');
 
@@ -97,6 +98,7 @@ async function loadDataComponents(baseDataComponent) {
 
 describe('Data Sources API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -108,12 +110,16 @@ describe('Data Sources API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/data-sources returns an empty array of data sources', function (done) {
         request(app)
             .get('/api/data-sources')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -137,6 +143,7 @@ describe('Data Sources API', function () {
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -158,6 +165,7 @@ describe('Data Sources API', function () {
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -183,6 +191,7 @@ describe('Data Sources API', function () {
         request(app)
             .get('/api/data-sources')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -204,6 +213,7 @@ describe('Data Sources API', function () {
         request(app)
             .get('/api/data-sources/not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -218,6 +228,7 @@ describe('Data Sources API', function () {
         request(app)
             .get('/api/data-sources/' + dataSource1.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -256,6 +267,7 @@ describe('Data Sources API', function () {
         const res = await request(app)
             .get(`/api/data-sources/${dataSource1.stix.id}?retrieveDataComponents=true`)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/);
 
@@ -282,6 +294,7 @@ describe('Data Sources API', function () {
             .put('/api/data-sources/' + dataSource1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -305,6 +318,7 @@ describe('Data Sources API', function () {
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(409)
             .end(function(err, res) {
                 if (err) {
@@ -329,6 +343,7 @@ describe('Data Sources API', function () {
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -348,6 +363,7 @@ describe('Data Sources API', function () {
         request(app)
             .get('/api/data-sources/' + dataSource2.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -372,6 +388,7 @@ describe('Data Sources API', function () {
         request(app)
             .get('/api/data-sources/' + dataSource1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -393,6 +410,7 @@ describe('Data Sources API', function () {
         request(app)
             .get('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -415,6 +433,7 @@ describe('Data Sources API', function () {
         request(app)
             .get('/api/data-sources/' + dataSource2.stix.id + '/modified/' + dataSource2.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -436,6 +455,7 @@ describe('Data Sources API', function () {
     it('DELETE /api/data-sources deletes a data source', function (done) {
         request(app)
             .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -450,6 +470,7 @@ describe('Data Sources API', function () {
     it('DELETE /api/data-sources should delete the second data source', function (done) {
         request(app)
             .delete('/api/data-sources/' + dataSource2.stix.id + '/modified/' + dataSource2.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -465,6 +486,7 @@ describe('Data Sources API', function () {
         request(app)
             .get('/api/data-sources')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

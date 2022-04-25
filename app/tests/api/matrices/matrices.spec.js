@@ -6,6 +6,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -39,6 +40,7 @@ const initialObjectData = {
 
 describe('Matrices API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -50,12 +52,16 @@ describe('Matrices API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/matrices returns an empty array of matrices', function (done) {
         request(app)
             .get('/api/matrices')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -79,6 +85,7 @@ describe('Matrices API', function () {
             .post('/api/matrices')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -100,6 +107,7 @@ describe('Matrices API', function () {
             .post('/api/matrices')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -125,6 +133,7 @@ describe('Matrices API', function () {
         request(app)
             .get('/api/matrices')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -146,6 +155,7 @@ describe('Matrices API', function () {
         request(app)
             .get('/api/matrices/not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -160,6 +170,7 @@ describe('Matrices API', function () {
         request(app)
             .get('/api/matrices/' + matrix1.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -202,6 +213,7 @@ describe('Matrices API', function () {
             .put('/api/matrices/' + matrix1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -225,6 +237,7 @@ describe('Matrices API', function () {
             .post('/api/matrices')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(409)
             .end(function(err, res) {
                 if (err) {
@@ -249,6 +262,7 @@ describe('Matrices API', function () {
             .post('/api/matrices')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -268,6 +282,7 @@ describe('Matrices API', function () {
         request(app)
             .get('/api/matrices/' + matrix2.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -292,6 +307,7 @@ describe('Matrices API', function () {
         request(app)
             .get('/api/matrices/' + matrix1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -313,6 +329,7 @@ describe('Matrices API', function () {
         request(app)
             .get('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -335,6 +352,7 @@ describe('Matrices API', function () {
         request(app)
             .get('/api/matrices/' + matrix2.stix.id + '/modified/' + matrix2.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -356,6 +374,7 @@ describe('Matrices API', function () {
     it('DELETE /api/matrices deletes a matrix', function (done) {
         request(app)
             .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -370,6 +389,7 @@ describe('Matrices API', function () {
     it('DELETE /api/matrices should delete the second matrix', function (done) {
         request(app)
             .delete('/api/matrices/' + matrix2.stix.id + '/modified/' + matrix2.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -385,6 +405,7 @@ describe('Matrices API', function () {
         request(app)
             .get('/api/matrices')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

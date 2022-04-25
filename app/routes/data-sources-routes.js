@@ -1,21 +1,47 @@
 'use strict';
 
 const express = require('express');
+
 const dataSourcesController = require('../controllers/data-sources-controller');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
 router.route('/data-sources')
-    .get(dataSourcesController.retrieveAll)
-    .post(dataSourcesController.create);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        dataSourcesController.retrieveAll
+    )
+    .post(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        dataSourcesController.create
+    );
 
 router.route('/data-sources/:stixId')
-    .get(dataSourcesController.retrieveById);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        dataSourcesController.retrieveById
+    );
 
 router.route('/data-sources/:stixId/modified/:modified')
-    .get(dataSourcesController.retrieveVersionById)
-    .put(dataSourcesController.updateFull)
-    //    .patch(dataSourcesController.updatePartial)
-    .delete(dataSourcesController.delete);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        dataSourcesController.retrieveVersionById
+    )
+    .put(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        dataSourcesController.updateFull
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        dataSourcesController.delete
+    );
 
 module.exports = router;

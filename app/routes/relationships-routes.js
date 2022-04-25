@@ -1,21 +1,47 @@
 'use strict';
 
 const express = require('express');
+
 const relationshipsController = require('../controllers/relationships-controller');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
 router.route('/relationships')
-    .get(relationshipsController.retrieveAll)
-    .post(relationshipsController.create);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        relationshipsController.retrieveAll
+    )
+    .post(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        relationshipsController.create
+    );
 
 router.route('/relationships/:stixId')
-    .get(relationshipsController.retrieveById);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        relationshipsController.retrieveById
+    );
 
 router.route('/relationships/:stixId/modified/:modified')
-    .get(relationshipsController.retrieveVersionById)
-    .put(relationshipsController.updateFull)
-    //    .patch(relationshipsController.updatePartial)
-    .delete(relationshipsController.delete);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher),
+        relationshipsController.retrieveVersionById
+    )
+    .put(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        relationshipsController.updateFull
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        relationshipsController.delete
+    );
 
 module.exports = router;
