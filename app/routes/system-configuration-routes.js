@@ -11,21 +11,21 @@ const router = express.Router();
 router.route('/config/system-version')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         systemConfigurationController.retrieveSystemVersion
     );
 
 router.route('/config/allowed-values')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         systemConfigurationController.retrieveAllowedValues
     );
 
 router.route('/config/organization-identity')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         systemConfigurationController.retrieveOrganizationIdentity
     )
     .post(
@@ -43,7 +43,7 @@ router.route('/config/authn')
 router.route('/config/default-marking-definitions')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         systemConfigurationController.retrieveDefaultMarkingDefinitions
     )
     .post(
@@ -55,7 +55,7 @@ router.route('/config/default-marking-definitions')
 router.route('/config/organization-namespace')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         systemConfigurationController.retrieveOrganizationNamespace
     )
     .post(

@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/references')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         referencesController.retrieveAll
     )
     .post(

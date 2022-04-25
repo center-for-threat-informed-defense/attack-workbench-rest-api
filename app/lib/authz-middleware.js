@@ -1,31 +1,68 @@
 'use strict';
 
+const config = require('../config/config');
 const logger = require('../lib/logger');
 
-const roles = {
+const userRoles = {
     admin: 'admin',
     editor: 'editor',
     visitor: 'visitor'
 }
-exports.roles = roles;
-exports.admin = [ roles.admin ];
-exports.editorOrHigher = [ roles.admin, roles.editor ];
-exports.visitorOrHigher = [ roles.admin, roles.editor, roles.visitor ];
+exports.userRoles = userRoles;
+exports.admin = [ userRoles.admin ];
+exports.editorOrHigher = [ userRoles.admin, userRoles.editor ];
+exports.visitorOrHigher = [ userRoles.admin, userRoles.editor, userRoles.visitor ];
+
+const serviceRoles = {
+    readOnly: 'read-only',
+    collectionManager: 'collection-manager'
+};
+exports.serviceRoles = serviceRoles;
+exports.readOnlyService = [ serviceRoles.readOnly ];
 
 /**
  * This middleware function verifies that a request is authorized.
  */
-exports.requireRole = function(roles) {
+exports.requireRole = function(allowedUserRoles, allowedServiceRoles) {
     return function(req, res, next) {
         if (!req.user) {
             return res.status(401).send('Not authorized');
         }
-        else if (!roles.includes(req.user.role)) {
-            logger.verbose(`User not authorized. User role is ${ req.user.role }`);
-            return res.status(401).send('Not authorized');
+
+        if (req.user.service) {
+            if (req.user.serviceName) {
+                // apikey service
+                const serviceConfig = config.serviceAuthn.apikey.serviceAccounts.find(s => s.name === req.user.serviceName);
+                if (serviceConfig && allowedServiceRoles && allowedServiceRoles.includes(serviceConfig.serviceRole)) {
+                    return next();
+                }
+                else {
+                    logger.verbose(`Service not authorized. Service name is ${ req.user.serviceName }`);
+                    return res.status(401).send('Not authorized');
+                }
+            }
+            else if (req.user.clientId) {
+                // client credentials service
+                const serviceConfig = config.serviceAuthn.oidcClientCredentials.clients.find(c => c.clientId === req.user.clientId);
+                if (serviceConfig && allowedServiceRoles && allowedServiceRoles.includes(serviceConfig.serviceRole)) {
+                    return next();
+                }
+                else {
+                    logger.verbose(`Service not authorized. Client Id is ${ req.user.clientId }`);
+                    return res.status(401).send('Not authorized');
+                }
+            }
+            else {
+                logger.verbose('Service not authorized. Missing serviceName and clientId');
+                return res.status(401).send('Not authorized');
+            }
+        }
+        else if (allowedUserRoles && allowedUserRoles.includes(req.user.role)) {
+            return next();
         }
         else {
-            next();
+            logger.verbose(`User not authorized. User role is ${ req.user.role }`);
+            return res.status(401).send('Not authorized');
         }
     }
 }

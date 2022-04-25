@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/collections')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         collectionsController.retrieveAll
     )
     .post(
@@ -23,7 +23,7 @@ router.route('/collections')
 router.route('/collections/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher,  [ authz.serviceRoles.readOnly, authz.serviceRoles.collectionManager ]),
         collectionsController.retrieveById
     )
     .delete(
@@ -35,7 +35,7 @@ router.route('/collections/:stixId')
 router.route('/collections/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         collectionsController.retrieveVersionById
     );
 

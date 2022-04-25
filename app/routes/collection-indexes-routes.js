@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/collection-indexes')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, [ authz.serviceRoles.readOnly, authz.serviceRoles.collectionManager ]),
         collectionIndexesController.retrieveAll
     )
     .post(
@@ -23,14 +23,14 @@ router.route('/collection-indexes')
 router.route('/collection-indexes/:id')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         collectionIndexesController.retrieveById
     );
 
 router.route('/collection-indexes/:id')
     .put(
         authn.authenticate,
-        authz.requireRole(authz.editorOrHigher),
+        authz.requireRole(authz.editorOrHigher,  [ authz.serviceRoles.collectionManager ]),
         collectionIndexesController.updateFull
     )
     .delete(

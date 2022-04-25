@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/matrices')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         matricesController.retrieveAll
     )
     .post(
@@ -23,14 +23,14 @@ router.route('/matrices')
 router.route('/matrices/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         matricesController.retrieveById
     );
 
 router.route('/matrices/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         matricesController.retrieveVersionById
     )
     .put(

@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/notes')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         notesController.retrieveAll
     )
     .post(
@@ -23,7 +23,7 @@ router.route('/notes')
 router.route('/notes/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         notesController.retrieveById
     )
     .delete(
@@ -35,7 +35,7 @@ router.route('/notes/:stixId')
 router.route('/notes/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         notesController.retrieveVersionById
     )
     .put(

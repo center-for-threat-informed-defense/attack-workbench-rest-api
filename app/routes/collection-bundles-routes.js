@@ -11,12 +11,12 @@ const router = express.Router();
 router.route('/collection-bundles')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         collectionBundlesController.exportBundle
     )
     .post(
         authn.authenticate,
-        authz.requireRole(authz.editorOrHigher),
+        authz.requireRole(authz.editorOrHigher,  [ authz.serviceRoles.collectionManager ]),
         collectionBundlesController.importBundle
     );
 

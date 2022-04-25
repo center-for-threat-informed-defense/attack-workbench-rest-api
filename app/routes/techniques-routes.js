@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/techniques')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         techniquesController.retrieveAll
     )
     .post(
@@ -23,14 +23,14 @@ router.route('/techniques')
 router.route('/techniques/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         techniquesController.retrieveById
     );
 
 router.route('/techniques/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         techniquesController.retrieveVersionById
     )
     .put(

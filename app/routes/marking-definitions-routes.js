@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/marking-definitions')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         markingDefinitionsController.retrieveAll
     )
     .post(
@@ -23,7 +23,7 @@ router.route('/marking-definitions')
 router.route('/marking-definitions/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         markingDefinitionsController.retrieveById
     )
     .put(

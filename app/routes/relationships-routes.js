@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/relationships')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         relationshipsController.retrieveAll
     )
     .post(
@@ -23,14 +23,14 @@ router.route('/relationships')
 router.route('/relationships/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         relationshipsController.retrieveById
     );
 
 router.route('/relationships/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         relationshipsController.retrieveVersionById
     )
     .put(

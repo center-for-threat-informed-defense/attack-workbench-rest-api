@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/software')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         softwareController.retrieveAll
     )
     .post(
@@ -23,14 +23,14 @@ router.route('/software')
 router.route('/software/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         softwareController.retrieveById
     );
 
 router.route('/software/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         softwareController.retrieveVersionById
     )
     .put(

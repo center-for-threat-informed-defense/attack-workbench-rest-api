@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/mitigations')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         mitigationsController.retrieveAll
     )
     .post(
@@ -23,14 +23,14 @@ router.route('/mitigations')
 router.route('/mitigations/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         mitigationsController.retrieveById
     );
 
 router.route('/mitigations/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         mitigationsController.retrieveVersionById
     )
     .put(

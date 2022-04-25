@@ -23,7 +23,7 @@ router.route('/user-accounts')
 router.route('/user-accounts/:id')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.admin),
+        authz.requireRole(authz.editorOrHigher),
         userAccountsController.retrieveById
     )
     .put(

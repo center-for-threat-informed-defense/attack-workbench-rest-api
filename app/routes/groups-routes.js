@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/groups')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         groupsController.retrieveAll
     )
     .post(
@@ -23,14 +23,14 @@ router.route('/groups')
 router.route('/groups/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         groupsController.retrieveById
     );
 
 router.route('/groups/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         groupsController.retrieveVersionById
     )
     .put(

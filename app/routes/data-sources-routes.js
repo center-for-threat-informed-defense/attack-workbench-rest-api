@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/data-sources')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         dataSourcesController.retrieveAll
     )
     .post(
@@ -23,14 +23,14 @@ router.route('/data-sources')
 router.route('/data-sources/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         dataSourcesController.retrieveById
     );
 
 router.route('/data-sources/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         dataSourcesController.retrieveVersionById
     )
     .put(

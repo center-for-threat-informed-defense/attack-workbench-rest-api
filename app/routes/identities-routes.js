@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/identities')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         identitiesController.retrieveAll
     )
     .post(
@@ -23,14 +23,14 @@ router.route('/identities')
 router.route('/identities/:stixId')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         identitiesController.retrieveById
     );
 
 router.route('/identities/:stixId/modified/:modified')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher),
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         identitiesController.retrieveVersionById
     )
     .put(
