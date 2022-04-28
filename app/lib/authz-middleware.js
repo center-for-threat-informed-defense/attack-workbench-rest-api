@@ -15,7 +15,8 @@ exports.visitorOrHigher = [ userRoles.admin, userRoles.editor, userRoles.visitor
 
 const serviceRoles = {
     readOnly: 'read-only',
-    collectionManager: 'collection-manager'
+    collectionManager: 'collection-manager',
+    stixExport: 'stix-export'
 };
 exports.serviceRoles = serviceRoles;
 exports.readOnlyService = [ serviceRoles.readOnly ];
@@ -32,7 +33,14 @@ exports.requireRole = function(allowedUserRoles, allowedServiceRoles) {
         if (req.user.service) {
             if (req.user.serviceName) {
                 // apikey service
-                const serviceConfig = config.serviceAuthn.apikey.serviceAccounts.find(s => s.name === req.user.serviceName);
+                let serviceConfig;
+                if (req.user.strategy === 'bearer') {
+                    serviceConfig = config.serviceAuthn.challengeApikey.serviceAccounts.find(s => s.name === req.user.serviceName);
+                }
+                else if (req.user.strategy === 'basic') {
+                    serviceConfig = config.serviceAuthn.basicApikey.serviceAccounts.find(s => s.name === req.user.serviceName);
+                }
+
                 if (serviceConfig && allowedServiceRoles && allowedServiceRoles.includes(serviceConfig.serviceRole)) {
                     return next();
                 }

@@ -54,6 +54,7 @@
     "openid-client": "^4.7.4",
     "passport": "^0.4.1",
     "passport-anonym-uuid": "^1.0.3",
+    "passport-http": "^0.3.0",
     "passport-http-bearer": "^1.0.1",
     "semver": "^7.3.5",
     "swagger-ui-express": "^4.3.0",

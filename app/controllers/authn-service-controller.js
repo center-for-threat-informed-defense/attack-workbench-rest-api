@@ -31,7 +31,7 @@ exports.errors = errors;
 
 function createChallenge(serviceName) {
     // Verify that the service is on the list of configured services and get the apikey
-    const services = config.serviceAuthn.apikey.serviceAccounts;
+    const services = config.serviceAuthn.challengeApikey.serviceAccounts;
     const service = services.find(s => s.name === serviceName);
     if (!service) {
         throw new Error(errors.serviceNotFound);
@@ -66,14 +66,14 @@ function createToken(serviceName, challengeHash) {
     }
 
     // Create the payload
-    const timeout = config.serviceAuthn.apikey.tokenTimeout;
+    const timeout = config.serviceAuthn.challengeApikey.tokenTimeout;
     const payload = {
         serviceName,
         exp: Math.floor(Date.now() / 1000) + timeout
     };
 
     // Generate the access token and return it
-    const token = jwt.sign(payload, config.serviceAuthn.apikey.secret);
+    const token = jwt.sign(payload, config.serviceAuthn.challengeApikey.secret);
     return { token, expiresIn: timeout };
 }
 

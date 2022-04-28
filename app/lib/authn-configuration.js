@@ -8,8 +8,9 @@ const logger = require('./logger');
 const anonymousConfig = require('./authn-anonymous');
 const oidcConfig = require('./authn-oidc');
 const bearerConfig = require('./authn-bearer');
+const basicConfig = require('./authn-basic');
 
-const availableMechanisms = new Map([['oidc', oidcConfig], ['anonymous', anonymousConfig], ['bearer', bearerConfig]]);
+const availableMechanisms = new Map([['oidc', oidcConfig], ['anonymous', anonymousConfig], ['bearer', bearerConfig], ['basic', basicConfig]]);
 
 exports.passportMiddleware = function() {
     const router = express.Router();
@@ -61,7 +62,10 @@ exports.isUserAuthenticationMechanismEnabled = function(routeMechanism) {
 // This can be used to prevent access to routes that don't match the current configuration
 exports.isServiceAuthenticationMechanismEnabled = function(routeMechanism) {
     return function(req, res, next) {
-        if (routeMechanism === 'apikey' && config.serviceAuthn.apikey.enable) {
+        if (routeMechanism === 'challenge-apikey' && config.serviceAuthn.challengeApikey.enable) {
+            return next();
+        }
+        else if (routeMechanism === 'basic-apikey' && config.serviceAuthn.basicApikey.enable) {
             return next();
         }
         else if (routeMechanism === 'client-credentials' && config.serviceAuthn.oidcClientCredentials.enable) {

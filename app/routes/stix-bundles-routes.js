@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/stix-bundles')
     .get(
         authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        authz.requireRole(authz.visitorOrHigher, [ authz.serviceRoles.readOnly, authz.serviceRoles.stixExport ]),
         stixBundlesController.exportBundle
     );
 

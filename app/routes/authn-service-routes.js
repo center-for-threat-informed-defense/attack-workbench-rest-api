@@ -9,13 +9,13 @@ const router = express.Router();
 
 router.route('/authn/service/apikey-challenge')
     .get(
-        authnConfig.isServiceAuthenticationMechanismEnabled('apikey'),
+        authnConfig.isServiceAuthenticationMechanismEnabled('challenge-apikey'),
         authnServiceController.apikeyGetChallenge
     );
 
 router.route('/authn/service/apikey-token')
     .get(
-        authnConfig.isServiceAuthenticationMechanismEnabled('apikey'),
+        authnConfig.isServiceAuthenticationMechanismEnabled('challenge-apikey'),
         authnServiceController.apikeyGetToken
     );
 

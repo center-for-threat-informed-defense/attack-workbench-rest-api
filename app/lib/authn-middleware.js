@@ -2,6 +2,7 @@
 
 const config = require('../config/config');
 const authnBearer = require('../lib/authn-bearer');
+const authnBasic = require('../lib/authn-basic');
 
 /**
  * This middleware function verifies that a request is authenticated.
@@ -15,10 +16,15 @@ const authnBearer = require('../lib/authn-bearer');
  * when authenticating subsequent requests.
  */
 exports.authenticate = function(req, res, next) {
-    if ((config.serviceAuthn.oidcClientCredentials.enable  || config.serviceAuthn.apikey.enable) && req.get('Authorization')) {
+    if ((config.serviceAuthn.oidcClientCredentials.enable  || config.serviceAuthn.challengeApikey.enable) && req.get('Authorization')) {
         // Authorization header found
         // Authenticate the user using the Bearer token
         authnBearer.authenticate(req, res, next);
+    }
+    else if (config.serviceAuthn.basicApikey.enable && req.get('Authorization')) {
+        // Authorization header found
+        // Authenticate the user using  Basic with apikey
+        authnBasic.authenticate(req, res, next);
     }
     else if (req.isAuthenticated()) {
         // User has been authenticated using a non-Bearer strategy
