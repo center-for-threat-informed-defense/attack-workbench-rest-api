@@ -27,6 +27,8 @@ const config = require('../config/config');
 const async = require('async');
 const systemConfigurationService = require("./system-configuration-service");
 
+const linkById = require('../lib/linkById');
+
 const forceImportParameters = {
     attackSpecVersionViolations: 'attack-spec-version-violations',
     duplicateCollection: 'duplicate-collection'
@@ -648,12 +650,24 @@ async function createBundle(collection, options) {
     // Put the collection object in the bundle
     bundle.objects.push(collection.stix);
 
+    // The attackObjectMap maps attack IDs to  attack objects and is used to make the LinkById conversion
+    // more efficient.
+    const attackObjectMap = new Map();
+
     // Put the contents in the bundle
     for (const attackObject of collection.contents) {
+        // Add the object to the attack map
+        const attackId = linkById.getAttackId(attackObject.stix);
+        if (attackId) {
+            attackObjectMap.set(attackId, attackObject);
+        }
+
+        // And put it in the bundle
         bundle.objects.push(attackObject.stix);
     }
 
     await addDerivedDataSources(bundle.objects);
+    await convertLinkedById(bundle.objects, attackObjectMap);
 
     if (!options.previewOnly) {
         const exportData = {
@@ -794,5 +808,23 @@ async function addDerivedDataSources(bundleObjects) {
                 bundleObject.x_mitre_data_sources = [];
             }
         }
+    }
+}
+
+async function convertLinkedById(bundleObjects, attackObjectMap) {
+    // Create the function to be used by the LinkById conversion process
+    // Note that using this map instead of database retrieval results in a
+    // dramatic performance improvement.
+    const getAttackObjectFromMap = async function (attackId) {
+        let attackObject = attackObjectMap.get(attackId);
+        if (!attackObject) {
+            attackObject = await linkById.getAttackObjectFromDatabase(attackId);
+        }
+        return attackObject;
+    }
+
+    // Convert LinkById tags into markdown citations
+    for (const bundleObject of bundleObjects) {
+        await linkById.convertLinkByIdTags(bundleObject, getAttackObjectFromMap);
     }
 }

@@ -1,6 +1,7 @@
 'use strict';
 
 const AttackObject = require('../models/attack-object-model');
+const config = require('../config/config');
 
 // Default implmentation. Retrieves the attack object from the database.
 async function getAttackObjectFromDatabase(attackId) {
@@ -14,10 +15,9 @@ async function getAttackObjectFromDatabase(attackId) {
 }
 exports.getAttackObjectFromDatabase = getAttackObjectFromDatabase;
 
-const sourceNames = ['mitre-attack', 'mitre-mobile-attack', 'mobile-attack', 'mitre-ics-attack'];
 function attackReference(externalReferences) {
     if (Array.isArray(externalReferences) && externalReferences.length > 0) {
-        return externalReferences.find(ref => sourceNames.includes(ref.source_name));
+        return externalReferences.find(ref => config.attackSourceNames.includes(ref.source_name));
     }
     else {
         return null;
@@ -91,3 +91,14 @@ async function convertLinkByIdTags (stixObject, getAttackObject) {
     }
 }
 exports.convertLinkByIdTags = convertLinkByIdTags;
+
+function getAttackId(stixObject) {
+    if (Array.isArray(stixObject?.external_references)) {
+        const mitreAttackReference = stixObject.external_references.find(externalReference => config.attackSourceNames.includes(externalReference.source_name));
+        return mitreAttackReference?.external_id;
+    }
+    else {
+        return null;
+    }
+}
+exports.getAttackId = getAttackId;

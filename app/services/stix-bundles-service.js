@@ -15,6 +15,7 @@ const Technique = require('../models/technique-model');
 
 const systemConfigurationService = require('./system-configuration-service');
 const linkById = require('../lib/linkById');
+const config = require("../config/config");
 
 const errors = {
     notFound: 'Domain not found',
@@ -37,12 +38,11 @@ function requiresAttackId(attackObject) {
     return attackIdObjectTypes.includes(attackObject?.stix.type);
 }
 
-const sourceNames = ['mitre-attack', 'mitre-mobile-attack', 'mobile-attack', 'mitre-ics-attack'];
 function hasAttackId(attackObject) {
     if (attackObject) {
         const externalReferences = attackObject?.stix?.external_references;
         if (Array.isArray(externalReferences) && externalReferences.length > 0) {
-            const mitreAttackReference = externalReferences.find(ref => sourceNames.includes(ref.source_name));
+            const mitreAttackReference = externalReferences.find(ref => config.attackSourceNames.includes(ref.source_name));
             if (mitreAttackReference?.external_id) {
                 return true;
             }
