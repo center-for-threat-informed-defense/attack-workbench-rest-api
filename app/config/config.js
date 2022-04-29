@@ -253,6 +253,10 @@ function loadConfig() {
                     }
                 }
             }
+        },
+        attackSourceNames: {
+            doc: 'Valid source_name values used in MITRE ATT&CK external_references',
+            default: ['mitre-attack', 'mitre-mobile-attack', 'mobile-attack', 'mitre-ics-attack']
         }
     });
 
