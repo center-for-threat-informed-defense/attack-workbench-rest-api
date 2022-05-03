@@ -1,6 +1,5 @@
 const request = require('supertest');
 const expect = require('expect');
-const crypto = require('crypto');
 
 // Tell config to read from a config file
 process.env.JSON_CONFIG_PATH = './app/tests/authn/basic-apikey-service-account.json';
