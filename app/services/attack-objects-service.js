@@ -1,8 +1,12 @@
 'use strict';
 
+const util = require('util');
+
 const AttackObject = require('../models/attack-object-model');
+const Relationship = require('../models/relationship-model');
 const identitiesService = require('./identities-service');
 const systemConfigurationService = require('./system-configuration-service');
+
 const regexValidator = require('../lib/regex');
 
 const errors = {
@@ -15,7 +19,13 @@ const errors = {
 };
 exports.errors = errors;
 
+const relationshipPrefix = 'relationship';
+
 exports.retrieveAll = async function(options) {
+    // require here to avoid circular dependency
+    const relationshipsService = require('./relationships-service');
+    const retrieveRelationshipsAll = util.promisify(relationshipsService.retrieveAll);
+
     // Build the query
     const query = {};
     if (options.attackId) {
@@ -57,7 +67,18 @@ exports.retrieveAll = async function(options) {
     }
 
     // Retrieve the documents
-    const documents = await AttackObject.aggregate(aggregation);
+    let documents = await AttackObject.aggregate(aggregation);
+
+    // Add relationships from separate collection
+    if (!options.attackId && !options.search) {
+        const relationshipsOptions = {
+            includeRevoked: options.includeRevoked,
+            includeDeprecated: options.includeDeprecated,
+            state: options.state
+        };
+        const relationships = await retrieveRelationshipsAll(relationshipsOptions);
+        documents = documents.concat(relationships);
+    }
 
     // Apply pagination
     const offset = options.offset ?? 0;
@@ -94,6 +115,10 @@ exports.retrieveAll = async function(options) {
 exports.retrieveVersionById = async function(stixId, modified) {
     // Retrieve the version of the attack object with the matching stixId and modified date
 
+    // require here to avoid circular dependency
+    const relationshipsService = require('./relationships-service');
+    const retrieveRelationshipsVersionById = util.promisify(relationshipsService.retrieveVersionById);
+
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -106,17 +131,22 @@ exports.retrieveVersionById = async function(stixId, modified) {
         throw error;
     }
 
-    const attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified })
-        .catch(err => {
-            if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'stixId';
-                throw error;
-            }
-            else {
-                throw err;
-            }
-        });
+    let attackObject;
+    if (stixId.startsWith(relationshipPrefix)) {
+        attackObject = await retrieveRelationshipsVersionById(stixId, modified);
+    }
+    else {
+        attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified })
+            .catch(err => {
+                if (err.name === 'CastError') {
+                    const error = new Error(errors.badlyFormattedParameter);
+                    error.parameterName = 'stixId';
+                    throw error;
+                } else {
+                    throw err;
+                }
+            });
+    }
 
     // Note: attackObject is null if not found
     await identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
@@ -125,7 +155,13 @@ exports.retrieveVersionById = async function(stixId, modified) {
 
 // Record that this object is part of a collection
 exports.insertCollection = async function(stixId, modified, collectionId, collectionModified) {
-    const attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+    let attackObject;
+    if (stixId.startsWith(relationshipPrefix)) {
+        attackObject = await Relationship.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+    }
+    else {
+        attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+    }
 
     if (attackObject) {
         // Create the collection reference
