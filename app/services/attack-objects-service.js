@@ -24,7 +24,6 @@ const relationshipPrefix = 'relationship';
 exports.retrieveAll = async function(options) {
     // require here to avoid circular dependency
     const relationshipsService = require('./relationships-service');
-    const retrieveRelationshipsAll = util.promisify(relationshipsService.retrieveAll);
 
     // Build the query
     const query = {};
@@ -75,9 +74,11 @@ exports.retrieveAll = async function(options) {
             includeRevoked: options.includeRevoked,
             includeDeprecated: options.includeDeprecated,
             state: options.state,
-            versions: 'latest'
+            versions: 'latest',
+            lookupRefs: false,
+            includeIdentities: false
         };
-        const relationships = await retrieveRelationshipsAll(relationshipsOptions);
+        const relationships = await relationshipsService.retrieveAll(relationshipsOptions);
         documents = documents.concat(relationships);
     }
 

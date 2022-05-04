@@ -3,7 +3,7 @@
 const relationshipsService = require('../services/relationships-service');
 const logger = require('../lib/logger');
 
-exports.retrieveAll = function(req, res) {
+exports.retrieveAll = async function(req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
@@ -17,24 +17,25 @@ exports.retrieveAll = function(req, res) {
         sourceType: req.query.sourceType,
         targetType: req.query.targetType,
         versions: req.query.versions || 'latest',
-        includePagination: req.query.includePagination
+        includePagination: req.query.includePagination,
+        lookupRefs: req.query.lookupRefs,
+        includeIdentities: req.query.includeIdentities
     }
 
-    relationshipsService.retrieveAll(options, function(err, results) {
-        if (err) {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get relationships. Server error.');
+    try {
+        const results = await relationshipsService.retrieveAll(options);
+        if (options.includePagination) {
+            logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total relationship(s)`);
         }
         else {
-            if (options.includePagination) {
-                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total relationship(s)`);
-            }
-            else {
-                logger.debug(`Success: Retrieved ${ results.length } relationship(s)`);
-            }
-            return res.status(200).send(results);
+            logger.debug(`Success: Retrieved ${results.length} relationship(s)`);
         }
-    });
+        return res.status(200).send(results);
+    }
+    catch(err) {
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get relationships. Server error.');
+    }
 };
 
 exports.retrieveById = function(req, res) {
