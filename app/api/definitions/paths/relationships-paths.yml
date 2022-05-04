@@ -120,6 +120,23 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: lookupRefs
+          in: query
+          description: |
+            Whether to include the referenced source and target objects.
+            The objects are returned in the `source_object` and `target_object` properties of the returned object.
+            If the `sourceType` or `targetType` query parameters are set, this query parameter must be `true`.
+          schema:
+            type: boolean
+            default: true
+        - name: includeIdentities
+          in: query
+          description: |
+            Whether to include the identity objects referenced by the `created_by_ref` and `x_mitre_modified_by_ref` properties.
+            The objects are returned in the `created_by_identity` and `modified_by_identity` properties of the returned object.
+          schema:
+            type: boolean
+            default: true
       responses:
         '200':
           description: 'A list of relationships.'

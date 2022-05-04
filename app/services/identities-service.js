@@ -320,35 +320,100 @@ async function getLatest(stixId) {
     return identity;
 }
 
-async function addCreatedByAndModifiedByIdentities(attackObject) {
-    if (attackObject && attackObject.stix && attackObject.stix.created_by_ref) {
+async function addCreatedByIdentity(attackObject, cache) {
+    // Use the cache if the caller provides one
+    if (cache) {
+        const identityObject = cache.get(attackObject.stix.created_by_ref);
+        if (identityObject) {
+            attackObject.created_by_identity = identityObject;
+        }
+    }
+
+    if (!attackObject.created_by_identity) {
+        // No cache or not found in cache
         try {
             // eslint-disable-next-line require-atomic-updates
-            attackObject.created_by_identity = await getLatest(attackObject.stix.created_by_ref);
+            const identityObject = await getLatest(attackObject.stix.created_by_ref);
+            attackObject.created_by_identity = identityObject;
+
+            if (cache) {
+                cache.set(attackObject.stix.created_by_ref, identityObject);
+            }
         }
-        catch(err) {
+        catch (err) {
             // Ignore lookup errors
         }
+    }
+}
+
+async function addModifiedByIdentity(attackObject, cache) {
+    // Use the cache if the caller provides one
+    if (cache) {
+        const identityObject = cache.get(attackObject.stix.x_mitre_modified_by_ref);
+        if (identityObject) {
+            attackObject.modified_by_identity = identityObject;
+        }
+    }
+
+    if (!attackObject.modified_by_identity) {
+        // No cache or not found in cache
+        try {
+            // eslint-disable-next-line require-atomic-updates
+            const identityObject = await getLatest(attackObject.stix.x_mitre_modified_by_ref);
+            attackObject.modified_by_identity = identityObject;
+
+            if (cache) {
+                cache.set(attackObject.stix.x_mitre_modified_by_ref, identityObject);
+            }
+        }
+        catch (err) {
+            // Ignore lookup errors
+        }
+    }
+}
+
+async function addCreatedByUserAccountWithCache(attackObject, cache) {
+    const userAccountRef = attackObject?.workspace?.workflow?.created_by_user_account;
+    if (userAccountRef) {
+        // Use the cache if the caller provides one
+        if (cache) {
+            const userAccountObject = cache.get(userAccountRef);
+            if (userAccountObject) {
+                attackObject.created_by_user_account = userAccountObject;
+            }
+        }
+
+        if (!attackObject.created_by_user_account) {
+            // No cache or not found in cache
+            await userAccountsService.addCreatedByUserAccount(attackObject);
+            if (cache) {
+                cache.set(userAccountRef, attackObject.created_by_user_account);
+            }
+        }
+    }
+}
+
+async function addCreatedByAndModifiedByIdentities(attackObject, identityCache, userAccountCache) {
+    if (attackObject && attackObject.stix && attackObject.stix.created_by_ref) {
+        await addCreatedByIdentity(attackObject, identityCache);
     }
 
     if (attackObject && attackObject.stix && attackObject.stix.x_mitre_modified_by_ref) {
-        try {
-            // eslint-disable-next-line require-atomic-updates
-            attackObject.modified_by_identity = await getLatest(attackObject.stix.x_mitre_modified_by_ref);
-        }
-        catch(err) {
-            // Ignore lookup errors
-        }
+        await addModifiedByIdentity(attackObject, identityCache);
     }
 
     // Add user account data
-    await userAccountsService.addCreatedByUserAccount(attackObject);
+    if (attackObject?.workspace?.workflow?.created_by_user_account) {
+        await addCreatedByUserAccountWithCache(attackObject, userAccountCache);
+    }
 }
 exports.addCreatedByAndModifiedByIdentities = addCreatedByAndModifiedByIdentities;
 
 exports.addCreatedByAndModifiedByIdentitiesToAll = async function(attackObjects) {
+    const identityCache = new Map();
+    const userAccountCache = new Map();
     for (const attackObject of attackObjects) {
         // eslint-disable-next-line no-await-in-loop
-        await addCreatedByAndModifiedByIdentities(attackObject);
+        await addCreatedByAndModifiedByIdentities(attackObject, identityCache, userAccountCache);
     }
 }

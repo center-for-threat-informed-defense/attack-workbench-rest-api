@@ -134,6 +134,23 @@ const softwareData = {
     }
 };
 
+const relationshipData = {
+    workspace: {
+        workflow: {
+            state: 'work-in-progress'
+        }
+    },
+    stix: {
+        spec_version: '2.1',
+        type: 'relationship',
+        relationship_type: 'uses',
+        source_ref: '',
+        target_ref: '',
+        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+        created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab"
+    }
+};
+
 const tacticData = {
     workspace: {
         workflow: {
@@ -271,6 +288,7 @@ describe('ATT&CK Objects API', function () {
             });
     });
 
+    let group;
     it('POST /api/groups creates a group', function (done) {
         const timestamp = new Date().toISOString();
         groupData.stix.created = timestamp;
@@ -289,8 +307,9 @@ describe('ATT&CK Objects API', function () {
                 }
                 else {
                     // We expect to get the created group
-                    const group = res.body;
+                    group = res.body;
                     expect(group).toBeDefined();
+
                     done();
                 }
             });
@@ -370,6 +389,7 @@ describe('ATT&CK Objects API', function () {
             });
     });
 
+    let software;
     it('POST /api/software creates a software', function (done) {
         const timestamp = new Date().toISOString();
         softwareData.stix.created = timestamp;
@@ -388,8 +408,35 @@ describe('ATT&CK Objects API', function () {
                 }
                 else {
                     // We expect to get the created software
-                    const software = res.body;
+                    software = res.body;
                     expect(software).toBeDefined();
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/relationship creates a relationship from the group to the software', function (done) {
+        const timestamp = new Date().toISOString();
+        relationshipData.stix.created = timestamp;
+        relationshipData.stix.modified = timestamp;
+        relationshipData.stix.source_ref = group.stix.id;
+        relationshipData.stix.target_ref = software.stix.id
+        const body = relationshipData;
+        request(app)
+            .post('/api/relationships')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created software
+                    const relationship = res.body;
+                    expect(relationship).toBeDefined();
                     done();
                 }
             });
@@ -460,7 +507,7 @@ describe('ATT&CK Objects API', function () {
                     const attackObjects = res.body;
                     expect(attackObjects).toBeDefined();
                     expect(Array.isArray(attackObjects)).toBe(true);
-                    expect(attackObjects.length).toBe(13);
+                    expect(attackObjects.length).toBe(14);
                     done();
                 }
             });
