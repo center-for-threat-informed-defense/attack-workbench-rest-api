@@ -1,12 +1,12 @@
 {
   "serviceAuthn": {
-    "apikey": {
+    "basicApikey": {
       "enable": true,
       "serviceAccounts": [
         {
           "name": "apikey-test-service",
           "apikey": "xyzzy",
-          "serviceRole": "read-only"
+          "serviceRole": "stix-export"
         }
       ]
     }

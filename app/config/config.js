@@ -25,7 +25,7 @@ const defaultTokenSigningSecret = generateSecret();
 const userAuthnMechanismValues = ['anonymous', 'oidc'];
 convict.addFormat(enumFormat('user-authn-mechanism', userAuthnMechanismValues, true));
 
-const serviceRoleValues = ['read-only', 'collection-manager'];
+const serviceRoleValues = ['read-only', 'collection-manager', 'stix-export'];
 convict.addFormat(enumFormat('service-role', serviceRoleValues, true));
 
 // Creates a new convict format for a list of enumerated values
@@ -212,26 +212,56 @@ function loadConfig() {
                     }
                 }
             },
-            apikey: {
+            challengeApikey: {
                 enable: {
-                    doc: 'Enable apikey authentication for service accounts',
+                    doc: 'Enable apikey authentication for service accounts (challenge)',
                     format: Boolean,
                     default: false,
-                    env: 'SERVICE_ACCOUNT_APIKEY_ENABLE'
+                    env: 'WB_REST_SERVICE_ACCOUNT_CHALLENGE_APIKEY_ENABLE'
                 },
                 secret: {
                     doc: 'Secret used to sign the tokens issued to service accounts',
                     default: defaultTokenSigningSecret,
-                    env: 'TOKEN_SIGNING_SECRET'
+                    env: 'WB_REST_TOKEN_SIGNING_SECRET'
                 },
                 tokenTimeout: {
                     doc: 'Access token timeout in seconds',
                     format: 'int',
                     default: 300,
-                    env: 'TOKEN_TIMEOUT'
+                    env: 'WB_REST_TOKEN_TIMEOUT'
                 },
                 serviceAccounts: {
-                    doc: 'Services accounts that may access the REST API',
+                    doc: 'Services accounts that may access the REST API (with challenge)',
+                    format: 'service-account',
+                    default: [],
+                    children: {
+                        name: {
+                            doc: 'Name of the service account',
+                            format: String,
+                            default: null
+                        },
+                        apikey: {
+                            doc: 'apikey of the service account (shared secret)',
+                            format: String,
+                            default: null
+                        },
+                        serviceRole: {
+                            doc: 'The role determines which endpoints the service is permitted to access',
+                            format: 'service-role',
+                            default: 'read-only'
+                        }
+                    }
+                }
+            },
+            basicApikey: {
+                enable: {
+                    doc: 'Enable apikey authentication for service accounts (no challenge)',
+                    format: Boolean,
+                    default: false,
+                    env: 'WB_REST_SERVICE_ACCOUNT_BASIC_APIKEY_ENABLE'
+                },
+                serviceAccounts: {
+                    doc: 'Services accounts that may access the REST API using basic apikey',
                     format: 'service-account',
                     default: [],
                     children: {

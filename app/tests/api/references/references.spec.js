@@ -3,6 +3,7 @@ const expect = require('expect');
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -31,6 +32,7 @@ const initialObjectData3 = {
 
 describe('References API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -45,12 +47,16 @@ describe('References API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/references returns an empty array of references', function (done) {
             request(app)
                 .get('/api/references')
                 .set('Accept', 'application/json')
+                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .end(function (err, res) {
@@ -73,6 +79,7 @@ describe('References API', function () {
             .post('/api/references')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -91,6 +98,7 @@ describe('References API', function () {
             .post('/api/references')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -113,6 +121,7 @@ describe('References API', function () {
             .post('/api/references')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -135,6 +144,7 @@ describe('References API', function () {
             .post('/api/references')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -154,6 +164,7 @@ describe('References API', function () {
         request(app)
             .get('/api/references')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -175,6 +186,7 @@ describe('References API', function () {
         request(app)
             .get('/api/references?sourceName=notasourcename')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .end(function (err, res) {
                 if (err) {
@@ -195,6 +207,7 @@ describe('References API', function () {
         request(app)
             .get('/api/references?sourceName=' + encodeURIComponent(reference1.source_name))
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -223,6 +236,7 @@ describe('References API', function () {
         request(app)
             .get('/api/references?search=' + encodeURIComponent('#3'))
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -254,6 +268,7 @@ describe('References API', function () {
             .put('/api/references')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -277,6 +292,7 @@ describe('References API', function () {
             .post('/api/references')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(409)
             .end(function(err, res) {
                 if (err) {

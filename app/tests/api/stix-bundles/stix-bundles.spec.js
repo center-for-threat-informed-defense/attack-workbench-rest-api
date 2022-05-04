@@ -6,6 +6,7 @@ logger.level = 'debug';
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
+const login = require('../../shared/login');
 
 const enterpriseDomain = 'enterprise-attack';
 const mobileDomain = 'mobile-attack';
@@ -477,6 +478,7 @@ const initialObjectData = {
 
 describe('STIX Bundles Basic API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -488,6 +490,9 @@ describe('STIX Bundles Basic API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('POST /api/collection-bundles imports a collection bundle', function (done) {
@@ -496,6 +501,7 @@ describe('STIX Bundles Basic API', function () {
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function (err, res) {
@@ -517,6 +523,7 @@ describe('STIX Bundles Basic API', function () {
         request(app)
             .get('/api/stix-bundles?domain=not-a-domain')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .end(function (err, res) {
                 if (err) {
@@ -536,6 +543,7 @@ describe('STIX Bundles Basic API', function () {
         request(app)
             .get(`/api/stix-bundles?domain=${ enterpriseDomain }&includeNotes=true`)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -560,6 +568,7 @@ describe('STIX Bundles Basic API', function () {
         request(app)
             .get(`/api/stix-bundles?domain=${ enterpriseDomain }&includeDeprecated=true&includeNotes=true`)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -584,6 +593,7 @@ describe('STIX Bundles Basic API', function () {
         request(app)
             .get(`/api/stix-bundles?domain=${ mobileDomain }`)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -607,6 +617,7 @@ describe('STIX Bundles Basic API', function () {
         request(app)
             .get(`/api/stix-bundles?domain=${ icsDomain }`)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

@@ -101,14 +101,18 @@ exports.initializeApp = async function() {
     }
 
     // Configure passport for service authentication if enabled
-    if (config.serviceAuthn.oidcClientCredentials.enable || config.serviceAuthn.apikey.enable) {
+    if (config.serviceAuthn.oidcClientCredentials.enable || config.serviceAuthn.challengeApikey.enable) {
         await authnConfiguration.configurePassport('bearer');
     }
     if (config.serviceAuthn.oidcClientCredentials.enable) {
         logger.info('Enabled service authentication: client credentials');
     }
-    if (config.serviceAuthn.apikey.enable) {
-        logger.info('Enabled service authentication: apikey');
+    if (config.serviceAuthn.challengeApikey.enable) {
+        logger.info('Enabled service authentication: challenge apikey');
+    }
+    if (config.serviceAuthn.basicApikey.enable) {
+        await authnConfiguration.configurePassport('basic');
+        logger.info('Enabled service authentication: basic apikey');
     }
 
     // Set up the api routes

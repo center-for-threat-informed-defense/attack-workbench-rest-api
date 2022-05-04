@@ -143,14 +143,14 @@ This will generally be handled automatically by the browser.
 
 ## Service Authentication
 
-The REST API support two methods of authenticating services: API Key Authentication and OIDC Client Credentials Flow.
-Both enable the service to provide an access token in requests in order to access resources, but differ in how the access token is obtained.
+The REST API supports three methods of authenticating services: API Key Challenge Authentication, API Key Basic Authentication, and OIDC Client Credentials Flow.
+Both API key challenge authentication and OIDC Client Credentials Flow enable the service to provide an access token in requests in order to access resources, but differ in how the access token is obtained.
 
-### API Key Authentication
+### API Key Challenge Authentication
 
-API key authentication works by configuring both the REST API and the service with a secret value that is used to authenticate the service to the REST API.
+API Key Challenge authentication works by configuring both the REST API and the service with a secret value (API key) that is used to authenticate the service to the REST API.
 
-Note: Rather than allow a service to use its API key directly in requests to the REST API, a service is required to use the api key to obtain an access token in the form of a JSON Web Token (JWT).
+Note: Rather than allow a service to use its API key directly in requests to the REST API, with this method a service is required to use the api key to obtain an access token in the form of a JSON Web Token (JWT).
 The JWT must then be provided in subsequent requests.
 The use of a JWT allows for a login session to expire, forcing the service to periodically obtain a new token.
 
@@ -193,6 +193,17 @@ Sample response:
 }
 ```
 
+### API Key Basic Authentication
+
+API Key Basic authentication works by configuring both the REST API and the service with a secret value (API key) that is used to authenticate the service to the REST API.
+This value, along with the configured service name, must be provided with each request in the form of a HTTP Basic Authorization header.
+The service name and API key are used as the userid and password.
+
+This method is more vulnerable than other methods but is simpler to implement in a client service. If this method is used, the following configuration steps are recommended:
+
+  * Because the API key is passed in each request, the server should be configured with HTTPS.
+  * Services that are configured to use this method should be configured with a role that allows access to a limited set of endpoints.
+
 ### OIDC Client Credentials Flow Authentication
 
 As an alternative to the API key authentication method, the REST API supports authenticating using the OIDC Client Credentials Flow.
@@ -209,11 +220,23 @@ This may differ for other vendors.
 
 ### Authenticating REST API Calls
 
-The access token (JWT), whether obtained through the API key or OIDC Client Credentials Flow authentication method, must be provided on all REST API calls in order to authenticate the service.
+#### API Key Challenge and OIDC Client Credentials Flow Authentication
+
+When using the API Key Challenge or OIDC Client Credentials Flow authentication method, the access token (JWT) must be provided on all REST API calls in order to authenticate the service.
 The JWT must be provided using the `Authorization` header with the `Bearer` authentication scheme:
 
 Sample request
 ```
 GET /api/techniques
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXJ2aWNlTmFtZSI6ImFwaWtleS10ZXN0LXNlcnZpY2UiLCJleHAiOjE2Mzk2MDQ5NDEsImlhdCI6MTYzOTYwNDY0MX0.QHPTHMzceeONvMdPpr2h6tCBwrpkpGydOV6i0DUhNMw
+```
+
+#### API Key Basic Authentication
+When using the API Key Basic authentication method, the API Key must be provided on all REST API calls in order to authenticate the service.
+The API Key must be provided using the `Authorization` header with the `Basic` authentication scheme. The service name and API key must be base-64 encoded.
+
+Sample request
+```
+GET /api/stix-bundles?domain=mobile-attack
+Authorization: Basic YXBpa2V5LXRlc3Qtc2VydmljZTp4eXp6eQ==
 ```

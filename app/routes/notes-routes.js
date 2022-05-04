@@ -1,26 +1,52 @@
 'use strict';
 
 const express = require('express');
+
 const notesController = require('../controllers/notes-controller');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
 router.route('/notes')
     .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         notesController.retrieveAll
     )
     .post(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
         notesController.create
     );
 
 router.route('/notes/:stixId')
-    .get(notesController.retrieveById)
-    .delete(notesController.delete);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        notesController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        notesController.delete
+    );
 
 router.route('/notes/:stixId/modified/:modified')
-    .get(notesController.retrieveVersionById)
-    .put(notesController.updateVersion)
-    //    .patch(notesController.updatePartial)
-    .delete(notesController.deleteVersion);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        notesController.retrieveVersionById
+    )
+    .put(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        notesController.updateVersion
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        notesController.deleteVersion
+    );
 
 module.exports = router;

@@ -1,21 +1,47 @@
 'use strict';
 
 const express = require('express');
+
 const softwareController = require('../controllers/software-controller');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
 router.route('/software')
-    .get(softwareController.retrieveAll)
-    .post(softwareController.create);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        softwareController.retrieveAll
+    )
+    .post(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        softwareController.create
+    );
 
 router.route('/software/:stixId')
-    .get(softwareController.retrieveById);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        softwareController.retrieveById
+    );
 
 router.route('/software/:stixId/modified/:modified')
-    .get(softwareController.retrieveVersionById)
-    .put(softwareController.updateFull)
-//    .patch(softwareController.updatePartial)
-    .delete(softwareController.delete);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        softwareController.retrieveVersionById
+    )
+    .put(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        softwareController.updateFull
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        softwareController.delete
+    );
 
 module.exports = router;

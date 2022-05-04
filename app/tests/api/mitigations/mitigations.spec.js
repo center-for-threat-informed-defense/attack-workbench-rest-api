@@ -6,6 +6,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -34,6 +35,7 @@ const initialObjectData = {
 
 describe('Mitigations API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -45,12 +47,16 @@ describe('Mitigations API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/mitigations returns an empty array of mitigations', function (done) {
         request(app)
             .get('/api/mitigations')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -74,6 +80,7 @@ describe('Mitigations API', function () {
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -95,6 +102,7 @@ describe('Mitigations API', function () {
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -120,6 +128,7 @@ describe('Mitigations API', function () {
         request(app)
             .get('/api/mitigations')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -141,6 +150,7 @@ describe('Mitigations API', function () {
         request(app)
             .get('/api/mitigations/not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -155,6 +165,7 @@ describe('Mitigations API', function () {
         request(app)
             .get('/api/mitigations/' + mitigation1.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -196,6 +207,7 @@ describe('Mitigations API', function () {
             .put('/api/mitigations/' + mitigation1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -219,6 +231,7 @@ describe('Mitigations API', function () {
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(409)
             .end(function(err, res) {
                 if (err) {
@@ -243,6 +256,7 @@ describe('Mitigations API', function () {
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -262,6 +276,7 @@ describe('Mitigations API', function () {
         request(app)
             .get('/api/mitigations/' + mitigation2.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -286,6 +301,7 @@ describe('Mitigations API', function () {
         request(app)
             .get('/api/mitigations/' + mitigation1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -307,6 +323,7 @@ describe('Mitigations API', function () {
         request(app)
             .get('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -329,6 +346,7 @@ describe('Mitigations API', function () {
         request(app)
             .get('/api/mitigations/' + mitigation2.stix.id + '/modified/' + mitigation2.stix.modified)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -350,6 +368,7 @@ describe('Mitigations API', function () {
     it('DELETE /api/mitigations deletes a mitigation', function (done) {
         request(app)
             .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -364,6 +383,7 @@ describe('Mitigations API', function () {
     it('DELETE /api/mitigations should delete the second mitigation', function (done) {
         request(app)
             .delete('/api/mitigations/' + mitigation2.stix.id + '/modified/' + mitigation2.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -379,6 +399,7 @@ describe('Mitigations API', function () {
         request(app)
             .get('/api/mitigations')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

@@ -5,6 +5,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
+const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -28,6 +29,7 @@ const initialObjectData = {
 
 describe('Marking Definitions API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -39,12 +41,16 @@ describe('Marking Definitions API', function () {
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/marking-definitions returns the pre-defined marking definitions', function (done) {
         request(app)
             .get('/api/marking-definitions')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -68,6 +74,7 @@ describe('Marking Definitions API', function () {
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -88,6 +95,7 @@ describe('Marking Definitions API', function () {
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -113,6 +121,7 @@ describe('Marking Definitions API', function () {
         request(app)
             .get('/api/marking-definitions')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -137,6 +146,7 @@ describe('Marking Definitions API', function () {
         request(app)
             .get('/api/marking-definitions/not-an-id')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -151,6 +161,7 @@ describe('Marking Definitions API', function () {
         request(app)
             .get('/api/marking-definitions/' + markingDefinition1.stix.id)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -188,6 +199,7 @@ describe('Marking Definitions API', function () {
             .put('/api/marking-definitions/' + markingDefinition1.stix.id)
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -210,6 +222,7 @@ describe('Marking Definitions API', function () {
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
             .end(function(err, res) {
                 if (err) {
@@ -224,6 +237,7 @@ describe('Marking Definitions API', function () {
     it('DELETE /api/marking-definitions deletes a marking definition', function (done) {
         request(app)
             .delete('/api/marking-definitions/' + markingDefinition1.stix.id)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
                 if (err) {
@@ -239,6 +253,7 @@ describe('Marking Definitions API', function () {
         request(app)
             .get('/api/marking-definitions')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

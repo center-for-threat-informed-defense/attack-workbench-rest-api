@@ -1,34 +1,41 @@
 'use strict';
 
 const express = require('express');
+
 const collectionIndexesController = require('../controllers/collection-indexes-controller');
-//const authnService = require('../services/authn-service');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
 router.route('/collection-indexes')
     .get(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, [ authz.serviceRoles.readOnly, authz.serviceRoles.collectionManager ]),
         collectionIndexesController.retrieveAll
     )
     .post(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
         collectionIndexesController.create
     );
 
 router.route('/collection-indexes/:id')
     .get(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         collectionIndexesController.retrieveById
     );
 
 router.route('/collection-indexes/:id')
     .put(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher,  [ authz.serviceRoles.collectionManager ]),
         collectionIndexesController.updateFull
     )
     .delete(
-//        authnService.authenticate,
+        authn.authenticate,
+        authz.requireRole(authz.admin),
         collectionIndexesController.delete
     );
 

@@ -71,14 +71,14 @@ exports.getStrategy = function() {
 
 function verifyApikeyToken(token, done) {
     // Do not attempt to verify the token unless apikey authentication is enabled
-    if (!config.serviceAuthn.apikey.enable) {
+    if (!config.serviceAuthn.challengeApikey.enable) {
         return done(null, false, { message: 'Authentication mechanism not found' });
     }
 
     let payload;
     try {
         // Verify that the token is valid and extract the payload
-        payload = jwt.verify(token, config.serviceAuthn.apikey.secret, { algorithms: ['HS256'] });
+        payload = jwt.verify(token, config.serviceAuthn.challengeApikey.secret, { algorithms: ['HS256'] });
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
             return done(null, false, { message: 'Token expired' });
@@ -171,7 +171,8 @@ function makeUserSession(clientId, serviceName) {
     const userSession = {
         strategy: 'bearer',
         clientId,
-        serviceName
+        serviceName,
+        service: true
     };
 
     return userSession;

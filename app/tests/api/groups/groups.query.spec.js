@@ -5,6 +5,8 @@ const expect = require('expect');
 const _ = require('lodash');
 const uuid = require('uuid');
 
+const login = require('../../shared/login');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -117,6 +119,7 @@ async function loadGroups(groups) {
 
 describe('Groups API Queries', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -129,6 +132,9 @@ describe('Groups API Queries', function () {
         // Initialize the express app
         app = await require('../../../index').initializeApp();
 
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
+
         const baseGroup = await readJson('./groups.query.json');
         const groups = await configureGroups(baseGroup);
         await loadGroups(groups);
@@ -138,6 +144,7 @@ describe('Groups API Queries', function () {
         request(app)
             .get('/api/groups')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -159,6 +166,7 @@ describe('Groups API Queries', function () {
         request(app)
             .get('/api/groups?includeDeprecated=false')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -180,6 +188,7 @@ describe('Groups API Queries', function () {
         request(app)
             .get('/api/groups?includeDeprecated=true')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -201,6 +210,7 @@ describe('Groups API Queries', function () {
         request(app)
             .get('/api/groups?includeRevoked=false')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -222,6 +232,7 @@ describe('Groups API Queries', function () {
         request(app)
             .get('/api/groups?includeRevoked=true')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -243,6 +254,7 @@ describe('Groups API Queries', function () {
         request(app)
             .get('/api/groups?state=work-in-progress')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -268,6 +280,7 @@ describe('Groups API Queries', function () {
         request(app)
             .get('/api/groups?search=G0001')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {

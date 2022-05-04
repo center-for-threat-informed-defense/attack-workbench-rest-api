@@ -1,21 +1,47 @@
 'use strict';
 
 const express = require('express');
+
 const mitigationsController = require('../controllers/mitigations-controller');
+const authn = require('../lib/authn-middleware');
+const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
 router.route('/mitigations')
-    .get(mitigationsController.retrieveAll)
-    .post(mitigationsController.create);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        mitigationsController.retrieveAll
+    )
+    .post(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        mitigationsController.create
+    );
 
 router.route('/mitigations/:stixId')
-    .get(mitigationsController.retrieveById);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        mitigationsController.retrieveById
+    );
 
 router.route('/mitigations/:stixId/modified/:modified')
-    .get(mitigationsController.retrieveVersionById)
-    .put(mitigationsController.updateFull)
-//    .patch(mitigationsController.updatePartial)
-    .delete(mitigationsController.delete);
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        mitigationsController.retrieveVersionById
+    )
+    .put(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        mitigationsController.updateFull
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        mitigationsController.delete
+    );
 
 module.exports = router;

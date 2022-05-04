@@ -303,30 +303,30 @@ describe('OIDC User Account Registration', function () {
             });
     });
 
-    it('GET /api/user-accounts/:id returns the added user account', function (done) {
-        request(app)
-            .get('/api/user-accounts/' + userAccount.id)
-            .set('Accept', 'application/json')
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get one user account in an array
-                    const retrievedUserAccount = res.body;
-                    expect(retrievedUserAccount).toBeDefined();
-                    expect(retrievedUserAccount.id).toBe(userAccount.id);
-                    expect(retrievedUserAccount.email).toBe(userAccount.email);
-                    expect(retrievedUserAccount.username).toBe(userAccount.username);
-                    expect(retrievedUserAccount.displayName).toBe(userAccount.displayName);
-                    expect(retrievedUserAccount.status).toBe(userAccount.status);
-                    expect(retrievedUserAccount.role).toBe(userAccount.role);
-
-                    done();
-                }
-            });
-    });
+    // it('GET /api/user-accounts/:id returns the added user account', function (done) {
+    //     request(app)
+    //         .get('/api/user-accounts/' + userAccount.id)
+    //         .set('Accept', 'application/json')
+    //         .expect(200)
+    //         .expect('Content-Type', /json/)
+    //         .end(function (err, res) {
+    //             if (err) {
+    //                 done(err);
+    //             } else {
+    //                 // We expect to get one user account in an array
+    //                 const retrievedUserAccount = res.body;
+    //                 expect(retrievedUserAccount).toBeDefined();
+    //                 expect(retrievedUserAccount.id).toBe(userAccount.id);
+    //                 expect(retrievedUserAccount.email).toBe(userAccount.email);
+    //                 expect(retrievedUserAccount.username).toBe(userAccount.username);
+    //                 expect(retrievedUserAccount.displayName).toBe(userAccount.displayName);
+    //                 expect(retrievedUserAccount.status).toBe(userAccount.status);
+    //                 expect(retrievedUserAccount.role).toBe(userAccount.role);
+    //
+    //                 done();
+    //             }
+    //         });
+    // });
 
     it('POST /api/user-accounts/register does not register a user when logged out', function (done) {
         request(app)

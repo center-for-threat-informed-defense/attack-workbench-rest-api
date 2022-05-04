@@ -5,6 +5,8 @@ const expect = require('expect');
 const _ = require('lodash');
 const uuid = require('uuid');
 
+const login = require('../../shared/login');
+
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
@@ -125,6 +127,7 @@ async function loadTechniques(techniques) {
 
 describe('Techniques Query API', function () {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -140,12 +143,16 @@ describe('Techniques Query API', function () {
         const baseTechnique = await readJson('./techniques.query.json');
         const techniques = await configureTechniques(baseTechnique);
         await loadTechniques(techniques);
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     it('GET /api/techniques should return the preloaded techniques (not deprecated, not revoked)', function (done) {
         request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -167,6 +174,7 @@ describe('Techniques Query API', function () {
         request(app)
             .get('/api/techniques?includeDeprecated=false')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -188,6 +196,7 @@ describe('Techniques Query API', function () {
         request(app)
             .get('/api/techniques?includeDeprecated=true')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -209,6 +218,7 @@ describe('Techniques Query API', function () {
         request(app)
             .get('/api/techniques?includeRevoked=false')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -230,6 +240,7 @@ describe('Techniques Query API', function () {
         request(app)
             .get('/api/techniques?includeRevoked=true')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -251,6 +262,7 @@ describe('Techniques Query API', function () {
         request(app)
             .get('/api/techniques?state=work-in-progress')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
@@ -272,6 +284,7 @@ describe('Techniques Query API', function () {
         request(app)
             .get('/api/techniques?state=work-in-progress&state=reviewed')
             .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
             .end(function(err, res) {
