@@ -74,7 +74,8 @@ exports.retrieveAll = async function(options) {
         const relationshipsOptions = {
             includeRevoked: options.includeRevoked,
             includeDeprecated: options.includeDeprecated,
-            state: options.state
+            state: options.state,
+            versions: 'latest'
         };
         const relationships = await retrieveRelationshipsAll(relationshipsOptions);
         documents = documents.concat(relationships);
