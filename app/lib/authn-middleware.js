@@ -15,15 +15,19 @@ const authnBasic = require('../lib/authn-basic');
  * Those strategies rely on the existence of the session cookie and the corresponding server session object
  * when authenticating subsequent requests.
  */
+const bearerScheme = 'bearer';
+const basicScheme = 'basic';
 exports.authenticate = function(req, res, next) {
-    if ((config.serviceAuthn.oidcClientCredentials.enable  || config.serviceAuthn.challengeApikey.enable) && req.get('Authorization')) {
+    const authzHeader = req.get('Authorization');
+    const authzScheme = getScheme(authzHeader);
+    if ((config.serviceAuthn.oidcClientCredentials.enable  || config.serviceAuthn.challengeApikey.enable) && (authzHeader && authzScheme === bearerScheme)) {
         // Authorization header found
-        // Authenticate the user using the Bearer token
+        // Authenticate the service using the Bearer token
         authnBearer.authenticate(req, res, next);
     }
-    else if (config.serviceAuthn.basicApikey.enable && req.get('Authorization')) {
+    else if (config.serviceAuthn.basicApikey.enable && (authzHeader && authzScheme === basicScheme)) {
         // Authorization header found
-        // Authenticate the user using  Basic with apikey
+        // Authenticate the service using Basic Authentication with apikey
         authnBasic.authenticate(req, res, next);
     }
     else if (req.isAuthenticated()) {
@@ -32,5 +36,14 @@ exports.authenticate = function(req, res, next) {
     }
     else {
         return res.status(401).send('Not authorized');
+    }
+}
+
+function getScheme(authorizationHeader) {
+    if (authorizationHeader) {
+        return authorizationHeader.split(' ')[0].toLowerCase();
+    }
+    else {
+        return null;
     }
 }
