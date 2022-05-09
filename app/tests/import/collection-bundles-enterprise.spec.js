@@ -9,6 +9,8 @@ const database = require('../../lib/database-in-memory');
 const databaseConfiguration = require('../../lib/database-configuration');
 const path = require("path");
 
+const login = require('../shared/login');
+
 const testFilePath = './test-files';
 
 // Get a list of collection bundle filenames in the test-files sub-directory
@@ -30,6 +32,7 @@ async function readJson(filePath) {
 
 describe('Collection Bundles API Full-Size Test', function() {
     let app;
+    let passportCookie;
 
     before(async function() {
         // Establish the database connection
@@ -41,6 +44,9 @@ describe('Collection Bundles API Full-Size Test', function() {
 
         // Initialize the express app
         app = await require('../../index').initializeApp();
+
+        // Log into the app
+        passportCookie = await login.loginAnonymous(app);
     });
 
     // Create one test suite for each collection bundle
@@ -60,6 +66,7 @@ describe('Collection Bundles API Full-Size Test', function() {
                     .post('/api/collection-bundles?checkOnly=true')
                     .send(body)
                     .set('Accept', 'application/json')
+                    .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                     .expect(201)
                     .expect('Content-Type', /json/);
 
@@ -78,6 +85,7 @@ describe('Collection Bundles API Full-Size Test', function() {
                     .post('/api/collection-bundles?previewOnly=true')
                     .send(body)
                     .set('Accept', 'application/json')
+                    .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                     .expect(201)
                     .expect('Content-Type', /json/);
 
@@ -96,6 +104,7 @@ describe('Collection Bundles API Full-Size Test', function() {
                     .post('/api/collection-bundles')
                     .send(body)
                     .set('Accept', 'application/json')
+                    .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                     .expect(201)
                     .expect('Content-Type', /json/);
 
@@ -112,6 +121,7 @@ describe('Collection Bundles API Full-Size Test', function() {
                 const res = await request(app)
                     .get(`/api/stix-bundles?domain=${ domain }`)
                     .set('Accept', 'application/json')
+                    .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
                     .expect(200)
                     .expect('Content-Type', /json/);
 
