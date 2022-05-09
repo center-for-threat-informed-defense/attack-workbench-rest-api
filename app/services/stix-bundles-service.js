@@ -89,6 +89,20 @@ function conformToStixVersion(stixObject, stixVersion) {
             stixObject.is_family = stixObject.is_family ?? true;
         }
     }
+
+    // Remove empty arrays
+    if (Array.isArray(stixObject.x_mitre_contributors) && stixObject.x_mitre_contributors.length === 0) {
+        delete stixObject['x_mitre_contributors'];
+    }
+    if (Array.isArray(stixObject.x_mitre_platforms) && stixObject.x_mitre_platforms.length === 0) {
+        delete stixObject['x_mitre_platforms'];
+    }
+    if (Array.isArray(stixObject.x_mitre_aliases) && stixObject.x_mitre_aliases.length === 0) {
+        delete stixObject['x_mitre_aliases'];
+    }
+    if (Array.isArray(stixObject.x_mitre_domains) && stixObject.x_mitre_domains.length === 0) {
+        delete stixObject['x_mitre_domains'];
+    }
 }
 
 exports.exportBundle = async function(options) {
