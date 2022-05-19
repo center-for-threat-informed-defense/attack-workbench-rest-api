@@ -14,6 +14,7 @@
 'use strict';
 
 const AttackObject = require('../app/models/attack-object-model');
+const Relationship = require('../app/models/relationship-model');
 const Reference = require('../app/models/reference-model');
 
 async function clearDatabase() {
@@ -23,6 +24,9 @@ async function clearDatabase() {
 
     let result = await AttackObject.deleteMany();
     console.log(`Deleted ${ result.deletedCount } objects from the attackObjects collection.`);
+
+    result = await Relationship.deleteMany();
+    console.log(`Deleted ${ result.deletedCount } objects from the relationships collection.`);
 
     result = await Reference.deleteMany();
     console.log(`Deleted ${ result.deletedCount } objects from the references collection.`);
