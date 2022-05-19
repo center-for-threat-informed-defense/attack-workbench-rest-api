@@ -369,8 +369,8 @@ exports.exportBundle = async function(options) {
     const icsDataSourceValues = await systemConfigurationService.retrieveAllowedValuesForTypePropertyDomain('technique', 'x_mitre_data_sources', 'ics-attack');
     for (const bundleObject of bundle.objects) {
         if (bundleObject.type === 'attack-pattern') {
-            const enterpriseDomain = bundleObject.x_mitre_domains.find(domain => domain === 'enterprise-attack');
-            const icsDomain = bundleObject.x_mitre_domains.find(domain => domain === 'attack-ics');
+            const enterpriseDomain = bundleObject.x_mitre_domains.includes('enterprise-attack');
+            const icsDomain = bundleObject.x_mitre_domains.includes('ics-attack');
             if (enterpriseDomain && !icsDomain) {
                 // Remove any existing data source string entries
                 bundleObject.x_mitre_data_sources = [];
@@ -399,11 +399,13 @@ exports.exportBundle = async function(options) {
             }
             else if (icsDomain && !enterpriseDomain) {
                 // Remove any existing data source string entries that are not in the list of valid ICS data sources
-                bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.find(value => value === source));
+                if (Array.isArray(bundleObject.x_mitre_data_sources)) {
+                    bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.includes(source));
+                }
             }
             else if (enterpriseDomain && icsDomain) {
                 // Remove any existing data source string entries that are not in the list of valid ICS data sources
-                bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.find(value => value === source));
+                bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.includes(source));
 
                 // Add data source string entries based on the data sources associated with the technique
                 //   data component detects technique AND data component refers to data source

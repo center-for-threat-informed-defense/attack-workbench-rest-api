@@ -747,8 +747,8 @@ async function addDerivedDataSources(bundleObjects) {
     const icsDataSourceValues = await systemConfigurationService.retrieveAllowedValuesForTypePropertyDomain('technique', 'x_mitre_data_sources', 'ics-attack');
     for (const bundleObject of bundleObjects) {
         if (bundleObject.type === 'attack-pattern') {
-            const enterpriseDomain = bundleObject.x_mitre_domains.find(domain => domain === 'enterprise-attack');
-            const icsDomain = bundleObject.x_mitre_domains.find(domain => domain === 'attack-ics');
+            const enterpriseDomain = bundleObject.x_mitre_domains.includes('enterprise-attack');
+            const icsDomain = bundleObject.x_mitre_domains.includes('ics-attack');
             if (enterpriseDomain && !icsDomain) {
                 // Remove any existing data sources
                 bundleObject.x_mitre_data_sources = [];
@@ -776,11 +776,18 @@ async function addDerivedDataSources(bundleObjects) {
             }
             else if (icsDomain && !enterpriseDomain) {
                 // Remove any data sources that are not in the list of valid ICS data sources
-                bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.find(value => value === source));
+                if (Array.isArray(bundleObject.x_mitre_data_sources)) {
+                    bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.includes(source));
+                }
             }
             else if (enterpriseDomain && icsDomain) {
                 // Remove any data sources that are not in the list of valid ICS data sources
-                bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.find(value => value === source));
+                if (Array.isArray(bundleObject.x_mitre_data_sources)) {
+                    bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.includes(source));
+                }
+                else {
+                    bundleObject.x_mitre_data_sources = [];
+                }
 
                 // Add in any enterprise data sources from detects relationships
                 const dataComponentIds = techniqueDetectedBy.get(bundleObject.id);

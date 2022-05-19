@@ -10,7 +10,7 @@ const login = require('../../shared/login');
 
 const enterpriseDomain = 'enterprise-attack';
 const mobileDomain = 'mobile-attack';
-const icsDomain = 'attack-ics';
+const icsDomain = 'ics-attack';
 
 const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
 const collectionTimestamp = new Date().toISOString();
