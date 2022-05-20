@@ -61,11 +61,19 @@ function removeEmptyArrays(stixObject, propertyNames) {
 }
 
 const stixOptionalArrayProperties = [
-    'x_mitre_contributors',
-    'x_mitre_platforms',
     'x_mitre_aliases',
+    'x_mitre_contributors',
+    'x_mitre_data_sources',
+    'x_mitre_defence_bypassed',
     'x_mitre_domains',
+    'x_mitre_effective_permissions',
+    'x_mitre_impact_type',
+    'x_mitre_system_requirements',
+    'x_mitre_permissions_required',
+    'x_mitre_platforms',
+    'x_mitre_remote_support',
     'external_references',
+    'kill_chain_phases',
     'aliases',
     'object_marking_refs',
     'roles',
