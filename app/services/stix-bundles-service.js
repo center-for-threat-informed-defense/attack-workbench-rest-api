@@ -52,6 +52,25 @@ function hasAttackId(attackObject) {
     return false;
 }
 
+function removeEmptyArrays(stixObject, propertyNames) {
+    for (const propertyName of propertyNames) {
+        if (Array.isArray(stixObject[propertyName]) && stixObject[propertyName].length === 0) {
+            delete stixObject[propertyName];
+        }
+    }
+}
+
+const stixOptionalArrayProperties = [
+    'x_mitre_contributors',
+    'x_mitre_platforms',
+    'x_mitre_aliases',
+    'x_mitre_domains',
+    'external_references',
+    'aliases',
+    'object_marking_refs',
+    'roles',
+    'sectors'
+];
 function conformToStixVersion(stixObject, stixVersion) {
     if (stixVersion === '2.0') {
         // eslint-disable-next-line no-prototype-builtins
@@ -90,19 +109,7 @@ function conformToStixVersion(stixObject, stixVersion) {
         }
     }
 
-    // Remove empty arrays
-    if (Array.isArray(stixObject.x_mitre_contributors) && stixObject.x_mitre_contributors.length === 0) {
-        delete stixObject['x_mitre_contributors'];
-    }
-    if (Array.isArray(stixObject.x_mitre_platforms) && stixObject.x_mitre_platforms.length === 0) {
-        delete stixObject['x_mitre_platforms'];
-    }
-    if (Array.isArray(stixObject.x_mitre_aliases) && stixObject.x_mitre_aliases.length === 0) {
-        delete stixObject['x_mitre_aliases'];
-    }
-    if (Array.isArray(stixObject.x_mitre_domains) && stixObject.x_mitre_domains.length === 0) {
-        delete stixObject['x_mitre_domains'];
-    }
+    removeEmptyArrays(stixObject, stixOptionalArrayProperties);
 }
 
 exports.exportBundle = async function(options) {
