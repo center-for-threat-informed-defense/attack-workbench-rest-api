@@ -11,8 +11,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build the Docker image
         run: |
-          echo $CR_PAT | docker login ghcr.io -u center-for-threat-informed-defense --password-stdin
+          echo $GITHUB_TOKEN | docker login ghcr.io -u center-for-threat-informed-defense --password-stdin
           docker build . --tag ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:latest
           docker push ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:latest
         env:
-          CR_PAT: ${{ secrets.CR_PAT }}
+          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
