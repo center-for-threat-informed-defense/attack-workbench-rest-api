@@ -1,8 +1,5 @@
 FROM node:14
 
-# Links the Docker image published to GitHub Container registry (ghcr.io) to the source code repository
-LABEL org.opencontainers.image.source="https://github.com/center-for-threat-informed-defense/attack-workbench-rest-api"
-
 # Create app directory
 WORKDIR /usr/src/app
 
