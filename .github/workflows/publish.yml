@@ -8,11 +8,14 @@ jobs:
   publish-docker-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Build the Docker image
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Build and publish the Docker image
         run: |
           echo $GITHUB_TOKEN | docker login ghcr.io -u center-for-threat-informed-defense --password-stdin
-          docker build . --tag ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:latest
-          docker push ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:latest
+          docker build . --tag ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:$IMAGE_TAG
+          docker push ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:$IMAGE_TAG
         env:
-          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_TAG: "${{ github.ref == 'refs/head/master' && 'latest' || 'develop' }}"
