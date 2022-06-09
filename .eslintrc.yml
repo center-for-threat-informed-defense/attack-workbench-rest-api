@@ -12,6 +12,7 @@ parserOptions:
 ignorePatterns:
   - node_modules/
   - app/api
+  - local-only/
 rules:
   accessor-pairs: error
   array-bracket-newline: 'off'
