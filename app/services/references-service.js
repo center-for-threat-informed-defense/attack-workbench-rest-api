@@ -67,7 +67,8 @@ exports.retrieveAll = async function(options) {
             data: results[0].documents
         };
         return returnValue;
-    } else {
+    }
+    else {
         return results[0].documents;
     }
 };
@@ -77,18 +78,19 @@ exports.create = async function(data) {
     const reference = new Reference(data);
 
     // Save the document in the database
-    const savedReference = await reference.save()
-        .catch(err => {
-            if (err.name === 'MongoError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                throw new Error(errors.duplicateId);
-            } else {
-                console.log(`name: ${err.name} code: ${err.code}`);
-                throw err;
-            }
-        });
-
-    return savedReference;
+    try {
+        const savedReference = await reference.save();
+        return savedReference;
+    }
+    catch(err) {
+        if (err.name === 'MongoError' && err.code === 11000) {
+            // 11000 = Duplicate index
+            throw new Error(errors.duplicateId);
+        } else {
+            console.log(`name: ${err.name} code: ${err.code}`);
+            throw err;
+        }
+    }
 };
 
 exports.update = async function(data, callback) {
@@ -99,34 +101,31 @@ exports.update = async function(data, callback) {
         throw error;
     }
 
-    const document = await Reference.findOne({ 'source_name': data.source_name })
-        .catch(err => {
-            if (err.name === 'CastError') {
-                var error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'source_name';
-                return callback(error);
-            }
-        });
-
-    if (!document) {
-        // document not found
-        return null;
+    try {
+        const document = await Reference.findOne({ 'source_name': data.source_name });
+        if (!document) {
+            // document not found
+            return null;
+        }
+        else {
+            // Copy data to found document and save
+            Object.assign(document, data);
+            const savedDocument = await document.save();
+            return savedDocument;
+        }
     }
-    else {
-        // Copy data to found document and save
-        Object.assign(document, data);
-        const savedDocument = await document.save()
-            .catch(err => {
-                if (err.name === 'MongoError' && err.code === 11000) {
-                    // 11000 = Duplicate index
-                    var error = new Error(errors.duplicateId);
-                    throw error;
-                } else {
-                    throw err;
-                }
-            });
-
-        return savedDocument;
+    catch(err) {
+        if (err.name === 'CastError') {
+            const error = new Error(errors.badlyFormattedParameter);
+            error.parameterName = 'source_name';
+            return callback(error);
+        }
+        else  if (err.name === 'MongoError' && err.code === 11000) {
+            // 11000 = Duplicate index
+            throw new Error(errors.duplicateId);
+        } else {
+            throw err;
+        }
     }
 };
 
