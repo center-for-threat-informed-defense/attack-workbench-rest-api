@@ -15,18 +15,20 @@ exports.retrieveAll = async function(req, res) {
         includePagination: req.query.includePagination
     }
 
-    const results = await attackObjectsService.retrieveAll(options)
-        .catch (err => {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get ATT&CK objects. Server error.');
-        });
+    try {
+        const results = await attackObjectsService.retrieveAll(options);
 
-    if (options.includePagination) {
-        logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total ATT&CK object(s)`);
-    }
-    else {
-        logger.debug(`Success: Retrieved ${results.length} ATT&CK object(s)`);
-    }
+        if (options.includePagination) {
+            logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total ATT&CK object(s)`);
+        }
+        else {
+            logger.debug(`Success: Retrieved ${results.length} ATT&CK object(s)`);
+        }
 
-    return res.status(200).send(results);
+        return res.status(200).send(results);
+    }
+    catch (err) {
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get ATT&CK objects. Server error.');
+    }
 };

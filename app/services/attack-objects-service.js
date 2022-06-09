@@ -138,16 +138,18 @@ exports.retrieveVersionById = async function(stixId, modified) {
         attackObject = await retrieveRelationshipsVersionById(stixId, modified);
     }
     else {
-        attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified })
-            .catch(err => {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    throw error;
-                } else {
-                    throw err;
-                }
-            });
+        try {
+            attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+        }
+        catch(err) {
+            if (err.name === 'CastError') {
+                const error = new Error(errors.badlyFormattedParameter);
+                error.parameterName = 'stixId';
+                throw error;
+            } else {
+                throw err;
+            }
+        }
     }
 
     // Note: attackObject is null if not found

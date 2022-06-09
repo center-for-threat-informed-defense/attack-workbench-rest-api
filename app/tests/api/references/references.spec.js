@@ -261,6 +261,42 @@ describe('References API', function () {
             });
     });
 
+    it('PUT /api/references does not update a reference when the source_name is missing', function (done) {
+        const body = { description: 'This reference does not have a source_name', url: '' };
+        request(app)
+            .put('/api/references')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(400)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('PUT /api/references does not update a reference when the source_name is not in the database', function (done) {
+        const body = {  source_name: 'not-a-reference', description: 'This reference is not in the database', url: '' };
+        request(app)
+            .put('/api/references')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
     it('PUT /api/references updates a reference', function (done) {
         reference1.description = 'This is a new description';
         const body = reference1;
