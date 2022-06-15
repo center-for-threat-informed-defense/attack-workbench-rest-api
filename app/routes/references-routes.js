@@ -23,6 +23,11 @@ router.route('/references')
         authn.authenticate,
         authz.requireRole(authz.editorOrHigher),
         referencesController.update
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.editorOrHigher),
+        referencesController.deleteBySourceName
     );
 
 module.exports = router;

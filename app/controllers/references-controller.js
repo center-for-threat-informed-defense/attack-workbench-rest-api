@@ -74,3 +74,20 @@ exports.update = async function(req, res) {
         return res.status(500).send('Unable to update reference. Server error.');
     }
 };
+
+exports.deleteBySourceName = async function(req, res) {
+    try {
+        const reference = await referencesService.deleteBySourceName(req.query.sourceName);
+        if (!reference) {
+            return res.status(404).send('Reference not found.');
+        }
+        else {
+            logger.debug(`Success: Deleted reference with source_name ${ reference.source_name}`);
+            return res.status(204).end();
+        }
+    }
+    catch(err) {
+        logger.error('Delete reference failed. ' + err);
+        return res.status(500).send('Unable to delete reference. Server error.');
+    }
+};

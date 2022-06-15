@@ -129,3 +129,14 @@ exports.update = async function(data, callback) {
     }
 };
 
+exports.deleteBySourceName = async function (sourceName) {
+    if (!sourceName) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'sourceName';
+        throw error;
+    }
+
+    const deletedReference = await Reference.findOneAndRemove({ 'source_name': sourceName });
+    return deletedReference;
+};
+

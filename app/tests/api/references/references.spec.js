@@ -269,7 +269,7 @@ describe('References API', function () {
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(400)
-            .end(function(err, res) {
+            .end(function(err) {
                 if (err) {
                     done(err);
                 }
@@ -287,7 +287,7 @@ describe('References API', function () {
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404)
-            .end(function(err, res) {
+            .end(function(err) {
                 if (err) {
                     done(err);
                 }
@@ -330,6 +330,54 @@ describe('References API', function () {
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(409)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/references does not delete a reference when the source_name is omitted', function (done) {
+        request(app)
+            .delete('/api/references')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(400)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/references does not delete a reference with a non-existent source_name', function (done) {
+        request(app)
+            .delete('/api/references?sourceName=not-a-reference')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/references deletes a reference', function (done) {
+        request(app)
+            .delete(`/api/references?sourceName=${ reference1.source_name }`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
             .end(function(err, res) {
                 if (err) {
                     done(err);

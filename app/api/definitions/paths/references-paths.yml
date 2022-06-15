@@ -57,7 +57,6 @@ paths:
                 type: array
                 items:
                   $ref: '../components/references.yml#/components/schemas/reference'
-
     post:
       summary: 'Create a reference'
       operationId: 'reference-create'
@@ -82,7 +81,6 @@ paths:
           description: 'Missing or invalid parameters were provided. The reference was not created.'
         '409':
           description: 'Duplicate `source_name`. The reference was not created.'
-
     put:
       summary: 'Update a reference'
       operationId: 'reference-update'
@@ -108,3 +106,24 @@ paths:
           description: 'Missing or invalid parameters were provided. The reference was not updated.'
         '404':
           description: 'A reference with the requested source_name was not found.'
+    delete:
+      summary: 'Delete a reference'
+      operationId: 'reference-delete-by-source-name'
+      description: |
+        This endpoint deletes a reference from the workspace.
+        The reference is identified by its source_name.
+        This endpoint does NOT check whether the reference is currently cited by an ATT&CK object.
+      tags:
+        - 'References'
+      parameters:
+        - name: sourceName
+          in: query
+          description: 'Source name of the reference to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The reference was successfully deleted.'
+        '404':
+          description: 'A reference with the requested source name was not found.'
