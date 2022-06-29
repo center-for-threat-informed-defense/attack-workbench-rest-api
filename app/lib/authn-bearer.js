@@ -103,13 +103,14 @@ function verifyClientCredentialsToken(token, decodedHeader, done) {
     jwksClient.getSigningKey(decodedHeader.kid)
         .then(function (signingKey) {
             let payload;
+            let clientId;
             try {
                 payload = jwt.verify(token, signingKey.getPublicKey(), { algorithms: ['RS256'] });
 
                 // Make sure the client is allowed to access the REST API
                 // Okta returns the client id in payload.cid
                 // Keycloak returns the client id in payload.clientId
-                const clientId = payload.cid || payload.clientId;
+                clientId = payload.cid || payload.clientId;
                 const clients = config.serviceAuthn.oidcClientCredentials.clients;
                 const client = clients.find(c => c.clientId === clientId);
                 if (!client) {
@@ -123,7 +124,7 @@ function verifyClientCredentialsToken(token, decodedHeader, done) {
                 }
             }
 
-            const userSession = makeUserSession(payload.clientId);
+            const userSession = makeUserSession(clientId);
 
             return done(null, userSession);
         })
