@@ -13,6 +13,9 @@ async function runServer() {
     logger.info('** uptime = ' + os.uptime());
     logger.info('** versions = ' + JSON.stringify(process.versions));
 
+    const config = require('../app/config/config');
+    logger.info(`Log level set to ${ config.logging.logLevel }`);
+
     // Establish the database connection
     logger.info('Setting up the database connection');
     try {
@@ -32,7 +35,6 @@ async function runServer() {
 
     // Start the server
     logger.info('Starting the HTTP server');
-    const config = app.get('config');
     const server = app.listen(config.server.port, function () {
         const host = server.address().address;
         const port = server.address().port;

@@ -15,10 +15,17 @@ exports.identityProviderCallback = function(req, res) {
 
 exports.logout = function(req, res) {
     try {
-        const email = req.user.email;
-        req.logout();
-        logger.info(`Success: User logged out with email: ${ email }`);
-        return res.status(200).send('User logged out');
+        const email = req.user?.email;
+        req.logout(function(err) {
+            if (err) {
+                logger.error('Unable to log out user, failed with error: ' + err);
+                return res.status(500).send('Unable to log out user. Server error.');
+            }
+            else {
+                logger.info(`Success: User logged out with email: ${ email }`);
+                return res.status(200).send('User logged out');
+            }
+        });
     }
     catch(err) {
         logger.error('Unable to log out user, failed with error: ' + err);
