@@ -56,6 +56,13 @@ function startServer(app, port) {
     })
 }
 
+function updateCookies(newCookies, cookieMap) {
+    for (const cookie of newCookies) {
+        const headerString = libCookie.serialize(cookie.name, cookie.value, cookie);
+        cookieMap.set(cookie.name, headerString);
+    }
+}
+
 describe('OIDC User Authentication', function () {
     let app;
 
@@ -112,7 +119,7 @@ describe('OIDC User Authentication', function () {
             });
     });
 
-    const apiCookies = [];
+    const apiCookies = new Map();
     let redirectPath;
     const destination = `${ localServerHost }:${ localServerPort }/login-page`;
     it('GET /api/authn/oidc/login successfully receives a redirect to the identity provider', function (done) {
@@ -125,11 +132,8 @@ describe('OIDC User Authentication', function () {
                     done(err);
                 } else {
                     // Save the cookies for later tests
-                    const cookieData = setCookieParser(res);
-                    const newCookies = cookieData.map(function(cookie) {
-                        return libCookie.serialize(cookie.name, cookie.value, cookie);
-                    });
-                    apiCookies.push(...newCookies);
+                    const newCookies = setCookieParser(res);
+                    updateCookies(newCookies, apiCookies);
 
                     // Get the redirect location
                     redirectPath = res.headers.location;
@@ -140,7 +144,7 @@ describe('OIDC User Authentication', function () {
     });
 
     let signInPath;
-    const ipCookies = [];
+    const ipCookies = new Map();
     it('redirect successfully receives a challenge from the identity provider', function (done) {
         const url = new URL(redirectPath);
         const server = `${ url.protocol }//${ url.host }`;
@@ -154,11 +158,8 @@ describe('OIDC User Authentication', function () {
                     done(err);
                 } else {
                     // Save the cookies for later tests
-                    const cookieData = setCookieParser(res);
-                    const newCookies = cookieData.map(function(cookie) {
-                        return libCookie.serialize(cookie.name, cookie.value, cookie);
-                    });
-                    ipCookies.push(...newCookies);
+                    const newCookies = setCookieParser(res);
+                    updateCookies(newCookies, ipCookies);
 
                     const action = extractFormAction(res.text);
                     signInPath = action.value;
@@ -175,7 +176,7 @@ describe('OIDC User Authentication', function () {
         const search = signinUrl.search;
         request(server)
             .post(path + search)
-            .set('Cookie', ipCookies)
+            .set('Cookie', Array.from(ipCookies.values()))
             .send(`username=${ testUser.username }`)
             .send(`password=${ testUser.password }`)
             .send('credentialId=')
@@ -199,12 +200,16 @@ describe('OIDC User Authentication', function () {
         const search = url.search;
         request(server)
             .get(path + search)
-            .set('Cookie', apiCookies)
+            .set('Cookie', Array.from(apiCookies.values()))
             .expect(302)
             .end(function (err, res) {
                 if (err) {
                     done(err);
                 } else {
+                    // Session ID is changed after login, save the cookie for later tests
+                    const newCookies = setCookieParser(res);
+                    updateCookies(newCookies, apiCookies);
+
                     // Get the redirect location
                     redirectPath = res.headers.location;
 
@@ -220,7 +225,7 @@ describe('OIDC User Authentication', function () {
         request(app)
             .get('/api/session')
             .set('Accept', 'application/json')
-            .set('Cookie', apiCookies)
+            .set('Cookie', Array.from(apiCookies.values()))
             .expect(200)
             .end(function(err, res) {
                 if (err) {
@@ -241,7 +246,7 @@ describe('OIDC User Authentication', function () {
         request(app)
             .get('/api/authn/oidc/logout')
             .set('Accept', 'application/json')
-            .set('Cookie', apiCookies)
+            .set('Cookie', Array.from(apiCookies.values()))
             .expect(200)
             .end(function (err, res) {
                 if (err) {
@@ -256,7 +261,7 @@ describe('OIDC User Authentication', function () {
         request(app)
             .get('/api/session')
             .set('Accept', 'application/json')
-            .set('Cookie', apiCookies)
+            .set('Cookie', Array.from(apiCookies.values()))
             .expect(401)
             .end(function (err, res) {
                 if (err) {

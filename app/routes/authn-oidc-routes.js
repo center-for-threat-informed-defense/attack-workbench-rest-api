@@ -17,7 +17,7 @@ router.route('/authn/oidc/login')
 router.route('/authn/oidc/callback')
     .get(
         authnConfig.isUserAuthenticationMechanismEnabled('oidc'),
-        passport.authenticate(authnOidc.strategyName()),
+        passport.authenticate(authnOidc.strategyName(), { keepSessionInfo: true }),
         authnOidcController.identityProviderCallback);
 
 router.route('/authn/oidc/logout')

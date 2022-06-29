@@ -16,9 +16,16 @@ exports.login = function(req, res) {
 exports.logout = function(req, res) {
     try {
         const anonymousUuid = req.user.anonymousUuid;
-        req.logout();
-        logger.info(`Success: User logged out with uuid: ${ anonymousUuid }`);
-        return res.status(200).send('User logged out');
+        req.logout(function(err) {
+            if (err) {
+                logger.error('Unable to log out anonymous user, failed with error: ' + err);
+                return res.status(500).send('Unable to log out anonymous user. Server error.');
+            }
+            else {
+                logger.info(`Success: User logged out with uuid: ${ anonymousUuid }`);
+                return res.status(200).send('User logged out');
+            }
+        });
     }
     catch(err) {
         logger.error('Unable to log out anonymous user, failed with error: ' + err);
