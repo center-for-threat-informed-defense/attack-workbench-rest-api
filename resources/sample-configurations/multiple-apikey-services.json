@@ -1,0 +1,30 @@
+[
+    {
+        "serviceAuthn": {
+            "challengeApikey": {
+                "enable": true,
+                "serviceAccounts": [
+                    {
+                        "name": "collection-manager",
+                        "apikey": "ePcAssW9Ad9CUBghWCeW",
+                        "serviceRole": "collection-manager"
+                    }
+                ]
+            }
+        }
+    },
+    {
+        "serviceAuthn": {
+            "basicApikey": {
+                "enable": true,
+                "serviceAccounts": [
+                    {
+                        "name": "navigator",
+                        "apikey": "sample-navigator-apikey",
+                        "serviceRole": "stix-export"
+                    }
+                ]
+            }
+        }
+    }
+]
