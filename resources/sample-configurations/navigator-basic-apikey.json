@@ -1,0 +1,14 @@
+{
+    "serviceAuthn": {
+        "basicApikey": {
+            "enable": true,
+            "serviceAccounts": [
+                {
+                    "name": "navigator",
+                    "apikey": "sample-navigator-apikey",
+                    "serviceRole": "stix-export"
+                }
+            ]
+        }
+    }
+}
