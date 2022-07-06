@@ -101,6 +101,14 @@ function loadConfig() {
                 doc: 'URL of the MongoDB server',
                 default: '',
                 env: 'DATABASE_URL'
+            },
+            migration: {
+                enable: {
+                    doc: 'Enable automatic database migration when starting the server',
+                    format: Boolean,
+                    default: true,
+                    env: 'WB_REST_DATABASE_MIGRATION_ENABLE'
+                },
             }
         },
         logging: {
