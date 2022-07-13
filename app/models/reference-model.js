@@ -16,7 +16,7 @@ const referenceSchema = new mongoose.Schema(referenceDefinition, { bufferCommand
 referenceSchema.index({ 'source_name': 1}, { unique: true });
 
 // Create a text index to allow for text-based queries
-referenceSchema.index({ description: 'text', url: 'text' });
+referenceSchema.index({ source_name: 'text', description: 'text', url: 'text' });
 
 // Create the model
 const ReferenceModel = mongoose.model('Reference', referenceSchema);

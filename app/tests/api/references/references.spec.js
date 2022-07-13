@@ -261,6 +261,35 @@ describe('References API', function () {
             });
     });
 
+    it('GET /api/references uses the search parameter to return the third added reference searching fields in the source_name', function (done) {
+        request(app)
+            .get('/api/references?search=' + encodeURIComponent('3'))
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one reference in an array
+                    const references = res.body;
+                    expect(references).toBeDefined();
+                    expect(Array.isArray(references)).toBe(true);
+                    expect(references.length).toBe(1);
+
+                    const reference = references[0];
+                    expect(reference).toBeDefined();
+                    expect(reference.source_name).toBe(reference3.source_name);
+                    expect(reference.description).toBe(reference3.description);
+                    expect(reference.url).toBe(reference3.url);
+
+                    done();
+                }
+            });
+    });
+
     it('PUT /api/references does not update a reference when the source_name is missing', function (done) {
         const body = { description: 'This reference does not have a source_name', url: '' };
         request(app)
@@ -392,4 +421,3 @@ describe('References API', function () {
         await database.closeConnection();
     });
 });
-
