@@ -349,3 +349,19 @@ exports.delete = function (stixId, stixModified, callback) {
     });
 };
 
+exports.deleteAllVersion = function (stixId, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    Technique.deleteMany({ 'stix.id': stixId }, function (err, technique) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: technique is null if not found
+            return callback(null, technique);
+        }
+    });
+};

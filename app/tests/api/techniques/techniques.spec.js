@@ -292,10 +292,40 @@ describe('Techniques Basic API', function () {
                 }
             });
     });
+    
+
+    let technique3;
+    it('POST /api/techniques should create a new version of a technique with a duplicate stix.id but different stix.modified date', function (done) {
+        technique3 = _.cloneDeep(technique1);
+        technique3._id = undefined;
+        technique3.__t = undefined;
+        technique3.__v = undefined;
+        const timestamp = new Date().toISOString();
+        technique3.stix.modified = timestamp;
+        technique3.stix.description = 'Still a technique. Blue!'
+        const body = technique3;
+        request(app)
+            .post('/api/techniques')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get the created technique
+                    const technique = res.body;
+                    expect(technique).toBeDefined();
+                    done();
+                }
+            });
+    });
 
     it('GET /api/techniques returns the latest added technique', function (done) {
         request(app)
-            .get('/api/techniques/' + technique2.stix.id)
+            .get('/api/techniques/' + technique3.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -310,8 +340,8 @@ describe('Techniques Basic API', function () {
                     expect(Array.isArray(techniques)).toBe(true);
                     expect(techniques.length).toBe(1);
                     const technique = techniques[0];
-                    expect(technique.stix.id).toBe(technique2.stix.id);
-                    expect(technique.stix.modified).toBe(technique2.stix.modified);
+                    expect(technique.stix.id).toBe(technique3.stix.id);
+                    expect(technique.stix.modified).toBe(technique3.stix.modified);
                     done();
                 }
             });
@@ -332,7 +362,7 @@ describe('Techniques Basic API', function () {
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(2);
+                    expect(techniques.length).toBe(3);
                     done();
                 }
             });
@@ -384,7 +414,7 @@ describe('Techniques Basic API', function () {
 
     it('GET /api/techniques uses the search parameter to return the latest version of the technique', function (done) {
         request(app)
-            .get('/api/techniques?search=purple')
+            .get('/api/techniques?search=blue')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -404,8 +434,8 @@ describe('Techniques Basic API', function () {
                     const technique = techniques[0];
                     expect(technique).toBeDefined();
                     expect(technique.stix).toBeDefined();
-                    expect(technique.stix.id).toBe(technique2.stix.id);
-                    expect(technique.stix.modified).toBe(technique2.stix.modified);
+                    expect(technique.stix.id).toBe(technique3.stix.id);
+                    expect(technique.stix.modified).toBe(technique3.stix.modified);
                     
                     done();
                 }
@@ -434,8 +464,8 @@ describe('Techniques Basic API', function () {
                     const technique = techniques[0];
                     expect(technique).toBeDefined();
                     expect(technique.stix).toBeDefined();
-                    expect(technique.stix.id).toBe(technique2.stix.id);
-                    expect(technique.stix.modified).toBe(technique2.stix.modified);
+                    expect(technique.stix.id).toBe(technique3.stix.id);
+                    expect(technique.stix.modified).toBe(technique3.stix.modified);
                     expect(technique.workspace.attack_id).toEqual('T9999');
 
                     done();
@@ -478,20 +508,22 @@ describe('Techniques Basic API', function () {
                 }
             });
     });
-
-    it('DELETE /api/techniques should delete the second technique', function (done) {
+    
+    it('DELETE /api/technique should delete all the techniques with the same stix id', function (done) {
         request(app)
-            .delete('/api/techniques/' + technique2.stix.id + '/modified/' + technique2.stix.modified)
+            .delete('/api/techniques/' + technique2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
-            .end(function (err, res) {
+            .end(function(err, res) {
                 if (err) {
                     done(err);
-                } else {
+                }
+                else {
                     done();
                 }
             });
     });
+    
 
     it('GET /api/techniques returns an empty array of techniques', function (done) {
         request(app)

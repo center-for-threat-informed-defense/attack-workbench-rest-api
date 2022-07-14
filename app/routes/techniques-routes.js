@@ -25,6 +25,11 @@ router.route('/techniques/:stixId')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         techniquesController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        techniquesController.deleteAllVersion
     );
 
 router.route('/techniques/:stixId/modified/:modified')
