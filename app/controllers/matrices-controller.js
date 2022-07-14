@@ -149,3 +149,21 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.deleteAllVersion = function(req, res) {
+    matricesService.deleteAllVersion(req.params.stixId, function (err, matrices) {
+        if (err) {
+            logger.error('Delete matrix failed. ' + err);
+            return res.status(500).send('Unable to delete matrix. Server error.');
+        }
+        else {
+            if (matrices.deletedCount === 0) {
+                return res.status(404).send('Matrix not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted matrix with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};

@@ -25,6 +25,11 @@ router.route('/matrices/:stixId')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         matricesController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        matricesController.deleteAllVersion
     );
 
 router.route('/matrices/:stixId/modified/:modified')
