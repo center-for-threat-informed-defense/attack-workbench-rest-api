@@ -150,3 +150,21 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.deleteAllVersion = function(req, res) {
+    tacticsService.deleteAllVersion(req.params.stixId, function (err, tactics) {
+        if (err) {
+            logger.error('Delete tactic failed. ' + err);
+            return res.status(500).send('Unable to delete tactic. Server error.');
+        }
+        else {
+            if (tactics.deletedCount === 0) {
+                return res.status(404).send('Tactic not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted tactic with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};

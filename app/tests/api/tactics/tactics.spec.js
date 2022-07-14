@@ -253,7 +253,7 @@ describe('Tactics API', function () {
         tactic2.__t = undefined;
         tactic2.__v = undefined;
         const timestamp = new Date().toISOString();
-        tactic2.stix.description = 'Still a tactic. Violet.'
+        tactic2.stix.description = 'Still a tactic. Red.'
         tactic2.stix.modified = timestamp;
         const body = tactic2;
         request(app)
@@ -275,10 +275,41 @@ describe('Tactics API', function () {
                 }
             });
     });
+    
+    let tactic3;
+    it('POST /api/tactics should create a new version of a tactic with a duplicate stix.id but different stix.modified date', function (done) {
+        tactic3 = _.cloneDeep(tactic1);
+        tactic3._id = undefined;
+        tactic3.__t = undefined;
+        tactic3.__v = undefined;
+        const timestamp = new Date().toISOString();
+        tactic3.stix.description = 'Still a tactic. Violet.'
+        tactic3.stix.modified = timestamp;
+        const body = tactic3;
+        request(app)
+            .post('/api/tactics')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created tactic
+                    const tactic = res.body;
+                    expect(tactic).toBeDefined();
+                    done();
+                }
+            });
+    });
+    
 
     it('GET /api/tactics returns the latest added tactic', function (done) {
         request(app)
-            .get('/api/tactics/' + tactic2.stix.id)
+            .get('/api/tactics/' + tactic3.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -294,8 +325,8 @@ describe('Tactics API', function () {
                     expect(Array.isArray(tactics)).toBe(true);
                     expect(tactics.length).toBe(1);
                     const tactic = tactics[0];
-                    expect(tactic.stix.id).toBe(tactic2.stix.id);
-                    expect(tactic.stix.modified).toBe(tactic2.stix.modified);
+                    expect(tactic.stix.id).toBe(tactic3.stix.id);
+                    expect(tactic.stix.modified).toBe(tactic3.stix.modified);
                     done();
                 }
             });
@@ -317,7 +348,7 @@ describe('Tactics API', function () {
                     const tactics = res.body;
                     expect(tactics).toBeDefined();
                     expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(2);
+                    expect(tactics.length).toBe(3);
                     done();
                 }
             });
@@ -391,8 +422,8 @@ describe('Tactics API', function () {
                     const tactic = tactics[0];
                     expect(tactic).toBeDefined();
                     expect(tactic.stix).toBeDefined();
-                    expect(tactic.stix.id).toBe(tactic2.stix.id);
-                    expect(tactic.stix.modified).toBe(tactic2.stix.modified);
+                    expect(tactic.stix.id).toBe(tactic3.stix.id);
+                    expect(tactic.stix.modified).toBe(tactic3.stix.modified);
                     done();
                 }
             });
@@ -419,7 +450,7 @@ describe('Tactics API', function () {
                 }
             });
     });
-
+    
     it('DELETE /api/tactics deletes a tactic', function (done) {
         request(app)
             .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified)
@@ -434,10 +465,10 @@ describe('Tactics API', function () {
                 }
             });
     });
-
-    it('DELETE /api/tactics should delete the second tactic', function (done) {
+        
+    it('DELETE /api/tactics should delete all the tactics with the same stix id', function (done) {
         request(app)
-            .delete('/api/tactics/' + tactic2.stix.id + '/modified/' + tactic2.stix.modified)
+            .delete('/api/tactics/' + tactic2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -448,8 +479,8 @@ describe('Tactics API', function () {
                     done();
                 }
             });
-    });
-
+    });    
+	
     it('GET /api/tactics returns an empty array of tactics', function (done) {
         request(app)
             .get('/api/tactics')
