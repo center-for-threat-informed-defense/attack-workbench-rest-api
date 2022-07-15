@@ -149,3 +149,21 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.deleteAllVersion = function(req, res) {
+    dataComponentsService.deleteAllVersion(req.params.stixId, function (err, dataComponents) {
+        if (err) {
+            logger.error('Delete data component failed. ' + err);
+            return res.status(500).send('Unable to delete data component. Server error.');
+        }
+        else {
+            if (dataComponents.deletedCount === 0) {
+                return res.status(404).send('Data Component not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted data component with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};

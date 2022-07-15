@@ -25,6 +25,11 @@ router.route('/data-components/:stixId')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         dataComponentsController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        dataComponentsController.deleteAllVersion
     );
 
 router.route('/data-components/:stixId/modified/:modified')
