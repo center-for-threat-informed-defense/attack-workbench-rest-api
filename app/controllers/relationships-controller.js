@@ -156,3 +156,21 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.deleteAllVersion = function(req, res) {
+    relationshipsService.deleteAllVersion(req.params.stixId, function (err, relationships) {
+        if (err) {
+            logger.error('Delete relationship failed. ' + err);
+            return res.status(500).send('Unable to delete relationship. Server error.');
+        }
+        else {
+            if (relationships.deletedCount === 0) {
+                return res.status(404).send('Relationship not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted relationship with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};

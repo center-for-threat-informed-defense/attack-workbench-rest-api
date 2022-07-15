@@ -417,3 +417,19 @@ exports.delete = function (stixId, stixModified, callback) {
     });
 };
 
+exports.deleteAllVersion = function (stixId, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    Relationship.deleteMany({ 'stix.id': stixId }, function (err, relationship) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: relationship is null if not found
+            return callback(null, relationship);
+        }
+    });
+};
