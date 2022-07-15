@@ -452,6 +452,35 @@ describe('Data Sources API', function () {
             });
     });
 
+    let dataSource3;
+    it('POST /api/data-sources should create a new version of a data source with a duplicate stix.id but different stix.modified date', function (done) {
+        dataSource3 = _.cloneDeep(dataSource1);
+        dataSource3._id = undefined;
+        dataSource3.__t = undefined;
+        dataSource3.__v = undefined;
+        const timestamp = new Date().toISOString();
+        dataSource3.stix.modified = timestamp;
+        const body = dataSource3;
+        request(app)
+            .post('/api/data-sources')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created data source
+                    const dataSource = res.body;
+                    expect(dataSource).toBeDefined();
+                    done();
+                }
+            });
+    });
+    
     it('DELETE /api/data-sources deletes a data source', function (done) {
         request(app)
             .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
@@ -467,9 +496,9 @@ describe('Data Sources API', function () {
             });
     });
 
-    it('DELETE /api/data-sources should delete the second data source', function (done) {
+    it('DELETE /api/tactics should delete all the data sources with the same stix id', function (done) {
         request(app)
-            .delete('/api/data-sources/' + dataSource2.stix.id + '/modified/' + dataSource2.stix.modified)
+            .delete('/api/data-sources/' + dataSource2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

@@ -25,6 +25,11 @@ router.route('/data-sources/:stixId')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         dataSourcesController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        dataSourcesController.deleteAllVersion
     );
 
 router.route('/data-sources/:stixId/modified/:modified')

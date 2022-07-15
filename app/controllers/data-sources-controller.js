@@ -154,3 +154,21 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.deleteAllVersion = function(req, res) {
+    dataSourcesService.deleteAllVersion(req.params.stixId, function (err, dataSources) {
+        if (err) {
+            logger.error('Delete data source failed. ' + err);
+            return res.status(500).send('Unable to delete data source. Server error.');
+        }
+        else {
+            if (dataSources.deletedCount === 0) {
+                return res.status(404).send('Data Sources not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted data source with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};
