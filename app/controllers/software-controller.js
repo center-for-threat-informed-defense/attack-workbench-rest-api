@@ -157,3 +157,21 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.deleteAllVersion = function(req, res) {
+    softwareService.deleteAllVersion(req.params.stixId, function (err, softwares) {
+        if (err) {
+            logger.error('Delete software failed. ' + err);
+            return res.status(500).send('Unable to delete software. Server error.');
+        }
+        else {
+            if (softwares.deletedCount === 0) {
+                return res.status(404).send('Software not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted software with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};

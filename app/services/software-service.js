@@ -362,3 +362,20 @@ exports.delete = function (stixId, stixModified, callback) {
         }
     });
 };
+
+exports.deleteAllVersion = function (stixId, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    Software.deleteMany({ 'stix.id': stixId }, function (err, software) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: software is null if not found
+            return callback(null, software);
+        }
+    });
+};

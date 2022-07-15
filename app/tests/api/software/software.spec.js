@@ -437,6 +437,35 @@ describe('Software API', function () {
             });
     });
 
+    let software3;
+    it('POST /api/software should create a new version of a software with a duplicate stix.id but different stix.modified date', function (done) {
+        software3 = _.cloneDeep(software1);
+        software3._id = undefined;
+        software3.__t = undefined;
+        software3.__v = undefined;
+        const timestamp = new Date().toISOString();
+        software3.stix.modified = timestamp;
+        const body = software3;
+        request(app)
+            .post('/api/software')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created software
+                    const software = res.body;
+                    expect(software).toBeDefined();
+                    done();
+                }
+            });
+    });
+    
     it('DELETE /api/software deletes a software', function (done) {
         request(app)
             .delete('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified)
@@ -452,9 +481,9 @@ describe('Software API', function () {
             });
     });
 
-    it('DELETE /api/software should delete the second software', function (done) {
+    it('DELETE /api/software should delete all the softwares with the same stix id', function (done) {
         request(app)
-            .delete('/api/software/' + software2.stix.id + '/modified/' + software2.stix.modified)
+            .delete('/api/software/' + software2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
