@@ -149,3 +149,21 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.deleteAllVersion = function(req, res) {
+    mitigationsService.deleteAllVersion(req.params.stixId, function (err, mitigations) {
+        if (err) {
+            logger.error('Delete mitigation failed. ' + err);
+            return res.status(500).send('Unable to delete mitigation. Server error.');
+        }
+        else {
+            if (mitigations.deletedCount === 0) {
+                return res.status(404).send('Mitigation not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted mitigation with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};

@@ -272,9 +272,38 @@ describe('Mitigations API', function () {
             });
     });
 
+    let mitigation3;
+    it('POST /api/mitigations should create a new version of a mitigation with a duplicate stix.id but different stix.modified date', function (done) {
+        mitigation3 = _.cloneDeep(mitigation1);
+        mitigation3._id = undefined;
+        mitigation3.__t = undefined;
+        mitigation3.__v = undefined;
+        const timestamp = new Date().toISOString();
+        mitigation3.stix.modified = timestamp;
+        const body = mitigation3;
+        request(app)
+            .post('/api/mitigations')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created mitigation
+                    const mitigation = res.body;
+                    expect(mitigation).toBeDefined();
+                    done();
+                }
+            });
+    });
+    
     it('GET /api/mitigations returns the latest added mitigation', function (done) {
         request(app)
-            .get('/api/mitigations/' + mitigation2.stix.id)
+            .get('/api/mitigations/' + mitigation3.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -290,8 +319,8 @@ describe('Mitigations API', function () {
                     expect(Array.isArray(mitigations)).toBe(true);
                     expect(mitigations.length).toBe(1);
                     const mitigation = mitigations[0];
-                    expect(mitigation.stix.id).toBe(mitigation2.stix.id);
-                    expect(mitigation.stix.modified).toBe(mitigation2.stix.modified);
+                    expect(mitigation.stix.id).toBe(mitigation3.stix.id);
+                    expect(mitigation.stix.modified).toBe(mitigation3.stix.modified);
                     done();
                 }
             });
@@ -313,7 +342,7 @@ describe('Mitigations API', function () {
                     const mitigations = res.body;
                     expect(mitigations).toBeDefined();
                     expect(Array.isArray(mitigations)).toBe(true);
-                    expect(mitigations.length).toBe(2);
+                    expect(mitigations.length).toBe(3);
                     done();
                 }
             });
@@ -380,9 +409,9 @@ describe('Mitigations API', function () {
             });
     });
 
-    it('DELETE /api/mitigations should delete the second mitigation', function (done) {
+    it('DELETE /api/mitigations should delete all the mitigations with the same stix id', function (done) {
         request(app)
-            .delete('/api/mitigations/' + mitigation2.stix.id + '/modified/' + mitigation2.stix.modified)
+            .delete('/api/mitigations/' + mitigation2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
