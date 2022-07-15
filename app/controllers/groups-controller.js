@@ -154,3 +154,21 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.deleteAllVersion = function(req, res) {
+    groupsService.deleteAllVersion(req.params.stixId, function (err, groups) {
+        if (err) {
+            logger.error('Delete group failed. ' + err);
+            return res.status(500).send('Unable to delete group. Server error.');
+        }
+        else {
+            if (groups.deletedCount === 0) {
+                return res.status(404).send('Group not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted group with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};

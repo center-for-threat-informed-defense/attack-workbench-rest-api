@@ -25,6 +25,11 @@ router.route('/groups/:stixId')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         groupsController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        groupsController.deleteAllVersion
     );
 
 router.route('/groups/:stixId/modified/:modified')
