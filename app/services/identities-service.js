@@ -310,6 +310,23 @@ exports.delete = function (stixId, stixModified, callback) {
     });
 };
 
+exports.deleteAllVersion = function (stixId, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    Identity.deleteMany({ 'stix.id': stixId }, function (err, identity) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: identity is null if not found
+            return callback(null, identity);
+        }
+    });
+};
+
 async function getLatest(stixId) {
     const identity = await Identity
         .findOne({ 'stix.id': stixId })

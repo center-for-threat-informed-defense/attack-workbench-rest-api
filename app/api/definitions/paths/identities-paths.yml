@@ -135,7 +135,25 @@ paths:
                   $ref: '../components/identities.yml#/components/schemas/identity'
         '404':
           description: 'An identity with the requested STIX id was not found.'
-
+    delete:
+      summary: 'Delete a identity'
+      operationId: 'identity-deleteAll'
+      description: |
+        This endpoint deletes all versions of a identity from the workspace.
+        The identity is identified by its STIX id.
+      tags:
+        - 'Identities'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the identity to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the identity versions were successfully deleted.'
+          
   /api/identities/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a identity matching the STIX id and modified date'
