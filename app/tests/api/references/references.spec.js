@@ -25,7 +25,7 @@ const initialObjectData2 = {
 };
 
 const initialObjectData3 = {
-    source_name: 'source 3',
+    source_name: 'unique source 3',
     description: 'This is a reference (#3)',
     url: 'https://www.reference-site.com/myreferencelink3'
 };
@@ -263,7 +263,7 @@ describe('References API', function () {
 
     it('GET /api/references uses the search parameter to return the third added reference searching fields in the source_name', function (done) {
         request(app)
-            .get('/api/references?search=' + encodeURIComponent('3'))
+            .get('/api/references?search=' + encodeURIComponent('unique'))
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
