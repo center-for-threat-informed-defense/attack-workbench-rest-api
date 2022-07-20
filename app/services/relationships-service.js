@@ -412,6 +412,7 @@ exports.delete = function (stixId, stixModified, callback) {
             return callback(err);
         } else {
             //Note: relationship is null if not found
+            relationship.workspace.workflow.soft_delete = true; 
             return callback(null, relationship);
         }
     });
@@ -429,6 +430,7 @@ exports.deleteAllVersion = function (stixId, callback) {
             return callback(err);
         } else {
             //Note: relationship is null if not found
+            relationship.workspace.workflow.soft_delete = true;
             return callback(null, relationship);
         }
     });
