@@ -146,7 +146,7 @@ paths:
           description: 'A matrix with the requested STIX id was not found.'
     delete:
       summary: 'Delete a matrix'
-      operationId: 'matrix-deleteAll'
+      operationId: 'matrix-delete-all'
       description: |
         This endpoint deletes all versions of a matrix from the workspace.
         The matrix is identified by its STIX id.

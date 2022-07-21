@@ -132,8 +132,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    identitiesService.delete(req.params.stixId, req.params.modified, function (err, identity) {
+exports.deleteVersionById = function(req, res) {
+    identitiesService.deleteVersionById(req.params.stixId, req.params.modified, function (err, identity) {
         if (err) {
             logger.error('Delete identity failed. ' + err);
             return res.status(500).send('Unable to delete identity. Server error.');
@@ -149,8 +149,8 @@ exports.delete = function(req, res) {
     });
 };
 
-exports.deleteAllVersion = function(req, res) {
-    identitiesService.deleteAllVersion(req.params.stixId, function (err, identities) {
+exports.deleteById = function(req, res) {
+    identitiesService.deleteById(req.params.stixId, function (err, identities) {
         if (err) {
             logger.error('Delete identity failed. ' + err);
             return res.status(500).send('Unable to identity identity. Server error.');

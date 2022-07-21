@@ -145,7 +145,7 @@ paths:
           description: 'A group with the requested STIX id was not found.'
     delete:
       summary: 'Delete a group'
-      operationId: 'group-deleteAll'
+      operationId: 'group-delete-all'
       description: |
         This endpoint deletes all versions of a group from the workspace.
         The group is identified by its STIX id.

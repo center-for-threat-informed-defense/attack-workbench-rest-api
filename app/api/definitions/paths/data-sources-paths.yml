@@ -153,7 +153,7 @@ paths:
           description: 'A data source with the requested STIX id was not found.'
     delete:
       summary: 'Delete a data source'
-      operationId: 'data-source-deleteAll'
+      operationId: 'data-source-delete-all'
       description: |
         This endpoint deletes all versions of a data source from the workspace.
         The data source is identified by its STIX id.

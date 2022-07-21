@@ -137,7 +137,7 @@ paths:
           description: 'An identity with the requested STIX id was not found.'
     delete:
       summary: 'Delete a identity'
-      operationId: 'identity-deleteAll'
+      operationId: 'identity-delete-all'
       description: |
         This endpoint deletes all versions of a identity from the workspace.
         The identity is identified by its STIX id.

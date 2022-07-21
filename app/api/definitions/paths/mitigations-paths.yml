@@ -145,7 +145,7 @@ paths:
           description: 'A mitigation with the requested STIX id was not found.'
     delete:
       summary: 'Delete a mitigation'
-      operationId: 'mitigation-deleteAll'
+      operationId: 'mitigation-delete-all'
       description: |
         This endpoint deletes all versions of a mitigation from the workspace.
         The mitigation is identified by its STIX id.

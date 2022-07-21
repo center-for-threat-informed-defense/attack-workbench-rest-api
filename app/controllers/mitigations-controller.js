@@ -133,8 +133,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    mitigationsService.delete(req.params.stixId, req.params.modified, function (err, mitigation) {
+exports.deleteVersionById = function(req, res) {
+    mitigationsService.deleteVersionById(req.params.stixId, req.params.modified, function (err, mitigation) {
         if (err) {
             logger.error('Delete mitigation failed. ' + err);
             return res.status(500).send('Unable to delete mitigation. Server error.');
@@ -150,8 +150,8 @@ exports.delete = function(req, res) {
     });
 };
 
-exports.deleteAllVersion = function(req, res) {
-    mitigationsService.deleteAllVersion(req.params.stixId, function (err, mitigations) {
+exports.deleteById = function(req, res) {
+    mitigationsService.deleteById(req.params.stixId, function (err, mitigations) {
         if (err) {
             logger.error('Delete mitigation failed. ' + err);
             return res.status(500).send('Unable to delete mitigation. Server error.');

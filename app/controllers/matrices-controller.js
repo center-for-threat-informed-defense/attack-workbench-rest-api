@@ -133,8 +133,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    matricesService.delete(req.params.stixId, req.params.modified, function (err, matrix) {
+exports.deleteVersionById = function(req, res) {
+    matricesService.deleteVersionById(req.params.stixId, req.params.modified, function (err, matrix) {
         if (err) {
             logger.error('Delete matrix failed. ' + err);
             return res.status(500).send('Unable to delete matrix. Server error.');
@@ -150,8 +150,8 @@ exports.delete = function(req, res) {
     });
 };
 
-exports.deleteAllVersion = function(req, res) {
-    matricesService.deleteAllVersion(req.params.stixId, function (err, matrices) {
+exports.deleteById = function(req, res) {
+    matricesService.deleteById(req.params.stixId, function (err, matrices) {
         if (err) {
             logger.error('Delete matrix failed. ' + err);
             return res.status(500).send('Unable to delete matrix. Server error.');

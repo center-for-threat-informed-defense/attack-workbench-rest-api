@@ -145,7 +145,7 @@ paths:
           description: 'A data component with the requested STIX id was not found.'
     delete:
       summary: 'Delete a data component'
-      operationId: 'data-component-deleteAll'
+      operationId: 'data-component-delete-all'
       description: |
         This endpoint deletes all versions of a data component from the workspace.
         The data component is identified by its STIX id.

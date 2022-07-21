@@ -141,8 +141,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    softwareService.delete(req.params.stixId, req.params.modified, function (err, software) {
+exports.deleteVersionById = function(req, res) {
+    softwareService.deleteVersionById(req.params.stixId, req.params.modified, function (err, software) {
         if (err) {
             logger.error('Delete software failed. ' + err);
             return res.status(500).send('Unable to delete software. Server error.');
@@ -158,8 +158,8 @@ exports.delete = function(req, res) {
     });
 };
 
-exports.deleteAllVersion = function(req, res) {
-    softwareService.deleteAllVersion(req.params.stixId, function (err, softwares) {
+exports.deleteById = function(req, res) {
+    softwareService.deleteById(req.params.stixId, function (err, softwares) {
         if (err) {
             logger.error('Delete software failed. ' + err);
             return res.status(500).send('Unable to delete software. Server error.');

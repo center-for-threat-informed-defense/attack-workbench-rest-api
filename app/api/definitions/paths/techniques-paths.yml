@@ -146,7 +146,7 @@ paths:
           description: 'A technique with the requested STIX id was not found.'
     delete:
       summary: 'Delete a technique'
-      operationId: 'technique-deleteAll'
+      operationId: 'technique-delete-all'
       description: |
         This endpoint deletes all versions of a technique from the workspace.
         The technique is identified by its STIX id.
