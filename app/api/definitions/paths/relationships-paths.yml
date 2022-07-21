@@ -226,6 +226,18 @@ paths:
           required: true
           schema:
             type: string
+        - name: softDelete
+          in: query
+          description: |
+            Option to soft delete objects
+          schema:
+            type: boolean
+        - name: hardDelete
+          in: query
+          description: |
+            Option to hard delete objects
+          schema:
+            type: boolean
       responses:
         '204':
           description: 'All the relationship versions were successfully deleted.'
@@ -320,6 +332,18 @@ paths:
           required: true
           schema:
             type: string
+        - name: soft-delete
+          in: query
+          description: |
+            Option to soft delete objects
+          schema:
+            type: boolean
+        - name: hard-delete
+          in: query
+          description: |
+            Option to hard delete objects
+          schema:
+            type: boolean
       responses:
         '204':
           description: 'The relationship was successfully deleted.'

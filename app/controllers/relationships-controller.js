@@ -158,7 +158,11 @@ exports.delete = function(req, res) {
 };
 
 exports.deleteAllVersion = function(req, res) {
-    relationshipsService.deleteAllVersion(req.params.stixId, function (err, relationships) {
+    const options = {
+        softDelete: req.query.softDelete,
+        hardDelete: req.query.hardDelete,
+     }
+    relationshipsService.deleteAllVersion(req.params.stixId, options, function (err, relationships) {
         if (err) {
             logger.error('Delete relationship failed. ' + err);
             return res.status(500).send('Unable to delete relationship. Server error.');

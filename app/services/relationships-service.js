@@ -412,26 +412,36 @@ exports.delete = function (stixId, stixModified, callback) {
             return callback(err);
         } else {
             //Note: relationship is null if not found
-            relationship.workspace.workflow.soft_delete = true; 
             return callback(null, relationship);
         }
     });
 };
 
-exports.deleteAllVersion = function (stixId, callback) {
+exports.deleteAllVersion = function (stixId, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
         return callback(error);
     }
-
+    if (options.softDelete){
+    	Relationship.findOneAndUpdate({ 'stix.id': stixId},{softDelete: true}, function (err, relationship) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: relationship is null if not found
+            return callback(null, relationship);
+        }
+    });
+    }
+    else{
     Relationship.deleteMany({ 'stix.id': stixId }, function (err, relationship) {
         if (err) {
             return callback(err);
         } else {
             //Note: relationship is null if not found
-            relationship.workspace.workflow.soft_delete = true;
+            //relationship.workspace.workflow.softDelete = true;
             return callback(null, relationship);
         }
     });
+    }
 };
