@@ -25,7 +25,8 @@ const targetRef3 = 'attack-pattern--0259baeb-9f63-4c69-bf10-eb038c390688';
 const initialObjectData = {
     workspace: {
         workflow: {
-            state: 'work-in-progress'
+            state: 'work-in-progress',
+            soft_delete: true
         }
     },
     stix: {
@@ -656,6 +657,28 @@ describe('Relationships API', function () {
             });
     });
 
+    it('GET /api/relationships returns all added relationships', function (done) {
+        request(app)
+            .get('/api/relationships?versions=all')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get two relationships in an array
+                    const relationships = res.body;
+                    expect(relationships).toBeDefined();
+                    expect(Array.isArray(relationships)).toBe(true);
+                    expect(relationships.length).toBe(3);
+                    done();
+                }
+            });
+    });
+    
     it('GET /api/relationships returns an empty array of relationships', function (done) {
         request(app)
             .get('/api/relationships')
