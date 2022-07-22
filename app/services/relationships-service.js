@@ -424,7 +424,7 @@ exports.deleteAllVersion = function (stixId, options, callback) {
         return callback(error);
     }
     if (options.softDelete){
-    	Relationship.findOneAndUpdate({ 'stix.id': stixId},{softDelete: true}, function (err, relationship) {
+    	Relationship.findOneAndUpdate({ 'stix.id': stixId}, { 'workspace.worflow.soft_delete': true }, function (err, relationship) {
         if (err) {
             return callback(err);
         } else {

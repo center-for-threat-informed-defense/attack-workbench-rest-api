@@ -232,12 +232,7 @@ paths:
             Option to soft delete objects
           schema:
             type: boolean
-        - name: hardDelete
-          in: query
-          description: |
-            Option to hard delete objects
-          schema:
-            type: boolean
+            default: true
       responses:
         '204':
           description: 'All the relationship versions were successfully deleted.'
