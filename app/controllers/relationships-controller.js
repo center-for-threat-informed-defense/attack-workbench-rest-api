@@ -159,7 +159,7 @@ exports.delete = function(req, res) {
 
 exports.deleteAllVersion = function(req, res) {
     const options = {
-        softDelete: req.query.soft_delete,
+        soft_delete: req.query.soft_delete
      }
     relationshipsService.deleteAllVersion(req.params.stixId, options, function (err, relationships) {
         if (err) {
