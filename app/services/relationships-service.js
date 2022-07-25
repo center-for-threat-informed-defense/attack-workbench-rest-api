@@ -394,7 +394,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.delete = function (stixId, stixModified, callback) {
+exports.delete = function (stixId, stixModified, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -406,15 +406,26 @@ exports.delete = function (stixId, stixModified, callback) {
         error.parameterName = 'modified';
         return callback(error);
     }
-
-    Relationship.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, relationship) {
+    if (options.soft_delete){
+    	Relationship.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { 'workspace.worflow.soft_delete': true }, function (err, relationship) {
         if (err) {
             return callback(err);
         } else {
             //Note: relationship is null if not found
             return callback(null, relationship);
         }
-    });
+    	});    
+    }
+    else{
+    	Relationship.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, relationship) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: relationship is null if not found
+            return callback(null, relationship);
+        }
+    	});
+    }
 };
 
 exports.deleteAllVersion = function (stixId, options, callback) {
@@ -431,17 +442,17 @@ exports.deleteAllVersion = function (stixId, options, callback) {
             //Note: relationship is null if not found
             return callback(null, relationship);
         }
-    });
+    	});
     }
     else{
-    Relationship.deleteMany({ 'stix.id': stixId }, function (err, relationship) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: relationship is null if not found
-            //relationship.workspace.workflow.softDelete = true;
-            return callback(null, relationship);
-        }
-    });
+    	Relationship.deleteMany({ 'stix.id': stixId }, function (err, relationship) {
+        	if (err) {
+            		return callback(err);
+       	} else {
+            		//Note: relationship is null if not found
+            		//relationship.workspace.workflow.softDelete = true;
+            		return callback(null, relationship);
+        	}
+    	});
     }
 };

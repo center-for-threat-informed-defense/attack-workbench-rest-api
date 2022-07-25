@@ -660,9 +660,9 @@ describe('Relationships API', function () {
             });
     });
     
-    it('DELETE /api/relationships deletes a relationship', function (done) {
+    it('DELETE /api/relationships deletes a relationship with soft_delete property set to true', function (done) {
         request(app)
-            .delete('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified)
+            .delete('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified + '?soft_delete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -691,9 +691,9 @@ describe('Relationships API', function () {
             });
     });   
     
-    it('DELETE /api/relationships should delete the third relationship', function (done) {
+    it('DELETE /api/relationships should delete the third relationship with soft_delete property set to false', function (done) {
         request(app)
-            .delete('/api/relationships/' + relationship2.stix.id + '/modified/' + relationship2.stix.modified)
+            .delete('/api/relationships/' + relationship2.stix.id + '/modified/' + relationship2.stix.modified + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -722,13 +722,27 @@ describe('Relationships API', function () {
                     const relationships = res.body;
                     expect(relationships).toBeDefined();
                     expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(2);
+                    expect(relationships.length).toBe(3);
                     done();
                 }
             });
     });
      
-    
+    it('DELETE /api/relationships deletes a relationship with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+       
     it('DELETE /api/relationships should delete all the relationships with the same stix id with soft_delete set to false', function (done) {
         request(app)
             //.get('/api/relationships/' +  + relationship1b.stix.id + "?soft_delete=false")
@@ -747,7 +761,7 @@ describe('Relationships API', function () {
      
     it('GET /api/relationships returns an empty array of relationships', function (done) {
         request(app)
-            .get('/api/relationships?versions=all')
+            .get('/api/relationships')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
