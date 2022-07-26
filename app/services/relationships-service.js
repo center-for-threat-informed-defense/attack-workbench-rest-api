@@ -56,7 +56,7 @@ exports.retrieveAll = async function(options) {
     if (typeof options.relationshipType !== 'undefined') {
         query['stix.relationship_type'] = options.relationshipType;
     }
-
+	query['workspace.workflow.soft_delete'] = { $in: [null, false] };
     // Build the aggregation
     const aggregation = [];
     if (options.versions === 'latest') {
@@ -90,6 +90,7 @@ exports.retrieveAll = async function(options) {
     }
     // Retrieve the documents
     let results = await Relationship.aggregate(aggregation);
+    //results = results.filter(document => 'workspace.workflow.soft_delete' != true );
     if (options.sourceType) {
         // Filter out relationships that don't reference the source type
         results = results.filter(document => {
@@ -407,7 +408,7 @@ exports.delete = function (stixId, stixModified, options, callback) {
         return callback(error);
     }
     if (options.soft_delete){
-    	Relationship.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { 'workspace.worflow.soft_delete': true }, function (err, relationship) {
+    	Relationship.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { $set: {'workspace.workflow.soft_delete': true} }, function (err, relationship) {
         if (err) {
             return callback(err);
         } else {
@@ -435,11 +436,12 @@ exports.deleteAllVersion = function (stixId, options, callback) {
         return callback(error);
     }
     if (options.soft_delete){
-    	Relationship.updateMany({ 'stix.id': stixId }, { 'workspace.worflow.soft_delete': true }, function (err, relationship) {
+    	Relationship.updateMany({ 'stix.id': stixId }, { $set: {'workspace.workflow.soft_delete': true} }, function (err, relationship) {
         if (err) {
             return callback(err);
         } else {
             //Note: relationship is null if not found
+            console.log(JSON.stringify(relationship,null,2));
             return callback(null, relationship);
         }
     	});

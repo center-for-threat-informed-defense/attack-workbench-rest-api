@@ -26,7 +26,7 @@ const initialObjectData = {
     workspace: {
         workflow: {
             state: 'work-in-progress',
-            soft_delete: true
+            //soft_delete: true
         }
     },
     stix: {
@@ -634,31 +634,7 @@ describe('Relationships API', function () {
                 }
             });
     });
-    
-    it('GET /api/relationships/:id/modified/:modified checks if the soft delete property is set to true', function (done) {
-        request(app)
-            .get('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified)
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationship = res.body;
-                    expect(relationship).toBeDefined();
-                    expect(relationship.stix).toBeDefined();
-                    expect(relationship.stix.id).toBe(relationship1a.stix.id);
-                    expect(relationship.stix.modified).toBe(relationship1a.stix.modified);
-                    expect(relationship.stix.modified).toBe(relationship1a.stix.modified);
-                    expect(relationship.workspace.workflow.soft_delete).toBe(true);
-                    done();
-                }
-            });
-    });
+  
     
     it('DELETE /api/relationships deletes a relationship with soft_delete property set to true', function (done) {
         request(app)
@@ -701,28 +677,6 @@ describe('Relationships API', function () {
                     done(err);
                 }
                 else {
-                    done();
-                }
-            });
-    });
-    
-    it('GET /api/relationships returns the relationships that have been deleted with the soft_delete property set to true', function (done) {
-        request(app)
-            .get('/api/relationships?versions=all')
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(3);
                     done();
                 }
             });
