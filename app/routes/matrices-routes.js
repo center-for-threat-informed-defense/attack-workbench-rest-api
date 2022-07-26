@@ -29,7 +29,7 @@ router.route('/matrices/:stixId')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        matricesController.deleteAllVersion
+        matricesController.deleteById
     );
 
 router.route('/matrices/:stixId/modified/:modified')
@@ -46,7 +46,7 @@ router.route('/matrices/:stixId/modified/:modified')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        matricesController.delete
+        matricesController.deleteVersionById
     );
 
 module.exports = router;

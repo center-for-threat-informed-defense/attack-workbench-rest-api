@@ -29,7 +29,7 @@ router.route('/data-components/:stixId')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        dataComponentsController.deleteAllVersion
+        dataComponentsController.deleteById
     );
 
 router.route('/data-components/:stixId/modified/:modified')
@@ -46,7 +46,7 @@ router.route('/data-components/:stixId/modified/:modified')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        dataComponentsController.delete
+        dataComponentsController.deleteVersionById
     );
 
 module.exports = router;

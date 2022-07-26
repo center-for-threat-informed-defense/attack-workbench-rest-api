@@ -29,7 +29,7 @@ router.route('/mitigations/:stixId')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        mitigationsController.deleteAllVersion
+        mitigationsController.deleteById
     );
 
 router.route('/mitigations/:stixId/modified/:modified')
@@ -46,7 +46,7 @@ router.route('/mitigations/:stixId/modified/:modified')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        mitigationsController.delete
+        mitigationsController.deleteVersionById
     );
 
 module.exports = router;

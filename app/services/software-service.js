@@ -340,7 +340,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.delete = function (stixId, stixModified, callback) {
+exports.deleteVersionById = function (stixId, stixModified, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -363,7 +363,7 @@ exports.delete = function (stixId, stixModified, callback) {
     });
 };
 
-exports.deleteAllVersion = function (stixId, callback) {
+exports.deleteById = function (stixId, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';

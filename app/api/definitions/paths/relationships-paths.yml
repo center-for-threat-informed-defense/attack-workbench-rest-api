@@ -213,7 +213,7 @@ paths:
           description: 'A relationship with the requested STIX id was not found.'
     delete:
       summary: 'Delete a relationship'
-      operationId: 'relationship-deleteAll'
+      operationId: 'relationship-delete-all'
       description: |
         This endpoint deletes all versions of a relationship from the workspace.
         The relationship is identified by its STIX id.

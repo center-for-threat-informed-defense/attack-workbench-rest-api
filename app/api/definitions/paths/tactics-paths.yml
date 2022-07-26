@@ -145,7 +145,7 @@ paths:
           description: 'A tactic with the requested STIX id was not found.'
     delete:
       summary: 'Delete a tactic'
-      operationId: 'tactic-deleteAll'
+      operationId: 'tactic-delete-all'
       description: |
         This endpoint deletes all versions of a tactic from the workspace.
         The tactic is identified by its STIX id.

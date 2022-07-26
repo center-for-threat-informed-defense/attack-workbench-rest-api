@@ -29,7 +29,7 @@ router.route('/identities/:stixId')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        identitiesController.deleteAllVersion
+        identitiesController.deleteById
     );
 
 router.route('/identities/:stixId/modified/:modified')
@@ -46,7 +46,7 @@ router.route('/identities/:stixId/modified/:modified')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        identitiesController.delete
+        identitiesController.deleteVersionById
     );
 
 module.exports = router;

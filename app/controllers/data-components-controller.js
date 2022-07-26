@@ -133,8 +133,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    dataComponentsService.delete(req.params.stixId, req.params.modified, function (err, dataComponent) {
+exports.deleteVersionById = function(req, res) {
+    dataComponentsService.deleteVersionById(req.params.stixId, req.params.modified, function (err, dataComponent) {
         if (err) {
             logger.error('Delete data component failed. ' + err);
             return res.status(500).send('Unable to delete data component. Server error.');
@@ -150,8 +150,8 @@ exports.delete = function(req, res) {
     });
 };
 
-exports.deleteAllVersion = function(req, res) {
-    dataComponentsService.deleteAllVersion(req.params.stixId, function (err, dataComponents) {
+exports.deleteById = function(req, res) {
+    dataComponentsService.deleteById(req.params.stixId, function (err, dataComponents) {
         if (err) {
             logger.error('Delete data component failed. ' + err);
             return res.status(500).send('Unable to delete data component. Server error.');

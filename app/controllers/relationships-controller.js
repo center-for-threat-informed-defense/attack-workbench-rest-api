@@ -140,11 +140,12 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
+
+exports.deleteVersionById = function(req, res) {
     const options = {
         soft_delete: req.query.soft_delete
      }
-    relationshipsService.delete(req.params.stixId, req.params.modified, options, function (err, relationship) {
+    relationshipsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, relationship) {
         if (err) {
             logger.error('Delete relationship failed. ' + err);
             return res.status(500).send('Unable to delete relationship. Server error.');
@@ -160,11 +161,11 @@ exports.delete = function(req, res) {
     });
 };
 
-exports.deleteAllVersion = function(req, res) {
+exports.deleteById = function(req, res) {
     const options = {
         soft_delete: req.query.soft_delete
      }
-    relationshipsService.deleteAllVersion(req.params.stixId, options, function (err, relationships) {
+    relationshipsService.deleteById(req.params.stixId, options, function (err, relationships) {
         if (err) {
             logger.error('Delete relationship failed. ' + err);
             return res.status(500).send('Unable to delete relationship. Server error.');
