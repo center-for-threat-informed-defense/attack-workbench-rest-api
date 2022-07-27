@@ -34,7 +34,7 @@ exports.retrieveAll = function(options, callback) {
             query['workspace.workflow.state'] = options.state;
         }
     }
-
+    query['workspace.workflow.soft_delete'] = { $in: [null, false] };
     // Build the aggregation
     // - Group the documents by stix.id, sorted by stix.modified
     // - Use the last document in each group (according to the value of stix.modified)
@@ -403,7 +403,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.deleteVersionById = function (stixId, stixModified, callback) {
+exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -415,30 +415,52 @@ exports.deleteVersionById = function (stixId, stixModified, callback) {
         error.parameterName = 'modified';
         return callback(error);
     }
-
-    DataComponent.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, dataComponent) {
-        if (err) {
-            return callback(err);
-        } else {
-            // Note: data component is null if not found
-            return callback(null, dataComponent);
-        }
-    });
-};
-
-exports.deleteById = function (stixId, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    DataComponent.deleteMany({ 'stix.id': stixId }, function (err, dataComponent) {
+    if (options.soft_delete){
+    	DataComponent.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { $set: {'workspace.workflow.soft_delete': true} }, function (err, dataComponent) {
         if (err) {
             return callback(err);
         } else {
             //Note: dataComponent is null if not found
             return callback(null, dataComponent);
         }
-    });
+    	});    
+    }
+    else {
+	    DataComponent.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, dataComponent) {
+		if (err) {
+		    return callback(err);
+		} else {
+		    // Note: data component is null if not found
+		    return callback(null, dataComponent);
+		}
+	    });
+	}
+};
+
+exports.deleteById = function (stixId, options, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+    if (options.soft_delete){
+    	DataComponent.updateMany({ 'stix.id': stixId }, { $set: {'workspace.workflow.soft_delete': true} }, function (err, dataComponent) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: dataComponent is null if not found
+            return callback(null, dataComponent);
+        }
+    	});
+    }
+    else {
+	    DataComponent.deleteMany({ 'stix.id': stixId }, function (err, dataComponent) {
+		if (err) {
+		    return callback(err);
+		} else {
+		    //Note: dataComponent is null if not found
+		    return callback(null, dataComponent);
+		}
+	    });
+    }
 };

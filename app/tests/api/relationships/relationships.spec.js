@@ -26,7 +26,6 @@ const initialObjectData = {
     workspace: {
         workflow: {
             state: 'work-in-progress',
-            //soft_delete: true
         }
     },
     stix: {

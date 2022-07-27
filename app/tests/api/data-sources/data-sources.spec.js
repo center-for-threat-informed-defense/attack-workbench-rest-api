@@ -481,9 +481,24 @@ describe('Data Sources API', function () {
             });
     });
     
-    it('DELETE /api/data-sources deletes a data source', function (done) {
+    it('DELETE /api/data-sources deletes a data source with soft_delete property set to true', function (done) {
         request(app)
-            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
+            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified + '?soft_delete=true')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
+    it('DELETE /api/data-sources deletes a data source with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -496,9 +511,24 @@ describe('Data Sources API', function () {
             });
     });
 
-    it('DELETE /api/tactics should delete all the data sources with the same stix id', function (done) {
+    it('DELETE /api/data-sources should delete all the data sources with the same stix id with soft_delete property set to true by default', function (done) {
         request(app)
             .delete('/api/data-sources/' + dataSource2.stix.id)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
+    it('DELETE /api/data-sources should delete all the data sources with the same stix id with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/data-sources/' + dataSource2.stix.id + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -513,7 +543,7 @@ describe('Data Sources API', function () {
 
     it('GET /api/data-sources returns an empty array of data sources', function (done) {
         request(app)
-            .get('/api/data-sources')
+            .get('/api/data-sources/')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -525,6 +555,7 @@ describe('Data Sources API', function () {
                 else {
                     // We expect to get an empty array
                     const dataSources = res.body;
+                    console.log(JSON.stringify(dataSources[0], null, 2));
                     expect(dataSources).toBeDefined();
                     expect(Array.isArray(dataSources)).toBe(true);
                     expect(dataSources.length).toBe(0);

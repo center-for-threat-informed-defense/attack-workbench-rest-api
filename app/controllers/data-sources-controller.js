@@ -139,7 +139,10 @@ exports.updateFull = function(req, res) {
 };
 
 exports.deleteVersionById = function(req, res) {
-    dataSourcesService.deleteVersionById(req.params.stixId, req.params.modified, function (err, dataSource) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    dataSourcesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, dataSource) {
         if (err) {
             logger.error('Delete data source failed. ' + err);
             return res.status(500).send('Unable to delete data source. Server error.');
@@ -156,7 +159,10 @@ exports.deleteVersionById = function(req, res) {
 };
 
 exports.deleteById = function(req, res) {
-    dataSourcesService.deleteById(req.params.stixId, function (err, dataSources) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    dataSourcesService.deleteById(req.params.stixId, options, function (err, dataSources) {
         if (err) {
             logger.error('Delete data source failed. ' + err);
             return res.status(500).send('Unable to delete data source. Server error.');

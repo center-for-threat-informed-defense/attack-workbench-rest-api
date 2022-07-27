@@ -397,10 +397,25 @@ describe('Data Components API', function () {
                 }
             });
     });
-
-    it('DELETE /api/data-components deletes a data component', function (done) {
+    
+    it('DELETE /api/data-components deletes a data component with soft_delete property set to true', function (done) {
         request(app)
-            .delete('/api/data-components/' + dataComponent1.stix.id + '/modified/' + dataComponent1.stix.modified)
+            .delete('/api/data-components/' + dataComponent1.stix.id + '/modified/' + dataComponent1.stix.modified + '?soft_delete=true')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });   
+
+    it('DELETE /api/data-components deletes a data component with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/data-components/' + dataComponent1.stix.id + '/modified/' + dataComponent1.stix.modified + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -413,9 +428,24 @@ describe('Data Components API', function () {
             });
     });
 
-    it('DELETE /api/data-components should delete all the data components with the same stix id', function (done) {
+    it('DELETE /api/data-components should delete all the data components with the same stix id with the soft_delete property set to true by default', function (done) {
         request(app)
             .delete('/api/data-components/' + dataComponent2.stix.id)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
+    it('DELETE /api/data-components should delete all the data components with the same stix id with the soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/data-components/' + dataComponent2.stix.id + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
