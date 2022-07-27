@@ -389,9 +389,9 @@ describe('Identity API', function () {
             });
     });
     
-    it('DELETE /api/identities deletes an identity', function (done) {
+    it('DELETE /api/identities deletes an identity with soft_delete property set to true', function (done) {
         request(app)
-            .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified)
+            .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified+ '?soft_delete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -403,8 +403,23 @@ describe('Identity API', function () {
                 }
             });
     });
-    
-    it('DELETE /api/identities should delete all the identities with the same stix id', function (done) {
+
+    it('DELETE /api/identities deletes an identity with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+        
+    it('DELETE /api/identities should delete all the identities with the same stix id with soft_delete property set to true by default', function (done) {
         request(app)
             .delete('/api/identities/' + identity2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -418,6 +433,22 @@ describe('Identity API', function () {
                 }
             });
     });
+    
+    it('DELETE /api/identities should delete all the identities with the same stix id with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/identities/' + identity2.stix.id + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
 
     it('GET /api/identities returns only the placeholder identity', function (done) {
         request(app)

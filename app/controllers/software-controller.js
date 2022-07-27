@@ -142,7 +142,10 @@ exports.updateFull = function(req, res) {
 };
 
 exports.deleteVersionById = function(req, res) {
-    softwareService.deleteVersionById(req.params.stixId, req.params.modified, function (err, software) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    softwareService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, software) {
         if (err) {
             logger.error('Delete software failed. ' + err);
             return res.status(500).send('Unable to delete software. Server error.');
@@ -159,7 +162,10 @@ exports.deleteVersionById = function(req, res) {
 };
 
 exports.deleteById = function(req, res) {
-    softwareService.deleteById(req.params.stixId, function (err, softwares) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    softwareService.deleteById(req.params.stixId, options, function (err, softwares) {
         if (err) {
             logger.error('Delete software failed. ' + err);
             return res.status(500).send('Unable to delete software. Server error.');

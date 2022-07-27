@@ -346,14 +346,14 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     	});    
     }
     else {
-    Tactic.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, tactic) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: tactic is null if not found
-            return callback(null, tactic);
-        }
-    });
+	    Tactic.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, tactic) {
+		if (err) {
+		    return callback(err);
+		} else {
+		    //Note: tactic is null if not found
+		    return callback(null, tactic);
+		}
+	    });
     }
 };
 
@@ -374,13 +374,13 @@ exports.deleteById = function (stixId, options, callback) {
     	});
     }
     else {
-    Tactic.deleteMany({ 'stix.id': stixId }, function (err, tactic) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: tactic is null if not found
-            return callback(null, tactic);
-        }
-    });
+	    Tactic.deleteMany({ 'stix.id': stixId }, function (err, tactic) {
+		if (err) {
+		    return callback(err);
+		} else {
+		    //Note: tactic is null if not found
+		    return callback(null, tactic);
+		}
+	    });
     }
 };

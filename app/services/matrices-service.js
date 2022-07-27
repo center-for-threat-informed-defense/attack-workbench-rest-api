@@ -348,14 +348,14 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     	});    
     }
     else {
-    Matrix.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, matrix) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: matrix is null if not found
-            return callback(null, matrix);
-        }
-    });
+	    Matrix.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, matrix) {
+		if (err) {
+		    return callback(err);
+		} else {
+		    //Note: matrix is null if not found
+		    return callback(null, matrix);
+		}
+	    });
     }
 };
 
@@ -376,14 +376,14 @@ exports.deleteById = function (stixId, options, callback) {
     	});
     }
     else {
-    Matrix.deleteMany({ 'stix.id': stixId }, function (err, matrix) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: matrix is null if not found
-            return callback(null, matrix);
-        }
-    });
+	    Matrix.deleteMany({ 'stix.id': stixId }, function (err, matrix) {
+		if (err) {
+		    return callback(err);
+		} else {
+		    //Note: matrix is null if not found
+		    return callback(null, matrix);
+		}
+	    });
     }
 };
 

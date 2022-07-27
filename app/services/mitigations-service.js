@@ -347,14 +347,14 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     	});    
     }
     else {
-    Mitigation.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, mitigation) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: mitigation is null if not found
-            return callback(null, mitigation);
-        }
-    });
+	    Mitigation.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, mitigation) {
+		if (err) {
+		    return callback(err);
+		} else {
+		    //Note: mitigation is null if not found
+		    return callback(null, mitigation);
+		}
+	    });
     }
 };
 
@@ -375,13 +375,13 @@ exports.deleteById = function (stixId, options, callback) {
     	});
     }
     else {
-    Mitigation.deleteMany({ 'stix.id': stixId }, function (err, mitigation) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: mitigation is null if not found
-            return callback(null, mitigation);
-        }
-    });
+	    Mitigation.deleteMany({ 'stix.id': stixId }, function (err, mitigation) {
+		if (err) {
+		    return callback(err);
+		} else {
+		    //Note: mitigation is null if not found
+		    return callback(null, mitigation);
+		}
+	    });
     }
 };
