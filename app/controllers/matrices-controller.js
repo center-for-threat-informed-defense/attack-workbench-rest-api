@@ -134,7 +134,10 @@ exports.updateFull = function(req, res) {
 };
 
 exports.deleteVersionById = function(req, res) {
-    matricesService.deleteVersionById(req.params.stixId, req.params.modified, function (err, matrix) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    matricesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, matrix) {
         if (err) {
             logger.error('Delete matrix failed. ' + err);
             return res.status(500).send('Unable to delete matrix. Server error.');
@@ -151,7 +154,10 @@ exports.deleteVersionById = function(req, res) {
 };
 
 exports.deleteById = function(req, res) {
-    matricesService.deleteById(req.params.stixId, function (err, matrices) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    matricesService.deleteById(req.params.stixId, options, function (err, matrices) {
         if (err) {
             logger.error('Delete matrix failed. ' + err);
             return res.status(500).send('Unable to delete matrix. Server error.');

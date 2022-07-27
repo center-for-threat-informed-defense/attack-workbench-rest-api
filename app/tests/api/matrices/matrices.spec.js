@@ -401,9 +401,24 @@ describe('Matrices API', function () {
             });
     });
 
-    it('DELETE /api/matrices deletes a matrix', function (done) {
+    it('DELETE /api/matrices deletes a matrix with soft_delete property set to true', function (done) {
         request(app)
-            .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
+            .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified + '?soft_delete=true')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
+    it('DELETE /api/matrices deletes a matrix with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -416,7 +431,7 @@ describe('Matrices API', function () {
             });
     });
 
-    it('DELETE /api/matrices should delete all the matrices with the same stix id', function (done) {
+    it('DELETE /api/matrices should delete all the matrices with the same stix id with soft_delete property set to true by default', function (done) {
         request(app)
             .delete('/api/matrices/' + matrix2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -431,6 +446,21 @@ describe('Matrices API', function () {
             });
     });
 
+    it('DELETE /api/matrices should delete all the matrices with the same stix id with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/matrices/' + matrix2.stix.id + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
     it('GET /api/matrices returns an empty array of matrices', function (done) {
         request(app)
             .get('/api/matrices')
