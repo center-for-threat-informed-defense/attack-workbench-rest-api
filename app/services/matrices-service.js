@@ -17,7 +17,7 @@ const errors = {
 };
 exports.errors = errors;
 
-exports.retrieveAll = function(options, callback) {
+exports.retrieveAll = function (options, callback) {
     // Build the query
     const query = {};
     if (!options.includeRevoked) {
@@ -41,25 +41,29 @@ exports.retrieveAll = function(options, callback) {
     // - Then apply query, skip and limit options
     const aggregation = [
         { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
-        { $replaceRoot: { newRoot: '$document' }},
-        { $sort: { 'stix.id': 1 }},
+        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' } } },
+        { $replaceRoot: { newRoot: '$document' } },
+        { $sort: { 'stix.id': 1 } },
         { $match: query }
     ];
 
     if (typeof options.search !== 'undefined') {
         options.search = regexValidator.sanitizeRegex(options.search);
-        const match = { $match: { $or: [
-                    { 'stix.name': { '$regex': options.search, '$options': 'i' }},
-                    { 'stix.description': { '$regex': options.search, '$options': 'i' }}
-                ]}};
+        const match = {
+            $match: {
+                $or: [
+                    { 'stix.name': { '$regex': options.search, '$options': 'i' } },
+                    { 'stix.description': { '$regex': options.search, '$options': 'i' } }
+                ]
+            }
+        };
         aggregation.push(match);
     }
 
     const facet = {
         $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [ ]
+            totalCount: [{ $count: 'totalCount' }],
+            documents: []
         }
     };
     if (options.offset) {
@@ -74,13 +78,13 @@ exports.retrieveAll = function(options, callback) {
     aggregation.push(facet);
 
     // Retrieve the documents
-    Matrix.aggregate(aggregation, function(err, results) {
+    Matrix.aggregate(aggregation, function (err, results) {
         if (err) {
             return callback(err);
         }
         else {
             identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents)
-                .then(function() {
+                .then(function () {
                     if (options.includePagination) {
                         let derivedTotalCount = 0;
                         if (results[0].totalCount.length > 0) {
@@ -104,7 +108,7 @@ exports.retrieveAll = function(options, callback) {
     });
 };
 
-exports.retrieveById = function(stixId, options, callback) {
+exports.retrieveById = function (stixId, options, callback) {
     // versions=all Retrieve all matrices with the stixId
     // versions=latest Retrieve the matrix with the latest modified date for this stixId
 
@@ -115,7 +119,7 @@ exports.retrieveById = function(stixId, options, callback) {
     }
 
     if (options.versions === 'all') {
-        Matrix.find({'stix.id': stixId})
+        Matrix.find({ 'stix.id': stixId })
             .sort('-stix.modified')
             .lean()
             .exec(function (err, matrices) {
@@ -139,7 +143,7 @@ exports.retrieveById = function(stixId, options, callback) {
         Matrix.findOne({ 'stix.id': stixId })
             .sort('-stix.modified')
             .lean()
-            .exec(function(err, matrix) {
+            .exec(function (err, matrix) {
                 if (err) {
                     if (err.name === 'CastError') {
                         const error = new Error(errors.badlyFormattedParameter);
@@ -154,7 +158,7 @@ exports.retrieveById = function(stixId, options, callback) {
                     // Note: document is null if not found
                     if (matrix) {
                         identitiesService.addCreatedByAndModifiedByIdentities(matrix)
-                            .then(() => callback(null, [ matrix ]));
+                            .then(() => callback(null, [matrix]));
                     }
                     else {
                         return callback(null, []);
@@ -169,7 +173,7 @@ exports.retrieveById = function(stixId, options, callback) {
     }
 };
 
-exports.retrieveVersionById = function(stixId, modified, callback) {
+exports.retrieveVersionById = function (stixId, modified, callback) {
     // Retrieve the versions of the matrix with the matching stixId and modified date
 
     if (!stixId) {
@@ -184,7 +188,7 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
         return callback(error);
     }
 
-    Matrix.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function(err, matrix) {
+    Matrix.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function (err, matrix) {
         if (err) {
             if (err.name === 'CastError') {
                 const error = new Error(errors.badlyFormattedParameter);
@@ -210,7 +214,7 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
 };
 
 exports.createIsAsync = true;
-exports.create = async function(data, options) {
+exports.create = async function (data, options) {
     // This function handles two use cases:
     //   1. This is a completely new object. Create a new object and generate the stix.id if not already
     //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
@@ -275,7 +279,7 @@ exports.create = async function(data, options) {
     }
 };
 
-exports.updateFull = function(stixId, stixModified, data, callback) {
+exports.updateFull = function (stixId, stixModified, data, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -288,7 +292,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
         return callback(error);
     }
 
-    Matrix.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function(err, document) {
+    Matrix.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, document) {
         if (err) {
             if (err.name === 'CastError') {
                 var error = new Error(errors.badlyFormattedParameter);
@@ -306,7 +310,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
         else {
             // Copy data to found document and save
             Object.assign(document, data);
-            document.save(function(err, savedDocument) {
+            document.save(function (err, savedDocument) {
                 if (err) {
                     if (err.name === 'MongoError' && err.code === 11000) {
                         // 11000 = Duplicate index
@@ -337,25 +341,25 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
         error.parameterName = 'modified';
         return callback(error);
     }
-    if (options.soft_delete){
-    	Matrix.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { $set: {'workspace.workflow.soft_delete': true} }, function (err, matrix) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: matrix is null if not found
-            return callback(null, matrix);
-        }
-    	});    
+    if (options.soft_delete) {
+        Matrix.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, matrix) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: matrix is null if not found
+                return callback(null, matrix);
+            }
+        });
     }
     else {
-	    Matrix.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, matrix) {
-		if (err) {
-		    return callback(err);
-		} else {
-		    //Note: matrix is null if not found
-		    return callback(null, matrix);
-		}
-	    });
+        Matrix.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, matrix) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: matrix is null if not found
+                return callback(null, matrix);
+            }
+        });
     }
 };
 
@@ -365,25 +369,25 @@ exports.deleteById = function (stixId, options, callback) {
         error.parameterName = 'stixId';
         return callback(error);
     }
-    if (options.soft_delete){
-    	Matrix.updateMany({ 'stix.id': stixId }, { $set: {'workspace.workflow.soft_delete': true} }, function (err, matrix) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: matrix is null if not found
-            return callback(null, matrix);
-        }
-    	});
+    if (options.soft_delete) {
+        Matrix.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, matrix) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: matrix is null if not found
+                return callback(null, matrix);
+            }
+        });
     }
     else {
-	    Matrix.deleteMany({ 'stix.id': stixId }, function (err, matrix) {
-		if (err) {
-		    return callback(err);
-		} else {
-		    //Note: matrix is null if not found
-		    return callback(null, matrix);
-		}
-	    });
+        Matrix.deleteMany({ 'stix.id': stixId }, function (err, matrix) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: matrix is null if not found
+                return callback(null, matrix);
+            }
+        });
     }
 };
 
