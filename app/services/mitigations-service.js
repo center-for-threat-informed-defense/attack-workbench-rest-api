@@ -34,7 +34,7 @@ exports.retrieveAll = function(options, callback) {
             query['workspace.workflow.state'] = options.state;
         }
     }
-
+    query['workspace.workflow.soft_delete'] = { $in: [null, false] };
     // Build the aggregation
     // - Group the documents by stix.id, sorted by stix.modified
     // - Use the last document in each group (according to the value of stix.modified)
@@ -324,7 +324,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.deleteVersionById = function (stixId, stixModified, callback) {
+exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -336,7 +336,17 @@ exports.deleteVersionById = function (stixId, stixModified, callback) {
         error.parameterName = 'modified';
         return callback(error);
     }
-
+    if (options.soft_delete){
+    	Mitigation.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { $set: {'workspace.workflow.soft_delete': true} }, function (err, mitigation) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: mitigation is null if not found
+            return callback(null, mitigation);
+        }
+    	});    
+    }
+    else {
     Mitigation.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, mitigation) {
         if (err) {
             return callback(err);
@@ -345,15 +355,26 @@ exports.deleteVersionById = function (stixId, stixModified, callback) {
             return callback(null, mitigation);
         }
     });
+    }
 };
 
-exports.deleteById = function (stixId, callback) {
+exports.deleteById = function (stixId, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
         return callback(error);
     }
-
+    if (options.soft_delete){
+    	Mitigation.updateMany({ 'stix.id': stixId }, { $set: {'workspace.workflow.soft_delete': true} }, function (err, mitigation) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: mitigation is null if not found
+            return callback(null, mitigation);
+        }
+    	});
+    }
+    else {
     Mitigation.deleteMany({ 'stix.id': stixId }, function (err, mitigation) {
         if (err) {
             return callback(err);
@@ -362,4 +383,5 @@ exports.deleteById = function (stixId, callback) {
             return callback(null, mitigation);
         }
     });
+    }
 };

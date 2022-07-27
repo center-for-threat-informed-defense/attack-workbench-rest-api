@@ -134,7 +134,10 @@ exports.updateFull = function(req, res) {
 };
 
 exports.deleteVersionById = function(req, res) {
-    mitigationsService.deleteVersionById(req.params.stixId, req.params.modified, function (err, mitigation) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    mitigationsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, mitigation) {
         if (err) {
             logger.error('Delete mitigation failed. ' + err);
             return res.status(500).send('Unable to delete mitigation. Server error.');
@@ -151,7 +154,10 @@ exports.deleteVersionById = function(req, res) {
 };
 
 exports.deleteById = function(req, res) {
-    mitigationsService.deleteById(req.params.stixId, function (err, mitigations) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    mitigationsService.deleteById(req.params.stixId, options, function (err, mitigations) {
         if (err) {
             logger.error('Delete mitigation failed. ' + err);
             return res.status(500).send('Unable to delete mitigation. Server error.');

@@ -135,7 +135,10 @@ exports.updateFull = function(req, res) {
 };
 
 exports.deleteVersionById = function(req, res) {
-    tacticsService.deleteVersionById(req.params.stixId, req.params.modified, function (err, tactic) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    tacticsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, tactic) {
         if (err) {
             logger.error('Delete tactic failed. ' + err);
             return res.status(500).send('Unable to delete tactic. Server error.');
@@ -152,7 +155,10 @@ exports.deleteVersionById = function(req, res) {
 };
 
 exports.deleteById = function(req, res) {
-    tacticsService.deleteById(req.params.stixId, function (err, tactics) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    tacticsService.deleteById(req.params.stixId, options, function (err, tactics) {
         if (err) {
             logger.error('Delete tactic failed. ' + err);
             return res.status(500).send('Unable to delete tactic. Server error.');

@@ -394,9 +394,9 @@ describe('Mitigations API', function () {
             });
     });
 
-    it('DELETE /api/mitigations deletes a mitigation', function (done) {
+    it('DELETE /api/mitigations deletes a mitigation with soft_delete property set to true', function (done) {
         request(app)
-            .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified)
+            .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified + '?soft_delete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -409,7 +409,22 @@ describe('Mitigations API', function () {
             });
     });
 
-    it('DELETE /api/mitigations should delete all the mitigations with the same stix id', function (done) {
+    it('DELETE /api/mitigations deletes a mitigation with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
+    it('DELETE /api/mitigations should delete all the mitigations with the same stix id with soft_delete property set to true by default', function (done) {
         request(app)
             .delete('/api/mitigations/' + mitigation2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -424,6 +439,21 @@ describe('Mitigations API', function () {
             });
     });
 
+    it('DELETE /api/mitigations should delete all the mitigations with the same stix id with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/mitigations/' + mitigation2.stix.id + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
     it('GET /api/mitigations returns an empty array of mitigations', function (done) {
         request(app)
             .get('/api/mitigations')
