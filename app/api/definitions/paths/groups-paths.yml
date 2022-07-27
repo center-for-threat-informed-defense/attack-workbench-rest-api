@@ -158,6 +158,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: soft_delete
+          in: query
+          description: |
+            Option to soft delete objects
+          schema:
+            type: boolean
+            default: true
       responses:
         '204':
           description: 'All the group versions were successfully deleted.'
@@ -252,6 +259,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: soft_delete
+          in: query
+          description: |
+            Option to soft delete objects
+          schema:
+            type: boolean
+            default: true
       responses:
         '204':
           description: 'The group was successfully deleted.'

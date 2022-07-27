@@ -139,7 +139,10 @@ exports.updateFull = function(req, res) {
 };
 
 exports.deleteVersionById = function(req, res) {
-    groupsService.deleteVersionById(req.params.stixId, req.params.modified, function (err, group) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    groupsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, group) {
         if (err) {
             logger.error('Delete group failed. ' + err);
             return res.status(500).send('Unable to delete group. Server error.');
@@ -156,7 +159,10 @@ exports.deleteVersionById = function(req, res) {
 };
 
 exports.deleteById = function(req, res) {
-    groupsService.deleteById(req.params.stixId, function (err, groups) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    groupsService.deleteById(req.params.stixId, options, function (err, groups) {
         if (err) {
             logger.error('Delete group failed. ' + err);
             return res.status(500).send('Unable to delete group. Server error.');

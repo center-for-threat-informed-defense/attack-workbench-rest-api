@@ -554,9 +554,9 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups deletes a group', function (done) {
+    it('DELETE /api/groups deletes a group with soft_delete property set to true', function (done) {
         request(app)
-            .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified)
+            .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified + '?soft_delete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -568,8 +568,23 @@ describe('Groups API', function () {
                 }
             });
     });
-        
-    it('DELETE /api/groups should delete all the groups with the same stix id', function (done) {
+
+    it('DELETE /api/groups deletes a group with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+            
+    it('DELETE /api/groups should delete all the groups with the same stix id with soft_delete property set to true by default', function (done) {
         request(app)
             .delete('/api/groups/' + group2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -583,10 +598,25 @@ describe('Groups API', function () {
                 }
             });
     });
-
-    it('DELETE /api/groups should delete the third group', function (done) {
+    
+    it('DELETE /api/groups should delete all the groups with the same stix id with soft_delete property set to false', function (done) {
         request(app)
-            .delete('/api/groups/' + group3.stix.id + '/modified/' + group3.stix.modified)
+            .delete('/api/groups/' + group2.stix.id + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/groups should delete the third group with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/groups/' + group3.stix.id + '/modified/' + group3.stix.modified + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

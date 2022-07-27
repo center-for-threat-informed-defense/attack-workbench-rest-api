@@ -495,9 +495,9 @@ describe('Techniques Basic API', function () {
             });
     });
 
-    it('DELETE /api/techniques deletes a technique', function (done) {
+    it('DELETE /api/techniques deletes a technique with soft_delete property set to true', function (done) {
         request(app)
-            .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified)
+            .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified + '?soft_delete=true' )
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function (err, res) {
@@ -508,8 +508,23 @@ describe('Techniques Basic API', function () {
                 }
             });
     });
-    
-    it('DELETE /api/technique should delete all the techniques with the same stix id', function (done) {
+
+
+    it('DELETE /api/techniques deletes a technique with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+        
+    it('DELETE /api/technique should delete all the techniques with the same stix id with soft_delete property set to true by default', function (done) {
         request(app)
             .delete('/api/techniques/' + technique2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -524,7 +539,21 @@ describe('Techniques Basic API', function () {
             });
     });
     
-
+    it('DELETE /api/technique should delete all the techniques with the same stix id with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/techniques/' + technique2.stix.id + '?soft_delete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
     it('GET /api/techniques returns an empty array of techniques', function (done) {
         request(app)
             .get('/api/techniques')

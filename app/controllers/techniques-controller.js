@@ -135,7 +135,10 @@ exports.updateFull = function(req, res) {
 };
 
 exports.deleteVersionById = function(req, res) {
-    techniquesService.deleteVersionById(req.params.stixId, req.params.modified, function (err, technique) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    techniquesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, technique) {
         if (err) {
             logger.error('Delete technique failed. ' + err);
             return res.status(500).send('Unable to delete technique. Server error.');
@@ -152,7 +155,10 @@ exports.deleteVersionById = function(req, res) {
 };
 
 exports.deleteById = function(req, res) {
-    techniquesService.deleteById(req.params.stixId, function (err, techniques) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    techniquesService.deleteById(req.params.stixId, options, function (err, techniques) {
         if (err) {
             logger.error('Delete technique failed. ' + err);
             return res.status(500).send('Unable to delete technique. Server error.');
