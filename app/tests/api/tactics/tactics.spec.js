@@ -27,7 +27,7 @@ const initialObjectData = {
         external_references: [
             { source_name: 'source-1', external_id: 's1' }
         ],
-        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ]
+        object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168']
     }
 };
 
@@ -35,7 +35,7 @@ describe('Tactics API', function () {
     let app;
     let passportCookie;
 
-    before(async function() {
+    before(async function () {
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
@@ -54,10 +54,10 @@ describe('Tactics API', function () {
         request(app)
             .get('/api/tactics')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -73,14 +73,14 @@ describe('Tactics API', function () {
     });
 
     it('POST /api/tactics does not create an empty tactic', function (done) {
-        const body = { };
+        const body = {};
         request(app)
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(400)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -100,10 +100,10 @@ describe('Tactics API', function () {
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -129,10 +129,10 @@ describe('Tactics API', function () {
         request(app)
             .get('/api/tactics')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -151,7 +151,7 @@ describe('Tactics API', function () {
         request(app)
             .get('/api/tactics/not-an-id')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(404)
             .end(function (err, res) {
                 if (err) {
@@ -166,10 +166,10 @@ describe('Tactics API', function () {
         request(app)
             .get('/api/tactics/' + tactic1.stix.id)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -210,10 +210,10 @@ describe('Tactics API', function () {
             .put('/api/tactics/' + tactic1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -234,9 +234,9 @@ describe('Tactics API', function () {
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(409)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -260,10 +260,10 @@ describe('Tactics API', function () {
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -275,7 +275,7 @@ describe('Tactics API', function () {
                 }
             });
     });
-    
+
     let tactic3;
     it('POST /api/tactics should create a new version of a tactic with a duplicate stix.id but different stix.modified date', function (done) {
         tactic3 = _.cloneDeep(tactic1);
@@ -290,10 +290,10 @@ describe('Tactics API', function () {
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -305,16 +305,16 @@ describe('Tactics API', function () {
                 }
             });
     });
-    
+
 
     it('GET /api/tactics returns the latest added tactic', function (done) {
         request(app)
             .get('/api/tactics/' + tactic3.stix.id)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -336,10 +336,10 @@ describe('Tactics API', function () {
         request(app)
             .get('/api/tactics/' + tactic1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -358,10 +358,10 @@ describe('Tactics API', function () {
         request(app)
             .get('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -381,10 +381,10 @@ describe('Tactics API', function () {
         request(app)
             .get('/api/tactics/' + tactic2.stix.id + '/modified/' + tactic2.stix.modified)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -404,10 +404,10 @@ describe('Tactics API', function () {
         request(app)
             .get('/api/tactics?search=violet')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -433,10 +433,10 @@ describe('Tactics API', function () {
         request(app)
             .get('/api/tactics?search=yellow')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -450,13 +450,13 @@ describe('Tactics API', function () {
                 }
             });
     });
-    
+
     it('DELETE /api/tactics deletes a tactic with soft_delete property set to true', function (done) {
         request(app)
             .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified + '?soft_delete=true')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(204)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -465,13 +465,13 @@ describe('Tactics API', function () {
                 }
             });
     });
- 
-     it('DELETE /api/tactics deletes a tactic with soft_delete property set to false', function (done) {
+
+    it('DELETE /api/tactics deletes a tactic with soft_delete property set to false', function (done) {
         request(app)
             .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified + '?soft_delete=false')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(204)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -480,28 +480,13 @@ describe('Tactics API', function () {
                 }
             });
     });
-           
+
     it('DELETE /api/tactics should delete all the tactics with the same stix id with soft_delete property set to true by default', function (done) {
         request(app)
             .delete('/api/tactics/' + tactic2.stix.id)
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
-    });    
-           
-    it('DELETE /api/tactics should delete all the tactics with the same stix id with soft_delete property set to false', function (done) {
-        request(app)
-            .delete('/api/tactics/' + tactic2.stix.id + '?soft_delete=false')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -510,15 +495,30 @@ describe('Tactics API', function () {
                 }
             });
     });
-    	
+
+    it('DELETE /api/tactics should delete all the tactics with the same stix id with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/tactics/' + tactic2.stix.id + '?soft_delete=false')
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(204)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
     it('GET /api/tactics returns an empty array of tactics', function (done) {
         request(app)
             .get('/api/tactics')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
+            .end(function (err, res) {
                 if (err) {
                     done(err);
                 }
@@ -533,7 +533,7 @@ describe('Tactics API', function () {
             });
     });
 
-    after(async function() {
+    after(async function () {
         await database.closeConnection();
     });
 });
