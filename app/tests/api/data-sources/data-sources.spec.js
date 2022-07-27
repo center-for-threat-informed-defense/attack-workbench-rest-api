@@ -452,9 +452,53 @@ describe('Data Sources API', function () {
             });
     });
 
-    it('DELETE /api/data-sources deletes a data source', function (done) {
+    let dataSource3;
+    it('POST /api/data-sources should create a new version of a data source with a duplicate stix.id but different stix.modified date', function (done) {
+        dataSource3 = _.cloneDeep(dataSource1);
+        dataSource3._id = undefined;
+        dataSource3.__t = undefined;
+        dataSource3.__v = undefined;
+        const timestamp = new Date().toISOString();
+        dataSource3.stix.modified = timestamp;
+        const body = dataSource3;
         request(app)
-            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
+            .post('/api/data-sources')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created data source
+                    const dataSource = res.body;
+                    expect(dataSource).toBeDefined();
+                    done();
+                }
+            });
+    });
+    
+    it('DELETE /api/data-sources deletes a data source with soft_delete property set to true', function (done) {
+        request(app)
+            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified + '?soft_delete=true')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
+    it('DELETE /api/data-sources deletes a data source with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -467,9 +511,24 @@ describe('Data Sources API', function () {
             });
     });
 
-    it('DELETE /api/data-sources should delete the second data source', function (done) {
+    it('DELETE /api/data-sources should delete all the data sources with the same stix id with soft_delete property set to true by default', function (done) {
         request(app)
-            .delete('/api/data-sources/' + dataSource2.stix.id + '/modified/' + dataSource2.stix.modified)
+            .delete('/api/data-sources/' + dataSource2.stix.id)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
+    it('DELETE /api/data-sources should delete all the data sources with the same stix id with soft_delete property set to false', function (done) {
+        request(app)
+            .delete('/api/data-sources/' + dataSource2.stix.id + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -484,7 +543,7 @@ describe('Data Sources API', function () {
 
     it('GET /api/data-sources returns an empty array of data sources', function (done) {
         request(app)
-            .get('/api/data-sources')
+            .get('/api/data-sources/')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -496,6 +555,7 @@ describe('Data Sources API', function () {
                 else {
                     // We expect to get an empty array
                     const dataSources = res.body;
+                    console.log(JSON.stringify(dataSources[0], null, 2));
                     expect(dataSources).toBeDefined();
                     expect(Array.isArray(dataSources)).toBe(true);
                     expect(dataSources.length).toBe(0);

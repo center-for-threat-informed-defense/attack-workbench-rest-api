@@ -22,7 +22,8 @@ module.exports.common = {
                 'static'
             ]
         },
-        created_by_user_account: String
+        created_by_user_account: String,
+        soft_delete: Boolean    
     },
     attack_id: String,
     collections: [ collectionVersionSchema ]
@@ -87,6 +88,7 @@ module.exports.collection = {
             ]
         },
         created_by_user_account: String,
-        release: Boolean
+        release: Boolean,
+        soft_delete: Boolean
     }
 };

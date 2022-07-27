@@ -133,8 +133,11 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    matricesService.delete(req.params.stixId, req.params.modified, function (err, matrix) {
+exports.deleteVersionById = function(req, res) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    matricesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, matrix) {
         if (err) {
             logger.error('Delete matrix failed. ' + err);
             return res.status(500).send('Unable to delete matrix. Server error.');
@@ -144,6 +147,27 @@ exports.delete = function(req, res) {
                 return res.status(404).send('Matrix not found.');
             } else {
                 logger.debug("Success: Deleted matrix with id " + matrix.stix.id);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteById = function(req, res) {
+    const options = {
+        soft_delete: req.query.soft_delete
+     }
+    matricesService.deleteById(req.params.stixId, options, function (err, matrices) {
+        if (err) {
+            logger.error('Delete matrix failed. ' + err);
+            return res.status(500).send('Unable to delete matrix. Server error.');
+        }
+        else {
+            if (matrices.deletedCount === 0) {
+                return res.status(404).send('Matrix not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted matrix with id ${ req.params.stixId }`);
                 return res.status(204).end();
             }
         }

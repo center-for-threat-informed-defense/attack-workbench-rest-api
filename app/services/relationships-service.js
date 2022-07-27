@@ -27,7 +27,7 @@ objectTypeMap.set('x-mitre-tactic', 'tactic');
 objectTypeMap.set('x-mitre-matrix', 'matrix');
 objectTypeMap.set('x-mitre-data-component', 'data-component');
 
-exports.retrieveAll = async function(options) {
+exports.retrieveAll = async function (options) {
     // Build the query
     const query = {};
     if (!options.includeRevoked) {
@@ -56,7 +56,7 @@ exports.retrieveAll = async function(options) {
     if (typeof options.relationshipType !== 'undefined') {
         query['stix.relationship_type'] = options.relationshipType;
     }
-
+    query['workspace.workflow.soft_delete'] = { $in: [null, false] };
     // Build the aggregation
     const aggregation = [];
     if (options.versions === 'latest') {
@@ -90,6 +90,7 @@ exports.retrieveAll = async function(options) {
     }
     // Retrieve the documents
     let results = await Relationship.aggregate(aggregation);
+    //results = results.filter(document => 'workspace.workflow.soft_delete' != true );
     if (options.sourceType) {
         // Filter out relationships that don't reference the source type
         results = results.filter(document => {
@@ -172,7 +173,7 @@ exports.retrieveAll = async function(options) {
     }
 };
 
-exports.retrieveById = function(stixId, options, callback) {
+exports.retrieveById = function (stixId, options, callback) {
     // versions=all Retrieve all relationships with the stixId
     // versions=latest Retrieve the relationship with the latest modified date for this stixId
 
@@ -184,7 +185,7 @@ exports.retrieveById = function(stixId, options, callback) {
 
     if (options.versions === 'all') {
         Relationship
-            .find({'stix.id': stixId})
+            .find({ 'stix.id': stixId })
             .sort('-stix.modified')
             .lean()
             .exec(function (err, relationships) {
@@ -208,7 +209,7 @@ exports.retrieveById = function(stixId, options, callback) {
         Relationship.findOne({ 'stix.id': stixId })
             .sort('-stix.modified')
             .lean()
-            .exec(function(err, relationship) {
+            .exec(function (err, relationship) {
                 if (err) {
                     if (err.name === 'CastError') {
                         const error = new Error(errors.badlyFormattedParameter);
@@ -223,7 +224,7 @@ exports.retrieveById = function(stixId, options, callback) {
                     // Note: document is null if not found
                     if (relationship) {
                         identitiesService.addCreatedByAndModifiedByIdentities(relationship)
-                            .then(() => callback(null, [ relationship ]));
+                            .then(() => callback(null, [relationship]));
                     }
                     else {
                         return callback(null, []);
@@ -238,7 +239,7 @@ exports.retrieveById = function(stixId, options, callback) {
     }
 };
 
-exports.retrieveVersionById = function(stixId, modified, callback) {
+exports.retrieveVersionById = function (stixId, modified, callback) {
     // Retrieve the version of the relationship with the matching stixId and modified date
 
     if (!stixId) {
@@ -253,7 +254,7 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
         return callback(error);
     }
 
-    Relationship.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function(err, relationship) {
+    Relationship.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function (err, relationship) {
         if (err) {
             if (err.name === 'CastError') {
                 const error = new Error(errors.badlyFormattedParameter);
@@ -279,7 +280,7 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
 };
 
 exports.createIsAsync = true;
-exports.create = async function(data, options) {
+exports.create = async function (data, options) {
     // This function handles two use cases:
     //   1. This is a completely new object. Create a new object and generate the stix.id if not already
     //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
@@ -344,7 +345,7 @@ exports.create = async function(data, options) {
     }
 };
 
-exports.updateFull = function(stixId, stixModified, data, callback) {
+exports.updateFull = function (stixId, stixModified, data, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -357,7 +358,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
         return callback(error);
     }
 
-    Relationship.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function(err, document) {
+    Relationship.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, document) {
         if (err) {
             if (err.name === 'CastError') {
                 var error = new Error(errors.badlyFormattedParameter);
@@ -375,7 +376,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
         else {
             // Copy data to found document and save
             Object.assign(document, data);
-            document.save(function(err, savedDocument) {
+            document.save(function (err, savedDocument) {
                 if (err) {
                     if (err.name === 'MongoError' && err.code === 11000) {
                         // 11000 = Duplicate index
@@ -394,7 +395,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.delete = function (stixId, stixModified, callback) {
+exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -406,14 +407,54 @@ exports.delete = function (stixId, stixModified, callback) {
         error.parameterName = 'modified';
         return callback(error);
     }
-
-    Relationship.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, relationship) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: relationship is null if not found
-            return callback(null, relationship);
-        }
-    });
+    if (options.soft_delete) {
+        Relationship.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, relationship) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: relationship is null if not found
+                return callback(null, relationship);
+            }
+        });
+    }
+    else {
+        Relationship.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, relationship) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: relationship is null if not found
+                return callback(null, relationship);
+            }
+        });
+    }
 };
 
+exports.deleteById = function (stixId, options, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+    if (options.soft_delete) {
+        Relationship.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, relationship) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: relationship is null if not found
+                console.log(JSON.stringify(relationship, null, 2));
+                return callback(null, relationship);
+            }
+        });
+    }
+    else {
+        Relationship.deleteMany({ 'stix.id': stixId }, function (err, relationship) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: relationship is null if not found
+                //relationship.workspace.workflow.softDelete = true;
+                return callback(null, relationship);
+            }
+        });
+    }
+};
