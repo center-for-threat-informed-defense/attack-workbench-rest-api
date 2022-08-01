@@ -24,6 +24,10 @@ components:
             description:
               type: string
               example: 'This is a campaign'
+            aliases:
+              type: array
+              items:
+                type: string
             first_seen:
               type: string
               format: date-time

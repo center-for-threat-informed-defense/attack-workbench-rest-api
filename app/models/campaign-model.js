@@ -8,6 +8,7 @@ const stixCampaign = {
     modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
+    aliases: [ String ],
     first_seen: Date,
     last_seen: Date,
 
