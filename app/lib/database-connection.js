@@ -23,7 +23,7 @@ exports.initializeConnection = async function(options) {
 
     // Bootstrap db connection
     logger.info('Mongoose attempting to connect to ' + databaseUrl);
-    await mongoose.connect(databaseUrl, { useNewUrlParser: true, useUnifiedTopology: true });
+    await mongoose.connect(databaseUrl);
 
     logger.info('Mongoose connected to ' + databaseUrl);
 }
