@@ -15,12 +15,6 @@ exports.initializeConnection = async function(options) {
     // Configure mongoose to use ES6 promises
     mongoose.Promise = global.Promise;
 
-    // Tell mongoose to use the native mongoDB findOneAndUpdate() function
-    mongoose.set('useFindAndModify', false);
-
-    // Tell mongoose to use createIndex() instead of ensureIndex()
-    mongoose.set('useCreateIndex', true);
-
     // Bootstrap db connection
     logger.info('Mongoose attempting to connect to ' + databaseUrl);
     await mongoose.connect(databaseUrl);
