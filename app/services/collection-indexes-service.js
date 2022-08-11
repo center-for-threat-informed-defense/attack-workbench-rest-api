@@ -63,7 +63,7 @@ exports.create = function(data, callback) {
     // Save the document in the database
     collectionIndex.save(function(err, collectionIndex) {
         if (err) {
-            if (err.name === 'MongoError' && err.code === 11000) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
                 // 11000 = Duplicate index
                 const error = new Error(errors.duplicateId);
                 return callback(error);
@@ -105,7 +105,7 @@ exports.updateFull = function(id, data, callback) {
             Object.assign(collectionIndex, data);
             collectionIndex.save(function(err, savedCollectionIndex) {
                 if (err) {
-                    if (err.name === 'MongoError' && err.code === 11000) {
+                    if (err.name === 'MongoServerError' && err.code === 11000) {
                         // 11000 = Duplicate index
                         var error = new Error(errors.duplicateId);
                         return callback(error);

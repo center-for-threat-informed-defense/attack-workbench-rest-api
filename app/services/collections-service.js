@@ -323,7 +323,7 @@ exports.create = async function(data, options) {
         return { savedCollection, insertionErrors };
     }
     catch (err) {
-        if (err.name === 'MongoError' && err.code === 11000) {
+        if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
             const error = new Error(errors.duplicateId);
             throw error;

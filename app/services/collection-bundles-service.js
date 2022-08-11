@@ -620,7 +620,7 @@ exports.importBundle = function(collection, data, options, callback) {
                                 return callback4(null, result.savedCollection);
                             })
                             .catch(function (err) {
-                                if (err.name === 'MongoError' && err.code === 11000) {
+                                if (err.name === 'MongoServerError' && err.code === 11000) {
                                     // 11000 = Duplicate index
                                     const error = new Error(errors.duplicateCollection);
                                     return callback4(error);
