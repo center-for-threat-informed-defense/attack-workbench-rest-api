@@ -296,7 +296,7 @@ describe('Campaigns API', function () {
     let campaign2;
     it('POST /api/campaigns should create a new version of a campaign with a duplicate stix.id but different stix.modified date', async function () {
         // Add another default marking definition
-        markingDefinitionData.stix.definition = 'This is the second default marking definition';
+        markingDefinitionData.stix.definition.statement = 'This is the second default marking definition';
         defaultMarkingDefinition2 = await addDefaultMarkingDefinition(markingDefinitionData);
 
         campaign2 = _.cloneDeep(campaign1);
