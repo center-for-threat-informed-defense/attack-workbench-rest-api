@@ -564,34 +564,34 @@ const initialObjectData = {
     ]
 };
 
-function printBundleCount(bundle) {
-    const count = {
-        techniques: 0,
-        groups: 0,
-        campaigns: 0,
-        relationships: 0
-    };
-
-    for (const stixObject of bundle.objects) {
-        if (stixObject.type === 'attack-pattern') {
-            count.techniques++;
-        }
-        else if (stixObject.type === 'intrusion-set') {
-            count.groups++;
-        }
-        else if (stixObject.type === 'campaign') {
-            count.campaigns++;
-        }
-        else if (stixObject.type === 'relationship') {
-            count.relationships++;
-        }
-    }
-
-    console.log(`Technique count = ${ count.techniques }`);
-    console.log(`Group count = ${ count.groups }`);
-    console.log(`Campaign count = ${ count.campaigns }`);
-    console.log(`Relationship count = ${ count.relationships }`);
-}
+// function printBundleCount(bundle) {
+//     const count = {
+//         techniques: 0,
+//         groups: 0,
+//         campaigns: 0,
+//         relationships: 0
+//     };
+//
+//     for (const stixObject of bundle.objects) {
+//         if (stixObject.type === 'attack-pattern') {
+//             count.techniques++;
+//         }
+//         else if (stixObject.type === 'intrusion-set') {
+//             count.groups++;
+//         }
+//         else if (stixObject.type === 'campaign') {
+//             count.campaigns++;
+//         }
+//         else if (stixObject.type === 'relationship') {
+//             count.relationships++;
+//         }
+//     }
+//
+//     console.log(`Technique count = ${ count.techniques }`);
+//     console.log(`Group count = ${ count.groups }`);
+//     console.log(`Campaign count = ${ count.campaigns }`);
+//     console.log(`Relationship count = ${ count.relationships }`);
+// }
 
 describe('STIX Bundles Basic API', function () {
     let app;
