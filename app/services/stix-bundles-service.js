@@ -33,7 +33,7 @@ async function getAttackObject(stixId) {
     return attackObject;
 }
 
-const attackIdObjectTypes = ['intrusion-set', 'malware', 'tool', 'attack-pattern', 'course-of-action', 'x-mitre-data_source'];
+const attackIdObjectTypes = ['intrusion-set', 'campaign', 'malware', 'tool', 'attack-pattern', 'course-of-action', 'x-mitre-data_source'];
 function requiresAttackId(attackObject) {
     return attackIdObjectTypes.includes(attackObject?.stix.type);
 }
@@ -315,8 +315,8 @@ exports.exportBundle = async function(options) {
 
     // Put the secondary objects in the bundle
     for (const secondaryObject of secondaryObjects) {
-        // Groups need to have the domain added to x_mitre_domains
-        if (secondaryObject.stix.type === 'intrusion-set') {
+        // Groups and campaigns need to have the domain added to x_mitre_domains
+        if (secondaryObject.stix.type === 'intrusion-set' || secondaryObject.stix.type === 'campaign') {
             secondaryObject.stix.x_mitre_domains = [ options.domain ];
         }
         bundle.objects.push(secondaryObject.stix);
@@ -351,7 +351,7 @@ exports.exportBundle = async function(options) {
             if (!objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)) {
                 const revokedObject = await getAttackObject(relationship.stix.source_ref);
                 if (secondaryObjectIsValid(revokedObject)) {
-                    if (revokedObject.stix.type === 'intrusion-set') {
+                    if (revokedObject.stix.type === 'intrusion-set' || revokedObject.stix.type === 'campaign') {
                         revokedObject.stix.x_mitre_domains = [ options.domain ];
                     }
                     bundle.objects.push(revokedObject.stix);
@@ -462,6 +462,19 @@ exports.exportBundle = async function(options) {
     // (any revoked-by relationship for a primary object should already be included)
     for (const relationship of allRelationships) {
         if (relationship.stix.relationship_type === 'revoked-by' && !relationshipsMap.has(relationship.stix.id) &&
+            objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref))
+        {
+            if (relationshipIsActive(relationship)) {
+                bundle.objects.push(relationship.stix);
+                relationshipsMap.set(relationship.stix.id, true);
+            }
+        }
+    }
+
+    // Add campaign-to-group attributed-to relationships
+    // (campaigns and groups are secondary objects, so an attributed-to relationship will not be added yet)
+    for (const relationship of allRelationships) {
+        if (relationship.stix.relationship_type === 'attributed-to' && !relationshipsMap.has(relationship.stix.id) &&
             objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref))
         {
             if (relationshipIsActive(relationship)) {

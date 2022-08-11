@@ -7,6 +7,7 @@ const semver = require('semver');
 const collectionsService = require('../services/collections-service');
 const techniquesService = require('../services/techniques-service');
 const tacticsService = require('../services/tactics-service');
+const campaignsService = require('../services/campaigns-service');
 const groupsService = require('../services/groups-service');
 const mitigationsService = require('../services/mitigations-service');
 const softwareService = require('../services/software-service');
@@ -273,6 +274,9 @@ exports.importBundle = function(collection, data, options, callback) {
                         }
                         else if (importObject.type === 'intrusion-set') {
                             service = groupsService;
+                        }
+                        else if (importObject.type === 'campaign') {
+                            service = campaignsService;
                         }
                         else if (importObject.type === 'course-of-action') {
                             service = mitigationsService;
