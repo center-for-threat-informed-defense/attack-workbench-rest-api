@@ -16,7 +16,7 @@
         {
           "name": "navigator",
           "apikey": "sample-navigator-apikey",
-          "serviceRole": "stix-export"
+          "serviceRole": "read-only"
         }
       ]
     }
