@@ -1,0 +1,462 @@
+{
+  "type": "bundle",
+  "id": "bundle--9bb35a91-3b3b-407d-942a-97a9f6d45948",
+  "spec_version": "2.1",
+  "objects": [
+    {
+      "type": "x-mitre-collection",
+      "id": "x-mitre-collection--2bcdb02a-4c2b-4f64-9272-7a364f62d586",
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "name": "Sample ATT&CK Data",
+      "x_mitre_version": "1.0",
+      "description": "This collection bundle contains sample ATT&CK Data.",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-08-17T10:10:10.000Z",
+      "modified": "2022-08-17T10:10:10.000Z",
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "x_mitre_contents": [
+        {
+          "object_ref": "attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e",
+          "object_modified": "2022-05-01T06:07:08.000Z"
+        },
+        {
+          "object_ref": "attack-pattern--9ca3f5e5-697d-41cd-ade4-c846ec12a816",
+          "object_modified": "2022-05-02T06:07:08.000Z"
+        },
+        {
+          "object_ref": "attack-pattern--dcbb7acb-0817-4e4f-b170-198c27d2e178",
+          "object_modified": "2022-05-03T06:07:08.000Z"
+        },
+        {
+          "object_ref": "attack-pattern--bcdab08e-9332-47ce-87b5-0837ac1550fd",
+          "object_modified": "2022-05-04T06:07:08.000Z"
+        },
+        {
+          "object_ref": "attack-pattern--5f1d1b95-ca0e-4d6a-a4d0-fcb568641a74",
+          "object_modified": "2022-05-04T06:07:08.000Z"
+        },
+        {
+          "object_ref": "x-mitre-tactic--d932e995-5207-4347-88ec-b52b32762357",
+          "object_modified": "2022-04-01T06:07:08.000Z"
+        },
+        {
+          "object_ref": "x-mitre-tactic--953fd636-2af2-4cad-adc8-5d7903295dba",
+          "object_modified": "2022-04-01T06:07:08.000Z"
+        },
+        {
+          "object_ref": "x-mitre-tactic--c1768fcd-abe2-462f-95cc-bfedbc8c64c6",
+          "object_modified": "2022-03-01T06:07:08.000Z"
+        },
+        {
+          "object_ref": "x-mitre-tactic--60cf8617-223d-47db-b15e-0cdf3c1d6f52",
+          "object_modified": "2022-02-01T06:07:08.000Z"
+        },
+        {
+          "object_ref": "x-mitre-tactic--0b518521-aae3-4169-9f7a-cdf8455a2d14",
+          "object_modified": "2022-01-01T06:07:08.000Z"
+        },
+        {
+          "object_ref": "x-mitre-tactic--f5a8c28b-3002-4d5b-9571-3f68b2b57e29",
+          "object_modified": "2022-09-09T01:02:03.000Z"
+        },
+        {
+          "object_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+          "object_modified": "2017-06-01T00:00:00.000Z"
+        },
+        {
+          "object_ref": "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce",
+          "object_modified": "2020-01-01T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "x_mitre_platforms": [
+        "Linux"
+      ],
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "type": "attack-pattern",
+      "id": "attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-05-01T06:07:08.000Z",
+      "modified": "2022-05-01T06:07:08.000Z",
+      "name": "Sample Technique 1",
+      "description": "This is a sample technique",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "enlil"
+        },
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "nabu"
+        }
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "url": "https://attack.mitre.org/techniques/TX0001",
+          "external_id": "TX0001"
+        }
+      ],
+      "x_mitre_data_sources": [],
+      "x_mitre_version": "1.0",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_platforms": [
+        "Linux"
+      ],
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "type": "attack-pattern",
+      "id": "attack-pattern--9ca3f5e5-697d-41cd-ade4-c846ec12a816",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-05-02T06:07:08.000Z",
+      "modified": "2022-05-02T06:07:08.000Z",
+      "name": "Sample Technique 2",
+      "description": "This is a sample technique",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "nabu"
+        }
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "url": "https://attack.mitre.org/techniques/TX0002",
+          "external_id": "TX0002"
+        }
+      ],
+      "x_mitre_data_sources": [],
+      "x_mitre_version": "1.0",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_platforms": [
+        "Linux"
+      ],
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "type": "attack-pattern",
+      "id": "attack-pattern--dcbb7acb-0817-4e4f-b170-198c27d2e178",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-05-03T06:07:08.000Z",
+      "modified": "2022-05-03T06:07:08.000Z",
+      "name": "Sample Technique 3",
+      "description": "This is a sample technique",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "enki"
+        }
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "url": "https://attack.mitre.org/techniques/TX0003",
+          "external_id": "TX0003"
+        }
+      ],
+      "x_mitre_data_sources": [],
+      "x_mitre_version": "1.0",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_platforms": [
+        "Linux"
+      ],
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "type": "attack-pattern",
+      "id": "attack-pattern--bcdab08e-9332-47ce-87b5-0837ac1550fd",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-05-04T06:07:08.000Z",
+      "modified": "2022-05-04T06:07:08.000Z",
+      "name": "Sample Technique 4",
+      "description": "This is a sample technique",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "enlil"
+        },
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "enki"
+        }
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "url": "https://attack.mitre.org/techniques/TX0004",
+          "external_id": "TX0004"
+        }
+      ],
+      "x_mitre_data_sources": [],
+      "x_mitre_version": "1.0",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_platforms": [
+        "Linux"
+      ],
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "type": "attack-pattern",
+      "id": "attack-pattern--5f1d1b95-ca0e-4d6a-a4d0-fcb568641a74",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-05-05T06:07:08.000Z",
+      "modified": "2022-05-05T06:07:08.000Z",
+      "name": "Sample Technique 5",
+      "description": "This is a sample technique",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "nanna-suen"
+        },
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "nabu"
+        }
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "url": "https://attack.mitre.org/techniques/TX0005",
+          "external_id": "TX0005"
+        }
+      ],
+      "x_mitre_data_sources": [],
+      "x_mitre_version": "1.0",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "created": "2022-04-01T06:07:08.000Z",
+      "description": "Enlil, ancient Mesopotamian god of wind, air, earth, and storms.",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "external_id": "TAX0001",
+          "url": "https://attack.mitre.org/tactics/TAX0001"
+        }
+      ],
+      "id": "x-mitre-tactic--d932e995-5207-4347-88ec-b52b32762357",
+      "modified": "2022-04-01T06:07:08.000Z",
+      "name": "Enlil",
+      "type": "x-mitre-tactic",
+      "x_mitre_shortname": "enlil",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "x_mitre_version": "1.0",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "created": "2022-04-01T06:07:08.000Z",
+      "description": "Enki, ancient Mesopotamian god of water and crafts.",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "external_id": "TAX0002",
+          "url": "https://attack.mitre.org/tactics/TAX0002"
+        }
+      ],
+      "id": "x-mitre-tactic--953fd636-2af2-4cad-adc8-5d7903295dba",
+      "modified": "2022-04-01T06:07:08.000Z",
+      "name": "Enki",
+      "type": "x-mitre-tactic",
+      "x_mitre_shortname": "enki",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "x_mitre_version": "1.0",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "created": "2022-03-01T06:07:08.000Z",
+      "description": "Inanna, ancient Mesopotamian god of love, war, and fertility.",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "external_id": "TAX0003",
+          "url": "https://attack.mitre.org/tactics/TAX0003"
+        }
+      ],
+      "id": "x-mitre-tactic--c1768fcd-abe2-462f-95cc-bfedbc8c64c6",
+      "modified": "2022-03-01T06:07:08.000Z",
+      "name": "Ianna",
+      "type": "x-mitre-tactic",
+      "x_mitre_shortname": "inanna",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "x_mitre_version": "1.0",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "created": "2022-02-01T06:07:08.000Z",
+      "description": "Nabu, ancient Mesopotamian god of literacy and wisdom.",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "external_id": "TAX0004",
+          "url": "https://attack.mitre.org/tactics/TAX0004"
+        }
+      ],
+      "id": "x-mitre-tactic--60cf8617-223d-47db-b15e-0cdf3c1d6f52",
+      "modified": "2022-02-01T06:07:08.000Z",
+      "name": "Nabu",
+      "type": "x-mitre-tactic",
+      "x_mitre_shortname": "nabu",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "x_mitre_version": "1.0",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "created": "2022-01-01T06:07:08.000Z",
+      "description": "Nanna-Suen, ancient Mesopotamian god of cattle.",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "external_id": "TAX0005",
+          "url": "https://attack.mitre.org/tactics/TAX0005"
+        }
+      ],
+      "id": "x-mitre-tactic--0b518521-aae3-4169-9f7a-cdf8455a2d14",
+      "modified": "2022-01-01T06:07:08.000Z",
+      "name": "Nanna-Suen",
+      "type": "x-mitre-tactic",
+      "x_mitre_shortname": "nanna-suen",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "x_mitre_version": "1.0",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_domains": [
+        "mobile-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "created": "2022-09-09T01:02:03.000Z",
+      "description": "Nabu, ancient Mesopotamian god of mobile scribes. This tactic has the same x-mitre-shortname as another tactic, but a different domain.",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "external_references": [
+        {
+          "source_name": "mitre-mobile-attack",
+          "external_id": "TAX0006",
+          "url": "https://attack.mitre.org/tactics/TAX0006"
+        }
+      ],
+      "id": "x-mitre-tactic--f5a8c28b-3002-4d5b-9571-3f68b2b57e29",
+      "modified": "2022-09-09T01:02:03.000Z",
+      "name": "Nabu",
+      "type": "x-mitre-tactic",
+      "x_mitre_shortname": "nabu",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "x_mitre_version": "1.0",
+      "spec_version": "2.1"
+    },
+    {
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "id": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "type": "identity",
+      "identity_class": "organization",
+      "created": "2017-06-01T00:00:00.000Z",
+      "modified": "2017-06-01T00:00:00.000Z",
+      "name": "The MITRE Corporation",
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_domains": [
+        "ics-attack"
+      ],
+      "x_mitre_version": "1.0"
+    },
+    {
+      "definition": {
+        "statement": "Copyright 2015-2022, The MITRE Corporation. MITRE ATT&CK and ATT&CK are registered trademarks of The MITRE Corporation."
+      },
+      "id": "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce",
+      "type": "marking-definition",
+      "created": "2020-01-01T00:00:00.000Z",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "definition_type": "statement",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "spec_version": "2.1",
+      "x_mitre_domains": [
+        "ics-attack"
+      ]
+    }
+  ]
+}

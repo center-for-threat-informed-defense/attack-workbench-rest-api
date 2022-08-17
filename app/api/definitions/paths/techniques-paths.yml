@@ -238,3 +238,36 @@ paths:
           description: 'The technique was successfully deleted.'
         '404':
           description: 'A technique with the requested STIX id and modified date was not found.'
+
+  /api/techniques/{stixId}/modified/{modified}/tactics:
+    get:
+      summary: 'Gets the tactics associated with a technique matching the STIX id and modified date'
+      operationId: 'technique-get-tactics'
+      description: |
+        This endpoint gets a list of tactics associated with a technique, identified by its STIX id and modified date.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the technique'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A list of tactics associated with the technique.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/tactics.yml#/components/schemas/tactic'
+        '404':
+          description: 'A technique with the requested STIX id and modified date was not found.'
