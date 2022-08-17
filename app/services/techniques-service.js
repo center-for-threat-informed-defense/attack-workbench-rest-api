@@ -1,6 +1,8 @@
 'use strict';
 
 const uuid = require('uuid');
+const util = require('util');
+
 const Technique = require('../models/technique-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
@@ -349,3 +351,58 @@ exports.delete = function (stixId, stixModified, callback) {
     });
 };
 
+function tacticMatchesTechnique(technique) {
+    return function(tactic) {
+        // A tactic matches if the technique has a kill chain phase such that:
+        //   1. The phase's kill_chain_name matches one of the tactic's kill chain names (which are derived from the tactic's x_mitre_domains)
+        //   2. The phase's phase_name matches the tactic's x_mitre_shortname
+
+        // Convert the tactic's domain names to kill chain names
+        const tacticKillChainNames = tactic.stix.x_mitre_domains.map(domain => config.domainToKillChainMap[domain]);
+        return technique.stix.kill_chain_phases.some(phase => phase.phase_name === tactic.stix.x_mitre_shortname && tacticKillChainNames.includes(phase.kill_chain_name));
+    }
+}
+
+let retrieveAllTactics;
+exports.retrieveTacticsForTechnique = async function(stixId, modified, callback) {
+    // Late binding to avoid circular dependency between modules
+    if (!retrieveAllTactics) {
+        const tacticsService = require('./tactics-service');
+        retrieveAllTactics = util.promisify(tacticsService.retrieveAll);
+    }
+
+    // Retrieve the tactics associated with the technique (the technique identified by stixId and modified date)
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    if (!modified) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'modified';
+        return callback(error);
+    }
+
+    try {
+        const technique = await Technique.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+        if (!technique) {
+            // Note: document is null if not found
+            return null;
+        }
+        else {
+            const allTactics = await retrieveAllTactics({});
+            return allTactics.filter(tacticMatchesTechnique(technique));
+        }
+    }
+    catch(err) {
+        if (err.name === 'CastError') {
+            const error = new Error(errors.badlyFormattedParameter);
+            error.parameterName = 'stixId';
+            return callback(error);
+        }
+        else {
+            return callback(err);
+        }
+    }
+};

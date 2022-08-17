@@ -150,3 +150,26 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.retrieveTacticsForTechnique = async function(req, res) {
+    try {
+        const tactics = await techniquesService.retrieveTacticsForTechnique(req.params.stixId, req.params.modified);
+        if (!tactics) {
+            return res.status(404).send('Technique not found.');
+        }
+        else {
+            logger.debug(`Success: Retrieved tactics for technique with id ${ req.params.stixId }`);
+            return res.status(200).send(tactics);
+        }
+    }
+    catch(err) {
+        if (err.message === techniquesService.errors.badlyFormattedParameter) {
+            logger.warn('Badly formatted stix id: ' + req.params.stixId);
+            return res.status(400).send('Stix id is badly formatted.');
+        }
+        else {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to get tactics for technique. Server error.');
+        }
+    }
+};
