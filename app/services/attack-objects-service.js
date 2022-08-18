@@ -46,22 +46,29 @@ exports.retrieveAll = async function(options) {
     }
 
     // Build the aggregation
-    // - Group the documents by stix.id, sorted by stix.modified
-    // - Use the last document in each group (according to the value of stix.modified)
-    // - Then apply query, skip and limit options
     const aggregation = [];
-    aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': 1 } });
-    aggregation.push({ $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}});
-    aggregation.push({ $replaceRoot: { newRoot: '$document' }});
-    aggregation.push({ $sort: { 'stix.id': 1 }});
+    if (options.versions === 'latest') {
+        // - Group the documents by stix.id, sorted by stix.modified
+        // - Use the last document in each group (according to the value of stix.modified)
+        aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': 1 } });
+        aggregation.push({ $group: { _id: '$stix.id', document: { $last: '$$ROOT' } } });
+        aggregation.push({ $replaceRoot: { newRoot: '$document' } });
+    }
+
+    // - Then apply query, skip and limit options
+    aggregation.push({ $sort: { 'stix.id': 1 } });
     aggregation.push({ $match: query });
 
     if (typeof options.search !== 'undefined') {
         options.search = regexValidator.sanitizeRegex(options.search);
-        const match = { $match: { $or: [
-                    { 'stix.name': { '$regex': options.search, '$options': 'i' }},
-                    { 'stix.description': { '$regex': options.search, '$options': 'i' }}
-                ]}};
+        const match = {
+            $match: {
+                $or: [
+                    { 'stix.name': { '$regex': options.search, '$options': 'i' } },
+                    { 'stix.description': { '$regex': options.search, '$options': 'i' } }
+                ]
+            }
+        };
         aggregation.push(match);
     }
 
@@ -74,7 +81,7 @@ exports.retrieveAll = async function(options) {
             includeRevoked: options.includeRevoked,
             includeDeprecated: options.includeDeprecated,
             state: options.state,
-            versions: 'latest',
+            versions: options.versions,
             lookupRefs: false,
             includeIdentities: false
         };
