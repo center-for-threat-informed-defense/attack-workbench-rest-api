@@ -63,6 +63,22 @@
           "object_modified": "2022-09-09T01:02:03.000Z"
         },
         {
+          "object_ref": "malware--9c5ab575-f015-462c-92a0-f887277d8519",
+          "object_modified": "2022-06-01T00:00:00.000Z"
+        },
+        {
+          "object_ref": "intrusion-set--925216d2-dd4c-4487-8d19-f96e81dabd5d",
+          "object_modified": "2022-06-01T00:00:00.000Z"
+        },
+        {
+          "object_ref": "course-of-action--d77711b8-a970-47a0-b819-03d088d778c4",
+          "object_modified": "2022-06-01T00:00:00.000Z"
+        },
+        {
+          "object_ref": "relationship--1c4c5ab3-ae2b-4f67-9802-d7f18d9f0d37",
+          "object_modified": "2022-06-01T00:00:00.000Z"
+        },
+        {
           "object_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
           "object_modified": "2017-06-01T00:00:00.000Z"
         },
@@ -425,6 +441,79 @@
       "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
       "x_mitre_version": "1.0",
       "spec_version": "2.1"
+    },
+    {
+      "id": "malware--9c5ab575-f015-462c-92a0-f887277d8519",
+      "name": "software-1",
+      "spec_version": "2.1",
+      "type": "malware",
+      "description": "This is a malware type of software.",
+      "is_family": false,
+      "external_references": [
+        { "source_name": "mitre-attack", "external_id": "SX3333", "url": "https://attack.mitre.org/software/SX3333" },
+        { "source_name": "source-1", "external_id": "s1" }
+      ],
+      "object_marking_refs": [ "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce" ],
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "x_mitre_version": "1.1",
+      "x_mitre_aliases": [
+        "software-1"
+      ],
+      "x_mitre_platforms": [
+        "platform-1"
+      ],
+      "x_mitre_contributors": [
+        "contributor-1",
+        "contributor-2"
+      ],
+      "x_mitre_domains": [
+        "mobile-attack"
+      ],
+      "created": "2022-06-01T00:00:00.000Z",
+      "modified": "2022-06-01T00:00:00.000Z"
+    },
+    {
+      "id": "intrusion-set--925216d2-dd4c-4487-8d19-f96e81dabd5d",
+      "name": "intrusion-set-1",
+      "spec_version": "2.1",
+      "type": "intrusion-set",
+      "description": "This is a group.",
+      "external_references": [
+        { "source_name": "mitre-attack", "external_id": "GX1111", "url": "https://attack.mitre.org/groups/GX1111" },
+        { "source_name": "source-1", "external_id": "s1" }
+      ],
+      "object_marking_refs": [ "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce" ],
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-06-01T00:00:00.000Z",
+      "modified": "2022-06-01T00:00:00.000Z"
+    },
+    {
+      "id": "course-of-action--d77711b8-a970-47a0-b819-03d088d778c4",
+      "name": "course-of-action-1",
+      "spec_version": "2.1",
+      "type": "course-of-action",
+      "description": "This is a mitigation.",
+      "external_references": [
+        { "source_name": "mitre-attack", "external_id": "T9999", "url": "https://attack.mitre.org/mitigations/T9999" },
+        { "source_name": "source-1", "external_id": "s1" }
+      ],
+      "object_marking_refs": [ "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce" ],
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "x_mitre_version": "1.1",
+      "created": "2022-06-01T00:00:00.000Z",
+      "modified": "2022-06-01T00:00:00.000Z"
+    },
+    {
+      "id": "relationship--1c4c5ab3-ae2b-4f67-9802-d7f18d9f0d37",
+      "spec_version": "2.1",
+      "type": "relationship",
+      "relationship_type": "uses",
+      "source_ref": "intrusion-set--925216d2-dd4c-4487-8d19-f96e81dabd5d",
+      "target_ref": "attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e",
+      "object_marking_refs": [ "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce" ],
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-06-01T00:00:00.000Z",
+      "modified": "2022-06-01T00:00:00.000Z"
     },
     {
       "object_marking_refs": [
