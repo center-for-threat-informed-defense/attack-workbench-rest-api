@@ -146,7 +146,8 @@ exports.exportBundle = async function(req, res) {
     const options = {
         collectionId: req.query.collectionId,
         collectionModified: req.query.collectionModified,
-        previewOnly: req.query.previewOnly
+        previewOnly: req.query.previewOnly,
+        includeNotes: req.query.includeNotes
     };
 
     try {
