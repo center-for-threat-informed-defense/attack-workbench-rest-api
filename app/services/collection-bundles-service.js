@@ -28,6 +28,7 @@ const async = require('async');
 const systemConfigurationService = require("./system-configuration-service");
 
 const linkById = require('../lib/linkById');
+const Note = require("../models/note-model");
 
 const forceImportParameters = {
     attackSpecVersionViolations: 'attack-spec-version-violations',
@@ -667,6 +668,9 @@ async function createBundle(collection, options) {
     }
 
     await addDerivedDataSources(bundle.objects);
+    if (options.includeNotes) {
+        await addNotes(bundle.objects);
+    }
     await convertLinkedById(bundle.objects, attackObjectMap);
 
     if (!options.previewOnly) {
@@ -815,6 +819,57 @@ async function addDerivedDataSources(bundleObjects) {
                 bundleObject.x_mitre_data_sources = [];
             }
         }
+    }
+}
+
+async function addNotes(bundleObjects) {
+    // Add notes that reference an object in the bundle
+
+    // Note that this function adds the note objects to the bundle but doesn't add them to the
+    // x_mitre_contents of the collection object. This will be flagged as an error if the collection
+    // bundle is subsequently imported into Workbench, but it won't stop the import.
+
+    // Start by getting the latest version of all notes (excluding deprecated and revoked notes)
+    const noteQuery = { };
+    noteQuery['stix.revoked'] = { $in: [null, false] };
+    noteQuery['stix.x_mitre_deprecated'] = { $in: [null, false] };
+    const noteAggregation = [
+        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
+        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
+        { $replaceRoot: { newRoot: '$document' }},
+        { $match: noteQuery }
+    ];
+    const allNotes = await Note.aggregate(noteAggregation);
+
+    // Build a map of the bundle objects
+    const bundleObjectMap = new Map();
+    for (const bundleObject of bundleObjects) {
+        bundleObjectMap.set(bundleObject.id, bundleObject);
+    }
+
+    // Iterate over the notes, keeping any that have an object_ref that points at an object in the bundle
+    const notes = [];
+    for (const note of allNotes) {
+        if (Array.isArray(note?.stix?.object_refs)) {
+            let includeNote = false;
+            for (const objectRef of note.stix.object_refs) {
+                if (bundleObjectMap.has(objectRef)) {
+                    includeNote = true;
+                    break;
+                }
+            }
+            if (includeNote) {
+                // Make sure we don't add a note that's already in the bundle
+                if (!bundleObjectMap.has(note.stix.id)) {
+                    notes.push(note);
+                }
+            }
+        }
+    }
+
+    // Put the notes in the bundle
+    for (const note of notes) {
+        bundleObjects.push(note.stix);
     }
 }
 
