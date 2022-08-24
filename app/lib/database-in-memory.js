@@ -2,10 +2,14 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const logger = require('./logger');
 
-const mongod = new MongoMemoryServer();
+let mongod;
 
 exports.initializeConnection = async function() {
-    const uri = await mongod.getUri();
+    if (!mongod) {
+        mongod = await MongoMemoryServer.create();
+    }
+
+    const uri = mongod.getUri();
 
     // Configure mongoose to use ES6 promises
     mongoose.Promise = global.Promise;
@@ -21,9 +25,13 @@ exports.initializeConnection = async function() {
 }
 
 exports.closeConnection = async function() {
-    await mongoose.connection.dropDatabase();
-    await mongoose.connection.close();
-    await mongod.stop();
+    if (mongod) {
+        await mongoose.connection.dropDatabase();
+        await mongoose.connection.close();
+        await mongod.stop();
+
+        mongod = null;
+    }
 }
 
 exports.clearDatabase = async function() {
