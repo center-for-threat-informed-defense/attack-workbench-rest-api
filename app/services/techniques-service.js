@@ -363,8 +363,15 @@ function tacticMatchesTechnique(technique) {
     }
 }
 
+function getPageOfData(data, options) {
+    const startPos = options.offset;
+    const endPos = (options.limit === 0) ? data.length : Math.min(options.offset + options.limit, data.length);
+
+    return data.slice(startPos, endPos);
+}
+
 let retrieveAllTactics;
-exports.retrieveTacticsForTechnique = async function(stixId, modified, callback) {
+exports.retrieveTacticsForTechnique = async function(stixId, modified, options) {
     // Late binding to avoid circular dependency between modules
     if (!retrieveAllTactics) {
         const tacticsService = require('./tactics-service');
@@ -375,13 +382,13 @@ exports.retrieveTacticsForTechnique = async function(stixId, modified, callback)
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
-        return callback(error);
+        throw error;
     }
 
     if (!modified) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'modified';
-        return callback(error);
+        throw error;
     }
 
     try {
@@ -392,17 +399,33 @@ exports.retrieveTacticsForTechnique = async function(stixId, modified, callback)
         }
         else {
             const allTactics = await retrieveAllTactics({});
-            return allTactics.filter(tacticMatchesTechnique(technique));
+            const filteredTactics = allTactics.filter(tacticMatchesTechnique(technique));
+            const pagedResults = getPageOfData(filteredTactics, options);
+
+            if (options.includePagination) {
+                const returnValue = {
+                    pagination: {
+                        total: pagedResults.length,
+                        offset: options.offset,
+                        limit: options.limit
+                    },
+                    data: pagedResults
+                };
+                return returnValue;
+            }
+            else {
+                return pagedResults;
+            }
         }
     }
     catch(err) {
         if (err.name === 'CastError') {
             const error = new Error(errors.badlyFormattedParameter);
             error.parameterName = 'stixId';
-            return callback(error);
+            throw error;
         }
         else {
-            return callback(err);
+            throw err;
         }
     }
 };

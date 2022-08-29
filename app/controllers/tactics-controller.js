@@ -153,7 +153,13 @@ exports.delete = function(req, res) {
 
 exports.retrieveTechniquesForTactic = async function(req, res) {
     try {
-        const techniques = await tacticsService.retrieveTechniquesForTactic(req.params.stixId, req.params.modified);
+        const options = {
+            offset: req.query.offset || 0,
+            limit: req.query.limit || 0,
+            includePagination: req.query.includePagination
+        };
+
+        const techniques = await tacticsService.retrieveTechniquesForTactic(req.params.stixId, req.params.modified, options);
         if (!techniques) {
             return res.status(404).send('tactic not found.');
         }
