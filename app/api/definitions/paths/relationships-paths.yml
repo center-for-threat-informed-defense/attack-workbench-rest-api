@@ -85,11 +85,12 @@ paths:
           schema:
             type: string
             enum:
-              - technique
+              - campaign
+              - data-component
               - group
               - mitigation
               - software
-              - data-component
+              - technique
         - name: targetType
           in: query
           description: |
@@ -97,10 +98,10 @@ paths:
           schema:
             type: string
             enum:
-              - technique
               - group
               - mitigation
               - software
+              - technique
         - name: versions
           in: query
           description: |

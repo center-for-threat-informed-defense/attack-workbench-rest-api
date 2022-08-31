@@ -11,7 +11,7 @@ components:
         # STIX common properties
         type:
           type: string
-          enum: ['attack-pattern', 'x-mitre-tactic', 'intrusion-set', 'tool', 'malware', 'course-of-action', 'x-mitre-matrix', 'identity', 'x-mitre-data-source', 'x-mitre-data-component', 'relationship', 'note', 'x-mitre-collection']
+          enum: ['attack-pattern', 'x-mitre-tactic', 'intrusion-set', 'campaign', 'tool', 'malware', 'course-of-action', 'x-mitre-matrix', 'identity', 'x-mitre-data-source', 'x-mitre-data-component', 'relationship', 'note', 'x-mitre-collection']
         spec_version:
           type: string
           pattern: '^2.1$'

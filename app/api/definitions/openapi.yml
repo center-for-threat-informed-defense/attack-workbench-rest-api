@@ -20,6 +20,8 @@ tags:
     description: 'Operations on tactics'
   - name: 'Groups'
     description: 'Operations on groups'
+  - name: 'Campaigns'
+    description: 'Operations on campaigns'
   - name: 'Software'
     description: 'Operations on software (tools and malware)'
   - name: 'Mitigations'
@@ -97,6 +99,16 @@ paths:
 
   /api/groups/{stixId}/modified/{modified}:
     $ref: 'paths/groups-paths.yml#/paths/~1api~1groups~1{stixId}~1modified~1{modified}'
+
+  # Campaigns
+  /api/campaigns:
+    $ref: 'paths/campaigns-paths.yml#/paths/~1api~1campaigns'
+
+  /api/campaigns/{stixId}:
+    $ref: 'paths/campaigns-paths.yml#/paths/~1api~1campaigns~1{stixId}'
+
+  /api/campaigns/{stixId}/modified/{modified}:
+    $ref: 'paths/campaigns-paths.yml#/paths/~1api~1campaigns~1{stixId}~1modified~1{modified}'
 
   # Matrices
   /api/matrices:

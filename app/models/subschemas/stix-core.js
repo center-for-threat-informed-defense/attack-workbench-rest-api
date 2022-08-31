@@ -21,6 +21,7 @@ module.exports.commonRequiredSDO = {
         type: String,
         enum: [
             'attack-pattern',
+            'campaign',
             'course-of-action',
             'identity',
             'intrusion-set',
