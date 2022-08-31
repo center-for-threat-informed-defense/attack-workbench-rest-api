@@ -237,3 +237,60 @@ paths:
           description: 'The tactic was successfully deleted.'
         '404':
           description: 'A tactic with the requested STIX id and modified date was not found.'
+
+  /api/tactics/{stixId}/modified/{modified}/techniques:
+    get:
+      summary: 'Gets the techniques associated with a tactic matching the STIX id and modified date'
+      operationId: 'tactic-get-by-id-and-modified'
+      description: |
+        This endpoint gets a list of techniques associated with a tactic, identified by its STIX id and modified date.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the tactic'
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: |
+            The number of tactics to retrieve.
+            The default (0) will retrieve all tactics.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of tactics to skip.
+            The default (0) will start with the first tactic.
+          schema:
+            type: number
+            default: 0
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of techniques associated with the technique.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/techniques.yml#/components/schemas/technique'
+        '404':
+          description: 'A tactic with the requested STIX id and modified date was not found.'

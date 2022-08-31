@@ -44,4 +44,11 @@ router.route('/tactics/:stixId/modified/:modified')
         tacticsController.delete
     );
 
+router.route('/tactics/:stixId/modified/:modified/techniques')
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        tacticsController.retrieveTechniquesForTactic
+    );
+
 module.exports = router;

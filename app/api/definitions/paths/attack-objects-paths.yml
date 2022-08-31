@@ -77,6 +77,17 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: versions
+          in: query
+          description: |
+            The versions of the ATT&CK objects to retrieve.
+            `all` gets all versions of the objects, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
       responses:
         '200':
           description: 'A list of ATT&CK Objects.'
