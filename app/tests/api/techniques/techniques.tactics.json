@@ -23,6 +23,10 @@
           "object_modified": "2022-05-01T06:07:08.000Z"
         },
         {
+          "object_ref": "attack-pattern--fb93f707-fd21-421f-a8b3-4baee9211b3a",
+          "object_modified": "2022-06-01T06:07:08.000Z"
+        },
+        {
           "object_ref": "x-mitre-tactic--d932e995-5207-4347-88ec-b52b32762357",
           "object_modified": "2022-04-01T06:07:08.000Z"
         },
@@ -71,8 +75,8 @@
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
       "created": "2022-05-01T06:07:08.000Z",
       "modified": "2022-05-01T06:07:08.000Z",
-      "name": "Sample Technique",
-      "description": "This is a sample technique",
+      "name": "Sample Technique 1",
+      "description": "This is a sample technique 1",
       "kill_chain_phases": [
         {
           "kill_chain_name": "mitre-attack",
@@ -81,6 +85,58 @@
         {
           "kill_chain_name": "mitre-attack",
           "phase_name": "nabu"
+        }
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "url": "https://attack.mitre.org/techniques/TX0001",
+          "external_id": "TX0001"
+        }
+      ],
+      "x_mitre_data_sources": [],
+      "x_mitre_version": "1.0",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "spec_version": "2.1"
+    },
+    {
+      "x_mitre_platforms": [
+        "Linux"
+      ],
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "type": "attack-pattern",
+      "id": "attack-pattern--fb93f707-fd21-421f-a8b3-4baee9211b3a",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-06-01T06:07:08.000Z",
+      "modified": "2022-06-01T06:07:08.000Z",
+      "name": "Sample Technique 2",
+      "description": "This is a sample technique 2",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "enlil"
+        },
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "nabu"
+        },
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "enki"
+        },
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "inanna"
+        },
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "nanna-suen"
         }
       ],
       "external_references": [
