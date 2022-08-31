@@ -359,8 +359,15 @@ function techniqueMatchesTactic(tactic) {
     }
 }
 
+function getPageOfData(data, options) {
+    const startPos = options.offset;
+    const endPos = (options.limit === 0) ? data.length : Math.min(options.offset + options.limit, data.length);
+
+    return data.slice(startPos, endPos);
+}
+
 let retrieveAllTechniques;
-exports.retrieveTechniquesForTactic = async function(stixId, modified) {
+exports.retrieveTechniquesForTactic = async function(stixId, modified, options) {
     // Late binding to avoid circular dependency between modules
     if (!retrieveAllTechniques) {
         const techniquesService = require('./techniques-service');
@@ -389,7 +396,23 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified) {
         }
         else {
             const allTechniques = await retrieveAllTechniques({});
-            return allTechniques.filter(techniqueMatchesTactic(tactic));
+            const filteredTechniques = allTechniques.filter(techniqueMatchesTactic(tactic));
+            const pagedResults = getPageOfData(filteredTechniques, options);
+
+            if (options.includePagination) {
+                const returnValue = {
+                    pagination: {
+                        total: pagedResults.length,
+                        offset: options.offset,
+                        limit: options.limit
+                    },
+                    data: pagedResults
+                };
+                return returnValue;
+            }
+            else {
+                return pagedResults;
+            }
         }
     }
     catch(err) {

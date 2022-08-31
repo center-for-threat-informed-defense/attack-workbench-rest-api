@@ -46,7 +46,11 @@ describe('Techniques with Tactics API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    let technique;
+    const techniqueId1 = 'attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e';
+    const techniqueId2 = 'attack-pattern--fb93f707-fd21-421f-a8b3-4baee9211b3a';
+
+    let technique1;
+    let technique2;
     it('GET /api/techniques should return the preloaded technique', function (done) {
         request(app)
             .get('/api/techniques')
@@ -62,9 +66,10 @@ describe('Techniques with Tactics API', function () {
                     const techniques = res.body;
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(1);
+                    expect(techniques.length).toBe(2);
 
-                    technique = techniques[0];
+                    technique1 = techniques.find(t => t.stix.id === techniqueId1);
+                    technique2 = techniques.find(t => t.stix.id === techniqueId2);
 
                     done();
                 }
@@ -108,9 +113,9 @@ describe('Techniques with Tactics API', function () {
             });
     });
 
-    it('GET /api/techniques/:id/modified/:modified/tactics should return the tactics for the preloaded technique', function (done) {
+    it('GET /api/techniques/:id/modified/:modified/tactics should return the tactics for technique 1', function (done) {
         request(app)
-            .get(`/api/techniques/${ technique.stix.id }/modified/${ technique.stix.modified }/tactics`)
+            .get(`/api/techniques/${ technique1.stix.id }/modified/${ technique1.stix.modified }/tactics`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -121,6 +126,49 @@ describe('Techniques with Tactics API', function () {
                 }
                 else {
                     const tactics = res.body;
+                    expect(tactics).toBeDefined();
+                    expect(Array.isArray(tactics)).toBe(true);
+                    expect(tactics.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques/:id/modified/:modified/tactics should return the tactics for technique 2', function (done) {
+        request(app)
+            .get(`/api/techniques/${ technique2.stix.id }/modified/${ technique2.stix.modified }/tactics`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    const tactics = res.body;
+                    expect(tactics).toBeDefined();
+                    expect(Array.isArray(tactics)).toBe(true);
+                    expect(tactics.length).toBe(5);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques/:id/modified/:modified/tactics should return the first page of tactics for technique 2', function (done) {
+        request(app)
+            .get(`/api/techniques/${ technique2.stix.id }/modified/${ technique2.stix.modified }/tactics?offset=0&limit=2&includePagination=true`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    const results = res.body;
+                    const tactics = results.data;
                     expect(tactics).toBeDefined();
                     expect(Array.isArray(tactics)).toBe(true);
                     expect(tactics.length).toBe(2);

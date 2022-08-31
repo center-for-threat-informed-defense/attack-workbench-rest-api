@@ -259,6 +259,30 @@ paths:
           required: true
           schema:
             type: string
+        - name: limit
+          in: query
+          description: |
+            The number of tactics to retrieve.
+            The default (0) will retrieve all tactics.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of tactics to skip.
+            The default (0) will start with the first tactic.
+          schema:
+            type: number
+            default: 0
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'A list of techniques associated with the technique.'

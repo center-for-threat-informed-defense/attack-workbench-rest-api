@@ -12,7 +12,7 @@ exports.retrieveAll = function(req, res) {
         includeDeprecated: req.query.includeDeprecated,
         search: req.query.search,
         includePagination: req.query.includePagination
-    }
+    };
 
     techniquesService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -153,7 +153,13 @@ exports.delete = function(req, res) {
 
 exports.retrieveTacticsForTechnique = async function(req, res) {
     try {
-        const tactics = await techniquesService.retrieveTacticsForTechnique(req.params.stixId, req.params.modified);
+        const options = {
+            offset: req.query.offset || 0,
+            limit: req.query.limit || 0,
+            includePagination: req.query.includePagination
+        };
+
+        const tactics = await techniquesService.retrieveTacticsForTechnique(req.params.stixId, req.params.modified, options);
         if (!tactics) {
             return res.status(404).send('Technique not found.');
         }

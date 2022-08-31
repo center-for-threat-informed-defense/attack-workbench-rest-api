@@ -46,7 +46,8 @@ describe('Tactics with Techniques API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    let tactic;
+    let tactic1;
+    let tactic2;
     it('GET /api/tactics should return the preloaded tactics', function (done) {
         request(app)
             .get('/api/tactics')
@@ -64,7 +65,8 @@ describe('Tactics with Techniques API', function () {
                     expect(Array.isArray(tactics)).toBe(true);
                     expect(tactics.length).toBe(6);
 
-                    tactic = tactics.find(t => t.stix.x_mitre_shortname === 'enlil');
+                    tactic1 = tactics.find(t => t.stix.x_mitre_shortname === 'enlil');
+                    tactic2 = tactics.find(t => t.stix.x_mitre_shortname === 'nabu');
 
                     done();
                 }
@@ -108,9 +110,9 @@ describe('Tactics with Techniques API', function () {
             });
     });
 
-    it('GET /api/tactics/:id/modified/:modified/techniques should return the techniques for the preloaded tactic', function (done) {
+    it('GET /api/tactics/:id/modified/:modified/techniques should return the techniques for tactic 1', function (done) {
         request(app)
-            .get(`/api/tactics/${ tactic.stix.id }/modified/${ tactic.stix.modified }/techniques`)
+            .get(`/api/tactics/${ tactic1.stix.id }/modified/${ tactic1.stix.modified }/techniques`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -121,6 +123,28 @@ describe('Tactics with Techniques API', function () {
                 }
                 else {
                     const tactics = res.body;
+                    expect(tactics).toBeDefined();
+                    expect(Array.isArray(tactics)).toBe(true);
+                    expect(tactics.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/tactics/:id/modified/:modified/techniques should return the first page of techniques for tactic 2', function (done) {
+        request(app)
+            .get(`/api/tactics/${ tactic2.stix.id }/modified/${ tactic2.stix.modified }/techniques?offset=0&limit=2&includePagination=true`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    const results = res.body;
+                    const tactics = results.data;
                     expect(tactics).toBeDefined();
                     expect(Array.isArray(tactics)).toBe(true);
                     expect(tactics.length).toBe(2);
