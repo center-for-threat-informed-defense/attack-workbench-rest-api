@@ -17,6 +17,10 @@ components:
         - type: object
           required:
             - name
+            - first_seen
+            - last_seen
+            - x_mitre_first_seen_citation
+            - x_mitre_last_seen_citation
           properties:
             # campaign specific properties
             name:
@@ -34,7 +38,11 @@ components:
             last_seen:
               type: string
               format: date-time
-              # ATT&CK custom properties
+            # ATT&CK custom properties
+            x_mitre_first_seen_citation:
+              type: string
+            x_mitre_last_seen_citation:
+              type: string
             x_mitre_modified_by_ref:
               type: string
               example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'

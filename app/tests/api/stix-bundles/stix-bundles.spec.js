@@ -349,6 +349,10 @@ const initialObjectData = {
             created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
             name: "campaign-1",
             description: "This is a campaign",
+            first_seen: "2016-04-06T00:00:00.000Z",
+            last_seen: "2016-07-12T00:00:00.000Z",
+            x_mitre_first_seen_citation: "(Citation: Article 1)",
+            x_mitre_last_seen_citation: "(Citation: Article 2)",
             object_marking_refs: [
                 "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
             ],

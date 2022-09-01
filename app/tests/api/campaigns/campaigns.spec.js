@@ -29,6 +29,9 @@ const initialObjectData = {
         description: 'This is a marking definition. Blue.',
         aliases: [ 'campaign by another name' ],
         first_seen: '2016-04-06T00:00:00.000Z',
+        last_seen: '2016-07-12T00:00:00.000Z',
+        x_mitre_first_seen_citation: '(Citation: Blue Spotter 1)',
+        x_mitre_last_seen_citation: '(Citation: Blue Spotter 2)',
         created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab"
     }
 };
@@ -156,13 +159,14 @@ describe('Campaigns API', function () {
                     expect(campaign1.stix.created).toBeDefined();
                     expect(campaign1.stix.modified).toBeDefined();
                     expect(campaign1.stix.first_seen).toBeDefined();
+                    expect(campaign1.stix.last_seen).toBeDefined();
+                    expect(campaign1.stix.x_mitre_first_seen_citation).toBeDefined();
+                    expect(campaign1.stix.x_mitre_last_seen_citation).toBeDefined();
                     expect(campaign1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
 
                     expect(campaign1.stix.aliases).toBeDefined();
                     expect(Array.isArray(campaign1.stix.aliases)).toBe(true);
                     expect(campaign1.stix.aliases.length).toBe(1);
-
-                    expect(campaign1.stix.last_seen).toBeUndefined();
 
                     // object_marking_refs should contain the default marking definition
                     expect(campaign1.stix.object_marking_refs).toBeDefined();
