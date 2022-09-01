@@ -36,6 +36,14 @@ exports.retrieveAll = function(options, callback) {
             query['workspace.workflow.state'] = options.state;
         }
     }
+    if (typeof options.domain !== 'undefined') {
+        if (Array.isArray(options.domain)) {
+            query['stix.x_mitre_domains'] = { $in: options.domain };
+        }
+        else {
+            query['stix.x_mitre_domains'] = options.domain;
+        }
+    }
     if (typeof options.platform !== 'undefined') {
         if (Array.isArray(options.platform)) {
             query['stix.x_mitre_platforms'] = { $in: options.platform };
