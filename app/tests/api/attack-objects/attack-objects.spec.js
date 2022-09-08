@@ -207,6 +207,29 @@ describe('ATT&CK Objects API', function () {
             });
     });
 
+    it('GET /api/attack-objects returns the objects with the requested ATT&CK IDs', function (done) {
+        request(app)
+            .get('/api/attack-objects?attackId=GX1111&attackId=SX3333&attackId=TX0001')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the matching objects
+                    const attackObjects = res.body;
+                    expect(attackObjects).toBeDefined();
+                    expect(Array.isArray(attackObjects)).toBe(true);
+                    expect(attackObjects.length).toBe(3);
+
+                    done();
+                }
+            });
+    });
+
     it('GET /api/attack-objects uses the search parameter to return the tactic objects', function (done) {
         request(app)
             .get('/api/attack-objects?search=nabu')
