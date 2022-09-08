@@ -27,8 +27,13 @@ exports.retrieveAll = async function(options) {
 
     // Build the query
     const query = {};
-    if (options.attackId) {
-        query['workspace.attack_id'] = options.attackId;
+    if (typeof options.attackId !== 'undefined') {
+        if (Array.isArray(options.attackId)) {
+            query['workspace.attack_id'] = { $in: options.attackId };
+        }
+        else {
+            query['workspace.attack_id'] = options.attackId;
+        }
     }
     if (!options.includeRevoked) {
         query['stix.revoked'] = { $in: [null, false] };
