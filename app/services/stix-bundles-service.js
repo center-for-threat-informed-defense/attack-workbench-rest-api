@@ -13,7 +13,6 @@ const Software = require('../models/software-model');
 const Tactic = require('../models/tactic-model');
 const Technique = require('../models/technique-model');
 
-const relationshipsService = require('./relationships-service');
 const systemConfigurationService = require('./system-configuration-service');
 
 const linkById = require('../lib/linkById');
