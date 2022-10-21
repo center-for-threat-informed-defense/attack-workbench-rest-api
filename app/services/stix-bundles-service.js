@@ -14,6 +14,7 @@ const Tactic = require('../models/tactic-model');
 const Technique = require('../models/technique-model');
 
 const systemConfigurationService = require('./system-configuration-service');
+
 const linkById = require('../lib/linkById');
 const config = require("../config/config");
 
@@ -313,11 +314,28 @@ exports.exportBundle = async function(options) {
         }
     }
 
+    // Secondary object domains are the union of the related primary object domains
+    // Do not include primary objects when the relationship is deprecated
+    async function domainsForSecondaryObject(attackObject) {
+        const objectRelationships = allRelationships.filter(r => r.stix.source_ref === attackObject.stix.id);
+        const domainMap = new Map();
+        for (const relationship of objectRelationships) {
+            const targetObject = await getAttackObject(relationship.stix.target_ref);
+            if (targetObject?.stix.x_mitre_domains) {
+                for (const domain of targetObject.stix.x_mitre_domains) {
+                    domainMap.set(domain, true);
+                }
+            }
+        }
+
+        return [...domainMap.keys()];
+    }
+
     // Put the secondary objects in the bundle
     for (const secondaryObject of secondaryObjects) {
         // Groups and campaigns need to have the domain added to x_mitre_domains
         if (secondaryObject.stix.type === 'intrusion-set' || secondaryObject.stix.type === 'campaign') {
-            secondaryObject.stix.x_mitre_domains = [ options.domain ];
+            secondaryObject.stix.x_mitre_domains = await domainsForSecondaryObject(secondaryObject);
         }
         bundle.objects.push(secondaryObject.stix);
         addAttackObjectToMap(secondaryObject);
@@ -361,7 +379,6 @@ exports.exportBundle = async function(options) {
             }
         }
     }
-
 
     // Create a map of techniques detected by data components
     // key = technique id, value = array of data component refs
