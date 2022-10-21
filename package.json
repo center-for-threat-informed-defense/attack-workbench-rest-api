@@ -76,7 +76,7 @@
     "parse5-query-domtree": "^1.0.2",
     "read-json-lines-sync": "^2.2.0",
     "set-cookie-parser": "^2.5.1",
-    "snyk": "^1.991.0",
+    "snyk": "^1.1040.0",
     "superagent": "^8.0.0",
     "supertest": "^6.2.4"
   }
