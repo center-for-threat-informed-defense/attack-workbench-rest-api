@@ -399,9 +399,13 @@ exports.exportBundle = async function(options) {
     }
 
     // Supplement techniques with x_mitre_data_sources for backwards compatibility
+    // Also make sure that all techniques have x_mitre_is_subtechnique set
     const icsDataSourceValues = await systemConfigurationService.retrieveAllowedValuesForTypePropertyDomain('technique', 'x_mitre_data_sources', 'ics-attack');
     for (const bundleObject of bundle.objects) {
         if (bundleObject.type === 'attack-pattern') {
+            // Make sure that x_mitre_is_subtechnique is set
+            bundleObject.x_mitre_is_subtechnique = bundleObject.x_mitre_is_subtechnique ?? false;
+
             const enterpriseDomain = bundleObject.x_mitre_domains.includes('enterprise-attack');
             const icsDomain = bundleObject.x_mitre_domains.includes('ics-attack');
             if (enterpriseDomain && !icsDomain) {
