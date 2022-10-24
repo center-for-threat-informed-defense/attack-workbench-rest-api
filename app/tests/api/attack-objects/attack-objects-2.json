@@ -1,0 +1,105 @@
+{
+  "type": "bundle",
+  "id": "bundle--935171d2-cd1a-416e-b684-5e6dd49623e5",
+  "spec_version": "2.1",
+  "objects": [
+    {
+      "type": "x-mitre-collection",
+      "id": "x-mitre-collection--2bcdb02a-4c2b-4f64-9272-7a364f62d586",
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "name": "Sample ATT&CK Data",
+      "x_mitre_version": "1.1",
+      "description": "This collection bundle contains sample ATT&CK Data.",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-08-17T10:10:10.000Z",
+      "modified": "2022-08-18T10:10:10.000Z",
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "x_mitre_contents": [
+        {
+          "object_ref": "attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e",
+          "object_modified": "2022-08-18T06:07:08.000Z"
+        },
+        {
+          "object_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+          "object_modified": "2017-06-01T00:00:00.000Z"
+        },
+        {
+          "object_ref": "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce",
+          "object_modified": "2020-01-01T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "x_mitre_platforms": [
+        "Linux"
+      ],
+      "x_mitre_domains": [
+        "enterprise-attack"
+      ],
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "type": "attack-pattern",
+      "id": "attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2022-05-01T06:07:08.000Z",
+      "modified": "2022-08-18T06:07:08.000Z",
+      "name": "Sample Technique 1",
+      "description": "This is a sample technique with a modified description",
+      "kill_chain_phases": [
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "enlil"
+        },
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "nabu"
+        }
+      ],
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "url": "https://attack.mitre.org/techniques/TX0001",
+          "external_id": "TX0001"
+        }
+      ],
+      "x_mitre_data_sources": [],
+      "x_mitre_version": "1.0",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "spec_version": "2.1"
+    },
+    {
+      "object_marking_refs": [
+        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
+      ],
+      "id": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "type": "identity",
+      "identity_class": "organization",
+      "created": "2017-06-01T00:00:00.000Z",
+      "modified": "2017-06-01T00:00:00.000Z",
+      "name": "The Corporate Entity",
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_version": "1.0"
+    },
+    {
+      "definition": {
+        "statement": "Copyright 2015-2022, The MITRE Corporation. MITRE ATT&CK and ATT&CK are registered trademarks of The MITRE Corporation."
+      },
+      "id": "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce",
+      "type": "marking-definition",
+      "created": "2020-01-01T00:00:00.000Z",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "definition_type": "statement",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "spec_version": "2.1",
+      "x_mitre_domains": [
+        "ics-attack"
+      ]
+    }
+  ]
+}

@@ -36,6 +36,8 @@ async function configureTechniques(baseTechnique) {
     const data2 = _.cloneDeep(baseTechnique);
     data2.stix.x_mitre_deprecated = false;
     data2.stix.revoked = false;
+    data2.stix.x_mitre_domains = [ 'mobile-attack' ];
+    data2.stix.x_mitre_platforms.push('platform-3');
     data2.workspace.workflow = { state: 'work-in-progress' };
     techniques.push(data2);
 
@@ -297,6 +299,92 @@ describe('Techniques Query API', function () {
                     expect(techniques).toBeDefined();
                     expect(Array.isArray(techniques)).toBe(true);
                     expect(techniques.length).toBe(3);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques should return techniques containing the domain', function (done) {
+        request(app)
+            .get('/api/techniques?domain=mobile-attack')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // Expect technique 2
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(1);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques should not return any techniques when searching for a non-existent domain', function (done) {
+        request(app)
+            .get('/api/techniques?domain=not-a-domain')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(0);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques should return techniques containing the platform', function (done) {
+        request(app)
+            .get('/api/techniques?platform=platform-3')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // Expect technique 2
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(1);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/techniques should not return any techniques when searching for a non-existent platform', function (done) {
+        request(app)
+            .get('/api/techniques?platform=not-a-platform')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    const techniques = res.body;
+                    expect(techniques).toBeDefined();
+                    expect(Array.isArray(techniques)).toBe(true);
+                    expect(techniques.length).toBe(0);
                     done();
                 }
             });

@@ -7,6 +7,7 @@ exports.retrieveAll = function(req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
+        domain: req.query.domain,
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
@@ -149,4 +150,32 @@ exports.delete = function(req, res) {
             }
         }
     });
+};
+
+exports.retrieveTechniquesForTactic = async function(req, res) {
+    try {
+        const options = {
+            offset: req.query.offset || 0,
+            limit: req.query.limit || 0,
+            includePagination: req.query.includePagination
+        };
+
+        const techniques = await tacticsService.retrieveTechniquesForTactic(req.params.stixId, req.params.modified, options);
+        if (!techniques) {
+            return res.status(404).send('tactic not found.');
+        }
+        else {
+            logger.debug(`Success: Retrieved techniques for tactic with id ${ req.params.stixId }`);
+            return res.status(200).send(techniques);
+        }
+    }
+    catch(err) {
+        if (err.message === tacticsService.errors.badlyFormattedParameter) {
+            logger.warn('Badly formatted stix id: ' + req.params.stixId);
+            return res.status(400).send('Stix id is badly formatted.');
+        } else {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to get techniques for tactic. Server error.');
+        }
+    }
 };

@@ -14,6 +14,7 @@ const Tactic = require('../models/tactic-model');
 const Technique = require('../models/technique-model');
 
 const systemConfigurationService = require('./system-configuration-service');
+
 const linkById = require('../lib/linkById');
 const config = require("../config/config");
 
@@ -33,7 +34,7 @@ async function getAttackObject(stixId) {
     return attackObject;
 }
 
-const attackIdObjectTypes = ['intrusion-set', 'malware', 'tool', 'attack-pattern', 'course-of-action', 'x-mitre-data_source'];
+const attackIdObjectTypes = ['intrusion-set', 'campaign', 'malware', 'tool', 'attack-pattern', 'course-of-action', 'x-mitre-data_source'];
 function requiresAttackId(attackObject) {
     return attackIdObjectTypes.includes(attackObject?.stix.type);
 }
@@ -313,11 +314,28 @@ exports.exportBundle = async function(options) {
         }
     }
 
+    // Secondary object domains are the union of the related primary object domains
+    // Do not include primary objects when the relationship is deprecated
+    async function domainsForSecondaryObject(attackObject) {
+        const objectRelationships = allRelationships.filter(r => r.stix.source_ref === attackObject.stix.id);
+        const domainMap = new Map();
+        for (const relationship of objectRelationships) {
+            const targetObject = await getAttackObject(relationship.stix.target_ref);
+            if (targetObject?.stix.x_mitre_domains) {
+                for (const domain of targetObject.stix.x_mitre_domains) {
+                    domainMap.set(domain, true);
+                }
+            }
+        }
+
+        return [...domainMap.keys()];
+    }
+
     // Put the secondary objects in the bundle
     for (const secondaryObject of secondaryObjects) {
-        // Groups need to have the domain added to x_mitre_domains
-        if (secondaryObject.stix.type === 'intrusion-set') {
-            secondaryObject.stix.x_mitre_domains = [ options.domain ];
+        // Groups and campaigns need to have the domain added to x_mitre_domains
+        if (secondaryObject.stix.type === 'intrusion-set' || secondaryObject.stix.type === 'campaign') {
+            secondaryObject.stix.x_mitre_domains = await domainsForSecondaryObject(secondaryObject);
         }
         bundle.objects.push(secondaryObject.stix);
         addAttackObjectToMap(secondaryObject);
@@ -351,7 +369,7 @@ exports.exportBundle = async function(options) {
             if (!objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)) {
                 const revokedObject = await getAttackObject(relationship.stix.source_ref);
                 if (secondaryObjectIsValid(revokedObject)) {
-                    if (revokedObject.stix.type === 'intrusion-set') {
+                    if (revokedObject.stix.type === 'intrusion-set' || revokedObject.stix.type === 'campaign') {
                         revokedObject.stix.x_mitre_domains = [ options.domain ];
                     }
                     bundle.objects.push(revokedObject.stix);
@@ -361,7 +379,6 @@ exports.exportBundle = async function(options) {
             }
         }
     }
-
 
     // Create a map of techniques detected by data components
     // key = technique id, value = array of data component refs
@@ -382,9 +399,13 @@ exports.exportBundle = async function(options) {
     }
 
     // Supplement techniques with x_mitre_data_sources for backwards compatibility
+    // Also make sure that all techniques have x_mitre_is_subtechnique set
     const icsDataSourceValues = await systemConfigurationService.retrieveAllowedValuesForTypePropertyDomain('technique', 'x_mitre_data_sources', 'ics-attack');
     for (const bundleObject of bundle.objects) {
         if (bundleObject.type === 'attack-pattern') {
+            // Make sure that x_mitre_is_subtechnique is set
+            bundleObject.x_mitre_is_subtechnique = bundleObject.x_mitre_is_subtechnique ?? false;
+
             const enterpriseDomain = bundleObject.x_mitre_domains.includes('enterprise-attack');
             const icsDomain = bundleObject.x_mitre_domains.includes('ics-attack');
             if (enterpriseDomain && !icsDomain) {
@@ -462,6 +483,19 @@ exports.exportBundle = async function(options) {
     // (any revoked-by relationship for a primary object should already be included)
     for (const relationship of allRelationships) {
         if (relationship.stix.relationship_type === 'revoked-by' && !relationshipsMap.has(relationship.stix.id) &&
+            objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref))
+        {
+            if (relationshipIsActive(relationship)) {
+                bundle.objects.push(relationship.stix);
+                relationshipsMap.set(relationship.stix.id, true);
+            }
+        }
+    }
+
+    // Add campaign-to-group attributed-to relationships
+    // (campaigns and groups are secondary objects, so an attributed-to relationship will not be added yet)
+    for (const relationship of allRelationships) {
+        if (relationship.stix.relationship_type === 'attributed-to' && !relationshipsMap.has(relationship.stix.id) &&
             objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref))
         {
             if (relationshipIsActive(relationship)) {

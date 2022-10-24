@@ -1,7 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
-const Group = require('../models/group-model');
+const Campaign = require('../models/campaign-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
 const attackObjectsService = require('./attack-objects-service');
@@ -76,7 +76,7 @@ exports.retrieveAll = function(options, callback) {
     aggregation.push(facet);
 
     // Retrieve the documents
-    Group.aggregate(aggregation, function(err, results) {
+    Campaign.aggregate(aggregation, function(err, results) {
         if (err) {
             return callback(err);
         }
@@ -107,8 +107,8 @@ exports.retrieveAll = function(options, callback) {
 };
 
 exports.retrieveById = function(stixId, options, callback) {
-    // versions=all Retrieve all groups with the stixId
-    // versions=latest Retrieve the groups with the latest modified date for this stixId
+    // versions=all Retrieve all campaigns with the stixId
+    // versions=latest Retrieve the campaigns with the latest modified date for this stixId
 
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -117,9 +117,9 @@ exports.retrieveById = function(stixId, options, callback) {
     }
 
     if (options.versions === 'all') {
-        Group.find({'stix.id': stixId})
+        Campaign.find({'stix.id': stixId})
             .lean()
-            .exec(function (err, groups) {
+            .exec(function (err, campaigns) {
                 if (err) {
                     if (err.name === 'CastError') {
                         const error = new Error(errors.badlyFormattedParameter);
@@ -129,16 +129,16 @@ exports.retrieveById = function(stixId, options, callback) {
                         return callback(err);
                     }
                 } else {
-                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(groups)
-                        .then(() => callback(null, groups));
+                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(campaigns)
+                        .then(() => callback(null, campaigns));
                 }
             });
     }
     else if (options.versions === 'latest') {
-        Group.findOne({ 'stix.id': stixId })
+        Campaign.findOne({ 'stix.id': stixId })
             .sort('-stix.modified')
             .lean()
-            .exec(function(err, group) {
+            .exec(function(err, campaign) {
                 if (err) {
                     if (err.name === 'CastError') {
                         const error = new Error(errors.badlyFormattedParameter);
@@ -151,9 +151,9 @@ exports.retrieveById = function(stixId, options, callback) {
                 }
                 else {
                     // Note: document is null if not found
-                    if (group) {
-                        identitiesService.addCreatedByAndModifiedByIdentities(group)
-                            .then(() => callback(null, [ group ]));
+                    if (campaign) {
+                        identitiesService.addCreatedByAndModifiedByIdentities(campaign)
+                            .then(() => callback(null, [ campaign ]));
                     }
                     else {
                         return callback(null, []);
@@ -169,7 +169,7 @@ exports.retrieveById = function(stixId, options, callback) {
 };
 
 exports.retrieveVersionById = function(stixId, modified, callback) {
-    // Retrieve the versions of the group with the matching stixId and modified date
+    // Retrieve the version of the campaign with the matching stixId and modified date
 
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -183,7 +183,7 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
         return callback(error);
     }
 
-    Group.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function(err, group) {
+    Campaign.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function(err, campaign) {
         if (err) {
             if (err.name === 'CastError') {
                 const error = new Error(errors.badlyFormattedParameter);
@@ -196,12 +196,11 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
         }
         else {
             // Note: document is null if not found
-            if (group) {
-                identitiesService.addCreatedByAndModifiedByIdentities(group)
-                    .then(() => callback(null, group));
+            if (campaign) {
+                identitiesService.addCreatedByAndModifiedByIdentities(campaign)
+                    .then(() => callback(null, campaign));
             }
             else {
-                console.log('** NOT FOUND')
                 return callback();
             }
         }
@@ -216,55 +215,55 @@ exports.create = async function(data, options) {
     //   2. This is a new version of an existing object. Create a new object with the specified id.
     //      Set stix.x_mitre_modified_by_ref to the organization identity.
 
-    if (data.stix.type !== 'intrusion-set') {
+    if (data.stix.type !== 'campaign') {
         throw new Error(errors.invalidType);
     }
 
     // Create the document
-    const group = new Group(data);
+    const campaign = new Campaign(data);
 
     options = options || {};
     if (!options.import) {
         // Set the ATT&CK Spec Version
-        group.stix.x_mitre_attack_spec_version = group.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+        campaign.stix.x_mitre_attack_spec_version = campaign.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
         // Record the user account that created the object
         if (options.userAccountId) {
-            group.workspace.workflow.created_by_user_account = options.userAccountId;
+            campaign.workspace.workflow.created_by_user_account = options.userAccountId;
         }
 
         // Set the default marking definitions
-        await attackObjectsService.setDefaultMarkingDefinitions(group);
+        await attackObjectsService.setDefaultMarkingDefinitions(campaign);
 
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
 
         // Check for an existing object
         let existingObject;
-        if (group.stix.id) {
-            existingObject = await Group.findOne({ 'stix.id': group.stix.id });
+        if (campaign.stix.id) {
+            existingObject = await Campaign.findOne({ 'stix.id': campaign.stix.id });
         }
 
         if (existingObject) {
             // New version of an existing object
             // Only set the x_mitre_modified_by_ref property
-            group.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+            campaign.stix.x_mitre_modified_by_ref = organizationIdentityRef;
         }
         else {
             // New object
             // Assign a new STIX id if not already provided
-            group.stix.id = group.stix.id || `intrusion-set--${uuid.v4()}`;
+            campaign.stix.id = campaign.stix.id || `campaign--${uuid.v4()}`;
 
             // Set the created_by_ref and x_mitre_modified_by_ref properties
-            group.stix.created_by_ref = organizationIdentityRef;
-            group.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+            campaign.stix.created_by_ref = organizationIdentityRef;
+            campaign.stix.x_mitre_modified_by_ref = organizationIdentityRef;
         }
     }
 
     // Save the document in the database
     try {
-        const savedGroup = await group.save();
-        return savedGroup;
+        const savedCampaign = await campaign.save();
+        return savedCampaign;
     }
     catch (err) {
         if (err.name === 'MongoServerError' && err.code === 11000) {
@@ -291,7 +290,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
         return callback(error);
     }
 
-    Group.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function(err, document) {
+    Campaign.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function(err, document) {
         if (err) {
             if (err.name === 'CastError') {
                 var error = new Error(errors.badlyFormattedParameter);
@@ -341,12 +340,12 @@ exports.delete = function (stixId, stixModified, callback) {
         return callback(error);
     }
 
-    Group.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, group) {
+    Campaign.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, campaign) {
         if (err) {
             return callback(err);
         } else {
-            //Note: group is null if not found
-            return callback(null, group);
+            //Note: campaign is null if not found
+            return callback(null, campaign);
         }
     });
 };

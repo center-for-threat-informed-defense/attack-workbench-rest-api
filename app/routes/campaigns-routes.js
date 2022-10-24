@@ -2,53 +2,46 @@
 
 const express = require('express');
 
-const tacticsController = require('../controllers/tactics-controller');
+const campaignsController = require('../controllers/campaigns-controller');
 const authn = require('../lib/authn-middleware');
 const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
-router.route('/tactics')
+router.route('/campaigns')
     .get(
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-        tacticsController.retrieveAll
+        campaignsController.retrieveAll
     )
     .post(
         authn.authenticate,
         authz.requireRole(authz.editorOrHigher),
-        tacticsController.create
+        campaignsController.create
     );
 
-router.route('/tactics/:stixId')
+router.route('/campaigns/:stixId')
     .get(
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-        tacticsController.retrieveById
+        campaignsController.retrieveById
     );
 
-router.route('/tactics/:stixId/modified/:modified')
+router.route('/campaigns/:stixId/modified/:modified')
     .get(
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-        tacticsController.retrieveVersionById
+        campaignsController.retrieveVersionById
     )
     .put(
         authn.authenticate,
         authz.requireRole(authz.editorOrHigher),
-        tacticsController.updateFull
+        campaignsController.updateFull
     )
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        tacticsController.delete
-    );
-
-router.route('/tactics/:stixId/modified/:modified/techniques')
-    .get(
-        authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-        tacticsController.retrieveTechniquesForTactic
+        campaignsController.delete
     );
 
 module.exports = router;
