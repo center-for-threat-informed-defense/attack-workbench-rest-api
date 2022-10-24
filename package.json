@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^9.0.9",
+    "ansi-regex": "^5.0.1",
     "async": "^3.2.3",
     "async-await-retry": "^1.2.3",
     "body-parser": "^1.19.0",
