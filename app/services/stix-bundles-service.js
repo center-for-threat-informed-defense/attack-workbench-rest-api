@@ -13,8 +13,6 @@ const Software = require('../models/software-model');
 const Tactic = require('../models/tactic-model');
 const Technique = require('../models/technique-model');
 
-const systemConfigurationService = require('./system-configuration-service');
-
 const linkById = require('../lib/linkById');
 const config = require("../config/config");
 
@@ -384,7 +382,7 @@ exports.exportBundle = async function(options) {
     // key = technique id, value = array of data component refs
     const techniqueDetectedBy = new Map();
     for (const relationship of primaryObjectRelationships) {
-        if (relationship.stix.relationship_type === 'detects') {
+        if (relationship.stix.relationship_type === 'detects' && relationshipIsActive(relationship)) {
             // technique (target_ref) detected by array of data-component (source_ref)
             const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
             if (techniqueDataComponents) {
@@ -400,7 +398,6 @@ exports.exportBundle = async function(options) {
 
     // Supplement techniques with x_mitre_data_sources for backwards compatibility
     // Also make sure that all techniques have x_mitre_is_subtechnique set
-    const icsDataSourceValues = await systemConfigurationService.retrieveAllowedValuesForTypePropertyDomain('technique', 'x_mitre_data_sources', 'ics-attack');
     for (const bundleObject of bundle.objects) {
         if (bundleObject.type === 'attack-pattern') {
             // Make sure that x_mitre_is_subtechnique is set
@@ -408,7 +405,7 @@ exports.exportBundle = async function(options) {
 
             const enterpriseDomain = bundleObject.x_mitre_domains.includes('enterprise-attack');
             const icsDomain = bundleObject.x_mitre_domains.includes('ics-attack');
-            if (enterpriseDomain && !icsDomain) {
+            if (enterpriseDomain || icsDomain) {
                 // Remove any existing data source string entries
                 bundleObject.x_mitre_data_sources = [];
 
@@ -422,38 +419,6 @@ exports.exportBundle = async function(options) {
                             const dataSourceForTechnique = dataSources.get(dataComponent.x_mitre_data_source_ref);
                             if (dataSourceForTechnique) {
                                 const derivedDataSource = `${ dataSourceForTechnique.name }: ${ dataComponent.name }`;
-                                bundleObject.x_mitre_data_sources.push(derivedDataSource);
-                            }
-                            else {
-                                console.log(`Referenced data source not found: ${ dataComponent.x_mitre_data_source_ref }`);
-                            }
-                        }
-                        else {
-                            console.log(`Referenced data component not found: ${ dataComponentId }`);
-                        }
-                    }
-                }
-            }
-            else if (icsDomain && !enterpriseDomain) {
-                // Remove any existing data source string entries that are not in the list of valid ICS data sources
-                if (Array.isArray(bundleObject.x_mitre_data_sources)) {
-                    bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.includes(source));
-                }
-            }
-            else if (enterpriseDomain && icsDomain) {
-                // Remove any existing data source string entries that are not in the list of valid ICS data sources
-                bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.includes(source));
-
-                // Add data source string entries based on the data sources associated with the technique
-                //   data component detects technique AND data component refers to data source
-                const dataComponentIds = techniqueDetectedBy.get(bundleObject.id);
-                if (dataComponentIds) {
-                    for (const dataComponentId of dataComponentIds) {
-                        const dataComponent = dataComponents.get(dataComponentId);
-                        if (dataComponent) {
-                            const dataSourceForTechnique = dataSources.get(dataComponent.x_mitre_data_source_ref);
-                            if (dataSourceForTechnique) {
-                                const derivedDataSource = `${dataSourceForTechnique.name}: ${dataComponent.name}`;
                                 bundleObject.x_mitre_data_sources.push(derivedDataSource);
                             }
                             else {
