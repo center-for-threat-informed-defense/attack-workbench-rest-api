@@ -8,6 +8,7 @@ const stixCourseOfAction = {
     modified: { type: Date, required: true },
     name: { type: String, required: true },
     description: String,
+    labels: [ String ],
 
     // ATT&CK custom stix properties
     x_mitre_modified_by_ref: String,

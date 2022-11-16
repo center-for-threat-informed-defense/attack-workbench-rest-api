@@ -1,7 +1,7 @@
 {
   "name": "attack-workbench-rest-api",
   "version": "1.2.0",
-  "attackSpecVersion": "3.0.0",
+  "attackSpecVersion": "3.1.0",
   "description": "An application allowing users to explore, create, annotate, and share extensions of the MITRE ATT&CK® knowledge base. This repository contains the REST API service for storing, querying, and editing ATT&CK objects.",
   "keywords": [
     "cti",
@@ -45,7 +45,7 @@
     "express-session": "^1.17.2",
     "helmet": "^4.6.0",
     "jsonwebtoken": "^8.5.1",
-    "jwks-rsa": "^2.0.5",
+    "jwks-rsa": "^3.0.0",
     "jwt-decode": "^3.1.2",
     "lodash": "^4.17.21",
     "migrate-mongo": "^9.0.0",
@@ -53,7 +53,7 @@
     "morgan": "^1.10.0",
     "nanoid": "^3.3.0",
     "node-cache": "^5.1.2",
-    "openid-client": "^5.1.7",
+    "openid-client": "^5.3.0",
     "passport": "^0.6.0",
     "passport-anonym-uuid": "^1.0.3",
     "passport-http": "^0.3.0",
@@ -61,8 +61,7 @@
     "semver": "^7.3.5",
     "swagger-ui-express": "^4.3.0",
     "uuid": "^8.3.2",
-    "winston": "^3.3.3",
-    "yamljs": "^0.3.0"
+    "winston": "^3.3.3"
   },
   "devDependencies": {
     "codecov": "^3.8.3",
