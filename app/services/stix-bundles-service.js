@@ -75,6 +75,7 @@ const stixOptionalArrayProperties = [
     'external_references',
     'kill_chain_phases',
     'aliases',
+    'labels',
     'object_marking_refs',
     'roles',
     'sectors'
