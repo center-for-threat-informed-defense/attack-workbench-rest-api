@@ -10,8 +10,8 @@ jobs:
     name: static-checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: '18.x'
       - run: npm install
@@ -19,7 +19,7 @@ jobs:
       - run: npm run snyk
       - run: $(npm bin)/nyc --reporter=cobertura npm test
       - name: Upload Coverage to CodeCov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_SECRET }}
           files: coverage/cobertura-coverage.xml
