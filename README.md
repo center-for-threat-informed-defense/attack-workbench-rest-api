@@ -43,7 +43,7 @@ Please refer to our [Docker install instructions](https://github.com/center-for-
 
 #### Requirements
 
-- [Node.js](https://nodejs.org) version `14.16.1` or greater
+- [Node.js](https://nodejs.org) version `18.12.1` or greater
 - An instance of [MongoDB](https://www.mongodb.com/) version `4.4.x` or greater
  
 #### Installation

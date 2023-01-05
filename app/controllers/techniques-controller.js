@@ -7,12 +7,14 @@ exports.retrieveAll = function(req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
+        domain: req.query.domain,
+        platform: req.query.platform,
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
         search: req.query.search,
         includePagination: req.query.includePagination
-    }
+    };
 
     techniquesService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -156,15 +158,42 @@ exports.deleteById = function(req, res) {
         if (err) {
             logger.error('Delete technique failed. ' + err);
             return res.status(500).send('Unable to delete technique. Server error.');
-        }
-        else {
+        } else {
             if (techniques.deletedCount === 0) {
                 return res.status(404).send('Technique not found.');
-            }
-            else {
-                logger.debug(`Success: Deleted technique with id ${ req.params.stixId }`);
+            } else {
+                logger.debug(`Success: Deleted technique with id ${req.params.stixId}`);
                 return res.status(204).end();
             }
         }
     });
+};
+
+exports.retrieveTacticsForTechnique = async function(req, res) {
+    try {
+        const options = {
+            offset: req.query.offset || 0,
+            limit: req.query.limit || 0,
+            includePagination: req.query.includePagination
+        };
+
+        const tactics = await techniquesService.retrieveTacticsForTechnique(req.params.stixId, req.params.modified, options);
+        if (!tactics) {
+            return res.status(404).send('Technique not found.');
+        }
+        else {
+            logger.debug(`Success: Retrieved tactics for technique with id ${ req.params.stixId }`);
+            return res.status(200).send(tactics);
+        }
+    }
+    catch(err) {
+        if (err.message === techniquesService.errors.badlyFormattedParameter) {
+            logger.warn('Badly formatted stix id: ' + req.params.stixId);
+            return res.status(400).send('Stix id is badly formatted.');
+        }
+        else {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to get tactics for technique. Server error.');
+        }
+    }
 };

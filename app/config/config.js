@@ -101,6 +101,14 @@ function loadConfig() {
                 doc: 'URL of the MongoDB server',
                 default: '',
                 env: 'DATABASE_URL'
+            },
+            migration: {
+                enable: {
+                    doc: 'Enable automatic database migration when starting the server',
+                    format: Boolean,
+                    default: true,
+                    env: 'WB_REST_DATABASE_MIGRATION_ENABLE'
+                },
             }
         },
         logging: {
@@ -287,6 +295,14 @@ function loadConfig() {
         attackSourceNames: {
             doc: 'Valid source_name values used in MITRE ATT&CK external_references',
             default: ['mitre-attack', 'mitre-mobile-attack', 'mobile-attack', 'mitre-ics-attack']
+        },
+        domainToKillChainMap: {
+            doc: 'Map the built-in domain names to the corresponding kill-chain-phase names',
+            default: {
+                "enterprise-attack": "mitre-attack",
+                "mobile-attack": "mitre-mobile-attack",
+                "ics-attack": "mitre-ics-attack"
+            }
         }
     });
 

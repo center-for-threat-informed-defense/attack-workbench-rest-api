@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 
+const errors = {
+    noDatabaseConnection: 'No database connection',
+    databaseMigrationFailed: 'Database migration failed'
+};
+
 async function runServer() {
     // Configure the logger
     const logger = require('../app/lib/logger');
@@ -17,13 +22,27 @@ async function runServer() {
     logger.info(`Log level set to ${ config.logging.logLevel }`);
 
     // Establish the database connection
-    logger.info('Setting up the database connection');
+    logger.info('Setting up the database connection...');
     try {
         await require('../app/lib/database-connection').initializeConnection();
     }
     catch(err) {
-        logger.error('Unable to connect to database: ' + err);
-        throw new Error('Database connection is required. Terminating app.');
+        logger.error('Unable to connect to database');
+        logger.error(err.message);
+        logger.error('Database connection is required; terminating app');
+        throw new Error(errors.noDatabaseConnection);
+    }
+
+    // Apply any database migration actions required
+    const migrateDatabase = require('../app/lib/migration/migrate-database');
+    try {
+        await migrateDatabase.migrateDatabase();
+    }
+    catch (err) {
+        logger.error('Unable to perform database migration');
+        logger.error(err.message);
+        logger.error('Database migration is required; terminating app');
+        throw new Error(errors.databaseMigrationFailed);
     }
 
     // Check for valid database configuration
@@ -34,13 +53,22 @@ async function runServer() {
     const app = await require('../app').initializeApp();
 
     // Start the server
-    logger.info('Starting the HTTP server');
+    logger.info('Starting the HTTP server...');
     const server = app.listen(config.server.port, function () {
         const host = server.address().address;
         const port = server.address().port;
 
         logger.info(`Listening at http://${host}:${port}`);
         logger.info('ATT&CK Workbench REST API start up complete');
+    });
+
+    server.on('error', function(err) {
+        if (err.code === 'EADDRINUSE') {
+            logger.error('Unable to start the HTTP server');
+            logger.error(err.message);
+            logger.error('HTTP server is required; terminating app');
+            // Don't need to throw error, this error is automatically raised to the calling function
+        }
     });
 
     // Listen for a ctrl-c
@@ -68,8 +96,16 @@ runServer()
         process.exit();
     })
     .catch(err => {
-        console.log('runServer() - Unexpected error:');
-        console.log(err.message);
-        console.log(err.stack);
+        if (err.code === 'EADDRINUSE' || Object.values(errors).includes(err.message)) {
+            // Trap the explicitly handled errors
+            console.error('runServer() - Terminating after error');
+        }
+        else {
+            // Trap and log any other error
+            console.error('runServer() - Terminating after unexpected error:');
+            console.error(err.message);
+            console.error(err.stack);
+        }
+
         process.exit(1);
     });

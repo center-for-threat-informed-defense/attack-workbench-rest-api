@@ -34,6 +34,14 @@ exports.retrieveAll = function(options, callback) {
             query['workspace.workflow.state'] = options.state;
         }
     }
+    if (typeof options.domain !== 'undefined') {
+        if (Array.isArray(options.domain)) {
+            query['stix.x_mitre_domains'] = { $in: options.domain };
+        }
+        else {
+            query['stix.x_mitre_domains'] = options.domain;
+        }
+    }
 
     // Build the aggregation
     // - Group the documents by stix.id, sorted by stix.modified
@@ -263,7 +271,7 @@ exports.create = async function(data, options) {
         return savedMitigation;
     }
     catch(err) {
-        if (err.name === 'MongoError' && err.code === 11000) {
+        if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
             const error = new Error(errors.duplicateId);
             throw error;
@@ -307,7 +315,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
             Object.assign(document, data);
             document.save(function(err, savedDocument) {
                 if (err) {
-                    if (err.name === 'MongoError' && err.code === 11000) {
+                    if (err.name === 'MongoServerError' && err.code === 11000) {
                         // 11000 = Duplicate index
                         var error = new Error(errors.duplicateId);
                         return callback(error);

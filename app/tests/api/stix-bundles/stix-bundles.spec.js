@@ -73,6 +73,10 @@ const initialObjectData = {
                     "object_modified": "2020-05-15T15:44:47.629Z"
                 },
                 {
+                    "object_ref": "campaign--a3038910-f8ca-4ba8-b116-21d0f333f231",
+                    "object_modified": "2020-07-03T20:22:40.401Z"
+                },
+                {
                     "object_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
                     "object_modified": "2017-06-01T00:00:00.000Z"
                 },
@@ -111,6 +115,18 @@ const initialObjectData = {
                 {
                     "object_ref": "relationship--e7f994c6-3e08-4aea-a30e-97cc6fe610c6",
                     "object_modified": "2019-09-04T14:32:13.000Z"
+                },
+                {
+                    "object_ref": "relationship--89586929-ca62-423f-94bf-cc03ec8161bb",
+                    "object_modified": "2021-06-06T14:00:00.000Z"
+                },
+                {
+                    "object_ref": "relationship--21d3572e-398d-4473-93eb-eb9a2a069d53",
+                    "object_modified": "2021-06-07T14:00:00.000Z"
+                },
+                {
+                    "object_ref": "relationship--a5a80c31-0dde-4fd7-a520-a7593d21c954",
+                    "object_modified": "2021-06-08T14:00:00.000Z"
                 }
             ]
         },
@@ -328,6 +344,34 @@ const initialObjectData = {
             x_mitre_version: "1.2"
         },
         {
+            type: "campaign",
+            id: "campaign--a3038910-f8ca-4ba8-b116-21d0f333f231",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            name: "campaign-1",
+            description: "This is a campaign",
+            first_seen: "2016-04-06T00:00:00.000Z",
+            last_seen: "2016-07-12T00:00:00.000Z",
+            x_mitre_first_seen_citation: "(Citation: Article 1)",
+            x_mitre_last_seen_citation: "(Citation: Article 2)",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            external_references: [
+                {
+                    source_name: "mitre-attack",
+                    url: "https://attack.mitre.org/campaigns/C0001",
+                    external_id: "C0001"
+                }
+            ],
+            aliases: [
+                "Another campaign name"
+            ],
+            modified: "2020-07-03T20:22:40.401Z",
+            created: "2018-11-17T00:14:20.652Z",
+            spec_version: "2.1",
+            x_mitre_version: "1.2"
+        },
+        {
             created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
             object_marking_refs: [
                 "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
@@ -372,7 +416,7 @@ const initialObjectData = {
                 'Author 2'
             ],
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
-            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
             object_refs: [ 'malware--04227b24-7817-4de1-9050-b7b1b57f5866' ],
             modified: "2020-04-12T15:44:47.629Z",
             created: "2019-10-22T00:14:20.652Z"
@@ -383,7 +427,7 @@ const initialObjectData = {
             name: 'Command',
             spec_version: '2.1',
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
-            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
             modified: "2020-04-12T15:44:47.629Z",
             created: "2019-10-22T00:14:20.652Z",
             external_references: [
@@ -396,7 +440,7 @@ const initialObjectData = {
             name: 'Network Traffic',
             spec_version: '2.1',
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
-            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
             modified: "2020-04-12T15:44:47.629Z",
             created: "2019-10-22T00:14:20.652Z",
             external_references: [
@@ -410,7 +454,7 @@ const initialObjectData = {
             spec_version: '2.1',
             x_mitre_data_source_ref: 'x-mitre-data-source--880b771b-17a8-4a6c-a259-9027c395010c',
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
-            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
             modified: "2020-04-12T15:44:47.629Z",
             created: "2019-10-22T00:14:20.652Z"
         },
@@ -421,7 +465,7 @@ const initialObjectData = {
             spec_version: '2.1',
             x_mitre_data_source_ref: 'x-mitre-data-source--3e396a50-dd74-45cf-b8a3-974ab80c9a3e',
             object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
-            created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
             modified: "2020-04-12T15:44:47.629Z",
             created: "2019-10-22T00:14:20.652Z"
         },
@@ -472,9 +516,86 @@ const initialObjectData = {
             modified: "2019-09-04T14:32:13.000Z",
             created: "2019-09-04T14:28:16.426Z",
             spec_version: "2.1"
+        },
+        {
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            source_ref: "campaign--a3038910-f8ca-4ba8-b116-21d0f333f231",
+            target_ref: "attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f",
+            external_references: [],
+            description: "Campaign uses technique",
+            relationship_type: "uses",
+            id: "relationship--89586929-ca62-423f-94bf-cc03ec8161bb",
+            type: "relationship",
+            modified: "2021-06-06T14:00:00.000Z",
+            created: "2021-06-06T14:00:00.000Z",
+            spec_version: "2.1"
+        },
+        {
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            source_ref: "campaign--a3038910-f8ca-4ba8-b116-21d0f333f231",
+            target_ref: "malware--04227b24-7817-4de1-9050-b7b1b57f5866",
+            external_references: [],
+            description: "Campaign uses software",
+            relationship_type: "uses",
+            id: "relationship--21d3572e-398d-4473-93eb-eb9a2a069d53",
+            type: "relationship",
+            modified: "2021-06-07T14:00:00.000Z",
+            created: "2021-06-07T14:00:00.000Z",
+            spec_version: "2.1"
+        },
+        {
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            source_ref: "campaign--a3038910-f8ca-4ba8-b116-21d0f333f231",
+            target_ref: "intrusion-set--8a831aaa-f3e0-47a3-bed8-a9ced744dd12",
+            external_references: [],
+            description: "Campaign attributed to group",
+            relationship_type: "attributed-to",
+            id: "relationship--a5a80c31-0dde-4fd7-a520-a7593d21c954",
+            type: "relationship",
+            modified: "2021-06-08T14:00:00.000Z",
+            created: "2021-06-08T14:00:00.000Z",
+            spec_version: "2.1"
         }
     ]
 };
+
+// function printBundleCount(bundle) {
+//     const count = {
+//         techniques: 0,
+//         groups: 0,
+//         campaigns: 0,
+//         relationships: 0
+//     };
+//
+//     for (const stixObject of bundle.objects) {
+//         if (stixObject.type === 'attack-pattern') {
+//             count.techniques++;
+//         }
+//         else if (stixObject.type === 'intrusion-set') {
+//             count.groups++;
+//         }
+//         else if (stixObject.type === 'campaign') {
+//             count.campaigns++;
+//         }
+//         else if (stixObject.type === 'relationship') {
+//             count.relationships++;
+//         }
+//     }
+//
+//     console.log(`Technique count = ${ count.techniques }`);
+//     console.log(`Group count = ${ count.groups }`);
+//     console.log(`Campaign count = ${ count.campaigns }`);
+//     console.log(`Relationship count = ${ count.relationships }`);
+// }
 
 describe('STIX Bundles Basic API', function () {
     let app;
@@ -512,7 +633,7 @@ describe('STIX Bundles Basic API', function () {
                     const collection = res.body;
                     console.log(JSON.stringify(collection.workspace.import_categories.errors, null, 2));
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(20);
+                    expect(collection.workspace.import_categories.additions.length).toBe(24);
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
                     done();
                 }
@@ -555,9 +676,11 @@ describe('STIX Bundles Basic API', function () {
                     const stixBundle = res.body;
                     expect(stixBundle).toBeDefined();
                     expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    // 4 primary objects, 4 relationship, 5 secondary object,
+
+                    // 4 primary objects, 7 relationship objects, 6 secondary objects,
                     // 1 note, 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(16);
+                    //printBundleCount(stixBundle);
+                    expect(stixBundle.objects.length).toBe(20);
 
                     done();
                 }
@@ -580,9 +703,9 @@ describe('STIX Bundles Basic API', function () {
                     const stixBundle = res.body;
                     expect(stixBundle).toBeDefined();
                     expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    // 5 primary objects, 4 relationship, 5 secondary object,
+                    // 5 primary objects, 7 relationship objects, 6 secondary objects,
                     // 1 note, 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(17);
+                    expect(stixBundle.objects.length).toBe(21);
 
                     done();
                 }
@@ -629,9 +752,9 @@ describe('STIX Bundles Basic API', function () {
                     const stixBundle = res.body;
                     expect(stixBundle).toBeDefined();
                     expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    // 2 primary objects, 1 relationship, 2 secondary object,
+                    // 2 primary objects, 2 relationship objects, 3 secondary object,
                     // 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(7);
+                    expect(stixBundle.objects.length).toBe(9);
 
                     done();
                 }

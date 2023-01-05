@@ -287,7 +287,7 @@ describe('Groups API', function () {
     let group2;
     it('POST /api/groups should create a new version of a group with a duplicate stix.id but different stix.modified date', async function () {
         // Add another default marking definition
-        markingDefinitionData.stix.definition = 'This is the second default marking definition';
+        markingDefinitionData.stix.definition.statement = 'This is the second default marking definition';
         defaultMarkingDefinition2 = await addDefaultMarkingDefinition(markingDefinitionData);
 
         group2 = _.cloneDeep(group1);

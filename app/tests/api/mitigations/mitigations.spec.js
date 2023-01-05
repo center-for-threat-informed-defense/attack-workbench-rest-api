@@ -29,6 +29,7 @@ const initialObjectData = {
         ],
         object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
         created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+        labels: [ 'label1', 'label2' ],
         x_mitre_version: "1.1"
     }
 };
@@ -119,6 +120,10 @@ describe('Mitigations API', function () {
                     expect(mitigation1.stix.modified).toBeDefined();
                     expect(mitigation1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
 
+                    expect(mitigation1.stix.labels).toBeDefined();
+                    expect(Array.isArray(mitigation1.stix.labels)).toBe(true);
+                    expect(mitigation1.stix.labels.length).toBe(2);
+
                     done();
                 }
             });
@@ -191,6 +196,10 @@ describe('Mitigations API', function () {
                     expect(mitigation.stix.created_by_ref).toBe(mitigation1.stix.created_by_ref);
                     expect(mitigation.stix.x_mitre_version).toBe(mitigation1.stix.x_mitre_version);
                     expect(mitigation.stix.x_mitre_attack_spec_version).toBe(mitigation1.stix.x_mitre_attack_spec_version);
+
+                    expect(mitigation.stix.labels).toBeDefined();
+                    expect(Array.isArray(mitigation.stix.labels)).toBe(true);
+                    expect(mitigation.stix.labels.length).toBe(mitigation1.stix.labels.length);
 
                     done();
                 }
