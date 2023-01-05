@@ -138,8 +138,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    campaignsService.delete(req.params.stixId, req.params.modified, function (err, campaign) {
+exports.deleteVersionById = function(req, res) {
+    campaignsService.deleteVersionById(req.params.stixId, req.params.modified, function (err, campaign) {
         if (err) {
             logger.error('Delete campaign failed. ' + err);
             return res.status(500).send('Unable to delete campaign. Server error.');
@@ -149,6 +149,24 @@ exports.delete = function(req, res) {
                 return res.status(404).send('Campaign not found.');
             } else {
                 logger.debug("Success: Deleted campaign with id " + campaign.stix.id);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteById = function(req, res) {
+    campaignsService.deleteById(req.params.stixId, function (err, campaigns) {
+        if (err) {
+            logger.error('Delete campaign failed. ' + err);
+            return res.status(500).send('Unable to delete campaign. Server error.');
+        }
+        else {
+            if (campaigns.deletedCount === 0) {
+                return res.status(404).send('Campaign not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted campaigns with id ${ req.params.stixId }`);
                 return res.status(204).end();
             }
         }

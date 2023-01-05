@@ -26,7 +26,7 @@ const initialObjectData = {
         name: 'campaign-1',
         spec_version: '2.1',
         type: 'campaign',
-        description: 'This is a marking definition. Blue.',
+        description: 'This is the initial campaign. Blue.',
         aliases: [ 'campaign by another name' ],
         first_seen: '2016-04-06T00:00:00.000Z',
         last_seen: '2016-07-12T00:00:00.000Z',
@@ -539,11 +539,11 @@ describe('Campaigns API', function () {
             });
     });
 
-    it('DELETE /api/campaigns deletes a campaign', function (done) {
+    it('DELETE /api/campaigns/:id should not delete a campaign when the id cannot be found', function (done) {
         request(app)
-            .delete('/api/campaigns/' + campaign1.stix.id + '/modified/' + campaign1.stix.modified)
+            .delete('/api/campaigns/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
+            .expect(404)
             .end(function(err, res) {
                 if (err) {
                     done(err);
@@ -554,24 +554,24 @@ describe('Campaigns API', function () {
             });
     });
 
-    it('DELETE /api/campaigns should delete the second campaign', function (done) {
-        request(app)
-            .delete('/api/campaigns/' + campaign2.stix.id + '/modified/' + campaign2.stix.modified)
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
-    });
-
-    it('DELETE /api/campaigns should delete the third campaign', function (done) {
+    it('DELETE /api/campaigns/:id/modified/:modified deletes a campaign', function (done) {
         request(app)
             .delete('/api/campaigns/' + campaign3.stix.id + '/modified/' + campaign3.stix.modified)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/campaigns/:id should delete all of the campaigns with the stix id', function (done) {
+        request(app)
+            .delete('/api/campaigns/' + campaign2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

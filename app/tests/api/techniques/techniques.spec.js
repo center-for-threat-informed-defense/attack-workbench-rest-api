@@ -495,7 +495,22 @@ describe('Techniques Basic API', function () {
             });
     });
 
-    it('DELETE /api/techniques deletes a technique', function (done) {
+    it('DELETE /api/techniques/:id should not delete a technique when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/techniques/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/techniques/:id/modified/:modified deletes a technique', function (done) {
         request(app)
             .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -509,7 +524,7 @@ describe('Techniques Basic API', function () {
             });
     });
     
-    it('DELETE /api/technique should delete all the techniques with the same stix id', function (done) {
+    it('DELETE /api/techniques/:id should delete all the techniques with the same stix id', function (done) {
         request(app)
             .delete('/api/techniques/' + technique2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)

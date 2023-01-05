@@ -401,7 +401,22 @@ describe('Matrices API', function () {
             });
     });
 
-    it('DELETE /api/matrices deletes a matrix', function (done) {
+    it('DELETE /api/matrices/:id should not delete a matrix when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/matrices/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/matrices/:id/modified/:modified deletes a matrix', function (done) {
         request(app)
             .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -416,7 +431,7 @@ describe('Matrices API', function () {
             });
     });
 
-    it('DELETE /api/matrices should delete all the matrices with the same stix id', function (done) {
+    it('DELETE /api/matrices/:id should delete all the matrices with the same stix id', function (done) {
         request(app)
             .delete('/api/matrices/' + matrix2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)

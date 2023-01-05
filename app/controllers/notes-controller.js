@@ -135,8 +135,8 @@ exports.updateVersion = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    notesService.delete(req.params.stixId, function (err, results) {
+exports.deleteById = function(req, res) {
+    notesService.deleteById(req.params.stixId, function (err, results) {
         if (err) {
             logger.error('Delete note failed. ' + err);
             return res.status(500).send('Unable to delete note. Server error.');
@@ -153,8 +153,8 @@ exports.delete = function(req, res) {
     });
 };
 
-exports.deleteVersion = function(req, res) {
-    notesService.deleteVersion(req.params.stixId, req.params.modified, function (err, note) {
+exports.deleteVersionById = function(req, res) {
+    notesService.deleteVersionById(req.params.stixId, req.params.modified, function (err, note) {
         if (err) {
             logger.error('Delete note version failed. ' + err);
             return res.status(500).send('Unable to delete note. Server error.');

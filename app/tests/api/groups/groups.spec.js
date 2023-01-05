@@ -550,7 +550,22 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups deletes a group', function (done) {
+    it('DELETE /api/groups/:id should not delete a group when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/groups/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/groups/:id/modified/:modified deletes a group', function (done) {
         request(app)
             .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -565,7 +580,7 @@ describe('Groups API', function () {
             });
     });
         
-    it('DELETE /api/groups should delete all the groups with the same stix id', function (done) {
+    it('DELETE /api/groups/:id should delete all the groups with the same stix id', function (done) {
         request(app)
             .delete('/api/groups/' + group2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -580,7 +595,7 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups should delete the third group', function (done) {
+    it('DELETE /api/groups/:id/modified/:modified should delete the third group', function (done) {
         request(app)
             .delete('/api/groups/' + group3.stix.id + '/modified/' + group3.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)

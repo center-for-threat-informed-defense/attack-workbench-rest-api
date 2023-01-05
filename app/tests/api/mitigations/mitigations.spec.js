@@ -403,7 +403,22 @@ describe('Mitigations API', function () {
             });
     });
 
-    it('DELETE /api/mitigations deletes a mitigation', function (done) {
+    it('DELETE /api/mitigations/:id should not delete a mitigation when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/mitigations/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/mitigations/:id/modified/:modified deletes a mitigation', function (done) {
         request(app)
             .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -418,7 +433,7 @@ describe('Mitigations API', function () {
             });
     });
 
-    it('DELETE /api/mitigations should delete all the mitigations with the same stix id', function (done) {
+    it('DELETE /api/mitigations/:id should delete all the mitigations with the same stix id', function (done) {
         request(app)
             .delete('/api/mitigations/' + mitigation2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)

@@ -29,7 +29,7 @@ router.route('/notes/:stixId')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.editorOrHigher),
-        notesController.delete
+        notesController.deleteById
     );
 
 router.route('/notes/:stixId/modified/:modified')
@@ -46,7 +46,7 @@ router.route('/notes/:stixId/modified/:modified')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.editorOrHigher),
-        notesController.deleteVersion
+        notesController.deleteVersionById
     );
 
 module.exports = router;

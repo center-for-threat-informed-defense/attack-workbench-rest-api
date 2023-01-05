@@ -398,7 +398,22 @@ describe('Data Components API', function () {
             });
     });
 
-    it('DELETE /api/data-components deletes a data component', function (done) {
+    it('DELETE /api/data-components/:id should not delete a data component when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/data-components/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/data-components/:id/modified/:modified deletes a data component', function (done) {
         request(app)
             .delete('/api/data-components/' + dataComponent1.stix.id + '/modified/' + dataComponent1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -413,7 +428,7 @@ describe('Data Components API', function () {
             });
     });
 
-    it('DELETE /api/data-components should delete all the data components with the same stix id', function (done) {
+    it('DELETE /api/data-components/:id should delete all the data components with the same stix id', function (done) {
         request(app)
             .delete('/api/data-components/' + dataComponent2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
