@@ -26,7 +26,7 @@ const initialObjectData = {
         name: 'intrusion-set-1',
         spec_version: '2.1',
         type: 'intrusion-set',
-        description: 'This is a marking definition. Blue.',
+        description: 'This is the initial group. Blue.',
         created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab"
     }
 };
@@ -448,10 +448,6 @@ describe('Groups API', function () {
     
     let group4;
     it('POST /api/groups should create a new version of a group with a duplicate stix.id but different stix.modified date', async function () {
-        // Add another default marking definition
-        markingDefinitionData.stix.definition = 'This is the second default marking definition';
-        defaultMarkingDefinition2 = await addDefaultMarkingDefinition(markingDefinitionData);
-
         group4 = _.cloneDeep(group1);
         group4._id = undefined;
         group4.__t = undefined;
@@ -624,9 +620,5 @@ describe('Groups API', function () {
     after(async function() {
         await database.closeConnection();
     });
-    // after(function(done) {
-    //     database.closeConnection()
-    //         .then(() => done());
-    // });
 });
 
