@@ -168,6 +168,26 @@ paths:
                   $ref: '../components/techniques.yml#/components/schemas/technique'
         '404':
           description: 'A technique with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a technique'
+      operationId: 'technique-delete-all'
+      description: |
+        This endpoint deletes all versions of a technique from the workspace.
+        The technique is identified by its STIX id.
+      tags:
+        - 'Techniques'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the technique to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the technique versions were successfully deleted.'
+        '404':
+          description: 'A technique with the requested STIX id was not found.'
 
   /api/techniques/{stixId}/modified/{modified}:
     get:

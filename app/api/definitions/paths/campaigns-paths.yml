@@ -143,6 +143,26 @@ paths:
                   $ref: '../components/campaigns.yml#/components/schemas/campaign'
         '404':
           description: 'A campaign with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a campaign'
+      operationId: 'campaign-delete-all'
+      description: |
+        This endpoint deletes all versions of a data component from the workspace.
+        The data component is identified by its STIX id.
+      tags:
+        - 'Campaigns'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the campaign to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the campaign versions were successfully deleted.'
+        '404':
+          description: 'A campaign with the requested STIX id was not found.'
 
   /api/campaigns/{stixId}/modified/{modified}:
     get:

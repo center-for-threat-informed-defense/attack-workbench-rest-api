@@ -25,6 +25,11 @@ router.route('/tactics/:stixId')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         tacticsController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        tacticsController.deleteById
     );
 
 router.route('/tactics/:stixId/modified/:modified')
@@ -41,7 +46,7 @@ router.route('/tactics/:stixId/modified/:modified')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        tacticsController.delete
+        tacticsController.deleteVersionById
     );
 
 router.route('/tactics/:stixId/modified/:modified/techniques')

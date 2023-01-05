@@ -167,7 +167,27 @@ paths:
                   $ref: '../components/software.yml#/components/schemas/software'
         '404':
           description: 'A software object with the requested STIX id was not found.'
-
+    delete:
+      summary: 'Delete a tactic'
+      operationId: 'tactic-delete-all'
+      description: |
+        This endpoint deletes all versions of a tactic from the workspace.
+        The tactic is identified by its STIX id.
+      tags:
+        - 'Tactics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the tactic to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the tactic versions were successfully deleted.'
+        '404':
+          description: 'A tactic with the requested STIX id was not found.'
+          
   /api/software/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a software object matching the STIX id and modified date'

@@ -25,6 +25,11 @@ router.route('/software/:stixId')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         softwareController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        softwareController.deleteById
     );
 
 router.route('/software/:stixId/modified/:modified')
@@ -41,7 +46,7 @@ router.route('/software/:stixId/modified/:modified')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        softwareController.delete
+        softwareController.deleteVersionById
     );
 
 module.exports = router;

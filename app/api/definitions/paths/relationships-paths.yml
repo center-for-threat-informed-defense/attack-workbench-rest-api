@@ -212,7 +212,27 @@ paths:
                   $ref: '../components/relationships.yml#/components/schemas/relationship'
         '404':
           description: 'A relationship with the requested STIX id was not found.'
-
+    delete:
+      summary: 'Delete a relationship'
+      operationId: 'relationship-delete-all'
+      description: |
+        This endpoint deletes all versions of a relationship from the workspace.
+        The relationship is identified by its STIX id.
+      tags:
+        - 'Relationships'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the relationship to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the relationship versions were successfully deleted.'
+        '404':
+          description: 'A relationship with the requested STIX id was not found.'
+          
   /api/relationships/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a relationship matching the STIX id and modified date'

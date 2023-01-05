@@ -143,7 +143,27 @@ paths:
                   $ref: '../components/data-components.yml#/components/schemas/data-component'
         '404':
           description: 'A data component with the requested STIX id was not found.'
-
+    delete:
+      summary: 'Delete a data component'
+      operationId: 'data-component-delete-all'
+      description: |
+        This endpoint deletes all versions of a data component from the workspace.
+        The data component is identified by its STIX id.
+      tags:
+        - 'Data Components'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data component to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the data component versions were successfully deleted.'
+        '404':
+          description: 'A data component with the requested STIX id was not found.'
+          
   /api/data-components/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a data component matching the STIX id and modified date'

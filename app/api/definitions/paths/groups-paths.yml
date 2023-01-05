@@ -143,7 +143,27 @@ paths:
                   $ref: '../components/groups.yml#/components/schemas/group'
         '404':
           description: 'A group with the requested STIX id was not found.'
-
+    delete:
+      summary: 'Delete a group'
+      operationId: 'group-delete-all'
+      description: |
+        This endpoint deletes all versions of a group from the workspace.
+        The group is identified by its STIX id.
+      tags:
+        - 'Groups'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the group to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the group versions were successfully deleted.'
+        '404':
+          description: 'A group with the requested STIX id was not found.'
+          
   /api/groups/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a group matching the STIX id and modified date'

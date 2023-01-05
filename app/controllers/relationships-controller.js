@@ -140,8 +140,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    relationshipsService.delete(req.params.stixId, req.params.modified, function (err, relationship) {
+exports.deleteVersionById = function(req, res) {
+    relationshipsService.deleteVersionById(req.params.stixId, req.params.modified, function (err, relationship) {
         if (err) {
             logger.error('Delete relationship failed. ' + err);
             return res.status(500).send('Unable to delete relationship. Server error.');
@@ -151,6 +151,24 @@ exports.delete = function(req, res) {
                 return res.status(404).send('Relationship not found.');
             } else {
                 logger.debug("Success: Deleted relationship with id " + relationship.stix.id);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteById = function(req, res) {
+    relationshipsService.deleteById(req.params.stixId, function (err, relationships) {
+        if (err) {
+            logger.error('Delete relationship failed. ' + err);
+            return res.status(500).send('Unable to delete relationship. Server error.');
+        }
+        else {
+            if (relationships.deletedCount === 0) {
+                return res.status(404).send('Relationship not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted relationship with id ${ req.params.stixId }`);
                 return res.status(204).end();
             }
         }

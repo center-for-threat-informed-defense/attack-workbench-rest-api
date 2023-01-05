@@ -403,7 +403,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.delete = function (stixId, stixModified, callback) {
+exports.deleteVersionById = function (stixId, stixModified, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -421,6 +421,23 @@ exports.delete = function (stixId, stixModified, callback) {
             return callback(err);
         } else {
             // Note: data component is null if not found
+            return callback(null, dataComponent);
+        }
+    });
+};
+
+exports.deleteById = function (stixId, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    DataComponent.deleteMany({ 'stix.id': stixId }, function (err, dataComponent) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: dataComponent is null if not found
             return callback(null, dataComponent);
         }
     });

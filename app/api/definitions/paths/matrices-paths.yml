@@ -144,7 +144,27 @@ paths:
                   $ref: '../components/matrices.yml#/components/schemas/matrix'
         '404':
           description: 'A matrix with the requested STIX id was not found.'
-
+    delete:
+      summary: 'Delete a matrix'
+      operationId: 'matrix-delete-all'
+      description: |
+        This endpoint deletes all versions of a matrix from the workspace.
+        The matrix is identified by its STIX id.
+      tags:
+        - 'Matrices'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the matrix to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the matrix versions were successfully deleted.'
+        '404':
+          description: 'A matrix with the requested STIX id was not found.'
+          
   /api/matrices/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a matrix matching the STIX id and modified date'

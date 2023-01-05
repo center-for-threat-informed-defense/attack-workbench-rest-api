@@ -25,6 +25,11 @@ router.route('/groups/:stixId')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         groupsController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        groupsController.deleteById
     );
 
 router.route('/groups/:stixId/modified/:modified')
@@ -41,7 +46,7 @@ router.route('/groups/:stixId/modified/:modified')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        groupsController.delete
+        groupsController.deleteVersionById
     );
 
 module.exports = router;

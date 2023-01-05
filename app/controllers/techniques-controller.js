@@ -136,8 +136,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    techniquesService.delete(req.params.stixId, req.params.modified, function (err, technique) {
+exports.deleteVersionById = function(req, res) {
+    techniquesService.deleteVersionById(req.params.stixId, req.params.modified, function (err, technique) {
         if (err) {
             logger.error('Delete technique failed. ' + err);
             return res.status(500).send('Unable to delete technique. Server error.');
@@ -147,6 +147,22 @@ exports.delete = function(req, res) {
                 return res.status(404).send('Technique not found.');
             } else {
                 logger.debug("Success: Deleted technique with id " + technique.stix.id);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteById = function(req, res) {
+    techniquesService.deleteById(req.params.stixId, function (err, techniques) {
+        if (err) {
+            logger.error('Delete technique failed. ' + err);
+            return res.status(500).send('Unable to delete technique. Server error.');
+        } else {
+            if (techniques.deletedCount === 0) {
+                return res.status(404).send('Technique not found.');
+            } else {
+                logger.debug(`Success: Deleted technique with id ${req.params.stixId}`);
                 return res.status(204).end();
             }
         }

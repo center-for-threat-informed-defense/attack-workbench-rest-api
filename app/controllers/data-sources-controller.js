@@ -140,8 +140,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.delete = function(req, res) {
-    dataSourcesService.delete(req.params.stixId, req.params.modified, function (err, dataSource) {
+exports.deleteVersionById = function(req, res) {
+    dataSourcesService.deleteVersionById(req.params.stixId, req.params.modified, function (err, dataSource) {
         if (err) {
             logger.error('Delete data source failed. ' + err);
             return res.status(500).send('Unable to delete data source. Server error.');
@@ -151,6 +151,24 @@ exports.delete = function(req, res) {
                 return res.status(404).send('Data source not found.');
             } else {
                 logger.debug("Success: Deleted data source with id " + dataSource.stix.id);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteById = function(req, res) {
+    dataSourcesService.deleteById(req.params.stixId, function (err, dataSources) {
+        if (err) {
+            logger.error('Delete data source failed. ' + err);
+            return res.status(500).send('Unable to delete data source. Server error.');
+        }
+        else {
+            if (dataSources.deletedCount === 0) {
+                return res.status(404).send('Data Sources not found.');
+            }
+            else {
+                logger.debug(`Success: Deleted data source with id ${ req.params.stixId }`);
                 return res.status(204).end();
             }
         }

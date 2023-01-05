@@ -358,9 +358,53 @@ describe('Identity API', function () {
                     done();
                 }
             });
+    });   
+    
+    let identity3;
+    it('POST /api/identities should create a new version of an identity with a duplicate stix.id but different stix.modified date', function (done) {
+        identity3 = _.cloneDeep(identity1);
+        identity3._id = undefined;
+        identity3.__t = undefined;
+        identity3.__v = undefined;
+        const timestamp = new Date().toISOString();
+        identity3.stix.modified = timestamp;
+        const body = identity3;
+        request(app)
+            .post('/api/identities')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created identity
+                    const identity = res.body;
+                    expect(identity).toBeDefined();
+                    done();
+                }
+            });
     });
 
-    it('DELETE /api/identities deletes an identity', function (done) {
+    it('DELETE /api/identities/:id should not delete a identity when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/identities/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+    
+    it('DELETE /api/identities/:id/modified/:modified deletes an identity', function (done) {
         request(app)
             .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -374,10 +418,10 @@ describe('Identity API', function () {
                 }
             });
     });
-
-    it('DELETE /api/identities should delete the second identity', function (done) {
+    
+    it('DELETE /api/identities/:id should delete all the identities with the same stix id', function (done) {
         request(app)
-            .delete('/api/identities/' + identity2.stix.id + '/modified/' + identity2.stix.modified)
+            .delete('/api/identities/' + identity2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

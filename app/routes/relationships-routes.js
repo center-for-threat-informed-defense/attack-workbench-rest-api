@@ -25,6 +25,11 @@ router.route('/relationships/:stixId')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         relationshipsController.retrieveById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        relationshipsController.deleteById
     );
 
 router.route('/relationships/:stixId/modified/:modified')
@@ -41,7 +46,7 @@ router.route('/relationships/:stixId/modified/:modified')
     .delete(
         authn.authenticate,
         authz.requireRole(authz.admin),
-        relationshipsController.delete
+        relationshipsController.deleteVersionById
     );
 
 module.exports = router;

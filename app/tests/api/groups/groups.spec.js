@@ -26,7 +26,7 @@ const initialObjectData = {
         name: 'intrusion-set-1',
         spec_version: '2.1',
         type: 'intrusion-set',
-        description: 'This is a marking definition. Blue.',
+        description: 'This is the initial group. Blue.',
         created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab"
     }
 };
@@ -445,10 +445,34 @@ describe('Groups API', function () {
                 }
             });
     });
+    
+    let group4;
+    it('POST /api/groups should create a new version of a group with a duplicate stix.id but different stix.modified date', async function () {
+        group4 = _.cloneDeep(group1);
+        group4._id = undefined;
+        group4.__t = undefined;
+        group4.__v = undefined;
+        const timestamp = new Date().toISOString();
+        group4.stix.modified = timestamp;
+        group4.stix.description = 'This is a new version of a group. Yellow.';
 
+        const body = group4;
+        const res = await request(app)
+            .post('/api/groups')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created group
+        const group = res.body;
+        expect(group).toBeDefined();
+    });
+    
     it('GET /api/groups uses the search parameter to return the latest version of the group', function (done) {
         request(app)
-            .get('/api/groups?search=green')
+            .get('/api/groups?search=yellow')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -468,8 +492,8 @@ describe('Groups API', function () {
                     const group = groups[0];
                     expect(group).toBeDefined();
                     expect(group.stix).toBeDefined();
-                    expect(group.stix.id).toBe(group2.stix.id);
-                    expect(group.stix.modified).toBe(group2.stix.modified);
+                    expect(group.stix.id).toBe(group4.stix.id);
+                    expect(group.stix.modified).toBe(group4.stix.modified);
                     done();
                 }
             });
@@ -526,7 +550,22 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups deletes a group', function (done) {
+    it('DELETE /api/groups/:id should not delete a group when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/groups/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/groups/:id/modified/:modified deletes a group', function (done) {
         request(app)
             .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -540,10 +579,10 @@ describe('Groups API', function () {
                 }
             });
     });
-
-    it('DELETE /api/groups should delete the second group', function (done) {
+        
+    it('DELETE /api/groups/:id should delete all the groups with the same stix id', function (done) {
         request(app)
-            .delete('/api/groups/' + group2.stix.id + '/modified/' + group2.stix.modified)
+            .delete('/api/groups/' + group2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -556,7 +595,7 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups should delete the third group', function (done) {
+    it('DELETE /api/groups/:id/modified/:modified should delete the third group', function (done) {
         request(app)
             .delete('/api/groups/' + group3.stix.id + '/modified/' + group3.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -596,9 +635,5 @@ describe('Groups API', function () {
     after(async function() {
         await database.closeConnection();
     });
-    // after(function(done) {
-    //     database.closeConnection()
-    //         .then(() => done());
-    // });
 });
 

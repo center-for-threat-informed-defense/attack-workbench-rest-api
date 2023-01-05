@@ -175,7 +175,25 @@ paths:
                   $ref: '../components/data-sources.yml#/components/schemas/data-source'
         '404':
           description: 'A data source with the requested STIX id was not found.'
-
+    delete:
+      summary: 'Delete a data source'
+      operationId: 'data-source-delete-all'
+      description: |
+        This endpoint deletes all versions of a data source from the workspace.
+        The data source is identified by its STIX id.
+      tags:
+        - 'Data source'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data source to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the data source versions were successfully deleted.'
+          
   /api/data-sources/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a data source matching the STIX id and modified date'

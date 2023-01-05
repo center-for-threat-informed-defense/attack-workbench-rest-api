@@ -396,7 +396,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.delete = function (stixId, stixModified, callback) {
+exports.deleteVersionById = function (stixId, stixModified, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -419,3 +419,19 @@ exports.delete = function (stixId, stixModified, callback) {
     });
 };
 
+exports.deleteById = function (stixId, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    Relationship.deleteMany({ 'stix.id': stixId }, function (err, relationship) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: relationship is null if not found
+            return callback(null, relationship);
+        }
+    });
+};

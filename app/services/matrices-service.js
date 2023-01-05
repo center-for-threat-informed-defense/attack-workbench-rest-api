@@ -325,7 +325,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.delete = function (stixId, stixModified, callback) {
+exports.deleteVersionById = function (stixId, stixModified, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
@@ -339,6 +339,23 @@ exports.delete = function (stixId, stixModified, callback) {
     }
 
     Matrix.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, matrix) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: matrix is null if not found
+            return callback(null, matrix);
+        }
+    });
+};
+
+exports.deleteById = function (stixId, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    Matrix.deleteMany({ 'stix.id': stixId }, function (err, matrix) {
         if (err) {
             return callback(err);
         } else {

@@ -277,10 +277,40 @@ describe('Matrices API', function () {
                 }
             });
     });
+    
+    let matrix3;
+    it('POST /api/matrices should create a new version of a matrix with a duplicate stix.id but different stix.modified date', function (done) {
+        matrix3 = _.cloneDeep(matrix1);
+        matrix3._id = undefined;
+        matrix3.__t = undefined;
+        matrix3.__v = undefined;
+        const timestamp = new Date().toISOString();
+        matrix3.stix.modified = timestamp;
+        const body = matrix3;
+        request(app)
+            .post('/api/matrices')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the created matrix
+                    const matrix = res.body;
+                    expect(matrix).toBeDefined();
+                    done();
+                }
+            });
+    });
+    
 
     it('GET /api/matrices returns the latest added matrix', function (done) {
         request(app)
-            .get('/api/matrices/' + matrix2.stix.id)
+            .get('/api/matrices/' + matrix3.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
@@ -296,8 +326,8 @@ describe('Matrices API', function () {
                     expect(Array.isArray(matrices)).toBe(true);
                     expect(matrices.length).toBe(1);
                     const matrix = matrices[0];
-                    expect(matrix.stix.id).toBe(matrix2.stix.id);
-                    expect(matrix.stix.modified).toBe(matrix2.stix.modified);
+                    expect(matrix.stix.id).toBe(matrix3.stix.id);
+                    expect(matrix.stix.modified).toBe(matrix3.stix.modified);
                     done();
                 }
             });
@@ -319,7 +349,7 @@ describe('Matrices API', function () {
                     const matrices = res.body;
                     expect(matrices).toBeDefined();
                     expect(Array.isArray(matrices)).toBe(true);
-                    expect(matrices.length).toBe(2);
+                    expect(matrices.length).toBe(3);
                     done();
                 }
             });
@@ -371,7 +401,22 @@ describe('Matrices API', function () {
             });
     });
 
-    it('DELETE /api/matrices deletes a matrix', function (done) {
+    it('DELETE /api/matrices/:id should not delete a matrix when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/matrices/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/matrices/:id/modified/:modified deletes a matrix', function (done) {
         request(app)
             .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -386,9 +431,9 @@ describe('Matrices API', function () {
             });
     });
 
-    it('DELETE /api/matrices should delete the second matrix', function (done) {
+    it('DELETE /api/matrices/:id should delete all the matrices with the same stix id', function (done) {
         request(app)
-            .delete('/api/matrices/' + matrix2.stix.id + '/modified/' + matrix2.stix.modified)
+            .delete('/api/matrices/' + matrix2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
