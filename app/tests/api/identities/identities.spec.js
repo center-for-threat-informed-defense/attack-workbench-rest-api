@@ -388,8 +388,23 @@ describe('Identity API', function () {
                 }
             });
     });
-    
-    it('DELETE /api/identities deletes an identity with soft_delete property set to true', function (done) {
+
+    it('DELETE /api/identities/:id should not delete a identity when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/identities/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/identities/:id/modified/:modified deletes an identity', function (done) {
         request(app)
             .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified+ '?soft_delete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -418,8 +433,8 @@ describe('Identity API', function () {
                 }
             });
     });
-        
-    it('DELETE /api/identities should delete all the identities with the same stix id with soft_delete property set to true by default', function (done) {
+
+    it('DELETE /api/identities/:id should delete all the identities with the same stix id', function (done) {
         request(app)
             .delete('/api/identities/' + identity2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)

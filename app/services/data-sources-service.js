@@ -27,6 +27,9 @@ exports.retrieveAll = function (options, callback) {
     if (!options.includeDeprecated) {
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
+    if (!options.includeDeleted) {
+        query['workspace.workflow.soft_delete'] = { $in: [null, false] };
+    }
     if (typeof options.state !== 'undefined') {
         if (Array.isArray(options.state)) {
             query['workspace.workflow.state'] = { $in: options.state };
@@ -35,7 +38,23 @@ exports.retrieveAll = function (options, callback) {
             query['workspace.workflow.state'] = options.state;
         }
     }
-    query['workspace.workflow.soft_delete'] = { $in: [null, false] };
+    if (typeof options.domain !== 'undefined') {
+        if (Array.isArray(options.domain)) {
+            query['stix.x_mitre_domains'] = { $in: options.domain };
+        }
+        else {
+            query['stix.x_mitre_domains'] = options.domain;
+        }
+    }
+    if (typeof options.platform !== 'undefined') {
+        if (Array.isArray(options.platform)) {
+            query['stix.x_mitre_platforms'] = { $in: options.platform };
+        }
+        else {
+            query['stix.x_mitre_platforms'] = options.platform;
+        }
+    }
+
     // Build the aggregation
     // - Group the documents by stix.id, sorted by stix.modified
     // - Use the last document in each group (according to the value of stix.modified)
@@ -293,7 +312,7 @@ exports.create = async function (data, options) {
         return savedDataSource;
     }
     catch (err) {
-        if (err.name === 'MongoError' && err.code === 11000) {
+        if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
             const error = new Error(errors.duplicateId);
             throw error;
@@ -337,7 +356,7 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
             Object.assign(document, data);
             document.save(function (err, savedDocument) {
                 if (err) {
-                    if (err.name === 'MongoError' && err.code === 11000) {
+                    if (err.name === 'MongoServerError' && err.code === 11000) {
                         // 11000 = Duplicate index
                         var error = new Error(errors.duplicateId);
                         return callback(error);

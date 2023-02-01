@@ -20,6 +20,8 @@ tags:
     description: 'Operations on tactics'
   - name: 'Groups'
     description: 'Operations on groups'
+  - name: 'Campaigns'
+    description: 'Operations on campaigns'
   - name: 'Software'
     description: 'Operations on software (tools and malware)'
   - name: 'Mitigations'
@@ -72,6 +74,9 @@ paths:
   /api/techniques/{stixId}/modified/{modified}:
     $ref: 'paths/techniques-paths.yml#/paths/~1api~1techniques~1{stixId}~1modified~1{modified}'
 
+  /api/techniques/{stixId}/modified/{modified}/tactics:
+    $ref: 'paths/techniques-paths.yml#/paths/~1api~1techniques~1{stixId}~1modified~1{modified}~1tactics'
+
   # Tactics
   /api/tactics:
     $ref: 'paths/tactics-paths.yml#/paths/~1api~1tactics'
@@ -82,6 +87,9 @@ paths:
   /api/tactics/{stixId}/modified/{modified}:
     $ref: 'paths/tactics-paths.yml#/paths/~1api~1tactics~1{stixId}~1modified~1{modified}'
 
+  /api/tactics/{stixId}/modified/{modified}/techniques:
+    $ref: 'paths/tactics-paths.yml#/paths/~1api~1tactics~1{stixId}~1modified~1{modified}~1techniques'
+
   # Groups
   /api/groups:
     $ref: 'paths/groups-paths.yml#/paths/~1api~1groups'
@@ -91,6 +99,16 @@ paths:
 
   /api/groups/{stixId}/modified/{modified}:
     $ref: 'paths/groups-paths.yml#/paths/~1api~1groups~1{stixId}~1modified~1{modified}'
+
+  # Campaigns
+  /api/campaigns:
+    $ref: 'paths/campaigns-paths.yml#/paths/~1api~1campaigns'
+
+  /api/campaigns/{stixId}:
+    $ref: 'paths/campaigns-paths.yml#/paths/~1api~1campaigns~1{stixId}'
+
+  /api/campaigns/{stixId}/modified/{modified}:
+    $ref: 'paths/campaigns-paths.yml#/paths/~1api~1campaigns~1{stixId}~1modified~1{modified}'
 
   # Matrices
   /api/matrices:

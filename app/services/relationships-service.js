@@ -22,6 +22,7 @@ objectTypeMap.set('malware', 'software');
 objectTypeMap.set('tool', 'software');
 objectTypeMap.set('attack-pattern', 'technique');
 objectTypeMap.set('intrusion-set', 'group');
+objectTypeMap.set('campaign', 'campaign');
 objectTypeMap.set('course-of-action', 'mitigation');
 objectTypeMap.set('x-mitre-tactic', 'tactic');
 objectTypeMap.set('x-mitre-matrix', 'matrix');
@@ -35,6 +36,9 @@ exports.retrieveAll = async function (options) {
     }
     if (!options.includeDeprecated) {
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
+    }
+    if (!options.includeDeleted) {
+        query['workspace.workflow.soft_delete'] = { $in: [null, false] };
     }
     if (typeof options.state !== 'undefined') {
         if (Array.isArray(options.state)) {
@@ -56,7 +60,7 @@ exports.retrieveAll = async function (options) {
     if (typeof options.relationshipType !== 'undefined') {
         query['stix.relationship_type'] = options.relationshipType;
     }
-    query['workspace.workflow.soft_delete'] = { $in: [null, false] };
+
     // Build the aggregation
     const aggregation = [];
     if (options.versions === 'latest') {
@@ -90,9 +94,9 @@ exports.retrieveAll = async function (options) {
     }
     // Retrieve the documents
     let results = await Relationship.aggregate(aggregation);
-    //results = results.filter(document => 'workspace.workflow.soft_delete' != true );
+
+    // Filter out relationships that don't reference the source type
     if (options.sourceType) {
-        // Filter out relationships that don't reference the source type
         results = results.filter(document => {
             if (document.source_objects.length === 0) {
                 return false;
@@ -104,8 +108,8 @@ exports.retrieveAll = async function (options) {
         });
     }
 
+    // Filter out relationships that don't reference the target type
     if (options.targetType) {
-        // Filter out relationships that don't reference the target type
         results = results.filter(document => {
             if (document.target_objects.length === 0) {
                 return false;
@@ -334,7 +338,7 @@ exports.create = async function (data, options) {
         return savedRelationshipe;
     }
     catch (err) {
-        if (err.name === 'MongoError' && err.code === 11000) {
+        if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
             const error = new Error(errors.duplicateId);
             throw error;
@@ -378,7 +382,7 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
             Object.assign(document, data);
             document.save(function (err, savedDocument) {
                 if (err) {
-                    if (err.name === 'MongoError' && err.code === 11000) {
+                    if (err.name === 'MongoServerError' && err.code === 11000) {
                         // 11000 = Duplicate index
                         var error = new Error(errors.duplicateId);
                         return callback(error);

@@ -611,8 +611,22 @@ describe('Relationships API', function () {
             });
     });
 
+    it('DELETE /api/relationships/:id should not delete a relationship when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/relationships/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
 
-    it('GET /api/relationships returns all added relationships', function (done) {
+    it('DELETE /api/relationships/:id/modified/:modified deletes a relationship', function (done) {
         request(app)
             .get('/api/relationships?versions=all')
             .set('Accept', 'application/json')
@@ -649,8 +663,8 @@ describe('Relationships API', function () {
                 }
             });
     });
-    
-    it('DELETE /api/relationships should delete all the relationships with the same stix id with soft_delete set to true', function (done) {
+
+    it('DELETE /api/relationships/:id should delete all the relationships with the same stix id', function (done) {
         request(app)
             //.get('/api/relationships/' +  + relationship1b.stix.id + "?soft_delete=false")
             .delete('/api/relationships/' + relationship1b.stix.id + '?soft_delete=true')

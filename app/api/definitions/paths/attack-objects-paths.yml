@@ -13,9 +13,14 @@ paths:
           in: query
           description: |
             The ATT&CK ID of the object to retrieve.
-            Returns all objects where the last version of the object matches the requested ATT&CK ID.
+            Returns objects where the last version of the object matches the requested ATT&CK ID.
+            This parameter may be set multiple times to retrieve objects with any of the provided ATT&CK IDs.
           schema:
-            type: string
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
           example: 'T9999'
         - name: limit
           in: query
@@ -77,6 +82,17 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: versions
+          in: query
+          description: |
+            The versions of the ATT&CK objects to retrieve.
+            `all` gets all versions of the objects, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
       responses:
         '200':
           description: 'A list of ATT&CK Objects.'

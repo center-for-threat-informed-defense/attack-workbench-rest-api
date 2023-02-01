@@ -2,24 +2,22 @@ const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const logger = require('./logger');
 
-const mongod = new MongoMemoryServer();
+let mongod;
 
 exports.initializeConnection = async function() {
-    const uri = await mongod.getUri();
+    if (!mongod) {
+        mongod = await MongoMemoryServer.create();
+    }
+
+    const uri = mongod.getUri();
 
     // Configure mongoose to use ES6 promises
     mongoose.Promise = global.Promise;
 
-    // Tell mongoose to use the native mongoDB findOneAndUpdate() function
-    mongoose.set('useFindAndModify', false);
-
-    // Tell mongoose to use createIndex() instead of ensureIndex()
-    mongoose.set('useCreateIndex', true);
-
     // Bootstrap db connection
     logger.info('Mongoose attempting to connect to in memory database at ' + uri);
     try {
-        await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+        await mongoose.connect(uri);
     } catch (error) {
         handleError(error);
     }
@@ -27,9 +25,13 @@ exports.initializeConnection = async function() {
 }
 
 exports.closeConnection = async function() {
-    await mongoose.connection.dropDatabase();
-    await mongoose.connection.close();
-    await mongod.stop();
+    if (mongod) {
+        await mongoose.connection.dropDatabase();
+        await mongoose.connection.close();
+        await mongod.stop();
+
+        mongod = null;
+    }
 }
 
 exports.clearDatabase = async function() {

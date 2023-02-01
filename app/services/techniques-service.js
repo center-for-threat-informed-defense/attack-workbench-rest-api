@@ -1,6 +1,8 @@
 'use strict';
 
 const uuid = require('uuid');
+const util = require('util');
+
 const Technique = require('../models/technique-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
@@ -26,6 +28,9 @@ exports.retrieveAll = function (options, callback) {
     if (!options.includeDeprecated) {
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
     }
+    if (!options.includeDeleted) {
+        query['workspace.workflow.soft_delete'] = { $in: [null, false] };
+    }
     if (typeof options.state !== 'undefined') {
         if (Array.isArray(options.state)) {
             query['workspace.workflow.state'] = { $in: options.state };
@@ -34,7 +39,23 @@ exports.retrieveAll = function (options, callback) {
             query['workspace.workflow.state'] = options.state;
         }
     }
-    query['workspace.workflow.soft_delete'] = { $in: [null, false] };
+    if (typeof options.domain !== 'undefined') {
+        if (Array.isArray(options.domain)) {
+            query['stix.x_mitre_domains'] = { $in: options.domain };
+        }
+        else {
+            query['stix.x_mitre_domains'] = options.domain;
+        }
+    }
+    if (typeof options.platform !== 'undefined') {
+        if (Array.isArray(options.platform)) {
+            query['stix.x_mitre_platforms'] = { $in: options.platform };
+        }
+        else {
+            query['stix.x_mitre_platforms'] = options.platform;
+        }
+    }
+
     // Build the aggregation
     // - Group the documents by stix.id, sorted by stix.modified
     // - Use the last document in each group (according to the value of stix.modified)
@@ -269,7 +290,7 @@ exports.create = async function (data, options) {
         return savedTechnique;
     }
     catch (err) {
-        if (err.name === 'MongoError' && err.code === 11000) {
+        if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
             const error = new Error(errors.duplicateId);
             throw error;
@@ -313,7 +334,7 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
             Object.assign(document, data);
             document.save(function (err, savedDocument) {
                 if (err) {
-                    if (err.name === 'MongoError' && err.code === 11000) {
+                    if (err.name === 'MongoServerError' && err.code === 11000) {
                         // 11000 = Duplicate index
                         var error = new Error(errors.duplicateId);
                         return callback(error);
@@ -389,5 +410,84 @@ exports.deleteById = function (stixId, options, callback) {
                 return callback(null, technique);
             }
         });
+    }
+};
+
+function tacticMatchesTechnique(technique) {
+    return function(tactic) {
+        // A tactic matches if the technique has a kill chain phase such that:
+        //   1. The phase's kill_chain_name matches one of the tactic's kill chain names (which are derived from the tactic's x_mitre_domains)
+        //   2. The phase's phase_name matches the tactic's x_mitre_shortname
+
+        // Convert the tactic's domain names to kill chain names
+        const tacticKillChainNames = tactic.stix.x_mitre_domains.map(domain => config.domainToKillChainMap[domain]);
+        return technique.stix.kill_chain_phases.some(phase => phase.phase_name === tactic.stix.x_mitre_shortname && tacticKillChainNames.includes(phase.kill_chain_name));
+    }
+}
+
+function getPageOfData(data, options) {
+    const startPos = options.offset;
+    const endPos = (options.limit === 0) ? data.length : Math.min(options.offset + options.limit, data.length);
+
+    return data.slice(startPos, endPos);
+}
+
+let retrieveAllTactics;
+exports.retrieveTacticsForTechnique = async function(stixId, modified, options) {
+    // Late binding to avoid circular dependency between modules
+    if (!retrieveAllTactics) {
+        const tacticsService = require('./tactics-service');
+        retrieveAllTactics = util.promisify(tacticsService.retrieveAll);
+    }
+
+    // Retrieve the tactics associated with the technique (the technique identified by stixId and modified date)
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        throw error;
+    }
+
+    if (!modified) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'modified';
+        throw error;
+    }
+
+    try {
+        const technique = await Technique.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+        if (!technique) {
+            // Note: document is null if not found
+            return null;
+        }
+        else {
+            const allTactics = await retrieveAllTactics({});
+            const filteredTactics = allTactics.filter(tacticMatchesTechnique(technique));
+            const pagedResults = getPageOfData(filteredTactics, options);
+
+            if (options.includePagination) {
+                const returnValue = {
+                    pagination: {
+                        total: pagedResults.length,
+                        offset: options.offset,
+                        limit: options.limit
+                    },
+                    data: pagedResults
+                };
+                return returnValue;
+            }
+            else {
+                return pagedResults;
+            }
+        }
+    }
+    catch(err) {
+        if (err.name === 'CastError') {
+            const error = new Error(errors.badlyFormattedParameter);
+            error.parameterName = 'stixId';
+            throw error;
+        }
+        else {
+            throw err;
+        }
     }
 };

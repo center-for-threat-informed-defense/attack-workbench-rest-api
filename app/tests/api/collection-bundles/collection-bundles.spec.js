@@ -68,6 +68,10 @@ const collectionBundleData = {
                 {
                     "object_ref": "intrusion-set--d69e568e-9ac8-4c08-b32c-d93b43ba9172",
                     "object_modified": "2020-03-30T19:25:56.012Z"
+                },
+                {
+                    "object_ref": "note--99e32abc-535e-4756-99a2-8296df2492ae",
+                    "object_modified": "2021-04-01T08:08:08.888Z"
                 }
             ]
         },
@@ -241,6 +245,22 @@ const collectionBundleData = {
             x_mitre_domains: [
                 "domain-1"
             ]
+        },
+        {
+            type: 'note',
+            id: 'note--99e32abc-535e-4756-99a2-8296df2492ae',
+            created: '2021-04-01T08:08:08.888Z',
+            created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+            modified: '2021-04-01T08:08:08.888Z',
+            content: 'This is a note!',
+            object_refs: [
+                'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a'
+            ],
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            x_mitre_version: '1.0',
+            spec_version: '2.1'
         }
     ]
 };
@@ -429,6 +449,40 @@ const collectionBundleData5 = {
     ]
 };
 
+const collectionId6 = 'x-mitre-collection--5c48cab9-f320-407a-808f-455466372519'
+const collectionTimestamp6 = new Date().toISOString();
+
+const collectionData6 = {
+    workspace: {
+
+    },
+    stix: {
+        id: collectionId6,
+        created: collectionTimestamp6,
+        modified: collectionTimestamp6,
+        name: 'Partial Collection',
+        spec_version: '2.1',
+        type: 'x-mitre-collection',
+        description: 'This is a collection containing a subset of the initial imported collection.',
+        external_references: [
+            { source_name: 'source-1', external_id: 's1' }
+        ],
+        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+        created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+        x_mitre_contents: [
+            {
+                "object_ref": "attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a",
+                "object_modified": "2020-03-30T14:03:43.761Z"
+            },
+            {
+                "object_ref": "attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483",
+                "object_modified": "2019-02-03T16:56:41.200Z"
+            },
+
+        ]
+    }
+};
+
 describe('Collection Bundles Basic API', function () {
     let app;
     let passportCookie;
@@ -578,7 +632,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(7);
+                    expect(collection.workspace.import_categories.additions.length).toBe(8);
                     expect(collection.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
@@ -602,7 +656,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(7);
+                    expect(collection.workspace.import_categories.additions.length).toBe(8);
                     expect(collection.workspace.import_categories.errors.length).toBe(3);
                     done();
                 }
@@ -625,7 +679,7 @@ describe('Collection Bundles Basic API', function () {
                     // We expect to get the created collection object
                     collection1 = res.body;
                     expect(collection1).toBeDefined();
-                    expect(collection1.workspace.import_categories.additions.length).toBe(7);
+                    expect(collection1.workspace.import_categories.additions.length).toBe(8);
                     expect(collection1.workspace.import_categories.errors.length).toBe(4);
                     done();
                 }
@@ -707,7 +761,7 @@ describe('Collection Bundles Basic API', function () {
                     const collection2 = res.body;
                     expect(collection2).toBeDefined();
                     expect(collection2.workspace.import_categories.changes.length).toBe(1);
-                    expect(collection2.workspace.import_categories.duplicates.length).toBe(5);
+                    expect(collection2.workspace.import_categories.duplicates.length).toBe(6);
                     expect(collection2.workspace.import_categories.errors.length).toBe(4);
                     done();
                 }
@@ -837,7 +891,7 @@ describe('Collection Bundles Basic API', function () {
                     const collectionBundle = res.body;
                     expect(collectionBundle).toBeDefined();
                     expect(Array.isArray(collectionBundle.objects)).toBe(true);
-                    expect(collectionBundle.objects.length).toBe(6);
+                    expect(collectionBundle.objects.length).toBe(7);
 
                     done();
                 }
@@ -860,7 +914,7 @@ describe('Collection Bundles Basic API', function () {
                     const collectionBundle = res.body;
                     expect(collectionBundle).toBeDefined();
                     expect(Array.isArray(collectionBundle.objects)).toBe(true);
-                    expect(collectionBundle.objects.length).toBe(6);
+                    expect(collectionBundle.objects.length).toBe(7);
 
                     done();
                 }
@@ -884,7 +938,70 @@ describe('Collection Bundles Basic API', function () {
                     exportedCollectionBundle = res.body;
                     expect(exportedCollectionBundle).toBeDefined();
                     expect(Array.isArray(exportedCollectionBundle.objects)).toBe(true);
-                    expect(exportedCollectionBundle.objects.length).toBe(6);
+                    expect(exportedCollectionBundle.objects.length).toBe(7);
+
+                    done();
+                }
+            });
+    });
+
+    it('POST /api/collections creates the collection with a subset of the imported data', function (done) {
+        const body = collectionData6;
+        request(app)
+            .post('/api/collections')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collection-bundles exports the subset collection without the note', function (done) {
+        request(app)
+            .get(`/api/collection-bundles?collectionId=${ collectionId6 }`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported collection bundle
+                    const collectionBundle = res.body;
+                    expect(collectionBundle).toBeDefined();
+                    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+                    expect(collectionBundle.objects.length).toBe(3);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collection-bundles exports the subset collection with the note', function (done) {
+        request(app)
+            .get(`/api/collection-bundles?collectionId=${ collectionId6 }&includeNotes=true`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the exported collection bundle
+                    const collectionBundle = res.body;
+                    expect(collectionBundle).toBeDefined();
+                    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+                    expect(collectionBundle.objects.length).toBe(4);
 
                     done();
                 }

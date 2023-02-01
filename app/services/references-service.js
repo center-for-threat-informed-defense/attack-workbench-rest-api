@@ -83,7 +83,7 @@ exports.create = async function(data) {
         return savedReference;
     }
     catch(err) {
-        if (err.name === 'MongoError' && err.code === 11000) {
+        if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
             throw new Error(errors.duplicateId);
         } else {
@@ -120,7 +120,7 @@ exports.update = async function(data, callback) {
             error.parameterName = 'source_name';
             return callback(error);
         }
-        else  if (err.name === 'MongoError' && err.code === 11000) {
+        else  if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
             throw new Error(errors.duplicateId);
         } else {

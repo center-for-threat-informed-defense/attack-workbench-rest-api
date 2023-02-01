@@ -25,6 +25,18 @@ paths:
           schema:
             type: number
             default: 0
+        - name: domain
+          in: query
+          description: |
+            Only retrieve objects that contain the specified domain in their `x_mitre_domains` array.
+            This parameter may be set multiple times to retrieve objects with any of the provided domains.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'mobile-attack'
         - name: state
           in: query
           description: |
@@ -38,6 +50,18 @@ paths:
                 items:
                   type: string
           example: 'work-in-progress'
+        - name: platform
+          in: query
+          description: |
+            Only retrieve objects that contain the specified platform in their `x_mitre_platforms` array.
+            This parameter may be set multiple times to retrieve objects with any of the provided platforms.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'Linux'
         - name: includeRevoked
           in: query
           description: |

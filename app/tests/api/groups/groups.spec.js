@@ -26,7 +26,7 @@ const initialObjectData = {
         name: 'intrusion-set-1',
         spec_version: '2.1',
         type: 'intrusion-set',
-        description: 'This is a marking definition. Blue.',
+        description: 'This is the initial group. Blue.',
         created_by_ref: "identity--6444f546-6900-4456-b3b1-015c88d70dab"
     }
 };
@@ -287,7 +287,7 @@ describe('Groups API', function () {
     let group2;
     it('POST /api/groups should create a new version of a group with a duplicate stix.id but different stix.modified date', async function () {
         // Add another default marking definition
-        markingDefinitionData.stix.definition = 'This is the second default marking definition';
+        markingDefinitionData.stix.definition.statement = 'This is the second default marking definition';
         defaultMarkingDefinition2 = await addDefaultMarkingDefinition(markingDefinitionData);
 
         group2 = _.cloneDeep(group1);
@@ -448,10 +448,6 @@ describe('Groups API', function () {
     
     let group4;
     it('POST /api/groups should create a new version of a group with a duplicate stix.id but different stix.modified date', async function () {
-        // Add another default marking definition
-        markingDefinitionData.stix.definition = 'This is the second default marking definition';
-        defaultMarkingDefinition2 = await addDefaultMarkingDefinition(markingDefinitionData);
-
         group4 = _.cloneDeep(group1);
         group4._id = undefined;
         group4.__t = undefined;
@@ -554,7 +550,22 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups deletes a group with soft_delete property set to true', function (done) {
+    it('DELETE /api/groups/:id should not delete a group when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/groups/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/groups/:id/modified/:modified deletes a group', function (done) {
         request(app)
             .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified + '?soft_delete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -583,8 +594,8 @@ describe('Groups API', function () {
                 }
             });
     });
-            
-    it('DELETE /api/groups should delete all the groups with the same stix id with soft_delete property set to true by default', function (done) {
+        
+    it('DELETE /api/groups/:id should delete all the groups with the same stix id', function (done) {
         request(app)
             .delete('/api/groups/' + group2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -598,8 +609,8 @@ describe('Groups API', function () {
                 }
             });
     });
-    
-    it('DELETE /api/groups should delete all the groups with the same stix id with soft_delete property set to false', function (done) {
+
+    it('DELETE /api/groups/:id/modified/:modified should delete the third group', function (done) {
         request(app)
             .delete('/api/groups/' + group2.stix.id + '?soft_delete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -654,9 +665,5 @@ describe('Groups API', function () {
     after(async function() {
         await database.closeConnection();
     });
-    // after(function(done) {
-    //     database.closeConnection()
-    //         .then(() => done());
-    // });
 });
 

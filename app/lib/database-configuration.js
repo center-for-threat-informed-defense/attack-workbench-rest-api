@@ -119,10 +119,14 @@ async function checkForAnonymousUserAccount() {
 
 async function checkForInvalidEnterpriseCollectionId() {
     // The v1.0 release of ATT&CK Workbench used x-mitre-collection--23320f4-22ad-8467-3b73-ed0c869a12838 for the id of
-    // the Enterprise collection object. This value isn't a legal STIX id (the UUID portion is incorect).
-    // This function checks for the presence of the invalid id and replaces it with a valid id wherever found.
-    const invalidId = 'x-mitre-collection--23320f4-22ad-8467-3b73-ed0c869a12838';
-    const validId = 'x-mitre-collection--402e24b4-436e-4936-b19b-2038648f489';
+    // the Enterprise collection object. This value isn't a legal STIX id (the UUID portion is incorrect).
+    // The v1.1 release of ATT&CK Workbench replaced this value with another invalid id.
+    // This function checks for the presence of either invalid id and replaces it with a valid id wherever found.
+    const invalidIds = [
+        'x-mitre-collection--23320f4-22ad-8467-3b73-ed0c869a12838',
+        'x-mitre-collection--402e24b4-436e-4936-b19b-2038648f489'
+    ];
+    const validId = 'x-mitre-collection-1f5f1533-f617-4ca8-9ab4-6a02367fa019';
 
     logger.info(`Starting check for invalid enterprise collection id. This may take a few minutes the first time it runs...`);
 
@@ -132,7 +136,7 @@ async function checkForInvalidEnterpriseCollectionId() {
     for (const attackObject of attackObjects) {
         // Check for x-mitre-collection objects
         if (attackObject.stix.type === 'x-mitre-collection') {
-            if (attackObject.stix.id === invalidId) {
+            if (invalidIds.includes(attackObject.stix.id)) {
                 attackObject.stix.id = validId;
                 // eslint-disable-next-line no-await-in-loop
                 await attackObject.save();
@@ -143,7 +147,7 @@ async function checkForInvalidEnterpriseCollectionId() {
         else {
             let attackObjectUpdated = false;
             for (const collectionRef of attackObject.workspace.collections) {
-                if (collectionRef.collection_ref === invalidId) {
+                if (invalidIds.includes(collectionRef.collection_ref)) {
                     collectionRef.collection_ref = validId;
                     attackObjectUpdated = true;
                 }
@@ -163,7 +167,7 @@ async function checkForInvalidEnterpriseCollectionId() {
         // Check the list of collections
         let collectionIndexUpdated = false;
         for (const collection of collectionIndex.collection_index.collections) {
-            if (collection.id === invalidId) {
+            if (invalidIds.includes(collection.id)) {
                 collection.id = validId;
                 collectionIndexUpdated = true;
             }
@@ -172,7 +176,7 @@ async function checkForInvalidEnterpriseCollectionId() {
         // Check the list of subscriptions
         if (collectionIndex.workspace?.update_policy?.subscriptions) {
             for (let i = 0; i < collectionIndex.workspace.update_policy.subscriptions.length; i++) {
-                if (collectionIndex.workspace.update_policy.subscriptions[i] === invalidId) {
+                if (invalidIds.includes(collectionIndex.workspace.update_policy.subscriptions[i])) {
                     collectionIndex.workspace.update_policy.subscriptions[i] = validId;
                     collectionIndexUpdated = true;
                 }

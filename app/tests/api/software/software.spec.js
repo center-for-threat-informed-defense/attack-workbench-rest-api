@@ -465,8 +465,23 @@ describe('Software API', function () {
                 }
             });
     });
-    
-    it('DELETE /api/software deletes a software with soft_delete property set to true', function (done) {
+
+    it('DELETE /api/software/:id should not delete a software when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/software/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/software/:id/modified/:modified deletes a software', function (done) {
         request(app)
             .delete('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified + '?soft_delete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -495,8 +510,8 @@ describe('Software API', function () {
                 }
             });
     });
-    
-    it('DELETE /api/software should delete all the softwares with the same stix id with soft_delete property set to true by default', function (done) {
+
+    it('DELETE /api/software/:id should delete all the software with the same stix id', function (done) {
         request(app)
             .delete('/api/software/' + software2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)

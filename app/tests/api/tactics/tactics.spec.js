@@ -451,7 +451,22 @@ describe('Tactics API', function () {
             });
     });
 
-    it('DELETE /api/tactics deletes a tactic with soft_delete property set to true', function (done) {
+    it('DELETE /api/tactics/:id should not delete a tactic when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/tactics/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/tactics/:id/modified/:modified deletes a tactic', function (done) {
         request(app)
             .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified + '?soft_delete=true')
             .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
@@ -466,7 +481,7 @@ describe('Tactics API', function () {
             });
     });
 
-    it('DELETE /api/tactics deletes a tactic with soft_delete property set to false', function (done) {
+    it('DELETE /api/tactics/:id should delete all the tactics with the same stix id', function (done) {
         request(app)
             .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified + '?soft_delete=false')
             .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)

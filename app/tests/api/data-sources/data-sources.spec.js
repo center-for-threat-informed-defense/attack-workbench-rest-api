@@ -480,8 +480,23 @@ describe('Data Sources API', function () {
                 }
             });
     });
-    
-    it('DELETE /api/data-sources deletes a data source with soft_delete property set to true', function (done) {
+
+    it('DELETE /api/data-sources/:id should not delete a data source when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/data-sources/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/data-sources/:id/modified/:modified deletes a data source', function (done) {
         request(app)
             .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified + '?soft_delete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -511,7 +526,7 @@ describe('Data Sources API', function () {
             });
     });
 
-    it('DELETE /api/data-sources should delete all the data sources with the same stix id with soft_delete property set to true by default', function (done) {
+    it('DELETE /api/data-sources/:id should delete all the data sources with the same stix id', function (done) {
         request(app)
             .delete('/api/data-sources/' + dataSource2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)

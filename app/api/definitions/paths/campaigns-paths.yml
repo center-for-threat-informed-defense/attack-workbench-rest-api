@@ -1,0 +1,259 @@
+paths:
+  /api/campaigns:
+    get:
+      summary: 'Get a list of campaigns'
+      operationId: 'campaign-get-all'
+      description: |
+        This endpoint gets a list of campaigns from the workspace.
+        The list of campaigns may include multiple versions of each campaign.
+      tags:
+        - 'Campaigns'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of campaigns to retrieve.
+            The default (0) will retrieve all campaigns.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of campaigns to skip.
+            The default (0) will start with the first campaign.
+          schema:
+            type: number
+            default: 0
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, objects will be retrieved regardless of state.
+            This parameter may be set multiple times to retrieve objects with any of the provided states.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: search
+          in: query
+          description: |
+            Only return objects where the provided search text occurs in the `name` or `description`.
+            The search is case-insensitive.
+          schema:
+            type: string
+          allowReserved: true
+          example: 'windows'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of campaigns.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/campaigns.yml#/components/schemas/campaign'
+
+    post:
+      summary: 'Create a campaign'
+      operationId: 'campaign-create'
+      description: |
+        This endpoint creates a new campaign in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing campaign.
+        If the `stix.id` property is not set, it creates a new campaign, generating a STIX id for it.
+      tags:
+        - 'Campaigns'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/campaigns.yml#/components/schemas/campaign'
+      responses:
+        '201':
+          description: 'The campaign has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/campaigns.yml#/components/schemas/campaign'
+        '400':
+          description: 'Missing or invalid parameters were provided. The campaign was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The campaign was not created.'
+
+  /api/campaigns/{stixId}:
+    get:
+      summary: 'Get one or more versions of a campaign'
+      operationId: 'campaign-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a campaign from the workspace, identified by their STIX id.
+      tags:
+        - 'Campaigns'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the campaign to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the campaign to retrieve.
+            `all` gets all versions of the campaign, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of campaigns matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/campaigns.yml#/components/schemas/campaign'
+        '404':
+          description: 'A campaign with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a campaign'
+      operationId: 'campaign-delete-all'
+      description: |
+        This endpoint deletes all versions of a data component from the workspace.
+        The data component is identified by its STIX id.
+      tags:
+        - 'Campaigns'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the campaign to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the campaign versions were successfully deleted.'
+        '404':
+          description: 'A campaign with the requested STIX id was not found.'
+
+  /api/campaigns/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a campaign matching the STIX id and modified date'
+      operationId: 'campaign-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a campaign from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Campaigns'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the campaign to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the campaign to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a campaign matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/campaigns.yml#/components/schemas/campaign'
+        '404':
+          description: 'A campaign with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a campaign'
+      operationId: 'campaign-update'
+      description: |
+        This endpoint updates a single version of a campaign in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Campaigns'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the campaign to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the campaign to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/campaigns.yml#/components/schemas/campaign'
+      responses:
+        '200':
+          description: 'The campaign was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/campaigns.yml#/components/schemas/campaign'
+        '400':
+          description: 'Missing or invalid parameters were provided. The campaign was not updated.'
+        '404':
+          description: 'A campaign with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a campaign'
+      operationId: 'campaign-delete'
+      description: |
+        This endpoint deletes a single version of a campaign from the workspace.
+        The campaign is identified by its STIX id and modified date.
+      tags:
+        - 'Campaigns'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the campaign to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the campaign to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The campaign was successfully deleted.'
+        '404':
+          description: 'A campaign with the requested STIX id and modified date was not found.'

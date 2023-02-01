@@ -13,7 +13,6 @@ const Software = require('../models/software-model');
 const Tactic = require('../models/tactic-model');
 const Technique = require('../models/technique-model');
 
-const systemConfigurationService = require('./system-configuration-service');
 const linkById = require('../lib/linkById');
 const config = require("../config/config");
 
@@ -33,7 +32,7 @@ async function getAttackObject(stixId) {
     return attackObject;
 }
 
-const attackIdObjectTypes = ['intrusion-set', 'malware', 'tool', 'attack-pattern', 'course-of-action', 'x-mitre-data_source'];
+const attackIdObjectTypes = ['intrusion-set', 'campaign', 'malware', 'tool', 'attack-pattern', 'course-of-action', 'x-mitre-data_source'];
 function requiresAttackId(attackObject) {
     return attackIdObjectTypes.includes(attackObject?.stix.type);
 }
@@ -76,6 +75,7 @@ const stixOptionalArrayProperties = [
     'external_references',
     'kill_chain_phases',
     'aliases',
+    'labels',
     'object_marking_refs',
     'roles',
     'sectors'
@@ -313,11 +313,28 @@ exports.exportBundle = async function(options) {
         }
     }
 
+    // Secondary object domains are the union of the related primary object domains
+    // Do not include primary objects when the relationship is deprecated
+    async function domainsForSecondaryObject(attackObject) {
+        const objectRelationships = allRelationships.filter(r => r.stix.source_ref === attackObject.stix.id);
+        const domainMap = new Map();
+        for (const relationship of objectRelationships) {
+            const targetObject = await getAttackObject(relationship.stix.target_ref);
+            if (targetObject?.stix.x_mitre_domains) {
+                for (const domain of targetObject.stix.x_mitre_domains) {
+                    domainMap.set(domain, true);
+                }
+            }
+        }
+
+        return [...domainMap.keys()];
+    }
+
     // Put the secondary objects in the bundle
     for (const secondaryObject of secondaryObjects) {
-        // Groups need to have the domain added to x_mitre_domains
-        if (secondaryObject.stix.type === 'intrusion-set') {
-            secondaryObject.stix.x_mitre_domains = [ options.domain ];
+        // Groups and campaigns need to have the domain added to x_mitre_domains
+        if (secondaryObject.stix.type === 'intrusion-set' || secondaryObject.stix.type === 'campaign') {
+            secondaryObject.stix.x_mitre_domains = await domainsForSecondaryObject(secondaryObject);
         }
         bundle.objects.push(secondaryObject.stix);
         addAttackObjectToMap(secondaryObject);
@@ -351,7 +368,7 @@ exports.exportBundle = async function(options) {
             if (!objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)) {
                 const revokedObject = await getAttackObject(relationship.stix.source_ref);
                 if (secondaryObjectIsValid(revokedObject)) {
-                    if (revokedObject.stix.type === 'intrusion-set') {
+                    if (revokedObject.stix.type === 'intrusion-set' || revokedObject.stix.type === 'campaign') {
                         revokedObject.stix.x_mitre_domains = [ options.domain ];
                     }
                     bundle.objects.push(revokedObject.stix);
@@ -362,12 +379,11 @@ exports.exportBundle = async function(options) {
         }
     }
 
-
     // Create a map of techniques detected by data components
     // key = technique id, value = array of data component refs
     const techniqueDetectedBy = new Map();
     for (const relationship of primaryObjectRelationships) {
-        if (relationship.stix.relationship_type === 'detects') {
+        if (relationship.stix.relationship_type === 'detects' && relationshipIsActive(relationship)) {
             // technique (target_ref) detected by array of data-component (source_ref)
             const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
             if (techniqueDataComponents) {
@@ -382,12 +398,15 @@ exports.exportBundle = async function(options) {
     }
 
     // Supplement techniques with x_mitre_data_sources for backwards compatibility
-    const icsDataSourceValues = await systemConfigurationService.retrieveAllowedValuesForTypePropertyDomain('technique', 'x_mitre_data_sources', 'ics-attack');
+    // Also make sure that all techniques have x_mitre_is_subtechnique set
     for (const bundleObject of bundle.objects) {
         if (bundleObject.type === 'attack-pattern') {
+            // Make sure that x_mitre_is_subtechnique is set
+            bundleObject.x_mitre_is_subtechnique = bundleObject.x_mitre_is_subtechnique ?? false;
+
             const enterpriseDomain = bundleObject.x_mitre_domains.includes('enterprise-attack');
             const icsDomain = bundleObject.x_mitre_domains.includes('ics-attack');
-            if (enterpriseDomain && !icsDomain) {
+            if (enterpriseDomain || icsDomain) {
                 // Remove any existing data source string entries
                 bundleObject.x_mitre_data_sources = [];
 
@@ -401,38 +420,6 @@ exports.exportBundle = async function(options) {
                             const dataSourceForTechnique = dataSources.get(dataComponent.x_mitre_data_source_ref);
                             if (dataSourceForTechnique) {
                                 const derivedDataSource = `${ dataSourceForTechnique.name }: ${ dataComponent.name }`;
-                                bundleObject.x_mitre_data_sources.push(derivedDataSource);
-                            }
-                            else {
-                                console.log(`Referenced data source not found: ${ dataComponent.x_mitre_data_source_ref }`);
-                            }
-                        }
-                        else {
-                            console.log(`Referenced data component not found: ${ dataComponentId }`);
-                        }
-                    }
-                }
-            }
-            else if (icsDomain && !enterpriseDomain) {
-                // Remove any existing data source string entries that are not in the list of valid ICS data sources
-                if (Array.isArray(bundleObject.x_mitre_data_sources)) {
-                    bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.includes(source));
-                }
-            }
-            else if (enterpriseDomain && icsDomain) {
-                // Remove any existing data source string entries that are not in the list of valid ICS data sources
-                bundleObject.x_mitre_data_sources = bundleObject.x_mitre_data_sources.filter(source => icsDataSourceValues.allowedValues.includes(source));
-
-                // Add data source string entries based on the data sources associated with the technique
-                //   data component detects technique AND data component refers to data source
-                const dataComponentIds = techniqueDetectedBy.get(bundleObject.id);
-                if (dataComponentIds) {
-                    for (const dataComponentId of dataComponentIds) {
-                        const dataComponent = dataComponents.get(dataComponentId);
-                        if (dataComponent) {
-                            const dataSourceForTechnique = dataSources.get(dataComponent.x_mitre_data_source_ref);
-                            if (dataSourceForTechnique) {
-                                const derivedDataSource = `${dataSourceForTechnique.name}: ${dataComponent.name}`;
                                 bundleObject.x_mitre_data_sources.push(derivedDataSource);
                             }
                             else {
@@ -462,6 +449,19 @@ exports.exportBundle = async function(options) {
     // (any revoked-by relationship for a primary object should already be included)
     for (const relationship of allRelationships) {
         if (relationship.stix.relationship_type === 'revoked-by' && !relationshipsMap.has(relationship.stix.id) &&
+            objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref))
+        {
+            if (relationshipIsActive(relationship)) {
+                bundle.objects.push(relationship.stix);
+                relationshipsMap.set(relationship.stix.id, true);
+            }
+        }
+    }
+
+    // Add campaign-to-group attributed-to relationships
+    // (campaigns and groups are secondary objects, so an attributed-to relationship will not be added yet)
+    for (const relationship of allRelationships) {
+        if (relationship.stix.relationship_type === 'attributed-to' && !relationshipsMap.has(relationship.stix.id) &&
             objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref))
         {
             if (relationshipIsActive(relationship)) {
