@@ -10,6 +10,7 @@ exports.retrieveAll = async function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         sourceRef: req.query.sourceRef,
         targetRef: req.query.targetRef,
         sourceOrTargetRef: req.query.sourceOrTargetRef,
@@ -20,7 +21,7 @@ exports.retrieveAll = async function(req, res) {
         includePagination: req.query.includePagination,
         lookupRefs: req.query.lookupRefs,
         includeIdentities: req.query.includeIdentities
-    }
+    };
 
     try {
         const results = await relationshipsService.retrieveAll(options);
@@ -40,8 +41,9 @@ exports.retrieveAll = async function(req, res) {
 
 exports.retrieveById = function(req, res) {
     const options = {
-        versions: req.query.versions || 'latest'
-    }
+        versions: req.query.versions || 'latest',
+        includeDeleted: req.query.includeDeleted
+    };
 
     relationshipsService.retrieveById(req.params.stixId, options, function (err, relationships) {
         if (err) {
@@ -71,7 +73,11 @@ exports.retrieveById = function(req, res) {
 };
 
 exports.retrieveVersionById = function(req, res) {
-    relationshipsService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, relationship) {
+    const options = {
+        includeDeleted: req.query.includeDeleted
+    };
+
+    relationshipsService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, relationship) {
         if (err) {
             if (err.message === relationshipsService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -140,31 +146,11 @@ exports.updateFull = function(req, res) {
     });
 };
 
-
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        soft_delete: req.query.soft_delete
-     }
-    relationshipsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, relationship) {
-        if (err) {
-            logger.error('Delete relationship failed. ' + err);
-            return res.status(500).send('Unable to delete relationship. Server error.');
-        }
-        else {
-            if (!relationship) {
-                return res.status(404).send('Relationship not found.');
-            } else {
-                logger.debug("Success: Deleted relationship with id " + relationship.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
 exports.deleteById = function(req, res) {
     const options = {
-        soft_delete: req.query.soft_delete
-     }
+        softDelete: req.query.softDelete
+    };
+
     relationshipsService.deleteById(req.params.stixId, options, function (err, relationships) {
         if (err) {
             logger.error('Delete relationship failed. ' + err);
@@ -176,6 +162,27 @@ exports.deleteById = function(req, res) {
             }
             else {
                 logger.debug(`Success: Deleted relationship with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteVersionById = function(req, res) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    relationshipsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, relationship) {
+        if (err) {
+            logger.error('Delete relationship failed. ' + err);
+            return res.status(500).send('Unable to delete relationship. Server error.');
+        }
+        else {
+            if (!relationship) {
+                return res.status(404).send('Relationship not found.');
+            } else {
+                logger.debug("Success: Deleted relationship with id " + relationship.stix.id);
                 return res.status(204).end();
             }
         }

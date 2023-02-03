@@ -10,9 +10,10 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         search: req.query.search,
         includePagination: req.query.includePagination
-    }
+    };
 
     groupsService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -33,8 +34,9 @@ exports.retrieveAll = function(req, res) {
 
 exports.retrieveById = function(req, res) {
     const options = {
-        versions: req.query.versions || 'latest'
-    }
+        versions: req.query.versions || 'latest',
+        includeDeleted: req.query.includeDeleted
+    };
 
     groupsService.retrieveById(req.params.stixId, options, function (err, groups) {
         if (err) {
@@ -64,7 +66,11 @@ exports.retrieveById = function(req, res) {
 };
 
 exports.retrieveVersionById = function(req, res) {
-    groupsService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, group) {
+    const options = {
+        includeDeleted: req.query.includeDeleted
+    };
+
+    groupsService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, group) {
         if (err) {
             if (err.message === groupsService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -138,30 +144,11 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        soft_delete: req.query.soft_delete
-     }
-    groupsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, group) {
-        if (err) {
-            logger.error('Delete group failed. ' + err);
-            return res.status(500).send('Unable to delete group. Server error.');
-        }
-        else {
-            if (!group) {
-                return res.status(404).send('Group not found.');
-            } else {
-                logger.debug("Success: Deleted group with id " + group.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
 exports.deleteById = function(req, res) {
     const options = {
-        soft_delete: req.query.soft_delete
-     }
+        softDelete: req.query.softDelete
+    };
+
     groupsService.deleteById(req.params.stixId, options, function (err, groups) {
         if (err) {
             logger.error('Delete group failed. ' + err);
@@ -173,6 +160,27 @@ exports.deleteById = function(req, res) {
             }
             else {
                 logger.debug(`Success: Deleted group with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteVersionById = function(req, res) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    groupsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, group) {
+        if (err) {
+            logger.error('Delete group failed. ' + err);
+            return res.status(500).send('Unable to delete group. Server error.');
+        }
+        else {
+            if (!group) {
+                return res.status(404).send('Group not found.');
+            } else {
+                logger.debug("Success: Deleted group with id " + group.stix.id);
                 return res.status(204).end();
             }
         }

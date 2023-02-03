@@ -11,9 +11,10 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         search: req.query.search,
         includePagination: req.query.includePagination
-    }
+    };
 
     tacticsService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -34,8 +35,9 @@ exports.retrieveAll = function(req, res) {
 
 exports.retrieveById = function(req, res) {
     const options = {
-        versions: req.query.versions || 'latest'
-    }
+        versions: req.query.versions || 'latest',
+        includeDeleted: req.query.includeDeleted
+    };
 
     tacticsService.retrieveById(req.params.stixId, options, function (err, tactics) {
         if (err) {
@@ -65,7 +67,11 @@ exports.retrieveById = function(req, res) {
 };
 
 exports.retrieveVersionById = function(req, res) {
-    tacticsService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, tactic) {
+    const options = {
+        includeDeleted: req.query.includeDeleted
+    };
+
+    tacticsService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, tactic) {
         if (err) {
             if (err.message === tacticsService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -135,10 +141,31 @@ exports.updateFull = function(req, res) {
     });
 };
 
+exports.deleteById = function(req, res) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    tacticsService.deleteById(req.params.stixId, options, function (err, tactics) {
+        if (err) {
+            logger.error('Delete tactic failed. ' + err);
+            return res.status(500).send('Unable to delete tactic. Server error.');
+        } else {
+            if (tactics.deletedCount === 0) {
+                return res.status(404).send('Tactic not found.');
+            } else {
+                logger.debug(`Success: Deleted tactic with id ${req.params.stixId}`);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
 exports.deleteVersionById = function(req, res) {
     const options = {
-        soft_delete: req.query.soft_delete
-     }
+        softDelete: req.query.softDelete
+    };
+
     tacticsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, tactic) {
         if (err) {
             logger.error('Delete tactic failed. ' + err);
@@ -149,25 +176,6 @@ exports.deleteVersionById = function(req, res) {
                 return res.status(404).send('tactic not found.');
             } else {
                 logger.debug("Success: Deleted tactic with id " + tactic.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
-exports.deleteById = function(req, res) {
-    const options = {
-        soft_delete: req.query.soft_delete
-     }
-    tacticsService.deleteById(req.params.stixId, options, function (err, tactics) {
-        if (err) {
-            logger.error('Delete tactic failed. ' + err);
-            return res.status(500).send('Unable to delete tactic. Server error.');
-        } else {
-            if (tactics.deletedCount === 0) {
-                return res.status(404).send('Tactic not found.');
-            } else {
-                logger.debug(`Success: Deleted tactic with id ${req.params.stixId}`);
                 return res.status(204).end();
             }
         }

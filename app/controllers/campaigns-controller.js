@@ -10,9 +10,10 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         search: req.query.search,
         includePagination: req.query.includePagination
-    }
+    };
 
     campaignsService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -33,8 +34,9 @@ exports.retrieveAll = function(req, res) {
 
 exports.retrieveById = function(req, res) {
     const options = {
-        versions: req.query.versions || 'latest'
-    }
+        versions: req.query.versions || 'latest',
+        includeDeleted: req.query.includeDeleted
+    };
 
     campaignsService.retrieveById(req.params.stixId, options, function (err, campaigns) {
         if (err) {
@@ -64,7 +66,11 @@ exports.retrieveById = function(req, res) {
 };
 
 exports.retrieveVersionById = function(req, res) {
-    campaignsService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, campaign) {
+    const options = {
+        includeDeleted: req.query.includeDeleted
+    };
+
+    campaignsService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, campaign) {
         if (err) {
             if (err.message === campaignsService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -138,25 +144,12 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteVersionById = function(req, res) {
-    campaignsService.deleteVersionById(req.params.stixId, req.params.modified, function (err, campaign) {
-        if (err) {
-            logger.error('Delete campaign failed. ' + err);
-            return res.status(500).send('Unable to delete campaign. Server error.');
-        }
-        else {
-            if (!campaign) {
-                return res.status(404).send('Campaign not found.');
-            } else {
-                logger.debug("Success: Deleted campaign with id " + campaign.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
 exports.deleteById = function(req, res) {
-    campaignsService.deleteById(req.params.stixId, function (err, campaigns) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    campaignsService.deleteById(req.params.stixId, options, function (err, campaigns) {
         if (err) {
             logger.error('Delete campaign failed. ' + err);
             return res.status(500).send('Unable to delete campaign. Server error.');
@@ -172,3 +165,25 @@ exports.deleteById = function(req, res) {
         }
     });
 };
+
+exports.deleteVersionById = function(req, res) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    campaignsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, campaign) {
+        if (err) {
+            logger.error('Delete campaign failed. ' + err);
+            return res.status(500).send('Unable to delete campaign. Server error.');
+        }
+        else {
+            if (!campaign) {
+                return res.status(404).send('Campaign not found.');
+            } else {
+                logger.debug("Success: Deleted campaign with id " + campaign.stix.id);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+

@@ -12,9 +12,10 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         search: req.query.search,
         includePagination: req.query.includePagination
-    }
+    };
 
     dataSourcesService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -36,8 +37,9 @@ exports.retrieveAll = function(req, res) {
 exports.retrieveById = function(req, res) {
     const options = {
         versions: req.query.versions || 'latest',
+        includeDeleted: req.query.includeDeleted,
         retrieveDataComponents: req.query.retrieveDataComponents
-    }
+    };
 
     dataSourcesService.retrieveById(req.params.stixId, options, function (err, dataSources) {
         if (err) {
@@ -68,8 +70,9 @@ exports.retrieveById = function(req, res) {
 
 exports.retrieveVersionById = function(req, res) {
     const options = {
+        includeDeleted: req.query.includeDeleted,
         retrieveDataComponents: req.query.retrieveDataComponents
-    }
+    };
 
     dataSourcesService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, dataSource) {
         if (err) {
@@ -140,30 +143,11 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        soft_delete: req.query.soft_delete
-     }
-    dataSourcesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, dataSource) {
-        if (err) {
-            logger.error('Delete data source failed. ' + err);
-            return res.status(500).send('Unable to delete data source. Server error.');
-        }
-        else {
-            if (!dataSource) {
-                return res.status(404).send('Data source not found.');
-            } else {
-                logger.debug("Success: Deleted data source with id " + dataSource.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
 exports.deleteById = function(req, res) {
     const options = {
-        soft_delete: req.query.soft_delete
-     }
+        softDelete: req.query.softDelete
+    };
+
     dataSourcesService.deleteById(req.params.stixId, options, function (err, dataSources) {
         if (err) {
             logger.error('Delete data source failed. ' + err);
@@ -175,6 +159,27 @@ exports.deleteById = function(req, res) {
             }
             else {
                 logger.debug(`Success: Deleted data source with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteVersionById = function(req, res) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    dataSourcesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, dataSource) {
+        if (err) {
+            logger.error('Delete data source failed. ' + err);
+            return res.status(500).send('Unable to delete data source. Server error.');
+        }
+        else {
+            if (!dataSource) {
+                return res.status(404).send('Data source not found.');
+            } else {
+                logger.debug("Success: Deleted data source with id " + dataSource.stix.id);
                 return res.status(204).end();
             }
         }

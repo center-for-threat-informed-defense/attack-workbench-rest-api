@@ -10,8 +10,9 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         includePagination: req.query.includePagination
-    }
+    };
 
     identitiesService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -32,8 +33,9 @@ exports.retrieveAll = function(req, res) {
 
 exports.retrieveById = function(req, res) {
     const options = {
-        versions: req.query.versions || 'latest'
-    }
+        versions: req.query.versions || 'latest',
+        includeDeleted: req.query.includeDeleted
+    };
 
     identitiesService.retrieveById(req.params.stixId, options, function (err, identities) {
         if (err) {
@@ -63,7 +65,11 @@ exports.retrieveById = function(req, res) {
 };
 
 exports.retrieveVersionById = function(req, res) {
-    identitiesService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, identity) {
+    const options = {
+        includeDeleted: req.query.includeDeleted
+    };
+
+    identitiesService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, identity) {
         if (err) {
             if (err.message === identitiesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -132,30 +138,11 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        soft_delete: req.query.soft_delete
-     }
-    identitiesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, identity) {
-        if (err) {
-            logger.error('Delete identity failed. ' + err);
-            return res.status(500).send('Unable to delete identity. Server error.');
-        }
-        else {
-            if (!identity) {
-                return res.status(404).send('Identity not found.');
-            } else {
-                logger.debug("Success: Deleted identity with id " + identity.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
 exports.deleteById = function(req, res) {
     const options = {
-        soft_delete: req.query.soft_delete
-     }
+        softDelete: req.query.softDelete
+    };
+
     identitiesService.deleteById(req.params.stixId, options, function (err, identities) {
         if (err) {
             logger.error('Delete identity failed. ' + err);
@@ -167,6 +154,27 @@ exports.deleteById = function(req, res) {
             }
             else {
                 logger.debug(`Success: Deleted identity with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteVersionById = function(req, res) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    identitiesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, identity) {
+        if (err) {
+            logger.error('Delete identity failed. ' + err);
+            return res.status(500).send('Unable to delete identity. Server error.');
+        }
+        else {
+            if (!identity) {
+                return res.status(404).send('Identity not found.');
+            } else {
+                logger.debug("Success: Deleted identity with id " + identity.stix.id);
                 return res.status(204).end();
             }
         }

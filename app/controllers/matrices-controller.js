@@ -10,9 +10,10 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         search: req.query.search,
         includePagination: req.query.includePagination
-    }
+    };
 
     matricesService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -33,8 +34,9 @@ exports.retrieveAll = function(req, res) {
 
 exports.retrieveById = function(req, res) {
     const options = {
-        versions: req.query.versions || 'latest'
-    }
+        versions: req.query.versions || 'latest',
+        includeDeleted: req.query.includeDeleted
+    };
 
     matricesService.retrieveById(req.params.stixId, options, function (err, matrices) {
         if (err) {
@@ -64,7 +66,11 @@ exports.retrieveById = function(req, res) {
 };
 
 exports.retrieveVersionById = function(req, res) {
-    matricesService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, matrix) {
+    const options = {
+        includeDeleted: req.query.includeDeleted
+    };
+
+    matricesService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, matrix) {
         if (err) {
             if (err.message === matricesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -133,30 +139,11 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        soft_delete: req.query.soft_delete
-     }
-    matricesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, matrix) {
-        if (err) {
-            logger.error('Delete matrix failed. ' + err);
-            return res.status(500).send('Unable to delete matrix. Server error.');
-        }
-        else {
-            if (!matrix) {
-                return res.status(404).send('Matrix not found.');
-            } else {
-                logger.debug("Success: Deleted matrix with id " + matrix.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
 exports.deleteById = function(req, res) {
     const options = {
-        soft_delete: req.query.soft_delete
-     }
+        softDelete: req.query.softDelete
+    };
+
     matricesService.deleteById(req.params.stixId, options, function (err, matrices) {
         if (err) {
             logger.error('Delete matrix failed. ' + err);
@@ -168,6 +155,27 @@ exports.deleteById = function(req, res) {
             }
             else {
                 logger.debug(`Success: Deleted matrix with id ${ req.params.stixId }`);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
+exports.deleteVersionById = function(req, res) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    matricesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, matrix) {
+        if (err) {
+            logger.error('Delete matrix failed. ' + err);
+            return res.status(500).send('Unable to delete matrix. Server error.');
+        }
+        else {
+            if (!matrix) {
+                return res.status(404).send('Matrix not found.');
+            } else {
+                logger.debug("Success: Deleted matrix with id " + matrix.stix.id);
                 return res.status(204).end();
             }
         }

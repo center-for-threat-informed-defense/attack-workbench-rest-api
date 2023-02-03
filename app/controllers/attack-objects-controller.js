@@ -11,10 +11,11 @@ exports.retrieveAll = async function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         search: req.query.search,
         includePagination: req.query.includePagination,
         versions: req.query.versions
-    }
+    };
 
     try {
         const results = await attackObjectsService.retrieveAll(options);

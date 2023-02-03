@@ -12,6 +12,7 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         search: req.query.search,
         includePagination: req.query.includePagination
     };
@@ -35,8 +36,9 @@ exports.retrieveAll = function(req, res) {
 
 exports.retrieveById = function(req, res) {
     const options = {
-        versions: req.query.versions || 'latest'
-    }
+        versions: req.query.versions || 'latest',
+        includeDeleted: req.query.includeDeleted
+    };
 
     techniquesService.retrieveById(req.params.stixId, options, function (err, techniques) {
         if (err) {
@@ -66,7 +68,11 @@ exports.retrieveById = function(req, res) {
 };
 
 exports.retrieveVersionById = function(req, res) {
-    techniquesService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, technique) {
+    const options = {
+        includeDeleted: req.query.includeDeleted
+    };
+
+    techniquesService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, technique) {
         if (err) {
             if (err.message === techniquesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -136,10 +142,31 @@ exports.updateFull = function(req, res) {
     });
 };
 
+exports.deleteById = function(req, res) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    techniquesService.deleteById(req.params.stixId, options, function (err, techniques) {
+        if (err) {
+            logger.error('Delete technique failed. ' + err);
+            return res.status(500).send('Unable to delete technique. Server error.');
+        } else {
+            if (techniques.deletedCount === 0) {
+                return res.status(404).send('Technique not found.');
+            } else {
+                logger.debug(`Success: Deleted technique with id ${req.params.stixId}`);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
 exports.deleteVersionById = function(req, res) {
     const options = {
-        soft_delete: req.query.soft_delete
-     }
+        softDelete: req.query.softDelete
+    };
+
     techniquesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, technique) {
         if (err) {
             logger.error('Delete technique failed. ' + err);
@@ -150,25 +177,6 @@ exports.deleteVersionById = function(req, res) {
                 return res.status(404).send('Technique not found.');
             } else {
                 logger.debug("Success: Deleted technique with id " + technique.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
-exports.deleteById = function(req, res) {
-    const options = {
-        soft_delete: req.query.soft_delete
-     }
-    techniquesService.deleteById(req.params.stixId, options, function (err, techniques) {
-        if (err) {
-            logger.error('Delete technique failed. ' + err);
-            return res.status(500).send('Unable to delete technique. Server error.');
-        } else {
-            if (techniques.deletedCount === 0) {
-                return res.status(404).send('Technique not found.');
-            } else {
-                logger.debug(`Success: Deleted technique with id ${req.params.stixId}`);
                 return res.status(204).end();
             }
         }

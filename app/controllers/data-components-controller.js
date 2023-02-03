@@ -10,9 +10,10 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
+        includeDeleted: req.query.includeDeleted,
         search: req.query.search,
         includePagination: req.query.includePagination
-    }
+    };
 
     dataComponentsService.retrieveAll(options, function(err, results) {
         if (err) {
@@ -33,8 +34,9 @@ exports.retrieveAll = function(req, res) {
 
 exports.retrieveById = function(req, res) {
     const options = {
-        versions: req.query.versions || 'latest'
-    }
+        versions: req.query.versions || 'latest',
+        includeDeleted: req.query.includeDeleted
+    };
 
     dataComponentsService.retrieveById(req.params.stixId, options, function (err, dataComponents) {
         if (err) {
@@ -64,7 +66,11 @@ exports.retrieveById = function(req, res) {
 };
 
 exports.retrieveVersionById = function(req, res) {
-    dataComponentsService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, dataComponent) {
+    const options = {
+        includeDeleted: req.query.includeDeleted
+    };
+
+    dataComponentsService.retrieveVersionById(req.params.stixId, req.params.modified, options, function (err, dataComponent) {
         if (err) {
             if (err.message === dataComponentsService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -133,30 +139,11 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        soft_delete: req.query.soft_delete
-     }
-    dataComponentsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, dataComponent) {
-        if (err) {
-            logger.error('Delete data component failed. ' + err);
-            return res.status(500).send('Unable to delete data component. Server error.');
-        }
-        else {
-            if (!dataComponent) {
-                return res.status(404).send('Data component not found.');
-            } else {
-                logger.debug("Success: Deleted data component with id " + dataComponent.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
 exports.deleteById = function(req, res) {
     const options = {
-        soft_delete: req.query.soft_delete
-     }
+        softDelete: req.query.softDelete
+    };
+
     dataComponentsService.deleteById(req.params.stixId, options, function (err, dataComponents) {
         if (err) {
             logger.error('Delete data component failed. ' + err);
@@ -173,3 +160,25 @@ exports.deleteById = function(req, res) {
         }
     });
 };
+
+exports.deleteVersionById = function(req, res) {
+    const options = {
+        softDelete: req.query.softDelete
+    };
+
+    dataComponentsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, dataComponent) {
+        if (err) {
+            logger.error('Delete data component failed. ' + err);
+            return res.status(500).send('Unable to delete data component. Server error.');
+        }
+        else {
+            if (!dataComponent) {
+                return res.status(404).send('Data component not found.');
+            } else {
+                logger.debug("Success: Deleted data component with id " + dataComponent.stix.id);
+                return res.status(204).end();
+            }
+        }
+    });
+};
+
