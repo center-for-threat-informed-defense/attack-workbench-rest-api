@@ -65,6 +65,13 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: includeDeleted
+          in: query
+          description: |
+            Whether to include objects that have the `workspace.workflow.soft_delete` property set to true.
+          schema:
+            type: boolean
+            default: false
         - name: search
           in: query
           description: |

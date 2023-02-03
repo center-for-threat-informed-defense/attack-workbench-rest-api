@@ -53,6 +53,13 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: includeDeleted
+          in: query
+          description: |
+            Whether to include objects that have the `workspace.workflow.soft_delete` property set to true.
+          schema:
+            type: boolean
+            default: false
         - name: includePagination
           in: query
           description: |
@@ -124,6 +131,13 @@ paths:
               - all
               - latest
             default: latest
+        - name: includeDeleted
+          in: query
+          description: |
+            Whether to include objects that have the `workspace.workflow.soft_delete` property set to true.
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'A list of identities matching the requested STIX id.'
@@ -150,10 +164,12 @@ paths:
           required: true
           schema:
             type: string
-        - name: soft_delete
+        - name: softDelete
           in: query
           description: |
-            Option to soft delete objects
+            When true the object is marked as deleted by setting the `workspace.workflow.soft_delete` property
+            to true (soft delete).
+            When false the object is removed from the database (hard delete).
           schema:
             type: boolean
             default: true
@@ -182,6 +198,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: includeDeleted
+          in: query
+          description: |
+            Whether to include an object that has the `workspace.workflow.soft_delete` property set to true.
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'The version of an identity matching the STIX id and modified date.'
@@ -249,10 +272,12 @@ paths:
           required: true
           schema:
             type: string
-        - name: soft_delete
+        - name: softDelete
           in: query
           description: |
-            Option to soft delete objects
+            When true the object is marked as deleted by setting the `workspace.workflow.soft_delete` property
+            to true (soft delete).
+            When false the object is removed from the database (hard delete).
           schema:
             type: boolean
             default: true
