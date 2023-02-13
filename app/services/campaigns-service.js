@@ -168,7 +168,7 @@ exports.retrieveById = function(stixId, options, callback) {
     }
 };
 
-exports.retrieveVersionById = function(stixId, modified, callback) {
+exports.retrieveVersionById = function(stixId, modified, options, callback) {
     // Retrieve the version of the campaign with the matching stixId and modified date
 
     if (!stixId) {
@@ -327,6 +327,24 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
+exports.deleteById = function (stixId, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    Campaign.deleteMany({ 'stix.id': stixId }, function (err, campaign) {
+        if (err) {
+            return callback(err);
+        }
+        else {
+            //Note: campaign is null if not found
+            return callback(null, campaign);
+        }
+    });
+};
+
 exports.deleteVersionById = function (stixId, stixModified, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -344,24 +362,6 @@ exports.deleteVersionById = function (stixId, stixModified, callback) {
         if (err) {
             return callback(err);
         } else {
-            //Note: campaign is null if not found
-            return callback(null, campaign);
-        }
-    });
-};
-
-exports.deleteById = function (stixId, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    Campaign.deleteMany({ 'stix.id': stixId }, function (err, campaign) {
-        if (err) {
-            return callback(err);
-        }
-        else {
             //Note: campaign is null if not found
             return callback(null, campaign);
         }

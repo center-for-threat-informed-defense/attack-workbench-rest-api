@@ -192,7 +192,7 @@ exports.retrieveById = function (stixId, options, callback) {
     }
 };
 
-exports.retrieveVersionById = function (stixId, modified, callback) {
+exports.retrieveVersionById = function (stixId, modified, options, callback) {
     // Retrieve the versions of the software with the matching stixId and modified date
 
     if (!stixId) {
@@ -363,6 +363,34 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
     });
 };
 
+exports.deleteById = function (stixId, options, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+    if (options.soft_delete) {
+        Software.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, software) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: software is null if not found
+                return callback(null, software);
+            }
+        });
+    }
+    else {
+        Software.deleteMany({ 'stix.id': stixId }, function (err, software) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: software is null if not found
+                return callback(null, software);
+            }
+        });
+    }
+};
+
 exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -387,34 +415,6 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     }
     else {
         Software.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, software) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: software is null if not found
-                return callback(null, software);
-            }
-        });
-    }
-};
-
-exports.deleteById = function (stixId, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-    if (options.soft_delete) {
-        Software.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, software) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: software is null if not found
-                return callback(null, software);
-            }
-        });
-    }
-    else {
-        Software.deleteMany({ 'stix.id': stixId }, function (err, software) {
             if (err) {
                 return callback(err);
             } else {

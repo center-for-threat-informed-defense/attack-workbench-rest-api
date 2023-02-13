@@ -251,7 +251,7 @@ exports.retrieveById = function (stixId, options, callback) {
     }
 };
 
-exports.retrieveVersionById = function (stixId, modified, callback) {
+exports.retrieveVersionById = function (stixId, modified, options, callback) {
     // Retrieve the versions of the data component with the matching stixId and modified date
 
     if (!stixId) {
@@ -407,6 +407,34 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
     });
 };
 
+exports.deleteById = function (stixId, options, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+    if (options.soft_delete) {
+        DataComponent.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, dataComponent) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: dataComponent is null if not found
+                return callback(null, dataComponent);
+            }
+        });
+    }
+    else {
+        DataComponent.deleteMany({ 'stix.id': stixId }, function (err, dataComponent) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: dataComponent is null if not found
+                return callback(null, dataComponent);
+            }
+        });
+    }
+};
+
 exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -435,34 +463,6 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
                 return callback(err);
             } else {
                 // Note: data component is null if not found
-                return callback(null, dataComponent);
-            }
-        });
-    }
-};
-
-exports.deleteById = function (stixId, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-    if (options.soft_delete) {
-        DataComponent.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, dataComponent) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: dataComponent is null if not found
-                return callback(null, dataComponent);
-            }
-        });
-    }
-    else {
-        DataComponent.deleteMany({ 'stix.id': stixId }, function (err, dataComponent) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: dataComponent is null if not found
                 return callback(null, dataComponent);
             }
         });

@@ -184,7 +184,7 @@ exports.retrieveById = function (stixId, options, callback) {
     }
 };
 
-exports.retrieveVersionById = function (stixId, modified, callback) {
+exports.retrieveVersionById = function (stixId, modified, options, callback) {
     // Retrieve the versions of the tactic with the matching stixId and modified date
 
     if (!stixId) {
@@ -339,6 +339,34 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
     });
 };
 
+exports.deleteById = function (stixId, options, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+    if (options.soft_delete) {
+        Tactic.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, tactic) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: tactic is null if not found
+                return callback(null, tactic);
+            }
+        });
+    }
+    else {
+        Tactic.deleteMany({ 'stix.id': stixId }, function (err, tactic) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: tactic is null if not found
+                return callback(null, tactic);
+            }
+        });
+    }
+};
+
 exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -363,34 +391,6 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     }
     else {
         Tactic.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, tactic) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: tactic is null if not found
-                return callback(null, tactic);
-            }
-        });
-    }
-};
-
-exports.deleteById = function (stixId, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-    if (options.soft_delete) {
-        Tactic.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, tactic) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: tactic is null if not found
-                return callback(null, tactic);
-            }
-        });
-    }
-    else {
-        Tactic.deleteMany({ 'stix.id': stixId }, function (err, tactic) {
             if (err) {
                 return callback(err);
             } else {

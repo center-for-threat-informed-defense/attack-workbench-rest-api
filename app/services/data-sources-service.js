@@ -373,6 +373,34 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
     });
 };
 
+exports.deleteById = function (stixId, options, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+    if (options.soft_delete) {
+        DataSource.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, dataSource) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: dataSource is null if not found
+                return callback(null, dataSource);
+            }
+        });
+    }
+    else {
+        DataSource.deleteMany({ 'stix.id': stixId }, function (err, dataSource) {
+            if (err) {
+                return callback(err);
+            } else {
+                //Note: dataSource is null if not found
+                return callback(null, dataSource);
+            }
+        });
+    }
+};
+
 exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -401,34 +429,6 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
                 return callback(err);
             } else {
                 // Note: data source is null if not found
-                return callback(null, dataSource);
-            }
-        });
-    }
-};
-
-exports.deleteById = function (stixId, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-    if (options.soft_delete) {
-        DataSource.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, dataSource) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: dataSource is null if not found
-                return callback(null, dataSource);
-            }
-        });
-    }
-    else {
-        DataSource.deleteMany({ 'stix.id': stixId }, function (err, dataSource) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: dataSource is null if not found
                 return callback(null, dataSource);
             }
         });
