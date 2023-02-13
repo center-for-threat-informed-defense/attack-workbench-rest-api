@@ -423,7 +423,7 @@ describe('Groups API', function () {
         const timestamp = new Date().toISOString();
         group.stix.created = timestamp;
         group.stix.modified = timestamp;
-        group.stix.name = 'Mr. Brown';
+        group.stix.name = 'intrusion-set-2 Brown';
         group.stix.description = 'This is a new group. Red.';
         const body = group;
         request(app)
@@ -512,6 +512,7 @@ describe('Groups API', function () {
                 }
                 else {
                     // We expect to get zero groups in an array
+                    // (This endpoint applies the search filter after retrieving the latest version of each group)
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
@@ -550,6 +551,32 @@ describe('Groups API', function () {
             });
     });
 
+    let group5;
+    it('POST /api/groups should create a new version of a group with a duplicate stix.id but different stix.modified date', async function () {
+        group5 = _.cloneDeep(group3);
+        group5._id = undefined;
+        group5.__t = undefined;
+        group5.__v = undefined;
+        const timestamp = new Date().toISOString();
+        group5.stix.modified = timestamp;
+        group5.stix.description = 'This is a new version of a group. Indigo.';
+
+        const body = group5;
+        const res = await request(app)
+            .post('/api/groups')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created group
+        const group = res.body;
+        expect(group).toBeDefined();
+    });
+
+    // These tests focus on retrieving objects when all versions of a group have been SOFT deleted.
+
     it('DELETE /api/groups/:id should not delete a group when the id cannot be found', function (done) {
         request(app)
             .delete('/api/groups/not-an-id')
@@ -565,9 +592,9 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups/:id/modified/:modified deletes a group', function (done) {
+    it('DELETE /api/groups/:id should soft delete all the versions of the group', function (done) {
         request(app)
-            .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified + '?soft_delete=true')
+            .delete('/api/groups/' + group3.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -580,11 +607,12 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups deletes a group with soft_delete property set to false', function (done) {
+    it('GET /api/groups returns no objects when retrieving the soft deleted groups', function (done) {
         request(app)
-            .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified + '?soft_delete=false')
+            .get('/api/groups/' + group3.stix.id + '?versions=all')
+            .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
+            .expect(404)
             .end(function(err, res) {
                 if (err) {
                     done(err);
@@ -594,10 +622,79 @@ describe('Groups API', function () {
                 }
             });
     });
-        
-    it('DELETE /api/groups/:id should delete all the groups with the same stix id', function (done) {
+
+    it('GET /api/groups returns all versions of the group using the includeDeleted flag set', function (done) {
         request(app)
-            .delete('/api/groups/' + group2.stix.id)
+            .get('/api/groups/' + group3.stix.id + '?versions=all&includeDeleted=true')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get two groups in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups does not include the soft deleted group', function (done) {
+        request(app)
+            .get('/api/groups')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+                    expect(groups[0].stix.modified).toBe(group4.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups includes the soft deleted group when the includeDeleted flag is set', function (done) {
+        request(app)
+            .get('/api/groups?includeDeleted=true')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get two groups in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    // These tests focus on retrieving objects when all versions of a group have been HARD deleted.
+
+    it('DELETE /api/groups/:id should hard delete all the versions of the group', function (done) {
+        request(app)
+            .delete('/api/groups/' + group3.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -610,9 +707,89 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups/:id/modified/:modified should delete the third group', function (done) {
+    it('GET /api/groups returns no objects when retrieving the hard deleted group', function (done) {
         request(app)
-            .delete('/api/groups/' + group2.stix.id + '?soft_delete=false')
+            .get('/api/groups/' + group3.stix.id + '?versions=all')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups returns no objects when retrieving the hard deleted group even with the includeDeleted flag set', function (done) {
+        request(app)
+            .get('/api/groups/' + group3.stix.id + '?versions=all&includeDeleted=true')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups does not include the soft deleted group', function (done) {
+        request(app)
+            .get('/api/groups')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+                    expect(groups[0].stix.modified).toBe(group4.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups does not include the soft deleted group even when the includeDeleted flag is set', function (done) {
+        request(app)
+            .get('/api/groups?includeDeleted=true')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+                    done();
+                }
+            });
+    });
+
+    // These tests focus on retrieving objects when one version of a group has been SOFT deleted and another version
+    // has been HARD deleted.
+
+    it('DELETE /api/groups/:id/modified/:modified soft deletes a version of a group', function (done) {
+        request(app)
+            .delete('/api/groups/' + group4.stix.id + '/modified/' + group4.stix.modified + '?softDelete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -625,9 +802,220 @@ describe('Groups API', function () {
             });
     });
 
-    it('DELETE /api/groups should delete the third group with soft_delete property set to false', function (done) {
+    it('DELETE /api/groups/:id/modified/:modified hard deletes a version of a group', function (done) {
         request(app)
-            .delete('/api/groups/' + group3.stix.id + '/modified/' + group3.stix.modified + '?soft_delete=false')
+            .delete('/api/groups/' + group2.stix.id + '/modified/' + group2.stix.modified + '?softDelete=false')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups/:id/modified/:modified does not return the soft deleted group', function (done) {
+        request(app)
+            .get('/api/groups/' + group4.stix.id + '/modified/' + group4.stix.modified)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups/:id/modified/:modified returns the soft deleted group when the includeDeleted flag is set', function (done) {
+        request(app)
+            .get('/api/groups/' + group4.stix.id + '/modified/' + group4.stix.modified + '?includeDeleted=true')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group
+                    const group = res.body;
+                    expect(group).toBeDefined();
+                    expect(group.stix).toBeDefined();
+                    expect(group.stix.id).toBe(group4.stix.id);
+                    expect(group.stix.modified).toBe(group4.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups/:id/modified/:modified does not return the hard deleted group', function (done) {
+        request(app)
+            .get('/api/groups/' + group2.stix.id + '/modified/' + group2.stix.modified)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups/:id/modified/:modified does not return the hard deleted group even when the includeDeleted flag is set', function (done) {
+        request(app)
+            .get('/api/groups/' + group2.stix.id + '/modified/' + group2.stix.modified)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups/:id returns the first version of the group', function (done) {
+        request(app)
+            .get('/api/groups/' + group1.stix.id + '?versions=all')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    // - group 1 should be returned
+                    // - group 2 is hard deleted
+                    // - group 4 is soft deleted
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+                    expect(groups[0].stix.modified).toBe(group1.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups/:id returns two versions of the group when the includeDeleted flag is set', function (done) {
+        request(app)
+            .get('/api/groups/' + group1.stix.id + '?versions=all&includeDeleted=true')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    // - group 1 should be returned
+                    // - group 2 is hard deleted
+                    // - group 4 is soft deleted and should be returned
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups/:id returns the first version of the group when getting the latest', function (done) {
+        request(app)
+            .get('/api/groups/' + group1.stix.id + '?versions=latest')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    // - group 1 should be returned
+                    // - group 2 is hard deleted
+                    // - group 4 is soft deleted
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+                    expect(groups[0].stix.modified).toBe(group1.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups returns the first version of the group', function (done) {
+        request(app)
+            .get('/api/groups')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+                    expect(groups[0].stix.modified).toBe(group1.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups returns the soft deleted version of the group', function (done) {
+        request(app)
+            .get('/api/groups?includeDeleted=true')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get one group in an array
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+                    expect(groups[0].stix.modified).toBe(group4.stix.modified);
+                    done();
+                }
+            });
+    });
+
+    // Cleanup
+
+    it('DELETE /api/groups/:id should hard delete all the versions of the group', function (done) {
+        request(app)
+            .delete('/api/groups/' + group4.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -642,7 +1030,7 @@ describe('Groups API', function () {
 
     it('GET /api/groups returns an empty array of groups', function (done) {
         request(app)
-            .get('/api/groups')
+            .get('/api/groups?includeDeleted=true')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)

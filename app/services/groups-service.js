@@ -35,18 +35,24 @@ exports.retrieveAll = function (options, callback) {
             query['workspace.workflow.state'] = options.state;
         }
     }
-    query['workspace.workflow.soft_delete'] = { $in: [null, false] };
+
+    const softDeleteFilter = { 'workspace.workflow.soft_delete': { $in: [null, false] }};
+
     // Build the aggregation
+    // - Sort by stix.id and stix.modified
+    // - Filter out soft deleted documents
     // - Group the documents by stix.id, sorted by stix.modified
     // - Use the last document in each group (according to the value of stix.modified)
     // - Then apply query, skip and limit options
-    const aggregation = [
-        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' } } },
-        { $replaceRoot: { newRoot: '$document' } },
-        { $sort: { 'stix.id': 1 } },
-        { $match: query }
-    ];
+    const aggregation = [];
+    aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': 1 } });
+    if (!options.includeDeleted) {
+        aggregation.push({ $match: softDeleteFilter });
+    }
+    aggregation.push({ $group: { _id: '$stix.id', document: { $last: '$$ROOT' } } });
+    aggregation.push({ $replaceRoot: { newRoot: '$document' } });
+    aggregation.push({ $sort: { 'stix.id': 1 } });
+    aggregation.push({ $match: query });
 
     if (typeof options.search !== 'undefined') {
         options.search = regexValidator.sanitizeRegex(options.search);
@@ -132,14 +138,22 @@ exports.retrieveById = function (stixId, options, callback) {
                     } else {
                         return callback(err);
                     }
-                } else {
+                }
+                else {
+                    if (!options.includeDeleted) {
+                        groups = groups.filter(g => !g.workspace.workflow.soft_delete);
+                    }
                     identitiesService.addCreatedByAndModifiedByIdentitiesToAll(groups)
                         .then(() => callback(null, groups));
                 }
             });
     }
     else if (options.versions === 'latest') {
-        Group.findOne({ 'stix.id': stixId })
+        const query = { 'stix.id': stixId };
+        if (!options.includeDeleted) {
+            query['workspace.workflow.soft_delete'] = { $in: [null, false] };
+        }
+        Group.findOne(query)
             .sort('-stix.modified')
             .lean()
             .exec(function (err, group) {
@@ -172,7 +186,7 @@ exports.retrieveById = function (stixId, options, callback) {
     }
 };
 
-exports.retrieveVersionById = function (stixId, modified, callback) {
+exports.retrieveVersionById = function (stixId, modified, options, callback) {
     // Retrieve the versions of the group with the matching stixId and modified date
 
     if (!stixId) {
@@ -201,11 +215,16 @@ exports.retrieveVersionById = function (stixId, modified, callback) {
         else {
             // Note: document is null if not found
             if (group) {
-                identitiesService.addCreatedByAndModifiedByIdentities(group)
-                    .then(() => callback(null, group));
+                // Filter out a soft deleted document
+                if (group.workspace.workflow.soft_delete && !options.includeDeleted) {
+                    return callback();
+                }
+                else {
+                    identitiesService.addCreatedByAndModifiedByIdentities(group)
+                        .then(() => callback(null, group));
+                }
             }
             else {
-                console.log('** NOT FOUND')
                 return callback();
             }
         }
@@ -332,6 +351,35 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
     });
 };
 
+exports.deleteById = function (stixId, options, callback) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    if (options.softDelete) {
+        Group.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, res) {
+            if (err) {
+                return callback(err);
+            }
+            else {
+                return callback(null, res.modifiedCount);
+            }
+        });
+    }
+    else {
+        Group.deleteMany({ 'stix.id': stixId }, function (err, res) {
+            if (err) {
+                return callback(err);
+            }
+            else {
+                return callback(null, res.deletedCount);
+            }
+        });
+    }
+};
+
 exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -344,7 +392,8 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
         error.parameterName = 'modified';
         return callback(error);
     }
-    if (options.soft_delete) {
+
+    if (options.softDelete) {
         Group.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, group) {
             if (err) {
                 return callback(err);
@@ -356,34 +405,6 @@ exports.deleteVersionById = function (stixId, stixModified, options, callback) {
     }
     else {
         Group.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, group) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: group is null if not found
-                return callback(null, group);
-            }
-        });
-    }
-};
-
-exports.deleteById = function (stixId, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-    if (options.soft_delete) {
-        Group.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, group) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: group is null if not found
-                return callback(null, group);
-            }
-        });
-    }
-    else {
-        Group.deleteMany({ 'stix.id': stixId }, function (err, group) {
             if (err) {
                 return callback(err);
             } else {

@@ -149,17 +149,17 @@ exports.deleteById = function(req, res) {
         softDelete: req.query.softDelete
     };
 
-    groupsService.deleteById(req.params.stixId, options, function (err, groups) {
+    groupsService.deleteById(req.params.stixId, options, function (err, deletedCount) {
         if (err) {
             logger.error('Delete group failed. ' + err);
             return res.status(500).send('Unable to delete group. Server error.');
         }
         else {
-            if (groups.deletedCount === 0) {
-                return res.status(404).send('Group not found.');
+            if (deletedCount === 0) {
+                return res.status(404).send('Unable to delete group. Group not found.');
             }
             else {
-                logger.debug(`Success: Deleted group with id ${ req.params.stixId }`);
+                logger.debug(`Success: Deleted ${ deletedCount } versions of group with id ${ req.params.stixId }`);
                 return res.status(204).end();
             }
         }

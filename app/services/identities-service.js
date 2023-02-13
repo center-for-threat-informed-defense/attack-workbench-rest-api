@@ -1,6 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
+
 const Identity = require('../models/identity-model');
 const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
