@@ -218,3 +218,83 @@ exports.setDefaultMarkingDefinitions = async function(attackObject) {
         attackObject.stix.object_marking_refs = defaultMarkingDefinitions;
     }
 }
+
+exports.makeDeleteByIdSync = function(model) {
+    return function(stixId, options, callback) {
+        if (!stixId) {
+            const error = new Error(errors.missingParameter);
+            error.parameterName = 'stixId';
+            return callback(error);
+        }
+
+        if (options.softDelete) {
+            model.updateMany(
+                { 'stix.id': stixId },
+                { $set: { 'workspace.workflow.soft_delete': true } },
+                function (err, res) {
+                    if (err) {
+                        return callback(err);
+                    }
+                    else {
+                        return callback(null, res.modifiedCount);
+                    }
+                });
+        }
+        else {
+            model.deleteMany(
+                { 'stix.id': stixId },
+                function (err, res) {
+                    if (err) {
+                        return callback(err);
+                    }
+                    else {
+                        return callback(null, res.deletedCount);
+                    }
+                });
+        }
+    }
+}
+
+exports.makeDeleteVersionByIdSync = function(model) {
+    return function(stixId, stixModified, options, callback) {
+        if (!stixId) {
+            const error = new Error(errors.missingParameter);
+            error.parameterName = 'stixId';
+            return callback(error);
+        }
+
+        if (!stixModified) {
+            const error = new Error(errors.missingParameter);
+            error.parameterName = 'modified';
+            return callback(error);
+        }
+
+        if (options.softDelete) {
+            model.findOneAndUpdate(
+                { 'stix.id': stixId, 'stix.modified': stixModified },
+                { $set: { 'workspace.workflow.soft_delete': true } },
+                function (err, deletedDocument) {
+                    if (err) {
+                        return callback(err);
+                    }
+                    else {
+                        // Note: deletedDocument is null if not found
+                        return callback(null, deletedDocument);
+                    }
+                });
+        }
+        else {
+            model.findOneAndRemove(
+                { 'stix.id': stixId, 'stix.modified': stixModified },
+                function (err, deletedDocument) {
+                    if (err) {
+                        return callback(err);
+                    }
+                    else {
+                        // Note: deletedDocument is null if not found
+                        return callback(null, deletedDocument);
+                    }
+                });
+        }
+    }
+};

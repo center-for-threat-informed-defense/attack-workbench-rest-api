@@ -327,43 +327,5 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     });
 };
 
-exports.deleteById = function (stixId, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    Campaign.deleteMany({ 'stix.id': stixId }, function (err, campaign) {
-        if (err) {
-            return callback(err);
-        }
-        else {
-            //Note: campaign is null if not found
-            return callback(null, campaign);
-        }
-    });
-};
-
-exports.deleteVersionById = function (stixId, stixModified, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    if (!stixModified) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'modified';
-        return callback(error);
-    }
-
-    Campaign.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, campaign) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: campaign is null if not found
-            return callback(null, campaign);
-        }
-    });
-};
+exports.deleteById = attackObjectsService.makeDeleteByIdSync(Campaign);
+exports.deleteVersionById = attackObjectsService.makeDeleteVersionByIdSync(Campaign);

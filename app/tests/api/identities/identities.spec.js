@@ -406,7 +406,7 @@ describe('Identity API', function () {
 
     it('DELETE /api/identities/:id/modified/:modified deletes an identity', function (done) {
         request(app)
-            .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified+ '?soft_delete=true')
+            .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified+ '?softDelete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -419,9 +419,9 @@ describe('Identity API', function () {
             });
     });
 
-    it('DELETE /api/identities deletes an identity with soft_delete property set to false', function (done) {
+    it('DELETE /api/identities deletes an identity with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified + '?soft_delete=false')
+            .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -449,9 +449,9 @@ describe('Identity API', function () {
             });
     });
     
-    it('DELETE /api/identities should delete all the identities with the same stix id with soft_delete property set to false', function (done) {
+    it('DELETE /api/identities should delete all the identities with the same stix id with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/identities/' + identity2.stix.id + '?soft_delete=false')
+            .delete('/api/identities/' + identity2.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

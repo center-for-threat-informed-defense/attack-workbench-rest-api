@@ -1,6 +1,7 @@
 'use strict';
 
 const mitigationsService = require('../services/mitigations-service');
+const attackObjectsController = require('./attack-objects-controller');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
@@ -140,45 +141,5 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    mitigationsService.deleteById(req.params.stixId, options, function (err, mitigations) {
-        if (err) {
-            logger.error('Delete mitigation failed. ' + err);
-            return res.status(500).send('Unable to delete mitigation. Server error.');
-        }
-        else {
-            if (mitigations.deletedCount === 0) {
-                return res.status(404).send('Mitigation not found.');
-            }
-            else {
-                logger.debug(`Success: Deleted mitigation with id ${ req.params.stixId }`);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    mitigationsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, mitigation) {
-        if (err) {
-            logger.error('Delete mitigation failed. ' + err);
-            return res.status(500).send('Unable to delete mitigation. Server error.');
-        }
-        else {
-            if (!mitigation) {
-                return res.status(404).send('Mitigation not found.');
-            } else {
-                logger.debug("Success: Deleted mitigation with id " + mitigation.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
+exports.deleteById = attackObjectsController.makeDeleteByIdSync(mitigationsService);
+exports.deleteVersionById = attackObjectsController.makeDeleteVersionByIdSync(mitigationsService);

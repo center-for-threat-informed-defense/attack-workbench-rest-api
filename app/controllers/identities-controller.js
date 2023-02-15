@@ -1,6 +1,7 @@
 'use strict';
 
 const identitiesService = require('../services/identities-service');
+const attackObjectsController = require('./attack-objects-controller');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
@@ -138,45 +139,5 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    identitiesService.deleteById(req.params.stixId, options, function (err, identities) {
-        if (err) {
-            logger.error('Delete identity failed. ' + err);
-            return res.status(500).send('Unable to identity identity. Server error.');
-        }
-        else {
-            if (identities.deletedCount === 0) {
-                return res.status(404).send('Identity not found.');
-            }
-            else {
-                logger.debug(`Success: Deleted identity with id ${ req.params.stixId }`);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    identitiesService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, identity) {
-        if (err) {
-            logger.error('Delete identity failed. ' + err);
-            return res.status(500).send('Unable to delete identity. Server error.');
-        }
-        else {
-            if (!identity) {
-                return res.status(404).send('Identity not found.');
-            } else {
-                logger.debug("Success: Deleted identity with id " + identity.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
+exports.deleteById = attackObjectsController.makeDeleteByIdSync(identitiesService);
+exports.deleteVersionById = attackObjectsController.makeDeleteVersionByIdSync(identitiesService);

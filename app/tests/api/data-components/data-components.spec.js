@@ -415,7 +415,7 @@ describe('Data Components API', function () {
 
     it('DELETE /api/data-components/:id/modified/:modified deletes a data component', function (done) {
         request(app)
-            .delete('/api/data-components/' + dataComponent1.stix.id + '/modified/' + dataComponent1.stix.modified + '?soft_delete=true')
+            .delete('/api/data-components/' + dataComponent1.stix.id + '/modified/' + dataComponent1.stix.modified + '?softDelete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -428,9 +428,9 @@ describe('Data Components API', function () {
             });
     });   
 
-    it('DELETE /api/data-components deletes a data component with soft_delete property set to false', function (done) {
+    it('DELETE /api/data-components deletes a data component with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/data-components/' + dataComponent1.stix.id + '/modified/' + dataComponent1.stix.modified + '?soft_delete=false')
+            .delete('/api/data-components/' + dataComponent1.stix.id + '/modified/' + dataComponent1.stix.modified + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -458,9 +458,9 @@ describe('Data Components API', function () {
             });
     });
     
-    it('DELETE /api/data-components should delete all the data components with the same stix id with the soft_delete property set to false', function (done) {
+    it('DELETE /api/data-components should delete all the data components with the same stix id with the softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/data-components/' + dataComponent2.stix.id + '?soft_delete=false')
+            .delete('/api/data-components/' + dataComponent2.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

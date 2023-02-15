@@ -1,6 +1,7 @@
 'use strict';
 
 const softwareService = require('../services/software-service');
+const attackObjectsController = require('./attack-objects-controller');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
@@ -149,45 +150,5 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    softwareService.deleteById(req.params.stixId, options, function (err, softwares) {
-        if (err) {
-            logger.error('Delete software failed. ' + err);
-            return res.status(500).send('Unable to delete software. Server error.');
-        }
-        else {
-            if (softwares.deletedCount === 0) {
-                return res.status(404).send('Software not found.');
-            }
-            else {
-                logger.debug(`Success: Deleted software with id ${ req.params.stixId }`);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    softwareService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, software) {
-        if (err) {
-            logger.error('Delete software failed. ' + err);
-            return res.status(500).send('Unable to delete software. Server error.');
-        }
-        else {
-            if (!software) {
-                return res.status(404).send('Software not found.');
-            } else {
-                logger.debug("Success: Deleted software with id " + software.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
+exports.deleteById = attackObjectsController.makeDeleteByIdSync(softwareService);
+exports.deleteVersionById = attackObjectsController.makeDeleteVersionByIdSync(softwareService);

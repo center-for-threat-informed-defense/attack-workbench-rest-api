@@ -483,7 +483,7 @@ describe('Software API', function () {
 
     it('DELETE /api/software/:id/modified/:modified deletes a software', function (done) {
         request(app)
-            .delete('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified + '?soft_delete=true')
+            .delete('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified + '?softDelete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -496,9 +496,9 @@ describe('Software API', function () {
             });
     });
 
-    it('DELETE /api/software deletes a software with soft_delete property set to false', function (done) {
+    it('DELETE /api/software deletes a software with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified + '?soft_delete=false')
+            .delete('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -526,9 +526,9 @@ describe('Software API', function () {
             });
     });
 
-    it('DELETE /api/software should delete all the softwares with the same stix id with soft_delete property set to false', function (done) {
+    it('DELETE /api/software should delete all the softwares with the same stix id with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/software/' + software2.stix.id + '?soft_delete=false')
+            .delete('/api/software/' + software2.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

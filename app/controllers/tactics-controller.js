@@ -1,6 +1,7 @@
 'use strict';
 
 const tacticsService = require('../services/tactics-service');
+const attackObjectsController = require('./attack-objects-controller');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
@@ -141,46 +142,8 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    tacticsService.deleteById(req.params.stixId, options, function (err, tactics) {
-        if (err) {
-            logger.error('Delete tactic failed. ' + err);
-            return res.status(500).send('Unable to delete tactic. Server error.');
-        } else {
-            if (tactics.deletedCount === 0) {
-                return res.status(404).send('Tactic not found.');
-            } else {
-                logger.debug(`Success: Deleted tactic with id ${req.params.stixId}`);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    tacticsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, tactic) {
-        if (err) {
-            logger.error('Delete tactic failed. ' + err);
-            return res.status(500).send('Unable to delete tactic. Server error.');
-        }
-        else {
-            if (!tactic) {
-                return res.status(404).send('tactic not found.');
-            } else {
-                logger.debug("Success: Deleted tactic with id " + tactic.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
+exports.deleteById = attackObjectsController.makeDeleteByIdSync(tacticsService);
+exports.deleteVersionById = attackObjectsController.makeDeleteVersionByIdSync(tacticsService);
 
 exports.retrieveTechniquesForTactic = async function(req, res) {
     try {

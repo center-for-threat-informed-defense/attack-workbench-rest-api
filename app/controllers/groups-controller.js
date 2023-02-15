@@ -1,6 +1,7 @@
 'use strict';
 
 const groupsService = require('../services/groups-service');
+const attackObjectsController = require('../controllers/attack-objects-controller');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
@@ -144,45 +145,5 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    groupsService.deleteById(req.params.stixId, options, function (err, deletedCount) {
-        if (err) {
-            logger.error('Delete group failed. ' + err);
-            return res.status(500).send('Unable to delete group. Server error.');
-        }
-        else {
-            if (deletedCount === 0) {
-                return res.status(404).send('Unable to delete group. Group not found.');
-            }
-            else {
-                logger.debug(`Success: Deleted ${ deletedCount } versions of group with id ${ req.params.stixId }`);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    groupsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, group) {
-        if (err) {
-            logger.error('Delete group failed. ' + err);
-            return res.status(500).send('Unable to delete group. Server error.');
-        }
-        else {
-            if (!group) {
-                return res.status(404).send('Group not found.');
-            } else {
-                logger.debug("Success: Deleted group with id " + group.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
+exports.deleteById = attackObjectsController.makeDeleteByIdSync(groupsService);
+exports.deleteVersionById = attackObjectsController.makeDeleteVersionByIdSync(groupsService);

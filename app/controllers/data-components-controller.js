@@ -1,6 +1,7 @@
 'use strict';
 
 const dataComponentsService = require('../services/data-components-service');
+const attackObjectsController = require('./attack-objects-controller');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = function(req, res) {
@@ -139,46 +140,5 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    dataComponentsService.deleteById(req.params.stixId, options, function (err, dataComponents) {
-        if (err) {
-            logger.error('Delete data component failed. ' + err);
-            return res.status(500).send('Unable to delete data component. Server error.');
-        }
-        else {
-            if (dataComponents.deletedCount === 0) {
-                return res.status(404).send('Data Component not found.');
-            }
-            else {
-                logger.debug(`Success: Deleted data component with id ${ req.params.stixId }`);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    dataComponentsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, dataComponent) {
-        if (err) {
-            logger.error('Delete data component failed. ' + err);
-            return res.status(500).send('Unable to delete data component. Server error.');
-        }
-        else {
-            if (!dataComponent) {
-                return res.status(404).send('Data component not found.');
-            } else {
-                logger.debug("Success: Deleted data component with id " + dataComponent.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
+exports.deleteById = attackObjectsController.makeDeleteByIdSync(dataComponentsService);
+exports.deleteVersionById = attackObjectsController.makeDeleteVersionByIdSync(dataComponentsService);

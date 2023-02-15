@@ -498,7 +498,7 @@ describe('Data Sources API', function () {
 
     it('DELETE /api/data-sources/:id/modified/:modified deletes a data source', function (done) {
         request(app)
-            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified + '?soft_delete=true')
+            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified + '?softDelete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -511,9 +511,9 @@ describe('Data Sources API', function () {
             });
     });
     
-    it('DELETE /api/data-sources deletes a data source with soft_delete property set to false', function (done) {
+    it('DELETE /api/data-sources deletes a data source with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified + '?soft_delete=false')
+            .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -541,9 +541,9 @@ describe('Data Sources API', function () {
             });
     });
     
-    it('DELETE /api/data-sources should delete all the data sources with the same stix id with soft_delete property set to false', function (done) {
+    it('DELETE /api/data-sources should delete all the data sources with the same stix id with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/data-sources/' + dataSource2.stix.id + '?soft_delete=false')
+            .delete('/api/data-sources/' + dataSource2.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

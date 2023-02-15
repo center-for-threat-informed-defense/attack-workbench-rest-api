@@ -351,67 +351,8 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
     });
 };
 
-exports.deleteById = function (stixId, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-    if (options.soft_delete) {
-        Technique.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, technique) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: technique is null if not found
-                return callback(null, technique);
-            }
-        });
-    }
-    else {
-        Technique.deleteMany({ 'stix.id': stixId }, function (err, technique) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: technique is null if not found
-                return callback(null, technique);
-            }
-        });
-    }
-};
-
-exports.deleteVersionById = function (stixId, stixModified, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    if (!stixModified) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'modified';
-        return callback(error);
-    }
-    if (options.soft_delete) {
-        Technique.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, technique) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: technique is null if not found
-                return callback(null, technique);
-            }
-        });
-    }
-    else {
-        Technique.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, technique) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: technique is null if not found
-                return callback(null, technique);
-            }
-        });
-    }
-};
+exports.deleteById = attackObjectsService.makeDeleteByIdSync(Technique);
+exports.deleteVersionById = attackObjectsService.makeDeleteVersionByIdSync(Technique);
 
 function tacticMatchesTechnique(technique) {
     return function(tactic) {

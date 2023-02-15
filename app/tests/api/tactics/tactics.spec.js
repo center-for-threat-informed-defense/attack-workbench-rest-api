@@ -468,7 +468,7 @@ describe('Tactics API', function () {
 
     it('DELETE /api/tactics/:id/modified/:modified deletes a tactic', function (done) {
         request(app)
-            .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified + '?soft_delete=true')
+            .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified + '?softDelete=true')
             .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(204)
             .end(function (err, res) {
@@ -483,7 +483,7 @@ describe('Tactics API', function () {
 
     it('DELETE /api/tactics/:id should delete all the tactics with the same stix id', function (done) {
         request(app)
-            .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified + '?soft_delete=false')
+            .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified + '?softDelete=false')
             .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(204)
             .end(function (err, res) {
@@ -496,7 +496,7 @@ describe('Tactics API', function () {
             });
     });
 
-    it('DELETE /api/tactics should delete all the tactics with the same stix id with soft_delete property set to true by default', function (done) {
+    it('DELETE /api/tactics should delete all the tactics with the same stix id with softDelete property set to true by default', function (done) {
         request(app)
             .delete('/api/tactics/' + tactic2.stix.id)
             .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
@@ -511,9 +511,9 @@ describe('Tactics API', function () {
             });
     });
 
-    it('DELETE /api/tactics should delete all the tactics with the same stix id with soft_delete property set to false', function (done) {
+    it('DELETE /api/tactics should delete all the tactics with the same stix id with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/tactics/' + tactic2.stix.id + '?soft_delete=false')
+            .delete('/api/tactics/' + tactic2.stix.id + '?softDelete=false')
             .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(204)
             .end(function (err, res) {

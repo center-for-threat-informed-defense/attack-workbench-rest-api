@@ -418,7 +418,7 @@ describe('Matrices API', function () {
 
     it('DELETE /api/matrices/:id/modified/:modified deletes a matrix', function (done) {
         request(app)
-            .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified + '?soft_delete=true')
+            .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified + '?softDelete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -431,9 +431,9 @@ describe('Matrices API', function () {
             });
     });
     
-    it('DELETE /api/matrices deletes a matrix with soft_delete property set to false', function (done) {
+    it('DELETE /api/matrices deletes a matrix with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified + '?soft_delete=false')
+            .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -461,9 +461,9 @@ describe('Matrices API', function () {
             });
     });
 
-    it('DELETE /api/matrices should delete all the matrices with the same stix id with soft_delete property set to false', function (done) {
+    it('DELETE /api/matrices should delete all the matrices with the same stix id with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/matrices/' + matrix2.stix.id + '?soft_delete=false')
+            .delete('/api/matrices/' + matrix2.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

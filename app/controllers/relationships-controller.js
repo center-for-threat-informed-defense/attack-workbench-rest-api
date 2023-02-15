@@ -1,6 +1,7 @@
 'use strict';
 
 const relationshipsService = require('../services/relationships-service');
+const attackObjectsController = require('./attack-objects-controller');
 const logger = require('../lib/logger');
 
 exports.retrieveAll = async function(req, res) {
@@ -146,45 +147,5 @@ exports.updateFull = function(req, res) {
     });
 };
 
-exports.deleteById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    relationshipsService.deleteById(req.params.stixId, options, function (err, relationships) {
-        if (err) {
-            logger.error('Delete relationship failed. ' + err);
-            return res.status(500).send('Unable to delete relationship. Server error.');
-        }
-        else {
-            if (relationships.deletedCount === 0) {
-                return res.status(404).send('Relationship not found.');
-            }
-            else {
-                logger.debug(`Success: Deleted relationship with id ${ req.params.stixId }`);
-                return res.status(204).end();
-            }
-        }
-    });
-};
-
-exports.deleteVersionById = function(req, res) {
-    const options = {
-        softDelete: req.query.softDelete
-    };
-
-    relationshipsService.deleteVersionById(req.params.stixId, req.params.modified, options, function (err, relationship) {
-        if (err) {
-            logger.error('Delete relationship failed. ' + err);
-            return res.status(500).send('Unable to delete relationship. Server error.');
-        }
-        else {
-            if (!relationship) {
-                return res.status(404).send('Relationship not found.');
-            } else {
-                logger.debug("Success: Deleted relationship with id " + relationship.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
-};
+exports.deleteById = attackObjectsController.makeDeleteByIdSync(relationshipsService);
+exports.deleteVersionById = attackObjectsController.makeDeleteVersionByIdSync(relationshipsService);

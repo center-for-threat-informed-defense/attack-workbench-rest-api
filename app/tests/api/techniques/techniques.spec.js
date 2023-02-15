@@ -510,9 +510,9 @@ describe('Techniques Basic API', function () {
             });
     });
 
-    it('DELETE /api/techniques/:id/modified/:modified deletes a technique', function (done) {
+    it('DELETE /api/techniques/:id/modified/:modified soft deletes a technique', function (done) {
         request(app)
-            .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified + '?soft_delete=true' )
+            .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified + '?softDelete=true' )
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function (err, res) {
@@ -524,9 +524,9 @@ describe('Techniques Basic API', function () {
             });
     });
 
-    it('DELETE /api/techniques deletes a technique with soft_delete property set to false', function (done) {
+    it('DELETE /api/techniques/:id/modified/:modified hard deletes a technique', function (done) {
         request(app)
-            .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified + '?soft_delete=false')
+            .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function (err, res) {
@@ -553,9 +553,9 @@ describe('Techniques Basic API', function () {
             });
     });
     
-    it('DELETE /api/technique should delete all the techniques with the same stix id with soft_delete property set to false', function (done) {
+    it('DELETE /api/technique should delete all the techniques with the same stix id with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/techniques/' + technique2.stix.id + '?soft_delete=false')
+            .delete('/api/techniques/' + technique2.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

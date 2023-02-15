@@ -420,7 +420,7 @@ describe('Mitigations API', function () {
 
     it('DELETE /api/mitigations/:id/modified/:modified deletes a mitigation', function (done) {
         request(app)
-            .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified + '?soft_delete=true')
+            .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified + '?softDelete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -433,9 +433,9 @@ describe('Mitigations API', function () {
             });
     });
 
-    it('DELETE /api/mitigations deletes a mitigation with soft_delete property set to false', function (done) {
+    it('DELETE /api/mitigations deletes a mitigation with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified + '?soft_delete=false')
+            .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -463,9 +463,9 @@ describe('Mitigations API', function () {
             });
     });
 
-    it('DELETE /api/mitigations should delete all the mitigations with the same stix id with soft_delete property set to false', function (done) {
+    it('DELETE /api/mitigations should delete all the mitigations with the same stix id with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/mitigations/' + mitigation2.stix.id + '?soft_delete=false')
+            .delete('/api/mitigations/' + mitigation2.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

@@ -649,9 +649,9 @@ describe('Relationships API', function () {
     });
   
     
-    it('DELETE /api/relationships deletes a relationship with soft_delete property set to true', function (done) {
+    it('DELETE /api/relationships deletes a relationship with softDelete property set to true', function (done) {
         request(app)
-            .delete('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified + '?soft_delete=true')
+            .delete('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified + '?softDelete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -666,8 +666,8 @@ describe('Relationships API', function () {
 
     it('DELETE /api/relationships/:id should delete all the relationships with the same stix id', function (done) {
         request(app)
-            //.get('/api/relationships/' +  + relationship1b.stix.id + "?soft_delete=false")
-            .delete('/api/relationships/' + relationship1b.stix.id + '?soft_delete=true')
+            //.get('/api/relationships/' +  + relationship1b.stix.id + "?softDelete=false")
+            .delete('/api/relationships/' + relationship1b.stix.id + '?softDelete=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -680,9 +680,9 @@ describe('Relationships API', function () {
             });
     });   
     
-    it('DELETE /api/relationships should delete the third relationship with soft_delete property set to false', function (done) {
+    it('DELETE /api/relationships should delete the third relationship with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/relationships/' + relationship2.stix.id + '/modified/' + relationship2.stix.modified + '?soft_delete=false')
+            .delete('/api/relationships/' + relationship2.stix.id + '/modified/' + relationship2.stix.modified + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -695,9 +695,9 @@ describe('Relationships API', function () {
             });
     });
      
-    it('DELETE /api/relationships deletes a relationship with soft_delete property set to false', function (done) {
+    it('DELETE /api/relationships deletes a relationship with softDelete property set to false', function (done) {
         request(app)
-            .delete('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified + '?soft_delete=false')
+            .delete('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {
@@ -710,10 +710,10 @@ describe('Relationships API', function () {
             });
     });
        
-    it('DELETE /api/relationships should delete all the relationships with the same stix id with soft_delete set to false', function (done) {
+    it('DELETE /api/relationships should delete all the relationships with the same stix id with softDelete set to false', function (done) {
         request(app)
-            //.get('/api/relationships/' +  + relationship1b.stix.id + "?soft_delete=false")
-            .delete('/api/relationships/' + relationship1b.stix.id + '?soft_delete=false')
+            //.get('/api/relationships/' +  + relationship1b.stix.id + "?softDelete=false")
+            .delete('/api/relationships/' + relationship1b.stix.id + '?softDelete=false')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204)
             .end(function(err, res) {

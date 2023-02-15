@@ -288,67 +288,8 @@ exports.updateFull = function (stixId, stixModified, data, callback) {
     });
 };
 
-exports.deleteById = function (stixId, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-    if (options.soft_delete) {
-        Identity.updateMany({ 'stix.id': stixId }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, identity) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: identity is null if not found
-                return callback(null, identity);
-            }
-        });
-    }
-    else {
-        Identity.deleteMany({ 'stix.id': stixId }, function (err, identity) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: identity is null if not found
-                return callback(null, identity);
-            }
-        });
-    }
-};
-
-exports.deleteVersionById = function (stixId, stixModified, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    if (!stixModified) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'modified';
-        return callback(error);
-    }
-    if (options.soft_delete) {
-        Identity.findOneAndUpdate({ 'stix.id': stixId, 'stix.modified': stixModified }, { $set: { 'workspace.workflow.soft_delete': true } }, function (err, identity) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: identity is null if not found
-                return callback(null, identity);
-            }
-        });
-    }
-    else {
-        Identity.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, identity) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: identity is null if not found
-                return callback(null, identity);
-            }
-        });
-    }
-};
+exports.deleteById = attackObjectsService.makeDeleteByIdSync(Identity);
+exports.deleteVersionById = attackObjectsService.makeDeleteVersionByIdSync(Identity);
 
 async function getLatest(stixId) {
     const identity = await Identity
