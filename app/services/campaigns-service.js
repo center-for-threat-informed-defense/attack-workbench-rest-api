@@ -3,209 +3,33 @@
 const uuid = require('uuid');
 const Campaign = require('../models/campaign-model');
 const systemConfigurationService = require('./system-configuration-service');
-const identitiesService = require('./identities-service');
 const attackObjectsService = require('./attack-objects-service');
+const identitiesService = require('./identities-service');
 const config = require('../config/config');
-const regexValidator = require('../lib/regex');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter',
-    invalidType: 'Invalid stix.type'
-};
-exports.errors = errors;
+exports.errors = attackObjectsService.errors;
 
-exports.retrieveAll = function(options, callback) {
-    // Build the query
-    const query = {};
-    if (!options.includeRevoked) {
-        query['stix.revoked'] = { $in: [null, false] };
-    }
-    if (!options.includeDeprecated) {
-        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
-    }
-    if (typeof options.state !== 'undefined') {
-        if (Array.isArray(options.state)) {
-            query['workspace.workflow.state'] = { $in: options.state };
-        }
-        else {
-            query['workspace.workflow.state'] = options.state;
-        }
-    }
+exports.retrieveAll = attackObjectsService.makeRetrieveAllSync(
+    Campaign,
+    addExtraDataToAll
+);
+exports.retrieveById = attackObjectsService.makeRetrieveByIdSync(
+    Campaign,
+    addExtraData,
+    addExtraDataToAll
+);
+exports.retrieveVersionById = attackObjectsService.makeRetrieveVersionByIdSync(
+    Campaign,
+    addExtraData
+);
 
-    // Build the aggregation
-    // - Group the documents by stix.id, sorted by stix.modified
-    // - Use the last document in each group (according to the value of stix.modified)
-    // - Then apply query, skip and limit options
-    const aggregation = [
-        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
-        { $replaceRoot: { newRoot: '$document' }},
-        { $sort: { 'stix.id': 1 }},
-        { $match: query }
-    ];
+async function addExtraData(campaign, options) {
+    await identitiesService.addCreatedByAndModifiedByIdentities(campaign);
+}
 
-    if (typeof options.search !== 'undefined') {
-        options.search = regexValidator.sanitizeRegex(options.search);
-        const match = { $match: { $or: [
-                    { 'stix.name': { '$regex': options.search, '$options': 'i' }},
-                    { 'stix.description': { '$regex': options.search, '$options': 'i' }},
-                    { 'workspace.attack_id': { '$regex': options.search, '$options': 'i' }}
-                ]}};
-        aggregation.push(match);
-    }
-
-    const facet = {
-        $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [ ]
-        }
-    };
-    if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
-    }
-    else {
-        facet.$facet.documents.push({ $skip: 0 });
-    }
-    if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-    }
-    aggregation.push(facet);
-
-    // Retrieve the documents
-    Campaign.aggregate(aggregation, function(err, results) {
-        if (err) {
-            return callback(err);
-        }
-        else {
-            identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents)
-                .then(function() {
-                    if (options.includePagination) {
-                        let derivedTotalCount = 0;
-                        if (results[0].totalCount.length > 0) {
-                            derivedTotalCount = results[0].totalCount[0].totalCount;
-                        }
-                        const returnValue = {
-                            pagination: {
-                                total: derivedTotalCount,
-                                offset: options.offset,
-                                limit: options.limit
-                            },
-                            data: results[0].documents
-                        };
-                        return callback(null, returnValue);
-                    }
-                    else {
-                        return callback(null, results[0].documents);
-                    }
-                });
-        }
-    });
-};
-
-exports.retrieveById = function(stixId, options, callback) {
-    // versions=all Retrieve all campaigns with the stixId
-    // versions=latest Retrieve the campaigns with the latest modified date for this stixId
-
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    if (options.versions === 'all') {
-        Campaign.find({'stix.id': stixId})
-            .lean()
-            .exec(function (err, campaigns) {
-                if (err) {
-                    if (err.name === 'CastError') {
-                        const error = new Error(errors.badlyFormattedParameter);
-                        error.parameterName = 'stixId';
-                        return callback(error);
-                    } else {
-                        return callback(err);
-                    }
-                } else {
-                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(campaigns)
-                        .then(() => callback(null, campaigns));
-                }
-            });
-    }
-    else if (options.versions === 'latest') {
-        Campaign.findOne({ 'stix.id': stixId })
-            .sort('-stix.modified')
-            .lean()
-            .exec(function(err, campaign) {
-                if (err) {
-                    if (err.name === 'CastError') {
-                        const error = new Error(errors.badlyFormattedParameter);
-                        error.parameterName = 'stixId';
-                        return callback(error);
-                    }
-                    else {
-                        return callback(err);
-                    }
-                }
-                else {
-                    // Note: document is null if not found
-                    if (campaign) {
-                        identitiesService.addCreatedByAndModifiedByIdentities(campaign)
-                            .then(() => callback(null, [ campaign ]));
-                    }
-                    else {
-                        return callback(null, []);
-                    }
-                }
-            });
-    }
-    else {
-        const error = new Error(errors.invalidQueryStringParameter);
-        error.parameterName = 'versions';
-        return callback(error);
-    }
-};
-
-exports.retrieveVersionById = function(stixId, modified, options, callback) {
-    // Retrieve the version of the campaign with the matching stixId and modified date
-
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    if (!modified) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'modified';
-        return callback(error);
-    }
-
-    Campaign.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function(err, campaign) {
-        if (err) {
-            if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'stixId';
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
-        }
-        else {
-            // Note: document is null if not found
-            if (campaign) {
-                identitiesService.addCreatedByAndModifiedByIdentities(campaign)
-                    .then(() => callback(null, campaign));
-            }
-            else {
-                return callback();
-            }
-        }
-    });
-};
+async function addExtraDataToAll(campaigns, options) {
+    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(campaigns);
+}
 
 exports.createIsAsync = true;
 exports.create = async function(data, options) {
@@ -216,7 +40,7 @@ exports.create = async function(data, options) {
     //      Set stix.x_mitre_modified_by_ref to the organization identity.
 
     if (data.stix.type !== 'campaign') {
-        throw new Error(errors.invalidType);
+        throw new Error(attackObjectsService.errors.invalidType);
     }
 
     // Create the document
@@ -268,7 +92,7 @@ exports.create = async function(data, options) {
     catch (err) {
         if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
-            const error = new Error(errors.duplicateId);
+            const error = new Error(attackObjectsService.errors.duplicateId);
             throw error;
         }
         else {
@@ -279,13 +103,13 @@ exports.create = async function(data, options) {
 
 exports.updateFull = function(stixId, stixModified, data, callback) {
     if (!stixId) {
-        const error = new Error(errors.missingParameter);
+        const error = new Error(attackObjectsService.errors.missingParameter);
         error.parameterName = 'stixId';
         return callback(error);
     }
 
     if (!stixModified) {
-        const error = new Error(errors.missingParameter);
+        const error = new Error(attackObjectsService.errors.missingParameter);
         error.parameterName = 'modified';
         return callback(error);
     }
@@ -293,7 +117,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
     Campaign.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function(err, document) {
         if (err) {
             if (err.name === 'CastError') {
-                var error = new Error(errors.badlyFormattedParameter);
+                var error = new Error(attackObjectsService.errors.badlyFormattedParameter);
                 error.parameterName = 'stixId';
                 return callback(error);
             }
@@ -312,7 +136,7 @@ exports.updateFull = function(stixId, stixModified, data, callback) {
                 if (err) {
                     if (err.name === 'MongoServerError' && err.code === 11000) {
                         // 11000 = Duplicate index
-                        var error = new Error(errors.duplicateId);
+                        var error = new Error(attackObjectsService.errors.duplicateId);
                         return callback(error);
                     }
                     else {
