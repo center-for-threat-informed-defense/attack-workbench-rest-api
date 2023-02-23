@@ -205,6 +205,14 @@
               "cloud",
               "container"
             ]
+          },
+          {
+            "domainName": "mobile-attack",
+            "allowedValues": []
+          },
+          {
+            "domainName": "ics-attack",
+            "allowedValues": []
           }
         ]
       },
@@ -225,6 +233,17 @@
               "Google Workspace",
               "Network"
             ]
+          },
+          {
+            "domainName": "mobile-attack",
+            "allowedValues": [
+              "Android",
+              "iOS"
+            ]
+          },
+          {
+            "domainName": "ics-attack",
+            "allowedValues": []
           }
         ]
       }
