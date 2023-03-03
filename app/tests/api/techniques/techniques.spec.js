@@ -38,7 +38,8 @@ const initialObjectData = {
         x_mitre_detection: 'detection text',
         x_mitre_is_subtechnique: false,
         x_mitre_impact_type: [ 'impact-1' ],
-        x_mitre_platforms: [ 'platform-1', 'platform-2' ]
+        x_mitre_platforms: [ 'platform-1', 'platform-2' ],
+        x_mitre_network_requirements: true
     }
 };
 
@@ -200,6 +201,7 @@ describe('Techniques Basic API', function () {
                     expect(technique.stix.x_mitre_detection).toBe(technique1.stix.x_mitre_detection);
                     expect(technique.stix.x_mitre_is_subtechnique).toBe(technique1.stix.x_mitre_is_subtechnique);
                     expect(technique.stix.x_mitre_impact_type).toEqual(expect.arrayContaining(technique1.stix.x_mitre_impact_type));
+                    expect(technique.stix.x_mitre_network_requirements).toEqual(technique1.stix.x_mitre_network_requirements);
                     expect(technique.stix.x_mitre_platforms).toEqual(expect.arrayContaining(technique1.stix.x_mitre_platforms));
                     expect(technique.stix.x_mitre_attack_spec_version).toBe(technique1.stix.x_mitre_attack_spec_version);
 
