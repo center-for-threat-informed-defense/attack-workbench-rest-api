@@ -9,27 +9,28 @@ module.exports.attackPattern = {
     description: String,
     kill_chain_phases: [ stixCore.killChainPhaseSchema ],
 
-    // ATT&CK custom stix properties
-    x_mitre_modified_by_ref: String,
-    x_mitre_detection: String,
-    x_mitre_platforms: [ String ],
-    x_mitre_is_subtechnique: Boolean,
-    x_mitre_deprecated: Boolean,
-    x_mitre_domains: [ String ],
-    x_mitre_version: String,
+    // ATT&CK custom STIX properties
     x_mitre_attack_spec_version: String,
-    x_mitre_contributors: [ String ]
+    x_mitre_contributors: [ String ],
+    x_mitre_deprecated: Boolean,
+    x_mitre_detection: String,
+    x_mitre_domains: [ String ],
+    x_mitre_is_subtechnique: Boolean,
+    x_mitre_modified_by_ref: String,
+    x_mitre_platforms: [ String ],
+    x_mitre_version: String,
 };
 
 // Domain specific properties
 module.exports.attackPatternEnterpriseDomain = {
     x_mitre_data_sources: { type: [ String ], default: undefined },
     x_mitre_defense_bypassed: { type: [ String ], default: undefined },
-    x_mitre_impact_type: { type: [ String ], default: undefined },
-    x_mitre_permissions_required: { type: [ String ], default: undefined },
-    x_mitre_system_requirements: { type: [ String ], default: undefined },
     x_mitre_effective_permissions: { type: [ String ], default: undefined },
-    x_mitre_remote_support: Boolean
+    x_mitre_impact_type: { type: [ String ], default: undefined },
+    x_mitre_network_requirements: Boolean,
+    x_mitre_permissions_required: { type: [ String ], default: undefined },
+    x_mitre_remote_support: Boolean,
+    x_mitre_system_requirements: { type: [ String ], default: undefined },
 };
 
 module.exports.attackPatternMobileDomain = {
