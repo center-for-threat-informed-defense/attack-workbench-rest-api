@@ -208,7 +208,10 @@
           },
           {
             "domainName": "mobile-attack",
-            "allowedValues": []
+            "allowedValues": [
+              "device",
+              "report"
+            ]
           },
           {
             "domainName": "ics-attack",
