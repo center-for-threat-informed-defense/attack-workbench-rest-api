@@ -48,14 +48,16 @@ Retrieves the current user session object for a logged in user. If the user is n
 
 User Session Object:
 
-| Property        | Type    | Description                                     |    
-|-----------------|---------|-------------------------------------------------|
-| **email**       | string  | email address                                   |
-| **name**        | string  | full name                                       |
-| **status**      | string  | allowed values: `pending`, `active`, `inactive` |
-| **role**        | string  | allowed values: `visitor`, `editor`, `admin`    |
-| **identity**    | object  | STIX identity assigned to this user             |
-| **registered**  | boolean | has the user been added to the database?        |
+| Property          | Type    | Description                                     |    
+|-------------------|---------|-------------------------------------------------|
+| **strategy**      | string  | authentication strategy used                    |
+| **userAccountId** | string  | STIX identity assigned to this user             |
+| **email**         | string  | email address                                   |
+| **status**        | string  | allowed values: `pending`, `active`, `inactive` |
+| **role**          | string  | allowed values: `visitor`, `editor`, `admin`    |
+| **displayName**   | string  | full name of the user                           |
+| **name**          | object  | username in the authentication system           |
+| **registered**    | boolean | has the user been added to the database?        |
 
 A user who is in the process of registering and has logged in but has not been added to the database
 
