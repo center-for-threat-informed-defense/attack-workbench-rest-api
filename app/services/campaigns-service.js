@@ -35,6 +35,14 @@ exports.retrieveAll = function(options, callback) {
             query['workspace.workflow.state'] = options.state;
         }
     }
+    if (typeof options.lastUpdatedBy !== 'undefined') {
+      if (Array.isArray(options.lastUpdatedBy)) {
+          query['workspace.workflow.created_by_user_account'] = { $in: options.lastUpdatedBy };
+      }
+      else {
+          query['workspace.workflow.created_by_user_account'] = options.lastUpdatedBy;
+      }
+    }
 
     // Build the aggregation
     // - Group the documents by stix.id, sorted by stix.modified

@@ -11,7 +11,8 @@ exports.retrieveAll = function(req, res) {
         state: req.query.state,
         includeRevoked: req.query.includeRevoked,
         includeDeprecated: req.query.includeDeprecated,
-        search: req.query.search
+        search: req.query.search,
+        lastUpdatedBy: req.query.lastUpdatedBy,
     }
 
     collectionsService.retrieveAll(options, function(err, collections) {

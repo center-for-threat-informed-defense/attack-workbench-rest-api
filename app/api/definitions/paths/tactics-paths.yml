@@ -73,6 +73,14 @@ paths:
             type: string
           allowReserved: true
           example: 'windows'
+        - name: lastUpdatedBy
+          in: query
+          description: |
+            The STIX ID of the user who last modified the object
+          schema:
+            type: string
+          allowReserved: true
+          example: 'identity--f568ad89-69bc-48e7-877b-43755f1d376d'
         - name: includePagination
           in: query
           description: |
