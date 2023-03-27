@@ -6,6 +6,7 @@ const AttackObject = require('../models/attack-object-model');
 const Relationship = require('../models/relationship-model');
 const identitiesService = require('./identities-service');
 const systemConfigurationService = require('./system-configuration-service');
+const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
 const regexValidator = require('../lib/regex');
 
@@ -50,12 +51,7 @@ exports.retrieveAll = async function(options) {
         }
     }
     if (typeof options.lastUpdatedBy !== 'undefined') {
-      if (Array.isArray(options.lastUpdatedBy)) {
-          query['workspace.workflow.created_by_user_account'] = { $in: options.lastUpdatedBy };
-      }
-      else {
-          query['workspace.workflow.created_by_user_account'] = options.lastUpdatedBy;
-      }
+      query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
     }
 
     // Build the aggregation
