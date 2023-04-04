@@ -15,4 +15,11 @@ router.route('/attack-objects')
         attackObjectsController.retrieveAll
     );
 
+// router.route('/attack-objects/users')
+//     .get(
+//         authn.authenticate,
+//         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),  //Proper access controls? Or shoudl be user required role?
+//         attackObjectsController.retrieveAll
+//     );
+
 module.exports = router;

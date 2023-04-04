@@ -13,7 +13,8 @@ exports.retrieveAll = async function(req, res) {
         includeDeprecated: req.query.includeDeprecated,
         search: req.query.search,
         includePagination: req.query.includePagination,
-        versions: req.query.versions
+        versions: req.query.versions,
+        users: req.query.users
     }
 
     try {
