@@ -51,10 +51,10 @@ exports.retrieveAll = async function(options) {
     }
     if (typeof options.users !== 'undefined') {
         if (Array.isArray(options.attackId)) {
-            query['workspace.workflow.created_by_user_account'] = { $in: options.users}
+            query['workspace.workflow.created_by_user_account'] = { $in: options.users };
         }
         else {
-            query['workspace.workflow.created_by_user_account'] = options.users
+            query['workspace.workflow.created_by_user_account'] = options.users;
         }
     }
 

@@ -93,6 +93,16 @@ paths:
               - all
               - latest
             default: latest
+        - name: users
+          in: query
+          description: |
+            The user IDs of the ATT&CK objects to retrieve.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
       responses:
         '200':
           description: 'A list of ATT&CK Objects.'
