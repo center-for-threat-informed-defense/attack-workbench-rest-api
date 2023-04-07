@@ -285,7 +285,7 @@ describe('ATT&CK Objects API', function () {
 
     let software1;
     it('POST /api/software creates a software', function (done) {
-        // Further setup - need to index malware object with workspace object in database first
+        // Further setup - need to index malware object with in database first
         const body = malwareObject;
         request(app)
             .post('/api/software')
