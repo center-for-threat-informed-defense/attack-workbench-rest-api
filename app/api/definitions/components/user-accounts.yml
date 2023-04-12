@@ -3,6 +3,7 @@ components:
     user-account:
       type: object
       required:
+        - username
         - status
       properties:
         id:

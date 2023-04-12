@@ -29,7 +29,8 @@
     "test:config": "mocha  --timeout 10000 --recursive ./app/tests/config",
     "test:import": "mocha  --timeout 10000 --recursive ./app/tests/import",
     "test:openapi": "mocha  --timeout 10000 ./app/tests/openapi",
-    "test:authn": "./app/tests/run-mocha-separate-jobs.sh ./app/tests/authn"
+    "test:authn": "./app/tests/run-mocha-separate-jobs.sh ./app/tests/authn",
+    "test:fuzz": "mocha --timeout 10000 --recursive ./app/tests/fuzz"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^9.0.9",

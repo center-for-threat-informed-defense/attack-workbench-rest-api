@@ -4,6 +4,11 @@
     "username": "user missing status and role"
   },
   {
+    "email": "user1@test.com",
+    "displayName": "user missing username",
+    "status": "pending"
+  },
+  {
     "email": "user2@test.com",
     "username": "user invalid status",
     "status": "abcde",

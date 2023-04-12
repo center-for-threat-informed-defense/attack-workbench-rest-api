@@ -10,6 +10,7 @@ const attackObjectsService = require('./attack-objects-service');
 const identitiesService = require('./identities-service');
 const config = require('../config/config');
 const regexValidator = require('../lib/regex');
+const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -36,6 +37,9 @@ exports.retrieveAll = function(options, callback) {
         else {
             query['workspace.workflow.state'] = options.state;
         }
+    }
+    if (typeof options.lastUpdatedBy !== 'undefined') {
+      query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
     }
 
     // Build the aggregation
