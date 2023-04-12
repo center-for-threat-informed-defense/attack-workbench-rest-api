@@ -96,7 +96,8 @@ exports.retrieveAll = async function(options) {
             state: options.state,
             versions: options.versions,
             lookupRefs: false,
-            includeIdentities: false
+            includeIdentities: false,
+            users: options.users
         };
         const relationships = await relationshipsService.retrieveAll(relationshipsOptions);
         documents = documents.concat(relationships);

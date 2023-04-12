@@ -327,9 +327,8 @@ describe('ATT&CK Objects API', function () {
                     const attackObjects = res.body;
                     expect(attackObjects).toBeDefined();
                     expect(Array.isArray(attackObjects)).toBe(true);
-                    expect(attackObjects.length).toBe(2);
+                    expect(attackObjects.length).toBe(1);
                     expect(attackObjects[0].stix.type).toBe('malware');
-                    expect(attackObjects[1].stix.type).toBe('relationship');
 
                     done();
                 }
