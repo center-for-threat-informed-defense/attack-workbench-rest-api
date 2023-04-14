@@ -91,7 +91,11 @@ paths:
           description: |
             The STIX ID of the user who last modified the object
           schema:
-            type: string
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
           example: 'identity--f568ad89-69bc-48e7-877b-43755f1d376d'
         - name: includePagination
           in: query
