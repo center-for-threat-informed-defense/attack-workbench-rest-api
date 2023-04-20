@@ -1,5 +1,5 @@
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 const crypto = require('crypto');
 
 // Tell config to read from a config file

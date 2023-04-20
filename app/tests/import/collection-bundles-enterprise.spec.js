@@ -1,5 +1,5 @@
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 const fs = require('fs');
 
 const logger = require('../../lib/logger');

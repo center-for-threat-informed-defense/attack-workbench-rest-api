@@ -1,5 +1,5 @@
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 const _ = require('lodash');
 const uuid = require('uuid');
 

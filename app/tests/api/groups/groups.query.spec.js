@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 const _ = require('lodash');
 const uuid = require('uuid');
 
@@ -13,6 +13,7 @@ logger.level = 'debug';
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
+const userAccountsService = require('../../../services/user-accounts-service');
 const groupsService = require('../../../services/groups-service');
 
 function asyncWait(ms) {
@@ -28,11 +29,12 @@ function makeExternalReference(attackId) {
     return { source_name: 'mitre-attack', external_id: attackId, url: `https://attack.mitre.org/groups/${ attackId }` };
 }
 
-async function configureGroups(baseGroup) {
+async function configureGroups(baseGroup, userAccountId1, userAccountId2) {
     const groups = [];
     // x_mitre_deprecated,revoked undefined
     const data1 = _.cloneDeep(baseGroup);
     data1.stix.external_references.push(makeExternalReference('G0001'));
+    data1.userAccountId = userAccountId1;
     groups.push(data1);
 
     // x_mitre_deprecated = false, revoked = false
@@ -41,6 +43,7 @@ async function configureGroups(baseGroup) {
     data2.stix.x_mitre_deprecated = false;
     data2.stix.revoked = false;
     data2.workspace.workflow = { state: 'work-in-progress' };
+    data2.userAccountId = userAccountId1;
     groups.push(data2);
 
     // x_mitre_deprecated = true, revoked = false
@@ -49,6 +52,7 @@ async function configureGroups(baseGroup) {
     data3.stix.x_mitre_deprecated = true;
     data3.stix.revoked = false;
     data3.workspace.workflow = { state: 'awaiting-review' };
+    data3.userAccountId = userAccountId1;
     groups.push(data3);
 
     // x_mitre_deprecated = false, revoked = true
@@ -57,11 +61,12 @@ async function configureGroups(baseGroup) {
     data4.stix.x_mitre_deprecated = false;
     data4.stix.revoked = true;
     data4.workspace.workflow = { state: 'awaiting-review' };
+    data4.userAccountId = userAccountId1;
     groups.push(data4);
 
     // multiple versions, last version has x_mitre_deprecated = true, revoked = true
     const data5a = _.cloneDeep(baseGroup);
-    const id = `attack-pattern--${uuid.v4()}`;
+    const id = `intrusion-set--${uuid.v4()}`;
     data5a.stix.external_references.push(makeExternalReference('G0005'));
     data5a.stix.id = id;
     data5a.stix.name = 'multiple-versions'
@@ -69,6 +74,7 @@ async function configureGroups(baseGroup) {
     const createdTimestamp = new Date().toISOString();
     data5a.stix.created = createdTimestamp;
     data5a.stix.modified = createdTimestamp;
+    data5a.userAccountId = userAccountId1;
     groups.push(data5a);
 
     await asyncWait(10); // wait so the modified timestamp can change
@@ -80,6 +86,7 @@ async function configureGroups(baseGroup) {
     data5b.stix.created = createdTimestamp;
     let timestamp = new Date().toISOString();
     data5b.stix.modified = timestamp;
+    data5b.userAccountId = userAccountId1;
     groups.push(data5b);
 
     await asyncWait(10);
@@ -93,6 +100,7 @@ async function configureGroups(baseGroup) {
     data5c.stix.created = createdTimestamp;
     timestamp = new Date().toISOString();
     data5c.stix.modified = timestamp;
+    data5c.userAccountId = userAccountId2;
     groups.push(data5c);
 
 //    logger.info(JSON.stringify(groups, null, 4));
@@ -103,7 +111,7 @@ async function configureGroups(baseGroup) {
 async function loadGroups(groups) {
     for (const group of groups) {
         if (!group.stix.name) {
-            group.stix.name = `attack-pattern-${group.stix.x_mitre_deprecated}-${group.stix.revoked}`;
+            group.stix.name = `group-${group.stix.x_mitre_deprecated}-${group.stix.revoked}`;
         }
 
         if (!group.stix.created) {
@@ -113,9 +121,28 @@ async function loadGroups(groups) {
         }
 
         // eslint-disable-next-line no-await-in-loop
-        await groupsService.create(group, { import: false });
+        await groupsService.create(group, { import: false, userAccountId: group.userAccountId });
     }
 }
+
+const userAccountData1 = {
+    email: 'test-blue@test.org',
+    username: 'test-blue@test.org',
+    displayName: 'Test User Blue',
+    status: 'active',
+    role: 'editor'
+};
+
+const userAccountData2 = {
+    email: 'test-red@test.org',
+    username: 'test-red@test.org',
+    displayName: 'Test User Red',
+    status: 'active',
+    role: 'editor'
+};
+
+let userAccount1;
+let userAccount2;
 
 describe('Groups API Queries', function () {
     let app;
@@ -135,8 +162,11 @@ describe('Groups API Queries', function () {
         // Log into the app
         passportCookie = await login.loginAnonymous(app);
 
+        userAccount1 = await userAccountsService.create(userAccountData1);
+        userAccount2 = await userAccountsService.create(userAccountData2);
+
         const baseGroup = await readJson('./groups.query.json');
-        const groups = await configureGroups(baseGroup);
+        const groups = await configureGroups(baseGroup, userAccount1.id, userAccount2.id);
         await loadGroups(groups);
     });
 
@@ -296,6 +326,32 @@ describe('Groups API Queries', function () {
 
                     const group = groups[0];
                     expect(group.workspace.attack_id).toEqual('G0001');
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups should return groups created by userAccount1', function (done) {
+        request(app)
+            .get(`/api/groups?lastUpdatedBy=${ userAccount1.id }`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the (non-deprecated, non-revoked) groups created by userAccount1
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(2);
+
+                    expect(groups[0].workspace.workflow.created_by_user_account).toEqual(userAccount1.id);
+                    expect(groups[1].workspace.workflow.created_by_user_account).toEqual(userAccount1.id);
 
                     done();
                 }

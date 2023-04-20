@@ -1,5 +1,5 @@
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 const setCookieParser = require('set-cookie-parser');
 const libCookie = require('cookie');
 const parse5 = require('parse5');

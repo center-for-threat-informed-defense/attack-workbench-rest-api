@@ -1,7 +1,7 @@
 const { promises: fs } = require('fs');
 
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');

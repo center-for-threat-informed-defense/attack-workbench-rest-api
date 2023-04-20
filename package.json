@@ -67,19 +67,19 @@
   "devDependencies": {
     "codecov": "^3.8.3",
     "cookie": "^0.5.0",
-    "eslint": "^8.22.0",
-    "expect": "^26.6.2",
-    "json-diff": "^0.9.0",
+    "eslint": "^8.37.0",
+    "expect": "^29.5.0",
+    "json-diff": "^1.0.3",
     "mocha": "^10.2.0",
-    "mongodb-memory-server": "^8.9.0",
+    "mongodb-memory-server": "^8.12.1",
     "nyc": "^15.1.0",
-    "openapi-schema-validator": "^12.0.0",
-    "parse5": "^7.0.0",
+    "openapi-schema-validator": "^12.1.0",
+    "parse5": "^7.1.2",
     "parse5-query-domtree": "^1.0.2",
-    "read-json-lines-sync": "^2.2.0",
-    "set-cookie-parser": "^2.5.1",
-    "snyk": "^1.1040.0",
-    "superagent": "^8.0.0",
-    "supertest": "^6.2.4"
+    "read-json-lines-sync": "^2.2.5",
+    "set-cookie-parser": "^2.6.0",
+    "snyk": "^1.1137.0",
+    "superagent": "^8.0.9",
+    "supertest": "^6.3.3"
   }
 }

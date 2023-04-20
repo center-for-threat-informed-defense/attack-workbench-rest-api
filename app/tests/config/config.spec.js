@@ -1,7 +1,7 @@
 // Tell config to read from a config file
 process.env.JSON_CONFIG_PATH = './app/tests/config/test-config.json';
 
-const expect = require('expect');
+const { expect } = require('expect');
 
 const config = require('../../config/config');
 const markingDefinitionsService = require('../../services/marking-definitions-service');
