@@ -1,6 +1,6 @@
 {
   "name": "attack-workbench-rest-api",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "attackSpecVersion": "3.1.0",
   "description": "An application allowing users to explore, create, annotate, and share extensions of the MITRE ATT&CK® knowledge base. This repository contains the REST API service for storing, querying, and editing ATT&CK objects.",
   "keywords": [
