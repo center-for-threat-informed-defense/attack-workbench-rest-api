@@ -31,11 +31,17 @@ function makeExternalReference(attackId) {
 
 async function configureGroups(baseGroup, userAccountId1, userAccountId2) {
     const groups = [];
-    // x_mitre_deprecated,revoked undefined
-    const data1 = _.cloneDeep(baseGroup);
-    data1.stix.external_references.push(makeExternalReference('G0001'));
-    data1.userAccountId = userAccountId1;
-    groups.push(data1);
+    // x_mitre_deprecated,revoked undefined (user account 1)
+    const data1a = _.cloneDeep(baseGroup);
+    data1a.stix.external_references.push(makeExternalReference('G0001'));
+    data1a.userAccountId = userAccountId1;
+    groups.push(data1a);
+
+    // x_mitre_deprecated,revoked undefined (user account 2)
+    const data1b = _.cloneDeep(baseGroup);
+    data1b.stix.external_references.push(makeExternalReference('G0010'));
+    data1b.userAccountId = userAccountId2;
+    groups.push(data1b);
 
     // x_mitre_deprecated = false, revoked = false
     const data2 = _.cloneDeep(baseGroup);
@@ -170,7 +176,7 @@ describe('Groups API Queries', function () {
         await loadGroups(groups);
     });
 
-    it('GET /api/groups should return 2 of the preloaded groups', function (done) {
+    it('GET /api/groups should return 3 of the preloaded groups', function (done) {
         request(app)
             .get('/api/groups')
             .set('Accept', 'application/json')
@@ -186,7 +192,7 @@ describe('Groups API Queries', function () {
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(2);
+                    expect(groups.length).toBe(3);
                     done();
                 }
             });
@@ -208,13 +214,13 @@ describe('Groups API Queries', function () {
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(2);
+                    expect(groups.length).toBe(3);
                     done();
                 }
             });
     });
 
-    it('GET /api/groups should return all groups', function (done) {
+    it('GET /api/groups should return all non-revoked groups', function (done) {
         request(app)
             .get('/api/groups?includeDeprecated=true')
             .set('Accept', 'application/json')
@@ -230,7 +236,7 @@ describe('Groups API Queries', function () {
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(3);
+                    expect(groups.length).toBe(4);
                     done();
                 }
             });
@@ -252,13 +258,13 @@ describe('Groups API Queries', function () {
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(2);
+                    expect(groups.length).toBe(3);
                     done();
                 }
             });
     });
 
-    it('GET /api/groups should return all groups', function (done) {
+    it('GET /api/groups should return all non-deprecated groups', function (done) {
         request(app)
             .get('/api/groups?includeRevoked=true')
             .set('Accept', 'application/json')
@@ -274,7 +280,7 @@ describe('Groups API Queries', function () {
                     const groups = res.body;
                     expect(groups).toBeDefined();
                     expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(3);
+                    expect(groups.length).toBe(4);
                     done();
                 }
             });
@@ -352,6 +358,54 @@ describe('Groups API Queries', function () {
 
                     expect(groups[0].workspace.workflow.created_by_user_account).toEqual(userAccount1.id);
                     expect(groups[1].workspace.workflow.created_by_user_account).toEqual(userAccount1.id);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups should return groups created by userAccount2', function (done) {
+        request(app)
+            .get(`/api/groups?lastUpdatedBy=${ userAccount2.id }`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the (non-deprecated, non-revoked) group created by userAccount2
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(1);
+
+                    expect(groups[0].workspace.workflow.created_by_user_account).toEqual(userAccount2.id);
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/groups should return groups created by both userAccount1 and userAccount2', function (done) {
+        request(app)
+            .get(`/api/groups?lastUpdatedBy=${ userAccount1.id }&lastUpdatedBy=${ userAccount2.id }`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the (non-deprecated, non-revoked) groups created by both user accounts
+                    const groups = res.body;
+                    expect(groups).toBeDefined();
+                    expect(Array.isArray(groups)).toBe(true);
+                    expect(groups.length).toBe(3);
 
                     done();
                 }
