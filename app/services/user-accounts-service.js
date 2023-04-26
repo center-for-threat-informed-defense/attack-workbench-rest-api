@@ -14,7 +14,7 @@ const errors = {
 };
 exports.errors = errors;
 
-function addEffectiveRole(userAccount) {
+exports.addEffectiveRole = function(userAccount) {
     // Initially, this forces all pending and inactive accounts to have the role 'none'.
     // TBD: Make the role configurable
     if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
@@ -22,7 +22,7 @@ function addEffectiveRole(userAccount) {
     }
 }
 
-function userAccountAsIdentity(userAccount) {
+exports.userAccountAsIdentity = function(userAccount) {
     return {
         type: 'identity',
         spec_version: '2.1',
