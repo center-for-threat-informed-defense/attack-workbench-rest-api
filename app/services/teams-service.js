@@ -11,7 +11,8 @@ const errors = {
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
     notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
+    invalidQueryStringParameter: 'Invalid query string parameter',
+    duplicateName: 'Duplicate name',
 };
 exports.errors = errors;
 
@@ -128,7 +129,7 @@ exports.create = async function(data) {
     catch (err) {
         if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
-            const error = new Error(errors.duplicateId);
+            const error = err.message.contains('name_') ? new Error(errors.duplicateName) :new Error(errors.duplicateId);
             throw error;
         }
         else {
@@ -173,7 +174,7 @@ exports.updateFull = function(teamId, data, callback) {
                 if (err) {
                     if (err.name === 'MongoServerError' && err.code === 11000) {
                         // 11000 = Duplicate index
-                        var error = new Error(errors.duplicateId);
+                        const error = err.message.contains('name_') ? new Error(errors.duplicateName) :new Error(errors.duplicateId);
                         return callback(error);
                     }
                     else {
