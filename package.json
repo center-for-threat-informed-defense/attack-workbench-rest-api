@@ -20,7 +20,8 @@
   },
   "main": "index.js",
   "scripts": {
-    "coverage": "nyc npm test",
+    "coverage:cobertura": "c8 --reporter=cobertura npm test",
+    "coverage:text": "c8 npm test",
     "lint": "eslint .",
     "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",
@@ -65,13 +66,13 @@
     "winston": "^3.3.3"
   },
   "devDependencies": {
+    "c8": "^7.13.0",
     "cookie": "^0.5.0",
     "eslint": "^8.37.0",
     "expect": "^29.5.0",
     "json-diff": "^1.0.3",
     "mocha": "^10.2.0",
     "mongodb-memory-server": "^8.12.1",
-    "nyc": "^15.1.0",
     "openapi-schema-validator": "^12.1.0",
     "parse5": "^7.1.2",
     "parse5-query-domtree": "^1.0.2",
