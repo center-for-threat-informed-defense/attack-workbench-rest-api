@@ -20,7 +20,7 @@ jobs:
       - run: npm run snyk
       - run: npx nyc --reporter=cobertura npm test
       - name: Upload Coverage to CodeCov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_SECRET }}
           files: coverage/cobertura-coverage.xml
