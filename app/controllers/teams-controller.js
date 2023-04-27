@@ -31,7 +31,7 @@ exports.retrieveAll = function(req, res) {
 exports.retrieveById = function(req, res) {
     teamsService.retrieveById(req.params.id, function (err, team) {
         if (err) {
-            if (err.message === team.errors.badlyFormattedParameter) {
+            if (err.message === teamsService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted teams id: ' + req.params.id);
                 return res.status(400).send('Team id is badly formatted.');
             }
@@ -59,13 +59,18 @@ exports.create = async function(req, res) {
     // Create the user account
     try {
         const team = await teamsService.create(teamData);
-
         logger.debug(`Success: Created team with id ${ team.id }`);
         return res.status(201).send(team);
     }
     catch(err) {
-        logger.error("Failed with error: " + err);
-        return res.status(500).send('Unable to create team. Server error.');
+        if (err.message === teamsService.errors.duplicateName) {
+            logger.error("Duplicated team name");
+            return res.status(409).send('Team name must be unique.');
+        } else {
+            logger.error("Failed with error: " + err);
+            return res.status(500).send('Unable to create team. Server error.');
+        }
+        
     }
 };
 
@@ -117,14 +122,22 @@ exports.retrieveAllUsers = function(req, res) {
     includePagination: req.query.includePagination,
     includeStixIdentity: req.query.includeStixIdentity
   };
-  teamsService.retrieveAllUsers(req.params.id, options,function (err, results) {
+
+  const teamId = req.params.id;
+
+  teamsService.retrieveAllUsers(teamId, options,function (err, results) {
         if (err) {
-            logger.error('Retrieve users from teamId failed. ' + err);
-            return res.status(500).send('Unable to retrieve users. Server error.');
+            if (err.message === teamsService.errors.notFound) {
+                logger.error(`Could not find team with with id ${teamId}. `);
+                return res.status(404).send('Team not found');
+            } else {
+                logger.error('Retrieve users from teamId failed. ' + err);
+                return res.status(500).send('Unable to retrieve users. Server error.');
+            }
         }
         else {
           if (options.includePagination) {
-            logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total user account(s)`);
+              logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total user account(s)`);
           }
           else {
               logger.debug(`Success: Retrieved ${ results.length } user account(s)`);
