@@ -129,7 +129,7 @@ exports.create = async function(data) {
     catch (err) {
         if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
-            const error = err.message.contains('name_') ? new Error(errors.duplicateName) :new Error(errors.duplicateId);
+            const error = err.message.includes('name_') ? new Error(errors.duplicateName) :new Error(errors.duplicateId);
             throw error;
         }
         else {
@@ -224,6 +224,10 @@ exports.retrieveAllUsers = function(teamId, options, callback) {
                   return callback(err);
               }
           } else {
+              if (!team) {
+                const error = new Error(errors.notFound);
+                return callback(error);
+              }
               const matchQuery = {'id': {$in: team.userIDs}};
               const aggregation = [
                 { $sort: { 'username': 1 } },
