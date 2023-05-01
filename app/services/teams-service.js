@@ -148,7 +148,7 @@ exports.updateFull = function(teamId, data, callback) {
     Team.findOne({ 'id': teamId }, function(err, document) {
         if (err) {
             if (err.name === 'CastError') {
-                var error = new Error(errors.badlyFormattedParameter);
+                const error = new Error(errors.badlyFormattedParameter);
                 error.parameterName = 'teamId';
                 return callback(error);
             }
