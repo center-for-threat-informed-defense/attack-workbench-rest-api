@@ -313,7 +313,7 @@ describe('ATT&CK Objects API', function () {
 
     it('GET /api/attack-objects uses the users parameter to return objects by user identity', function (done) {
         request(app)
-            .get(`/api/attack-objects?users=${software1.workspace.workflow.created_by_user_account}`)
+            .get(`/api/attack-objects?lastUpdatedBy=${software1.workspace.workflow.created_by_user_account}`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)

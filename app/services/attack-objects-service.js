@@ -49,14 +49,6 @@ exports.retrieveAll = async function(options) {
             query['workspace.workflow.state'] = options.state;
         }
     }
-    if (typeof options.users !== 'undefined') {
-        if (Array.isArray(options.attackId)) {
-            query['workspace.workflow.created_by_user_account'] = { $in: options.users };
-        }
-        else {
-            query['workspace.workflow.created_by_user_account'] = options.users;
-        }
-    }
 
     // Build the aggregation
     const aggregation = [];
@@ -96,8 +88,7 @@ exports.retrieveAll = async function(options) {
             state: options.state,
             versions: options.versions,
             lookupRefs: false,
-            includeIdentities: false,
-            users: options.users
+            includeIdentities: false
         };
         const relationships = await relationshipsService.retrieveAll(relationshipsOptions);
         documents = documents.concat(relationships);

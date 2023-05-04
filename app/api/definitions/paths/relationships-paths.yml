@@ -138,7 +138,7 @@ paths:
           schema:
             type: boolean
             default: true
-        - name: users
+        - name: lastUpdatedBy
           in: query
           description: |
             The IDs of users who created the relationships to retrieve.
