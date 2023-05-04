@@ -6,6 +6,7 @@ const AttackObject = require('../models/attack-object-model');
 const Relationship = require('../models/relationship-model');
 const identitiesService = require('./identities-service');
 const systemConfigurationService = require('./system-configuration-service');
+const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
 const regexValidator = require('../lib/regex');
 
@@ -48,6 +49,9 @@ exports.retrieveAll = async function(options) {
         else {
             query['workspace.workflow.state'] = options.state;
         }
+    }
+    if (typeof options.lastUpdatedBy !== 'undefined') {
+      query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
     }
 
     // Build the aggregation

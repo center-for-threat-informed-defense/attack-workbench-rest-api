@@ -1,7 +1,7 @@
 const OpenAPISchemaValidator = require('openapi-schema-validator').default;
 const refParser = require("@apidevtools/json-schema-ref-parser");
 const config = require('../../config/config');
-const expect = require('expect');
+const { expect } = require('expect');
 
 const validator = new OpenAPISchemaValidator({ version: 3 });
 

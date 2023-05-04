@@ -1,5 +1,5 @@
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 const _ = require('lodash');
 
 const database = require('../../../lib/database-in-memory');
@@ -145,6 +145,50 @@ describe('Notes API', function () {
                     expect(notes).toBeDefined();
                     expect(Array.isArray(notes)).toBe(true);
                     expect(notes.length).toBe(1);
+                    done();
+                }
+            });
+    });
+    
+    it('GET /api/notes can use the lastUpdatedBy parameter to return the note(s), if any, which were created by a certain user (expect 0 > for anonymous user)', function (done) {
+        request(app)
+            .get(`/api/notes?lastUpdatedBy=${note1.workspace.workflow.created_by_user_account}`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // Only 1 note created by this user
+                    const notes = res.body;
+                    expect(notes).toBeDefined();
+                    expect(Array.isArray(notes)).toBe(true);
+                    expect(notes.length).toBe(1);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/notes can use the lastUpdatedBy parameter to return note(s), if any, which were created by a certain user (expect 0 for a fake user)', function (done) {
+        request(app)
+            .get(`/api/notes?lastUpdatedBy=identity--11111111-1111-1111-1111-111111111111`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // Expect no notes to be created by this user
+                    const notes = res.body;
+                    expect(notes).toBeDefined();
+                    expect(Array.isArray(notes)).toBe(true);
+                    expect(notes.length).toBe(0);
                     done();
                 }
             });

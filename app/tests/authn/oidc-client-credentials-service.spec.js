@@ -1,5 +1,5 @@
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 
 // Tell config to read from a config file
 process.env.JSON_CONFIG_PATH = './app/tests/authn/oidc-client-credentials-service-account.json';

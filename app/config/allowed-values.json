@@ -201,21 +201,27 @@
           {
             "domainName": "enterprise-attack",
             "allowedValues": [
-              "host",
-              "cloud",
-              "container"
+              "Cloud Control Plane",
+              "Container",
+              "Host",
+              "Network",
+              "OSINT"
             ]
           },
           {
             "domainName": "mobile-attack",
             "allowedValues": [
-              "device",
-              "report"
+              "Device",
+              "Report"
             ]
           },
           {
             "domainName": "ics-attack",
-            "allowedValues": []
+            "allowedValues": [
+              "Cloud Control Plane",
+              "Host",
+              "Network"
+            ]
           }
         ]
       },

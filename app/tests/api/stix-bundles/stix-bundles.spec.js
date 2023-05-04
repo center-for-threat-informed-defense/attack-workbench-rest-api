@@ -1,5 +1,5 @@
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';

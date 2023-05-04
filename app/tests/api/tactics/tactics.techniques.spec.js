@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 
 const request = require('supertest');
-const expect = require('expect');
+const { expect } = require('expect');
 const util = require('util');
 
 const login = require('../../shared/login');
