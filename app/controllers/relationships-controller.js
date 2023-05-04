@@ -20,7 +20,7 @@ exports.retrieveAll = async function(req, res) {
         includePagination: req.query.includePagination,
         lookupRefs: req.query.lookupRefs,
         includeIdentities: req.query.includeIdentities,
-        users: req.query.users
+        lastUpdatedBy: req.query.lastUpdatedBy
     }
 
     try {
