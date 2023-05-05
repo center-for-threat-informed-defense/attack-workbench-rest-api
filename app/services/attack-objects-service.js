@@ -50,6 +50,7 @@ exports.retrieveAll = async function(options) {
             query['workspace.workflow.state'] = options.state;
         }
     }
+
     if (typeof options.lastUpdatedBy !== 'undefined') {
       query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
     }
@@ -92,7 +93,8 @@ exports.retrieveAll = async function(options) {
             state: options.state,
             versions: options.versions,
             lookupRefs: false,
-            includeIdentities: false
+            includeIdentities: false,
+            lastUpdatedBy: options.lastUpdatedBy
         };
         const relationships = await relationshipsService.retrieveAll(relationshipsOptions);
         documents = documents.concat(relationships);
