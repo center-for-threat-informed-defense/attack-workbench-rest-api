@@ -138,6 +138,16 @@ paths:
           schema:
             type: boolean
             default: true
+        - name: lastUpdatedBy
+          in: query
+          description: |
+            The IDs of users who created the relationships to retrieve.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
       responses:
         '200':
           description: 'A list of relationships.'
