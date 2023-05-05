@@ -280,3 +280,13 @@ paths:
 
   /api/user-accounts/register:
     $ref: 'paths/user-accounts-paths.yml#/paths/~1api~1user-accounts~1register'
+
+  # Teams
+  /api/teams:
+    $ref: 'paths/teams-paths.yml#/paths/~1api~1teams'
+
+  /api/teams/{id}:
+    $ref: 'paths/teams-paths.yml#/paths/~1api~1teams~1{id}'
+
+  /api/teams/{id}/users:
+    $ref: 'paths/teams-paths.yml#/paths/~1api~1teams~1{id}~1users'

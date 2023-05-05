@@ -14,25 +14,30 @@ const errors = {
 };
 exports.errors = errors;
 
-function addEffectiveRole(userAccount) {
-    // Initially, this forces all pending and inactive accounts to have the role 'none'.
-    // TBD: Make the role configurable
-    if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
-        userAccount.role = 'none';
-    }
+function addEffectiveRole (userAccount) {
+  // Initially, this forces all pending and inactive accounts to have the role 'none'.
+  // TBD: Make the role configurable
+  if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
+      userAccount.role = 'none';
+  }
 }
 
-function userAccountAsIdentity(userAccount) {
-    return {
-        type: 'identity',
-        spec_version: '2.1',
-        id: userAccount.id,
-        created: userAccount.created,
-        modified: userAccount.modified,
-        name: userAccount.displayName,
-        identity_class: 'individual'
-    };
+exports.addEffectiveRole = addEffectiveRole;
+
+function userAccountAsIdentity (userAccount) {
+  return {
+      type: 'identity',
+      spec_version: '2.1',
+      id: userAccount.id,
+      created: userAccount.created,
+      modified: userAccount.modified,
+      name: userAccount.displayName,
+      identity_class: 'individual'
+  }
 }
+  
+
+exports.userAccountAsIdentity = userAccountAsIdentity;
 
 exports.retrieveAll = function(options, callback) {
     // Build the query

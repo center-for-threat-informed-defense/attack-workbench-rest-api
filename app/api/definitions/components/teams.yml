@@ -1,0 +1,42 @@
+components:
+  schemas:
+    team:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          example: 'team--6444f546-6900-4456-b3b1-015c88d70dab'
+        name:
+          type: string
+          example: 'Team Name'
+        description:
+          type: string
+          example: 'Team Description'
+        userIDs:
+          type: array
+          items:
+            type: string
+        created:
+          type: string
+          format: date-time
+        modified:
+          type: string
+          format: date-time
+    create-team-request:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: 'Team Name'
+        description:
+          type: string
+          example: 'Team Description'
+        userIDs:
+          type: array
+          items:
+            type: string
