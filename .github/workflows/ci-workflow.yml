@@ -18,7 +18,7 @@ jobs:
       - run: npm install
       - run: npm run lint
       - run: npm run snyk
-      - run: npx nyc --reporter=cobertura npm test
+      - run: npm run coverage:cobertura
       - name: Upload Coverage to CodeCov
         uses: codecov/codecov-action@v3
         with:
