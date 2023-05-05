@@ -108,7 +108,7 @@ exports.create = async function(data) {
     // Create a unique id for this user
     // This should usually be undefined. It will only be defined when migrating user accounts from another system.
     if (!team.id) {
-      team.id = `team--${uuid.v4()}`;
+      team.id = `identity--${uuid.v4()}`;
     }
 
     // Add a timestamp recording when the user account was first created
