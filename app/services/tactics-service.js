@@ -415,10 +415,8 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified, options) 
         error.parameterName = 'modified';
         throw error;
     }
-
     try {
         const tactic = await Tactic.findOne({ 'stix.id': stixId, 'stix.modified': modified });
-
         // Note: document is null if not found
         if (!tactic) {
             return null;
@@ -426,8 +424,9 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified, options) 
         else {
             const allTechniques = await retrieveAllTechniques({});
             const filteredTechniques = allTechniques.filter(techniqueMatchesTactic(tactic));
+            console.log("filtering techniques");
             const pagedResults = getPageOfData(filteredTechniques, options);
-
+            console.log("got paged results");
             if (options.includePagination) {
                 const returnValue = {
                     pagination: {
@@ -437,9 +436,11 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified, options) 
                     },
                     data: pagedResults
                 };
+                console.log("returning");
                 return returnValue;
             }
             else {
+                console.log("returning 2");
                 return pagedResults;
             }
         }

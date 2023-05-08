@@ -1,6 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
+const util = require('util');
 const Matrix = require('../models/matrix-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
@@ -213,6 +214,71 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
     });
 };
 
+let retrieveTacticById;
+let retrieveTechniquesForTactic;
+exports.retrieveVersionTechniquesById = async function(stixId, modified, callback) {
+    // Retrieve the versions of the matrix techniques with the matching stixId and modified date
+    
+    // Late binding to avoid circular dependency between modules
+    if (!retrieveTacticById) {
+        const tacticsService = require('./tactics-service');
+        retrieveTacticById = util.promisify(tacticsService.retrieveById);
+    }
+    if (!retrieveTechniquesForTactic) {
+        const tacticsService = require('./tactics-service');
+        retrieveTechniquesForTactic = util.promisify(tacticsService.retrieveTechniquesForTactic);
+    }
+
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    if (!modified) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'modified';
+        return callback(error);
+    }
+    
+    Matrix.findOne({ 'stix.id': stixId, 'stix.modified': modified }, async function(err, matrix) {
+        if (err) {
+            if (err.name === 'CastError') {
+                const error = new Error(errors.badlyFormattedParameter);
+                error.parameterName = 'stixId';
+                return callback(error);
+            }
+            else {
+                return callback(err);
+            }
+        }
+        else {
+            if (matrix) {
+                // get tactics, query for techniques and sub-techniques
+                console.log('-------');
+                const options = {versions: 'latest' };
+                let tactics_techniques = {};
+                for (const tactic_id of matrix['stix']['tactic_refs']) {
+                    let tactic = await retrieveTacticById(tactic_id, options);
+                    if (tactic) {
+                        let tactic_name = tactic[0]['stix']['name'];
+                        tactics_techniques[tactic_name] = tactic;
+                        console.error("retrieving techniques");
+                        let techniques = await retrieveTechniquesForTactic(tactic_id, tactic[0]['stix']['modified'], options);
+                        console.log(techniques);
+                        tactics_techniques[tactic_name]['techniques'] = techniques;
+                    }
+                }
+                return callback(null, tactics_techniques);
+            }
+            else {
+                console.log('** NOT FOUND');
+                return callback();
+            }
+        }
+    });
+};
+
 exports.createIsAsync = true;
 exports.create = async function(data, options) {
     // This function handles two use cases:
@@ -368,4 +434,6 @@ exports.deleteById = function (stixId, callback) {
         }
     });
 };
+
+
 

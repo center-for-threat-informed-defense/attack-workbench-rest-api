@@ -168,3 +168,27 @@ exports.deleteById = function(req, res) {
         }
     });
 };
+
+
+exports.retrieveVersionTechniquesById = function(req, res) {
+    matricesService.retrieveVersionTechniquesById(req.params.stixId, req.params.modified, function (err, matrix) {
+        if (err) {
+            if (err.message === matricesService.errors.badlyFormattedParameter) {
+                logger.warn('Badly formatted stix id: ' + req.params.stixId);
+                return res.status(400).send('Stix id is badly formatted.');
+            }
+            else {
+                logger.error('Failed with error: ' + err);
+                return res.status(500).send('Unable to get matrix techniques. Server error.');
+            }
+        } else {
+            if (!matrix) {
+                return res.status(404).send('Matrix not found.');
+            }
+            else {
+                logger.debug(`Success: Retrieved matrix techniques with id ${matrix.id}`);
+                return res.status(200).send(matrix);
+            }
+        }
+    });
+};
