@@ -255,18 +255,24 @@ exports.retrieveVersionTechniquesById = async function(stixId, modified, callbac
         else {
             if (matrix) {
                 // get tactics, query for techniques and sub-techniques
-                console.log('-------');
-                const options = {versions: 'latest' };
+                const options = {versions: 'latest', offset: 0, limit: 0 };
                 let tactics_techniques = {};
                 for (const tactic_id of matrix['stix']['tactic_refs']) {
                     let tactic = await retrieveTacticById(tactic_id, options);
+                    console.log(tactic[0]['stix']['name']);
+                    console.log('------');
+                }
+                for (const tactic_id of matrix['stix']['tactic_refs']) {
+                    let tactic = await retrieveTacticById(tactic_id, options);
                     if (tactic) {
-                        let tactic_name = tactic[0]['stix']['name'];
-                        tactics_techniques[tactic_name] = tactic;
-                        console.error("retrieving techniques");
-                        let techniques = await retrieveTechniquesForTactic(tactic_id, tactic[0]['stix']['modified'], options);
-                        console.log(techniques);
-                        tactics_techniques[tactic_name]['techniques'] = techniques;
+                        tactic = tactic[0];
+                        console.log(tactic);
+                        let techniques = await retrieveTechniquesForTactic(tactic_id, tactic['stix']['modified'], options);
+                        console.log(techniques.length); //Never gets here, why?
+                        tactic['techniques'] = techniques;
+                        tactics_techniques[tactic[0]['stix']['name']] = tactic;
+                        console.log(tactics_techniques);
+                        console.log('end of loop');
                     }
                 }
                 return callback(null, tactics_techniques);

@@ -391,7 +391,6 @@ function techniqueMatchesTactic(tactic) {
 function getPageOfData(data, options) {
     const startPos = options.offset;
     const endPos = (options.limit === 0) ? data.length : Math.min(options.offset + options.limit, data.length);
-
     return data.slice(startPos, endPos);
 }
 
@@ -424,9 +423,9 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified, options) 
         else {
             const allTechniques = await retrieveAllTechniques({});
             const filteredTechniques = allTechniques.filter(techniqueMatchesTactic(tactic));
-            console.log("filtering techniques");
+            console.log(filteredTechniques.length);
             const pagedResults = getPageOfData(filteredTechniques, options);
-            console.log("got paged results");
+            console.log(pagedResults.length);
             if (options.includePagination) {
                 const returnValue = {
                     pagination: {
@@ -436,11 +435,10 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified, options) 
                     },
                     data: pagedResults
                 };
-                console.log("returning");
                 return returnValue;
             }
             else {
-                console.log("returning 2");
+                console.log('Returning--');
                 return pagedResults;
             }
         }
