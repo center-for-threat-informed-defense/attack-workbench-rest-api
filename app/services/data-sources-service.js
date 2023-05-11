@@ -146,15 +146,15 @@ async function addDataComponents(dataSource) {
     // version doesn't.
 
     // Retrieve the latest version of all data components
-    const allDataComponents = await dataComponentsService.retrieveAllAsync({ });
+    const allDataComponents = await dataComponentsService.retrieveAllAsync({ includeDeprecated: true, includeRevoked: true });
 
     // Add the data components that reference the data source
     dataSource.dataComponents = allDataComponents.filter(dataComponent => dataComponent.stix.x_mitre_data_source_ref === dataSource.stix.id);
 }
 
 exports.retrieveById = function(stixId, options, callback) {
-    // versions=all Retrieve all data sources with the stixId
-    // versions=latest Retrieve the data sources with the latest modified date for this stixId
+    // versions=all    Retrieve all versions of the data source with the stixId
+    // versions=latest Retrieve the data source with the latest modified date for this stixId
 
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -215,7 +215,7 @@ exports.retrieveById = function(stixId, options, callback) {
 };
 
 exports.retrieveVersionById = function(stixId, modified, options, callback) {
-    // Retrieve the versions of the data source with the matching stixId and modified date
+    // Retrieve the version of the data source with the matching stixId and modified date
 
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -247,7 +247,6 @@ exports.retrieveVersionById = function(stixId, modified, options, callback) {
                     .then(() => callback(null, dataSource));
             }
             else {
-                console.log('** NOT FOUND')
                 return callback();
             }
         }
