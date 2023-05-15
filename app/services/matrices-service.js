@@ -262,10 +262,29 @@ exports.retrieveVersionTechniquesById = async function(stixId, modified, callbac
                     if (tactic) {
                         tactic = tactic[0];
                         let techniques = await retrieveTechniquesForTactic(tactic_id, tactic['stix']['modified'], options);
-                        tactic['techniques'] = techniques;
+                        // Organize sub-techniques under super techniques
+                        let super_techniques = [];
+                        let sub_techniques = [];
+                        for (const technique of techniques) {
+                            if (technique['stix']['x_mitre_is_subtechnique'] === false) {
+                                super_techniques.push(technique);
+                            }
+                            else {
+                                sub_techniques.push(technique);
+                            }
+                        }
+                        for (const super_technique of super_techniques) {
+                            super_technique['subtechniques'] = [];
+                            for (const sub_technique of sub_techniques) {
+                                if (sub_technique['workspace']['attack_id'].split(".")[0]  === super_technique['workspace']['attack_id']) {
+                                    super_technique['subtechniques'].push(sub_technique);
+                                }
+                            }
+                        }
+                        // Add techniques to tactic
+                        tactic['techniques'] = super_techniques;
                         tactics_techniques[tactic['stix']['name']] = tactic;
                     }
-                    return callback(null, tactics_techniques);
                 }
                 return callback(null, tactics_techniques);
             }
