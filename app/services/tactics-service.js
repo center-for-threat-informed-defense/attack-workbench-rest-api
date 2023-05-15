@@ -423,9 +423,7 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified, options) 
         else {
             const allTechniques = await retrieveAllTechniques({});
             const filteredTechniques = allTechniques.filter(techniqueMatchesTactic(tactic));
-            console.log(filteredTechniques.length);
             const pagedResults = getPageOfData(filteredTechniques, options);
-            console.log(pagedResults.length);
             if (options.includePagination) {
                 const returnValue = {
                     pagination: {
@@ -438,7 +436,6 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified, options) 
                 return returnValue;
             }
             else {
-                console.log('Returning--');
                 return pagedResults;
             }
         }

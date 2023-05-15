@@ -226,7 +226,7 @@ exports.retrieveVersionTechniquesById = async function(stixId, modified, callbac
     }
     if (!retrieveTechniquesForTactic) {
         const tacticsService = require('./tactics-service');
-        retrieveTechniquesForTactic = util.promisify(tacticsService.retrieveTechniquesForTactic);
+        retrieveTechniquesForTactic = tacticsService.retrieveTechniquesForTactic;
     }
 
     if (!stixId) {
@@ -259,21 +259,13 @@ exports.retrieveVersionTechniquesById = async function(stixId, modified, callbac
                 let tactics_techniques = {};
                 for (const tactic_id of matrix['stix']['tactic_refs']) {
                     let tactic = await retrieveTacticById(tactic_id, options);
-                    console.log(tactic[0]['stix']['name']);
-                    console.log('------');
-                }
-                for (const tactic_id of matrix['stix']['tactic_refs']) {
-                    let tactic = await retrieveTacticById(tactic_id, options);
                     if (tactic) {
                         tactic = tactic[0];
-                        console.log(tactic);
                         let techniques = await retrieveTechniquesForTactic(tactic_id, tactic['stix']['modified'], options);
-                        console.log(techniques.length); //Never gets here, why?
                         tactic['techniques'] = techniques;
-                        tactics_techniques[tactic[0]['stix']['name']] = tactic;
-                        console.log(tactics_techniques);
-                        console.log('end of loop');
+                        tactics_techniques[tactic['stix']['name']] = tactic;
                     }
+                    return callback(null, tactics_techniques);
                 }
                 return callback(null, tactics_techniques);
             }
