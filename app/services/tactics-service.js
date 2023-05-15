@@ -391,6 +391,7 @@ function techniqueMatchesTactic(tactic) {
 function getPageOfData(data, options) {
     const startPos = options.offset;
     const endPos = (options.limit === 0) ? data.length : Math.min(options.offset + options.limit, data.length);
+
     return data.slice(startPos, endPos);
 }
 
@@ -414,8 +415,10 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified, options) 
         error.parameterName = 'modified';
         throw error;
     }
+
     try {
         const tactic = await Tactic.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+
         // Note: document is null if not found
         if (!tactic) {
             return null;
@@ -424,6 +427,7 @@ exports.retrieveTechniquesForTactic = async function(stixId, modified, options) 
             const allTechniques = await retrieveAllTechniques({});
             const filteredTechniques = allTechniques.filter(techniqueMatchesTactic(tactic));
             const pagedResults = getPageOfData(filteredTechniques, options);
+
             if (options.includePagination) {
                 const returnValue = {
                     pagination: {

@@ -254,8 +254,8 @@ exports.retrieveVersionTechniquesById = async function(stixId, modified, callbac
         }
         else {
             if (matrix) {
-                // get tactics, query for techniques and sub-techniques
-                const options = {versions: 'latest', offset: 0, limit: 0 };
+                // get tactics, then query for techniques and sub-techniques
+                const options = { versions: 'latest', offset: 0, limit: 0 };
                 let tactics_techniques = {};
                 for (const tactic_id of matrix['stix']['tactic_refs']) {
                     let tactic = await retrieveTacticById(tactic_id, options);
