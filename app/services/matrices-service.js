@@ -234,7 +234,6 @@ exports.retrieveVersionTechniquesById = async function(stixId, modified, callbac
         error.parameterName = 'stixId';
         return callback(error);
     }
-
     if (!modified) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'modified';
@@ -281,7 +280,7 @@ exports.retrieveVersionTechniquesById = async function(stixId, modified, callbac
                                 }
                             }
                         }
-                        // Add techniques to tactic
+                        // Add techniques to tactic & store tactic
                         tactic['techniques'] = super_techniques;
                         tactics_techniques[tactic['stix']['name']] = tactic;
                     }
