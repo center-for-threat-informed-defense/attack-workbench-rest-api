@@ -216,6 +216,7 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
 
 let retrieveTacticById;
 let retrieveTechniquesForTactic;
+exports.retrieveVersionTechniquesById = true;
 exports.retrieveVersionTechniquesById = async function(stixId, modified, callback) {
     // Retrieve the versions of the matrix techniques with the matching stixId and modified date
     
