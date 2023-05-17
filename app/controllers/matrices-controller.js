@@ -170,8 +170,8 @@ exports.deleteById = function(req, res) {
 };
 
 
-exports.retrieveVersionTechniquesById = function(req, res) {
-    matricesService.retrieveVersionTechniquesById(req.params.stixId, req.params.modified, function (err, matrix) {
+exports.retrieveVersionTechniquesById = async function(req, res) {
+    await matricesService.retrieveVersionTechniquesById(req.params.stixId, req.params.modified, function (err, matrix) {
         if (err) {
             if (err.message === matricesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);

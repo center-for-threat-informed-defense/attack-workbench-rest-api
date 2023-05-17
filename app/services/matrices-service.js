@@ -216,7 +216,6 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
 
 let retrieveTacticById;
 let retrieveTechniquesForTactic;
-exports.retrieveVersionTechniquesById = true;
 exports.retrieveVersionTechniquesById = async function(stixId, modified, callback) {
     // Retrieve the versions of the matrix techniques with the matching stixId and modified date
     
@@ -256,15 +255,15 @@ exports.retrieveVersionTechniquesById = async function(stixId, modified, callbac
             if (matrix) {
                 // get tactics, then query for techniques and sub-techniques
                 const options = { versions: 'latest', offset: 0, limit: 0 };
-                let tactics_techniques = {};
+                const tactics_techniques = {};
                 for (const tactic_id of matrix['stix']['tactic_refs']) {
                     let tactic = await retrieveTacticById(tactic_id, options);
                     if (tactic) {
                         tactic = tactic[0];
-                        let techniques = await retrieveTechniquesForTactic(tactic_id, tactic['stix']['modified'], options);
+                        const techniques = await retrieveTechniquesForTactic(tactic_id, tactic['stix']['modified'], options);
                         // Organize sub-techniques under super techniques
-                        let super_techniques = [];
-                        let sub_techniques = [];
+                        const super_techniques = [];
+                        const sub_techniques = [];
                         for (const technique of techniques) {
                             if (technique['stix']['x_mitre_is_subtechnique'] === false) {
                                 super_techniques.push(technique);
