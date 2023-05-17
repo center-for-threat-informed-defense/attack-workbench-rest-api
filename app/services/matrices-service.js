@@ -451,6 +451,3 @@ exports.deleteById = function (stixId, callback) {
         }
     });
 };
-
-
-
