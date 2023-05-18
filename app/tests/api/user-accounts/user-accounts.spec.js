@@ -7,6 +7,7 @@ logger.level = 'debug';
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const UserAccount = require('../../../models/user-account-model');
+const Team = require('../../../models/team-model');
 
 const login = require('../../shared/login');
 
@@ -33,6 +34,7 @@ describe('User Accounts API', function () {
 
         // Wait until the indexes are created
         await UserAccount.init();
+        await Team.init();
 
         // Initialize the express app
         app = await require('../../../index').initializeApp();
@@ -293,6 +295,7 @@ describe('User Accounts API', function () {
             });
     });
 
+    let anonymousUserId = null;
     it('GET /api/user-accounts returns an array with the anonymous user account', function (done) {
         request(app)
             .get('/api/user-accounts')
@@ -309,10 +312,35 @@ describe('User Accounts API', function () {
                     expect(userAccount).toBeDefined();
                     expect(Array.isArray(userAccount)).toBe(true);
                     expect(userAccount.length).toBe(1);
+                    anonymousUserId = userAccount[0].id;
                     done();
                 }
             });
     });
+
+    it('GET /api/user-accounts/{id}/teams returns an array with the list of accounts a user is associated with', function (done) {
+      Team.create({userIDs:[anonymousUserId], name: 'Example', created: new Date(), modified: new Date()}).then((response)=>{
+        request(app)
+          .get(`/api/user-accounts/${anonymousUserId}/teams`)
+          .set('Accept', 'application/json')
+          .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+          .expect(200)
+          .expect('Content-Type', /json/)
+          .end(function (err, res) {
+              if (err) {
+                  done(err);
+              } else {
+                  const teams = res.body;
+                  expect(teams).toBeDefined();
+                  expect(Array.isArray(teams)).toBe(true);
+                  expect(teams.length).toBe(1);
+                  expect(teams[0].userIDs.length).toBe(1);
+                  expect(teams[0].userIDs[0]).toBe(anonymousUserId);
+                  done();
+              }
+          });
+      });
+  });
 
     after(async function() {
         await database.closeConnection();
