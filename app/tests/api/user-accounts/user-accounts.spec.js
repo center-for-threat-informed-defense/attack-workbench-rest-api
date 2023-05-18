@@ -318,8 +318,28 @@ describe('User Accounts API', function () {
             });
     });
 
+    it('GET /api/user-accounts/{id}/teams returns an array with the list of accounts a user is associated with, empty array if no teams are found', function (done) {
+      request(app)
+        .get(`/api/user-accounts/${anonymousUserId}/teams`)
+        .set('Accept', 'application/json')
+        .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+        .expect(200)
+        .expect('Content-Type', /json/)
+        .end(function (err, res) {
+            if (err) {
+                done(err);
+            } else {
+                const teams = res.body;
+                expect(teams).toBeDefined();
+                expect(Array.isArray(teams)).toBe(true);
+                expect(teams.length).toBe(0);
+                done();
+            }
+        });
+  });
+
     it('GET /api/user-accounts/{id}/teams returns an array with the list of accounts a user is associated with', function (done) {
-      Team.create({userIDs:[anonymousUserId], name: 'Example', created: new Date(), modified: new Date()}).then((response)=>{
+      Team.create({userIDs:[anonymousUserId], name: 'Example', created: new Date(), modified: new Date()}).then(newTeam => {
         request(app)
           .get(`/api/user-accounts/${anonymousUserId}/teams`)
           .set('Accept', 'application/json')
@@ -334,6 +354,7 @@ describe('User Accounts API', function () {
                   expect(teams).toBeDefined();
                   expect(Array.isArray(teams)).toBe(true);
                   expect(teams.length).toBe(1);
+                  expect(teams[0].name).toBe(newTeam.name);
                   expect(teams[0].userIDs.length).toBe(1);
                   expect(teams[0].userIDs[0]).toBe(anonymousUserId);
                   done();
