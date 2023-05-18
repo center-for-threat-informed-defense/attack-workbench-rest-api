@@ -37,6 +37,13 @@ router.route('/user-accounts/:id')
         userAccountsController.delete
     );
 
+router.route('/user-accounts/:id/teams')
+    .get(
+        authn.authenticate,
+        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+        userAccountsController.retrieveTeamsByUserId
+    );
+
 router.route('/user-accounts/register')
     .post(
         // authn and authz handled in controller
