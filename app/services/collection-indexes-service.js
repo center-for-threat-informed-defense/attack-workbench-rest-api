@@ -197,7 +197,6 @@ async function retrieveFromWorkbenchAsync() {
     }
     retrieveAll(options, function(err, collectionIndexes) {
         if (err) {
-            logger.error('Failed with error: ' + err);
             throw err;
         }
         else {

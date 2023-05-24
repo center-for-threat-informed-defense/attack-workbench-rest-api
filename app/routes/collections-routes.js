@@ -39,4 +39,7 @@ router.route('/collections/:stixId/modified/:modified')
         collectionsController.retrieveVersionById
     );
 
+router.route('/collections/remote')
+    .get(collectionsController.retrieveByUrl)
+
 module.exports = router;

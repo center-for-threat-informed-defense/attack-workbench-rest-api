@@ -228,3 +228,22 @@ paths:
                   $ref: '../components/collections.yml#/components/schemas/collection'
           '404':
             description: 'A collection with the requested STIX id and modified date was not found.'
+
+  /api/collections/remote:
+    get:
+      summary: 'Retrieve collection by URL'
+      operationId: collections-get-by-url
+      description: 'This endpoint retrieves the collection at the given URL.'
+      tags:
+        - Collections
+      parameters:
+        - name: url
+          in: query
+          required: true
+          description: |
+            The URL from which to retrieve the collection.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A collection.'
