@@ -25,9 +25,7 @@ router.route('/collection-indexes/:id')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         collectionIndexesController.retrieveById
-    );
-
-router.route('/collection-indexes/:id')
+    )
     .put(
         authn.authenticate,
         authz.requireRole(authz.editorOrHigher,  [ authz.serviceRoles.collectionManager ]),
@@ -38,5 +36,11 @@ router.route('/collection-indexes/:id')
         authz.requireRole(authz.admin),
         collectionIndexesController.delete
     );
+
+router.route('/collection-indexes/:id/refresh')
+    .post(collectionIndexesController.refresh)
+
+router.route('/collection-indexes/remote')
+    .get(collectionIndexesController.retrieveByUrl)
 
 module.exports = router;
