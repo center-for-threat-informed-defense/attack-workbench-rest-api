@@ -58,6 +58,10 @@ tags:
     description: 'Operations for authenticating with the REST API'
   - name: 'User Accounts'
     description: 'Operations on user accounts'
+  - name: Collection Indexes
+    description: 'Operations on collection indexes.'
+  - name: Collections
+    description: 'Operations on collections.'
 
 paths:
   # ATT&CK Objects
@@ -208,6 +212,12 @@ paths:
   /api/collection-indexes/{id}:
     $ref: 'paths/collection-indexes-paths.yml#/paths/~1api~1collection-indexes~1{id}'
 
+  /api/collection-indexes/remote:
+    $ref: 'paths/collection-indexes.paths.yml#/paths/~1api~1collection-indexes~1remote'
+
+  /api/collection-indexes/{id}/refresh:
+    $ref: 'paths/collection-indexes.paths.yml#/paths/~1api~1collection-indexes~1{id}~1refresh'
+
   # Collections
   /api/collections:
     $ref: 'paths/collections-paths.yml#/paths/~1api~1collections'
@@ -217,6 +227,9 @@ paths:
 
   /api/collections/{stixId}/modified/{modified}:
     $ref: 'paths/collections-paths.yml#/paths/~1api~1collections~1{stixId}~1modified~1{modified}'
+
+  /cm-api/collections/remote:
+    $ref: 'paths/collections.paths.yml#/paths/~1api~1collections~1remote'
 
   # Collection Bundles
   /api/collection-bundles:
