@@ -169,9 +169,8 @@ exports.deleteById = function(req, res) {
     });
 };
 
-
-exports.retrieveVersionTechniquesById = async function(req, res) {
-    await matricesService.retrieveVersionTechniquesById(req.params.stixId, req.params.modified, function (err, matrix) {
+exports.retrieveTechniquesForMatrix = function(req, res) {
+    matricesService.retrieveTechniquesForMatrix(req.params.stixId, req.params.modified, function (err, techniquesByTactic) {
         if (err) {
             if (err.message === matricesService.errors.badlyFormattedParameter) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
@@ -179,15 +178,15 @@ exports.retrieveVersionTechniquesById = async function(req, res) {
             }
             else {
                 logger.error('Failed with error: ' + err);
-                return res.status(500).send('Unable to get matrix techniques. Server error.');
+                return res.status(500).send('Unable to get techniques for matrix. Server error.');
             }
         } else {
-            if (!matrix) {
+            if (!techniquesByTactic) {
                 return res.status(404).send('Matrix not found.');
             }
             else {
-                logger.debug(`Success: Retrieved matrix techniques with id ${matrix.id}`);
-                return res.status(200).send(matrix);
+                logger.debug(`Success: Retrieved techniques for matrix with id ${ req.params.stixId }`);
+                return res.status(200).send(techniquesByTactic);
             }
         }
     });

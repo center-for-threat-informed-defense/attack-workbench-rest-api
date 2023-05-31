@@ -53,7 +53,7 @@ router.route('/matrices/:stixId/modified/:modified/techniques')
     .get(
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-        matricesController.retrieveVersionTechniquesById
+        matricesController.retrieveTechniquesForMatrix
     );
 
 module.exports = router;
