@@ -25,7 +25,7 @@
     "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",
     "test": "npm run test:openapi && npm run test:config && npm run test:api",
-    "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api",
+    "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api/attack-objects",
     "test:config": "mocha  --timeout 10000 --recursive ./app/tests/config",
     "test:import": "mocha  --timeout 10000 --recursive ./app/tests/import",
     "test:openapi": "mocha  --timeout 10000 ./app/tests/openapi",
@@ -60,6 +60,7 @@
     "passport-http": "^0.3.0",
     "passport-http-bearer": "^1.0.1",
     "semver": "^7.3.5",
+    "superagent": "^8.0.9",
     "swagger-ui-express": "^4.3.0",
     "uuid": "^8.3.2",
     "winston": "^3.3.3"
@@ -79,7 +80,6 @@
     "read-json-lines-sync": "^2.2.5",
     "set-cookie-parser": "^2.6.0",
     "snyk": "^1.1137.0",
-    "superagent": "^8.0.9",
     "supertest": "^6.3.3"
   }
 }

@@ -159,7 +159,7 @@ paths:
       operationId: collection-indexes-refresh
       description: 'This endpoint retrieves a collection index from a remote URL and updates the database if its newer.'
       tags:
-        - Collections Indexes
+        - Collection Indexes
       parameters:
         - name: id
           in: path

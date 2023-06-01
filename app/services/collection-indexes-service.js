@@ -153,38 +153,35 @@ exports.retrieveByUrl = function(url, callback) {
         return callback(error);
     }
 
-    superagent
-        .get(url)
-        .set('Accept', 'application/json')
-        .end((err, res) => {
-            if (err) {
-                if (err.response && err.response.notFound) {
-                    const error = new Error(errors.notFound);
-                    return callback(error);
-                } else if (err.response && err.response.badRequest) {
-                    const error = new Error(errors.badRequest);
-                    return callback(error);
-                } else if (err.code === 'ENOTFOUND') {
-                    const error = new Error(errors.hostNotFound);
-                    return callback(error);
-                } else if (err.code === 'ECONNREFUSED') {
-                    const error = new Error(errors.connectionRefused);
-                    return callback(error);
-                } else {
-                    return callback(err)
-                }
+    superagent.get(url).set('Accept', 'application/json').end((err, res) => {
+        if (err) {
+            if (err.response && err.response.notFound) {
+                const error = new Error(errors.notFound);
+                return callback(error);
+            } else if (err.response && err.response.badRequest) {
+                const error = new Error(errors.badRequest);
+                return callback(error);
+            } else if (err.code === 'ENOTFOUND') {
+                const error = new Error(errors.hostNotFound);
+                return callback(error);
+            } else if (err.code === 'ECONNREFUSED') {
+                const error = new Error(errors.connectionRefused);
+                return callback(error);
+            } else {
+                return callback(err)
             }
-            else {
-                try {
-                    // Parsing res.text handles both the content-type text/plain and application/json use cases
-                    const collectionIndex = JSON.parse(res.text);
-                    return callback(null, collectionIndex);
-                }
-                catch (err) {
-                    return callback(err);
-                }
+        }
+        else {
+            try {
+                // Parsing res.text handles both the content-type text/plain and application/json use cases
+                const collectionIndex = JSON.parse(res.text);
+                return callback(null, collectionIndex);
             }
-        });
+            catch (err) {
+                return callback(err);
+            }
+        }
+    });
 }
 
 /**

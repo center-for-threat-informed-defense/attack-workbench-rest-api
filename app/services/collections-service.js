@@ -2,6 +2,8 @@
 
 const uuid = require('uuid');
 const asyncLib = require('async');
+const superagent = require('superagent');
+
 
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
