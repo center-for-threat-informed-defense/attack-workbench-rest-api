@@ -171,3 +171,30 @@ exports.register = async function(req, res) {
         }
     }
 };
+
+exports.retrieveTeamsByUserId = function(req, res) {
+  const options = {
+      offset: req.query.offset || 0,
+      limit: req.query.limit || 0,
+      status: req.query.status,
+      includePagination: req.query.includePagination,
+  };
+
+  const userId = req.params.id;
+
+  userAccountsService.retrieveTeamsByUserId(userId, options, function(err, results) {
+      if (err) {
+          logger.error('Failed with error: ' + err);
+          return res.status(500).send('Unable to get teams. Server error.');
+      }
+      else {
+          if (options.includePagination) {
+              logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total team(s)`);
+          }
+          else {
+              logger.debug(`Success: Retrieved ${ results.length } team(s)`);
+          }
+          return res.status(200).send(results);
+      }
+  });
+};
