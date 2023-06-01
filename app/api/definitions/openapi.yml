@@ -120,6 +120,9 @@ paths:
   /api/matrices/{stixId}/modified/{modified}:
     $ref: 'paths/matrices-paths.yml#/paths/~1api~1matrices~1{stixId}~1modified~1{modified}'
 
+  /api/matrices/{stixId}/modified/{modified}/techniques:
+    $ref: 'paths/matrices-paths.yml#/paths/~1api~1matrices~1{stixId}~1modified~1{modified}~1techniques'
+
   # Identities
   /api/identities:
     $ref: 'paths/identities-paths.yml#/paths/~1api~1identities'
