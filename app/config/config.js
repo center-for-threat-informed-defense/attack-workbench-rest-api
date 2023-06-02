@@ -22,6 +22,9 @@ function generateSecret() {
 const defaultSessionSecret = generateSecret();
 const defaultTokenSigningSecret = generateSecret();
 
+const authnMechanismValues = ['apikey', 'client-credentials'];
+convict.addFormat(enumFormat('authn-mechanism', authnMechanismValues, true));
+
 const userAuthnMechanismValues = ['anonymous', 'oidc'];
 convict.addFormat(enumFormat('user-authn-mechanism', userAuthnMechanismValues, true));
 
@@ -145,6 +148,13 @@ function loadConfig() {
                 doc: 'Location of a directory containing one or more JSON files with the static marking definitions to load into the system',
                 default: './app/lib/default-static-marking-definitions/',
                 env: 'WB_REST_STATIC_MARKING_DEFS_PATH'
+            }
+        },
+        scheduler: {
+            checkWorkbenchInterval: {
+                doc: 'Sets the interval in seconds for starting the scheduler.',
+                default: 10,
+                env: 'CHECK_WORKBENCH_INTERVAL'
             }
         },
         session: {

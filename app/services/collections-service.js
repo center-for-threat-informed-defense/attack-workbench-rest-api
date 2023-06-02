@@ -464,15 +464,14 @@ exports.retrieveByUrl = function(url, callback) {
  */
 async function retrieveFromWorkbenchAsync(id) {
         const options = {
-            versions: req.query.versions || 'latest',
-            retrieveContents: req.query.retrieveContents
+            versions: 'latest',
         }
-        retrieveById(req.params.stixId, options, function (err, collections) {
+        retrieveById(id, options, function (err, collections) {
             if (err) {
                 throw err;
             }
             else {
-                logger.debug(`Success: Retrieved ${ collections.length } collection(s) with id ${ req.params.stixId }`);
+                logger.debug(`Success: Retrieved ${ collections.length } collection(s) with id ${ id }`);
                 return collections;
             }
         });

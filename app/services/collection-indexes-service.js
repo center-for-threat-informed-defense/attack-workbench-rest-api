@@ -189,15 +189,14 @@ exports.retrieveByUrl = function(url, callback) {
  */
 async function retrieveFromWorkbenchAsync() {
     const options = {
-        offset: req.query.offset || 0,
-        limit: req.query.limit || 0
+        offset: 0,
+        limit: 0
     }
-    retrieveAll(options, function(err, collectionIndexes) {
+    exports.retrieveAll(options, function(err, collectionIndexes) {
         if (err) {
             throw err;
         }
         else {
-            logger.debug(`Success: Retrieved ${ collectionIndexes.length } collectionIndex(es)`);
             return collectionIndexes;
         }
     });
@@ -207,9 +206,8 @@ async function retrieveFromWorkbenchAsync() {
  * Updates a collection index in the Workbench data store.
  */
 async function updateWorkbenchAsync(collectionIndex, callback) {
-    updateFull(collectionIndex.collection_index.id, collectionIndex, function(err, collectionIndex) {
+    exports.updateFull(collectionIndex.collection_index.id, collectionIndex, function(err, collectionIndex) {
         if (err) {
-            logger.error("Update collection index failed with error: " + err);
             throw err;
         }
     });
