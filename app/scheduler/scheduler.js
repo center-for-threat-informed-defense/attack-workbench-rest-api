@@ -69,7 +69,7 @@ function runCheckCollectionIndexes() {
                                                     scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
                                                     subscriptionHandler(collectionIndex, function (err) {
                                                         scheduledSubscriptions.delete(collectionIndex.collection_index.id);
-                                                        return callback();
+                                                        return callback(err);
                                                     });
                                                 }
                                             }
@@ -93,7 +93,7 @@ function runCheckCollectionIndexes() {
                                                     scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
                                                     subscriptionHandler(collectionIndex, function (err) {
                                                         scheduledSubscriptions.delete(collectionIndex.collection_index.id);
-                                                        return callback();
+                                                        return callback(err);
                                                     });
                                                 }
                                             }
@@ -111,7 +111,7 @@ function runCheckCollectionIndexes() {
                     }
                 },
                 function(err) {
-
+                    logger.error(err);
                 })
         }
     });
