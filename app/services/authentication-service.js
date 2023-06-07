@@ -188,6 +188,6 @@ exports.getAccessToken = async function() {
 }
 
 // Invalidate the cached token and force a new authentication with the service
-exports.invalidateToken = async function() {
+exports.invalidateToken = function() {
     tokenData = undefined;
 }
