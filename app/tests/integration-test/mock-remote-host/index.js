@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-async function initializeApp() {
+function initializeApp() {
     const express = require('express');
     const app = express();
 

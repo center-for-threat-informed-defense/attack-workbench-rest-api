@@ -14,7 +14,7 @@ async function login(url) {
     passportCookie = cookies.find(c => c.name === passportCookieName);
 }
 
-async function post(url, data) {
+function post(url, data) {
     return superagent
         .post(url)
         .set('Cookie', `${ passportCookieName }=${ passportCookie.value }`)
