@@ -13,7 +13,7 @@ async function initializeApp() {
 
 async function runMockRemoteHost() {
     // Create the express app
-    const app = await initializeApp();
+    const app = initializeApp();
 
     const port = process.env.PORT ?? 80;
     const server = app.listen(port, function () {

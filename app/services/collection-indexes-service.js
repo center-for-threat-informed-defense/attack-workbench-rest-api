@@ -187,7 +187,7 @@ exports.retrieveByUrl = function(url, callback) {
 /**
  * Retrieves a list of collection indexes from the Workbench data store.
  */
-async function retrieveFromWorkbenchAsync() {
+function retrieveFromWorkbenchAsync() {
     const options = {
         offset: 0,
         limit: 0
@@ -205,7 +205,7 @@ async function retrieveFromWorkbenchAsync() {
 /**
  * Updates a collection index in the Workbench data store.
  */
-async function updateWorkbenchAsync(collectionIndex, callback) {
+function updateWorkbenchAsync(collectionIndex, callback) {
     exports.updateFull(collectionIndex.collection_index.id, collectionIndex, function(err, collectionIndex) {
         if (err) {
             throw err;

@@ -462,16 +462,15 @@ exports.retrieveByUrl = function(url, callback) {
 /**
  * Retrieves all versions of a collection from the Workbench data store.
  */
-async function retrieveFromWorkbenchAsync(id) {
+function retrieveFromWorkbenchAsync(id) {
         const options = {
             versions: 'latest',
         }
-        retrieveById(id, options, function (err, collections) {
+        exports.retrieveById(id, options, function (err, collections) {
             if (err) {
                 throw err;
             }
             else {
-                logger.debug(`Success: Retrieved ${ collections.length } collection(s) with id ${ id }`);
                 return collections;
             }
         });

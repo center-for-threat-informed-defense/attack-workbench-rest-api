@@ -23,7 +23,7 @@ async function get(url) {
 }
 
 async function put(url, data) {
-    return await superagent
+    return superagent
         .put(url)
         .set('Cookie', `${ passportCookieName }=${ passportCookie.value }`)
         .send(data);

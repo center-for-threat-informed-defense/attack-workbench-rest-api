@@ -137,21 +137,21 @@ exports.retrieveByUrl = function(req, res) {
         return res.status(400).send('Missing parameter: url');
     }
 
-    collectionIndexesService.retrieveByUrl(url, function(err, collectionIndex) {
+    collectionIndexService.retrieveByUrl(url, function(err, collectionIndex) {
         if (err) {
-            if (err.message === collectionIndexesService.errors.badRequest) {
+            if (err.message === collectionIndexService.errors.badRequest) {
                 logger.warn('Badly formatted URL: ' + req.query.url);
                 return res.status(400).send('URL is badly formatted.');
-            } else if (err.message === collectionIndexesService.errors.invalidFormat) {
+            } else if (err.message === collectionIndexService.errors.invalidFormat) {
                 logger.warn('Invalid format: data is not JSON formatted or the structure is invalid.');
                 return res.status(400).send('Invalid JSON format.');
-            } else if (err.message === collectionIndexesService.errors.notFound) {
+            } else if (err.message === collectionIndexService.errors.notFound) {
                 logger.warn('URL not found: ' + req.query.url);
                 return res.status(404).send('Not found.');
-            } else if (err.message === collectionIndexesService.errors.hostNotFound) {
+            } else if (err.message === collectionIndexService.errors.hostNotFound) {
                 logger.warn('Host not found');
                 return res.status(400).send('Host not found');
-            } else if (err.message === collectionIndexesService.errors.connectionRefused) {
+            } else if (err.message === collectionIndexService.errors.connectionRefused) {
                 logger.warn('Connection refused');
                 return res.status(400).send('Connection refused');
             } else {
@@ -173,7 +173,7 @@ exports.refresh = function(req, res) {
         return res.status(400).send('Unable to refresh collection index. Missing id.')
     }
 
-    collectionIndexesService.refresh(id, function(err, collectionIndex) {
+    collectionIndexService.refresh(id, function(err, collectionIndex) {
         if (err) {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to refresh collection index. Server error.');

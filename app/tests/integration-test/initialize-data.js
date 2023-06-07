@@ -15,7 +15,7 @@ async function login(url) {
 }
 
 async function post(url, data) {
-    return await superagent
+    return superagent
         .post(url)
         .set('Cookie', `${ passportCookieName }=${ passportCookie.value }`)
         .send(data);
