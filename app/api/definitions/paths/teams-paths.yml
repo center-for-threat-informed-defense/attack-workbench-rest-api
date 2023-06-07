@@ -1,0 +1,217 @@
+paths:
+  /api/teams:
+    get:
+      summary: 'Get a list of teams'
+      operationId: 'teams-get-all'
+      description: |
+        This endpoint gets a list of teams from the workspace.
+      tags:
+        - 'Teams'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of teams to retrieve.
+            The default (0) will retrieve all teams.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of teams to skip.
+            The default (0) will start with the first team
+          schema:
+            type: number
+            default: 0
+        - name: search
+          in: query
+          description: |
+            Only return objects where the provided search text occurs in the `name` or `description` properties.
+            The search is case-insensitive.
+          schema:
+            type: string
+          allowReserved: true
+          example: 'team'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of teams.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/teams.yml#/components/schemas/team'
+
+    post:
+      summary: 'Create a team'
+      operationId: 'team-create'
+      description: |
+        This endpoint creates a new team in the workspace.
+        The endpoint will generate a new id for the team.
+      tags:
+        - 'Teams'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/teams.yml#/components/schemas/create-team-request'
+      responses:
+        '201':
+          description: 'The team has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/teams.yml#/components/schemas/team'
+        '400':
+          description: 'Missing or invalid parameters were provided. The team was not created.'
+
+  /api/teams/{id}:
+    get:
+      summary: 'Get one team'
+      operationId: 'team-get-one-id'
+      description: |
+        This endpoint gets one team from the workspace, identified by the team id.
+      tags:
+        - 'Teams'
+      parameters:
+        - name: id
+          in: path
+          description: 'Team id of the team to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A single team matching the requested team id.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/teams.yml#/components/schemas/team'
+        '404':
+          description: 'A team with the requested team id was not found.'
+    put:
+      summary: 'Update a team'
+      operationId: 'team-update'
+      description: |
+        This endpoint updates a single team, identified by team id.
+      tags:
+        - 'Teams'
+      parameters:
+        - name: id
+          in: path
+          description: 'Team id of the team to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/teams.yml#/components/schemas/team'
+      responses:
+        '200':
+          description: 'The user account was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/user-accounts.yml#/components/schemas/user-account'
+        '400':
+          description: 'Missing or invalid parameters were provided. The team was not updated.'
+        '404':
+          description: 'A team with the requested team id was not found.'
+    delete:
+      summary: 'Delete a team'
+      operationId: 'team-delete'
+      description: |
+        This endpoint deletes a single team from the workspace.
+        The team is identified by the team id.
+      tags:
+        - 'Teams'
+      parameters:
+        - name: id
+          in: path
+          description: 'User account id of the user account to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The team was successfully deleted.'
+        '404':
+          description: 'A team with the requested team id was not found.'
+
+  /api/teams/{id}/users:
+    get:
+      summary: 'Get all user accounts which are listed as part of a team'
+      operationId: 'team-get-users-by-id'
+      description: |
+        This endpoint gets all user accounts for one team from the workspace, identified by the team id.
+      tags:
+        - 'Teams'
+      parameters:
+        - name: id
+          in: path
+          description: 'Team id of the team to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: |
+            The number of user accounts to retrieve.
+            The default (0) will retrieve all user accounts.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of user accounts to skip.
+            The default (0) will start with the first user account.
+          schema:
+            type: number
+            default: 0
+        - name: search
+          in: query
+          description: |
+            Only return objects where the provided search text occurs in the `username`, `displayName, or `email` properties.
+            The search is case-insensitive.
+          schema:
+            type: string
+          allowReserved: true
+          example: 'smith'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+        - name: includeStixIdentity
+          in: query
+          description: |
+            Whether to include an equivalent STIX identity object in each retrieved user account
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of user accounts.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/user-accounts.yml#/components/schemas/user-account'

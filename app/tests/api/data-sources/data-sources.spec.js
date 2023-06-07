@@ -15,7 +15,7 @@ logger.level = 'debug';
 
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
-const initialObjectData = {
+const initialDataSourceData = {
     workspace: {
         workflow: {
             state: 'work-in-progress'
@@ -94,6 +94,20 @@ async function loadDataComponents(baseDataComponent) {
     data3.stix.created = timestamp;
     data3.stix.modified = timestamp;
     await dataComponentsService.create(data3);
+
+    const data4 = _.cloneDeep(baseDataComponent);
+    timestamp = new Date().toISOString();
+    data4.stix.created = timestamp;
+    data4.stix.modified = timestamp;
+    data4.stix.x_mitre_deprecated = true;
+    await dataComponentsService.create(data4);
+
+    const data5 = _.cloneDeep(baseDataComponent);
+    timestamp = new Date().toISOString();
+    data5.stix.created = timestamp;
+    data5.stix.modified = timestamp;
+    data5.stix.revoked = true;
+    await dataComponentsService.create(data5);
 }
 
 describe('Data Sources API', function () {
@@ -158,9 +172,9 @@ describe('Data Sources API', function () {
     let dataSource1;
     it('POST /api/data-sources creates a data source', function (done) {
         const timestamp = new Date().toISOString();
-        initialObjectData.stix.created = timestamp;
-        initialObjectData.stix.modified = timestamp;
-        const body = initialObjectData;
+        initialDataSourceData.stix.created = timestamp;
+        initialDataSourceData.stix.modified = timestamp;
+        const body = initialDataSourceData;
         request(app)
             .post('/api/data-sources')
             .send(body)
@@ -279,9 +293,9 @@ describe('Data Sources API', function () {
         const dataSource = dataSources[0];
         expect(dataSource).toBeDefined();
 
-        // We expect to get 3 data components that reference this data source
+        // We expect to get 5 data components that reference this data source
         expect(dataSource.dataComponents).toBeDefined();
-        expect(dataSource.dataComponents.length).toBe(3);
+        expect(dataSource.dataComponents.length).toBe(5);
     });
 
     it('PUT /api/data-sources updates a data source', function (done) {

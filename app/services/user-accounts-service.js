@@ -2,6 +2,7 @@
 
 const uuid = require('uuid');
 const UserAccount = require('../models/user-account-model');
+const Team = require('../models/team-model');
 const regexValidator = require('../lib/regex');
 
 const errors = {
@@ -14,25 +15,30 @@ const errors = {
 };
 exports.errors = errors;
 
-function addEffectiveRole(userAccount) {
-    // Initially, this forces all pending and inactive accounts to have the role 'none'.
-    // TBD: Make the role configurable
-    if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
-        userAccount.role = 'none';
-    }
+function addEffectiveRole (userAccount) {
+  // Initially, this forces all pending and inactive accounts to have the role 'none'.
+  // TBD: Make the role configurable
+  if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
+      userAccount.role = 'none';
+  }
 }
 
-function userAccountAsIdentity(userAccount) {
-    return {
-        type: 'identity',
-        spec_version: '2.1',
-        id: userAccount.id,
-        created: userAccount.created,
-        modified: userAccount.modified,
-        name: userAccount.displayName,
-        identity_class: 'individual'
-    };
+exports.addEffectiveRole = addEffectiveRole;
+
+function userAccountAsIdentity (userAccount) {
+  return {
+      type: 'identity',
+      spec_version: '2.1',
+      id: userAccount.id,
+      created: userAccount.created,
+      modified: userAccount.modified,
+      name: userAccount.displayName,
+      identity_class: 'individual'
+  }
 }
+  
+
+exports.userAccountAsIdentity = userAccountAsIdentity;
 
 exports.retrieveAll = function(options, callback) {
     // Build the query
@@ -329,3 +335,69 @@ exports.addCreatedByUserAccountToAll = async function(attackObjects) {
         await addCreatedByUserAccount(attackObject);
     }
 }
+
+exports.retrieveTeamsByUserId = function(userAccountId, options, callback) {
+    if (!userAccountId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'userId';
+        return callback(error);
+    }
+
+    // Build the aggregation
+    const aggregation = [
+        { $sort: { 'name': 1 } },
+    ];
+
+    const match = {
+        $match: {
+            userIDs: { $in: [userAccountId] }
+        }
+    };
+
+    aggregation.push(match);
+
+    const facet = {
+        $facet: {
+            totalCount: [{ $count: 'totalCount' }],
+            documents: []
+        }
+    };
+    if (options.offset) {
+        facet.$facet.documents.push({ $skip: options.offset });
+    }
+    else {
+        facet.$facet.documents.push({ $skip: 0 });
+    }
+    if (options.limit) {
+        facet.$facet.documents.push({ $limit: options.limit });
+    }
+    aggregation.push(facet);
+
+    // Retrieve the documents
+    Team.aggregate(aggregation, function (err, results) {
+        if (err) {
+            return callback(err);
+        }
+        else {
+            const teams = results[0].documents;
+            if (options.includePagination) {
+                let derivedTotalCount = 0;
+                if (results[0].totalCount.length > 0) {
+                    derivedTotalCount = results[0].totalCount[0].totalCount;
+                }
+                const returnValue = {
+                    pagination: {
+                        total: derivedTotalCount,
+                        offset: options.offset,
+                        limit: options.limit
+                    },
+                    data: teams
+                };
+                return callback(null, returnValue);
+            }
+            else {
+                return callback(null, teams);
+            }
+        }
+    });
+};

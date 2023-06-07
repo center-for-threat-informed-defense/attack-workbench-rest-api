@@ -124,6 +124,9 @@ paths:
   /api/matrices/{stixId}/modified/{modified}:
     $ref: 'paths/matrices-paths.yml#/paths/~1api~1matrices~1{stixId}~1modified~1{modified}'
 
+  /api/matrices/{stixId}/modified/{modified}/techniques:
+    $ref: 'paths/matrices-paths.yml#/paths/~1api~1matrices~1{stixId}~1modified~1{modified}~1techniques'
+
   # Identities
   /api/identities:
     $ref: 'paths/identities-paths.yml#/paths/~1api~1identities'
@@ -290,6 +293,19 @@ paths:
 
   /api/user-accounts/{id}:
     $ref: 'paths/user-accounts-paths.yml#/paths/~1api~1user-accounts~1{id}'
+  
+  /api/user-accounts/{id}/teams:
+    $ref: 'paths/user-accounts-paths.yml#/paths/~1api~1user-accounts~1{id}~1teams'
 
   /api/user-accounts/register:
     $ref: 'paths/user-accounts-paths.yml#/paths/~1api~1user-accounts~1register'
+
+  # Teams
+  /api/teams:
+    $ref: 'paths/teams-paths.yml#/paths/~1api~1teams'
+
+  /api/teams/{id}:
+    $ref: 'paths/teams-paths.yml#/paths/~1api~1teams~1{id}'
+
+  /api/teams/{id}/users:
+    $ref: 'paths/teams-paths.yml#/paths/~1api~1teams~1{id}~1users'

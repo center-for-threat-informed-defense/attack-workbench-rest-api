@@ -210,3 +210,54 @@ paths:
                 $ref: '../components/user-accounts.yml#/components/schemas/user-account'
         '400':
           description: 'Missing or invalid parameters were provided. The user account was not created.'
+  
+  /api/user-accounts/{id}/teams:
+    get:
+      summary: 'Get a list of teams the user account is associated with'
+      operationId: 'user-account-get-teams'
+      description: |
+        This endpoint gets gets a list of teams that a user is associated with, identified by the user account id.
+      tags:
+        - 'User Accounts'
+      parameters:
+        - name: id
+          in: path
+          description: 'User account id of the user account to retrieve a list of associated teams for'
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: |
+            The number of user accounts to retrieve.
+            The default (0) will retrieve all user accounts.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of user accounts to skip.
+            The default (0) will start with the first user account.
+          schema:
+            type: number
+            default: 0
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of teams which the user is associated with.'
+          content:
+            application/json:
+              schema: 
+                type: array
+                items:
+                  $ref: '../components/teams.yml#/components/schemas/team'
+        '404':
+          description: 'A user account with the requested user account id was not found.'

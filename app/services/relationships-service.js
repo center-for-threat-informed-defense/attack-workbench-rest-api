@@ -57,6 +57,14 @@ exports.retrieveAll = async function(options) {
     if (typeof options.relationshipType !== 'undefined') {
         query['stix.relationship_type'] = options.relationshipType;
     }
+    if (typeof options.lastUpdatedBy !== 'undefined') {
+        if (Array.isArray(options.attackId)) {
+            query['workspace.workflow.created_by_user_account'] = { $in: options.lastUpdatedBy };
+        }
+        else {
+            query['workspace.workflow.created_by_user_account'] = options.lastUpdatedBy;
+        }
+    }
 
     // Build the aggregation
     const aggregation = [];

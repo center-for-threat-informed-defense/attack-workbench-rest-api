@@ -1,6 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
+const util = require('util');
 const Matrix = require('../models/matrix-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
@@ -213,6 +214,86 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
     });
 };
 
+let retrieveTacticById;
+let retrieveTechniquesForTactic;
+exports.retrieveTechniquesForMatrix = function(stixId, modified, callback) {
+    // Retrieve the versions of the matrix techniques with the matching stixId and modified date
+    
+    // Late binding to avoid circular dependency between modules
+    if (!retrieveTacticById) {
+        const tacticsService = require('./tactics-service');
+        retrieveTacticById = util.promisify(tacticsService.retrieveById);
+    }
+    if (!retrieveTechniquesForTactic) {
+        const tacticsService = require('./tactics-service');
+        retrieveTechniquesForTactic = tacticsService.retrieveTechniquesForTactic;
+    }
+
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+    if (!modified) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'modified';
+        return callback(error);
+    }
+
+    Matrix.findOne({ 'stix.id': stixId, 'stix.modified': modified }, async function(err, matrix) {
+        if (err) {
+            if (err.name === 'CastError') {
+                const error = new Error(errors.badlyFormattedParameter);
+                error.parameterName = 'stixId';
+                return callback(error);
+            }
+            else {
+                return callback(err);
+            }
+        }
+        else {
+            if (matrix) {
+                // get tactics, then query for techniques and sub-techniques
+                const options = { versions: 'latest', offset: 0, limit: 0 };
+                const tacticsTechniques = {};
+                for (const tacticId of matrix.stix.tactic_refs) {
+                    const tactics = await retrieveTacticById(tacticId, options);
+                    if (tactics.length) {
+                        const tactic = tactics[0];
+                        const techniques = await retrieveTechniquesForTactic(tacticId, tactic.stix.modified, options);
+                        // Organize sub-techniques under parent techniques
+                        const parentTechniques = [];
+                        const subtechniques = [];
+                        for (const technique of techniques) {
+                            if (!technique.stix.x_mitre_is_subtechnique) {
+                                parentTechniques.push(technique);
+                            }
+                            else {
+                                subtechniques.push(technique);
+                            }
+                        }
+                        for (const parentTechnique of parentTechniques) {
+                            parentTechnique.subtechniques = [];
+                            for (const subtechnique of subtechniques) {
+                                if (subtechnique.workspace.attack_id.split(".")[0]  === parentTechnique.workspace.attack_id) {
+                                    parentTechnique.subtechniques.push(subtechnique);
+                                }
+                            }
+                        }
+                        // Add techniques to tactic & store tactic
+                        tactic.techniques = parentTechniques;
+                        tacticsTechniques[tactic.stix.name] = tactic;
+                    }
+                }
+                return callback(null, tacticsTechniques);
+            }
+            else {
+                return callback();
+            }
+        }
+    });
+};
+
 exports.createIsAsync = true;
 exports.create = async function(data, options) {
     // This function handles two use cases:
@@ -368,4 +449,3 @@ exports.deleteById = function (stixId, callback) {
         }
     });
 };
-

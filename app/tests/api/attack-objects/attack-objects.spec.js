@@ -13,6 +13,34 @@ const util = require("util");
 const collectionBundlesService = require("../../../services/collection-bundles-service");
 logger.level = 'debug';
 
+// test malware object
+const malwareObject = {
+    workspace: {
+        workflow: {
+            state: 'work-in-progress',
+        },
+    },
+    stix: {
+        id: "malware--1c1ab115-f015-462c-92a0-f887277d8519",
+        name: "software-2",
+        "spec_version": "2.1",
+        type: "malware",
+        description: "This is a malware type of software.",
+        is_family: false,
+        object_marking_refs: [ "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce" ],
+        x_mitre_version: "1.1",
+        x_mitre_contributors: [
+          "contributor-mk",
+          "contributor-cm"
+        ],
+        x_mitre_domains: [
+          "mobile-attack"
+        ],
+        created: "2023-03-01T00:00:00.000Z",
+        modified: "2023-03-01T00:00:00.000Z",
+    }
+};
+
 async function readJson(path) {
     const data = await fs.readFile(require.resolve(path));
     return JSON.parse(data);
@@ -249,6 +277,58 @@ describe('ATT&CK Objects API', function () {
                     expect(attackObjects.length).toBe(2);
                     expect(attackObjects[0].stix.type).toBe('x-mitre-tactic');
                     expect(attackObjects[1].stix.type).toBe('x-mitre-tactic');
+
+                    done();
+                }
+            });
+    });
+
+    let software1;
+    it('POST /api/software creates a software', function (done) {
+        // Further setup - need to index malware object with in database first
+        const body = malwareObject;
+        request(app)
+            .post('/api/software')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    software1 = res.body;
+                    expect(software1).toBeDefined();
+                    expect(software1.stix).toBeDefined();
+                    expect(software1.stix.id).toBeDefined();
+                    expect(software1.stix.created).toBeDefined();
+                    expect(software1.stix.modified).toBeDefined();
+
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/attack-objects uses the users parameter to return objects by user identity', function (done) {
+        request(app)
+            .get(`/api/attack-objects?lastUpdatedBy=${software1.workspace.workflow.created_by_user_account}`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    // We expect to get the matching objects
+                    const attackObjects = res.body;
+                    expect(attackObjects).toBeDefined();
+                    expect(Array.isArray(attackObjects)).toBe(true);
+                    expect(attackObjects.length).toBe(1);
+                    expect(attackObjects[0].stix.type).toBe('malware');
 
                     done();
                 }
