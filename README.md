@@ -164,7 +164,7 @@ The workflow is defined in `.github/workflows/ci-workflow.yml`
 
 ## Notice 
 
-Copyright 2020-2021 MITRE Engenuity. Approved for public release. Document number CT0020
+Copyright 2020-2023 MITRE Engenuity. Approved for public release. Document number CT0020
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at 
 
