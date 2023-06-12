@@ -363,14 +363,27 @@ exports.delete = function (stixId, deleteAllContents, callback) {
                 asyncLib.each(collections, function(collection, callback2) {
                         if (deleteAllContents) {
                             asyncLib.each(collection.stix.x_mitre_contents, function(reference, callback2a) {
-                                AttackObject.findOneAndRemove({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
-                                    if (err) {
-                                        return callback2a(err);
+                                // check if another collection contains this attack object
+                                Collection.find({
+                                  'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean().exec(function (err, matches){
+                                  if (err) {
+                                    return callback2a(err);
+                                  } else {
+                                    if (matches.length === 0) {
+                                      // if this attack object is NOT in another collection, we can just delete it
+                                      AttackObject.findOneAndRemove({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
+                                        if (err) {
+                                            return callback2a(err);
+                                        }
+                                        else {
+                                            return callback2a();
+                                        }
+                                      });
+                                    } else {
+                                      return callback2a();
                                     }
-                                    else {
-                                        return callback2a();
-                                    }
-                                });
+                                  }
+                                })
                             });
                         }
 
@@ -396,6 +409,67 @@ exports.delete = function (stixId, deleteAllContents, callback) {
                     });
             }
         });
+};
+
+exports.deleteVersionById = function (stixId, modified, deleteAllContents, callback) {
+  if (!stixId) {
+      const error = new Error(errors.missingParameter);
+      error.parameterName = 'stixId';
+      return callback(error);
+  }
+
+  if (!modified) {
+    const error = new Error(errors.missingParameter);
+    error.parameterName = 'modified';
+    return callback(error);
+  }
+
+  Collection.findOne({ 'stix.id': stixId, 'stix.modified': modified })
+      .lean()
+      .exec(function (err, collection) {
+          if (err) {
+              if (err.name === 'CastError') {
+                  const error = new Error(errors.badlyFormattedParameter);
+                  error.parameterName = 'stixId';
+                  return callback(error);
+              }
+              else {
+                  return callback(err);
+              }
+          }
+          else {
+            if (deleteAllContents) {
+              asyncLib.each(collection.stix.x_mitre_contents, function(reference, callback2a) {
+                  // check if another collection (even another version of this collection) contains this attack object
+                  Collection.find({'_id': {'$ne': reference._id}, "stix.x_mitre_contents" : { $elemMatch : { "object_ref" : reference.object_ref, "object_modified": reference.object_modified} } }).lean().exec(function (err, matches){
+                    if (err) {
+                      return callback2a(err);
+                    } else {
+                      if (matches.length === 0) {
+                        // if this attack object is NOT in another collection, we can just delete it
+                        AttackObject.findOneAndRemove({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
+                          if (err) {
+                              return callback2a(err);
+                          }
+                          else {
+                              return callback2a();
+                          }
+                        });
+                      }
+                    }
+                  })
+              });
+          }
+
+          Collection.findOneAndRemove({ 'stix.id': collection.stix.id, 'stix.modified': collection.stix.modified }, function (err, collection) {
+              if (err) {
+                  return callback(err);
+              } else {
+                  return callback(null, collection);
+              }
+          });
+          }
+      });
 };
 
 exports.insertExport = async function(stixId, modified, exportData) {
