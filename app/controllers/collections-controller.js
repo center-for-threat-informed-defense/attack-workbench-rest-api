@@ -133,3 +133,21 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+
+exports.deleteVersionById = function(req, res) {
+  collectionsService.deleteVersionById(req.params.stixId, req.params.modified, req.query.deleteAllContents, function (err, removedCollection) {
+      if (err) {
+          logger.error('Delete collections failed. ' + err);
+          return res.status(500).send('Unable to delete collection. Server error.');
+      }
+      else {
+          if (removedCollection === 0) {
+              return res.status(404).send('Collection not found.');
+          } else {
+              logger.debug("Success: Deleted collection with id " + removedCollection.id);
+              return res.status(204).end();
+          }
+      }
+  });
+};
