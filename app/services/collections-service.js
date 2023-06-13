@@ -338,172 +338,84 @@ exports.create = async function(data, options) {
     }
 };
 
-exports.delete = function (stixId, deleteAllContents, callback) {
+exports.delete = async function (stixId, deleteAllContents, callback) {
     if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    Collection.find({'stix.id': stixId})
-        .lean()
-        .exec(function (err, collections) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
-                }
-                else {
-                    return callback(err);
-                }
-            }
-            else {
-                const removedCollections = [];
-                asyncLib.each(collections, function(collection, callback2) {
-                        if (deleteAllContents) {
-                            asyncLib.each(collection.stix.x_mitre_contents, function(reference, callback2a) {
-                                // check if another collection contains this attack object
-                                Collection.find({
-                                  'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean().exec(function (err, matches){
-                                  if (err) {
-                                    return callback2a(err);
-                                  } else {
-                                    if (matches.length === 0) {
-                                      // if this attack object is NOT in another collection, we can just delete it
-                                      AttackObject.findOneAndRemove({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
-                                        if (err) {
-                                            return callback2a(err);
-                                        }
-                                        else {
-                                            return callback2a();
-                                        }
-                                      });
-                                    } else {
-                                      // if this object IS in another collection, we need to update the workspace.collections array
-                                      AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
-                                        if (err) {
-                                            return callback2a(err);
-                                        }
-                                        else {
-                                            const newCollectionsArr = object.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId);
-                                            AttackObject.findByIdAndUpdate(object.id, {'workspace.collections' : newCollectionsArr}).exec(function (err, resp) {
-                                              if (err) {
-                                                return callback2a(err);
-                                              }
-                                              else {
-                                                return callback2a();
-                                              }
-                                            })
-                                        }
-                                      });
-                                    }
-                                  }
-                                })
-                            });
-                        }
-
-                        Collection.findOneAndRemove({ 'stix.id': collection.stix.id, 'stix.modified': collection.stix.modified }, function (err, collection) {
-                            if (err) {
-                                return callback2(err);
-                            } else {
-                                //Note: collection is null if not found
-                                if (collection) {
-                                    removedCollections.push(collection)
-                                }
-                                return callback2(null, collection);
-                            }
-                        });
-                    },
-                    function(err, results) {
-                        if (err) {
-                            return callback(err);
-                        }
-                        else {
-                            return callback(null, removedCollections);
-                        }
-                    });
-            }
-        });
-};
-
-exports.deleteVersionById = function (stixId, modified, deleteAllContents, callback) {
-  if (!stixId) {
       const error = new Error(errors.missingParameter);
       error.parameterName = 'stixId';
       return callback(error);
-  }
+    }
 
-  if (!modified) {
+    const collections = await Collection.find({'stix.id': stixId}).lean();
+    if (!collections) {
+      const error = new Error(errors.badlyFormattedParameter);
+      error.parameterName = 'stixId';
+      return callback(error);
+
+    }
+
+    if (deleteAllContents) {
+      for (let i = 0; i < collections.length; i++) {
+        const collection = collections[i];
+        for (let j = 0; j < collection.stix.x_mitre_contents.length; j++) {
+          const reference = collection.stix.x_mitre_contents[j];
+          const referenceObj = await AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }).lean();
+          const matches = await Collection.find({'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean();
+          if (matches.length === 0) {
+            // if this attack object is NOT in another collection, we can just delete it
+            await AttackObject.findByIdAndDelete(referenceObj._id);
+          } else {
+            // if this object IS in another collection, we need to update the workspace.collections array
+            if (referenceObj.workspace && referenceObj.workspace.collections) {
+              const newCollectionsArr = referenceObj.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId);
+              await AttackObject.findByIdAndUpdate(referenceObj.id, {'workspace.collections' : newCollectionsArr});
+            } 
+          }
+        }
+      }
+    }
+
+    const allCollections = await Collection.find({'stix.id': stixId}).lean();
+    const removedCollections = [];
+    for (let i = 0; i < allCollections.length; i++) {
+      removedCollections.push(await Collection.findByIdAndDelete(allCollections[i]._id).lean());
+    }
+    return callback(null, removedCollections);
+};
+
+exports.deleteVersionById = async function (stixId, modified, deleteAllContents, callback) {
+  if (!stixId) {
     const error = new Error(errors.missingParameter);
-    error.parameterName = 'modified';
+    error.parameterName = 'stixId';
     return callback(error);
   }
 
-  Collection.findOne({ 'stix.id': stixId, 'stix.modified': modified })
-      .lean()
-      .exec(function (err, collection) {
-          if (err) {
-              if (err.name === 'CastError') {
-                  const error = new Error(errors.badlyFormattedParameter);
-                  error.parameterName = 'stixId';
-                  return callback(error);
-              }
-              else {
-                  return callback(err);
-              }
-          }
-          else {
-            if (deleteAllContents) {
-              asyncLib.each(collection.stix.x_mitre_contents, function(reference, callback2a) {
-                  // check if another collection (even another version of this collection) contains this attack object
-                  Collection.find({'_id': {'$ne': reference._id}, "stix.x_mitre_contents" : { $elemMatch : { "object_ref" : reference.object_ref, "object_modified": reference.object_modified} } }).lean().exec(function (err, matches){
-                    if (err) {
-                      return callback2a(err);
-                    } else {
-                      if (matches.length === 0) {
-                        // if this attack object is NOT in another collection, we can just delete it
-                        AttackObject.findOneAndRemove({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
-                          if (err) {
-                              return callback2a(err);
-                          }
-                          else {
-                              return callback2a();
-                          }
-                        });
-                      } else {
-                        // if this object IS in another collection, we need to update the workspace.collections array
-                        AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
-                          if (err) {
-                              return callback2a(err);
-                          }
-                          else {
-                              const newCollectionsArr = object.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId && collectionElem.collectionModified !== modified);
-                              AttackObject.findByIdAndUpdate(object.id, {'workspace.collections' : newCollectionsArr}).exec(function (err, resp) {
-                                if (err) {
-                                  return callback2a(err);
-                                }
-                                else {
-                                    return callback2a();
-                                }
-                              })
-                          }
-                        });
-                      }
-                    }
-                  })
-              });
-          }
+  const collection = await Collection.findOne({'stix.id': stixId, 'stix.modified': modified}).lean();
+  if (!collection) {
+    const error = new Error(errors.badlyFormattedParameter);
+    error.parameterName = 'stixId';
+    return callback(error);
+  }
 
-          Collection.findOneAndRemove({ 'stix.id': collection.stix.id, 'stix.modified': collection.stix.modified }, function (err, collection) {
-              if (err) {
-                  return callback(err);
-              } else {
-                  return callback(null, collection);
-              }
-          });
-          }
-      });
+  if (deleteAllContents) {
+    for (let i = 0; i < collection.stix.x_mitre_contents.length; i++) {
+      const reference = collection.stix.x_mitre_contents[i];
+      const referenceObj = await AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }).lean();
+      const matches = await Collection.find({'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean();
+      if (matches.length === 0) {
+        // if this attack object is NOT in another collection, we can just delete it
+        await AttackObject.findByIdAndDelete(referenceObj._id);
+      } else {
+        // if this object IS in another collection, we need to update the workspace.collections array
+        if (referenceObj.workspace && referenceObj.workspace.collections) {
+          const newCollectionsArr = referenceObj.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId);
+          await AttackObject.findByIdAndUpdate(referenceObj.id, {'workspace.collections' : newCollectionsArr});
+        } 
+      }
+    }
+  }
+
+  const removedCollection = await Collection.findByIdAndDelete(collection._id).lean();
+  return callback(null, removedCollection);
 };
 
 exports.insertExport = async function(stixId, modified, exportData) {
