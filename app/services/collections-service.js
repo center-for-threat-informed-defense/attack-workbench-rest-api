@@ -359,6 +359,7 @@ exports.delete = async function (stixId, deleteAllContents, callback) {
         for (let j = 0; j < collection.stix.x_mitre_contents.length; j++) {
           const reference = collection.stix.x_mitre_contents[j];
           const referenceObj = await AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }).lean();
+          if (!referenceObj) { continue;}
           const matches = await Collection.find({'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean();
           if (matches.length === 0) {
             // if this attack object is NOT in another collection, we can just delete it
@@ -400,6 +401,7 @@ exports.deleteVersionById = async function (stixId, modified, deleteAllContents,
     for (let i = 0; i < collection.stix.x_mitre_contents.length; i++) {
       const reference = collection.stix.x_mitre_contents[i];
       const referenceObj = await AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }).lean();
+      if (!referenceObj) { continue;}
       const matches = await Collection.find({'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean();
       if (matches.length === 0) {
         // if this attack object is NOT in another collection, we can just delete it
