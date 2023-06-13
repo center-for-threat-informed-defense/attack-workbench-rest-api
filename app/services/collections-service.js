@@ -380,7 +380,23 @@ exports.delete = function (stixId, deleteAllContents, callback) {
                                         }
                                       });
                                     } else {
-                                      return callback2a();
+                                      // if this object IS in another collection, we need to update the workspace.collections array
+                                      AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
+                                        if (err) {
+                                            return callback2a(err);
+                                        }
+                                        else {
+                                            const newCollectionsArr = object.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId);
+                                            AttackObject.findByIdAndUpdate(object.id, {'workspace.collections' : newCollectionsArr}).exec(function (err, resp) {
+                                              if (err) {
+                                                return callback2a(err);
+                                              }
+                                              else {
+                                                return callback2a();
+                                              }
+                                            })
+                                        }
+                                      });
                                     }
                                   }
                                 })
@@ -453,6 +469,24 @@ exports.deleteVersionById = function (stixId, modified, deleteAllContents, callb
                           }
                           else {
                               return callback2a();
+                          }
+                        });
+                      } else {
+                        // if this object IS in another collection, we need to update the workspace.collections array
+                        AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
+                          if (err) {
+                              return callback2a(err);
+                          }
+                          else {
+                              const newCollectionsArr = object.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId && collectionElem.collectionModified !== modified);
+                              AttackObject.findByIdAndUpdate(object.id, {'workspace.collections' : newCollectionsArr}).exec(function (err, resp) {
+                                if (err) {
+                                  return callback2a(err);
+                                }
+                                else {
+                                    return callback2a();
+                                }
+                              })
                           }
                         });
                       }
