@@ -338,40 +338,24 @@ exports.create = async function(data, options) {
     }
 };
 
-exports.delete = async function (stixId, deleteAllContents, callback) {
+exports.delete = async function (stixId, deleteAllContents) {
     if (!stixId) {
       const error = new Error(errors.missingParameter);
       error.parameterName = 'stixId';
-      return callback(error);
+      throw error;
     }
 
     const collections = await Collection.find({'stix.id': stixId}).lean();
     if (!collections) {
       const error = new Error(errors.badlyFormattedParameter);
       error.parameterName = 'stixId';
-      return callback(error);
-
+      throw error;
     }
 
     if (deleteAllContents) {
       for (let i = 0; i < collections.length; i++) {
         const collection = collections[i];
-        for (let j = 0; j < collection.stix.x_mitre_contents.length; j++) {
-          const reference = collection.stix.x_mitre_contents[j];
-          const referenceObj = await AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }).lean();
-          if (!referenceObj) { continue;}
-          const matches = await Collection.find({'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean();
-          if (matches.length === 0) {
-            // if this attack object is NOT in another collection, we can just delete it
-            await AttackObject.findByIdAndDelete(referenceObj._id);
-          } else {
-            // if this object IS in another collection, we need to update the workspace.collections array
-            if (referenceObj.workspace && referenceObj.workspace.collections) {
-              const newCollectionsArr = referenceObj.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId);
-              await AttackObject.findByIdAndUpdate(referenceObj.id, {'workspace.collections' : newCollectionsArr});
-            } 
-          }
-        }
+        await deleteAllContentsOfCollection(collection, stixId);
       }
     }
 
@@ -380,45 +364,49 @@ exports.delete = async function (stixId, deleteAllContents, callback) {
     for (let i = 0; i < allCollections.length; i++) {
       removedCollections.push(await Collection.findByIdAndDelete(allCollections[i]._id).lean());
     }
-    return callback(null, removedCollections);
+    return removedCollections;
 };
 
-exports.deleteVersionById = async function (stixId, modified, deleteAllContents, callback) {
+exports.deleteVersionById = async function (stixId, modified, deleteAllContents) {
   if (!stixId) {
     const error = new Error(errors.missingParameter);
     error.parameterName = 'stixId';
-    return callback(error);
+    throw error;
   }
 
   const collection = await Collection.findOne({'stix.id': stixId, 'stix.modified': modified}).lean();
   if (!collection) {
     const error = new Error(errors.badlyFormattedParameter);
     error.parameterName = 'stixId';
-    return callback(error);
+    throw error;
   }
 
   if (deleteAllContents) {
-    for (let i = 0; i < collection.stix.x_mitre_contents.length; i++) {
-      const reference = collection.stix.x_mitre_contents[i];
-      const referenceObj = await AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }).lean();
-      if (!referenceObj) { continue;}
-      const matches = await Collection.find({'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean();
-      if (matches.length === 0) {
-        // if this attack object is NOT in another collection, we can just delete it
-        await AttackObject.findByIdAndDelete(referenceObj._id);
-      } else {
-        // if this object IS in another collection, we need to update the workspace.collections array
-        if (referenceObj.workspace && referenceObj.workspace.collections) {
-          const newCollectionsArr = referenceObj.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId);
-          await AttackObject.findByIdAndUpdate(referenceObj.id, {'workspace.collections' : newCollectionsArr});
-        } 
-      }
-    }
+    await deleteAllContentsOfCollection(collection, stixId);
   }
 
   const removedCollection = await Collection.findByIdAndDelete(collection._id).lean();
-  return callback(null, removedCollection);
+  return removedCollection;
 };
+
+const deleteAllContentsOfCollection = async function(collection, stixId) {
+  for (let i = 0; i < collection.stix.x_mitre_contents.length; i++) {
+    const reference = collection.stix.x_mitre_contents[i];
+    const referenceObj = await AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }).lean();
+    if (!referenceObj) { continue;}
+    const matches = await Collection.find({'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean();
+    if (matches.length === 0) {
+      // if this attack object is NOT in another collection, we can just delete it
+      await AttackObject.findByIdAndDelete(referenceObj._id);
+    } else {
+      // if this object IS in another collection, we need to update the workspace.collections array
+      if (referenceObj.workspace && referenceObj.workspace.collections) {
+        const newCollectionsArr = referenceObj.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId);
+        await AttackObject.findByIdAndUpdate(referenceObj.id, {'workspace.collections' : newCollectionsArr});
+      } 
+    }
+  }
+}
 
 exports.insertExport = async function(stixId, modified, exportData) {
     const collection = await Collection.findOne({ 'stix.id': stixId, 'stix.modified': modified });
