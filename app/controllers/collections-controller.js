@@ -117,37 +117,33 @@ exports.create = async function(req, res) {
     }
 };
 
-exports.delete = function(req, res) {
-    collectionsService.delete(req.params.stixId, req.query.deleteAllContents, function (err, removedCollections) {
-        if (err) {
-            logger.error('Delete collections failed. ' + err);
-            return res.status(500).send('Unable to delete collections. Server error.');
-        }
-        else {
-            if (removedCollections.length === 0) {
-                return res.status(404).send('Collection not found.');
-            } else {
-                logger.debug("Success: Deleted collection with id " + removedCollections[0].id);
-                return res.status(204).end();
-            }
-        }
-    });
+exports.delete = async function(req, res) {
+  try {
+    const removedCollections = await collectionsService.delete(req.params.stixId, req.query.deleteAllContents);
+    if (removedCollections.length === 0) {
+        return res.status(404).send('Collection not found.');
+    } else {
+        logger.debug("Success: Deleted collection with id " + removedCollections[0].id);
+        return res.status(204).end();
+    }
+  } catch (error) {
+    logger.error('Delete collections failed. ' + error);
+    return res.status(500).send('Unable to delete collections. Server error.');
+  }
 };
 
 
-exports.deleteVersionById = function(req, res) {
-  collectionsService.deleteVersionById(req.params.stixId, req.params.modified, req.query.deleteAllContents, function (err, removedCollection) {
-      if (err) {
-          logger.error('Delete collections failed. ' + err);
-          return res.status(500).send('Unable to delete collection. Server error.');
-      }
-      else {
-          if (removedCollection === 0) {
-              return res.status(404).send('Collection not found.');
-          } else {
-              logger.debug("Success: Deleted collection with id " + removedCollection.id);
-              return res.status(204).end();
-          }
-      }
-  });
+exports.deleteVersionById = async function(req, res) {
+  try {
+    const removedCollection = await collectionsService.deleteVersionById(req.params.stixId, req.params.modified, req.query.deleteAllContents);
+    if (!removedCollection.length) {
+        return res.status(404).send('Collection not found.');
+    } else {
+        logger.debug("Success: Deleted collection with id " + removedCollection.id);
+        return res.status(204).end();
+    }
+  } catch (error) {
+    logger.error('Delete collection failed. ' + error);
+    return res.status(500).send('Unable to delete collection. Server error.');
+  }
 };
