@@ -136,7 +136,7 @@ exports.delete = async function(req, res) {
 exports.deleteVersionById = async function(req, res) {
   try {
     const removedCollection = await collectionsService.deleteVersionById(req.params.stixId, req.params.modified, req.query.deleteAllContents);
-    if (!removedCollection.length) {
+    if (!removedCollection) {
         return res.status(404).send('Collection not found.');
     } else {
         logger.debug("Success: Deleted collection with id " + removedCollection.id);
