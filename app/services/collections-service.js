@@ -362,7 +362,12 @@ exports.delete = async function (stixId, deleteAllContents) {
     const allCollections = await Collection.find({'stix.id': stixId}).lean();
     const removedCollections = [];
     for (let i = 0; i < allCollections.length; i++) {
-      removedCollections.push(await Collection.findByIdAndDelete(allCollections[i]._id).lean());
+      try {
+        await Collection.findByIdAndDelete(allCollections[i]._id).lean();
+      } catch (err) {
+        continue;
+      }
+      removedCollections.push(allCollections[i]);
     }
     return removedCollections;
 };
@@ -385,8 +390,12 @@ exports.deleteVersionById = async function (stixId, modified, deleteAllContents)
     await deleteAllContentsOfCollection(collection, stixId);
   }
 
-  const removedCollection = await Collection.findByIdAndDelete(collection._id).lean();
-  return removedCollection;
+  try {
+    await Collection.findByIdAndDelete(collection._id).lean();
+  } catch (err) {
+    return;
+  }
+  return collection;
 };
 
 const deleteAllContentsOfCollection = async function(collection, stixId) {
