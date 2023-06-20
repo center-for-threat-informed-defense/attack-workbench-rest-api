@@ -181,7 +181,7 @@ paths:
         - name: deleteAllContents
           in: query
           description: |
-            Delete all of the objects referenced in x_mitre_contents.
+            Delete all of the objects referenced in x_mitre_contents.  Note: If an object is referenced in another collection, the object will not be
           schema:
             type: boolean
             default: false
@@ -228,3 +228,35 @@ paths:
                   $ref: '../components/collections.yml#/components/schemas/collection'
           '404':
             description: 'A collection with the requested STIX id and modified date was not found.'
+      delete:
+          summary: 'Delete a version of a collection'
+          operationId: 'collection-delete-by-id-and-modified'
+          description: |
+            This endpoint deletes one versions of a collection from the workspace.
+          tags:
+            - 'Collections'
+          parameters:
+            - name: stixId
+              in: path
+              description: 'STIX id of the collections to delete'
+              required: true
+              schema:
+                type: string
+            - name: modified
+              in: path
+              description: 'modified date of the collection to delete'
+              required: true
+              schema:
+                type: string
+            - name: deleteAllContents
+              in: query
+              description: |
+                Delete all of the objects referenced in x_mitre_contents.  Note: If an object is referenced in another collection, the object will not be
+              schema:
+                type: boolean
+                default: false
+          responses:
+            '204':
+              description: 'The collection was successfully deleted.'
+            '404':
+              description: 'A collection with the requested STIX id was not found.'
