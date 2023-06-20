@@ -403,9 +403,10 @@ const deleteAllContentsOfCollection = async function(collection, stixId, modifie
         if (!referenceObj) { continue;}
         const matchQuery = {'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}};
         if (modified) {
-            matchQuery['stix.modified'] = {'$ne': modified};
+            delete matchQuery['stix.id'];
+            matchQuery['$or'] = [{'stix.id': {'$ne': stixId}},{'stix.modified': {'$ne': modified}}];
         }
-        const matches = await Collection.find({'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean();
+        const matches = await Collection.find(matchQuery).lean();
         if (matches.length === 0) {
             // if this attack object is NOT in another collection, we can just delete it
             await AttackObject.findByIdAndDelete(referenceObj._id);
