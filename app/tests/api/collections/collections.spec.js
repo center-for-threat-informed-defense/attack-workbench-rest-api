@@ -43,7 +43,7 @@ const initialCollectionData = {
     }
 };
 
-const mitigationData = {
+const mitigationData1 = {
     workspace: {
         workflow: {
             state: 'work-in-progress'
@@ -54,6 +54,27 @@ const mitigationData = {
         spec_version: '2.1',
         type: 'course-of-action',
         description: 'This is a mitigation.',
+        external_references: [
+            { source_name: 'mitre-attack', external_id: 'T9999', url: 'https://attack.mitre.org/mitigations/T9999' },
+            { source_name: 'source-1', external_id: 's1' }
+        ],
+        object_marking_refs: [ 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168' ],
+        created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+        x_mitre_version: "1.1"
+    }
+};
+
+const mitigationData2 = {
+    workspace: {
+        workflow: {
+            state: 'work-in-progress'
+        }
+    },
+    stix: {
+        name: 'course-of-action-2',
+        spec_version: '2.1',
+        type: 'course-of-action',
+        description: 'This is another mitigation.',
         external_references: [
             { source_name: 'mitre-attack', external_id: 'T9999', url: 'https://attack.mitre.org/mitigations/T9999' },
             { source_name: 'source-1', external_id: 's1' }
@@ -120,9 +141,9 @@ describe('Collections (x-mitre-collection) Basic API', function () {
 
     it('POST /api/mitigations creates a mitigation', function (done) {
         const timestamp = new Date().toISOString();
-        mitigationData.stix.created = timestamp;
-        mitigationData.stix.modified = timestamp;
-        const body = mitigationData;
+        mitigationData1.stix.created = timestamp;
+        mitigationData1.stix.modified = timestamp;
+        const body = mitigationData1;
         request(app)
             .post('/api/mitigations')
             .send(body)
@@ -153,6 +174,30 @@ describe('Collections (x-mitre-collection) Basic API', function () {
             });
     });
 
+    let mitigation2;
+    it('POST /api/mitigations creates another mitigation', function (done) {
+        const timestamp = new Date().toISOString();
+        mitigationData2.stix.created = timestamp;
+        mitigationData2.stix.modified = timestamp;
+        const body = mitigationData2;
+        request(app)
+            .post('/api/mitigations')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    mitigation2 = res.body;
+
+                    done();
+                }
+            });
+    });
     it('POST /api/software creates a software', function (done) {
         const timestamp = new Date().toISOString();
         softwareData.stix.created = timestamp;
@@ -385,13 +430,21 @@ describe('Collections (x-mitre-collection) Basic API', function () {
 
     let collection2;
     it('POST /api/collections should create a new version of a collection with a duplicate stix.id but different stix.modified date', function (done) {
-        collection2 = _.cloneDeep(collection1);
-        collection2._id = undefined;
-        collection2.__t = undefined;
-        collection2.__v = undefined;
+        const collection = _.cloneDeep(collection1);
+        collection._id = undefined;
+        collection.__t = undefined;
+        collection.__v = undefined;
         const timestamp = new Date().toISOString();
-        collection2.stix.modified = timestamp;
-        const body = collection2;
+        collection.stix.modified = timestamp;
+
+        // Add the second mitigation object to the collection data
+        const contentsObject = {
+            object_ref: mitigation2.stix.id,
+            object_modified: mitigation2.stix.modified
+        }
+        collection.stix.x_mitre_contents.push(contentsObject);
+
+        const body = collection;
         request(app)
             .post('/api/collections')
             .send(body)
@@ -404,8 +457,8 @@ describe('Collections (x-mitre-collection) Basic API', function () {
                     done(err);
                 } else {
                     // We expect to get the created collection
-                    const collection = res.body;
-                    expect(collection).toBeDefined();
+                    collection2 = res.body;
+                    expect(collection2).toBeDefined();
                     done();
                 }
             });
@@ -457,7 +510,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
             });
     });
 
-    it('GET /api/collections/:id/modified/:modified with retrieveContents flag returns the added collection with contents', function (done) {
+    it('GET /api/collections/:id/modified/:modified with retrieveContents flag returns the first version of the collection with its contents', function (done) {
         request(app)
             .get('/api/collections/' + collection1.stix.id + '/modified/' + collection1.stix.modified + '?retrieveContents=true')
             .set('Accept', 'application/json')
@@ -483,6 +536,32 @@ describe('Collections (x-mitre-collection) Basic API', function () {
             });
     });
 
+    it('GET /api/collections/:id/modified/:modified with retrieveContents flag returns the second version of the collection with its contents', function (done) {
+        request(app)
+            .get('/api/collections/' + collection2.stix.id + '/modified/' + collection2.stix.modified + '?retrieveContents=true')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get one collection
+                    const collection = res.body;
+                    expect(collection).toBeDefined();
+                    expect(collection.stix).toBeDefined();
+                    expect(collection.stix.id).toBe(collection2.stix.id);
+                    expect(collection.stix.modified).toBe(collection2.stix.modified);
+
+                    expect(collection.contents).toBeDefined();
+                    expect(Array.isArray(collection.contents)).toBe(true);
+                    expect(collection.contents.length).toBe(3);
+                    done();
+                }
+            });
+    });
+
     it('GET /api/collections returns all added collections', function (done) {
         request(app)
             .get('/api/collections/' + collection1.stix.id + '?versions=all')
@@ -499,6 +578,101 @@ describe('Collections (x-mitre-collection) Basic API', function () {
                     expect(collections).toBeDefined();
                     expect(Array.isArray(collections)).toBe(true);
                     expect(collections.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/collections/:id should not delete a collection when the id cannot be found', function (done) {
+        request(app)
+            .delete('/api/collections/not-an-id')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/collections/:id/modified/:modified deletes a collection and its contents', function (done) {
+        request(app)
+            .delete('/api/collections/' + collection2.stix.id + '/modified/' + collection2.stix.modified + '?deleteAllContents=true')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/mitigations/:id should not return a mitigation that was deleted when the collection was deleted', function (done) {
+        request(app)
+            .get(`/api/mitigations/${ mitigation2.stix.id }`)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    done();
+                }
+            });
+    });
+
+    // This should return all the objects, showing that the previous delete didn't remove objects that were in both
+    // versions of the collection
+    it('GET /api/collections/:id with retrieveContents flag returns the added collection with contents', function (done) {
+        request(app)
+            .get('/api/collections/' + collection1.stix.id + '?retrieveContents=true')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get one collection in an array
+                    const collections = res.body;
+                    expect(collections).toBeDefined();
+                    expect(Array.isArray(collections)).toBe(true);
+                    expect(collections.length).toBe(1);
+
+                    const collection = collections[0];
+                    expect(collection).toBeDefined();
+                    expect(collection.stix).toBeDefined();
+                    expect(collection.stix.id).toBe(collection1.stix.id);
+
+                    expect(collection.contents).toBeDefined();
+                    expect(Array.isArray(collection.contents)).toBe(true);
+                    expect(collection.contents.length).toBe(2);
+                    console.log(collection.contents[0]);
+                    console.log(collection.contents[1]);
+
+                    done();
+                }
+            });
+    });
+
+    it('DELETE /api/collections/:id should delete all of the collections with the stix id', function (done) {
+        request(app)
+            .delete('/api/collections/' + collection1.stix.id)
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(204)
+            .end(function(err, res) {
+                if (err) {
+                    done(err);
+                }
+                else {
                     done();
                 }
             });
