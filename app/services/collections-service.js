@@ -386,7 +386,7 @@ exports.deleteVersionById = async function (stixId, modified, deleteAllContents)
     }
 
     if (deleteAllContents) {
-        await deleteAllContentsOfCollection(collection, stixId);
+        await deleteAllContentsOfCollection(collection, stixId, modified);
     }
 
     try {
@@ -397,10 +397,14 @@ exports.deleteVersionById = async function (stixId, modified, deleteAllContents)
     return collection;
 };
 
-const deleteAllContentsOfCollection = async function(collection, stixId) {
+const deleteAllContentsOfCollection = async function(collection, stixId, modified) {
     for (const reference of collection.stix.x_mitre_contents) {
         const referenceObj = await AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }).lean();
         if (!referenceObj) { continue;}
+        const matchQuery = {'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}};
+        if (modified) {
+            matchQuery['stix.modified'] = {'$ne': modified};
+        }
         const matches = await Collection.find({'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}}).lean();
         if (matches.length === 0) {
             // if this attack object is NOT in another collection, we can just delete it
