@@ -30,89 +30,81 @@ function runCheckCollectionIndexes() {
             logger.error('Unable to get existing collection indexes: ' + err);
         }
         else {
-            async.each(collectionIndexes, function(collectionIndex, callback) {
-                    if (collectionIndex.collection_index && collectionIndex.workspace.update_policy.automatic) {
-                        // Is it time to retrieve the collection index from the remote URL?
-                        let lastRetrieval;
-                        const now = Date.now();
-                        if (collectionIndex.workspace.update_policy.last_retrieval) {
-                            lastRetrieval = new Date(collectionIndex.workspace.update_policy.last_retrieval);
-                        }
-                        if (!lastRetrieval || (now - lastRetrieval) > (1000 * collectionIndex.workspace.update_policy.interval)) {
-                            logger.info(`Checking collection index: ${ collectionIndex.collection_index.name } (${ collectionIndex.collection_index.id })`);
-                            logger.verbose('Retrieving collection index from remote url ' + collectionIndex.workspace.remote_url);
-                            collectionIndexesService.retrieveByUrl(collectionIndex.workspace.remote_url, function(err, remoteCollectionIndex) {
-                                if (err) {
-                                    logger.error('Unable to retrieve collection index from remote url. ' + err);
-                                    return callback(err);
+            for (const collectionIndex of collectionIndexes) {
+            //async.each(collectionIndexes, function(collectionIndex, callback) {
+                if (collectionIndex.collection_index && collectionIndex.workspace.update_policy.automatic) {
+                    // Is it time to retrieve the collection index from the remote URL?
+                    let lastRetrieval;
+                    const now = Date.now();
+                    if (collectionIndex.workspace.update_policy.last_retrieval) {
+                        lastRetrieval = new Date(collectionIndex.workspace.update_policy.last_retrieval);
+                    }
+                    if (!lastRetrieval || (now - lastRetrieval) > (1000 * collectionIndex.workspace.update_policy.interval)) {
+                        logger.info(`Checking collection index: ${ collectionIndex.collection_index.name } (${ collectionIndex.collection_index.id })`);
+                        logger.verbose('Retrieving collection index from remote url ' + collectionIndex.workspace.remote_url);
+                        collectionIndexesService.retrieveByUrl(collectionIndex.workspace.remote_url, function(err, remoteCollectionIndex) {
+                            if (err) {
+                                logger.error('Unable to retrieve collection index from remote url. ' + err);
+                                //return callback(err);
+                            }
+                            else {
+                                const remoteTimestamp = new Date(remoteCollectionIndex.modified);
+                                const existingTimestamp = new Date(collectionIndex.collection_index.modified);
+                                if (remoteTimestamp > existingTimestamp) {
+                                    logger.info('The retrieved collection index is newer. Updating collection index in workbench.');
+                                    collectionIndex.collection_index = remoteCollectionIndex;
+                                    collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
+
+                                    collectionIndexesService.updateWorkbench(collectionIndex, function(err) {
+                                        if (err) {
+                                            logger.error('Unable to update collection index in workbench. ' + err);
+                                            return callback(err);
+                                        }
+                                        else {
+                                            // Check subscribed collections
+                                            if (scheduledSubscriptions.has(collectionIndex.collection_index.id)) {
+                                                logger.info(`Subscriptions for collection index ${ collectionIndex.collection_index.id } are already being checked`);
+                                            }
+                                            else {
+                                                logger.verbose(`Checking Subscriptions for collection index ${ collectionIndex.collection_index.id }`);
+                                                scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
+                                                subscriptionHandler(collectionIndex, function (err) {
+                                                    scheduledSubscriptions.delete(collectionIndex.collection_index.id);
+                                                    return callback(err);
+                                                });
+                                            }
+                                        }
+                                    });
                                 }
                                 else {
-                                    const remoteTimestamp = new Date(remoteCollectionIndex.modified);
-                                    const existingTimestamp = new Date(collectionIndex.collection_index.modified);
-                                    if (remoteTimestamp > existingTimestamp) {
-                                        logger.info('The retrieved collection index is newer. Updating collection index in workbench.');
-                                        collectionIndex.collection_index = remoteCollectionIndex;
-                                        collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
-
-                                        collectionIndexesService.updateWorkbench(collectionIndex, function(err) {
-                                            if (err) {
-                                                logger.error('Unable to update collection index in workbench. ' + err);
-                                                return callback(err);
+                                    logger.verbose('The retrieved collection index is not newer.')
+                                    collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
+                                    collectionIndexesService.updateWorkbench(collectionIndex, function(err) {
+                                        if (err) {
+                                            logger.error('Unable to update collection index in workbench. ' + err);
+                                            return callback(err);
+                                        }
+                                        else {
+                                            // Check subscribed collections
+                                            if (scheduledSubscriptions.has(collectionIndex.collection_index.id)) {
+                                                logger.info(`Subscriptions for collection index ${ collectionIndex.collection_index.id } are already being checked`);
                                             }
                                             else {
-                                                // Check subscribed collections
-                                                if (scheduledSubscriptions.has(collectionIndex.collection_index.id)) {
-                                                    logger.info(`Subscriptions for collection index ${ collectionIndex.collection_index.id } are already being checked`);
-                                                }
-                                                else {
-                                                    logger.verbose(`Checking Subscriptions for collection index ${ collectionIndex.collection_index.id }`);
-                                                    scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
-                                                    subscriptionHandler(collectionIndex, function (err) {
-                                                        scheduledSubscriptions.delete(collectionIndex.collection_index.id);
-                                                        return callback(err);
-                                                    });
-                                                }
+                                                logger.info(`Checking Subscriptions for collection index ${ collectionIndex.collection_index.id }`);
+                                                scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
+                                                subscriptionHandler(collectionIndex, function (err) {
+                                                    scheduledSubscriptions.delete(collectionIndex.collection_index.id);
+                                                    return callback(err);
+                                                });
                                             }
-                                        });
-                                    }
-                                    else {
-                                        logger.verbose('The retrieved collection index is not newer.')
-                                        collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
-                                        collectionIndexesService.updateWorkbench(collectionIndex, function(err) {
-                                            if (err) {
-                                                logger.error('Unable to update collection index in workbench. ' + err);
-                                                return callback(err);
-                                            }
-                                            else {
-                                                // Check subscribed collections
-                                                if (scheduledSubscriptions.has(collectionIndex.collection_index.id)) {
-                                                    logger.info(`Subscriptions for collection index ${ collectionIndex.collection_index.id } are already being checked`);
-                                                }
-                                                else {
-                                                    logger.info(`Checking Subscriptions for collection index ${ collectionIndex.collection_index.id }`);
-                                                    scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
-                                                    subscriptionHandler(collectionIndex, function (err) {
-                                                        scheduledSubscriptions.delete(collectionIndex.collection_index.id);
-                                                        return callback(err);
-                                                    });
-                                                }
-                                            }
-                                        });
-                                    }
+                                        }
+                                    });
                                 }
-                            });
-                        }
-                        else {
-                            return callback();
-                        }
+                            }
+                        });
                     }
-                    else {
-                        return callback();
-                    }
-                },
-                function(err) {
-                    logger.error(err);
-                })
+                }
+            }
         }
     });
 }

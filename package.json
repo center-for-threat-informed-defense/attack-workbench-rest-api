@@ -79,7 +79,6 @@
     "read-json-lines-sync": "^2.2.5",
     "set-cookie-parser": "^2.6.0",
     "snyk": "^1.1150.0",
-    "superagent": "^8.0.9",
     "supertest": "^6.3.3"
   }
 }
