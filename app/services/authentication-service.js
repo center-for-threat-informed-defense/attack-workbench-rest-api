@@ -177,10 +177,10 @@ async function getClientCredentialsAccessToken() {
  */
 exports.getAccessToken = async function() {
     if (config.workbench.authn.mechanism === 'apikey') {
-        return await getApikeyAccessToken();
+        return  getApikeyAccessToken();
     }
     else if (config.workbench.authn.mechanism === 'client-credentials') {
-        return await getClientCredentialsAccessToken();
+        return getClientCredentialsAccessToken();
     }
     else {
         throw new Error(errors.noMechanismConfigured);

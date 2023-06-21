@@ -31,7 +31,6 @@ function runCheckCollectionIndexes() {
         }
         else {
             for (const collectionIndex of collectionIndexes) {
-            //async.each(collectionIndexes, function(collectionIndex, callback) {
                 if (collectionIndex.collection_index && collectionIndex.workspace.update_policy.automatic) {
                     // Is it time to retrieve the collection index from the remote URL?
                     let lastRetrieval;
@@ -45,7 +44,6 @@ function runCheckCollectionIndexes() {
                         collectionIndexesService.retrieveByUrl(collectionIndex.workspace.remote_url, function(err, remoteCollectionIndex) {
                             if (err) {
                                 logger.error('Unable to retrieve collection index from remote url. ' + err);
-                                //return callback(err);
                             }
                             else {
                                 const remoteTimestamp = new Date(remoteCollectionIndex.modified);
@@ -58,7 +56,7 @@ function runCheckCollectionIndexes() {
                                     collectionIndexesService.updateWorkbench(collectionIndex, function(err) {
                                         if (err) {
                                             logger.error('Unable to update collection index in workbench. ' + err);
-                                            return callback(err);
+                                            return;
                                         }
                                         else {
                                             // Check subscribed collections
@@ -70,7 +68,7 @@ function runCheckCollectionIndexes() {
                                                 scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
                                                 subscriptionHandler(collectionIndex, function (err) {
                                                     scheduledSubscriptions.delete(collectionIndex.collection_index.id);
-                                                    return callback(err);
+                                                    return;
                                                 });
                                             }
                                         }
@@ -82,7 +80,7 @@ function runCheckCollectionIndexes() {
                                     collectionIndexesService.updateWorkbench(collectionIndex, function(err) {
                                         if (err) {
                                             logger.error('Unable to update collection index in workbench. ' + err);
-                                            return callback(err);
+                                            return;
                                         }
                                         else {
                                             // Check subscribed collections
@@ -94,7 +92,7 @@ function runCheckCollectionIndexes() {
                                                 scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
                                                 subscriptionHandler(collectionIndex, function (err) {
                                                     scheduledSubscriptions.delete(collectionIndex.collection_index.id);
-                                                    return callback(err);
+                                                    return;
                                                 });
                                             }
                                         }
