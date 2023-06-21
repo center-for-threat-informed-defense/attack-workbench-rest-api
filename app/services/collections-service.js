@@ -346,65 +346,87 @@ exports.create = async function(data, options) {
     }
 };
 
-exports.delete = function (stixId, deleteAllContents, callback) {
+exports.delete = async function (stixId, deleteAllContents) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
-        return callback(error);
+        throw error;
     }
 
-    Collection.find({'stix.id': stixId})
-        .lean()
-        .exec(function (err, collections) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
-                }
-                else {
-                    return callback(err);
-                }
-            }
-            else {
-                const removedCollections = [];
-                asyncLib.each(collections, function(collection, callback2) {
-                        if (deleteAllContents) {
-                            asyncLib.each(collection.stix.x_mitre_contents, function(reference, callback2a) {
-                                AttackObject.findOneAndRemove({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }, function(err, object) {
-                                    if (err) {
-                                        return callback2a(err);
-                                    }
-                                    else {
-                                        return callback2a();
-                                    }
-                                });
-                            });
-                        }
+    const collections = await Collection.find({'stix.id': stixId}).lean();
+    if (!collections) {
+        const error = new Error(errors.badlyFormattedParameter);
+        error.parameterName = 'stixId';
+        throw error;
+    }
 
-                        Collection.findOneAndRemove({ 'stix.id': collection.stix.id, 'stix.modified': collection.stix.modified }, function (err, collection) {
-                            if (err) {
-                                return callback2(err);
-                            } else {
-                                //Note: collection is null if not found
-                                if (collection) {
-                                    removedCollections.push(collection)
-                                }
-                                return callback2(null, collection);
-                            }
-                        });
-                    },
-                    function(err, results) {
-                        if (err) {
-                            return callback(err);
-                        }
-                        else {
-                            return callback(null, removedCollections);
-                        }
-                    });
-            }
-        });
+    if (deleteAllContents) {
+        for (const collection of collections) {
+            await deleteAllContentsOfCollection(collection, stixId);
+        }
+    }
+
+    const allCollections = await Collection.find({'stix.id': stixId}).lean();
+    const removedCollections = [];
+    for (const collection of allCollections) {
+        try {
+            await Collection.findByIdAndDelete(collection._id).lean();
+        } catch (err) {
+            continue;
+        }
+        removedCollections.push(collection);
+    }
+    return removedCollections;
 };
+
+exports.deleteVersionById = async function (stixId, modified, deleteAllContents) {
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        throw error;
+    }
+
+    const collection = await Collection.findOne({'stix.id': stixId, 'stix.modified': modified}).lean();
+    if (!collection) {
+        const error = new Error(errors.badlyFormattedParameter);
+        error.parameterName = 'stixId';
+        throw error;
+    }
+
+    if (deleteAllContents) {
+        await deleteAllContentsOfCollection(collection, stixId, modified);
+    }
+
+    try {
+        await Collection.findByIdAndDelete(collection._id).lean();
+    } catch (err) {
+        return;
+    }
+    return collection;
+};
+
+const deleteAllContentsOfCollection = async function(collection, stixId, modified) {
+    for (const reference of collection.stix.x_mitre_contents) {
+        const referenceObj = await AttackObject.findOne({ 'stix.id': reference.object_ref, 'stix.modified': reference.object_modified }).lean();
+        if (!referenceObj) { continue;}
+        const matchQuery = {'stix.id': {'$ne': stixId}, 'stix.x_mitre_contents' : {'$elemMatch' : {'object_ref' : reference.object_ref, 'object_modified': reference.object_modified}}};
+        if (modified) {
+            delete matchQuery['stix.id'];
+            matchQuery['$or'] = [{'stix.id': {'$ne': stixId}},{'stix.modified': {'$ne': modified}}];
+        }
+        const matches = await Collection.find(matchQuery).lean();
+        if (matches.length === 0) {
+            // if this attack object is NOT in another collection, we can just delete it
+            await AttackObject.findByIdAndDelete(referenceObj._id);
+        } else {
+            // if this object IS in another collection, we need to update the workspace.collections array
+            if (referenceObj.workspace && referenceObj.workspace.collections) {
+                const newCollectionsArr = referenceObj.workspace.collections.filter(collectionElem => collectionElem.collection_ref !== stixId);
+                await AttackObject.findByIdAndUpdate(referenceObj.id, {'workspace.collections' : newCollectionsArr});
+            } 
+        }
+    }
+}
 
 exports.insertExport = async function(stixId, modified, exportData) {
     const collection = await Collection.findOne({ 'stix.id': stixId, 'stix.modified': modified });

@@ -37,6 +37,11 @@ router.route('/collections/:stixId/modified/:modified')
         authn.authenticate,
         authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
         collectionsController.retrieveVersionById
+    )
+    .delete(
+        authn.authenticate,
+        authz.requireRole(authz.admin),
+        collectionsController.deleteVersionById
     );
 
 router.route('/collections/remote')
