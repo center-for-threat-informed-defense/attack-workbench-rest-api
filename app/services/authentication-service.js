@@ -175,9 +175,9 @@ async function getClientCredentialsAccessToken() {
 /**
  * Get the access token that can be used to access the REST API service
  */
-exports.getAccessToken = async function() {
+exports.getAccessToken = function() {
     if (config.workbench.authn.mechanism === 'apikey') {
-        return  getApikeyAccessToken();
+        return getApikeyAccessToken();
     }
     else if (config.workbench.authn.mechanism === 'client-credentials') {
         return getClientCredentialsAccessToken();

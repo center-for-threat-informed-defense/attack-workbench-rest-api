@@ -68,7 +68,10 @@ function runCheckCollectionIndexes() {
                                                 scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
                                                 subscriptionHandler(collectionIndex, function (err) {
                                                     scheduledSubscriptions.delete(collectionIndex.collection_index.id);
-                                                    return;
+                                                    if (err) {
+                                                        logger.error('Error checking subscriptions in collection index. ' + err);
+                                                        return;
+                                                    }
                                                 });
                                             }
                                         }
@@ -92,7 +95,10 @@ function runCheckCollectionIndexes() {
                                                 scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
                                                 subscriptionHandler(collectionIndex, function (err) {
                                                     scheduledSubscriptions.delete(collectionIndex.collection_index.id);
-                                                    return;
+                                                    if (err) {
+                                                        logger.error('Error checking subscriptions in collection index. ' + err);
+                                                        return;
+                                                    }
                                                 });
                                             }
                                         }
