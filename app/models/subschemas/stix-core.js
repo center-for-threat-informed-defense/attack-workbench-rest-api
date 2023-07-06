@@ -30,11 +30,12 @@ module.exports.commonRequiredSDO = {
             'note',
             'relationship',
             'tool',
+            'x-mitre-asset',
             'x-mitre-collection',
             'x-mitre-data-source',
             'x-mitre-data-component',
             'x-mitre-matrix',
-            'x-mitre-tactic'
+            'x-mitre-tactic',
         ]
     },
     spec_version: { type: String, required: true },

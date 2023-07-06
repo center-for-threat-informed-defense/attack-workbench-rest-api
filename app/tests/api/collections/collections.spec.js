@@ -655,8 +655,6 @@ describe('Collections (x-mitre-collection) Basic API', function () {
                     expect(collection.contents).toBeDefined();
                     expect(Array.isArray(collection.contents)).toBe(true);
                     expect(collection.contents.length).toBe(2);
-                    console.log(collection.contents[0]);
-                    console.log(collection.contents[1]);
 
                     done();
                 }

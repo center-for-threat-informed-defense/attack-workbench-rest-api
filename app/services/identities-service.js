@@ -185,7 +185,6 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
                 return callback(null, identity);
             }
             else {
-                console.log('** NOT FOUND')
                 return callback();
             }
         }

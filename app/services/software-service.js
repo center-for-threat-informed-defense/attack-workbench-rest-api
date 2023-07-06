@@ -222,7 +222,6 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
                     .then(() => callback(null, software));
             }
             else {
-                console.log('** NOT FOUND')
                 return callback();
             }
         }

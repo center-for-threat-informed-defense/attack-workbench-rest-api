@@ -3,6 +3,13 @@
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 
+const relatedAsset = {
+    name: { type: String, required: true },
+    related_asset_sector : { type: String, required: true }, // name is longer so allowed-values can match on name
+    description: String,
+};
+const relatedAssetSchema = new mongoose.Schema(relatedAsset, { _id: false });
+
 const stixAsset = {
     // STIX asset specific properties
     modified: { type: Date, required: true },
@@ -10,6 +17,8 @@ const stixAsset = {
     description: String,
 
     // ATT&CK custom stix properties
+    x_mitre_sectors: [ String ],
+    x_mitre_related_assets: [ relatedAssetSchema ],
     x_mitre_modified_by_ref: String,
     x_mitre_platforms: [ String ],
     x_mitre_deprecated: Boolean,
@@ -17,20 +26,19 @@ const stixAsset = {
     x_mitre_version: String,
     x_mitre_attack_spec_version: String,
     x_mitre_contributors: [ String ],
-    x_mitre_aliases: [ String ],
 };
 
 // Create the definition
-const softwareDefinition = {
+const assetDefinition = {
     stix: {
-        ...stixMalware
+        ...stixAsset
     }
 };
 
 // Create the schema
-const softwareSchema = new mongoose.Schema(softwareDefinition);
+const assetSchema = new mongoose.Schema(assetDefinition);
 
 // Create the model
-const SoftwareModel = AttackObject.discriminator('Software', softwareSchema);
+const AssetModel = AttackObject.discriminator('Asset', assetSchema);
 
-module.exports = SoftwareModel;
+module.exports = AssetModel;

@@ -257,6 +257,37 @@
         ]
       }
     ]
+  },
+  {
+    "objectType": "asset",
+    "properties": [
+      {
+        "propertyName": "x_mitre_sector",
+        "domains": [
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [
+              "sector placeholder 1",
+              "sector placeholder 2",
+              "sector placeholder 3"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "related_asset_sector",
+        "domains": [
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [
+              "related asset sector placeholder 1",
+              "related asset sector placeholder 2",
+              "related asset sector placeholder 3"
+            ]
+          }
+        ]
+      }
+    ]
   }
 ]
 
