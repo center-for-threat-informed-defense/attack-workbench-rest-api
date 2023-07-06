@@ -44,7 +44,4 @@ router.route('/collections/:stixId/modified/:modified')
         collectionsController.deleteVersionById
     );
 
-router.route('/collections/remote')
-    .get(collectionsController.retrieveByUrl);
-
 module.exports = router;

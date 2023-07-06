@@ -44,11 +44,4 @@ router.route('/collection-indexes/:id/refresh')
         collectionIndexesController.refresh
     );
 
-router.route('/collection-indexes/remote')
-    .get(
-        authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher, [ authz.serviceRoles.readOnly, authz.serviceRoles.collectionManager ]),
-        collectionIndexesController.retrieveByUrl
-    );
-
 module.exports = router;

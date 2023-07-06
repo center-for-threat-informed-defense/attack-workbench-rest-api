@@ -24,8 +24,11 @@ const scheduledSubscriptions = new Map();
 
 function runCheckCollectionIndexes() {
     logger.info('Scheduler running...');
-
-    collectionIndexesService.retrieveFromWorkbench(function(err, collectionIndexes) {
+    const options = {
+        offset: 0,
+        limit: 0
+    }
+    collectionIndexesService.retrieveAll(options, function(err, collectionIndexes) {
         if (err) {
             logger.error('Unable to get existing collection indexes: ' + err);
         }
@@ -53,7 +56,7 @@ function runCheckCollectionIndexes() {
                                     collectionIndex.collection_index = remoteCollectionIndex;
                                     collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
 
-                                    collectionIndexesService.updateWorkbench(collectionIndex, function(err) {
+                                    collectionIndexesService.updateFull(collectionIndex.collection_index.id, collectionIndex, function(err) {
                                         if (err) {
                                             logger.error('Unable to update collection index in workbench. ' + err);
                                             return;
@@ -80,7 +83,7 @@ function runCheckCollectionIndexes() {
                                 else {
                                     logger.verbose('The retrieved collection index is not newer.')
                                     collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
-                                    collectionIndexesService.updateWorkbench(collectionIndex, function(err) {
+                                    collectionIndexesService.updateFull(collectionIndex.collection_index.id, collectionIndex, function(err) {
                                         if (err) {
                                             logger.error('Unable to update collection index in workbench. ' + err);
                                             return;

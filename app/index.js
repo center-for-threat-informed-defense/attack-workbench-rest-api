@@ -90,7 +90,6 @@ exports.initializeApp = async function() {
     // Set up the static routes
     logger.info('Configuring static routes');
     app.use(express.static('public'));
-    app.use('/collections', express.static('collections'))
 
     // Configure passport with the user authentication mechanism
     const authnConfiguration = require('./lib/authn-configuration');

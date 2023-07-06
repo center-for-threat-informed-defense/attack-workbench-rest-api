@@ -152,7 +152,6 @@ exports.retrieveByUrl = function(url, callback) {
         const error = new Error(errors.missingParameter);
         return callback(error);
     }
-
     superagent.get(url).set('Accept', 'application/json').end((err, res) => {
         if (err) {
             if (err.response && err.response.notFound) {
@@ -182,38 +181,6 @@ exports.retrieveByUrl = function(url, callback) {
             }
         }
     });
-}
-
-/**
- * Updates a collection index in the Workbench data store.
- */
-function updateWorkbenchAsync(collectionIndex, callback) {
-    exports.updateFull(collectionIndex.collection_index.id, collectionIndex, function(err, collectionIndex) {
-        if (err) {
-            throw err;
-        }
-    });
-}
-
-exports.retrieveFromWorkbench = function(callback) {
-    const options = {
-        offset: 0,
-        limit: 0
-    }
-    exports.retrieveAll(options, function(err, collectionIndexes) {
-        if (err) {
-            callback(err);
-        }
-        else {
-            callback(null, collectionIndexes);
-        }
-    });
-}
-
-exports.updateWorkbench = function(collectionIndex, callback) {
-    updateWorkbenchAsync(collectionIndex)
-        .then(() => callback(null))
-        .catch(err => callback(err));
 }
 
 exports.refresh = function(id, callback) {

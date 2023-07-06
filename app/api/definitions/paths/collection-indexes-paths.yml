@@ -134,25 +134,6 @@ paths:
         '404':
           description: 'A collection index with the requested id was not found.'
 
-  /api/collection-indexes/remote:
-    get:
-      summary: 'Retrieve collection index by URL'
-      operationId: collection-indexes-get-by-url
-      description: 'This endpoint retrieves the collection index at the given URL.'
-      tags:
-        - Collection Indexes
-      parameters:
-        - name: url
-          in: query
-          required: true
-          description: |
-            The URL from which to retrieve the collection index.
-          schema:
-            type: string
-      responses:
-        '200':
-          description: 'A collection index.'
-
   /api/collection-indexes/{id}/refresh:
     post:
       summary: 'Refresh a collection index'

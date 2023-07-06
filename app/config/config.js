@@ -22,9 +22,6 @@ function generateSecret() {
 const defaultSessionSecret = generateSecret();
 const defaultTokenSigningSecret = generateSecret();
 
-const authnMechanismValues = ['apikey', 'client-credentials'];
-convict.addFormat(enumFormat('authn-mechanism', authnMechanismValues, true));
-
 const userAuthnMechanismValues = ['anonymous', 'oidc'];
 convict.addFormat(enumFormat('user-authn-mechanism', userAuthnMechanismValues, true));
 
@@ -155,6 +152,11 @@ function loadConfig() {
                 doc: 'Sets the interval in seconds for starting the scheduler.',
                 default: 10,
                 env: 'CHECK_WORKBENCH_INTERVAL'
+            },
+            enableScheduler: {
+                format: Boolean,
+                default: true,
+                env: "ENABLE_SCHEDULER"
             }
         },
         session: {
