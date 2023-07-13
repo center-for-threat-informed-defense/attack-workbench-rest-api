@@ -2,6 +2,8 @@
 
 const collectionIndexesService = require('../services/collection-indexes-service');
 const collectionsService = require('../services/collections-service');
+const collectionBundlesService = require('../services/collection-bundles-service');
+
 const logger = require('../lib/logger');
 const config = require('../config/config');
 const async = require('async');
@@ -120,9 +122,8 @@ function subscriptionHandler(collectionIndex, callback) {
     // Check each subscription in the collection index
     async.eachSeries(collectionIndex.workspace.update_policy.subscriptions, function(collectionId, callback2) {
             // collections is a list of the versions of the collection that are in the Workbench data store
-            collectionsService.retrieveFromWorkbench(collectionId, function(err, collections) {
+            collectionsService.retrieveById(collectionId, { versions: 'latest' }, function(err, collections) {
                 if (err) {
-                    logger.error(err);
                     return callback2(err);
                 }
 
@@ -135,8 +136,8 @@ function subscriptionHandler(collectionIndex, callback) {
                 }
 
                 // Order both lists of collection versions, latest version first
-                collections.sort((a, b) => b.stix.modified.localeCompare(a.stix.modified));
-                collectionInfo.versions.sort((a, b) => b.modified.localeCompare(a.modified));
+                collections.sort((a, b) => b.stix.modified.getTime() - a.stix.modified.getTime());
+                collectionInfo.versions.sort((a, b) => b.modified.getTime() - a.modified.getTime());
 
                 if (collections.length === 0 || collections[0].stix.modified < collectionInfo.versions[0].modified) {
                     // Latest version in collection index is later than latest version in the Workbench data store,
@@ -144,16 +145,39 @@ function subscriptionHandler(collectionIndex, callback) {
                     logger.info(`Retrieving collection bundle from remote url ${ collectionInfo.versions[0].url }`);
                     collectionsService.retrieveByUrl(collectionInfo.versions[0].url, function(err, collectionBundle) {
                         if (err) {
-                            logger.error('Unable to retrieve updated collection bundle. ' + err);
-                            return callback2(err);
+                            const error = new Error('Unable to retrieve updated collection bundle. ' + err);
+                            return callback2(error);
                         }
 
                         logger.info(`Downloaded updated collection bundle with id ${ collectionBundle.id }`);
 
-                        collectionsService.importIntoWorkbench(collectionBundle, function (err, importedCollection) {
+                        // Find the x-mitre-collection objects
+                        const collections = collectionBundle.objects.filter(object => object.type === 'x-mitre-collection');
+
+                        // The bundle must have an x-mitre-collection object
+                        if (collections.length === 0) {
+                            const error = new Error("Unable to import collection bundle. Collection bundle is missing x-mitre-collection object.");
+                            return callback2(error);
+                        }
+                        else if (collections.length > 1) {
+                            const error = new Error("Unable to import collection bundle. Collection bundle has more than one x-mitre-collection object.");
+                            return callback2(error);
+                        }
+
+                        // The collection must have an id.
+                        if (collections.length > 0 && !collections[0].id) {
+                            const error = new Error('Unable to import collection bundle. Badly formatted collection in bundle, x-mitre-collection missing id.');
+                            return callback2(error);
+                        }
+
+                        const importOptions = {
+                            previewOnly: false,
+                            forceImportParameters: []
+                        };
+                        collectionBundlesService.importBundle(collections[0], collectionBundle, importOptions, function (err, importedCollection) {
                             if (err) {
-                                logger.error('Unable to import collection bundle into ATT&CK Workbench database. ' + err);
-                                return callback2(err);
+                                const error = new Error('Unable to import collection bundle into ATT&CK Workbench database. ' + err);
+                                return callback2(error);
                             }
                             else {
                                 logger.info(`Imported collection bundle with x-mitre-collection id ${ importedCollection.stix.id }`);
