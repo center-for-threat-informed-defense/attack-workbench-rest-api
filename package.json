@@ -59,7 +59,7 @@
     "passport-anonym-uuid": "^1.0.3",
     "passport-http": "^0.3.0",
     "passport-http-bearer": "^1.0.1",
-    "semver": "^7.5.0",
+    "semver": "^7.5.4",
     "superagent": "^8.0.9",
     "swagger-ui-express": "^4.6.2",
     "uuid": "^9.0.0",
