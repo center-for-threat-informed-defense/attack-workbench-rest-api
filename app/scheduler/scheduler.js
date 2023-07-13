@@ -58,21 +58,21 @@ function runCheckCollectionIndexes() {
                                     collectionIndex.collection_index = remoteCollectionIndex;
                                     collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
 
-                                    collectionIndexesService.updateFull(collectionIndex.collection_index.id, collectionIndex, function(err) {
+                                    collectionIndexesService.updateFull(collectionIndex.collection_index.id, collectionIndex, function(err, savedCollectionIndex) {
                                         if (err) {
                                             logger.error('Unable to update collection index in workbench. ' + err);
                                             return;
                                         }
                                         else {
                                             // Check subscribed collections
-                                            if (scheduledSubscriptions.has(collectionIndex.collection_index.id)) {
-                                                logger.info(`Subscriptions for collection index ${ collectionIndex.collection_index.id } are already being checked`);
+                                            if (scheduledSubscriptions.has(savedCollectionIndex.collection_index.id)) {
+                                                logger.info(`Subscriptions for collection index ${ savedCollectionIndex.collection_index.id } are already being checked`);
                                             }
                                             else {
-                                                logger.verbose(`Checking Subscriptions for collection index ${ collectionIndex.collection_index.id }`);
-                                                scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
-                                                subscriptionHandler(collectionIndex, function (err) {
-                                                    scheduledSubscriptions.delete(collectionIndex.collection_index.id);
+                                                logger.verbose(`Checking Subscriptions for collection index ${ savedCollectionIndex.collection_index.id }`);
+                                                scheduledSubscriptions.set(savedCollectionIndex.collection_index.id, true);
+                                                subscriptionHandler(savedCollectionIndex, function (err) {
+                                                    scheduledSubscriptions.delete(savedCollectionIndex.collection_index.id);
                                                     if (err) {
                                                         logger.error('Error checking subscriptions in collection index. ' + err);
                                                         return;
