@@ -3,8 +3,6 @@
 const uuid = require('uuid');
 const asyncLib = require('async');
 const superagent = require('superagent');
-const authenticatedRequest = require('../lib/authenticated-request');
-
 
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
