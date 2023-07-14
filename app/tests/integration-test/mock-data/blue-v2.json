@@ -1,0 +1,141 @@
+{
+  "type": "bundle",
+  "id": "bundle--8b78b85f-0f05-487c-876a-4ca28d62f84f",
+  "objects": [
+    {
+      "id": "x-mitre-collection--6c402d41-d768-4e13-9caa-8fec689f8680",
+      "type": "x-mitre-collection",
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "name": "Collection Blue",
+      "x_mitre_version": "2.0.0",
+      "description": "Collection Blue",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2020-01-01T01:01:01.111111Z",
+      "modified": "2020-02-02T02:02:02.222222Z",
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "x_mitre_contents": [
+        {
+          "object_ref": "intrusion-set--e094675a-4c0f-4f90-96e8-1ac0f349ebb8",
+          "object_modified": "2019-12-12T12:12:12.121212Z"
+        },
+        {
+          "object_ref": "intrusion-set--30a2468c-dd35-44ac-b5e2-e85592351df3",
+          "object_modified": "2019-12-12T12:12:12.121212Z"
+        },
+        {
+          "object_ref": "intrusion-set--5f2a8524-e7e4-4f7c-9fb6-e3dba60a57b6",
+          "object_modified": "2019-12-12T12:12:12.121212Z"
+        },
+        {
+          "object_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+          "object_modified": "2017-06-01T00:00:00.000Z"
+        },
+        {
+          "object_ref": "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168",
+          "object_modified": "2017-06-01T00:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "type": "intrusion-set",
+      "name": "BLUE BANANA",
+      "x_mitre_version": "1.0",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "id": "intrusion-set--e094675a-4c0f-4f90-96e8-1ac0f349ebb8",
+      "description": "Blue Banana group",
+      "x_mitre_contributors": [],
+      "created": "2019-12-12T12:12:12.121212Z",
+      "modified": "2019-12-12T12:12:12.121212Z",
+      "external_references": [
+        {
+          "url": "https://attack.mitre.org/groups/G0991",
+          "external_id": "G0991",
+          "source_name": "mitre-attack"
+        }
+      ],
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5"
+    },
+    {
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "type": "intrusion-set",
+      "name": "BLUE BOXCARS",
+      "x_mitre_version": "1.0",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "id": "intrusion-set--30a2468c-dd35-44ac-b5e2-e85592351df3",
+      "description": "Blue Boxcars group",
+      "x_mitre_contributors": [],
+      "created": "2019-12-12T12:12:12.121212Z",
+      "modified": "2019-12-12T12:12:12.121212Z",
+      "external_references": [
+        {
+          "url": "https://attack.mitre.org/groups/G0992",
+          "external_id": "G0992",
+          "source_name": "mitre-attack"
+        }
+      ],
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5"
+    },
+    {
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "type": "intrusion-set",
+      "name": "BLUE BILLBOARDS",
+      "x_mitre_version": "1.0",
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "id": "intrusion-set--5f2a8524-e7e4-4f7c-9fb6-e3dba60a57b6",
+      "description": "Blue Billboards group",
+      "x_mitre_contributors": [],
+      "created": "2019-12-12T12:12:12.121212Z",
+      "modified": "2019-12-12T12:12:12.121212Z",
+      "external_references": [
+        {
+          "url": "https://attack.mitre.org/groups/G0993",
+          "external_id": "G0993",
+          "source_name": "mitre-attack"
+        }
+      ],
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_modified_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5"
+    },
+    {
+      "modified": "2017-06-01T00:00:00.000Z",
+      "type": "identity",
+      "identity_class": "organization",
+      "object_marking_refs": [
+        "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+      ],
+      "name": "The MITRE Corporation",
+      "id": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "created": "2017-06-01T00:00:00.000Z",
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0",
+      "x_mitre_version": "1.0"
+    },
+    {
+      "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+      "type": "marking-definition",
+      "definition": {
+        "statement": "Copyright 2021, The MITRE Corporation"
+      },
+      "definition_type": "statement",
+      "created": "2017-06-01T00:00:00Z",
+      "id": "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168",
+      "spec_version": "2.1",
+      "x_mitre_attack_spec_version": "2.1.0"
+    }
+  ]
+}

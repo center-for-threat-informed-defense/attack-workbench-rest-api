@@ -52,6 +52,10 @@ async function runServer() {
     // Create the app
     const app = await require('../app').initializeApp();
 
+    // Create the scheduler
+    const scheduler = require('../app/scheduler/scheduler');
+    scheduler.initializeScheduler();
+
     // Start the server
     logger.info('Starting the HTTP server...');
     const server = app.listen(config.server.port, function () {

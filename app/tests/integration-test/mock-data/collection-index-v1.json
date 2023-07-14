@@ -1,0 +1,23 @@
+{
+  "id": "43f56ef6-99a3-455d-9acc-88fce5e9dcd7",
+  "name": "Test Data",
+  "description": "Mock data for integration testing the Collection Manager service",
+  "created": "2020-01-30T01:01:01.111111Z",
+  "modified": "2020-01-30T01:01:01.111111Z",
+  "collections": [
+    {
+      "versions": [
+        {
+          "url": "http://localhost/collection-bundles/blue-v1.json",
+          "version": "1.0.0",
+          "modified": "2020-01-01T01:01:01.111111Z",
+          "release_notes": "Version 1"
+        }
+      ],
+      "description": "Collection Blue",
+      "created": "2020-01-01T01:01:01.111111Z",
+      "id": "x-mitre-collection--6c402d41-d768-4e13-9caa-8fec689f8680",
+      "name": "Collection Blue"
+    }
+  ]
+}

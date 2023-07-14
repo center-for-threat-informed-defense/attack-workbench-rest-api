@@ -4,7 +4,7 @@ Thanks for contributing to `attack-workbench-rest-api`!
 
 You are welcome to comment on issues, open new issues, and open pull requests.
 
-Pull requests should target the **develop** branch of the repository. If your pull request is reliant on changes to the [frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) or [Collection Manager](https://github.com/center-for-threat-informed-defense/attack-workbench-collection-manager/), please make sure to document this in your pull request and link to the corresponding Frontend or Collection Manager pull request.
+Pull requests should target the **develop** branch of the repository. If your pull request is reliant on changes to the [frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend), please make sure to document this in your pull request and link to the corresponding Frontend pull request.
 
 Also, if you contribute any source code, we need you to agree to the following Developer's Certificate of Origin below.
 

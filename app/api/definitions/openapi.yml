@@ -211,6 +211,9 @@ paths:
   /api/collection-indexes/{id}:
     $ref: 'paths/collection-indexes-paths.yml#/paths/~1api~1collection-indexes~1{id}'
 
+  /api/collection-indexes/{id}/refresh:
+    $ref: 'paths/collection-indexes-paths.yml#/paths/~1api~1collection-indexes~1{id}~1refresh'
+
   # Collections
   /api/collections:
     $ref: 'paths/collections-paths.yml#/paths/~1api~1collections'
