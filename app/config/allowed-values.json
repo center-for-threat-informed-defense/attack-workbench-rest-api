@@ -262,7 +262,7 @@
     "objectType": "asset",
     "properties": [
       {
-        "propertyName": "x_mitre_sector",
+        "propertyName": "x_mitre_sectors",
         "domains": [
           {
             "domainName": "ics-attack",
@@ -275,7 +275,7 @@
         ]
       },
       {
-        "propertyName": "related_asset_sector",
+        "propertyName": "related_asset_sectors",
         "domains": [
           {
             "domainName": "ics-attack",
@@ -283,6 +283,19 @@
               "related asset sector placeholder 1",
               "related asset sector placeholder 2",
               "related asset sector placeholder 3"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_platforms",
+        "domains": [
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [
+              "platform placeholder 1",
+              "platform placeholder 2",
+              "platform placeholder 3"
             ]
           }
         ]
