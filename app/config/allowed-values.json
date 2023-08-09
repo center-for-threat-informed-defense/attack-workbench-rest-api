@@ -267,9 +267,12 @@
           {
             "domainName": "ics-attack",
             "allowedValues": [
-              "sector placeholder 1",
-              "sector placeholder 2",
-              "sector placeholder 3"
+              "Electric",
+              "Water and Wastewater",
+              "Manufacturing",
+              "Rail",
+              "Maritime",
+              "General"
             ]
           }
         ]
@@ -280,9 +283,12 @@
           {
             "domainName": "ics-attack",
             "allowedValues": [
-              "related asset sector placeholder 1",
-              "related asset sector placeholder 2",
-              "related asset sector placeholder 3"
+              "Electric",
+              "Water and Wastewater",
+              "Manufacturing",
+              "Rail",
+              "Maritime",
+              "General"
             ]
           }
         ]
@@ -293,9 +299,11 @@
           {
             "domainName": "ics-attack",
             "allowedValues": [
-              "platform placeholder 1",
-              "platform placeholder 2",
-              "platform placeholder 3"
+              "Windows",
+              "Linux",
+              "Network",
+              "Embedded",
+              "Cloud"
             ]
           }
         ]
