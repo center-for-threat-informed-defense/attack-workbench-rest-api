@@ -1,0 +1,78 @@
+paths:
+  /api/recent-activity:
+    get:
+      summary: 'Get a list of all recent activity'
+      operationId: 'get-all-recent-activity'
+      description: |
+        This endpoint gets a list of all ATT&CK objects and relationships by their modified date.
+      tags:
+        - 'Recent Activity'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of objects to retrieve.
+            The default (0) will retrieve all objects.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of objects to skip.
+            The default (0) will start with the first object.
+          schema:
+            type: number
+            default: 0
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: true
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: true
+        - name: lastUpdatedBy
+          in: query
+          description: |
+            The STIX ID of the user who last modified the object
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'identity--f568ad89-69bc-48e7-877b-43755f1d376d'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of ATT&CK Objects and Relationships.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  anyOf:
+                    - $ref: '../components/collections.yml#/components/schemas/collection'
+                    - $ref: '../components/groups.yml#/components/schemas/group'
+                    - $ref: '../components/identities.yml#/components/schemas/identity'
+                    - $ref: '../components/marking-definitions.yml#/components/schemas/marking-definition'
+                    - $ref: '../components/matrices.yml#/components/schemas/matrix'
+                    - $ref: '../components/mitigations.yml#/components/schemas/mitigation'
+                    - $ref: '../components/relationships.yml#/components/schemas/relationship'
+                    - $ref: '../components/software.yml#/components/schemas/software'
+                    - $ref: '../components/tactics.yml#/components/schemas/tactic'
+                    - $ref: '../components/techniques.yml#/components/schemas/technique'
