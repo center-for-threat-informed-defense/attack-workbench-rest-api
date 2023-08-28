@@ -9,217 +9,114 @@ const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 const regexValidator = require('../lib/regex');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
+const matrixRepository = require('../repository/matrix-repository');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
-exports.errors = errors;
-
-exports.retrieveAll = function(options, callback) {
-    // Build the query
-    const query = {};
-    if (!options.includeRevoked) {
-        query['stix.revoked'] = { $in: [null, false] };
-    }
-    if (!options.includeDeprecated) {
-        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
-    }
-    if (typeof options.state !== 'undefined') {
-        if (Array.isArray(options.state)) {
-            query['workspace.workflow.state'] = { $in: options.state };
-        }
-        else {
-            query['workspace.workflow.state'] = options.state;
-        }
-    }
-    if (typeof options.lastUpdatedBy !== 'undefined') {
-      query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
-    }
-
-    // Build the aggregation
-    // - Group the documents by stix.id, sorted by stix.modified
-    // - Use the last document in each group (according to the value of stix.modified)
-    // - Then apply query, skip and limit options
-    const aggregation = [
-        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
-        { $replaceRoot: { newRoot: '$document' }},
-        { $sort: { 'stix.id': 1 }},
-        { $match: query }
-    ];
-
-    if (typeof options.search !== 'undefined') {
-        options.search = regexValidator.sanitizeRegex(options.search);
-        const match = { $match: { $or: [
-                    { 'stix.name': { '$regex': options.search, '$options': 'i' }},
-                    { 'stix.description': { '$regex': options.search, '$options': 'i' }}
-                ]}};
-        aggregation.push(match);
-    }
-
-    const facet = {
-        $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [ ]
-        }
-    };
-    if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
-    }
-    else {
-        facet.$facet.documents.push({ $skip: 0 });
-    }
-    if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-    }
-    aggregation.push(facet);
-
-    // Retrieve the documents
-    Matrix.aggregate(aggregation, function(err, results) {
-        if (err) {
-            return callback(err);
-        }
-        else {
-            identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents)
-                .then(function() {
-                    if (options.includePagination) {
-                        let derivedTotalCount = 0;
-                        if (results[0].totalCount.length > 0) {
-                            derivedTotalCount = results[0].totalCount[0].totalCount;
-                        }
-                        const returnValue = {
-                            pagination: {
-                                total: derivedTotalCount,
-                                offset: options.offset,
-                                limit: options.limit
-                            },
-                            data: results[0].documents
-                        };
-                        return callback(null, returnValue);
-                    }
-                    else {
-                        return callback(null, results[0].documents);
-                    }
-                });
-        }
-    });
+const ErrorType = {
+    MissingParameter: 'Missing required parameter',
+    BadlyFormattedParameter: 'Badly formatted parameter',
+    DuplicateId: 'Duplicate id',
+    NotFound: 'Document not found',
+    InvalidQueryStringParameter: 'Invalid query string parameter'
 };
 
-exports.retrieveById = function(stixId, options, callback) {
-    // versions=all Retrieve all matrices with the stixId
-    // versions=latest Retrieve the matrix with the latest modified date for this stixId
+function processError(errorType, options = {}) {
+    if (!ErrorType[errorType]) {
+        throw new Error('Unknown error type provided to processError function.');
+    }
 
+    const error = new Error(ErrorType[errorType]);
+
+    // Apply options (if defined) to the error object
+    for (const key in options) {
+        if (Object.prototype.hasOwnProperty.call(options, key)) {
+            error[key] = options[key];
+        }
+    }
+
+    throw error;
+};
+
+// TODO why is this being exported?
+// exports.errors = ErrorType;
+
+exports.retrieveAll = async function (options) {
+    try {
+        const results = await matrixRepository.retrieveAll(options);
+
+        await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
+
+        if (options.includePagination) {
+            let derivedTotalCount = 0;
+            if (results[0].totalCount.length > 0) {
+                derivedTotalCount = results[0].totalCount[0].totalCount;
+            }
+            const returnValue = {
+                pagination: {
+                    total: derivedTotalCount,
+                    offset: options.offset,
+                    limit: options.limit
+                },
+                data: results[0].documents
+            };
+            return returnValue;
+        } else {
+            return results[0].documents;
+        }
+    } catch (err) {
+        throw err;
+    }
+};
+
+exports.retrieveById = async function (stixId, options) {
     if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
+        return processError(ErrorType.MissingParameter, { parameterName: 'stixId' });
     }
 
     if (options.versions === 'all') {
-        Matrix.find({'stix.id': stixId})
-            .sort('-stix.modified')
-            .lean()
-            .exec(function (err, matrices) {
-                if (err) {
-                    if (err.name === 'CastError') {
-                        const error = new Error(errors.badlyFormattedParameter);
-                        error.parameterName = 'stixId';
-                        return callback(error);
-                    }
-                    else {
-                        return callback(err);
-                    }
-                }
-                else {
-                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(matrices)
-                        .then(() => callback(null, matrices));
-                }
-            });
-    }
-    else if (options.versions === 'latest') {
-        Matrix.findOne({ 'stix.id': stixId })
-            .sort('-stix.modified')
-            .lean()
-            .exec(function(err, matrix) {
-                if (err) {
-                    if (err.name === 'CastError') {
-                        const error = new Error(errors.badlyFormattedParameter);
-                        error.parameterName = 'stixId';
-                        return callback(error);
-                    }
-                    else {
-                        return callback(err);
-                    }
-                }
-                else {
-                    // Note: document is null if not found
-                    if (matrix) {
-                        identitiesService.addCreatedByAndModifiedByIdentities(matrix)
-                            .then(() => callback(null, [ matrix ]));
-                    }
-                    else {
-                        return callback(null, []);
-                    }
-                }
-            });
-    }
-    else {
-        const error = new Error(errors.invalidQueryStringParameter);
-        error.parameterName = 'versions';
-        return callback(error);
+        const matrices = await matrixRepository.retrieveAllByStixId(stixId);
+        await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(matrices);
+        return matrices;
+    } else if (options.versions === 'latest') {
+        const matrix = await matrixRepository.retrieveLatestByStixId(stixId);
+        if (matrix) {
+            await identitiesService.addCreatedByAndModifiedByIdentities(matrix);
+            return [matrix];
+        } else {
+            return [];
+        }
+    } else {
+        processError(ErrorType.InvalidQueryStringParameter, { parameterName: 'versions' });
     }
 };
 
-exports.retrieveVersionById = function(stixId, modified, callback) {
-    // Retrieve the versions of the matrix with the matching stixId and modified date
-
+exports.retrieveVersionById = async function (stixId, modified) {
     if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
+        return processError(ErrorType.MissingParameter, { parameterName: 'stixId' });
     }
 
     if (!modified) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'modified';
-        return callback(error);
+        return processError(ErrorType.MissingParameter, { parameterName: 'modified' });
     }
 
-    Matrix.findOne({ 'stix.id': stixId, 'stix.modified': modified }, function(err, matrix) {
-        if (err) {
-            if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'stixId';
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
+    try {
+        const matrix = await matrixRepository.retrieveByVersion(stixId, modified);
+
+        if (!matrix) {
+            console.log('** NOT FOUND');
+            return null; // TODO should we return NotFound here?
+        } else {
+            await identitiesService.addCreatedByAndModifiedByIdentities(matrix);
+            return matrix;
         }
-        else {
-            // Note: document is null if not found
-            if (matrix) {
-                identitiesService.addCreatedByAndModifiedByIdentities(matrix)
-                    .then(() => callback(null, matrix));
-            }
-            else {
-                console.log('** NOT FOUND')
-                return callback();
-            }
-        }
-    });
+    } catch (err) {
+        throw err;
+    }
 };
+
 
 let retrieveTacticById;
 let retrieveTechniquesForTactic;
-exports.retrieveTechniquesForMatrix = function(stixId, modified, callback) {
-    // Retrieve the versions of the matrix techniques with the matching stixId and modified date
-    
-    // Late binding to avoid circular dependency between modules
+exports.retrieveTechniquesForMatrix = async function (stixId, modified) {
     if (!retrieveTacticById) {
         const tacticsService = require('./tactics-service');
         retrieveTacticById = util.promisify(tacticsService.retrieveById);
@@ -230,69 +127,50 @@ exports.retrieveTechniquesForMatrix = function(stixId, modified, callback) {
     }
 
     if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
+        return processError(ErrorType.MissingParameter, { parameterName: 'stixId' });
     }
     if (!modified) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'modified';
-        return callback(error);
+        return processError(ErrorType.MissingParameter, { parameterName: 'modified' });
     }
 
-    Matrix.findOne({ 'stix.id': stixId, 'stix.modified': modified }, async function(err, matrix) {
-        if (err) {
-            if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'stixId';
-                return callback(error);
+    const matrix = await matrixRepository.retrieveByVersion(stixId, modified);
+
+    if (!matrix) {
+        return; // TODO should we return NotFound here?
+    }
+
+    const options = { versions: 'latest', offset: 0, limit: 0 };
+    const tacticsTechniques = {};
+
+    for (const tacticId of matrix.stix.tactic_refs) {
+        const tactics = await retrieveTacticById(tacticId, options);
+        if (tactics.length) {
+            const tactic = tactics[0];
+            const techniques = await retrieveTechniquesForTactic(tacticId, tactic.stix.modified, options);
+            const parentTechniques = [];
+            const subtechniques = [];
+            for (const technique of techniques) {
+                if (!technique.stix.x_mitre_is_subtechnique) {
+                    parentTechniques.push(technique);
+                } else {
+                    subtechniques.push(technique);
+                }
             }
-            else {
-                return callback(err);
-            }
-        }
-        else {
-            if (matrix) {
-                // get tactics, then query for techniques and sub-techniques
-                const options = { versions: 'latest', offset: 0, limit: 0 };
-                const tacticsTechniques = {};
-                for (const tacticId of matrix.stix.tactic_refs) {
-                    const tactics = await retrieveTacticById(tacticId, options);
-                    if (tactics.length) {
-                        const tactic = tactics[0];
-                        const techniques = await retrieveTechniquesForTactic(tacticId, tactic.stix.modified, options);
-                        // Organize sub-techniques under parent techniques
-                        const parentTechniques = [];
-                        const subtechniques = [];
-                        for (const technique of techniques) {
-                            if (!technique.stix.x_mitre_is_subtechnique) {
-                                parentTechniques.push(technique);
-                            }
-                            else {
-                                subtechniques.push(technique);
-                            }
-                        }
-                        for (const parentTechnique of parentTechniques) {
-                            parentTechnique.subtechniques = [];
-                            for (const subtechnique of subtechniques) {
-                                if (subtechnique.workspace.attack_id.split(".")[0]  === parentTechnique.workspace.attack_id) {
-                                    parentTechnique.subtechniques.push(subtechnique);
-                                }
-                            }
-                        }
-                        // Add techniques to tactic & store tactic
-                        tactic.techniques = parentTechniques;
-                        tacticsTechniques[tactic.stix.name] = tactic;
+            for (const parentTechnique of parentTechniques) {
+                parentTechnique.subtechniques = [];
+                for (const subtechnique of subtechniques) {
+                    if (subtechnique.workspace.attack_id.split(".")[0] === parentTechnique.workspace.attack_id) {
+                        parentTechnique.subtechniques.push(subtechnique);
                     }
                 }
-                return callback(null, tacticsTechniques);
             }
-            else {
-                return callback();
-            }
+            tactic.techniques = parentTechniques;
+            tacticsTechniques[tactic.stix.name] = tactic;
         }
-    });
+    }
+    return tacticsTechniques;
 };
+
 
 exports.createIsAsync = true;
 exports.create = async function(data, options) {
@@ -324,7 +202,8 @@ exports.create = async function(data, options) {
         // Check for an existing object
         let existingObject;
         if (matrix.stix.id) {
-            existingObject = await Matrix.findOne({ 'stix.id': matrix.stix.id });
+            // existingObject = await Matrix.findOne({ 'stix.id': matrix.stix.id });
+            existingObject = await matrixRepository.retrieveAllByStixId(matrix.stix.id);
         }
 
         if (existingObject) {
@@ -345,14 +224,12 @@ exports.create = async function(data, options) {
 
     // Save the document in the database
     try {
-        const savedMatrix = await matrix.save();
-        return savedMatrix;
+        return await matrixRepository.saveMatrix(matrix);
     }
     catch (err) {
         if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
-            const error = new Error(errors.duplicateId);
-            throw error;
+            return processError(ErrorType.DuplicateId);
         }
         else {
             throw err;
@@ -360,92 +237,64 @@ exports.create = async function(data, options) {
     }
 };
 
-exports.updateFull = function(stixId, stixModified, data, callback) {
+exports.updateFull = async function (stixId, stixModified, data) {
+
     if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
+        return processError(ErrorType.MissingParameter, { parameterName: 'stixId' });
+    }
+    if (!modified) {
+        return processError(ErrorType.MissingParameter, { parameterName: 'modified' });
     }
 
-    if (!stixModified) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'modified';
-        return callback(error);
-    }
+    try {
+        const document = await matrixRepository.retrieveByVersion(stixId, stixModified);
 
-    Matrix.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function(err, document) {
-        if (err) {
-            if (err.name === 'CastError') {
-                var error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'stixId';
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
+        if (!document) {
+            // Document not found
+            return null; // TODO should we return NotFound?
         }
-        else if (!document) {
-            // document not found
-            return callback(null);
+
+        return await matrixRepository.updateAndSave(document, data);
+    } catch (err) {
+        if (err.name === 'CastError') {
+            return processError(ErrorType.BadlyFormattedParameter, { parameterName: 'stixId' });
+        } else if (err.name === 'MongoServerError' && err.code === 11000) {
+            // 11000 = Duplicate index
+            return processError(ErrorType.DuplicateId);
+        } else {
+            throw err;
         }
-        else {
-            // Copy data to found document and save
-            Object.assign(document, data);
-            document.save(function(err, savedDocument) {
-                if (err) {
-                    if (err.name === 'MongoServerError' && err.code === 11000) {
-                        // 11000 = Duplicate index
-                        var error = new Error(errors.duplicateId);
-                        return callback(error);
-                    }
-                    else {
-                        return callback(err);
-                    }
-                }
-                else {
-                    return callback(null, savedDocument);
-                }
-            });
-        }
-    });
+    }
 };
 
-exports.deleteVersionById = function (stixId, stixModified, callback) {
+exports.deleteVersionById = async function (stixId, stixModified) {
     if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
+        return processError(ErrorType.MissingParameter, { parameterName: 'stixId' });
     }
-
-    if (!stixModified) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'modified';
-        return callback(error);
+    if (!modified) {
+        return processError(ErrorType.MissingParameter, { parameterName: 'modified' });
     }
+    try {
+        const matrix = await matrixRepository.findOneAndRemove(stixId, stixModified);
 
-    Matrix.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }, function (err, matrix) {
-        if (err) {
-            return callback(err);
-        } else {
+        if (!matrix) {
             //Note: matrix is null if not found
-            return callback(null, matrix);
+            return null;
         }
-    });
+        return matrix;
+
+    } catch (err) {
+        throw err;
+    }
 };
 
-exports.deleteById = function (stixId, callback) {
+exports.deleteById = async function (stixId) {
     if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
+        return processError(ErrorType.MissingParameter, { parameterName: 'stixId' });
     }
-
-    Matrix.deleteMany({ 'stix.id': stixId }, function (err, matrix) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: matrix is null if not found
-            return callback(null, matrix);
-        }
-    });
+    try {
+        return await matrixRepository.deleteMany(stixId);
+    } catch (err) {
+        throw err;
+    }
 };
