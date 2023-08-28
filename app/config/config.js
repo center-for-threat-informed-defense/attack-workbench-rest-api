@@ -147,6 +147,18 @@ function loadConfig() {
                 env: 'WB_REST_STATIC_MARKING_DEFS_PATH'
             }
         },
+        scheduler: {
+            checkWorkbenchInterval: {
+                doc: 'Sets the interval in seconds for starting the scheduler.',
+                default: 10,
+                env: 'CHECK_WORKBENCH_INTERVAL'
+            },
+            enableScheduler: {
+                format: Boolean,
+                default: true,
+                env: "ENABLE_SCHEDULER"
+            }
+        },
         session: {
             secret: {
                 doc: 'Secret used to sign the session ID cookie',

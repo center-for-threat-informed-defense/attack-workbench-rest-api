@@ -28,11 +28,6 @@ The ATT&CK Workbench application is made up of several repositories. For the ful
 - [ATT&CK Workbench REST API](https://github.com/center-for-threat-informed-defense/attack-workbench-rest-api) (this repository)
 
   REST API service for storing, querying and editing ATT&CK objects.
-- [ATT&CK Workbench Collection Manager](https://github.com/center-for-threat-informed-defense/attack-workbench-collection-manager)
-
-  REST API and services for managing collections, collection indexes, and collection subscriptions. 
-  
-  The collection manager is **not** required to be installed to use the ATT&CK Workbench, but is **highly recommended**. If you opt not to install the collection-manager you will not be able to import or export data from your local knowledge base. If the collection manager is not installed, set `integrations.collection_manager.enabled` to `false` in the front-end environment. See [modifying the environment](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend#modifying-the-environment) for more details.
 
 The manual install instructions in each repository describe how each component to be deployed to a separate machine or with customized settings. 
 

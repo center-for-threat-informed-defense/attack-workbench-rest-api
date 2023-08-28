@@ -128,3 +128,23 @@ exports.delete = function(req, res) {
         }
     });
 };
+
+exports.refresh = function(req, res) {
+    const id = req.params.id;
+
+    if (!id) {
+        logger.warn('Refresh collection index failed with error: Missing id');
+        return res.status(400).send('Unable to refresh collection index. Missing id.')
+    }
+
+    collectionIndexService.refresh(id, function(err, collectionIndex) {
+        if (err) {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to refresh collection index. Server error.');
+        }
+        else {
+            logger.debug("Success: Refreshed collection index");
+            return res.status(200).send(collectionIndex);
+        }
+    });
+};

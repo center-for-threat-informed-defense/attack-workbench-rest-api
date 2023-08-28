@@ -133,3 +133,21 @@ paths:
           description: 'The collection index was successfully deleted.'
         '404':
           description: 'A collection index with the requested id was not found.'
+
+  /api/collection-indexes/{id}/refresh:
+    post:
+      summary: 'Refresh a collection index'
+      operationId: collection-indexes-refresh
+      description: 'This endpoint retrieves a collection index from a remote URL and updates the database if its newer.'
+      tags:
+        - Collection Indexes
+      parameters:
+        - name: id
+          in: path
+          description: 'Id of the collection index to refresh'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The collection index was refreshed.'

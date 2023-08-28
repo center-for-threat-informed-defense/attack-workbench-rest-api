@@ -2,6 +2,7 @@
 
 const uuid = require('uuid');
 const asyncLib = require('async');
+const superagent = require('superagent');
 
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
@@ -14,9 +15,14 @@ const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
 const errors = {
     missingParameter: 'Missing required parameter',
+    badRequest: 'Bad request',
+    invalidFormat: 'Invalid format',
     badlyFormattedParameter: 'Badly formatted parameter',
     duplicateId: 'Duplicate id',
     notFound: 'Document not found',
+    hostNotFound: 'Host not found',
+    connectionRefused: 'Connection refused',
+    unauthorized: 'Unauthorized',
     invalidQueryStringParameter: 'Invalid query string parameter'
 };
 exports.errors = errors;
@@ -434,4 +440,41 @@ exports.insertExport = async function(stixId, modified, exportData) {
     else {
         throw new Error(errors.notFound);
     }
+};
+
+exports.retrieveByUrl = function(url, callback) {
+    if (!url) {
+        const error = new Error(errors.missingParameter);
+        return callback(error);
+    }
+
+    superagent.get(url).then(res => {
+        try {
+            const body = JSON.parse(res.text);
+            return callback(null, body);
+        } catch (err) {
+            const error = new Error(errors.invalidFormat);
+            return callback(error);
+        }
+    }).catch(err => {
+        if (err.response && err.response.notFound) {
+            const error = new Error(errors.notFound);
+            return callback(error);
+        }
+        else if (err.response && err.response.badRequest) {
+            const error = new Error(errors.badRequest);
+            return callback(error);
+        }
+        else if (err.code === 'ENOTFOUND') {
+            const error = new Error(errors.hostNotFound);
+            return callback(error);
+        }
+        else if (err.code === 'ECONNREFUSED') {
+            const error = new Error(errors.connectionRefused);
+            return callback(error);
+        }
+        else {
+            return callback(err)
+        }
+    });
 };

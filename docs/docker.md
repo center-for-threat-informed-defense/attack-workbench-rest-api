@@ -11,7 +11,7 @@ docker build --tag attack-workbench/rest-api .
 ```
 
 ## Create the Docker Network
-The REST API needs to be able to communicate with the MongoDB service, and needs to be reachable by the ATT&CK Workbench Frontend application and Collection Manager service.
+The REST API needs to be able to communicate with the MongoDB service, and needs to be reachable by the ATT&CK Workbench Frontend application.
 Create a Docker network to support this network communication. This only needs to be done once.
 ```shell
 docker network create attack-workbench-network

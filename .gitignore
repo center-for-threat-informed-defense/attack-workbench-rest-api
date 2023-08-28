@@ -147,3 +147,4 @@ Temporary Items
 
 # Directory holding files that are for local use only
 /local-only
+/certs

@@ -7,6 +7,8 @@ const identitiesService = require('./identities-service');
 const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 
+const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
+
 const errors = {
     missingParameter: 'Missing required parameter',
     badlyFormattedParameter: 'Badly formatted parameter',
@@ -59,12 +61,7 @@ exports.retrieveAll = async function(options) {
         query['stix.relationship_type'] = options.relationshipType;
     }
     if (typeof options.lastUpdatedBy !== 'undefined') {
-        if (Array.isArray(options.attackId)) {
-            query['workspace.workflow.created_by_user_account'] = { $in: options.lastUpdatedBy };
-        }
-        else {
-            query['workspace.workflow.created_by_user_account'] = options.lastUpdatedBy;
-        }
+        query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
     }
 
     // Build the aggregation
