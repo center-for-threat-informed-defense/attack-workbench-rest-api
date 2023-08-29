@@ -1,8 +1,12 @@
 'use strict';
 
 const Matrix = require('../models/matrix-model');
+const logger = require('../lib/logger');
 
 exports.retrieveAll = async function (options) {
+
+    // Build the query
+    const query = {};
 
     // Build the query
     if (!options.includeRevoked) {
@@ -67,9 +71,11 @@ exports.retrieveAll = async function (options) {
 
     // Retrieve the documents
     try {
-        const result = await Matrix.aggregate(aggregation);
+        const result = await Matrix.aggregate(aggregation).exec();
         return result;
     } catch (error) {
+        logger.debug('An error occurred while awaiting results from matrix aggregation query.');
+        logger.debug(error);
         throw error;
     }
 };
