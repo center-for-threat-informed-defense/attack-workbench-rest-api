@@ -11,8 +11,9 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}\\bin\\www",
-      "outputCapture": "std"
+      "program": "${workspaceFolder}/bin/www",
+      "outputCapture": "std",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }
