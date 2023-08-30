@@ -7,11 +7,10 @@ const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
 const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
-const regexValidator = require('../lib/regex');
-const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 const matrixRepository = require('../repository/matrix-repository');
 const Errors = require('../exceptions');
 const logger = require('../lib/logger');
+const MatrixDTO = require('../dto/matrix-dto');
 
 exports.retrieveAll = async function (options) {
     let results;
@@ -22,29 +21,22 @@ exports.retrieveAll = async function (options) {
     }
 
     try {
-        await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
+        await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results.documents);
     } catch (err) {
         throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to documents.' });
     }
 
-    logger.debug(`Retrieved ${results.length} matrices`);
-    logger.debug(util.inspect(results, { depth: 5 }));
-    logger.debug(util.inspect(results[0].documents[0], { depth: 5 }));
-
     if (options.includePagination) {
         let derivedTotalCount = 0;
-        if (results.length >= 1 && results[0].totalCount && results[0].totalCount.length > 0) {
-            derivedTotalCount = results[0].totalCount[0].totalCount;
+        if (results.totalCount && results.totalCount.length > 0) {
+            derivedTotalCount = results.totalCount[0].totalCount;
         }
-        const returnValue = {
-            pagination: {
-                total: derivedTotalCount,
-                offset: options.offset,
-                limit: options.limit
-            },
-            data: results[0].documents
-        };
-        return returnValue;
+        return new MatrixDTO({
+            total: derivedTotalCount,
+            offset: options.offset,
+            limit: options.limit,
+            documents: results.documents
+        });
     } else {
         return results[0].documents;
     }

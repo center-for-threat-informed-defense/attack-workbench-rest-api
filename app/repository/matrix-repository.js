@@ -1,7 +1,10 @@
 'use strict';
 
+const regexValidator = require('../lib/regex');
+const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 const Matrix = require('../models/matrix-model');
 const logger = require('../lib/logger');
+const RepositoryResponseDTO = require('../dto/repository-response-dto');
 
 exports.retrieveAll = async function (options) {
 
@@ -70,14 +73,28 @@ exports.retrieveAll = async function (options) {
     aggregation.push(facet);
 
     // Retrieve the documents
-    try {
-        const result = await Matrix.aggregate(aggregation).exec();
-        return result;
-    } catch (error) {
-        logger.debug('An error occurred while awaiting results from matrix aggregation query.');
-        logger.debug(error);
-        throw error;
-    }
+    Matrix.aggregate(aggregation, function (err, results) {
+        if (err) {
+            return err;
+        }
+        return new RepositoryResponseDTO({
+            totalCount: results[0].totalCount,
+            documents: results[0].documents
+        });
+    });
+    // try {
+    //     const rawResult = await Matrix.aggregate(aggregation).exec();
+
+    //     return new RepositoryResponseDTO({
+    //         totalCount: rawResult[0].totalCount,
+    //         documents: rawResult[0].documents
+    //     });
+
+    // } catch (error) {
+    //     logger.debug('An error occurred while awaiting results from matrix aggregation query.');
+    //     logger.debug(error);
+    //     throw error;
+    // }
 };
 
 exports.retrieveByStixId = async function (stixId) {
