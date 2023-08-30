@@ -17,7 +17,8 @@ exports.retrieveAll = async function (options) {
     try {
         results = await matrixRepository.retrieveAll(options);
     } catch (err) {
-        throw new Errors.DatabaseError({ detail: 'Failed to retrieve records from the matrix repository.' });
+        logger.error('Failed to retrieve records from the matrix repository');
+        throw new Errors.DatabaseError({ detail: err.message });
     }
 
     try {
@@ -31,14 +32,16 @@ exports.retrieveAll = async function (options) {
         if (results.totalCount && results.totalCount.length > 0) {
             derivedTotalCount = results.totalCount[0].totalCount;
         }
-        return new MatrixDTO({
-            total: derivedTotalCount,
-            offset: options.offset,
-            limit: options.limit,
-            documents: results.documents
-        });
+        return {
+            pagination: {
+                total: derivedTotalCount,
+                offset: options.offset,
+                limit: options.limit
+            },
+            data: results.documents
+        };
     } else {
-        return results[0].documents;
+        return results.documents;
     }
 };
 

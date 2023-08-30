@@ -15,7 +15,7 @@ exports.retrieveAll = async function (req, res) {
         includePagination: req.query.includePagination
     }
     try {
-        const results = matricesService.retrieveAll(options);
+        const results = await matricesService.retrieveAll(options);
 
         if (options.includePagination) {
             logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total matrices`);

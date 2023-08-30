@@ -73,28 +73,19 @@ exports.retrieveAll = async function (options) {
     aggregation.push(facet);
 
     // Retrieve the documents
-    Matrix.aggregate(aggregation, function (err, results) {
-        if (err) {
-            return err;
-        }
+    try {
+        const rawResult = await Matrix.aggregate(aggregation).exec();
+
         return new RepositoryResponseDTO({
-            totalCount: results[0].totalCount,
-            documents: results[0].documents
+            totalCount: rawResult[0].totalCount,
+            documents: rawResult[0].documents
         });
-    });
-    // try {
-    //     const rawResult = await Matrix.aggregate(aggregation).exec();
 
-    //     return new RepositoryResponseDTO({
-    //         totalCount: rawResult[0].totalCount,
-    //         documents: rawResult[0].documents
-    //     });
-
-    // } catch (error) {
-    //     logger.debug('An error occurred while awaiting results from matrix aggregation query.');
-    //     logger.debug(error);
-    //     throw error;
-    // }
+    } catch (error) {
+        logger.error('An error occurred while awaiting results from matrix aggregation query.');
+        logger.error(error);
+        throw error;
+    }
 };
 
 exports.retrieveByStixId = async function (stixId) {
