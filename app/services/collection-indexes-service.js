@@ -16,19 +16,12 @@ const errors = {
 };
 exports.errors = errors;
 
-exports.retrieveAll = function(options, callback) {
-    CollectionIndex.find()
+exports.retrieveAll = function (options) {
+    return CollectionIndex.find()
         .skip(options.offset)
         .limit(options.limit)
         .lean()
-        .exec(function(err, collectionIndexes) {
-            if (err) {
-                return callback(err);
-            }
-            else {
-                return callback(null, collectionIndexes);
-            }
-        });
+        .exec();
 };
 
 exports.retrieveById = function(id, callback) {
