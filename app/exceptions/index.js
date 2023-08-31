@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 'use strict';
 
 class CustomError extends Error {
@@ -49,11 +50,18 @@ class IdentityServiceError extends CustomError {
     }
 }
 
+class DocumentSaveError extends CustomError {
+    constructor(options) {
+        super('The database save operation failed.', options);)
+    }
+}
+
 module.exports = {
     MissingParameterError,
     BadlyFormattedParameterError,
     DuplicateIdError,
     NotFoundError,
     InvalidQueryStringParameterError,
-    IdentityServiceError
+    IdentityServiceError,
+    DocumentSaveError
 };
