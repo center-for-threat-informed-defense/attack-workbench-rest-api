@@ -50,18 +50,45 @@ class IdentityServiceError extends CustomError {
     }
 }
 
-class DocumentSaveError extends CustomError {
+class TechniquesServiceError extends CustomError {
     constructor(options) {
-        super('The database save operation failed.', options);)
+        super('An error occurred in the techniques service.', options);
+    }
+}
+
+class TacticsServiceError extends CustomError {
+    constructor(options) {
+        super('An error occurred in the tactics service.', options);
+    }
+}
+
+class GenericServiceError extends CustomError {
+    constructor(options) {
+        super('An error occurred in a service.', options);
+    }
+}
+
+class DatabaseError extends CustomError {
+    constructor(options) {
+        super('The database operation failed.', options);
     }
 }
 
 module.exports = {
+    
+    //** User-related errors */
     MissingParameterError,
     BadlyFormattedParameterError,
+    InvalidQueryStringParameterError,
+    
+    //** Database-related errors */
     DuplicateIdError,
     NotFoundError,
-    InvalidQueryStringParameterError,
+    DatabaseError,
+    
+    /** Service-specific errors */
+    GenericServiceError,
     IdentityServiceError,
-    DocumentSaveError
+    TechniquesServiceError,
+    TacticsServiceError,
 };
