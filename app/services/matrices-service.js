@@ -10,27 +10,25 @@ const config = require('../config/config');
 const matrixRepository = require('../repository/matrix-repository');
 const Errors = require('../exceptions');
 const logger = require('../lib/logger');
-const MatrixDTO = require('../dto/matrix-dto');
 
 exports.retrieveAll = async function (options) {
     let results;
     try {
         results = await matrixRepository.retrieveAll(options);
     } catch (err) {
-        logger.error('Failed to retrieve records from the matrix repository');
-        throw new Errors.DatabaseError({ detail: err.message });
+        throw new Errors.DatabaseError({ detail: 'Failed to retrieve records from the matrix repository', originalError: err.message });
     }
 
     try {
-        await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results.documents);
+        await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
     } catch (err) {
-        throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to documents.' });
+        throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to documents.', originalError: err.message });
     }
 
     if (options.includePagination) {
         let derivedTotalCount = 0;
-        if (results.totalCount && results.totalCount.length > 0) {
-            derivedTotalCount = results.totalCount[0].totalCount;
+        if (results[0].totalCount && results[0].totalCount.length > 0) {
+            derivedTotalCount = results[0].totalCount[0].totalCount;
         }
         return {
             pagination: {
@@ -38,10 +36,10 @@ exports.retrieveAll = async function (options) {
                 offset: options.offset,
                 limit: options.limit
             },
-            data: results.documents
+            data: results[0].documents
         };
     } else {
-        return results.documents;
+        return results[0].documents;
     }
 };
 
@@ -57,7 +55,7 @@ exports.retrieveById = async function (stixId, options) {
             try {
                 await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(matrices);
             } catch (err) {
-                throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to all matrices.' });
+                throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to all matrices.', originalError: err.message });
             }
 
             return matrices;
@@ -69,6 +67,7 @@ exports.retrieveById = async function (stixId, options) {
                 try {
                     await identitiesService.addCreatedByAndModifiedByIdentities(matrix);
                 } catch (err) {
+                    logger.error(err);
                     throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to the latest matrix.' });
                 }
 
@@ -112,7 +111,7 @@ exports.retrieveVersionById = async function (stixId, modified) {
             try {
                 await identitiesService.addCreatedByAndModifiedByIdentities(matrix);
             } catch (err) {
-                throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to the matrix.' });
+                throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to the matrix.', originalError: err.message });
             }
 
             return matrix;
@@ -255,12 +254,7 @@ exports.create = async function (data, options) {
         }
         return await matrixRepository.saveMatrix(matrix);
     } catch (err) {
-        if (err.name === 'MongoServerError' && err.code === 11000) {
-            // Duplicate key error
-            throw new Errors.DuplicateIdError({
-                detail: `Matrix with id '${matrix.stix.id}' already exists.`
-            });
-        }
+        logger.error(err);
         throw err;
     }
 };
@@ -282,7 +276,13 @@ exports.updateFull = async function (stixId, stixModified, data) {
             return null; // TODO should we return NotFound?
         }
 
-        return await matrixRepository.updateAndSave(document, data);
+        const newDocument = await matrixRepository.updateAndSave(document, data);
+        if (newDocument === document) {
+            // DOcument successfully saved
+            return newDocument;
+        } else {
+            throw Errors.DocumentSaveError({ document });
+        }
     } catch (err) {
         if (err.name === 'CastError') {
             throw new Errors.BadlyFormattedParameterError({ parameterName: 'stixId' });
@@ -297,7 +297,7 @@ exports.deleteVersionById = async function (stixId, stixModified) {
     if (!stixId) {
         throw new Errors.MissingParameterError({ parameterName: 'stixId' });
     }
-    if (!modified) {
+    if (!stixModified) {
         throw new Errors.MissingParameterError({ parameterName: 'modified' });
     }
     try {
@@ -310,7 +310,7 @@ exports.deleteVersionById = async function (stixId, stixModified) {
         return matrix;
 
     } catch (err) {
-        throw err;
+        throw new Errors.DatabaseError({ detail: 'Failed to retrieve record from the matrix repository', originalError: err.message });
     }
 };
 
@@ -321,6 +321,6 @@ exports.deleteById = async function (stixId) {
     try {
         return await matrixRepository.deleteMany(stixId);
     } catch (err) {
-        throw err;
+        throw new Errors.DatabaseError({ detail: 'Failed to delete records from the matrix repository', originalError: err.message });
     }
 };
