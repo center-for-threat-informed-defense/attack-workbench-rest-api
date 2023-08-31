@@ -3,10 +3,9 @@
 const regexValidator = require('../lib/regex');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 const Matrix = require('../models/matrix-model');
-const logger = require('../lib/logger');
-const RepositoryResponseDTO = require('../dto/repository-response-dto');
+const Errors = require('../exceptions');
 
-exports.retrieveAll = async function (options) {
+exports.retrieveAll = function (options) {
 
     // Build the query
     const query = {};
@@ -73,61 +72,59 @@ exports.retrieveAll = async function (options) {
     aggregation.push(facet);
 
     // Retrieve the documents
-    try {
-        const rawResult = await Matrix.aggregate(aggregation).exec();
-
-        return new RepositoryResponseDTO({
-            totalCount: rawResult[0].totalCount,
-            documents: rawResult[0].documents
-        });
-
-    } catch (error) {
-        logger.error('An error occurred while awaiting results from matrix aggregation query.');
-        logger.error(error);
-        throw error;
-    }
+    return Matrix.aggregate(aggregation).exec();
 };
 
-exports.retrieveByStixId = async function (stixId) {
-    return await Matrix.findOne({ 'stix.id': stixId })
+exports.retrieveByStixId = function (stixId) {
+    return Matrix.findOne({ 'stix.id': stixId })
         .exec();
 };
 
-exports.retrieveAllByStixId = async function (stixId) {
-    return await Matrix.find({ 'stix.id': stixId })
+exports.retrieveAllByStixId = function (stixId) {
+    return Matrix.find({ 'stix.id': stixId })
         .sort('-stix.modified')
         .lean()
         .exec();
 };
 
-exports.retrieveLatestByStixId = async function (stixId) {
-    return await Matrix.findOne({ 'stix.id': stixId })
+exports.retrieveLatestByStixId = function (stixId) {
+    return Matrix.findOne({ 'stix.id': stixId })
         .sort('-stix.modified')
         .lean()
         .exec();
 };
 
-exports.retrieveByVersion = async function (stixId, modified) {
-    return await Matrix.findOne({ 'stix.id': stixId, 'stix.modified': modified })
+exports.retrieveByVersion = function (stixId, modified) {
+    return Matrix.findOne({ 'stix.id': stixId, 'stix.modified': modified })
         .lean()
         .exec();
 };
 
 exports.saveMatrix = async function (matrixData) {
-    const matrix = new Matrix(matrixData);
-    return await matrix.save();
+    try {
+        const matrix = new Matrix(matrixData);
+        return await matrix.save();
+    } catch (err) {
+        if (err.name === 'MongoServerError' && err.code === 11000) {
+            // Duplicate key error
+            throw new Errors.DuplicateIdError({
+                detail: `Matrix with id '${matrixData.stix.id}' already exists.`
+            });
+        }
+        throw err;
+    }
 };
 
-exports.updateAndSave = async function (document, data) {
+exports.updateAndSave = function (document, data) {
     Object.assign(document, data);
-    return await document.save();
+    return document.save();
 };
 
-exports.findOneAndRemove = async function (stixId, modified) {
-    return await Matrix.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': modified })
+exports.findOneAndRemove = function (stixId, modified) {
+    return Matrix.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': modified })
         .exec();
 };
 
-exports.deleteMany = async function (stixId) {
-    return await Matrix.deleteMany({ 'stix.id': stixId }).exec();
+exports.deleteMany = function (stixId) {
+    return Matrix.deleteMany({ 'stix.id': stixId }).exec();
 };
