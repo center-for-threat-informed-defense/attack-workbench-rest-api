@@ -8,21 +8,30 @@ const identitiesService = require('./identities-service');
 const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 const matrixRepository = require('../repository/matrix-repository');
-const Errors = require('../exceptions');
 const logger = require('../lib/logger');
+const { DatabaseError,
+    GenericServiceError,
+    IdentityServiceError,
+    MissingParameterError,
+    InvalidQueryStringParameterError } = require('../exceptions');
 
 exports.retrieveAll = async function (options) {
     let results;
     try {
-        results = await matrixRepository.retrieveAll(options);
+        results = await matrixRepository.findAll(options);
     } catch (err) {
-        throw new Errors.DatabaseError({ detail: 'Failed to retrieve records from the matrix repository', originalError: err.message });
+        logger.error('Failed to retrieve records from the matrix repository');
+        throw err; // Let the DatabaseError bubble up
     }
 
     try {
         await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
     } catch (err) {
-        throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to documents.', originalError: err.message });
+        logger.error('Failed to add identities to documents.');
+        throw new IdentityServiceError({
+            details: err.message,
+            cause: err
+        });
     }
 
     if (options.includePagination) {
@@ -45,30 +54,37 @@ exports.retrieveAll = async function (options) {
 
 exports.retrieveById = async function (stixId, options) {
     if (!stixId) {
-        throw new Errors.MissingParameterError({ parameterName: 'stixId' });
+        throw new MissingParameterError({ parameterName: 'stixId' });
     }
 
     try {
         if (options.versions === 'all') {
-            const matrices = await matrixRepository.retrieveAllByStixId(stixId);
+            const matrices = await matrixRepository.findAllById(stixId);
 
             try {
                 await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(matrices);
             } catch (err) {
-                throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to all matrices.', originalError: err.message });
+                logger.error('Failed to add identities to all matrices.');
+                throw new IdentityServiceError({
+                    details: err.message,
+                    cause: err
+                });
             }
 
             return matrices;
 
         } else if (options.versions === 'latest') {
-            const matrix = await matrixRepository.retrieveLatestByStixId(stixId);
+            const matrix = await matrixRepository.findLatestByStixId(stixId);
 
             if (matrix) {
                 try {
                     await identitiesService.addCreatedByAndModifiedByIdentities(matrix);
                 } catch (err) {
-                    logger.error(err);
-                    throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to the latest matrix.' });
+                    logger.error('Failed to add identities to the latest matrix.');
+                    throw new IdentityServiceError({
+                        details: err.message,
+                        cause: err
+                    });
                 }
 
                 return [matrix];
@@ -77,51 +93,46 @@ exports.retrieveById = async function (stixId, options) {
             }
 
         } else {
-            throw new Errors.InvalidQueryStringParameterError({ parameterName: 'versions' });
+            throw new InvalidQueryStringParameterError({ parameterName: 'versions' });
         }
     } catch (err) {
-        // If the error is one of our custom errors, re-throw it.
-        // Otherwise, encapsulate it in a more general error (optional).
-        if (err instanceof Errors.CustomError) {
-            throw err;
-        } else {
-            throw new Errors.DatabaseError({ detail: 'Failed during matrix retrieval by ID.', originalError: err.message });
-        }
+        logger.error('Failed during matrix retrieval by ID.');
+        throw err; // Let the DatabaseError bubble up
     }
 };
 
 exports.retrieveVersionById = async function (stixId, modified) {
     if (!stixId) {
-        throw new Errors.MissingParameterError({ parameterName: 'stixId' });
+        throw new MissingParameterError({ parameterName: 'stixId' });
     }
 
     if (!modified) {
-        throw new Errors.MissingParameterError({ parameterName: 'modified' });
+        throw new MissingParameterError({ parameterName: 'modified' });
     }
 
     try {
-        const matrix = await matrixRepository.retrieveByVersion(stixId, modified);
+        const matrix = await matrixRepository.findOneByVersion(stixId, modified);
 
         if (!matrix) {
             console.log('** NOT FOUND');
             // TODO determine if we should throw an error here instead of returning null
-            // throw new Errors.NotFoundError({ detail: 'Matrix not found for given stixId and modified date.' });
+            // throw new NotFoundError({ ... });
             return null;
         } else {
             try {
                 await identitiesService.addCreatedByAndModifiedByIdentities(matrix);
             } catch (err) {
-                throw new Errors.IdentityServiceError({ detail: 'Failed to add identities to the matrix.', originalError: err.message });
+                logger.error('Failed to add identities to the matrix.');
+                throw new IdentityServiceError({
+                    details: err.message,
+                    cause: err
+                });
             }
-
             return matrix;
         }
     } catch (err) {
-        if (err instanceof Errors.CustomError) {
-            throw err;
-        } else {
-            throw new Errors.DatabaseError({ detail: 'Failed during matrix retrieval by version and ID.', originalError: err.message });
-        }
+        logger.error('Failed during matrix retrieval by version and ID.');
+        throw err; // Let the DatabaseError bubble up
     }
 };
 
@@ -138,22 +149,23 @@ exports.retrieveTechniquesForMatrix = async function (stixId, modified) {
     }
 
     if (!stixId) {
-        throw new Errors.MissingParameterError({ parameterName: 'stixId' });
+        throw new MissingParameterError({ parameterName: 'stixId' });
     }
     if (!modified) {
-        throw new Errors.MissingParameterError({ parameterName: 'modified' });
+        throw new MissingParameterError({ parameterName: 'modified' });
     }
 
     let matrix;
     try {
-        matrix = await matrixRepository.retrieveByVersion(stixId, modified);
+        matrix = await matrixRepository.findOneByVersion(stixId, modified);
     } catch (err) {
-        throw new Errors.DatabaseError({ detail: 'Failed during matrix retrieval by version and ID.', originalError: err.message });
+        logger.error('Failed during matrix retrieval by version and ID.');
+        throw err; // Let the DatabaseError bubble up
     }
 
     if (!matrix) {
         // TODO determine if we should throw an error here instead of returning null
-        // throw new Errors.NotFoundError({ detail: 'Matrix not found for given stixId and modified date.' });
+        // throw new NotFoundError({ ... });
         return null;
     }
 
@@ -168,7 +180,8 @@ exports.retrieveTechniquesForMatrix = async function (stixId, modified) {
                 techniques = await retrieveTechniquesForTactic(tacticId, tactics[0].stix.modified, options);
             }
         } catch (err) {
-            throw new Errors.ServiceError({ detail: 'Error while retrieving tactics or techniques.', originalError: err.message });
+            logger.error('Error while retrieving tactics or techniques.');
+            throw new GenericServiceError(err); // TODO it's probably better to throw TechniquesServiceError or TacticsServiceError
         }
 
         if (tactics && tactics.length) {
@@ -202,7 +215,6 @@ exports.retrieveTechniquesForMatrix = async function (stixId, modified) {
 
 
 exports.createIsAsync = true;
-// TODO refactor processError and try/catch
 exports.create = async function (data, options) {
     try {
         // This function handles two use cases:
@@ -234,7 +246,7 @@ exports.create = async function (data, options) {
             let existingObject;
             if (matrix.stix.id) {
                 // existingObject = await Matrix.findOne({ 'stix.id': matrix.stix.id });
-                existingObject = await matrixRepository.retrieveAllByStixId(matrix.stix.id);
+                existingObject = await matrixRepository.findAllById(matrix.stix.id);
             }
 
             if (existingObject) {
@@ -254,51 +266,64 @@ exports.create = async function (data, options) {
         }
         return await matrixRepository.saveMatrix(matrix);
     } catch (err) {
+        // TODO this whole function needs more succinct error handling
         logger.error(err);
         throw err;
     }
 };
 
 exports.updateFull = async function (stixId, stixModified, data) {
-
     if (!stixId) {
-        throw new Errors.MissingParameterError({ parameterName: 'stixId' });
+        throw new MissingParameterError({ parameterName: 'stixId' });
     }
     if (!stixModified) {
-        throw new Errors.MissingParameterError({ parameterName: 'modified' });
+        throw new MissingParameterError({ parameterName: 'modified' });
+    }
+
+    let document;
+
+    try {
+        document = await matrixRepository.findOneByVersion(stixId, stixModified);
+    } catch (err) {
+        logger.error('An error occured while fetching document by version.');
+        throw new DatabaseError({
+            details: err.message,
+            cause: err
+        });
+    }
+
+    if (!document) {
+        // Document not found
+        return null; // TODO should we return NotFound?
     }
 
     try {
-        const document = await matrixRepository.retrieveByVersion(stixId, stixModified);
-
-        if (!document) {
-            // Document not found
-            return null; // TODO should we return NotFound?
-        }
-
         const newDocument = await matrixRepository.updateAndSave(document, data);
         if (newDocument === document) {
-            // DOcument successfully saved
+            // Document successfully saved
             return newDocument;
         } else {
-            throw Errors.DocumentSaveError({ document });
+            logger.error('Document could not be saved.');
+            throw new DatabaseError({
+                details: 'Document could not be saved',
+                document // Pass along the document that could not be saved
+            });
         }
     } catch (err) {
-        if (err.name === 'CastError') {
-            throw new Errors.BadlyFormattedParameterError({ parameterName: 'stixId' });
-        } else if (err.name === 'MongoServerError' && err.code === 11000) {
-            throw new Errors.DuplicateIdError();
-        }
-        throw err;
+        logger.error('Error while updating and saving document.');
+        throw new DatabaseError({
+            details: err.message,
+            cause: err
+        });
     }
 };
 
 exports.deleteVersionById = async function (stixId, stixModified) {
     if (!stixId) {
-        throw new Errors.MissingParameterError({ parameterName: 'stixId' });
+        throw new MissingParameterError({ parameterName: 'stixId' });
     }
     if (!stixModified) {
-        throw new Errors.MissingParameterError({ parameterName: 'modified' });
+        throw new MissingParameterError({ parameterName: 'modified' });
     }
     try {
         const matrix = await matrixRepository.findOneAndRemove(stixId, stixModified);
@@ -310,17 +335,19 @@ exports.deleteVersionById = async function (stixId, stixModified) {
         return matrix;
 
     } catch (err) {
-        throw new Errors.DatabaseError({ detail: 'Failed to retrieve record from the matrix repository', originalError: err.message });
+        logger.error('Failed to retrieve record from the matrix repository');
+        throw err;
     }
 };
 
 exports.deleteById = async function (stixId) {
     if (!stixId) {
-        return new Errors.MissingParameterError({ parameterName: 'stixId' });
+        return new MissingParameterError({ parameterName: 'stixId' });
     }
     try {
         return await matrixRepository.deleteMany(stixId);
     } catch (err) {
-        throw new Errors.DatabaseError({ detail: 'Failed to delete records from the matrix repository', originalError: err.message });
+        logger.error('Failed to delete records from the matrix repository');
+        throw err;
     }
 };
