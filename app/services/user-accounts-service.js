@@ -1,9 +1,9 @@
 'use strict';
 
 const uuid = require('uuid');
-const UserAccount = require('../models/user-account-model');
-const Team = require('../models/team-model');
-const regexValidator = require('../lib/regex');
+const userAccountsRepository = require('../repository/user-accounts-repository');
+const teamsRepository = require('../repository/teams-repository');
+const Errors = require('../exceptions');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -15,15 +15,17 @@ const errors = {
 };
 exports.errors = errors;
 
-exports.addEffectiveRole = function (userAccount) {
+const addEffectiveRole = function (userAccount) {
   // Initially, this forces all pending and inactive accounts to have the role 'none'.
   // TBD: Make the role configurable
   if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
       userAccount.role = 'none';
   }
 }
+// We separate the exports statement because the functions are used in this module
+exports.addEffectiveRole = this.addEffectiveRole;
 
-exports.userAccountAsIdentity = function (userAccount) {
+const userAccountAsIdentity = function (userAccount) {
   return {
       type: 'identity',
       spec_version: '2.1',
@@ -34,68 +36,18 @@ exports.userAccountAsIdentity = function (userAccount) {
       identity_class: 'individual'
   }
 }
+exports.userAccountAsIdentity = userAccountAsIdentity;
 
 exports.retrieveAll = async function (options) {
-    // Build the query
-    const query = {};
-    if (typeof options.status !== 'undefined') {
-        if (Array.isArray(options.status)) {
-            query['status'] = { $in: options.status };
-        }
-        else {
-            query['status'] = options.status;
-        }
-    }
 
-    if (typeof options.role !== 'undefined') {
-        if (Array.isArray(options.role)) {
-            query['role'] = { $in: options.role };
-        }
-        else {
-            query['role'] = options.role;
-        }
-    }
-
-    // Build the aggregation
-    // - Then apply query, skip, and limit options
-    const aggregation = [
-        { $sort: { 'username': 1 } },
-        { $match: query }
-    ];
-
-    if (typeof options.search !== 'undefined') {
-        options.search = regexValidator.sanitizeRegex(options.search);
-        const match = { $match: { $or: [
-                    { 'username': { '$regex': options.search, '$options': 'i' }},
-                    { 'email': { '$regex': options.search, '$options': 'i' }},
-                    { 'displayName': { '$regex': options.search, '$options': 'i' }}
-                ]}};
-        aggregation.push(match);
-    }
-
-    const facet = {
-        $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [ ]
-        }
-    };
-    if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
-    }
-    else {
-        facet.$facet.documents.push({ $skip: 0 });
-    }
-    if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-    }
-    aggregation.push(facet);
-
-    // eslint-disable-next-line no-useless-catch
+    let results;
     try {
-        // Retrieve the documents
-        const results = await UserAccount.aggregate(aggregation).exec();
+        results = await userAccountsRepository.retrieveAll(options);
+    } catch (err) {
+        throw new Errors.DatabaseError({ detail: 'Failed to retrieve records from the userAccounts repository', originalError: err.message });
+    }
 
-        const userAccounts = results[0].documents;
+    const userAccounts = results[0].documents;
         userAccounts.forEach(userAccount => {
             addEffectiveRole(userAccount);
             if (options.includeStixIdentity) {
@@ -120,9 +72,6 @@ exports.retrieveAll = async function (options) {
         } else {
             return userAccounts;
         }
-    } catch (err) {
-        throw err;
-    }
 };
 
 exports.retrieveById = async function (userAccountId, options) {
@@ -133,7 +82,7 @@ exports.retrieveById = async function (userAccountId, options) {
     }
 
     try {
-        const userAccount = await UserAccount.findOne({ 'id': userAccountId }).lean().exec();
+        const userAccount = await userAccountsRepository.findOneById(userAccountId);
 
         if (!userAccount) {
             throw new Error('UserAccount not found.');
@@ -165,7 +114,11 @@ exports.retrieveByEmail = async function(email) {
     }
 
     try {
-        const userAccount = await UserAccount.findOne({ 'email': email }).lean();
+        const userAccount = await userAccountsRepository.findOneByEmail(email);
+        if (!userAccount) {
+            throw new Error('UserAccount not found for the provided email.');
+        }
+
         addEffectiveRole(userAccount);
 
         return userAccount;
@@ -185,44 +138,27 @@ exports.createIsAsync = true;
 exports.create = async function(data) {
     // Check for a duplicate email
     if (data.email) {
-        // Note: We could try to insert the new document without this check and allow Mongoose to throw a duplicate
-        // index error. But the Error that's thrown doesn't allow us to distinguish between a duplicate id (which is
-        // unexpected and may indicate a deeper problem) and a duplicate email (which is likely a client error).
-        // So we perform this check here to catch the duplicate email and then treat the duplicate index as a server
-        // error if it occurs.
-        const userAccount = await UserAccount.findOne({ 'email': data.email }).lean();
-        if (userAccount) {
-            throw (new Error(errors.duplicateEmail));
+        const existingUserAccount = await userAccountsRepository.findByEmail(data.email);
+        if (existingUserAccount) {
+            throw new Error(errors.duplicateEmail);
         }
     }
 
     // Create the document
-    const userAccount = new UserAccount(data);
-
-    // Create a unique id for this user
-    // This should usually be undefined. It will only be defined when migrating user accounts from another system.
-    if (!userAccount.id) {
-        userAccount.id = `identity--${uuid.v4()}`;
-    }
-
-    // Add a timestamp recording when the user account was first created
-    // This should usually be undefined. It will only be defined when migrating user accounts from another system.
-    if (!userAccount.created) {
-        userAccount.created = new Date().toISOString();
-    }
-
-    // Add a timestamp recording when the user account was last modified
-    if (!userAccount.modified) {
-        userAccount.modified = userAccount.created;
-    }
+    const userAccount = {
+        ...data,
+        id: data.id || `identity--${uuid.v4()}`,
+        created: data.created || new Date().toISOString(),
+        modified: data.modified || (data.created || new Date().toISOString())
+    };
 
     // Save the document in the database
     try {
-        const savedUserAccount = await userAccount.save();
+        const savedUserAccount = await userAccountsRepository.save(userAccount);
         addEffectiveRole(savedUserAccount);
 
         return savedUserAccount;
-    }
+    } 
     catch (err) {
         if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
@@ -243,27 +179,8 @@ exports.updateFull = async function (userAccountId, data) {
     }
 
     try {
-        const document = await UserAccount.findOne({ 'id': userAccountId });
-
-        if (!document) {
-            // document not found
-            return null;
-        }
-
-        // Copy data to found document
-        document.email = data.email;
-        document.username = data.username;
-        document.displayName = data.displayName;
-        document.status = data.status;
-        document.role = data.role;
-
-        // Set the modified timestamp
-        document.modified = new Date().toISOString();
-
-        // And save
-        const savedDocument = await document.save();
-
-        return savedDocument;
+        const updatedDocument = await userAccountsRepository.updateById(userAccountId, data);
+        return updatedDocument;
 
     } catch (err) {
         if (err.name === 'CastError') {
@@ -287,26 +204,23 @@ exports.delete = async function (userAccountId) {
         throw error;
     }
 
+    // eslint-disable-next-line no-useless-catch
     try {
-        const userAccount = await UserAccount.findOneAndRemove({ 'id': userAccountId });
-        // Note: userAccount is null if not found
-        return userAccount;
+        return await userAccountsRepository.removeById(userAccountId);
     } catch (err) {
+        // TODO do something with the error
         throw err;
     }
 };
 
 async function getLatest(userAccountId) {
-    const userAccount = await UserAccount
-        .findOne({ 'id': userAccountId })
-        .lean()
-        .exec();
+    const userAccount = await userAccountsRepository.findOneById(userAccountId);
     addEffectiveRole(userAccount);
 
     return userAccount;
 }
 
-exports.addCreatedByUserAccount = function (attackObject) {
+const addCreatedByUserAccount = async function (attackObject) {
     if (attackObject?.workspace?.workflow?.created_by_user_account) {
         try {
             // eslint-disable-next-line require-atomic-updates
@@ -317,6 +231,7 @@ exports.addCreatedByUserAccount = function (attackObject) {
         }
     }
 }
+exports.addCreatedByUserAccount = addCreatedByUserAccount;
 
 exports.addCreatedByUserAccountToAll = async function(attackObjects) {
     for (const attackObject of attackObjects) {
@@ -325,6 +240,7 @@ exports.addCreatedByUserAccountToAll = async function(attackObjects) {
     }
 }
 
+// TODO migrate database logic to user-accounts-repository.js
 exports.retrieveTeamsByUserId = async function (userAccountId, options) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
@@ -332,47 +248,14 @@ exports.retrieveTeamsByUserId = async function (userAccountId, options) {
         throw error;
     }
 
-    // Build the aggregation
-    const aggregation = [
-        { $sort: { 'name': 1 } },
-    ];
-
-    const match = {
-        $match: {
-            userIDs: { $in: [userAccountId] }
-        }
-    };
-
-    aggregation.push(match);
-
-    const facet = {
-        $facet: {
-            totalCount: [{ $count: 'totalCount' }],
-            documents: []
-        }
-    };
-
-    if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
-    }
-    else {
-        facet.$facet.documents.push({ $skip: 0 });
-    }
-    if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-    }
-
-    aggregation.push(facet);
-
     // eslint-disable-next-line no-useless-catch
     try {
-        // Retrieve the documents
-        const results = await Team.aggregate(aggregation).exec();
-        const teams = results[0].documents;
+        const results = await teamsRepository.findTeamsByUserId(userAccountId, options);
+
         if (options.includePagination) {
             let derivedTotalCount = 0;
-            if (results[0].totalCount.length > 0) {
-                derivedTotalCount = results[0].totalCount[0].totalCount;
+            if (results.totalCount.length > 0) {
+                derivedTotalCount = results.totalCount[0].totalCount;
             }
             const returnValue = {
                 pagination: {
@@ -380,14 +263,14 @@ exports.retrieveTeamsByUserId = async function (userAccountId, options) {
                     offset: options.offset,
                     limit: options.limit
                 },
-                data: teams
+                data: results.documents
             };
             return returnValue;
-        }
-        else {
-            return teams;
+        } else {
+            return results.documents;
         }
     } catch (err) {
+        // TODO do something with the error
         throw err;
     }
 };
