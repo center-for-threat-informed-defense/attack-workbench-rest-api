@@ -4,8 +4,6 @@ const AttackObject = require('../models/attack-object-model');
 const Relationship = require('../models/relationship-model');
 const identitiesService = require('./identities-service');
 
-const logger = require('../lib/logger');
-
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 
 const errors = {
@@ -50,7 +48,7 @@ exports.retrieveAll = async function(options) {
     aggregation.push({ $match: query });
 
     // Retrieve the documents
-    let objectDocuments = await AttackObject.aggregate(aggregation);
+    const objectDocuments = await AttackObject.aggregate(aggregation);
 
     // Lookup source/target refs for relationships
     aggregation.push({
@@ -69,8 +67,8 @@ exports.retrieveAll = async function(options) {
             as: 'target_objects'
         }
     });
-    let relationshipDocuments = await Relationship.aggregate(aggregation);
-    let documents = objectDocuments.concat(relationshipDocuments);
+    const relationshipDocuments = await Relationship.aggregate(aggregation);
+    const documents = objectDocuments.concat(relationshipDocuments);
 
     // Sort by most recent
     documents.sort((a, b) => b.stix.modified - a.stix.modified);

@@ -108,12 +108,47 @@ Sample configuration file setting the server port and database url:
 }
 ```
 
-
 ##### Step 4. Run the app
 
 ```
 node ./bin/www
 ```
+
+### Configuring Workbench to Enable OIDC Authentication for Users
+
+Workbench supports OIDC authentication for users, allowing you to integrate Workbench with your organization's authentication system.
+
+#### Registering with the OIDC Server
+
+In order to use OIDC authentication, your Workbench instance must be registered with your organization's OIDC authentication server.
+The details depend on your authentication server, but the following values should cover most of what you need:
+
+* Workbench uses the *Authorization Code Flow* for authenticating users
+* Claims:
+
+| claim                  | required | description                                                                                                                                     |
+|------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| **email**              | yes      | Identifies the user account associated with an authenticated user                                                                               |
+| **preferred_username** | no       | If present, the `preferred_username` claim is used to set the `name` property of the user account when the user initially registers with Workbench |
+| **name**               | no       | If present, the `name` claim is used to set the `displayName` property of the user account when the user initially registers with Workbench      |
+
+* Grant Types: *Client Credentials*, *Authorization Code* and *Refresh Token*
+* Redirect URL: `<host_url>/api/authn/oidc/callback`
+
+After registering with the OIDC authentication system, you will need the `client_id` and `client_secret` assigned as part of that process.
+You will also need the Issuer URL for the OIDC Identity Server.
+
+#### Workbench Configuration
+
+Configuring Workbench to use OIDC can be done using environment variables or the corresponding properties in a configuration file.
+
+| environment variable           | required | description                                                                                           | configuration file property name |
+|--------------------------------|----------|-------------------------------------------------------------------------------------------------------|----------------------------------|
+| **AUTHN_MECHANISM**            | yes      | Must be set to `oidc`                                                                                 | userAuthn.mechanism              |
+| **AUTHN_OIDC_CLIENT_ID**       | yes      | Client ID assigned to the Workbench instance when registering with the OIDC authentication system     | userAuthn.oidc.clientId          |
+| **AUTHN_OIDC_CLIENT_SECRET**   | yes      | Client secret assigned to the Workbench instance when registering with the OIDC authentication system | userAuthn.oidc.clientSecret      |
+| **AUTHN_OIDC_ISSUER_URL**      | yes      | Issuer URL for the Identity Server                                                                    | userAuthn.oidc.issuerUrl         |
+| **AUTHN_OIDC_REDIRECT_ORIGIN** | yes      | URL for the Workbench host                                                                            | userAuthn.oidc.redirectOrigin    |
 
 ## Scripts
 
