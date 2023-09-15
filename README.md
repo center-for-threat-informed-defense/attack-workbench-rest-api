@@ -108,6 +108,12 @@ Sample configuration file setting the server port and database url:
 }
 ```
 
+##### Step 4. Run the app
+
+```
+node ./bin/www
+```
+
 ### Configuring Workbench to Enable OIDC Authentication for Users
 
 Workbench supports OIDC authentication for users, allowing you to integrate Workbench with your organization's authentication system.
@@ -143,12 +149,6 @@ Configuring Workbench to use OIDC can be done using environment variables or the
 | **AUTHN_OIDC_CLIENT_SECRET**   | yes      | Client secret assigned to the Workbench instance when registering with the OIDC authentication system | userAuthn.oidc.clientSecret      |
 | **AUTHN_OIDC_ISSUER_URL**      | yes      | Issuer URL for the Identity Server                                                                    | userAuthn.oidc.issuerUrl         |
 | **AUTHN_OIDC_REDIRECT_ORIGIN** | yes      | URL for the Workbench host                                                                            | userAuthn.oidc.redirectOrigin    |
-
-##### Step 4. Run the app
-
-```
-node ./bin/www
-```
 
 ## Scripts
 
