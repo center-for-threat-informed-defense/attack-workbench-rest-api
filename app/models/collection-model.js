@@ -3,6 +3,7 @@
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 const workspaceDefinitions = require('./subschemas/workspace');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const xMitreContent = {
     object_ref: { type: String, required: true },
@@ -37,6 +38,6 @@ const collectionDefinition = {
 const collectionSchema = new mongoose.Schema(collectionDefinition);
 
 // Create the model
-const CollectionModel = AttackObject.discriminator('Collection', collectionSchema);
+const CollectionModel = AttackObject.discriminator(ModelName.Collection, collectionSchema);
 
 module.exports = CollectionModel;

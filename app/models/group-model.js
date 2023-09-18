@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const stixIntrusionSet = {
     // STIX intrusion-set specific properties
@@ -30,6 +31,6 @@ const groupDefinition = {
 const groupSchema = new mongoose.Schema(groupDefinition);
 
 // Create the model
-const GroupModel = AttackObject.discriminator('Intrusion-Set', groupSchema);
+const GroupModel = AttackObject.discriminator(ModelName.Group, groupSchema);
 
 module.exports = GroupModel;

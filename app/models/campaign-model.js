@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const stixCampaign = {
     // STIX campaign specific properties
@@ -33,6 +34,6 @@ const campaignDefinition = {
 const campaignSchema = new mongoose.Schema(campaignDefinition);
 
 // Create the model
-const CampaignModel = AttackObject.discriminator('Campaign', campaignSchema);
+const CampaignModel = AttackObject.discriminator(ModelName.Campaign, campaignSchema);
 
 module.exports = CampaignModel;

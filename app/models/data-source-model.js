@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const stixDataSource = {
     // STIX x-mitre-data-source specific properties
@@ -31,6 +32,6 @@ const dataSourceDefinition = {
 const dataSourceSchema = new mongoose.Schema(dataSourceDefinition);
 
 // Create the model
-const DataSourceModel = AttackObject.discriminator('Data-Source', dataSourceSchema);
+const DataSourceModel = AttackObject.discriminator(ModelName.DataSource, dataSourceSchema);
 
 module.exports = DataSourceModel;

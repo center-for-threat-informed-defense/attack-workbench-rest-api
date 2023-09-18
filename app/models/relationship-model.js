@@ -3,6 +3,7 @@
 const mongoose = require('mongoose');
 const workspaceDefinitions = require('./subschemas/workspace');
 const stixCoreDefinitions = require('./subschemas/stix-core');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const relationshipProperties = {
     // relationship specific properties
@@ -40,6 +41,6 @@ const relationshipSchema = new mongoose.Schema(relationshipDefinition);
 relationshipSchema.index({ 'stix.id': 1, 'stix.modified': -1 }, { unique: true });
 
 // Create the model
-const RelationshipModel = mongoose.model('Relationship', relationshipSchema);
+const RelationshipModel = mongoose.model(ModelName.Relationship, relationshipSchema);
 
 module.exports = RelationshipModel;
