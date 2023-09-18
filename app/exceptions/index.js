@@ -74,7 +74,17 @@ class DatabaseError extends CustomError {
     }
 }
 
+class NotImplementedError extends CustomError {
+    constructor(moduleName, functionName, options) {
+        super(`The function ${functionName} in module ${moduleName} is not implemented!`, options);
+
+    }
+}
+
 module.exports = {
+
+    //** General errors */
+    NotImplementedError,
     
     //** User-related errors */
     MissingParameterError,
