@@ -57,200 +57,144 @@ describe('Matrices API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('GET /api/matrices returns an empty array of matrices', function (done) {
-        request(app)
+    it('GET /api/matrices returns an empty array of matrices', async function () {
+        const res = await request(app)
             .get('/api/matrices')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const matrices = res.body;
-                    expect(matrices).toBeDefined();
-                    expect(Array.isArray(matrices)).toBe(true);
-                    expect(matrices.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const matrices = res.body;
+        expect(matrices).toBeDefined();
+        expect(Array.isArray(matrices)).toBe(true);
+        expect(matrices.length).toBe(0);
     });
 
-    it('POST /api/matrices does not create an empty matrix', function (done) {
-        const body = { };
-        request(app)
+    it('POST /api/matrices does not create an empty matrix', async function () {
+        const body = {};
+        await request(app)
             .post('/api/matrices')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(400);
     });
 
     let matrix1;
-    it('POST /api/matrices creates a matrix', function (done) {
+    it('POST /api/matrices creates a matrix', async function () {
         const timestamp = new Date().toISOString();
         initialObjectData.stix.created = timestamp;
         initialObjectData.stix.modified = timestamp;
         const body = initialObjectData;
-        request(app)
+        const res = await request(app)
             .post('/api/matrices')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created matrix
-                    matrix1 = res.body;
-                    expect(matrix1).toBeDefined();
-                    expect(matrix1.stix).toBeDefined();
-                    expect(matrix1.stix.id).toBeDefined();
-                    expect(matrix1.stix.created).toBeDefined();
-                    expect(matrix1.stix.modified).toBeDefined();
-                    expect(matrix1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the created matrix
+        matrix1 = res.body;
+        expect(matrix1).toBeDefined();
+        expect(matrix1.stix).toBeDefined();
+        expect(matrix1.stix.id).toBeDefined();
+        expect(matrix1.stix.created).toBeDefined();
+        expect(matrix1.stix.modified).toBeDefined();
+        expect(matrix1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
     });
 
-    it('GET /api/matrices returns the added matrix', function (done) {
-        request(app)
+    it('GET /api/matrices returns the added matrix', async function () {
+        const res = await request(app)
             .get('/api/matrices')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one matrix in an array
-                    const matrices = res.body;
-                    expect(matrices).toBeDefined();
-                    expect(Array.isArray(matrices)).toBe(true);
-                    expect(matrices.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one matrix in an array
+        const matrices = res.body;
+        expect(matrices).toBeDefined();
+        expect(Array.isArray(matrices)).toBe(true);
+        expect(matrices.length).toBe(1);
+
     });
 
-    it('GET /api/matrices/:id should not return a matrix when the id cannot be found', function (done) {
-        request(app)
+    it('GET /api/matrices/:id should not return a matrix when the id cannot be found', async function () {
+        await request(app)
             .get('/api/matrices/not-an-id')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(404);
     });
 
-    it('GET /api/matrices/:id returns the added matrix', function (done) {
-        request(app)
+    it('GET /api/matrices/:id returns the added matrix', async function () {
+        const res = await request(app)
             .get('/api/matrices/' + matrix1.stix.id)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one matrix in an array
-                    const matrices = res.body;
-                    expect(matrices).toBeDefined();
-                    expect(Array.isArray(matrices)).toBe(true);
-                    expect(matrices.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    const matrix = matrices[0];
-                    expect(matrix).toBeDefined();
-                    expect(matrix.stix).toBeDefined();
-                    expect(matrix.stix.id).toBe(matrix1.stix.id);
-                    expect(matrix.stix.created).toBeDefined();
-                    expect(matrix.stix.modified).toBeDefined();
-                    expect(matrix.stix.type).toBe(matrix1.stix.type);
-                    expect(matrix.stix.name).toBe(matrix1.stix.name);
-                    expect(matrix.stix.description).toBe(matrix1.stix.description);
-                    expect(matrix.stix.spec_version).toBe(matrix1.stix.spec_version);
-                    expect(matrix.stix.object_marking_refs).toEqual(expect.arrayContaining(matrix1.stix.object_marking_refs));
-                    expect(matrix.stix.created_by_ref).toBe(matrix1.stix.created_by_ref);
-                    expect(matrix.stix.x_mitre_attack_spec_version).toBe(matrix1.stix.x_mitre_attack_spec_version);
+        // We expect to get one matrix in an array
+        const matrices = res.body;
+        expect(matrices).toBeDefined();
+        expect(Array.isArray(matrices)).toBe(true);
+        expect(matrices.length).toBe(1);
 
-                    done();
-                }
-            });
+        const matrix = matrices[0];
+        expect(matrix).toBeDefined();
+        expect(matrix.stix).toBeDefined();
+        expect(matrix.stix.id).toBe(matrix1.stix.id);
+        expect(matrix.stix.created).toBeDefined();
+        expect(matrix.stix.modified).toBeDefined();
+        expect(matrix.stix.type).toBe(matrix1.stix.type);
+        expect(matrix.stix.name).toBe(matrix1.stix.name);
+        expect(matrix.stix.description).toBe(matrix1.stix.description);
+        expect(matrix.stix.spec_version).toBe(matrix1.stix.spec_version);
+        expect(matrix.stix.object_marking_refs).toEqual(expect.arrayContaining(matrix1.stix.object_marking_refs));
+        expect(matrix.stix.created_by_ref).toBe(matrix1.stix.created_by_ref);
+        expect(matrix.stix.x_mitre_attack_spec_version).toBe(matrix1.stix.x_mitre_attack_spec_version);
     });
 
-    it('PUT /api/matrices updates a matrix', function (done) {
+    // TODO Error: Timeout of 2000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves.
+    it('PUT /api/matrices updates a matrix', async function () {
         const originalModified = matrix1.stix.modified;
         const timestamp = new Date().toISOString();
         matrix1.stix.modified = timestamp;
-        matrix1.stix.description = 'This is an updated matrix.'
+        matrix1.stix.description = 'This is an updated matrix.';
         const body = matrix1;
-        request(app)
+
+        const res = await request(app)
             .put('/api/matrices/' + matrix1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the updated matrix
-                    const matrix = res.body;
-                    expect(matrix).toBeDefined();
-                    expect(matrix.stix.id).toBe(matrix1.stix.id);
-                    expect(matrix.stix.modified).toBe(matrix1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the updated matrix
+        const matrix = res.body;
+        expect(matrix).toBeDefined();
+        expect(matrix.stix.id).toBe(matrix1.stix.id);
+        expect(matrix.stix.modified).toBe(matrix1.stix.modified);
     });
 
-    it('POST /api/matrices does not create a matrix with the same id and modified date', function (done) {
+    // TODO Error: Timeout of 2000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves.
+    it('POST /api/matrices does not create a matrix with the same id and modified date', async function () {
         const body = matrix1;
-        request(app)
+        await request(app)
             .post('/api/matrices')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(409)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
-    });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(409);
+    }).timeout(10000);
 
     let matrix2;
-    it('POST /api/matrices should create a new version of a matrix with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/matrices should create a new version of a matrix with a duplicate stix.id but different stix.modified date', async function () {
         matrix2 = _.cloneDeep(matrix1);
         matrix2._id = undefined;
         matrix2.__t = undefined;
@@ -258,28 +202,22 @@ describe('Matrices API', function () {
         const timestamp = new Date().toISOString();
         matrix2.stix.modified = timestamp;
         const body = matrix2;
-        request(app)
+
+        const res = await request(app)
             .post('/api/matrices')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created matrix
-                    const matrix = res.body;
-                    expect(matrix).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created matrix
+        const matrix = res.body;
+        expect(matrix).toBeDefined();
     });
     
     let matrix3;
-    it('POST /api/matrices should create a new version of a matrix with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/matrices should create a new version of a matrix with a duplicate stix.id but different stix.modified date', async function () {
         matrix3 = _.cloneDeep(matrix1);
         matrix3._id = undefined;
         matrix3.__t = undefined;
@@ -287,185 +225,118 @@ describe('Matrices API', function () {
         const timestamp = new Date().toISOString();
         matrix3.stix.modified = timestamp;
         const body = matrix3;
-        request(app)
+
+        const res = await request(app)
             .post('/api/matrices')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created matrix
-                    const matrix = res.body;
-                    expect(matrix).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created matrix
+        const matrix = res.body;
+        expect(matrix).toBeDefined();
     });
     
 
-    it('GET /api/matrices returns the latest added matrix', function (done) {
-        request(app)
+    it('GET /api/matrices returns the latest added matrix', async function () {
+        const res = await request(app)
             .get('/api/matrices/' + matrix3.stix.id)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one matrix in an array
-                    const matrices = res.body;
-                    expect(matrices).toBeDefined();
-                    expect(Array.isArray(matrices)).toBe(true);
-                    expect(matrices.length).toBe(1);
-                    const matrix = matrices[0];
-                    expect(matrix.stix.id).toBe(matrix3.stix.id);
-                    expect(matrix.stix.modified).toBe(matrix3.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+        // We expect to get one matrix in an array
+        const matrices = res.body;
+        expect(matrices).toBeDefined();
+        expect(Array.isArray(matrices)).toBe(true);
+        expect(matrices.length).toBe(1);
+        const matrix = matrices[0];
+        expect(matrix.stix.id).toBe(matrix3.stix.id);
+        expect(matrix.stix.modified).toBe(matrix3.stix.modified);
     });
 
-    it('GET /api/matrices returns all added matrices', function (done) {
-        request(app)
+    it('GET /api/matrices returns all added matrices', async function () {
+        const res = await request(app)
             .get('/api/matrices/' + matrix1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get two matrices in an array
-                    const matrices = res.body;
-                    expect(matrices).toBeDefined();
-                    expect(Array.isArray(matrices)).toBe(true);
-                    expect(matrices.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get two matrices in an array
+        const matrices = res.body;
+        expect(matrices).toBeDefined();
+        expect(Array.isArray(matrices)).toBe(true);
+        expect(matrices.length).toBe(3);
     });
 
-    it('GET /api/matrices/:id/modified/:modified returns the first added matrix', function (done) {
-        request(app)
+    it('GET /api/matrices/:id/modified/:modified returns the first added matrix', async function () {
+        const res = await request(app)
             .get('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one matrix in an array
-                    const matrix = res.body;
-                    expect(matrix).toBeDefined();
-                    expect(matrix.stix).toBeDefined();
-                    expect(matrix.stix.id).toBe(matrix1.stix.id);
-                    expect(matrix.stix.modified).toBe(matrix1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+        // We expect to get one matrix in an array
+        const matrix = res.body;
+        expect(matrix).toBeDefined();
+        expect(matrix.stix).toBeDefined();
+        expect(matrix.stix.id).toBe(matrix1.stix.id);
+        expect(matrix.stix.modified).toBe(matrix1.stix.modified);
     });
 
-    it('GET /api/matrices/:id/modified/:modified returns the second added matrix', function (done) {
-        request(app)
+    it('GET /api/matrices/:id/modified/:modified returns the second added matrix', async function () {
+        const res = await request(app)
             .get('/api/matrices/' + matrix2.stix.id + '/modified/' + matrix2.stix.modified)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one matrix in an array
-                    const matrix = res.body;
-                    expect(matrix).toBeDefined();
-                    expect(matrix.stix).toBeDefined();
-                    expect(matrix.stix.id).toBe(matrix2.stix.id);
-                    expect(matrix.stix.modified).toBe(matrix2.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one matrix in an array
+        const matrix = res.body;
+        expect(matrix).toBeDefined();
+        expect(matrix.stix).toBeDefined();
+        expect(matrix.stix.id).toBe(matrix2.stix.id);
+        expect(matrix.stix.modified).toBe(matrix2.stix.modified);
     });
 
-    it('DELETE /api/matrices/:id should not delete a matrix when the id cannot be found', function (done) {
-        request(app)
+    it('DELETE /api/matrices/:id should not delete a matrix when the id cannot be found', async function () {
+        await request(app)
             .delete('/api/matrices/not-an-id')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(404);
     });
 
-    it('DELETE /api/matrices/:id/modified/:modified deletes a matrix', function (done) {
-        request(app)
+    it('DELETE /api/matrices/:id/modified/:modified deletes a matrix', async function () {
+        await request(app)
             .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(204);
     });
 
-    it('DELETE /api/matrices/:id should delete all the matrices with the same stix id', function (done) {
-        request(app)
+    it('DELETE /api/matrices/:id should delete all the matrices with the same stix id', async function () {
+        await request(app)
             .delete('/api/matrices/' + matrix2.stix.id)
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(204);
     });
 
-    it('GET /api/matrices returns an empty array of matrices', function (done) {
-        request(app)
+    it('GET /api/matrices returns an empty array of matrices', async function () {
+        const res = await request(app)
             .get('/api/matrices')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const matrices = res.body;
-                    expect(matrices).toBeDefined();
-                    expect(Array.isArray(matrices)).toBe(true);
-                    expect(matrices.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const matrices = res.body;
+        expect(matrices).toBeDefined();
+        expect(Array.isArray(matrices)).toBe(true);
+        expect(matrices.length).toBe(0);
     });
 
     after(async function() {
