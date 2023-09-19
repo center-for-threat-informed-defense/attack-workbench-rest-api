@@ -1,6 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
+const UserAccount = require('../models/user-account-model');
 const userAccountsRepository = require('../repository/user-accounts-repository');
 const teamsRepository = require('../repository/teams-repository');
 const Errors = require('../exceptions');
@@ -145,12 +146,7 @@ exports.create = async function(data) {
     }
 
     // Create the document
-    const userAccount = {
-        ...data,
-        id: data.id || `identity--${uuid.v4()}`,
-        created: data.created || new Date().toISOString(),
-        modified: data.modified || (data.created || new Date().toISOString())
-    };
+    const userAccount = new UserAccount(data);
 
     // Save the document in the database
     try {
