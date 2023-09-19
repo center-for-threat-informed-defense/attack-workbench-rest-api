@@ -29,7 +29,7 @@ exports.retrieveAll = async function(req, res) {
     }
     catch(err) {
         logger.error('Failed with error: ' + err);
-        return res.status(500).send('Unable to get data sources. Server error.');
+        return res.status(500).send('Unable to get assets. Server error.');
     }
 };
 
@@ -151,8 +151,8 @@ exports.deleteById = async function(req, res) {
         }
     }
     catch(err) {
-        logger.error('Delete data source failed. ' + err);
-        return res.status(500).send('Unable to delete data source. Server error.');
+        logger.error('Delete asset failed. ' + err);
+        return res.status(500).send('Unable to delete asset. Server error.');
     }
 };
 

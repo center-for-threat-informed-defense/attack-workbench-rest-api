@@ -71,4 +71,3 @@ components:
           type: string
       required:
         - name
-        - related_asset_sector
