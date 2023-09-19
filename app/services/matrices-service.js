@@ -1,18 +1,18 @@
 'use strict';
 
 const util = require('util');
-const Matrix = require('../models/matrix-model');
-const MatrixRepository = require('../repository/matrix-repository');
 const logger = require('../lib/logger');
-const { GenericServiceError,
-    MissingParameterError } = require('../exceptions');
+const { GenericServiceError, MissingParameterError } = require('../exceptions');
+
+const Matrix = require('../models/matrix-model');
+const matrixRepository = require('../repository/matrix-repository');
 
 const BaseService = require('./_base.service');
 
 class MatrixService extends BaseService {
 
     constructor() {
-        super(MatrixRepository, Matrix);
+        super(matrixRepository, Matrix);
 
         this.retrieveTacticById = null;
         this.retrieveTechniquesForTactic = null;
@@ -21,7 +21,7 @@ class MatrixService extends BaseService {
     // Custom methods specific to MatrixService should be specified below
 
     async retrieveTechniquesForMatrix(stixId, modified) {
-    // Lazy loading of services
+        // Lazy loading of services
         if (!this.retrieveTacticById || !this.retrieveTechniquesForTactic) {
             const tacticsService = require('./tactics-service');
             this.retrieveTacticById = util.promisify(tacticsService.retrieveById);
@@ -37,7 +37,7 @@ class MatrixService extends BaseService {
 
         let matrix;
         try {
-            matrix = await MatrixRepository.retrieveOneByVersion(stixId, modified);
+            matrix = await matrixRepository.retrieveOneByVersion(stixId, modified);
         } catch (err) {
             logger.error('Failed during matrix retrieval by version and ID.');
             throw err; // Let the DatabaseError bubble up
