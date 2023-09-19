@@ -69,8 +69,8 @@ exports.retrieveAll = async function(options) {
     if (options.versions === 'latest') {
         // - Group the documents by stix.id, sorted by stix.modified
         // - Use the last document in each group (according to the value of stix.modified)
-        aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': 1 } });
-        aggregation.push({ $group: { _id: '$stix.id', document: { $last: '$$ROOT' } } });
+        aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': -1 } });
+        aggregation.push({ $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } });
         aggregation.push({ $replaceRoot: { newRoot: '$document' } });
     }
 
