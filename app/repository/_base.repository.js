@@ -117,7 +117,6 @@ class BaseRepository extends AbstractRepository {
     async retrieveOneByVersion(stixId, modified) {
         try {
             return await this.model.findOne({ 'stix.id': stixId, 'stix.modified': modified })
-                .lean()
                 .exec();
         } catch (err) {
             if (err.name === 'CastError') {
@@ -143,7 +142,8 @@ class BaseRepository extends AbstractRepository {
         }
     }
 
-    static async updateAndSave(document, data) {
+    // eslint-disable-next-line class-methods-use-this
+    async updateAndSave(document, data) {
         try {
             Object.assign(document, data);
             return await document.save();
