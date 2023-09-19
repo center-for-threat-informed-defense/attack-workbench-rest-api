@@ -12,7 +12,6 @@ const { DatabaseError,
     MissingParameterError,
     InvalidQueryStringParameterError } = require('../exceptions');
 const AbstractService = require('./_abstract.service');
-const { getStixIdPrefixFromModel } = require('../lib/attack-prefix-ids');
 
 class BaseService extends AbstractService {
 
@@ -170,8 +169,8 @@ class BaseService extends AbstractService {
                     // New object
                     // Assign a new STIX id if not already provided
                     if (!document.stix.id) {
-                        const stixIdPrefix = getStixIdPrefixFromModel(this.model.modelName, document.stix.type);
-                        document.stix.id = `${stixIdPrefix}--${uuid.v4()}`;
+                        // const stixIdPrefix = getStixIdPrefixFromModel(this.model.modelName, document.stix.type);
+                        document.stix.id = `${document.stix.type}--${uuid.v4()}`;
                     }
 
                     // Set the created_by_ref and x_mitre_modified_by_ref properties
