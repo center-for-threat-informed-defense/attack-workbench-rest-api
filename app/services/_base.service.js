@@ -170,7 +170,7 @@ class BaseService extends AbstractService {
                     // New object
                     // Assign a new STIX id if not already provided
                     if (!document.stix.id) {
-                        const stixIdPrefix = getStixIdPrefixFromModel(this.model.name, document.stix.type);
+                        const stixIdPrefix = getStixIdPrefixFromModel(this.model.modelName, document.stix.type);
                         document.stix.id = `${stixIdPrefix}--${uuid.v4()}`;
                     }
 
@@ -198,7 +198,7 @@ class BaseService extends AbstractService {
 
         let document;
         try {
-            document = await this.repository.retrieveOneByVersion(this.model, stixId, stixModified);
+            document = await this.repository.retrieveOneByVersion(stixId, stixModified);
         } catch (err) {
             logger.error(err);
             throw err;
@@ -210,6 +210,7 @@ class BaseService extends AbstractService {
 
         try {
             const newDocument = await this.repository.updateAndSave(document, data);
+
             if (newDocument === document) {
                 // Document successfully saved
                 return newDocument;
