@@ -2,6 +2,7 @@
 
 const matricesService = require('../services/matrices-service');
 const logger = require('../lib/logger');
+const { DuplicateIdError, BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
 
 exports.retrieveAll = async function (req, res) {
     const options = {
@@ -46,10 +47,10 @@ exports.retrieveById = async function (req, res) {
             return res.status(200).send(matrices);
         }
     } catch (err) {
-        if (err.message === matricesService.errors.BadlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
-        } else if (err.message === matricesService.errors.InvalidQueryStringParameter) {
+        } else if (err instanceof InvalidQueryStringParameterError) {
             logger.warn('Invalid query string: versions=' + req.query.versions);
             return res.status(400).send('Query string parameter versions is invalid.');
         } else {
@@ -70,13 +71,12 @@ exports.retrieveVersionById = async function (req, res) {
             return res.status(200).send(matrix);
         }
     } catch (err) {
-        if (err.message === matricesService.errors.BadlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
-        } else {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get matrix. Server error.');
         }
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get matrix. Server error.');
     }
 };
 
@@ -94,15 +94,13 @@ exports.create = async function(req, res) {
         logger.debug("Success: Created matrix with id " + matrix.stix.id);
         return res.status(201).send(matrix);
     }
-    catch(err) {
-        if (err.message === matricesService.errors.DuplicateId) {
+    catch (err) {
+        if (err instanceof DuplicateIdError) {
             logger.warn("Duplicate stix.id and stix.modified");
             return res.status(409).send('Unable to create matrix. Duplicate stix.id and stix.modified properties.');
         }
-        else {
-            logger.error("Failed with error: " + err);
-            return res.status(500).send("Unable to create matrix. Server error.");
-        }
+        logger.error("Failed with error: " + err);
+        return res.status(500).send("Unable to create matrix. Server error.");
     }
 };
 
@@ -168,12 +166,11 @@ exports.retrieveTechniquesForMatrix = async function (req, res) {
             return res.status(200).send(techniquesByTactic);
         }
     } catch (err) {
-        if (err.message === matricesService.errors.BadlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
-        } else {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get techniques for matrix. Server error.');
         }
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get techniques for matrix. Server error.');
     }
 };
