@@ -5,7 +5,7 @@ const AttackObject = require('./attack-object-model');
 
 const relatedAsset = {
     name: { type: String, required: true },
-    related_asset_sector : { type: String }, // name is longer so allowed-values can match on name
+    related_asset_sectors : [ String ],
     description: String,
 };
 const relatedAssetSchema = new mongoose.Schema(relatedAsset, { _id: false });

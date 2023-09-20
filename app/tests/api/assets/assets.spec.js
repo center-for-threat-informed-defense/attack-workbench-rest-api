@@ -28,12 +28,12 @@ const initialObjectData = {
         x_mitre_related_assets: [
             {
                 name: 'related asset 1',
-                related_asset_sector: 'related asset sector placeholder 1',
+                related_asset_sectors: [ 'related asset sector placeholder 1' ],
                 description: 'This is a related asset'
             },
             {
                 name: 'related asset 2',
-                related_asset_sector: 'related asset sector placeholder 2',
+                related_asset_sectors: [ 'related asset sector placeholder 2' ],
                 description: 'This is another related asset'
             }
         ],

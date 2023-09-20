@@ -65,8 +65,10 @@ components:
       properties:
         name:
           type: string
-        related_asset_sector:
-          type: string
+        related_asset_sectors:
+          type: array
+          items:
+            type: string
         description:
           type: string
       required:
