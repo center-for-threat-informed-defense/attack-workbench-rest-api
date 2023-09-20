@@ -1,6 +1,5 @@
 'use strict';
 
-const uuid = require('uuid');
 const UserAccount = require('../models/user-account-model');
 const userAccountsRepository = require('../repository/user-accounts-repository');
 const teamsRepository = require('../repository/teams-repository');

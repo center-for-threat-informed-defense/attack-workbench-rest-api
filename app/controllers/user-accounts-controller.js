@@ -26,7 +26,7 @@ exports.retrieveAll = async function (req, res) {
         return res.status(200).send(results);
     }
     catch (error) {
-        logger.error('Failed with error: ' + err);
+        logger.error('Failed with error: ' + error);
         return res.status(500).send('Unable to get user accounts. Server error.');
     }
 };
