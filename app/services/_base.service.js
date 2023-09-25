@@ -5,8 +5,6 @@ const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
 const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
-const logger = require('../lib/logger');
-const { paginate } = require('../lib/pagination');
 const { DatabaseError,
     IdentityServiceError,
     MissingParameterError,
@@ -45,21 +43,19 @@ class BaseService extends AbstractService {
         try {
             results = await this.repository.retrieveAll(options);
         } catch (err) {
-            logger.error('Failed to retrieve records from the repository');
             throw new DatabaseError(err); // Let the DatabaseError bubble up
         }
 
         try {
             await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
         } catch (err) {
-            logger.error('Failed to add identities to documents.');
             throw new IdentityServiceError({
                 details: err.message,
                 cause: err
             });
         }
 
-        return paginate(options, results);
+        return BaseService.paginate(options, results);
     }
 
     async retrieveById(stixId, options) {
@@ -67,6 +63,7 @@ class BaseService extends AbstractService {
             throw new MissingParameterError({ parameterName: 'stixId' });
         }
 
+        // eslint-disable-next-line no-useless-catch
         try {
             if (options.versions === 'all') {
                 const documents = await this.repository.retrieveAllById(stixId);
@@ -74,7 +71,6 @@ class BaseService extends AbstractService {
                 try {
                     await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(documents);
                 } catch (err) {
-                    logger.error('Failed to add identities to all documents.');
                     throw new IdentityServiceError({
                         details: err.message,
                         cause: err
@@ -90,7 +86,6 @@ class BaseService extends AbstractService {
                     try {
                         await identitiesService.addCreatedByAndModifiedByIdentities(document);
                     } catch (err) {
-                        logger.error('Failed to add identities to the latest document.');
                         throw new IdentityServiceError({
                             details: err.message,
                             cause: err
@@ -106,7 +101,6 @@ class BaseService extends AbstractService {
                 throw new InvalidQueryStringParameterError({ parameterName: 'versions' });
             }
         } catch (err) {
-            logger.error('Failed during document retrieval by ID.');
             throw err; // Let the DatabaseError bubble up
         }
     }
@@ -120,19 +114,17 @@ class BaseService extends AbstractService {
             throw new MissingParameterError({ parameterName: 'modified' });
         }
 
+        // eslint-disable-next-line no-useless-catch
         try {
             const document = await this.repository.retrieveOneByVersion(stixId, modified);
 
             if (!document) {
                 console.log('** NOT FOUND');
-                // TODO determine if we should throw an error here instead of returning null
-                // throw new NotFoundError({ ... });
                 return null;
             } else {
                 try {
                     await identitiesService.addCreatedByAndModifiedByIdentities(document);
                 } catch (err) {
-                    logger.error('Failed to add identities to the document.');
                     throw new IdentityServiceError({
                         details: err.message,
                         cause: err
@@ -141,7 +133,6 @@ class BaseService extends AbstractService {
                 return document;
             }
         } catch (err) {
-            logger.error('Failed during document retrieval by version and ID.');
             throw err; // Let the DatabaseError bubble up
         }
     }
@@ -212,10 +203,10 @@ class BaseService extends AbstractService {
         }
 
         let document;
+        // eslint-disable-next-line no-useless-catch
         try {
             document = await this.repository.retrieveOneByVersion(stixId, stixModified);
         } catch (err) {
-            logger.error(err);
             throw err;
         }
 
@@ -223,6 +214,7 @@ class BaseService extends AbstractService {
             return null;
         }
 
+        // eslint-disable-next-line no-useless-catch
         try {
             const newDocument = await this.repository.updateAndSave(document, data);
 
@@ -230,14 +222,12 @@ class BaseService extends AbstractService {
                 // Document successfully saved
                 return newDocument;
             } else {
-                logger.error('Document could not be saved.');
                 throw new DatabaseError({
                     details: 'Document could not be saved',
                     document // Pass along the document that could not be saved
                 });
             }
         } catch (err) {
-            logger.error(err);
             throw err;
         }
     }
@@ -249,6 +239,7 @@ class BaseService extends AbstractService {
         if (!stixModified) {
             throw new MissingParameterError({ parameterName: 'modified' });
         }
+        // eslint-disable-next-line no-useless-catch
         try {
             const document = await this.repository.findOneAndRemove(stixId, stixModified);
 
@@ -259,7 +250,6 @@ class BaseService extends AbstractService {
             return document;
 
         } catch (err) {
-            logger.error('Failed to retrieve record from the document repository');
             throw err;
         }
     }
@@ -268,10 +258,10 @@ class BaseService extends AbstractService {
         if (!stixId) {
             return new MissingParameterError({ parameterName: 'stixId' });
         }
+        // eslint-disable-next-line no-useless-catch
         try {
             return await this.repository.deleteMany(stixId);
         } catch (err) {
-            logger.error('Failed to delete records from the repository');
             throw err;
         }
     }
