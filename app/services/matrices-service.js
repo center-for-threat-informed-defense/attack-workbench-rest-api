@@ -1,7 +1,6 @@
 'use strict';
 
 const util = require('util');
-const logger = require('../lib/logger');
 const { GenericServiceError, MissingParameterError } = require('../exceptions');
 
 const Matrix = require('../models/matrix-model');
@@ -36,16 +35,14 @@ class MatrixService extends BaseService {
         }
 
         let matrix;
+        // eslint-disable-next-line no-useless-catch
         try {
             matrix = await matrixRepository.retrieveOneByVersion(stixId, modified);
         } catch (err) {
-            logger.error('Failed during matrix retrieval by version and ID.');
             throw err; // Let the DatabaseError bubble up
         }
 
         if (!matrix) {
-            // TODO determine if we should throw an error here instead of returning null
-            // throw new NotFoundError({ ... });
             return null;
         }
 
@@ -60,7 +57,6 @@ class MatrixService extends BaseService {
                     techniques = await this.retrieveTechniquesForTactic(tacticId, tactics[0].stix.modified, options);
                 }
             } catch (err) {
-                logger.error('Error while retrieving tactics or techniques.');
                 throw new GenericServiceError(err); // TODO it's probably better to throw TechniquesServiceError or TacticsServiceError
             }
 
