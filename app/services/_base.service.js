@@ -147,6 +147,7 @@ class BaseService extends AbstractService {
     }
 
     async create(data, options) {
+        // eslint-disable-next-line no-useless-catch
         try {
             // This function handles two use cases:
             //   1. This is a completely new object. Create a new object and generate the stix.id if not already
@@ -154,52 +155,48 @@ class BaseService extends AbstractService {
             //   2. This is a new version of an existing object. Create a new object with the specified id.
             //      Set stix.x_mitre_modified_by_ref to the organization identity.
 
-            // Create the document
-            const document = new this.model(data);
-
             options = options || {};
             if (!options.import) {
                 // Set the ATT&CK Spec Version
-                document.stix.x_mitre_attack_spec_version = document.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+                data.stix.x_mitre_attack_spec_version = data.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
                 // Record the user account that created the object
                 if (options.userAccountId) {
-                    document.workspace.workflow.created_by_user_account = options.userAccountId;
+                    data.workspace.workflow.created_by_user_account = options.userAccountId;
                 }
 
                 // Set the default marking definitions
-                await attackObjectsService.setDefaultMarkingDefinitions(document);
+                await attackObjectsService.setDefaultMarkingDefinitions(data);
 
                 // Get the organization identity
                 const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
 
                 // Check for an existing object
                 let existingObject;
-                if (document.stix.id) {
-                    existingObject = await this.repository.retrieveAllById(document.stix.id);
+                if (data.stix.id) {
+                    existingObject = await this.repository.retrieveAllById(data.stix.id);
                 }
 
                 if (existingObject) {
                     // New version of an existing object
                     // Only set the x_mitre_modified_by_ref property
-                    document.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+                    data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
                 }
                 else {
                     // New object
                     // Assign a new STIX id if not already provided
-                    if (!document.stix.id) {
-                        // const stixIdPrefix = getStixIdPrefixFromModel(this.model.modelName, document.stix.type);
-                        document.stix.id = `${document.stix.type}--${uuid.v4()}`;
+                    if (!data.stix.id) {
+                        // const stixIdPrefix = getStixIdPrefixFromModel(this.model.modelName, data.stix.type);
+                        data.stix.id = `${data.stix.type}--${uuid.v4()}`;
                     }
 
                     // Set the created_by_ref and x_mitre_modified_by_ref properties
-                    document.stix.created_by_ref = organizationIdentityRef;
-                    document.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+                    data.stix.created_by_ref = organizationIdentityRef;
+                    data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
                 }
             }
-            return await this.repository.save(document);
+            return await this.repository.save(data);
         } catch (err) {
-            logger.error(err);
             throw err;
         }
     }
