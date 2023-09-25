@@ -1,5 +1,6 @@
 'use strict';
 
+const uuid = require('uuid');
 const UserAccount = require('../models/user-account-model');
 const userAccountsRepository = require('../repository/user-accounts-repository');
 const teamsRepository = require('../repository/teams-repository');
@@ -144,8 +145,23 @@ exports.create = async function(data) {
         }
     }
 
+    const entityProps = {
+        ...data,
+
+        // Create a unique id for this user
+        // This should usually be undefined. It will only be defined when migrating user accounts from another system.
+        id: data.id || `identity--${uuid.v4()}`,
+
+        // Add a timestamp recording when the user account was first created
+        // This should usually be undefined. It will only be defined when migrating user accounts from another system.
+        created: data.created || new Date().toISOString(),
+
+        // Add a timestamp recording when the user account was last modified
+        modified: data.modified || (data.created || new Date().toISOString())
+    };
+
     // Create the document
-    const userAccount = new UserAccount(data);
+    const userAccount = new UserAccount(entityProps);
 
     // Save the document in the database
     try {
