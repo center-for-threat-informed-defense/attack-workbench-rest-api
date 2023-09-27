@@ -25,6 +25,7 @@ objectTypeMap.set('tool', 'software');
 objectTypeMap.set('attack-pattern', 'technique');
 objectTypeMap.set('intrusion-set', 'group');
 objectTypeMap.set('campaign', 'campaign');
+objectTypeMap.set('x-mitre-asset', 'asset');
 objectTypeMap.set('course-of-action', 'mitigation');
 objectTypeMap.set('x-mitre-tactic', 'tactic');
 objectTypeMap.set('x-mitre-matrix', 'matrix');
@@ -278,7 +279,6 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
                     .then(() => callback(null, relationship));
             }
             else {
-                console.log('** NOT FOUND')
                 return callback();
             }
         }

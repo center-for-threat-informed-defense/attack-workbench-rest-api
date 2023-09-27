@@ -257,6 +257,58 @@
         ]
       }
     ]
+  },
+  {
+    "objectType": "asset",
+    "properties": [
+      {
+        "propertyName": "x_mitre_sectors",
+        "domains": [
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [
+              "Electric",
+              "Water and Wastewater",
+              "Manufacturing",
+              "Rail",
+              "Maritime",
+              "General"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "related_asset_sectors",
+        "domains": [
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [
+              "Electric",
+              "Water and Wastewater",
+              "Manufacturing",
+              "Rail",
+              "Maritime",
+              "General"
+            ]
+          }
+        ]
+      },
+      {
+        "propertyName": "x_mitre_platforms",
+        "domains": [
+          {
+            "domainName": "ics-attack",
+            "allowedValues": [
+              "Windows",
+              "Linux",
+              "Network",
+              "Embedded",
+              "Cloud"
+            ]
+          }
+        ]
+      }
+    ]
   }
 ]
 

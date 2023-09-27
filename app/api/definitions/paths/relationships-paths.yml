@@ -102,6 +102,7 @@ paths:
               - mitigation
               - software
               - technique
+              - asset
         - name: versions
           in: query
           description: |

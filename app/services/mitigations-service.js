@@ -213,7 +213,6 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
                     .then(() => callback(null, mitigation));
             }
             else {
-                console.log('** NOT FOUND')
                 return callback();
             }
         }
