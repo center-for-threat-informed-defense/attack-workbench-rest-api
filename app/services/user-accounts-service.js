@@ -2,9 +2,8 @@
 
 const uuid = require('uuid');
 const UserAccount = require('../models/user-account-model');
-const userAccountsRepository = require('../repository/user-accounts-repository');
-const teamsRepository = require('../repository/teams-repository');
-const Errors = require('../exceptions');
+const Team = require('../models/team-model');
+const regexValidator = require('../lib/regex');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -16,17 +15,17 @@ const errors = {
 };
 exports.errors = errors;
 
-const addEffectiveRole = function (userAccount) {
+function addEffectiveRole(userAccount) {
   // Initially, this forces all pending and inactive accounts to have the role 'none'.
   // TBD: Make the role configurable
   if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
       userAccount.role = 'none';
   }
 }
-// We separate the exports statement because the functions are used in this module
-exports.addEffectiveRole = this.addEffectiveRole;
 
-const userAccountAsIdentity = function (userAccount) {
+exports.addEffectiveRole = addEffectiveRole;
+
+function userAccountAsIdentity(userAccount) {
   return {
       type: 'identity',
       spec_version: '2.1',
@@ -37,74 +36,130 @@ const userAccountAsIdentity = function (userAccount) {
       identity_class: 'individual'
   }
 }
+
+
 exports.userAccountAsIdentity = userAccountAsIdentity;
 
-exports.retrieveAll = async function (options) {
-
-    let results;
-    try {
-        results = await userAccountsRepository.retrieveAll(options);
-    } catch (err) {
-        throw new Errors.DatabaseError({ detail: 'Failed to retrieve records from the userAccounts repository', originalError: err.message });
+exports.retrieveAll = function (options, callback) {
+    // Build the query
+    const query = {};
+    if (typeof options.status !== 'undefined') {
+        if (Array.isArray(options.status)) {
+            query['status'] = { $in: options.status };
+        }
+        else {
+            query['status'] = options.status;
+        }
     }
 
-    const userAccounts = results[0].documents;
-        userAccounts.forEach(userAccount => {
-            addEffectiveRole(userAccount);
-            if (options.includeStixIdentity) {
-                userAccount.identity = userAccountAsIdentity(userAccount);
-            }
-        });
-
-        if (options.includePagination) {
-            let derivedTotalCount = 0;
-            if (results[0].totalCount.length > 0) {
-                derivedTotalCount = results[0].totalCount[0].totalCount;
-            }
-            const returnValue = {
-                pagination: {
-                    total: derivedTotalCount,
-                    offset: options.offset,
-                    limit: options.limit
-                },
-                data: userAccounts
-            };
-            return returnValue;
-        } else {
-            return userAccounts;
+    if (typeof options.role !== 'undefined') {
+        if (Array.isArray(options.role)) {
+            query['role'] = { $in: options.role };
         }
+        else {
+            query['role'] = options.role;
+        }
+    }
+
+    // Build the aggregation
+    // - Then apply query, skip and limit options
+    const aggregation = [
+        { $sort: { 'username': 1 } },
+        { $match: query }
+    ];
+
+    if (typeof options.search !== 'undefined') {
+        options.search = regexValidator.sanitizeRegex(options.search);
+        const match = {
+            $match: {
+                $or: [
+                    { 'username': { '$regex': options.search, '$options': 'i' } },
+                    { 'email': { '$regex': options.search, '$options': 'i' } },
+                    { 'displayName': { '$regex': options.search, '$options': 'i' } }
+                ]
+            }
+        };
+        aggregation.push(match);
+    }
+
+    const facet = {
+        $facet: {
+            totalCount: [{ $count: 'totalCount' }],
+            documents: []
+        }
+    };
+    if (options.offset) {
+        facet.$facet.documents.push({ $skip: options.offset });
+    }
+    else {
+        facet.$facet.documents.push({ $skip: 0 });
+    }
+    if (options.limit) {
+        facet.$facet.documents.push({ $limit: options.limit });
+    }
+    aggregation.push(facet);
+
+    // Retrieve the documents
+    UserAccount.aggregate(aggregation, function (err, results) {
+        if (err) {
+            return callback(err);
+        }
+        else {
+            const userAccounts = results[0].documents;
+            userAccounts.forEach(userAccount => {
+                addEffectiveRole(userAccount);
+                if (options.includeStixIdentity) {
+                    userAccount.identity = userAccountAsIdentity(userAccount);
+                }
+            });
+
+            if (options.includePagination) {
+                let derivedTotalCount = 0;
+                if (results[0].totalCount.length > 0) {
+                    derivedTotalCount = results[0].totalCount[0].totalCount;
+                }
+                const returnValue = {
+                    pagination: {
+                        total: derivedTotalCount,
+                        offset: options.offset,
+                        limit: options.limit
+                    },
+                    data: userAccounts
+                };
+                return callback(null, returnValue);
+            } else {
+                return callback(null, userAccounts);
+            }
+        }
+    });
 };
 
-exports.retrieveById = async function (userAccountId, options) {
+exports.retrieveById = function (userAccountId, options, callback) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'userId';
-        throw error;
+        return callback(error);
     }
 
-    try {
-        const userAccount = await userAccountsRepository.findOneById(userAccountId);
-
-        if (!userAccount) {
-            throw new Error('UserAccount not found.');
-        }
-
-        addEffectiveRole(userAccount);
-        if (options.includeStixIdentity) {
-            userAccount.identity = userAccountAsIdentity(userAccount);
-        }
-
-        return userAccount;
-
-    } catch (err) {
-        if (err.name === 'CastError') {
-            const error = new Error(errors.badlyFormattedParameter);
-            error.parameterName = 'userId';
-            throw error;
-        } else {
-            throw err;
-        }
-    }
+    UserAccount.findOne({ 'id': userAccountId })
+        .lean()
+        .exec(function (err, userAccount) {
+            if (err) {
+                if (err.name === 'CastError') {
+                    const error = new Error(errors.badlyFormattedParameter);
+                    error.parameterName = 'userId';
+                    return callback(error);
+                } else {
+                    return callback(err);
+                }
+            } else {
+                addEffectiveRole(userAccount);
+                if (options.includeStixIdentity) {
+                    userAccount.identity = userAccountAsIdentity(userAccount);
+                }
+                return callback(null, userAccount);
+            }
+        });
 };
 
 exports.retrieveByEmail = async function(email) {
@@ -115,11 +170,7 @@ exports.retrieveByEmail = async function(email) {
     }
 
     try {
-        const userAccount = await userAccountsRepository.findOneByEmail(email);
-        if (!userAccount) {
-            throw new Error('UserAccount not found for the provided email.');
-        }
-
+        const userAccount = await UserAccount.findOne({ 'email': email }).lean();
         addEffectiveRole(userAccount);
 
         return userAccount;
@@ -139,37 +190,44 @@ exports.createIsAsync = true;
 exports.create = async function(data) {
     // Check for a duplicate email
     if (data.email) {
-        const existingUserAccount = await userAccountsRepository.findByEmail(data.email);
-        if (existingUserAccount) {
-            throw new Error(errors.duplicateEmail);
+        // Note: We could try to insert the new document without this check and allow Mongoose to throw a duplicate
+        // index error. But the Error that's thrown doesn't allow us to distinguish between a duplicate id (which is
+        // unexpected and may indicate a deeper problem) and a duplicate email (which is likely a client error).
+        // So we perform this check here to catch the duplicate email and then treat the duplicate index as a server
+        // error if it occurs.
+        const userAccount = await UserAccount.findOne({ 'email': data.email }).lean();
+        if (userAccount) {
+            throw (new Error(errors.duplicateEmail));
         }
     }
 
-    const entityProps = {
-        ...data,
-
-        // Create a unique id for this user
-        // This should usually be undefined. It will only be defined when migrating user accounts from another system.
-        id: data.id || `identity--${uuid.v4()}`,
-
-        // Add a timestamp recording when the user account was first created
-        // This should usually be undefined. It will only be defined when migrating user accounts from another system.
-        created: data.created || new Date().toISOString(),
-
-        // Add a timestamp recording when the user account was last modified
-        modified: data.modified || (data.created || new Date().toISOString())
-    };
-
     // Create the document
-    const userAccount = new UserAccount(entityProps);
+    const userAccount = new UserAccount(data);
+
+    // Create a unique id for this user
+    // This should usually be undefined. It will only be defined when migrating user accounts from another system.
+    if (!userAccount.id) {
+        userAccount.id = `identity--${uuid.v4()}`;
+    }
+
+    // Add a timestamp recording when the user account was first created
+    // This should usually be undefined. It will only be defined when migrating user accounts from another system.
+    if (!userAccount.created) {
+        userAccount.created = new Date().toISOString();
+    }
+
+    // Add a timestamp recording when the user account was last modified
+    if (!userAccount.modified) {
+        userAccount.modified = userAccount.created;
+    }
 
     // Save the document in the database
     try {
-        const savedUserAccount = await userAccountsRepository.save(userAccount);
+        const savedUserAccount = await userAccount.save();
         addEffectiveRole(savedUserAccount);
 
         return savedUserAccount;
-    } 
+    }
     catch (err) {
         if (err.name === 'MongoServerError' && err.code === 11000) {
             // 11000 = Duplicate index
@@ -182,56 +240,87 @@ exports.create = async function(data) {
     }
 };
 
-exports.updateFull = async function (userAccountId, data) {
+exports.updateFull = function (userAccountId, data, callback) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'userId';
-        throw error;
+        return callback(error);
     }
 
-    try {
-        const updatedDocument = await userAccountsRepository.updateById(userAccountId, data);
-        return updatedDocument;
-
-    } catch (err) {
-        if (err.name === 'CastError') {
-            const error = new Error(errors.badlyFormattedParameter);
-            error.parameterName = 'userId';
-            throw error;
-        } else if (err.name === 'MongoServerError' && err.code === 11000) {
-            // 11000 = Duplicate index
-            const error = new Error(errors.duplicateId);
-            throw error;
-        } else {
-            throw err;
+    UserAccount.findOne({ 'id': userAccountId }, function (err, document) {
+        if (err) {
+            if (err.name === 'CastError') {
+                var error = new Error(errors.badlyFormattedParameter);
+                error.parameterName = 'userId';
+                return callback(error);
+            }
+            else {
+                return callback(err);
+            }
         }
-    }
+        else if (!document) {
+            // document not found
+            return callback(null);
+        }
+        else {
+            // Copy data to found document
+            document.email = data.email;
+            document.username = data.username;
+            document.displayName = data.displayName;
+            document.status = data.status;
+            document.role = data.role;
+
+            // Set the modified timestamp
+            document.modified = new Date().toISOString();
+
+            // And save
+            document.save(function (err, savedDocument) {
+                if (err) {
+                    if (err.name === 'MongoServerError' && err.code === 11000) {
+            // 11000 = Duplicate index
+                        var error = new Error(errors.duplicateId);
+                        return callback(error);
+                    }
+                    else {
+                        return callback(err);
+                    }
+                }
+                else {
+                    return callback(null, savedDocument);
+                }
+            });
+        }
+    });
 };
 
-exports.delete = async function (userAccountId) {
+exports.delete = function (userAccountId, callback) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'userId';
-        throw error;
+        return callback(error);
     }
 
-    // eslint-disable-next-line no-useless-catch
-    try {
-        return await userAccountsRepository.removeById(userAccountId);
-    } catch (err) {
-        // TODO do something with the error
-        throw err;
-    }
+    UserAccount.findOneAndRemove({ 'id': userAccountId }, function (err, userAccount) {
+        if (err) {
+            return callback(err);
+        } else {
+            //Note: userAccount is null if not found
+            return callback(null, userAccount);
+        }
+    });
 };
 
 async function getLatest(userAccountId) {
-    const userAccount = await userAccountsRepository.findOneById(userAccountId);
+    const userAccount = await UserAccount
+        .findOne({ 'id': userAccountId })
+        .lean()
+        .exec();
     addEffectiveRole(userAccount);
 
     return userAccount;
 }
 
-const addCreatedByUserAccount = async function (attackObject) {
+async function addCreatedByUserAccount(attackObject) {
     if (attackObject?.workspace?.workflow?.created_by_user_account) {
         try {
             // eslint-disable-next-line require-atomic-updates
@@ -251,37 +340,68 @@ exports.addCreatedByUserAccountToAll = async function(attackObjects) {
     }
 }
 
-// TODO migrate database logic to user-accounts-repository.js
-exports.retrieveTeamsByUserId = async function (userAccountId, options) {
+exports.retrieveTeamsByUserId = function (userAccountId, options, callback) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'userId';
-        throw error;
+        return callback(error);
     }
 
-    // eslint-disable-next-line no-useless-catch
-    try {
-        const results = await teamsRepository.findTeamsByUserId(userAccountId, options);
+    // Build the aggregation
+    const aggregation = [
+        { $sort: { 'name': 1 } },
+    ];
 
-        if (options.includePagination) {
-            let derivedTotalCount = 0;
-            if (results.totalCount.length > 0) {
-                derivedTotalCount = results.totalCount[0].totalCount;
-            }
-            const returnValue = {
-                pagination: {
-                    total: derivedTotalCount,
-                    offset: options.offset,
-                    limit: options.limit
-                },
-                data: results.documents
-            };
-            return returnValue;
-        } else {
-            return results.documents;
+    const match = {
+        $match: {
+            userIDs: { $in: [userAccountId] }
         }
-    } catch (err) {
-        // TODO do something with the error
-        throw err;
+    };
+
+    aggregation.push(match);
+
+    const facet = {
+        $facet: {
+            totalCount: [{ $count: 'totalCount' }],
+            documents: []
+        }
+    };
+    if (options.offset) {
+        facet.$facet.documents.push({ $skip: options.offset });
     }
+    else {
+        facet.$facet.documents.push({ $skip: 0 });
+    }
+    if (options.limit) {
+        facet.$facet.documents.push({ $limit: options.limit });
+    }
+    aggregation.push(facet);
+
+    // Retrieve the documents
+    Team.aggregate(aggregation, function (err, results) {
+        if (err) {
+            return callback(err);
+        }
+        else {
+            const teams = results[0].documents;
+            if (options.includePagination) {
+                let derivedTotalCount = 0;
+                if (results[0].totalCount.length > 0) {
+                    derivedTotalCount = results[0].totalCount[0].totalCount;
+                }
+                const returnValue = {
+                    pagination: {
+                        total: derivedTotalCount,
+                        offset: options.offset,
+                        limit: options.limit
+                    },
+                    data: teams
+                };
+                return callback(null, returnValue);
+            }
+            else {
+                return callback(null, teams);
+            }
+        }
+    });
 };
