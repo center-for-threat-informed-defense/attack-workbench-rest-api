@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const stixMalware = {
     // STIX malware and tool specific properties
@@ -33,6 +34,6 @@ const softwareDefinition = {
 const softwareSchema = new mongoose.Schema(softwareDefinition);
 
 // Create the model
-const SoftwareModel = AttackObject.discriminator('Software', softwareSchema);
+const SoftwareModel = AttackObject.discriminator(ModelName.Software, softwareSchema);
 
 module.exports = SoftwareModel;

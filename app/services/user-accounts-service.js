@@ -15,7 +15,7 @@ const errors = {
 };
 exports.errors = errors;
 
-function addEffectiveRole (userAccount) {
+function addEffectiveRole(userAccount) {
   // Initially, this forces all pending and inactive accounts to have the role 'none'.
   // TBD: Make the role configurable
   if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
@@ -25,7 +25,7 @@ function addEffectiveRole (userAccount) {
 
 exports.addEffectiveRole = addEffectiveRole;
 
-function userAccountAsIdentity (userAccount) {
+function userAccountAsIdentity(userAccount) {
   return {
       type: 'identity',
       spec_version: '2.1',
@@ -36,11 +36,11 @@ function userAccountAsIdentity (userAccount) {
       identity_class: 'individual'
   }
 }
-  
+
 
 exports.userAccountAsIdentity = userAccountAsIdentity;
 
-exports.retrieveAll = function(options, callback) {
+exports.retrieveAll = function (options, callback) {
     // Build the query
     const query = {};
     if (typeof options.status !== 'undefined') {
@@ -70,18 +70,22 @@ exports.retrieveAll = function(options, callback) {
 
     if (typeof options.search !== 'undefined') {
         options.search = regexValidator.sanitizeRegex(options.search);
-        const match = { $match: { $or: [
-                    { 'username': { '$regex': options.search, '$options': 'i' }},
-                    { 'email': { '$regex': options.search, '$options': 'i' }},
-                    { 'displayName': { '$regex': options.search, '$options': 'i' }}
-                ]}};
+        const match = {
+            $match: {
+                $or: [
+                    { 'username': { '$regex': options.search, '$options': 'i' } },
+                    { 'email': { '$regex': options.search, '$options': 'i' } },
+                    { 'displayName': { '$regex': options.search, '$options': 'i' } }
+                ]
+            }
+        };
         aggregation.push(match);
     }
 
     const facet = {
         $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [ ]
+            totalCount: [{ $count: 'totalCount' }],
+            documents: []
         }
     };
     if (options.offset) {
@@ -96,7 +100,7 @@ exports.retrieveAll = function(options, callback) {
     aggregation.push(facet);
 
     // Retrieve the documents
-    UserAccount.aggregate(aggregation, function(err, results) {
+    UserAccount.aggregate(aggregation, function (err, results) {
         if (err) {
             return callback(err);
         }
@@ -130,7 +134,7 @@ exports.retrieveAll = function(options, callback) {
     });
 };
 
-exports.retrieveById = function(userAccountId, options, callback) {
+exports.retrieveById = function (userAccountId, options, callback) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'userId';
@@ -236,14 +240,14 @@ exports.create = async function(data) {
     }
 };
 
-exports.updateFull = function(userAccountId, data, callback) {
+exports.updateFull = function (userAccountId, data, callback) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'userId';
         return callback(error);
     }
 
-    UserAccount.findOne({ 'id': userAccountId }, function(err, document) {
+    UserAccount.findOne({ 'id': userAccountId }, function (err, document) {
         if (err) {
             if (err.name === 'CastError') {
                 var error = new Error(errors.badlyFormattedParameter);
@@ -270,10 +274,10 @@ exports.updateFull = function(userAccountId, data, callback) {
             document.modified = new Date().toISOString();
 
             // And save
-            document.save(function(err, savedDocument) {
+            document.save(function (err, savedDocument) {
                 if (err) {
                     if (err.name === 'MongoServerError' && err.code === 11000) {
-                        // 11000 = Duplicate index
+            // 11000 = Duplicate index
                         var error = new Error(errors.duplicateId);
                         return callback(error);
                     }
@@ -336,7 +340,7 @@ exports.addCreatedByUserAccountToAll = async function(attackObjects) {
     }
 }
 
-exports.retrieveTeamsByUserId = function(userAccountId, options, callback) {
+exports.retrieveTeamsByUserId = function (userAccountId, options, callback) {
     if (!userAccountId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'userId';

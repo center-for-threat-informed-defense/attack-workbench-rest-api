@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const stixTactic = {
     // STIX x-mitre-tactic specific properties
@@ -30,6 +31,6 @@ const tacticDefinition = {
 const tacticSchema = new mongoose.Schema(tacticDefinition);
 
 // Create the model
-const TacticModel = AttackObject.discriminator('Tactic', tacticSchema);
+const TacticModel = AttackObject.discriminator(ModelName.Tactic, tacticSchema);
 
 module.exports = TacticModel;

@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const stixDataComponent = {
     // STIX x-mitre-data-component specific properties
@@ -29,6 +30,6 @@ const dataComponentDefinition = {
 const dataComponentSchema = new mongoose.Schema(dataComponentDefinition);
 
 // Create the model
-const DataComponentModel = AttackObject.discriminator('Data-Component', dataComponentSchema);
+const DataComponentModel = AttackObject.discriminator(ModelName.DataComponent, dataComponentSchema);
 
 module.exports = DataComponentModel;

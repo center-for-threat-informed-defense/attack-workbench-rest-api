@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const identityProperties = {
     // identity specific properties
@@ -31,6 +32,6 @@ const identityDefinition = {
 const identitySchema = new mongoose.Schema(identityDefinition);
 
 // Create the model
-const IdentityModel = AttackObject.discriminator('IdentityModel', identitySchema);
+const IdentityModel = AttackObject.discriminator(ModelName.Identity, identitySchema);
 
 module.exports = IdentityModel;

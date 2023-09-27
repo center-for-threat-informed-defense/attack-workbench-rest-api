@@ -4,7 +4,7 @@ const uuid = require('uuid');
 const Team = require('../models/team-model');
 const regexValidator = require('../lib/regex');
 const UserAccount = require('../models/user-account-model');
-const {addEffectiveRole,userAccountAsIdentity} = require('./user-accounts-service');
+const { addEffectiveRole, userAccountAsIdentity } = require('./user-accounts-service');
 
 const errors = {
     missingParameter: 'Missing required parameter',

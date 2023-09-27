@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const noteProperties = {
     // note specific properties
@@ -28,6 +29,6 @@ const noteDefinition = {
 const noteSchema = new mongoose.Schema(noteDefinition);
 
 // Create the model
-const NoteModel = AttackObject.discriminator('NoteModel', noteSchema);
+const NoteModel = AttackObject.discriminator(ModelName.Note, noteSchema);
 
 module.exports = NoteModel;

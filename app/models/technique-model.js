@@ -3,6 +3,7 @@
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 const attackPatternDefinitions = require('./subschemas/attack-pattern');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 // Create the definition
 const techniqueDefinition = {
@@ -19,6 +20,6 @@ Object.assign(techniqueDefinition.stix, attackPatternDefinitions.attackPatternIC
 const techniqueSchema = new mongoose.Schema(techniqueDefinition);
 
 // Create the model
-const TechniqueModel = AttackObject.discriminator('Technique', techniqueSchema);
+const TechniqueModel = AttackObject.discriminator(ModelName.Technique, techniqueSchema);
 
 module.exports = TechniqueModel;

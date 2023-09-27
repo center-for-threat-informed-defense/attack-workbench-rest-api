@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/attack-prefix-ids');
 
 const markingObject = {
     statement: String,
@@ -32,6 +33,6 @@ const markingDefinitionDefinition = {
 const markingDefinitionSchema = new mongoose.Schema(markingDefinitionDefinition);
 
 // Create the model
-const MarkingDefinitionModel = AttackObject.discriminator('MarkingDefinitionModel', markingDefinitionSchema);
+const MarkingDefinitionModel = AttackObject.discriminator(ModelName.MarkingDefinition, markingDefinitionSchema);
 
 module.exports = MarkingDefinitionModel;

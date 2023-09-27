@@ -16,12 +16,12 @@ const errors = {
 };
 exports.errors = errors;
 
-exports.retrieveAll = function(options, callback) {
+exports.retrieveAll = function (options, callback) {
     CollectionIndex.find()
         .skip(options.offset)
         .limit(options.limit)
         .lean()
-        .exec(function(err, collectionIndexes) {
+        .exec(function (err, collectionIndexes) {
             if (err) {
                 return callback(err);
             }
