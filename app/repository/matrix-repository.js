@@ -6,8 +6,8 @@ const Matrix = require('../models/matrix-model');
 class MatrixRepository extends BaseRepository {
 
     constructor() {
-        super();
-        this.model = Matrix;
+        super(Matrix);
+        // this.model = Matrix;
     }
 }
 
