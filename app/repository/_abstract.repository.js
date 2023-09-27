@@ -18,7 +18,7 @@ class AbstractRepository {
      * @param {*} stixId The unique identifier for the document.
      * @returns {Object} The retrieved document.
      */
-    async retrieveOneById(stixId) {
+    async retrieveOneByStixId(stixId) {
         throw new NotImplementedError(this.constructor.name, 'retrieveOneById');
     }
 
@@ -27,7 +27,7 @@ class AbstractRepository {
      * @param {*} stixId The unique identifier for the documents.
      * @returns {Array} Array of aggregated documents.
      */
-    async retrieveAllById(stixId) {
+    async retrieveAllByStixId(stixId) {
         throw new NotImplementedError(this.constructor.name, 'retrieveAllById');
     }
 
