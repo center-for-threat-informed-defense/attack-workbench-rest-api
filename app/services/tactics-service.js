@@ -26,6 +26,7 @@ const TacticsRepository = require('../repository/tactics-repository');
 class TacticsService extends BaseService {
     constructor () {
         super(TacticsRepository, Tactic);
+        this.retrieveAllTechniques = null;
     }
 
     async techniqueMatchesTactic(tactic) {
@@ -47,10 +48,9 @@ class TacticsService extends BaseService {
         return data.slice(startPos, endPos);
     }
 
-    let retrieveAllTechniques;
     async retrieveTechniquesForTactic (stixId, modified, options) {
         // Late binding to avoid circular dependency between modules
-        if (!retrieveAllTechniques) {
+        if (!this.retrieveAllTechniques) {
             const techniquesService = require('./techniques-service');
             retrieveAllTechniques = util.promisify(techniquesService.retrieveAll);
         }
