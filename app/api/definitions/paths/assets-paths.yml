@@ -1,0 +1,292 @@
+paths:
+  /api/assets:
+    get:
+      summary: 'Get a list of assets'
+      operationId: 'asset-get-all'
+      description: |
+        This endpoint gets a list of assets from the workspace.
+        The list of assets may include multiple versions of each asset.
+      tags:
+        - 'Assets'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of assets to retrieve.
+            The default (0) will retrieve all assets.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of assets to skip.
+            The default (0) will start with the first asset.
+          schema:
+            type: number
+            default: 0
+        - name: domain
+          in: query
+          description: |
+            Only retrieve objects that contain the specified domain in their `x_mitre_domains` array.
+            This parameter may be set multiple times to retrieve objects with any of the provided domains.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'ics-attack'
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, objects will be retrieved regardless of state.
+            This parameter may be set multiple times to retrieve objects with any of the provided states.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'work-in-progress'
+        - name: platform
+          in: query
+          description: |
+            Only retrieve objects that contain the specified platform in their `x_mitre_platforms` array.
+            This parameter may be set multiple times to retrieve objects with any of the provided platforms.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'Linux'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: search
+          in: query
+          description: |
+            Only return objects where the provided search text occurs in the `name` or `description`.
+            The search is case-insensitive.
+          schema:
+            type: string
+          allowReserved: true
+          example: 'windows'
+        - name: lastUpdatedBy
+          in: query
+          description: |
+            The STIX ID of the user who last modified the object
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'identity--f568ad89-69bc-48e7-877b-43755f1d376d'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of assets.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/assets.yml#/components/schemas/asset'
+
+    post:
+      summary: 'Create an asset'
+      operationId: 'asset-create'
+      description: |
+        This endpoint creates a new asset in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing asset.
+        If the `stix.id` property is not set, it creates a new asset, generating a STIX id for it.
+      tags:
+        - 'Assets'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/assets.yml#/components/schemas/asset'
+      responses:
+        '201':
+          description: 'The asset has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/assets.yml#/components/schemas/asset'
+        '400':
+          description: 'Missing or invalid parameters were provided. The asset was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The asset was not created.'
+
+  /api/assets/{stixId}:
+    get:
+      summary: 'Get one or more versions of an asset'
+      operationId: 'asset-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of an asset from the workspace, identified by their STIX id.
+      tags:
+        - 'Assets'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the asset to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the asset to retrieve.
+            `all` gets all versions of the asset, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of assets matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/assets.yml#/components/schemas/asset'
+        '404':
+          description: 'An asset with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete an asset'
+      operationId: 'asset-delete-all'
+      description: |
+        This endpoint deletes all versions of an asset from the workspace.
+        The asset is identified by its STIX id.
+      tags:
+        - 'Assets'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the asset to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the asset versions were successfully deleted.'
+
+  /api/assets/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of an asset matching the STIX id and modified date'
+      operationId: 'asset-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of an asset from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Assets'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the asset to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the asset to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of an asset matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/assets.yml#/components/schemas/asset'
+        '404':
+          description: 'An asset with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update an asset'
+      operationId: 'asset-update'
+      description: |
+        This endpoint updates a single version of an asset in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Assets'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the asset to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the asset to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/assets.yml#/components/schemas/asset'
+      responses:
+        '200':
+          description: 'The asset was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/assets.yml#/components/schemas/asset'
+        '400':
+          description: 'Missing or invalid parameters were provided. The asset was not updated.'
+        '404':
+          description: 'An asset with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete an asset'
+      operationId: 'asset-delete'
+      description: |
+        This endpoint deletes a single version of an asset from the workspace.
+        The asset is identified by its STIX id and modified date.
+      tags:
+        - 'Assets'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the asset to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the asset to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The asset was successfully deleted.'
+        '404':
+          description: 'An asset with the requested STIX id and modified date was not found.'

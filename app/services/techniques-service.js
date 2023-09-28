@@ -62,8 +62,8 @@ exports.retrieveAll = function(options, callback) {
     // - Use the last document in each group (according to the value of stix.modified)
     // - Then apply query, skip and limit options
     const aggregation = [
-        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
+        { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+        { $group: { _id: '$stix.id', document: { $first: '$$ROOT' }}},
         { $replaceRoot: { newRoot: '$document' }},
         { $sort: { 'stix.id': 1 }},
         { $match: query }
@@ -225,7 +225,6 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
                     .then(() => callback(null, technique));
             }
             else {
-                console.log('** NOT FOUND')
                 return callback();
             }
         }

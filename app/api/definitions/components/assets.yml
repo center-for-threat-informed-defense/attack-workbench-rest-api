@@ -1,0 +1,75 @@
+components:
+  schemas:
+    asset:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/x-mitre-asset'
+
+    x-mitre-asset:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # asset specific properties
+            name:
+              type: string
+              example: 'Asset Name'
+            description:
+              type: string
+              example: 'This is an asset'
+            # ATT&CK custom properties
+            x_mitre_modified_by_ref:
+              type: string
+              example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
+            x_mitre_sectors:
+              type: array
+              items:
+                type: string
+            x_mitre_related_assets:
+              type: array
+              items:
+                $ref: '#/components/schemas/x-mitre-related-asset'
+            x_mitre_platforms:
+              type: array
+              items:
+                type: string
+                example: 'Windows'
+            x_mitre_contributors:
+              type: array
+              items:
+                type: string
+            x_mitre_deprecated:
+              type: boolean
+              example: false
+            x_mitre_domains:
+              type: array
+              items:
+                type: string
+            x_mitre_version:
+              type: string
+              example: '1.0'
+            x_mitre_attack_spec_version:
+              type: string
+              example: '2.1.0'
+
+    x-mitre-related-asset:
+      type: object
+      properties:
+        name:
+          type: string
+        related_asset_sectors:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+      required:
+        - name

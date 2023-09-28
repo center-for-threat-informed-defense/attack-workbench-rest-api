@@ -49,12 +49,12 @@ exports.retrieveAll = function(options, callback) {
     }
 
     // Build the aggregation
-    const aggregation = [ { $sort: { 'stix.id': 1, 'stix.modified': 1 }} ];
+    const aggregation = [ { $sort: { 'stix.id': 1, 'stix.modified': -1 }} ];
     if (options.versions === 'latest') {
         // Group the documents by stix.id, sorted by stix.modified
-        // Use the last document in each group (according to the value of stix.modified)
+        // Use the first document in each group (according to the value of stix.modified)
         // Then sort again since the $group does not retain the sort order
-        aggregation.push({ $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}});
+        aggregation.push({ $group: { _id: '$stix.id', document: { $first: '$$ROOT' }}});
         aggregation.push({ $replaceRoot: { newRoot: '$document' }});
         aggregation.push({ $sort: { 'stix.id': 1 }});
     }
@@ -255,7 +255,6 @@ exports.retrieveVersionById = function(stixId, modified, options, callback) {
                     }
                 }
                 else {
-                    console.log('** NOT FOUND')
                     return callback();
                 }
             }

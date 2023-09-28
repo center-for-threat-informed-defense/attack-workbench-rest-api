@@ -36,6 +36,8 @@ tags:
     description: 'Operations on data sources'
   - name: 'Data Components'
     description: 'Operations on data components'
+  - name: 'Assets'
+    description: 'Operations on assets'
   - name: 'Relationships'
     description: 'Operations on relationships'
   - name: 'Notes'
@@ -179,6 +181,16 @@ paths:
 
   /api/data-components/{stixId}/modified/{modified}:
     $ref: 'paths/data-components-paths.yml#/paths/~1api~1data-components~1{stixId}~1modified~1{modified}'
+
+  # Assets
+  /api/assets:
+    $ref: 'paths/assets-paths.yml#/paths/~1api~1assets'
+
+  /api/assets/{stixId}:
+    $ref: 'paths/assets-paths.yml#/paths/~1api~1assets~1{stixId}'
+
+  /api/assets/{stixId}/modified/{modified}:
+    $ref: 'paths/assets-paths.yml#/paths/~1api~1assets~1{stixId}~1modified~1{modified}'
 
   # Relationships
   /api/relationships:

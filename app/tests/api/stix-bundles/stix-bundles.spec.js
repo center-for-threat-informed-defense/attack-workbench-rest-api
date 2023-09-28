@@ -631,7 +631,6 @@ describe('STIX Bundles Basic API', function () {
                 } else {
                     // We expect to get the created collection object
                     const collection = res.body;
-                    console.log(JSON.stringify(collection.workspace.import_categories.errors, null, 2));
                     expect(collection).toBeDefined();
                     expect(collection.workspace.import_categories.additions.length).toBe(24);
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
