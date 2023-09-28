@@ -25,6 +25,7 @@ objectTypeMap.set('tool', 'software');
 objectTypeMap.set('attack-pattern', 'technique');
 objectTypeMap.set('intrusion-set', 'group');
 objectTypeMap.set('campaign', 'campaign');
+objectTypeMap.set('x-mitre-asset', 'asset');
 objectTypeMap.set('course-of-action', 'mitigation');
 objectTypeMap.set('x-mitre-tactic', 'tactic');
 objectTypeMap.set('x-mitre-matrix', 'matrix');
@@ -67,7 +68,7 @@ exports.retrieveAll = async function(options) {
     const aggregation = [];
     if (options.versions === 'latest') {
         // - Group the documents by stix.id, sorted by stix.modified
-        // - Use the last document in each group (according to the value of stix.modified)
+        // - Use the first document in each group (according to the value of stix.modified)
         aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': -1 } });
         aggregation.push({ $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } });
         aggregation.push({ $replaceRoot: { newRoot: '$document' } });
@@ -278,7 +279,6 @@ exports.retrieveVersionById = function(stixId, modified, callback) {
                     .then(() => callback(null, relationship));
             }
             else {
-                console.log('** NOT FOUND')
                 return callback();
             }
         }

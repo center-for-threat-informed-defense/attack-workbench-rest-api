@@ -170,11 +170,11 @@ exports.exportBundle = async function(options) {
 
     // Build the aggregation
     // - Group the documents by stix.id, sorted by stix.modified
-    // - Use the last document in each group (according to the value of stix.modified)
+    // - Use the first document in each group (according to the value of stix.modified)
     // - Then apply query, skip and limit options
     const aggregation = [
-        { $sort: { 'stix.id': 1, 'stix.modified': 1 } },
-        { $group: { _id: '$stix.id', document: { $last: '$$ROOT' }}},
+        { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+        { $group: { _id: '$stix.id', document: { $first: '$$ROOT' }}},
         { $replaceRoot: { newRoot: '$document' }},
         { $sort: { 'stix.id': 1 }},
         { $match: primaryObjectsQuery }

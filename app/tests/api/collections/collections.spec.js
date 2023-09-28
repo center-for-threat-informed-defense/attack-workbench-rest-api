@@ -562,7 +562,28 @@ describe('Collections (x-mitre-collection) Basic API', function () {
             });
     });
 
-    it('GET /api/collections returns all added collections', function (done) {
+    it('GET /api/collections returns all versions of all added collections', function (done) {
+        request(app)
+            .get('/api/collections?versions=all')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .end(function (err, res) {
+                if (err) {
+                    done(err);
+                } else {
+                    // We expect to get two collections in an array
+                    const collections = res.body;
+                    expect(collections).toBeDefined();
+                    expect(Array.isArray(collections)).toBe(true);
+                    expect(collections.length).toBe(2);
+                    done();
+                }
+            });
+    });
+
+    it('GET /api/collections returns all versions of one added collection', function (done) {
         request(app)
             .get('/api/collections/' + collection1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
@@ -655,8 +676,6 @@ describe('Collections (x-mitre-collection) Basic API', function () {
                     expect(collection.contents).toBeDefined();
                     expect(Array.isArray(collection.contents)).toBe(true);
                     expect(collection.contents.length).toBe(2);
-                    console.log(collection.contents[0]);
-                    console.log(collection.contents[1]);
 
                     done();
                 }
