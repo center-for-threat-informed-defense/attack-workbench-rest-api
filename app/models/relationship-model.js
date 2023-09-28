@@ -3,7 +3,7 @@
 const mongoose = require('mongoose');
 const workspaceDefinitions = require('./subschemas/workspace');
 const stixCoreDefinitions = require('./subschemas/stix-core');
-const { ModelName } = require('../lib/attack-prefix-ids');
+const { ModelName } = require('../lib/model-names');
 
 const relationshipProperties = {
     // relationship specific properties
