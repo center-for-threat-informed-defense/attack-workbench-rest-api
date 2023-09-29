@@ -68,15 +68,11 @@ class TacticsService extends BaseService {
 
         // Retrieve the techniques associated with the tactic (the tactic identified by stixId and modified date)
         if (!stixId) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'stixId';
-            throw error;
+            throw new MissingParameterError({ parameterName: 'stixId' });
         }
 
         if (!modified) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'modified';
-            throw error;
+            throw new MissingParameterError({ parameterName: 'modified' });
         }
 
         try {
@@ -109,9 +105,7 @@ class TacticsService extends BaseService {
         }
         catch(err) {
             if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'stixId';
-                throw error;
+                throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
             }
             else {
                 throw err;
