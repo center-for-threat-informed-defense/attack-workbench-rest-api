@@ -30,7 +30,7 @@ class TacticsService extends BaseService {
     }
 
     async techniqueMatchesTactic(tactic) {
-        return function(technique) {
+        return async function(technique) {
             // A tactic matches if the technique has a kill chain phase such that:
             //   1. The phase's kill_chain_name matches one of the tactic's kill chain names (which are derived from the tactic's x_mitre_domains)
             //   2. The phase's phase_name matches the tactic's x_mitre_shortname
