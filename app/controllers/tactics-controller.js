@@ -39,7 +39,7 @@ exports.retrieveById = async function(req, res) {
     }
 
     try {  
-            const results = await tacticsService.retrieveById(req.params.stixId, options);
+            const tactics = await tacticsService.retrieveById(req.params.stixId, options);
 
             if (tactics.length === 0) {
                 return res.status(404).send('Tactic not found.');
@@ -50,11 +50,11 @@ exports.retrieveById = async function(req, res) {
             }
 
     }  catch (err) {
-        if (err.message === tacticsService.errors.badlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
         }
-        else if (err.message === tacticsService.errors.invalidQueryStringParameter) {
+        else if (err instanceof InvalidQueryStringParameterError) {
             logger.warn('Invalid query string: versions=' + req.query.versions);
             return res.status(400).send('Query string parameter versions is invalid.');
         }
@@ -69,7 +69,7 @@ exports.retrieveVersionById = async function(req, res) {
 
     try {
 
-        const results = await tacticsService.retrieveVersionById(req.params.stixId, req.params.modified);
+        const tactic = await tacticsService.retrieveVersionById(req.params.stixId, req.params.modified);
 
         if (!tactic) {
             return res.status(404).send('tactic not found.');
@@ -78,9 +78,9 @@ exports.retrieveVersionById = async function(req, res) {
             logger.debug(`Success: Retrieved tactic with id ${tactic.id}`);
             return res.status(200).send(tactic);
         }
-        
+
     } catch (err) {
-        if (err.message === tacticsService.errors.badlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
         }
@@ -95,19 +95,20 @@ exports.create = async function(req, res) {
     // Get the data from the request
     const tacticData = req.body;
 
+    const options = {
+        import: false,
+        userAccountId: req.user?.userAccountId
+    };
+
     // Create the tactic
     try {
-        const options = {
-            import: false,
-            userAccountId: req.user?.userAccountId
-        };
         const tactic = await tacticsService.create(tacticData, options);
 
         logger.debug("Success: Created tactic with id " + tactic.stix.id);
         return res.status(201).send(tactic);
     }
     catch(err) {
-        if (err.message === tacticsService.errors.duplicateId) {
+        if (err instanceof DuplicateIdError) {
             logger.warn("Duplicate stix.id and stix.modified");
             return res.status(409).send('Unable to create tactic. Duplicate stix.id and stix.modified properties.');
         }
@@ -122,54 +123,58 @@ exports.updateFull = async function(req, res) {
     // Get the data from the request
     const tacticData = req.body;
 
-    // Create the tactic
-    tacticsService.updateFull(req.params.stixId, req.params.modified, tacticData, function(err, tactic) {
-        if (err) {
-            logger.error("Failed with error: " + err);
-            return res.status(500).send("Unable to update tactic. Server error.");
+    try {
+        const tactic = await tacticsService.updateFull(req.params.stixId, req.params.modified, tacticData);
+
+        if (!tactic) {
+            return res.status(404).send('tactic not found.');
+        } else {
+            logger.debug("Success: Updated tactic with id " + tactic.stix.id);
+            return res.status(200).send(tactic);
         }
-        else {
-            if (!tactic) {
-                return res.status(404).send('tactic not found.');
-            } else {
-                logger.debug("Success: Updated tactic with id " + tactic.stix.id);
-                return res.status(200).send(tactic);
-            }
-        }
-    });
+    } catch (err) {
+        logger.error("Failed with error: " + err);
+        return res.status(500).send("Unable to update tactic. Server error.");
+    }
 };
 
 exports.deleteVersionById = async function(req, res) {
-    tacticsService.deleteVersionById(req.params.stixId, req.params.modified, function (err, tactic) {
-        if (err) {
-            logger.error('Delete tactic failed. ' + err);
-            return res.status(500).send('Unable to delete tactic. Server error.');
+
+    try {
+
+        const tactic = await tacticsService.deleteVersionById(req.params.stixId, req.params.modified);
+
+        if (!tactic) {
+            return res.status(404).send('tactic not found.');
+        } else {
+            logger.debug("Success: Deleted tactic with id " + tactic.stix.id);
+            return res.status(204).end();
         }
-        else {
-            if (!tactic) {
-                return res.status(404).send('tactic not found.');
-            } else {
-                logger.debug("Success: Deleted tactic with id " + tactic.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
+
+    } catch (err) {
+        logger.error('Delete tactic failed. ' + err);
+        return res.status(500).send('Unable to delete tactic. Server error.');
+    }
+
 };
 
 exports.deleteById = async function(req, res) {
-    tacticsService.deleteById(req.params.stixId, function (err, tactics) {
-        if (err) {
-            logger.error('Delete tactic failed. ' + err);
-            return res.status(500).send('Unable to delete tactic. Server error.');
+
+    try {
+        
+        const tactics = await tacticsService.deleteById(req.params.stixId);
+
+        if (tactics.deletedCount === 0) {
+            return res.status(404).send('Tactic not found.');
         } else {
-            if (tactics.deletedCount === 0) {
-                return res.status(404).send('Tactic not found.');
-            } else {
-                logger.debug(`Success: Deleted tactic with id ${req.params.stixId}`);
-                return res.status(204).end();
-            }
+            logger.debug(`Success: Deleted tactic with id ${req.params.stixId}`);
+            return res.status(204).end();
         }
-    });
+        
+    } catch (err) {
+        logger.error('Delete tactic failed. ' + err);
+        return res.status(500).send('Unable to delete tactic. Server error.');
+    } 
 };
 
 exports.retrieveTechniquesForTactic = async function(req, res) {
@@ -190,7 +195,7 @@ exports.retrieveTechniquesForTactic = async function(req, res) {
         }
     }
     catch(err) {
-        if (err.message === tacticsService.errors.badlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
         } else {
