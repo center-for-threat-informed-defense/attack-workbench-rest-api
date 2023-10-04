@@ -102,8 +102,7 @@ exports.create = async function(req, res) {
         const software = await await softwareService.create(softwareData, options);
         logger.debug("Success: Created software with id " + software.stix.id);
         return res.status(201).send(software);
-    }
-    catch(err) {
+    } catch(err) {
         if (err instanceof DuplicateIdError) {
             logger.warn("Duplicate stix.id and stix.modified");
             return res.status(409).send('Unable to create software. Duplicate stix.id and stix.modified properties.');
@@ -127,21 +126,20 @@ exports.updateFull = async function(req, res) {
     // Get the data from the request
     const softwareData = req.body;
 
-    // Create the software
-    await softwareService.updateFull(req.params.stixId, req.params.modified, softwareData, async function(err, software) {
-        if (err) {
-            logger.error("Failed with error: " + err);
-            return res.status(500).send("Unable to update software. Server error.");
+    try {
+        // Create the software
+        const software = await softwareService.updateFull(req.params.stixId, req.params.modified, softwareData);
+
+        if (!software) {
+            return res.status(404).send('Software not found.');
+        } else {
+            logger.debug("Success: Updated software with id " + software.stix.id);
+            return res.status(200).send(software);
         }
-        else {
-            if (!software) {
-                return res.status(404).send('Software not found.');
-            } else {
-                logger.debug("Success: Updated software with id " + software.stix.id);
-                return res.status(200).send(software);
-            }
-        }
-    });
+    }  catch (err) {
+        logger.error("Failed with error: " + err);
+        return res.status(500).send("Unable to update software. Server error.");
+    }
 };
 
 exports.deleteVersionById = async function(req, res) {
