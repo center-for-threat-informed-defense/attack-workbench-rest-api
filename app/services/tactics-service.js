@@ -11,14 +11,7 @@ const config = require('../config/config');
 const regexValidator = require('../lib/regex');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
-exports.errors = errors;
+const { BadlyFormattedParameterError, DuplicateIdError, NotFoundError, InvalidQueryStringParameterError, MissingParameterError } = require('../exceptions');
 
 const BaseService = require('./_base.service');
 const TacticsRepository = require('../repository/tactics-repository');
