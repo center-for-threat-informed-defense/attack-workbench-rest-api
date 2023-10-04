@@ -30,3 +30,5 @@ class SoftwareService extends BaseService {
     }
 
 }
+
+module.exports = new SoftwareService();

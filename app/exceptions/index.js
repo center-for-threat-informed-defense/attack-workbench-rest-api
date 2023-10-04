@@ -81,6 +81,18 @@ class NotImplementedError extends CustomError {
     }
 }
 
+class MissingPropertyError extends CustomError {
+    constructor(propertyName, options) {
+        super(`Unable to create software, missing property ${propertyName}`, options);
+    }
+}
+
+class PropertyNotAllowedError extends CustomError {
+    constructor(propertyName, options) {
+        super(`Unable to create software, property ${propertyName} is not allowed`, options);
+    }
+}
+
 module.exports = {
 
     //** General errors */
@@ -101,4 +113,6 @@ module.exports = {
     IdentityServiceError,
     TechniquesServiceError,
     TacticsServiceError,
+    MissingPropertyError,
+    PropertyNotAllowedError,
 };
