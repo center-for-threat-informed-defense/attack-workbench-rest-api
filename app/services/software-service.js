@@ -26,7 +26,6 @@ const SoftwareRepository = require('../repository/software-repository');
 class SoftwareService extends BaseService {
     constructor () {
         super(SoftwareRepository, Software);
-        this.retrieveAllTechniques = null;
     }
 
 }
