@@ -9,16 +9,7 @@ const config = require('../config/config');
 const regexValidator = require('../lib/regex');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    missingProperty: 'Missing required property',
-    propertyNotAllowed: 'Includes property that is not allowed',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
-exports.errors = errors;
+const { MissingParameterError, MissingPropertyError, PropertyNotAllowedError, BadlyFormattedParameterError, DuplicateIdError, NotFoundError, InvalidQueryStringParameterError } = require('../exceptions');
 
 const BaseService = require('./_base.service');
 const SoftwareRepository = require('../repository/software-repository');
