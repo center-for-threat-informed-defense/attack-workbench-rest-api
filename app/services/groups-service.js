@@ -9,15 +9,7 @@ const config = require('../config/config');
 const regexValidator = require('../lib/regex');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter',
-    invalidType: 'Invalid stix.type'
-};
-exports.errors = errors;
+const { DuplicateIdError, BadlyFormattedParameterError, InvalidTypeError, InvalidQueryStringParameterError } = require('../exceptions');
 
 const BaseService = require('./_base.service');
 const groupsRepository = require('../repository/groups-repository');
