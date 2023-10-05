@@ -200,7 +200,7 @@ describe('Groups API', function () {
         group1.stix.modified = timestamp;
         group1.stix.description = 'This is an updated group. Blue.'
         const body = group1;
-        request(app)
+        const res = await request(app)
             .put('/api/groups/' + group1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')

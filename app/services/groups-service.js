@@ -19,10 +19,13 @@ const errors = {
 };
 exports.errors = errors;
 
+const BaseService = require('./_base.service');
+const groupsRepository = require('../repository/groups-repository');
+
 class GroupsService extends BaseService {
 
     constructor() {
-        super(matrixRepository, Group);
+        super(groupsRepository, Group);
 
     }
 }
