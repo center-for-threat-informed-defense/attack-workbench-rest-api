@@ -2,6 +2,7 @@
 
 const groupsService = require('../services/groups-service');
 const logger = require('../lib/logger');
+const { DuplicateIdError, BadlyFormattedParameterError, InvalidTypeError, InvalidQueryStringParameterError } = require('../exceptions');
 
 exports.retrieveAll = async function(req, res) {
     const options = {
@@ -48,11 +49,11 @@ exports.retrieveById = async function(req, res) {
         }
 
     } catch (err) {
-        if (err.message === groupsService.errors.badlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
         }
-        else if (err.message === groupsService.errors.invalidQueryStringParameter) {
+        else if (err instanceof InvalidQueryStringParameterError) {
             logger.warn('Invalid query string: versions=' + req.query.versions);
             return res.status(400).send('Query string parameter versions is invalid.');
         }
@@ -67,7 +68,7 @@ exports.retrieveById = async function(req, res) {
 exports.retrieveVersionById = async function(req, res) {
    
     try {
-        const group =  groupsService.retrieveVersionById(req.params.stixId, req.params.modified);
+        const group =  await groupsService.retrieveVersionById(req.params.stixId, req.params.modified);
         if (!group) {
             return res.status(404).send('Group not found.');
         }
@@ -76,7 +77,7 @@ exports.retrieveVersionById = async function(req, res) {
         return res.status(200).send(group);
     }
     } catch (err) {
-        if (err.message === groupsService.errors.badlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
         }
@@ -104,11 +105,11 @@ exports.create = async function(req, res) {
         return res.status(201).send(group);
     }
     catch(err) {
-        if (err.message === groupsService.errors.duplicateId) {
+        if (err instanceof DuplicateIdError) {
             logger.warn('Duplicate stix.id and stix.modified');
             return res.status(409).send('Unable to create group. Duplicate stix.id and stix.modified properties.');
         }
-        else if (err.message === groupsService.errors.invalidType) {
+        else if (err instanceof InvalidTypeError) {
             logger.warn('Invalid stix.type');
             return res.status(400).send('Unable to create group. stix.type must be intrusion-set');
         }
