@@ -206,38 +206,23 @@ describe('Groups API', function () {
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the updated group
-                    const group = res.body;
-                    expect(group).toBeDefined();
-                    expect(group.stix.id).toBe(group1.stix.id);
-                    expect(group.stix.modified).toBe(group1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the updated group
+        const group = res.body;
+        expect(group).toBeDefined();
+        expect(group.stix.id).toBe(group1.stix.id);
+        expect(group.stix.modified).toBe(group1.stix.modified);
     });
 
     it('POST /api/groups does not create a group with the same id and modified date', async function () {
         const body = group1;
-        request(app)
+        await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(409)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(409);
     });
 
     let group2;
@@ -269,104 +254,78 @@ describe('Groups API', function () {
     });
 
     it('GET /api/groups returns the latest added group', async function () {
-        request(app)
+        const res = await request(app)
             .get('/api/groups/' + group2.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one group in an array
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(1);
-                    const group = groups[0];
-                    expect(group.stix.id).toBe(group2.stix.id);
-                    expect(group.stix.modified).toBe(group2.stix.modified);
+            .expect('Content-Type', /json/);
 
-                    // object_marking_refs should contain the two default marking definition
-                    expect(group.stix.object_marking_refs).toBeDefined();
-                    expect(Array.isArray(group.stix.object_marking_refs)).toBe(true);
-                    expect(group.stix.object_marking_refs.length).toBe(2);
-                    expect(group.stix.object_marking_refs.includes(defaultMarkingDefinition1.stix.id)).toBe(true);
-                    expect(group.stix.object_marking_refs.includes(defaultMarkingDefinition2.stix.id)).toBe(true);
+        // We expect to get one group in an array
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(1);
+        const group = groups[0];
+        expect(group.stix.id).toBe(group2.stix.id);
+        expect(group.stix.modified).toBe(group2.stix.modified);
 
-                    done();
-                }
-            });
+        // object_marking_refs should contain the two default marking definition
+        expect(group.stix.object_marking_refs).toBeDefined();
+        expect(Array.isArray(group.stix.object_marking_refs)).toBe(true);
+        expect(group.stix.object_marking_refs.length).toBe(2);
+        expect(group.stix.object_marking_refs.includes(defaultMarkingDefinition1.stix.id)).toBe(true);
+        expect(group.stix.object_marking_refs.includes(defaultMarkingDefinition2.stix.id)).toBe(true);
     });
 
     it('GET /api/groups returns all added groups', async function () {
-        request(app)
+        const res = await request(app)
             .get('/api/groups/' + group1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get two groups in an array
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(2);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get two groups in an array
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(2);
+
     });
 
     it('GET /api/groups/:id/modified/:modified returns the first added group', async function () {
-        request(app)
+        const res = await request(app)
             .get('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one group
-                    const group = res.body;
-                    expect(group).toBeDefined();
-                    expect(group.stix).toBeDefined();
-                    expect(group.stix.id).toBe(group1.stix.id);
-                    expect(group.stix.modified).toBe(group1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one group
+        const group = res.body;
+        expect(group).toBeDefined();
+        expect(group.stix).toBeDefined();
+        expect(group.stix.id).toBe(group1.stix.id);
+        expect(group.stix.modified).toBe(group1.stix.modified);
     });
 
     it('GET /api/groups/:id/modified/:modified returns the second added group', async function () {
-        request(app)
+        const res = await request(app)
             .get('/api/groups/' + group2.stix.id + '/modified/' + group2.stix.modified)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one group
-                    const group = res.body;
-                    expect(group).toBeDefined();
-                    expect(group.stix).toBeDefined();
-                    expect(group.stix.id).toBe(group2.stix.id);
-                    expect(group.stix.modified).toBe(group2.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+
+        // We expect to get one group
+        const group = res.body;
+        expect(group).toBeDefined();
+        expect(group.stix).toBeDefined();
+        expect(group.stix.id).toBe(group2.stix.id);
+        expect(group.stix.modified).toBe(group2.stix.modified);
+
     });
 
     let group3;
@@ -382,24 +341,18 @@ describe('Groups API', function () {
         group.stix.name = 'Mr. Brown';
         group.stix.description = 'This is a new group. Red.';
         const body = group;
-        request(app)
+        const res = await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created group
-                    group3 = res.body;
-                    expect(group3).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created group
+        group3 = res.body;
+        expect(group3).toBeDefined();
+
     });
     
     let group4;
@@ -427,165 +380,109 @@ describe('Groups API', function () {
     });
     
     it('GET /api/groups uses the search parameter to return the latest version of the group', async function () {
-        request(app)
+        const res = await request(app)
             .get('/api/groups?search=yellow')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one group in an array
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    // We expect it to be the latest version of the group
-                    const group = groups[0];
-                    expect(group).toBeDefined();
-                    expect(group.stix).toBeDefined();
-                    expect(group.stix.id).toBe(group4.stix.id);
-                    expect(group.stix.modified).toBe(group4.stix.modified);
-                    done();
-                }
-            });
+        // We expect to get one group in an array
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(1);
+
+        // We expect it to be the latest version of the group
+        const group = groups[0];
+        expect(group).toBeDefined();
+        expect(group.stix).toBeDefined();
+        expect(group.stix.id).toBe(group4.stix.id);
+        expect(group.stix.modified).toBe(group4.stix.modified);
+
     });
 
     it('GET /api/groups should not get the first version of the group when using the search parameter', async function () {
-        request(app)
+        await request(app)
             .get('/api/groups?search=blue')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get zero groups in an array
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get zero groups in an array
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(0);
+
     });
 
     it('GET /api/groups uses the search parameter to return the group using the name property', async function () {
-        request(app)
+        await request(app)
             .get('/api/groups?search=brown')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one group in an array
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    // We expect it to be the third group
-                    const group = groups[0];
-                    expect(group).toBeDefined();
-                    expect(group.stix).toBeDefined();
-                    expect(group.stix.id).toBe(group3.stix.id);
-                    expect(group.stix.modified).toBe(group3.stix.modified);
-                    done();
-                }
-            });
+        // We expect to get one group in an array
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(1);
+
+        // We expect it to be the third group
+        const group = groups[0];
+        expect(group).toBeDefined();
+        expect(group.stix).toBeDefined();
+        expect(group.stix.id).toBe(group3.stix.id);
+        expect(group.stix.modified).toBe(group3.stix.modified);
+
     });
 
     it('DELETE /api/groups/:id should not delete a group when the id cannot be found', async function () {
-        request(app)
+        await request(app)
             .delete('/api/groups/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(404);
     });
 
     it('DELETE /api/groups/:id/modified/:modified deletes a group', async function () {
-        request(app)
+        const res = await request(app)
             .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
     });
         
     it('DELETE /api/groups/:id should delete all the groups with the same stix id', async function () {
-        request(app)
+        const res = await request(app)
             .delete('/api/groups/' + group2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
     });
 
     it('DELETE /api/groups/:id/modified/:modified should delete the third group', async function () {
-        request(app)
+        const res = await request(app)
             .delete('/api/groups/' + group3.stix.id + '/modified/' + group3.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
     });
 
     it('GET /api/groups returns an empty array of groups', async function () {
-        request(app)
+        const res = await request(app)
             .get('/api/groups')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(0);
+
     });
 
     after(async function() {
