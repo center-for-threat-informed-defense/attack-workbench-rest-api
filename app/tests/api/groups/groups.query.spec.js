@@ -176,240 +176,174 @@ describe('Groups API Queries', function () {
         await loadGroups(groups);
     });
 
-    it('GET /api/groups should return 3 of the preloaded groups', function (done) {
-        request(app)
+    it('GET /api/groups should return 3 of the preloaded groups', async function () {
+        const res = await request(app)
             .get('/api/groups')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get both of the non-deprecated, non-revoked groups
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get both of the non-deprecated, non-revoked groups
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(3);
+
     });
 
-    it('GET /api/groups should return groups with x_mitre_deprecated not set to true (false or undefined)', function (done) {
-        request(app)
+    it('GET /api/groups should return groups with x_mitre_deprecated not set to true (false or undefined)', async function () {
+        const res = await request(app)
             .get('/api/groups?includeDeprecated=false')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get both of the non-deprecated, non-revoked groups
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get both of the non-deprecated, non-revoked groups
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(3);
+
     });
 
-    it('GET /api/groups should return all non-revoked groups', function (done) {
-        request(app)
+    it('GET /api/groups should return all non-revoked groups', async function () {
+        const res = await request(app)
             .get('/api/groups?includeDeprecated=true')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get all the non-revoked groups
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(4);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+            
+        // We expect to get all the non-revoked groups
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(4);
+
     });
 
-    it('GET /api/groups should return groups with revoked not set to true (false or undefined)', function (done) {
-        request(app)
+    it('GET /api/groups should return groups with revoked not set to true (false or undefined)', async function () {
+        const res = await request(app)
             .get('/api/groups?includeRevoked=false')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get all the non-revoked groups
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get all the non-revoked groups
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(3);
+
     });
 
-    it('GET /api/groups should return all non-deprecated groups', function (done) {
-        request(app)
+    it('GET /api/groups should return all non-deprecated groups', async function () {
+        const res = await request(app)
             .get('/api/groups?includeRevoked=true')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get all the non-deprecated groups
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(4);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get all the non-deprecated groups
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(4);
+
     });
 
-    it('GET /api/groups should return groups with workflow.state set to work-in-progress', function (done) {
-        request(app)
+    it('GET /api/groups should return groups with workflow.state set to work-in-progress', async function () {
+        const res = await request(app)
             .get('/api/groups?state=work-in-progress')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the group with the correct workflow.state
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    const group = groups[0];
-                    expect(group.workspace.workflow.state).toEqual('work-in-progress');
+        // We expect to get the group with the correct workflow.state
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(1);
 
-                    done();
-                }
-            });
+        const group = groups[0];
+        expect(group.workspace.workflow.state).toEqual('work-in-progress');
+
     });
 
-    it('GET /api/groups should return groups with the ATT&CK ID G0001', function (done) {
-        request(app)
+    it('GET /api/groups should return groups with the ATT&CK ID G0001', async function () {
+        const res = await request(app)
             .get('/api/groups?search=G0001')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the latest group with the correct ATT&CK ID
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    const group = groups[0];
-                    expect(group.workspace.attack_id).toEqual('G0001');
+        // We expect to get the latest group with the correct ATT&CK ID
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(1);
 
-                    done();
-                }
-            });
+        const group = groups[0];
+        expect(group.workspace.attack_id).toEqual('G0001');
+
     });
 
-    it('GET /api/groups should return groups created by userAccount1', function (done) {
-        request(app)
+    it('GET /api/groups should return groups created by userAccount1', async function () {
+        const res = await request(app)
             .get(`/api/groups?lastUpdatedBy=${ userAccount1.id }`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the (non-deprecated, non-revoked) groups created by userAccount1
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(2);
+            .expect('Content-Type', /json/);
 
-                    expect(groups[0].workspace.workflow.created_by_user_account).toEqual(userAccount1.id);
-                    expect(groups[1].workspace.workflow.created_by_user_account).toEqual(userAccount1.id);
+        // We expect to get the (non-deprecated, non-revoked) groups created by userAccount1
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(2);
 
-                    done();
-                }
-            });
+        expect(groups[0].workspace.workflow.created_by_user_account).toEqual(userAccount1.id);
+        expect(groups[1].workspace.workflow.created_by_user_account).toEqual(userAccount1.id);
+
     });
 
-    it('GET /api/groups should return groups created by userAccount2', function (done) {
-        request(app)
+    it('GET /api/groups should return groups created by userAccount2', async function () {
+        const res = await request(app)
             .get(`/api/groups?lastUpdatedBy=${ userAccount2.id }`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the (non-deprecated, non-revoked) group created by userAccount2
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    expect(groups[0].workspace.workflow.created_by_user_account).toEqual(userAccount2.id);
+        // We expect to get the (non-deprecated, non-revoked) group created by userAccount2
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(1);
 
-                    done();
-                }
-            });
+        expect(groups[0].workspace.workflow.created_by_user_account).toEqual(userAccount2.id);
+
     });
 
-    it('GET /api/groups should return groups created by both userAccount1 and userAccount2', function (done) {
-        request(app)
+    it('GET /api/groups should return groups created by both userAccount1 and userAccount2', async function () {
+        const res = await request(app)
             .get(`/api/groups?lastUpdatedBy=${ userAccount1.id }&lastUpdatedBy=${ userAccount2.id }`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the (non-deprecated, non-revoked) groups created by both user accounts
-                    const groups = res.body;
-                    expect(groups).toBeDefined();
-                    expect(Array.isArray(groups)).toBe(true);
-                    expect(groups.length).toBe(3);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the (non-deprecated, non-revoked) groups created by both user accounts
+        const groups = res.body;
+        expect(groups).toBeDefined();
+        expect(Array.isArray(groups)).toBe(true);
+        expect(groups.length).toBe(3);
     });
 
     after(async function() {
