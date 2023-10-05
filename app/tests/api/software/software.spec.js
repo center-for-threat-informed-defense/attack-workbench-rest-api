@@ -95,7 +95,7 @@ describe('Software API', function () {
 
     it('POST /api/software does not create an empty software', async function () {
         const body = { };
-        const res = await request(app)
+        await request(app)
             .post('/api/software')
             .send(body)
             .set('Accept', 'application/json')
@@ -108,7 +108,7 @@ describe('Software API', function () {
         invalidMissingName.stix.created = timestamp;
         invalidMissingName.stix.modified = timestamp;
         const body = invalidMissingName;
-        const res = await request(app)
+        await request(app)
             .post('/api/software')
             .send(body)
             .set('Accept', 'application/json')
@@ -121,7 +121,7 @@ describe('Software API', function () {
         invalidToolIncludesIsFamily.stix.created = timestamp;
         invalidToolIncludesIsFamily.stix.modified = timestamp;
         const body = invalidToolIncludesIsFamily;
-        const res = await request(app)
+        await request(app)
             .post('/api/software')
             .send(body)
             .set('Accept', 'application/json')
@@ -170,7 +170,7 @@ describe('Software API', function () {
     });
 
     it('GET /api/software/:id should not return a software when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .get('/api/software/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -234,7 +234,7 @@ describe('Software API', function () {
 
     it('POST /api/software does not create a software with the same id and modified date', async function () {
         const body = software1;
-        const res = await request(app)
+        await request(app)
             .post('/api/software')
             .send(body)
             .set('Accept', 'application/json')
@@ -357,21 +357,21 @@ describe('Software API', function () {
     });
 
     it('DELETE /api/software/:id should not delete a software when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/software/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404);
     });
     
     it('DELETE /api/software/:id/modified/:modified deletes a software', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
     });
 
     it('DELETE /api/software/:id should delete all the software with the same stix id', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/software/' + software2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
