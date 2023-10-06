@@ -143,7 +143,7 @@ exports.updateFull = async function(req, res) {
 exports.deleteVersionById = async function(req, res) {
 
     try {
-        const group = groupsService.deleteVersionById(req.params.stixId, req.params.modified);
+        const group = await groupsService.deleteVersionById(req.params.stixId, req.params.modified);
         if (!group) {
             return res.status(404).send('Group not found.');
         } else {
@@ -160,7 +160,7 @@ exports.deleteVersionById = async function(req, res) {
 exports.deleteById = async function(req, res) {
     
     try {
-        const groups = groupsService.deleteById(req.params.stixId);
+        const groups = await groupsService.deleteById(req.params.stixId);
         if (groups.deletedCount === 0) {
             return res.status(404).send('Group not found.');
         }
