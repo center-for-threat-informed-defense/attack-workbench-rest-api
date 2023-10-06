@@ -217,7 +217,7 @@ describe('Groups API', function () {
 
     it('POST /api/groups does not create a group with the same id and modified date', async function () {
         const body = group1;
-        await request(app)
+        const res = await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
