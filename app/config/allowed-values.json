@@ -159,11 +159,9 @@
               "macOS",
               "Windows",
               "Network",
-              "AWS",
-              "GCP",
-              "Azure",
               "Office 365",
               "Azure AD",
+              "IaaS",
               "SaaS",
               "Containers"
             ]
