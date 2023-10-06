@@ -116,53 +116,52 @@ exports.updateFull = async function(req, res) {
     const dataComponentData = req.body;
 
     // Create the data component
-    dataComponentsService.updateFull(req.params.stixId, req.params.modified, dataComponentData, async function(err, dataComponent) {
-        if (err) {
-            logger.error("Failed with error: " + err);
-            return res.status(500).send("Unable to update data component. Server error.");
+    
+    try {
+        const dataComponent = await dataComponentsService.updateFull(req.params.stixId, req.params.modified, dataComponentData);
+        if (!dataComponent) {
+            return res.status(404).send('Data component not found.');
+        } else {
+            logger.debug("Success: Updated data component with id " + dataComponent.stix.id);
+            return res.status(200).send(dataComponent);
         }
-        else {
-            if (!dataComponent) {
-                return res.status(404).send('Data component not found.');
-            } else {
-                logger.debug("Success: Updated data component with id " + dataComponent.stix.id);
-                return res.status(200).send(dataComponent);
-            }
-        }
-    });
+    } catch (err) {
+        logger.error("Failed with error: " + err);
+        return res.status(500).send("Unable to update data component. Server error.");
+    }
+
 };
 
 exports.deleteVersionById = async function(req, res) {
-    dataComponentsService.deleteVersionById(req.params.stixId, req.params.modified, async function (err, dataComponent) {
-        if (err) {
-            logger.error('Delete data component failed. ' + err);
-            return res.status(500).send('Unable to delete data component. Server error.');
+
+    try {
+        const dataComponent = await dataComponentsService.deleteVersionById(req.params.stixId, req.params.modified);
+        if (!dataComponent) {
+            return res.status(404).send('Data component not found.');
+        } else {
+            logger.debug("Success: Deleted data component with id " + dataComponent.stix.id);
+            return res.status(204).end();
         }
-        else {
-            if (!dataComponent) {
-                return res.status(404).send('Data component not found.');
-            } else {
-                logger.debug("Success: Deleted data component with id " + dataComponent.stix.id);
-                return res.status(204).end();
-            }
-        }
-    });
+    } catch (err) {
+        logger.error('Delete data component failed. ' + err);
+        return res.status(500).send('Unable to delete data component. Server error.');
+    }
+
 };
 
 exports.deleteById = async function(req, res) {
-    dataComponentsService.deleteById(req.params.stixId, async function (err, dataComponents) {
-        if (err) {
-            logger.error('Delete data component failed. ' + err);
-            return res.status(500).send('Unable to delete data component. Server error.');
+    
+    try {
+        const dataComponents = await dataComponentsService.deleteById(req.params.stixId);
+        if (dataComponents.deletedCount === 0) {
+            return res.status(404).send('Data Component not found.');
         }
         else {
-            if (dataComponents.deletedCount === 0) {
-                return res.status(404).send('Data Component not found.');
-            }
-            else {
-                logger.debug(`Success: Deleted data component with id ${ req.params.stixId }`);
-                return res.status(204).end();
-            }
+            logger.debug(`Success: Deleted data component with id ${ req.params.stixId }`);
+            return res.status(204).end();
         }
-    });
+    } catch (err) {
+        logger.error('Delete data component failed. ' + err);
+        return res.status(500).send('Unable to delete data component. Server error.');
+    }
 };
