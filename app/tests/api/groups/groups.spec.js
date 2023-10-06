@@ -403,7 +403,7 @@ describe('Groups API', function () {
     });
 
     it('GET /api/groups should not get the first version of the group when using the search parameter', async function () {
-        await request(app)
+        const res = await request(app)
             .get('/api/groups?search=blue')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -419,7 +419,7 @@ describe('Groups API', function () {
     });
 
     it('GET /api/groups uses the search parameter to return the group using the name property', async function () {
-        await request(app)
+        const res = await request(app)
             .get('/api/groups?search=brown')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
