@@ -65,7 +65,7 @@ exports.retrieveById = async function(req, res) {
 
 exports.retrieveVersionById = async function(req, res) {
         try {
-            const dataComponent = dataComponentsService.retrieveVersionById(req.params.stixId, req.params.modified);
+            const dataComponent = await dataComponentsService.retrieveVersionById(req.params.stixId, req.params.modified);
             if (!dataComponent) {
                 return res.status(404).send('Data component not found.');
             }
@@ -88,13 +88,13 @@ exports.retrieveVersionById = async function(req, res) {
 exports.create = async function(req, res) {
     // Get the data from the request
     const dataComponentData = req.body;
+    const options = {
+        import: false,
+        userAccountId: req.user?.userAccountId
+    };
 
     // Create the data component
     try {
-        const options = {
-            import: false,
-            userAccountId: req.user?.userAccountId
-        };
         const dataComponent = await dataComponentsService.create(dataComponentData, options);
         logger.debug("Success: Created data component with id " + dataComponent.stix.id);
         return res.status(201).send(dataComponent);
