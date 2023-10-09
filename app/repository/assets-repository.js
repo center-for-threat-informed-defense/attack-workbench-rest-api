@@ -7,7 +7,6 @@ class AssetsRepository extends BaseRepository {
 
     constructor() {
         super(Asset);
-        // this.model = Matrix;
     }
 }
 

@@ -59,7 +59,7 @@ exports.retrieveById = async function(req, res) {
             return res.status(400).send('Query string parameter versions is invalid.');
         } else {
             logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get matrices. Server error.');
+            return res.status(500).send('Unable to get assets. Server error.');
         }
 
     }
