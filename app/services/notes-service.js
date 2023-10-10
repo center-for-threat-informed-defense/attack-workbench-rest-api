@@ -25,7 +25,7 @@ const BaseService = require('./_base.service');
 class NoteService extends BaseService {
 
     constructor() {
-        super(NoteRepository, Matrix);
+        super(NoteRepository, Note);
     }
 
     //  async create(data, options) {
