@@ -2,8 +2,9 @@
 
 const notesService = require('../services/notes-service');
 const logger = require('../lib/logger');
+const { DuplicateIdError, InvalidQueryStringParameterError, BadlyFormattedParameterError } = require('../exceptions');
 
-exports.retrieveAll = function(req, res) {
+exports.retrieveAll = async function(req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
@@ -15,77 +16,73 @@ exports.retrieveAll = function(req, res) {
         lastUpdatedBy: req.query.lastUpdatedBy,
     }
 
-    notesService.retrieveAll(options, function(err, results) {
-        if (err) {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get notes. Server error.');
+    try {
+        const results = await notesService.retrieveAll(options); 
+        if (options.includePagination) {
+            logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total note(s)`);
         }
         else {
-            if (options.includePagination) {
-                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total note(s)`);
-            }
-            else {
-                logger.debug(`Success: Retrieved ${ results.length } note(s)`);
-            }
-            return res.status(200).send(results);
+            logger.debug(`Success: Retrieved ${ results.length } note(s)`);
         }
-    });
+        return res.status(200).send(results);
+    } catch (err) {
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get notes. Server error.');
+    }
 };
 
-exports.retrieveById = function(req, res) {
+exports.retrieveById = async function(req, res) {
     const options = {
         versions: req.query.versions || 'latest'
     }
 
-    notesService.retrieveById(req.params.stixId, options, function (err, notes) {
-        if (err) {
-            if (err.message === notesService.errors.badlyFormattedParameter) {
-                logger.warn('Badly formatted stix id: ' + req.params.stixId);
-                return res.status(400).send('Stix id is badly formatted.');
-            }
-            else if (err.message === notesService.errors.invalidQueryStringParameter) {
-                logger.warn('Invalid query string: versions=' + req.query.versions);
-                return res.status(400).send('Query string parameter versions is invalid.');
-            }
-            else {
-                logger.error('Failed with error: ' + err);
-                return res.status(500).send('Unable to get notes. Server error.');
-            }
+    try {
+        const notes = await notesService.retrieveById(req.params.stixId, options);
+        if (notes.length === 0) {
+            return res.status(404).send('Note not found.');
         }
         else {
-            if (notes.length === 0) {
-                return res.status(404).send('Note not found.');
-            }
-            else {
-                logger.debug(`Success: Retrieved ${ notes.length } note(s) with id ${ req.params.stixId }`);
-                return res.status(200).send(notes);
-            }
+            logger.debug(`Success: Retrieved ${ notes.length } note(s) with id ${ req.params.stixId }`);
+            return res.status(200).send(notes);
         }
-    });
+    } catch (err) {
+        if (err instanceof BadlyFormattedParameterError) {
+            logger.warn('Badly formatted stix id: ' + req.params.stixId);
+            return res.status(400).send('Stix id is badly formatted.');
+        }
+        else if (err instanceof InvalidQueryStringParameterError) {
+            logger.warn('Invalid query string: versions=' + req.query.versions);
+            return res.status(400).send('Query string parameter versions is invalid.');
+        }
+        else {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to get notes. Server error.');
+        }
+    }
 };
 
-exports.retrieveVersionById = function(req, res) {
-    notesService.retrieveVersionById(req.params.stixId, req.params.modified, function (err, note) {
-        if (err) {
-            if (err.message === notesService.errors.badlyFormattedParameter) {
-                logger.warn('Badly formatted stix id: ' + req.params.stixId);
-                return res.status(400).send('Stix id is badly formatted.');
-            }
-            else {
-                logger.error('Failed with error: ' + err);
-                return res.status(500).send('Unable to get note. Server error.');
-            }
+exports.retrieveVersionById = async function(req, res) {
+
+    try {
+        const note = await notesService.retrieveVersionById(req.params.stixId, req.params.modified);
+        if (!note) {
+            return res.status(404).send('Note not found.');
         }
         else {
-            if (!note) {
-                return res.status(404).send('Note not found.');
-            }
-            else {
-                logger.debug(`Success: Retrieved note with id ${ note.id }`);
-                return res.status(200).send(note);
-            }
+            logger.debug(`Success: Retrieved note with id ${ note.id }`);
+            return res.status(200).send(note);
         }
-    });
+    } catch (err) {
+        if (err instanceof BadlyFormattedParameterError) {
+            logger.warn('Badly formatted stix id: ' + req.params.stixId);
+            return res.status(400).send('Stix id is badly formatted.');
+        }
+        else {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to get note. Server error.');
+        }
+    }
+
 };
 
 exports.create = async function(req, res) {
@@ -103,7 +100,7 @@ exports.create = async function(req, res) {
         return res.status(201).send(note);
     }
     catch(err) {
-        if (err.message === notesService.errors.duplicateId) {
+        if (err instanceof DuplicateIdError) {
             logger.warn("Duplicate stix.id and stix.modified");
             return res.status(409).send('Unable to create note. Duplicate stix.id and stix.modified properties.');
         }
@@ -114,59 +111,59 @@ exports.create = async function(req, res) {
     }
 };
 
-exports.updateVersion = function(req, res) {
+exports.updateVersion = async function(req, res) {
     // Get the data from the request
     const noteData = req.body;
 
     // Create the note
-    notesService.updateVersion(req.params.stixId, req.params.modified, noteData, function(err, note) {
-        if (err) {
-            logger.error("Failed with error: " + err);
-            return res.status(500).send("Unable to update note. Server error.");
+
+    try {
+        const note = await notesService.updateVersion(req.params.stixId, req.params.modified, noteData);
+        if (!note) {
+            return res.status(404).send('Note not found.');
         }
         else {
-            if (!note) {
-                return res.status(404).send('Note not found.');
-            }
-            else {
-                logger.debug("Success: Updated note with id " + note.stix.id);
-                return res.status(200).send(note);
-            }
+            logger.debug("Success: Updated note with id " + note.stix.id);
+            return res.status(200).send(note);
         }
-    });
+    } catch (err) {
+        logger.error("Failed with error: " + err);
+        return res.status(500).send("Unable to update note. Server error.");
+    }
+
 };
 
-exports.deleteById = function(req, res) {
-    notesService.deleteById(req.params.stixId, function (err, results) {
-        if (err) {
-            logger.error('Delete note failed. ' + err);
-            return res.status(500).send('Unable to delete note. Server error.');
+exports.deleteById = async function(req, res) {
+    
+    try {
+        const results = await notesService.deleteById(req.params.stixId);
+        if (results.deletedCount === 0) {
+            return res.status(404).send('Note not found.');
         }
         else {
-            if (results.deletedCount === 0) {
-                return res.status(404).send('Note not found.');
-            }
-            else {
-                logger.debug(`Success: Deleted note with id ${ req.params.stixId }`);
-                return res.status(204).end();
-            }
+            logger.debug(`Success: Deleted note with id ${ req.params.stixId }`);
+            return res.status(204).end();
         }
-    });
+    } catch (err) {
+        logger.error('Delete note failed. ' + err);
+        return res.status(500).send('Unable to delete note. Server error.');
+    }
+
 };
 
-exports.deleteVersionById = function(req, res) {
-    notesService.deleteVersionById(req.params.stixId, req.params.modified, function (err, note) {
-        if (err) {
-            logger.error('Delete note version failed. ' + err);
-            return res.status(500).send('Unable to delete note. Server error.');
+exports.deleteVersionById = async function(req, res) {
+
+    try {
+        const note = notesService.deleteVersionById(req.params.stixId, req.params.modified);
+        if (!note) {
+            return res.status(404).send('Note not found.');
+        } else {
+            logger.debug(`Success: Deleted note with id ${ note.stix.id} and modified ${ note.stix.modified }`);
+            return res.status(204).end();
         }
-        else {
-            if (!note) {
-                return res.status(404).send('Note not found.');
-            } else {
-                logger.debug(`Success: Deleted note with id ${ note.stix.id} and modified ${ note.stix.modified }`);
-                return res.status(204).end();
-            }
-        }
-    });
+    } catch (err) {
+        logger.error('Delete note version failed. ' + err);
+        return res.status(500).send('Unable to delete note. Server error.');
+    }
+
 };
