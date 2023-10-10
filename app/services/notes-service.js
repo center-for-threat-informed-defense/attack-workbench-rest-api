@@ -93,7 +93,7 @@ class NoteService extends BaseService {
     //     }
     // };
 
-    exports.updateVersion = function(stixId, stixModified, data, callback) {
+    async updateVersion(stixId, stixModified, data, callback) {
     if (!stixId) {
         const error = new Error(errors.missingParameter);
         error.parameterName = 'stixId';
