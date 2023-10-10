@@ -88,13 +88,14 @@ exports.retrieveVersionById = async function(req, res) {
 exports.create = async function(req, res) {
     // Get the data from the request
     const noteData = req.body;
+    const options = {
+        import: false,
+        userAccountId: req.user?.userAccountId
+    };
 
     // Create the note
     try {
-        const options = {
-            import: false,
-            userAccountId: req.user?.userAccountId
-        };
+
         const note = await notesService.create(noteData, options);
         logger.debug("Success: Created note with id " + note.stix.id);
         return res.status(201).send(note);
@@ -154,7 +155,7 @@ exports.deleteById = async function(req, res) {
 exports.deleteVersionById = async function(req, res) {
 
     try {
-        const note = notesService.deleteVersionById(req.params.stixId, req.params.modified);
+        const note = await notesService.deleteVersionById(req.params.stixId, req.params.modified);
         if (!note) {
             return res.status(404).send('Note not found.');
         } else {
