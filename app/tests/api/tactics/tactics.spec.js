@@ -67,7 +67,7 @@ describe('Tactics API', function () {
 
     it('POST /api/tactics does not create an empty tactic', async function () {
         const body = { };
-        const res = await request(app) 
+        await request(app) 
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
@@ -118,7 +118,7 @@ describe('Tactics API', function () {
     });
 
     it('GET /api/tactics/:id should not return a tactic when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .get('/api/tactics/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -180,7 +180,7 @@ describe('Tactics API', function () {
     it('POST /api/tactics does not create a tactic with the same id and modified date', async function () {
         const body = tactic1;
         // We expect to get the created tactic
-        const res = await request(app)
+        await request(app)
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
@@ -344,21 +344,21 @@ describe('Tactics API', function () {
     });
 
     it('DELETE /api/tactics/:id should not delete a tactic when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/tactics/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404);
     });
 
     it('DELETE /api/tactics/:id/modified/:modified deletes a tactic', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
     });
         
     it('DELETE /api/tactics/:id should delete all the tactics with the same stix id', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/tactics/' + tactic2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
