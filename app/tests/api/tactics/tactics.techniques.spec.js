@@ -48,109 +48,72 @@ describe('Tactics with Techniques API', function () {
 
     let tactic1;
     let tactic2;
-    it('GET /api/tactics should return the preloaded tactics', function (done) {
-        request(app)
+    it('GET /api/tactics should return the preloaded tactics', async function () {
+        const res = await request(app)
             .get('/api/tactics')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(6);
+            .expect('Content-Type', /json/);
 
-                    tactic1 = tactics.find(t => t.stix.x_mitre_shortname === 'enlil');
-                    tactic2 = tactics.find(t => t.stix.x_mitre_shortname === 'nabu');
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(6);
 
-                    done();
-                }
-            });
+        tactic1 = tactics.find(t => t.stix.x_mitre_shortname === 'enlil');
+        tactic2 = tactics.find(t => t.stix.x_mitre_shortname === 'nabu');
     });
 
-    it('GET /api/techniques should return the preloaded techniques', function (done) {
-        request(app)
+    it('GET /api/techniques should return the preloaded techniques', async function () {
+        const res = await request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(5);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/); 
+
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(5);
     });
 
-    it('GET /api/tactics/:id/modified/:modified/techniques should not return the techniques when the tactic cannot be found', function (done) {
+    it('GET /api/tactics/:id/modified/:modified/techniques should not return the techniques when the tactic cannot be found', async function () {
         request(app)
             .get(`/api/tactics/not-an-id/modified/2022-01-01T00:00:00.000Z/techniques`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(404);
     });
 
-    it('GET /api/tactics/:id/modified/:modified/techniques should return the techniques for tactic 1', function (done) {
-        request(app)
+    it('GET /api/tactics/:id/modified/:modified/techniques should return the techniques for tactic 1', async function () {
+        const res = await request(app)
             .get(`/api/tactics/${ tactic1.stix.id }/modified/${ tactic1.stix.modified }/techniques`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(2);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(2);
     });
 
-    it('GET /api/tactics/:id/modified/:modified/techniques should return the first page of techniques for tactic 2', function (done) {
-        request(app)
+    it('GET /api/tactics/:id/modified/:modified/techniques should return the first page of techniques for tactic 2', async function () {
+        const res = await request(app)
             .get(`/api/tactics/${ tactic2.stix.id }/modified/${ tactic2.stix.modified }/techniques?offset=0&limit=2&includePagination=true`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    const results = res.body;
-                    const tactics = results.data;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(2);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        const results = res.body;
+        const tactics = results.data;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(2);
     });
 
     after(async function() {
