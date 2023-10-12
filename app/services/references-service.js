@@ -5,7 +5,7 @@ const Reference = require('../models/reference-model');
 const ReferenceRepository = require('../repository/references-repository');
 
 const BaseService = require('./_base.service');
-const { DuplicateIdError, BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
+const { DuplicateIdError, BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
 class ReferencesService extends BaseService {
 
