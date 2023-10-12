@@ -2,23 +2,25 @@
 
 const Reference = require('../models/reference-model');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
-exports.errors = errors;
+const ReferenceRepository = require('../repository/references-repository');
 
-exports.deleteBySourceName = async function (sourceName) {
-    if (!sourceName) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'sourceName';
-        throw error;
+const BaseService = require('./_base.service');
+
+class ReferencesService extends BaseService {
+
+    constructor() {
+        super(ReferenceRepository, Reference);
     }
 
-    const deletedReference = await Reference.findOneAndRemove({ 'source_name': sourceName });
-    return deletedReference;
-};
+    async deleteBySourceName(sourceName) {
+        if (!sourceName) {
+            throw new MissingParameterError;
+        }
 
+        const deletedReference = await Reference.findOneAndRemove({ 'source_name': sourceName });
+        return deletedReference;
+    };
+
+}
+
+module.exports = new ReferencesService();
