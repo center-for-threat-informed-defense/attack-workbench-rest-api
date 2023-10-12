@@ -39,7 +39,7 @@ class TacticsService extends BaseService {
         // Late binding to avoid circular dependency between modules
         if (!this.retrieveAllTechniques) {
             const techniquesService = require('./techniques-service');
-            retrieveAllTechniques = util.promisify(techniquesService.retrieveAll);
+            this.retrieveAllTechniques = util.promisify(techniquesService.retrieveAll);
         }
 
         // Retrieve the techniques associated with the tactic (the tactic identified by stixId and modified date)
@@ -59,9 +59,10 @@ class TacticsService extends BaseService {
                 return null;
             }
             else {
-                const allTechniques = await retrieveAllTechniques({});
-                const filteredTechniques = allTechniques.filter(techniqueMatchesTactic(tactic));
-                const pagedResults = getPageOfData(filteredTechniques, options);
+                const allTechniques = await this.retrieveAllTechniques({});
+                const result = await this.techniqueMatchesTactic(tactic)
+                const filteredTechniques = allTechniques.filter(result);
+                const pagedResults = this.getPageOfData(filteredTechniques, options);
 
                 if (options.includePagination) {
                     const returnValue = {
