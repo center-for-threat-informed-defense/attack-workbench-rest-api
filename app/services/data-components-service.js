@@ -1,25 +1,11 @@
 'use strict';
 
-const uuid = require('uuid');
 const DataComponent = require('../models/data-component-model');
-const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
-const attackObjectsService = require('./attack-objects-service');
-const config = require('../config/config');
-const regexValidator = require('../lib/regex');
-const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
 const DataComponentsRepository = require('../repository/data-components-repository.js');
 
 const BaseService = require('./_base.service');
-
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
 
 class DataComponentsService extends BaseService {
 
@@ -106,7 +92,7 @@ class DataComponentsService extends BaseService {
         else {
             return results[0].documents;
         }
-    };
+    }
 
 }
 

@@ -74,7 +74,7 @@ describe('Data Components API', function () {
 
     it('POST /api/data-components does not create an empty data component', async function () {
         const body = { };
-        const res = await request(app)
+        await request(app)
             .post('/api/data-components')
             .send(body)
             .set('Accept', 'application/json')
@@ -124,7 +124,7 @@ describe('Data Components API', function () {
     });
 
     it('GET /api/data-components/:id should not return a data component when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .get('/api/data-components/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -184,7 +184,7 @@ describe('Data Components API', function () {
 
     it('POST /api/data-components does not create a data component with the same id and modified date', async function () {
         const body = dataComponent1;
-        const res = await request(app)
+        await request(app)
             .post('/api/data-components')
             .send(body)
             .set('Accept', 'application/json')
@@ -309,7 +309,7 @@ describe('Data Components API', function () {
     });
 
     it('DELETE /api/data-components/:id should not delete a data component when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/data-components/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404);
@@ -317,7 +317,7 @@ describe('Data Components API', function () {
     });
 
     it('DELETE /api/data-components/:id/modified/:modified deletes a data component', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/data-components/' + dataComponent1.stix.id + '/modified/' + dataComponent1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
@@ -325,7 +325,7 @@ describe('Data Components API', function () {
     });
 
     it('DELETE /api/data-components/:id should delete all the data components with the same stix id', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/data-components/' + dataComponent2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
