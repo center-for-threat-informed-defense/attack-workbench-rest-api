@@ -2,6 +2,7 @@
 
 const referencesService = require('../services/references-service');
 const logger = require('../lib/logger');
+const { DuplicateIdError } = require('../exceptions');
 
 exports.retrieveAll = async function(req, res) {
     const options = {
@@ -44,7 +45,7 @@ exports.create = async function(req, res) {
         return res.status(201).send(reference);
     }
     catch(err) {
-        if (err.message === referencesService.errors.duplicateId) {
+        if (err instanceof DuplicateIdError) {
             logger.warn("Duplicate source_name");
             return res.status(409).send('Unable to create reference. Duplicate source_name.');
         }
