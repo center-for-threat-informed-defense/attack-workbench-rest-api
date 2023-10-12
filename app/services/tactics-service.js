@@ -5,9 +5,8 @@ const util = require('util');
 
 const Tactic = require('../models/tactic-model');
 const config = require('../config/config');
-const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
-const { BadlyFormattedParameterError, DuplicateIdError, NotFoundError, InvalidQueryStringParameterError, MissingParameterError } = require('../exceptions');
+const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
 const BaseService = require('./_base.service');
 const TacticsRepository = require('../repository/tactics-repository');
@@ -23,18 +22,6 @@ class TacticsService extends BaseService {
             // A tactic matches if the technique has a kill chain phase such that:
             //   1. The phase's kill_chain_name matches one of the tactic's kill chain names (which are derived from the tactic's x_mitre_domains)
             //   2. The phase's phase_name matches the tactic's x_mitre_shortname
-    // Build the aggregation
-    // - Group the documents by stix.id, sorted by stix.modified
-    // - Use the first document in each group (according to the value of stix.modified)
-    // - Then apply query, skip and limit options
-        const aggregation = [
-            { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
-            { $group: { _id: '$stix.id', document: { $first: '$$ROOT' }}},
-            { $replaceRoot: { newRoot: '$document' }},
-            { $sort: { 'stix.id': 1 }},
-            { $match: query }
-        ];
-
             // Convert the tactic's domain names to kill chain names
             const tacticKillChainNames = tactic.stix.x_mitre_domains.map(domain => config.domainToKillChainMap[domain]);
             return technique.stix.kill_chain_phases.some(phase => phase.phase_name === tactic.stix.x_mitre_shortname && tacticKillChainNames.includes(phase.kill_chain_name));
