@@ -65,7 +65,6 @@ describe('References API', function () {
         expect(references).toBeDefined();
         expect(Array.isArray(references)).toBe(true);
         expect(references.length).toBe(0);
-        done();
     });
 
     it('POST /api/references does not create an empty reference', async function () {
@@ -81,7 +80,7 @@ describe('References API', function () {
     let reference1;
     it('POST /api/references creates a reference', async function () {
         const body = initialObjectData1;
-        const rest = await request(app)
+        const res = await request(app)
             .post('/api/references')
             .send(body)
             .set('Accept', 'application/json')
@@ -97,7 +96,7 @@ describe('References API', function () {
     let reference2;
     it('POST /api/references creates a second reference', async function () {
         const body = initialObjectData2;
-        request(app)
+        const res = await request(app)
             .post('/api/references')
             .send(body)
             .set('Accept', 'application/json')
@@ -245,7 +244,7 @@ describe('References API', function () {
     it('PUT /api/references updates a reference', async function () {
         reference1.description = 'This is a new description';
         const body = reference1;
-        await request(app)
+        const res = await request(app)
             .put('/api/references')
             .send(body)
             .set('Accept', 'application/json')
