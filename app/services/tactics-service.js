@@ -17,7 +17,7 @@ class TacticsService extends BaseService {
         this.retrieveAllTechniques = null;
     }
 
-    techniqueMatchesTactic(tactic) {
+    static techniqueMatchesTactic(tactic) {
         return function(technique) {
             // A tactic matches if the technique has a kill chain phase such that:
             //   1. The phase's kill_chain_name matches one of the tactic's kill chain names (which are derived from the tactic's x_mitre_domains)
@@ -28,7 +28,7 @@ class TacticsService extends BaseService {
         }
     }
 
-    getPageOfData(data, options) {
+    static getPageOfData(data, options) {
         const startPos = options.offset;
         const endPos = (options.limit === 0) ? data.length : Math.min(options.offset + options.limit, data.length);
 
