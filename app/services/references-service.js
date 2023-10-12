@@ -13,6 +13,68 @@ class ReferencesService extends BaseService {
         super(ReferenceRepository, Reference);
     }
 
+    async retrieveAll(options) {
+        // Build the text search
+        let textSearch;
+        if (typeof options.search !== 'undefined') {
+            textSearch = { $text: { $search: options.search }};
+        }
+    
+        // Build the query
+        const query = {};
+        if (typeof options.sourceName !== 'undefined') {
+            query['source_name'] = options.sourceName;
+        }
+    
+        // Build the aggregation
+        const aggregation = [];
+        if (textSearch) {
+            aggregation.push({ $match: textSearch });
+        }
+    
+        aggregation.push({ $sort: { 'source_name': 1 }});
+        aggregation.push({ $match: query });
+    
+        const facet = {
+            $facet: {
+                totalCount: [ { $count: 'totalCount' }],
+                documents: [ ]
+            }
+        };
+        if (options.offset) {
+            facet.$facet.documents.push({ $skip: options.offset });
+        }
+        else {
+            facet.$facet.documents.push({ $skip: 0 });
+        }
+        if (options.limit) {
+            facet.$facet.documents.push({ $limit: options.limit });
+        }
+        aggregation.push(facet);
+    
+        // Retrieve the documents
+        const results = await Reference.aggregate(aggregation);
+    
+        if (options.includePagination) {
+            let derivedTotalCount = 0;
+            if (results[0].totalCount.length > 0) {
+                derivedTotalCount = results[0].totalCount[0].totalCount;
+            }
+            const returnValue = {
+                pagination: {
+                    total: derivedTotalCount,
+                    offset: options.offset,
+                    limit: options.limit
+                },
+                data: results[0].documents
+            };
+            return returnValue;
+        }
+        else {
+            return results[0].documents;
+        }
+    };
+
     async create(data) {
         // Create the document
         const reference = new Reference(data);
