@@ -13,6 +13,25 @@ class ReferencesService extends BaseService {
         super(ReferenceRepository, Reference);
     }
 
+    async create(data) {
+        // Create the document
+        const reference = new Reference(data);
+    
+        // Save the document in the database
+        try {
+            const savedReference = await reference.save();
+            return savedReference;
+        }
+        catch(err) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                throw new DuplicateIdError;
+            } else {
+                console.log(`name: ${err.name} code: ${err.code}`);
+                throw err;
+            }
+        }
+    };
+
     async update(data) {
         // Note: source_name is used as the key and cannot be updated
         if (!data.source_name) {
