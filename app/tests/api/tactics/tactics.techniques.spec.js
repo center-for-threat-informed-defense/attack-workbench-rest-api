@@ -80,7 +80,7 @@ describe('Tactics with Techniques API', function () {
     });
 
     it('GET /api/tactics/:id/modified/:modified/techniques should not return the techniques when the tactic cannot be found', async function () {
-        request(app)
+        await request(app)
             .get(`/api/tactics/not-an-id/modified/2022-01-01T00:00:00.000Z/techniques`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)

@@ -28,7 +28,7 @@ class TacticsService extends BaseService {
         }
     }
 
-    async getPageOfData(data, options) {
+    getPageOfData(data, options) {
         const startPos = options.offset;
         const endPos = (options.limit === 0) ? data.length : Math.min(options.offset + options.limit, data.length);
 
