@@ -43,7 +43,7 @@ function executeTests(getApp, propertyName, options) {
             groupData.stix.modified = timestamp;
             _.set(groupData, propertyName, undefined);
             const body = groupData;
-            request(getApp())
+            await request(getApp())
                 .post('/api/groups')
                 .send(body)
                 .set('Accept', 'application/json')
@@ -58,7 +58,7 @@ function executeTests(getApp, propertyName, options) {
         groupData.stix.modified = timestamp;
         _.set(groupData, propertyName, 9);
         const body = groupData;
-        request(getApp())
+        await request(getApp())
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
@@ -72,7 +72,7 @@ function executeTests(getApp, propertyName, options) {
         groupData.stix.modified = timestamp;
         _.set(groupData, propertyName, { value: 'group-name' });
         const body = groupData;
-        request(getApp())
+        await request(getApp())
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
@@ -104,7 +104,7 @@ describe('Groups API Input Validation', function () {
 
     it('POST /api/groups does not create an empty group', async function () {
         const body = { };
-        request(app)
+        await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
@@ -118,7 +118,7 @@ describe('Groups API Input Validation', function () {
         groupData.stix.created = timestamp;
         groupData.stix.modified = timestamp;
         const body = groupData;
-        request(app)
+        await request(app)
             .post('/api/groups?not-a-parameter=unexpectedvalue')
             .send(body)
             .set('Accept', 'application/json')
@@ -126,14 +126,14 @@ describe('Groups API Input Validation', function () {
             .expect(400);
     });
 
-    it('POST /api/groups does not create a group when an invalid type is provided', function () {
+    it('POST /api/groups does not create a group when an invalid type is provided', async function () {
         const groupData = _.cloneDeep(initialObjectData);
         const timestamp = new Date().toISOString();
         groupData.stix.created = timestamp;
         groupData.stix.modified = timestamp;
         groupData.stix.type= 'not-a-type';
         const body = groupData;
-        request(app)
+        await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
@@ -141,14 +141,14 @@ describe('Groups API Input Validation', function () {
             .expect(400);
     });
 
-    it('POST /api/groups does not create a group when an incorrect type is provided', function () {
+    it('POST /api/groups does not create a group when an incorrect type is provided', async function () {
         const groupData = _.cloneDeep(initialObjectData);
         const timestamp = new Date().toISOString();
         groupData.stix.created = timestamp;
         groupData.stix.modified = timestamp;
         groupData.stix.type= 'malware';
         const body = groupData;
-        request(app)
+        await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')

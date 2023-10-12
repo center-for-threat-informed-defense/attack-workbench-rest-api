@@ -3,13 +3,10 @@
 const uuid = require('uuid');
 const Group = require('../models/group-model');
 const systemConfigurationService = require('./system-configuration-service');
-const identitiesService = require('./identities-service');
 const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
-const regexValidator = require('../lib/regex');
-const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
-const { DuplicateIdError, BadlyFormattedParameterError, InvalidTypeError, InvalidQueryStringParameterError } = require('../exceptions');
+const { DuplicateIdError, InvalidTypeError} = require('../exceptions');
 
 const BaseService = require('./_base.service');
 const groupsRepository = require('../repository/groups-repository');
@@ -20,7 +17,9 @@ class GroupsService extends BaseService {
         super(groupsRepository, Group);
 
     }
+
     async create(data, options) {
+
         // This function handles two use cases:
         //   1. This is a completely new object. Create a new object and generate the stix.id if not already
         //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
@@ -85,7 +84,7 @@ class GroupsService extends BaseService {
                 throw err;
             }
         }
-    };
+    }
 }
 
 module.exports = new GroupsService;

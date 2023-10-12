@@ -106,7 +106,7 @@ describe('Groups API', function () {
 
     it('POST /api/groups does not create an empty group', async function () {
         const body = { };
-        const res = await request(app)
+        await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
@@ -160,7 +160,7 @@ describe('Groups API', function () {
     });
 
     it('GET /api/groups/:id should not return a group when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .get('/api/groups/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -217,7 +217,7 @@ describe('Groups API', function () {
 
     it('POST /api/groups does not create a group with the same id and modified date', async function () {
         const body = group1;
-        const res = await request(app)
+        await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
@@ -449,21 +449,21 @@ describe('Groups API', function () {
     });
 
     it('DELETE /api/groups/:id/modified/:modified deletes a group', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
     });
         
     it('DELETE /api/groups/:id should delete all the groups with the same stix id', async function () {
-        const res = await request(app)
+         await request(app)
             .delete('/api/groups/' + group2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
     });
 
     it('DELETE /api/groups/:id/modified/:modified should delete the third group', async function () {
-        const res = await request(app)
+         await request(app)
             .delete('/api/groups/' + group3.stix.id + '/modified/' + group3.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
