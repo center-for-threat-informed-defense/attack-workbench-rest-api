@@ -1,13 +1,6 @@
 'use strict';
 
-const uuid = require('uuid');
 const Note = require('../models/note-model');
-const systemConfigurationService = require('./system-configuration-service');
-const identitiesService = require('./identities-service');
-const attackObjectsService = require('./attack-objects-service');
-const config = require('../config/config');
-const regexValidator = require('../lib/regex');
-const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
 const errors = {
     missingParameter: 'Missing required parameter',
