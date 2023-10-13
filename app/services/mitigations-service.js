@@ -2,7 +2,6 @@
 
 
 const Mitigation = require('../models/mitigation-model');
-const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
 const errors = {
     missingParameter: 'Missing required parameter',
