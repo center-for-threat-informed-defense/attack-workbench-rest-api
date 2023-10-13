@@ -40,9 +40,11 @@ class NoteService extends BaseService {
 
             else {
                 // Copy data to found document and save
-                Object.assign(document, data);
-                document.save(function(err, savedDocument) {
-                    if (err) {
+                try {
+                    Object.assign(document, data);
+                    const savedDocument = await document.save();
+                    return savedDocument;
+                } catch (err) {
                         if (err.name === 'MongoServerError' && err.code === 11000) {
                             throw new DuplicateIdError;
                         }
@@ -50,11 +52,7 @@ class NoteService extends BaseService {
                             throw err;
                         }
                     }
-                    else {
-                        return savedDocument;
-                    }
-                });
-            }
+                }
         }  catch (err) {
             if (err.name === 'CastError') {
                 throw new BadlyFormattedParameterError;
