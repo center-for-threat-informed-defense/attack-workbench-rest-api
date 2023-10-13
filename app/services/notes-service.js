@@ -30,20 +30,14 @@ class NoteService extends BaseService {
         if (!stixModified) {
             throw new MissingParameterError;
         }
+        try {
+            Note.findOne({ 'stix.id': stixId, 'stix.modified': stixModified });
 
-        Note.findOne({ 'stix.id': stixId, 'stix.modified': stixModified }, function(err, document) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    throw new BadlyFormattedParameterError;
-                }
-                else {
-                    throw err;
-                }
-            }
-            else if (!document) {
+            if (!document) {
                 // document not found
                 return null;
             }
+
             else {
                 // Copy data to found document and save
                 Object.assign(document, data);
@@ -61,7 +55,14 @@ class NoteService extends BaseService {
                     }
                 });
             }
-        });
+        }  catch (err) {
+            if (err.name === 'CastError') {
+                throw new BadlyFormattedParameterError;
+            }
+            else {
+                throw err;
+            }
+        }
     };
 
 }
