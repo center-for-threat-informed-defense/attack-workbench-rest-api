@@ -13,7 +13,7 @@ class ReferencesService extends BaseService {
         super(ReferenceRepository, Reference);
     }
 
-    async retrieveAll(options) {
+    static async retrieveAll(options) {
         // Build the text search
         let textSearch;
         if (typeof options.search !== 'undefined') {
@@ -73,9 +73,9 @@ class ReferencesService extends BaseService {
         else {
             return results[0].documents;
         }
-    };
+    }
 
-    async create(data) {
+    static async create(data) {
         // Create the document
         const reference = new Reference(data);
     
@@ -92,14 +92,12 @@ class ReferencesService extends BaseService {
                 throw err;
             }
         }
-    };
+    }
 
-    async update(data) {
+    static async update(data) {
         // Note: source_name is used as the key and cannot be updated
         if (!data.source_name) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'source_name';
-            throw error;
+            throw new MissingParameterError;
         }
     
         try {
@@ -125,16 +123,16 @@ class ReferencesService extends BaseService {
                 throw err;
             }
         }
-    };
+    }
 
-    async deleteBySourceName(sourceName) {
+    static async deleteBySourceName(sourceName) {
         if (!sourceName) {
             throw new MissingParameterError;
         }
 
         const deletedReference = await Reference.findOneAndRemove({ 'source_name': sourceName });
         return deletedReference;
-    };
+    }
 
 }
 
