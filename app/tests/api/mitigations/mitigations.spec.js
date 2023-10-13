@@ -109,7 +109,7 @@ describe('Mitigations API', function () {
     });
 
     it('GET /api/mitigations returns the added mitigation', async function () {
-        request(app)
+        const res = request(app)
             .get('/api/mitigations')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -137,7 +137,7 @@ describe('Mitigations API', function () {
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
+            .expect('Content-Type', /json/);
 
 
         // We expect to get one mitigation in an array
@@ -194,7 +194,7 @@ describe('Mitigations API', function () {
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(409)
+            .expect(409);
     });
 
     let mitigation2;
@@ -212,7 +212,7 @@ describe('Mitigations API', function () {
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
+            .expect('Content-Type', /json/);
 
 
         // We expect to get the created mitigation
@@ -319,7 +319,7 @@ describe('Mitigations API', function () {
         await request(app)
             .delete('/api/mitigations/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
+            .expect(404);
     });
 
     it('DELETE /api/mitigations/:id/modified/:modified deletes a mitigation', async function () {

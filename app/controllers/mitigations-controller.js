@@ -91,13 +91,13 @@ exports.retrieveVersionById = async function(req, res) {
 exports.create = async function(req, res) {
     // Get the data from the request
     const mitigationData = req.body;
+    const options = {
+        import: false,
+        userAccountId: req.user?.userAccountId
+    };
 
     // Create the mitigation
     try {
-        const options = {
-            import: false,
-            userAccountId: req.user?.userAccountId
-        };
         const mitigation = await mitigationsService.create(mitigationData, options);
         logger.debug("Success: Created mitigation with id " + mitigation.stix.id);
         return res.status(201).send(mitigation);
