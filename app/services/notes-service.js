@@ -31,7 +31,7 @@ class NoteService extends BaseService {
             throw new MissingParameterError;
         }
         try {
-            Note.findOne({ 'stix.id': stixId, 'stix.modified': stixModified });
+            const document = await this.model.findOne({ 'stix.id': stixId, 'stix.modified': stixModified });
 
             if (!document) {
                 // document not found
