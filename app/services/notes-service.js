@@ -61,7 +61,7 @@ class NoteService extends BaseService {
                 throw err;
             }
         }
-    };
+    }
 
 }
 

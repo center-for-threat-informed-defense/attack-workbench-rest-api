@@ -75,7 +75,7 @@ describe('Notes API', function () {
 
     it('POST /api/notes should not create an empty note', async function () {
         const body = { };
-        const res = await request(app)
+        await request(app)
             .post('/api/notes')
             .send(body)
             .set('Accept', 'application/json')
@@ -157,7 +157,7 @@ describe('Notes API', function () {
     });
 
     it('GET /api/notes/:id should not return a note when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .get('/api/notes/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)

@@ -4,7 +4,7 @@ const BaseRepository = require('./_base.repository');
 const Note = require('../models/note-model');
 const regexValidator = require('../lib/regex');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
-const { DatabaseError, DuplicateIdError, BadlyFormattedParameterError } = require('../exceptions');
+const { DatabaseError } = require('../exceptions');
 
 class NoteRepository extends BaseRepository {
 
