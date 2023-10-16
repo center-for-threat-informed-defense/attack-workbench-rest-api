@@ -13,7 +13,7 @@ class DataComponentsService extends BaseService {
         super(DataComponentsRepository, DataComponent);
     }
 
-    async retrieveAllAsync(options) {
+    static async retrieveAllAsync(options) {
         // Build the query
         const query = {};
         if (!options.includeRevoked) {
