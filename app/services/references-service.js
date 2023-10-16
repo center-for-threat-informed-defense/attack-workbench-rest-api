@@ -13,7 +13,7 @@ class ReferencesService extends BaseService {
         super(ReferenceRepository, Reference);
     }
 
-    static async retrieveAll(options) {
+    async retrieveAll(options) {
         // Build the text search
         let textSearch;
         if (typeof options.search !== 'undefined') {
@@ -53,7 +53,7 @@ class ReferencesService extends BaseService {
         aggregation.push(facet);
     
         // Retrieve the documents
-        const results = await Reference.aggregate(aggregation);
+        const results = await this.model.aggregate(aggregation);
     
         if (options.includePagination) {
             let derivedTotalCount = 0;
@@ -75,9 +75,9 @@ class ReferencesService extends BaseService {
         }
     }
 
-    static async create(data) {
+    async create(data) {
         // Create the document
-        const reference = new Reference(data);
+        const reference = new this.model(data);
     
         // Save the document in the database
         try {
@@ -94,14 +94,14 @@ class ReferencesService extends BaseService {
         }
     }
 
-    static async update(data) {
+    async update(data) {
         // Note: source_name is used as the key and cannot be updated
         if (!data.source_name) {
             throw new MissingParameterError;
         }
     
         try {
-            const document = await Reference.findOne({ 'source_name': data.source_name });
+            const document = await this.model.findOne({ 'source_name': data.source_name });
             if (!document) {
                 // document not found
                 return null;
@@ -125,12 +125,12 @@ class ReferencesService extends BaseService {
         }
     }
 
-    static async deleteBySourceName(sourceName) {
+    async deleteBySourceName(sourceName) {
         if (!sourceName) {
             throw new MissingParameterError;
         }
 
-        const deletedReference = await Reference.findOneAndRemove({ 'source_name': sourceName });
+        const deletedReference = await this.model.findOneAndRemove({ 'source_name': sourceName });
         return deletedReference;
     }
 
