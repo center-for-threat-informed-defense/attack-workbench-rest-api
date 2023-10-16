@@ -2,6 +2,9 @@
 
 const BaseRepository = require('./_base.repository');
 const Note = require('../models/note-model');
+const regexValidator = require('../lib/regex');
+const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
+const { DatabaseError, DuplicateIdError, BadlyFormattedParameterError } = require('../exceptions');
 
 class NoteRepository extends BaseRepository {
 
@@ -47,14 +50,10 @@ class NoteRepository extends BaseRepository {
 
             if (typeof options.search !== 'undefined') {
                 options.search = regexValidator.sanitizeRegex(options.search);
-                const match = {
-                    $match: {
-                        $or: [
-                            { 'stix.name': { '$regex': options.search, '$options': 'i' } },
-                            { 'stix.description': { '$regex': options.search, '$options': 'i' } }
-                        ]
-                    }
-                };
+                const match = { $match: { $or: [
+                    { 'stix.abstract': { '$regex': options.search, '$options': 'i' }},
+                    { 'stix.content': { '$regex': options.search, '$options': 'i' }}
+                ]}};
                 aggregation.push(match);
             }
 

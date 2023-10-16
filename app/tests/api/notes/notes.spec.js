@@ -216,7 +216,7 @@ describe('Notes API', function () {
 
     it('POST /api/notes should not create a note with the same id and modified date', async function () {
         const body = note1;
-        request(app)
+       await request(app)
             .post('/api/notes')
             .send(body)
             .set('Accept', 'application/json')
@@ -428,7 +428,7 @@ describe('Notes API', function () {
     });
 
     it('DELETE /api/notes/:id should not delete a note when the id cannot be found', async function () {
-        request(app)
+        await request(app)
             .delete('/api/notes/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404);
@@ -436,7 +436,7 @@ describe('Notes API', function () {
     });
 
     it('DELETE /api/notes/:id/modified/:modified should delete the first version of the note', async function () {
-        request(app)
+        await request(app)
             .delete('/api/notes/' + note1.stix.id + '/modified/' + note1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
@@ -444,7 +444,7 @@ describe('Notes API', function () {
     });
 
     it('DELETE /api/notes/:id/modified/:modified should delete the second version of the note', async function () {
-        request(app)
+        await request(app)
             .delete('/api/notes/' + note2.stix.id + '/modified/' + note2.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
@@ -452,7 +452,7 @@ describe('Notes API', function () {
     });
 
     it('DELETE /api/notes/:id should delete all versions of the note', async function () {
-        request(app)
+        await request(app)
             .delete('/api/notes/' + note3.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
