@@ -18,7 +18,7 @@ class GroupsService extends BaseService {
 
     }
 
-    static async create(data, options) {
+    async create(data, options) {
 
         // This function handles two use cases:
         //   1. This is a completely new object. Create a new object and generate the stix.id if not already
@@ -31,7 +31,7 @@ class GroupsService extends BaseService {
         }
     
         // Create the document
-        const group = new Group(data);
+        const group = new this.model(data);
     
         options = options || {};
         if (!options.import) {
@@ -52,7 +52,7 @@ class GroupsService extends BaseService {
             // Check for an existing object
             let existingObject;
             if (group.stix.id) {
-                existingObject = await Group.findOne({ 'stix.id': group.stix.id });
+                existingObject = await this.model.findOne({ 'stix.id': group.stix.id });
             }
     
             if (existingObject) {
