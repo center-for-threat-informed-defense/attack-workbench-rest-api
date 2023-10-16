@@ -18,7 +18,7 @@ class GroupsService extends BaseService {
 
     }
 
-    async create(data, options) {
+    static async create(data, options) {
 
         // This function handles two use cases:
         //   1. This is a completely new object. Create a new object and generate the stix.id if not already
