@@ -16,7 +16,7 @@ class SoftwareService extends BaseService {
         super(SoftwareRepository, Software);
     }
 
-    async create(data, options) {
+    static async create(data, options) {
         // This function handles two use cases:
         //   1. This is a completely new object. Create a new object and generate the stix.id if not already
         //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
