@@ -38,7 +38,7 @@ exports.retrieveById = async function(req, res) {
     }
 
     try {
-        const mitigations = mitigationsService.retrieveById(req.params.stixId, options);
+        const mitigations = await mitigationsService.retrieveById(req.params.stixId, options);
         if (mitigations.length === 0) {
             return res.status(404).send('Mitigation not found.');
         }
@@ -66,7 +66,7 @@ exports.retrieveById = async function(req, res) {
 exports.retrieveVersionById = async function(req, res) {
 
     try {
-        const mitigation = mitigationsService.retrieveVersionById(req.params.stixId, req.params.modified);
+        const mitigation = await mitigationsService.retrieveVersionById(req.params.stixId, req.params.modified);
         if (!mitigation) {
             return res.status(404).send('Mitigation not found.');
         }
@@ -121,7 +121,7 @@ exports.updateFull = async function(req, res) {
     // Create the mitigation
 
     try {
-        const mitigation = mitigationsService.updateFull(req.params.stixId, req.params.modified, mitigationData);
+        const mitigation = await mitigationsService.updateFull(req.params.stixId, req.params.modified, mitigationData);
         if (!mitigation) {
             return res.status(404).send('Mitigation not found.');
         } else {
@@ -138,7 +138,7 @@ exports.updateFull = async function(req, res) {
 exports.deleteVersionById = async function(req, res) {
 
     try {
-        const mitigation = mitigationsService.deleteVersionById(req.params.stixId, req.params.modified);
+        const mitigation = await mitigationsService.deleteVersionById(req.params.stixId, req.params.modified);
         if (!mitigation) {
             return res.status(404).send('Mitigation not found.');
         } else {
@@ -155,7 +155,7 @@ exports.deleteVersionById = async function(req, res) {
 exports.deleteById = async function(req, res) {
 
     try {
-        const mitigations = mitigationsService.deleteById(req.params.stixId);
+        const mitigations = await mitigationsService.deleteById(req.params.stixId);
         if (mitigations.deletedCount === 0) {
             return res.status(404).send('Mitigation not found.');
         }
