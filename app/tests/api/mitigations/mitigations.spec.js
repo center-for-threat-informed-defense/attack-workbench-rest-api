@@ -109,7 +109,7 @@ describe('Mitigations API', function () {
     });
 
     it('GET /api/mitigations returns the added mitigation', async function () {
-        const res = request(app)
+        const res = await request(app)
             .get('/api/mitigations')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
