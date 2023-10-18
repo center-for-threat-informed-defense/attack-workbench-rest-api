@@ -60,6 +60,8 @@ tags:
     description: 'Operations for authenticating with the REST API'
   - name: 'User Accounts'
     description: 'Operations on user accounts'
+  - name: 'Health Check'
+    description: 'Operations on system status'
 
 paths:
   # ATT&CK Objects
@@ -315,3 +317,10 @@ paths:
   # Recent Activity
   /api/recent-activity:
     $ref: 'paths/recent-activity-paths.yml#/paths/~1api~1recent-activity'
+
+  # Health Checks
+  /api/health/ping:
+    $ref: 'paths/health-paths.yml#/paths/~1api~1health~1ping'
+
+  /api/health/status:
+    $ref: 'paths/health-paths.yml#/paths/~1api~1health~1status'
