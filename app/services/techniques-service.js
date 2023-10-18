@@ -5,7 +5,7 @@ const util = require('util');
 const Technique = require('../models/technique-model');
 const config = require('../config/config');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
-const { BadlyFormattedParameterError } = require('../exceptions');
+const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -57,15 +57,11 @@ class TechniquesService extends BaseService {
 
         // Retrieve the tactics associated with the technique (the technique identified by stixId and modified date)
         if (!stixId) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'stixId';
-            throw error;
+            throw new MissingParameterError;
         }
 
         if (!modified) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'modified';
-            throw error;
+            throw new MissingParameterError;
         }
 
         try {
