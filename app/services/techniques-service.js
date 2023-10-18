@@ -28,7 +28,7 @@ class TechniquesService extends BaseService {
         this.retrieveAllTactics = null;
     }
 
-    static async tacticMatchesTechnique(technique) {
+    static tacticMatchesTechnique(technique) {
         return function(tactic) {
             // A tactic matches if the technique has a kill chain phase such that:
             //   1. The phase's kill_chain_name matches one of the tactic's kill chain names (which are derived from the tactic's x_mitre_domains)
@@ -40,7 +40,7 @@ class TechniquesService extends BaseService {
         }
     }
 
-    static async getPageOfData(data, options) {
+    static getPageOfData(data, options) {
         const startPos = options.offset;
         const endPos = (options.limit === 0) ? data.length : Math.min(options.offset + options.limit, data.length);
 
@@ -72,8 +72,8 @@ class TechniquesService extends BaseService {
             }
             else {
                 const allTactics = await retrieveAllTactics({});
-                const filteredTactics = await allTactics.filter(tacticMatchesTechnique(technique));
-                const pagedResults = await getPageOfData(filteredTactics, options);
+                const filteredTactics = allTactics.filter(tacticMatchesTechnique(technique));
+                const pagedResults = getPageOfData(filteredTactics, options);
 
                 if (options.includePagination) {
                     const returnValue = {
