@@ -67,6 +67,8 @@ const stixOptionalArrayProperties = [
     'x_mitre_domains',
     'x_mitre_effective_permissions',
     'x_mitre_impact_type',
+    'x_mitre_related_assets',
+    'x_mitre_sectors',
     'x_mitre_system_requirements',
     'x_mitre_permissions_required',
     'x_mitre_platforms',
