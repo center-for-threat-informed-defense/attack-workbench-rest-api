@@ -1,0 +1,25 @@
+paths:
+  /api/health/ping:
+    get:
+      summary: 'Test whether the REST API is responding to requests'
+      operationId: 'health-ping'
+      description: |
+        This endpoint tests whether the REST API is responding to requests.
+        It doesn't test any other aspect of system health.
+      tags:
+        - 'Health Check'
+      responses:
+        '204':
+          description: 'Indicates that the REST API is responding to requests'
+
+  /api/health/status:
+    get:
+      summary: 'Returns a summary of the system status'
+      operationId: 'health-status'
+      description: |
+        This endpoint returns a summary of the system status, including system uptime and database connection state.
+      tags:
+        - 'Health Check'
+      responses:
+        '200':
+          description: 'Summary of the system status'
