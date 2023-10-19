@@ -137,6 +137,6 @@ class RecentActivityService extends BaseService {
         else {
             return paginatedDocuments;
         }
-    };
+    }
 }
 module.exports = new RecentActivityService();
