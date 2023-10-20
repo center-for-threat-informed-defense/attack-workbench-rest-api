@@ -1,7 +1,6 @@
 'use strict';
 
 const Campaign = require('../models/campaign-model');
-const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
 const campaignsRepository = require('../repository/campaigns-repository');
 

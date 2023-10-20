@@ -107,4 +107,5 @@ module.exports = {
     IdentityServiceError,
     TechniquesServiceError,
     TacticsServiceError,
+    InvalidTypeError,
 };
