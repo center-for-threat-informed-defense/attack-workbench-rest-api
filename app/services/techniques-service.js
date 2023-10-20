@@ -72,8 +72,8 @@ class TechniquesService extends BaseService {
             }
             else {
                 const allTactics = await retrieveAllTactics({});
-                const filteredTactics = allTactics.filter(tacticMatchesTechnique(technique));
-                const pagedResults = getPageOfData(filteredTactics, options);
+                const filteredTactics = allTactics.filter(this.tacticMatchesTechnique(technique));
+                const pagedResults = this.getPageOfData(filteredTactics, options);
 
                 if (options.includePagination) {
                     const returnValue = {
