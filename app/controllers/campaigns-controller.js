@@ -16,21 +16,20 @@ exports.retrieveAll = async function(req, res) {
         includePagination: req.query.includePagination
     }
 
-    campaignsService.retrieveAll(options, async function(err, results) {
-        if (err) {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get campaigns. Server error.');
+    try {
+        const results = await campaignsService.retrieveAll(options);
+        if (options.includePagination) {
+            logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total campaign(s)`);
         }
         else {
-            if (options.includePagination) {
-                logger.debug(`Success: Retrieved ${ results.data.length } of ${ results.pagination.total } total campaign(s)`);
-            }
-            else {
-                logger.debug(`Success: Retrieved ${ results.length } campaign(s)`);
-            }
-            return res.status(200).send(results);
+            logger.debug(`Success: Retrieved ${ results.length } campaign(s)`);
         }
-    });
+        return res.status(200).send(results);
+    } catch (err) {
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get campaigns. Server error.');
+    }
+
 };
 
 exports.retrieveById = async function(req, res) {

@@ -28,7 +28,7 @@ const BaseService = require('./_base.service');
 class CampaignService extends BaseService {
 
     constructor() {
-        super(campaignRepository, Campaign);
+        super(campaignsRepository, Campaign);
 
     }
 
