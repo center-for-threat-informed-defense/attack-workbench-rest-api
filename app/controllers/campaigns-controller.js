@@ -2,7 +2,7 @@
 
 const campaignsService = require('../services/campaigns-service');
 const logger = require('../lib/logger');
-const { DuplicateIdError, BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
+const { DuplicateIdError, BadlyFormattedParameterError, InvalidQueryStringParameterError, InvalidTypeError } = require('../exceptions');
 
 exports.retrieveAll = async function(req, res) {
     const options = {
