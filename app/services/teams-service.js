@@ -6,7 +6,7 @@ const regexValidator = require('../lib/regex');
 const UserAccount = require('../models/user-account-model');
 const { addEffectiveRole, userAccountAsIdentity } = require('./user-accounts-service');
 
-const TeamRepository = require('../repository/team-repository');
+const TeamRepository = require('../repository/teams-repository');
 
 const BaseService = require('./_base.service');
 const { MissingParameterError, BadlyFormattedParameterError, NotFoundError } = require('../exceptions');
