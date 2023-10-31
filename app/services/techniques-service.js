@@ -16,7 +16,7 @@ const errors = {
 };
 exports.errors = errors;
 
-const techniquesRepository = require('../repository/matrix-repository');
+const techniquesRepository = require('../repository/techniques-repository');
 
 const BaseService = require('./_base.service');
 
