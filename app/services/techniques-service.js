@@ -4,7 +4,6 @@ const util = require('util');
 
 const Technique = require('../models/technique-model');
 const config = require('../config/config');
-const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
 const errors = {
@@ -71,7 +70,7 @@ class TechniquesService extends BaseService {
                 return null;
             }
             else {
-                const allTactics = await retrieveAllTactics({});
+                const allTactics = await this.retrieveAllTactics({});
                 const filteredTactics = allTactics.filter(this.tacticMatchesTechnique(technique));
                 const pagedResults = this.getPageOfData(filteredTactics, options);
 
@@ -99,7 +98,7 @@ class TechniquesService extends BaseService {
                 throw err;
             }
         }
-    };
+    }
 
 }
 module.exports = new TechniquesService();

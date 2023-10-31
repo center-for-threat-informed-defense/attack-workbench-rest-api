@@ -120,7 +120,7 @@ describe('Techniques with Tactics API', function () {
     });
 
     it('GET /api/techniques/:id/modified/:modified/tactics should return the first page of tactics for technique 2', async function () {
-        await request(app)
+        const res = await request(app)
             .get(`/api/techniques/${ technique2.stix.id }/modified/${ technique2.stix.modified }/tactics?offset=0&limit=2&includePagination=true`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
