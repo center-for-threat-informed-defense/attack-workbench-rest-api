@@ -53,7 +53,8 @@ class BaseRepository extends AbstractRepository {
                     $match: {
                         $or: [
                             { 'stix.name': { '$regex': options.search, '$options': 'i' } },
-                            { 'stix.description': { '$regex': options.search, '$options': 'i' } }
+                            { 'stix.description': { '$regex': options.search, '$options': 'i' } },
+                            { 'workspace.attack_id': { '$regex': options.search, '$options': 'i' }}
                         ]
                     }
                 };
