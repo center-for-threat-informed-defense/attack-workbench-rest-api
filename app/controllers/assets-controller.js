@@ -40,7 +40,7 @@ exports.retrieveById = async function(req, res) {
     }
 
     try {
-        const assets = await assetsService.retrieveById(req.params.stixId, options);
+        const assets = await assetsService.retrieveByIdAsync(req.params.stixId, options);
         if (assets.length === 0) {
             return res.status(404).send('Asset not found.');
         }

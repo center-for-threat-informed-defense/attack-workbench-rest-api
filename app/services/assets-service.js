@@ -122,7 +122,72 @@ exports.retrieveAll = async function(options) {
     }
 };
 
-exports.retrieveById = async function(stixId, options) {
+exports.retrieveById = function(stixId, options, callback) {
+    // versions=all Retrieve all assets with the stixId
+    // versions=latest Retrieve the asset with the latest modified date for this stixId
+
+    if (!stixId) {
+        const error = new Error(errors.missingParameter);
+        error.parameterName = 'stixId';
+        return callback(error);
+    }
+
+    if (options.versions === 'all') {
+        Asset.find({'stix.id': stixId})
+            .sort('-stix.modified')
+            .lean()
+            .exec(function (err, assets) {
+                if (err) {
+                    if (err.name === 'CastError') {
+                        const error = new Error(errors.badlyFormattedParameter);
+                        error.parameterName = 'stixId';
+                        return callback(error);
+                    }
+                    else {
+                        return callback(err);
+                    }
+                }
+                else {
+                    identitiesService.addCreatedByAndModifiedByIdentitiesToAll(assets)
+                        .then(() => callback(null, assets));
+                }
+            });
+    }
+    else if (options.versions === 'latest') {
+        Asset.findOne({ 'stix.id': stixId })
+            .sort('-stix.modified')
+            .lean()
+            .exec(function(err, asset) {
+                if (err) {
+                    if (err.name === 'CastError') {
+                        const error = new Error(errors.badlyFormattedParameter);
+                        error.parameterName = 'stixId';
+                        return callback(error);
+                    }
+                    else {
+                        return callback(err);
+                    }
+                }
+                else {
+                    // Note: document is null if not found
+                    if (asset) {
+                        identitiesService.addCreatedByAndModifiedByIdentities(asset)
+                            .then(() => callback(null, [ asset ]));
+                    }
+                    else {
+                        return callback(null, []);
+                    }
+                }
+            });
+    }
+    else {
+        const error = new Error(errors.invalidQueryStringParameter);
+        error.parameterName = 'versions';
+        return callback(error);
+    }
+};
+
+exports.retrieveByIdAsync = async function(stixId, options) {
     // versions=all    Retrieve all versions of the asset with the stixId
     // versions=latest Retrieve the asset with the latest modified date for this stixId
 
