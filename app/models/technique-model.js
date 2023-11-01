@@ -3,7 +3,7 @@
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 const attackPatternDefinitions = require('./subschemas/attack-pattern');
-const { ModelName } = require('../lib/attack-prefix-ids');
+const { ModelName } = require('../lib/model-names');
 
 // Create the definition
 const techniqueDefinition = {
