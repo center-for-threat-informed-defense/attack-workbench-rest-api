@@ -127,7 +127,7 @@ async function loadGroups(groups) {
         }
 
         // eslint-disable-next-line no-await-in-loop
-        await groupsService.create(group, { import: false, userAccountId: group.userAccountId });
+        await groupsService.createGroup(group, { import: false, userAccountId: group.userAccountId });
     }
 }
 
@@ -285,11 +285,14 @@ describe('Groups API Queries', function () {
 
         // We expect to get the latest group with the correct ATT&CK ID
         const groups = res.body;
+        logger.info(`Received groups: ${groups}`);
+        console.log(`Received groups: ${JSON.stringify(groups)}`);
         expect(groups).toBeDefined();
         expect(Array.isArray(groups)).toBe(true);
         expect(groups.length).toBe(1);
 
         const group = groups[0];
+        logger.info(`Received group: ${JSON.stringify(group)}`);
         expect(group.workspace.attack_id).toEqual('G0001');
 
     });
