@@ -13,9 +13,10 @@ const AbstractService = require('./_abstract.service');
 
 class BaseService extends AbstractService {
 
-    constructor(repository, model) {
+    constructor(repository) {
         super();
         this.repository = repository;
+    }
 
     // Helper function to determine if the last argument is a callback
     static isCallback(arg) {
