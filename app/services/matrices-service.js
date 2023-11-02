@@ -3,7 +3,7 @@
 const util = require('util');
 const { GenericServiceError, MissingParameterError } = require('../exceptions');
 
-const Matrix = require('../models/matrix-model');
+// const Matrix = require('../models/matrix-model');
 const matrixRepository = require('../repository/matrix-repository');
 
 const BaseService = require('./_base.service');
@@ -11,7 +11,7 @@ const BaseService = require('./_base.service');
 class MatrixService extends BaseService {
 
     constructor() {
-        super(matrixRepository, Matrix);
+        super(matrixRepository);
 
         this.retrieveTacticById = null;
         this.retrieveTechniquesForTactic = null;
@@ -19,7 +19,12 @@ class MatrixService extends BaseService {
 
     // Custom methods specific to MatrixService should be specified below
 
-    async retrieveTechniquesForMatrix(stixId, modified) {
+    async retrieveTechniquesForMatrix(stixId, modified, callback) {
+
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
+
         // Lazy loading of services
         if (!this.retrieveTacticById || !this.retrieveTechniquesForTactic) {
             const tacticsService = require('./tactics-service');
@@ -28,10 +33,19 @@ class MatrixService extends BaseService {
         }
 
         if (!stixId) {
-            throw new MissingParameterError({ parameterName: 'stixId' });
+            const err = new MissingParameterError({ parameterName: 'stixId' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
         }
+
         if (!modified) {
-            throw new MissingParameterError({ parameterName: 'modified' });
+            const err = new MissingParameterError({ parameterName: 'modified' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
         }
 
         let matrix;
@@ -39,10 +53,16 @@ class MatrixService extends BaseService {
         try {
             matrix = await matrixRepository.retrieveOneByVersion(stixId, modified);
         } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
             throw err; // Let the DatabaseError bubble up
         }
 
         if (!matrix) {
+            if (callback) {
+                return callback(null, null);
+            }
             return null;
         }
 
@@ -57,7 +77,11 @@ class MatrixService extends BaseService {
                     techniques = await this.retrieveTechniquesForTactic(tacticId, tactics[0].stix.modified, options);
                 }
             } catch (err) {
-                throw new GenericServiceError(err); // TODO it's probably better to throw TechniquesServiceError or TacticsServiceError
+                const genericServiceError = new GenericServiceError(err); // TODO it's probably better to throw TechniquesServiceError or TacticsServiceError
+                if (callback) {
+                    return callback(genericServiceError);
+                }
+                throw genericServiceError;
             }
 
             if (tactics && tactics.length) {
@@ -85,9 +109,11 @@ class MatrixService extends BaseService {
                 tacticsTechniques[tactic.stix.name] = tactic;
             }
         }
-
+        if (callback) {
+            return callback(null, tacticsTechniques);
+        }
         return tacticsTechniques;
     }
 }
 
-module.exports = new MatrixService();
+module.exports = new MatrixService(matrixRepository);

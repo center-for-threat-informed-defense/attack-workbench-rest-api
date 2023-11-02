@@ -16,7 +16,10 @@ class BaseService extends AbstractService {
     constructor(repository, model) {
         super();
         this.repository = repository;
-        this.model = model;
+
+    // Helper function to determine if the last argument is a callback
+    static isCallback(arg) {
+        return typeof arg === 'function';
     }
 
     static paginate(options, results) {
@@ -38,32 +41,57 @@ class BaseService extends AbstractService {
         }
     }
 
-    async retrieveAll(options) {
+    async retrieveAll(options, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
+
         let results;
         try {
             results = await this.repository.retrieveAll(options);
         } catch (err) {
-            throw new DatabaseError(err); // Let the DatabaseError bubble up
+            const databaseError = new DatabaseError(err); // Let the DatabaseError buddle up
+            if (callback) {
+                return callback(databaseError);
+            }
+            throw databaseError;
         }
 
         try {
             await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
         } catch (err) {
-            throw new IdentityServiceError({
+            const identityError = new IdentityServiceError({
                 details: err.message,
                 cause: err
             });
+            if (callback) {
+                return callback(identityError);
+            }
+            throw identityError;
+
         }
 
-        return BaseService.paginate(options, results);
+        const paginatedResults = BaseService.paginate(options, results);
+        if (callback) {
+            return callback(null, paginatedResults);
+        }
+        return paginatedResults;
+
     }
 
-    async retrieveById(stixId, options) {
-        if (!stixId) {
-            throw new MissingParameterError({ parameterName: 'stixId' });
+    async retrieveById(stixId, options, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
         }
 
-        // eslint-disable-next-line no-useless-catch
+        if (!stixId) {
+            const err = new MissingParameterError({ parameterName: 'stixId' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
+        }
+
         try {
             if (options.versions === 'all') {
                 const documents = await this.repository.retrieveAllById(stixId);
@@ -71,12 +99,18 @@ class BaseService extends AbstractService {
                 try {
                     await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(documents);
                 } catch (err) {
-                    throw new IdentityServiceError({
+                    const identityError = new IdentityServiceError({
                         details: err.message,
                         cause: err
                     });
+                    if (callback) {
+                        return callback(identityError);
+                    } 
+                    throw identityError;
                 }
-
+                if (callback) {
+                    return callback(null, documents);
+                } 
                 return documents;
 
             } else if (options.versions === 'latest') {
@@ -86,32 +120,59 @@ class BaseService extends AbstractService {
                     try {
                         await identitiesService.addCreatedByAndModifiedByIdentities(document);
                     } catch (err) {
-                        throw new IdentityServiceError({
+                        const identityError = new IdentityServiceError({
                             details: err.message,
                             cause: err
                         });
+                        if (callback) {
+                            return callback(identityError);
+                        }
+                        throw identityError;
                     }
-
+                    if (callback) {
+                        return callback(null, [document]);
+                    }
                     return [document];
                 } else {
+                    if (callback) {
+                        return callback(null, []);
+                    }
                     return [];
                 }
 
             } else {
-                throw new InvalidQueryStringParameterError({ parameterName: 'versions' });
+                const err = new InvalidQueryStringParameterError({ parameterName: 'versions' });
+                if (callback) {
+                    return callback(err);
+                }
+                throw err;
             }
         } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
             throw err; // Let the DatabaseError bubble up
         }
     }
 
-    async retrieveVersionById(stixId, modified) {
+    async retrieveVersionById(stixId, modified, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
         if (!stixId) {
-            throw new MissingParameterError({ parameterName: 'stixId' });
+            const err = new MissingParameterError({ parameterName: 'stixId' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
         }
 
         if (!modified) {
-            throw new MissingParameterError({ parameterName: 'modified' });
+            const err = new MissingParameterError({ parameterName: 'modified' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
         }
 
         // eslint-disable-next-line no-useless-catch
@@ -120,24 +181,40 @@ class BaseService extends AbstractService {
 
             if (!document) {
                 console.log('** NOT FOUND');
+                if (callback) {
+                    return callback(null, null);
+                }
                 return null;
             } else {
                 try {
                     await identitiesService.addCreatedByAndModifiedByIdentities(document);
                 } catch (err) {
-                    throw new IdentityServiceError({
+                    const identityError = new IdentityServiceError({
                         details: err.message,
                         cause: err
                     });
+                    if (callback) {
+                        return callback(identityError);
+                    }
+                    throw identityError;
+                }
+                if (callback) {
+                    return callback(null, document);
                 }
                 return document;
             }
         } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
             throw err; // Let the DatabaseError bubble up
         }
     }
 
-    async create(data, options) {
+    async create(data, options, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
         // eslint-disable-next-line no-useless-catch
         try {
             // This function handles two use cases:
@@ -186,20 +263,37 @@ class BaseService extends AbstractService {
                     data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
                 }
             }
-            return await this.repository.save(data);
+            const res = await this.repository.save(data);
+            if (callback) {
+                return callback(null, res);
+            }
+            return res;
         } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
             throw err;
         }
     }
 
-    async updateFull(stixId, stixModified, data) {
-
+    async updateFull(stixId, stixModified, data, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
         if (!stixId) {
-            throw new MissingParameterError({ parameterName: 'stixId' });
+            const err = new MissingParameterError({ parameterName: 'stixId' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
         }
 
         if (!stixModified) {
-            throw new MissingParameterError({ parameterName: 'modified' });
+            const err = new MissingParameterError({ parameterName: 'modified' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
         }
 
         let document;
@@ -207,37 +301,64 @@ class BaseService extends AbstractService {
         try {
             document = await this.repository.retrieveOneByVersion(stixId, stixModified);
         } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
             throw err;
         }
 
         if (!document) {
+            if (callback) {
+                return callback(null, null);
+            }
             return null;
         }
 
-        // eslint-disable-next-line no-useless-catch
         try {
             const newDocument = await this.repository.updateAndSave(document, data);
 
             if (newDocument === document) {
                 // Document successfully saved
+                if (callback) {
+                    return callback(null, newDocument);
+                }
                 return newDocument;
             } else {
-                throw new DatabaseError({
+                const err = new DatabaseError({
                     details: 'Document could not be saved',
                     document // Pass along the document that could not be saved
                 });
+                if (callback) {
+                    return callback(err);
+                }
+                throw err;
             }
         } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
             throw err;
         }
     }
 
-    async deleteVersionById(stixId, stixModified) {
-        if (!stixId) {
-            throw new MissingParameterError({ parameterName: 'stixId' });
+    async deleteVersionById(stixId, stixModified, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
         }
+        if (!stixId) {
+            const err = new MissingParameterError({ parameterName: 'stixId' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
+        }
+
         if (!stixModified) {
-            throw new MissingParameterError({ parameterName: 'modified' });
+            const err = new MissingParameterError({ parameterName: 'modified' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
         }
         // eslint-disable-next-line no-useless-catch
         try {
@@ -245,27 +366,49 @@ class BaseService extends AbstractService {
 
             if (!document) {
                 //Note: document is null if not found
+                if (callback) {
+                    return callback(null, null);
+                }
                 return null;
+            }
+            if (callback) {
+                return callback(null, document);
             }
             return document;
 
         } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
             throw err;
         }
     }
 
-    async deleteById(stixId) {
+    async deleteById(stixId, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
         if (!stixId) {
-            return new MissingParameterError({ parameterName: 'stixId' });
+            const err = new MissingParameterError({ parameterName: 'stixId' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
         }
         // eslint-disable-next-line no-useless-catch
         try {
-            return await this.repository.deleteMany(stixId);
+            const res = await this.repository.deleteMany(stixId);
+            if (callback) {
+                return callback(null, res);
+            }
+            return res;
         } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
             throw err;
         }
     }
-
 }
 
 module.exports = BaseService;
