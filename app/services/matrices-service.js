@@ -3,15 +3,14 @@
 const util = require('util');
 const { GenericServiceError, MissingParameterError } = require('../exceptions');
 
-// const Matrix = require('../models/matrix-model');
 const matrixRepository = require('../repository/matrix-repository');
 
 const BaseService = require('./_base.service');
 
 class MatrixService extends BaseService {
 
-    constructor() {
-        super(matrixRepository);
+    constructor(repository) {
+        super(repository);
 
         this.retrieveTacticById = null;
         this.retrieveTechniquesForTactic = null;
