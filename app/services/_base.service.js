@@ -243,7 +243,7 @@ class BaseService extends AbstractService {
                 // Check for an existing object
                 let existingObject;
                 if (data.stix.id) {
-                    existingObject = await this.repository.retrieveAllById(data.stix.id);
+                    existingObject = await this.repository.retrieveOneById(data.stix.id);
                 }
 
                 if (existingObject) {
