@@ -2,8 +2,9 @@
 
 const collectionsService = require('../services/collections-service');
 const logger = require('../lib/logger');
+const { BadlyFormattedParameterError, InvalidQueryStringParameterError, DuplicateIdError } = require('../exceptions');
 
-exports.retrieveAll = function(req, res) {
+exports.retrieveAll = async function(req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
@@ -14,77 +15,73 @@ exports.retrieveAll = function(req, res) {
         search: req.query.search,
         lastUpdatedBy: req.query.lastUpdatedBy,
     }
+    try {
+        const collections = await collectionsService.retrieveAll(options);
+        logger.debug(`Success: Retrieved ${ collections.length } collection(s)`);
+        return res.status(200).send(collections);
+    }
+    catch (err) {
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get collections. Server error.');
+    }
 
-    collectionsService.retrieveAll(options, function(err, collections) {
-        if (err) {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get collections. Server error.');
-        }
-        else {
-            logger.debug(`Success: Retrieved ${ collections.length } collection(s)`);
-            return res.status(200).send(collections);
-        }
-    });
 };
 
-exports.retrieveById = function(req, res) {
+exports.retrieveById = async function(req, res) {
     const options = {
         versions: req.query.versions || 'latest',
         retrieveContents: req.query.retrieveContents
     }
 
-    collectionsService.retrieveById(req.params.stixId, options, function (err, collections) {
-        if (err) {
-            if (err.message === collectionsService.errors.badlyFormattedParameter) {
-                logger.warn('Badly formatted stix id: ' + req.params.stixId);
-                return res.status(400).send('Stix id is badly formatted.');
-            }
-            else if (err.message === collectionsService.errors.invalidQueryStringParameter) {
-                logger.warn('Invalid query string: versions=' + req.query.versions);
-                return res.status(400).send('Query string parameter versions is invalid.');
-            }
-            else {
-                logger.error('Failed with error: ' + err);
-                return res.status(500).send('Unable to get collections. Server error.');
-            }
+    try {
+        const collections = await collectionsService.retrieveById(req.params.stixId, options);
+        if (collections.length === 0) {
+            return res.status(404).send('Collection not found.');
         }
         else {
-            if (collections.length === 0) {
-                return res.status(404).send('Collection not found.');
-            }
-            else {
-                logger.debug(`Success: Retrieved ${ collections.length } collection(s) with id ${ req.params.stixId }`);
-                return res.status(200).send(collections);
-            }
+            logger.debug(`Success: Retrieved ${ collections.length } collection(s) with id ${ req.params.stixId }`);
+            return res.status(200).send(collections);
         }
-    });
+    } 
+    catch (err) {
+        if (err instanceof BadlyFormattedParameterError) {
+            logger.warn('Badly formatted stix id: ' + req.params.stixId);
+            return res.status(400).send('Stix id is badly formatted.');
+        }
+        else if (err instanceof InvalidQueryStringParameterError) {
+            logger.warn('Invalid query string: versions=' + req.query.versions);
+            return res.status(400).send('Query string parameter versions is invalid.');
+        }
+        else {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to get collections. Server error.');
+        }
+    }
 };
 
-exports.retrieveVersionById = function(req, res) {
+exports.retrieveVersionById = async function(req, res) {
     const options = {
         retrieveContents: req.query.retrieveContents
     }
-    collectionsService.retrieveVersionById(req.params.stixId, req.params.modified, options, function(err, collection) {
-        if (err) {
-            if (err.message === collectionsService.errors.badlyFormattedParameter) {
-                logger.warn('Badly formatted stix id: ' + req.params.stixId);
-                return res.status(400).send('Stix id is badly formatted.');
-            }
-            else {
-                logger.error('Failed with error: ' + err);
-                return res.status(500).send('Unable to get collections. Server error.');
-            }
-        } 
-        else {
-            if (!collection) {
-                return res.status(404).send('Collection not found.');
-            }
-            else {
-                logger.debug(`Success: Retrieved collection with id ${collection.id}`);
-                return res.status(200).send(collection);
-            }
+    try {
+        const collection = await collectionsService.retrieveVersionById(req.params.stixId, req.params.modified, options);
+        if (!collection) {
+            return res.status(404).send('Collection not found.');
         }
-    })
+        else {
+            logger.debug(`Success: Retrieved collection with id ${collection.id}`);
+            return res.status(200).send(collection);
+        }
+    } catch (err) {
+        if (err instanceof BadlyFormattedParameterError) {
+            logger.warn('Badly formatted stix id: ' + req.params.stixId);
+            return res.status(400).send('Stix id is badly formatted.');
+        }
+        else {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to get collections. Server error.');
+        }
+    } 
 }
 
 exports.create = async function(req, res) {
@@ -106,7 +103,7 @@ exports.create = async function(req, res) {
         return res.status(201).send(savedCollection);
     }
     catch(err) {
-        if (err.message === collectionsService.errors.duplicateId) {
+        if (err instanceof DuplicateIdError) {
             logger.warn("Duplicate stix.id and stix.modified");
             return res.status(409).send('Unable to create collection. Duplicate stix.id and stix.modified properties.');
         }
