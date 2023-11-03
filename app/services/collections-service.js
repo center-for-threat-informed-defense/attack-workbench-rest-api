@@ -149,8 +149,8 @@ class CollectionsService extends BaseService {
             const error = new MissingParameterError;
             throw error;
         }
-
-        superagent.get(url).then(res => {
+        try {
+        const res = await superagent.get(url);
             try {
                 const body = JSON.parse(res.text);
                 return body;
@@ -158,7 +158,8 @@ class CollectionsService extends BaseService {
                 const error = new Error(errors.invalidFormat);
                 throw error;
             }
-        }).catch(err => {
+        }    
+        catch (err) {
             if (err.response && err.response.notFound) {
                 const error = new NotFoundError
                 throw error;
@@ -178,7 +179,7 @@ class CollectionsService extends BaseService {
             else {
                 throw err;
             }
-        });
+        }
     };
 
 }
