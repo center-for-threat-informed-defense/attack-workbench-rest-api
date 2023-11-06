@@ -9,8 +9,8 @@ const BaseService = require('./_base.service');
 
 class MatrixService extends BaseService {
 
-    constructor(repository) {
-        super(repository);
+    constructor(type, repository) {
+        super(type, repository);
 
         this.retrieveTacticById = null;
         this.retrieveTechniquesForTactic = null;
@@ -115,4 +115,4 @@ class MatrixService extends BaseService {
     }
 }
 
-module.exports = new MatrixService(matrixRepository);
+module.exports = new MatrixService('x-mitre-matrix', matrixRepository);

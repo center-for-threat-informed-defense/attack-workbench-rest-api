@@ -8,13 +8,15 @@ const config = require('../config/config');
 const { DatabaseError,
     IdentityServiceError,
     MissingParameterError,
-    InvalidQueryStringParameterError } = require('../exceptions');
+    InvalidQueryStringParameterError,
+    InvalidTypeError } = require('../exceptions');
 const AbstractService = require('./_abstract.service');
 
 class BaseService extends AbstractService {
 
-    constructor(repository) {
+    constructor(type, repository) {
         super();
+        this.type = type;
         this.repository = repository;
     }
 
@@ -216,6 +218,11 @@ class BaseService extends AbstractService {
         if (BaseService.isCallback(arguments[arguments.length - 1])) {
             callback = arguments[arguments.length - 1];
         }
+
+        if (data?.stix?.type !== this.type) {
+            throw new InvalidTypeError();
+        }
+
         // eslint-disable-next-line no-useless-catch
         try {
             // This function handles two use cases:

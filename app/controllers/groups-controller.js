@@ -100,7 +100,7 @@ exports.create = async function(req, res) {
     // Create the group
     try {
 
-        const group = await groupsService.createGroup(groupData, options);
+        const group = await groupsService.create(groupData, options);
         logger.debug('Success: Created group with id ' + group.stix.id);
         return res.status(201).send(group);
     }
