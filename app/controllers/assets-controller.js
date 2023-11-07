@@ -66,12 +66,15 @@ exports.retrieveById = async function(req, res) {
 };
 
 exports.retrieveVersionById = async function(req, res) {
-    const options = {
-        retrieveDataComponents: req.query.retrieveDataComponents
-    }
+
+    // TODO Remove after confirming these are not being used by assetsService.retrieveVersionById
+    // const options = {
+    //     retrieveDataComponents: req.query.retrieveDataComponents
+    // }
 
     try {
-        const asset = await assetsService.retrieveVersionById(req.params.stixId, req.params.modified, options);
+        // const asset = await assetsService.retrieveVersionById(req.params.stixId, req.params.modified, options);
+        const asset = await assetsService.retrieveVersionById(req.params.stixId, req.params.modified);
         if (!asset) {
             return res.status(404).send('Asset not found.');
         }
