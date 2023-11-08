@@ -1,7 +1,6 @@
 'use strict';
 
 const uuid = require('uuid');
-const util = require('util');
 
 const Technique = require('../models/technique-model');
 const systemConfigurationService = require('./system-configuration-service');
