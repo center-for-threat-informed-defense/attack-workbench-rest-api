@@ -2,7 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
-const { ModelName } = require('../lib/attack-prefix-ids');
+const { ModelName } = require('../lib/model-names');
 
 const matrixProperties = {
     // x-mitre-matrix specific properties
