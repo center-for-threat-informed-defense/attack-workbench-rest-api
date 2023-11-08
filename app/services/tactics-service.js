@@ -3,7 +3,6 @@
 
 const util = require('util');
 
-const Tactic = require('../models/tactic-model');
 const config = require('../config/config');
 
 const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
@@ -12,10 +11,7 @@ const BaseService = require('./_base.service');
 const TacticsRepository = require('../repository/tactics-repository');
 
 class TacticsService extends BaseService {
-    constructor () {
-        super(TacticsRepository, Tactic);
-        this.retrieveAllTechniques = null;
-    }
+    static retrieveAllTechniques = null;
 
     static techniqueMatchesTactic(tactic) {
         return function(technique) {
@@ -37,9 +33,9 @@ class TacticsService extends BaseService {
 
     async retrieveTechniquesForTactic (stixId, modified, options) {
         // Late binding to avoid circular dependency between modules
-        if (!this.retrieveAllTechniques) {
+        if (!TacticsService.retrieveAllTechniques) {
             const techniquesService = require('./techniques-service');
-            this.retrieveAllTechniques = util.promisify(techniquesService.retrieveAll);
+            TacticsService.retrieveAllTechniques = util.promisify(techniquesService.retrieveAll);
         }
 
         // Retrieve the techniques associated with the tactic (the tactic identified by stixId and modified date)
@@ -52,16 +48,16 @@ class TacticsService extends BaseService {
         }
 
         try {
-            const tactic = await Tactic.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+            const tactic = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': modified });
 
             // Note: document is null if not found
             if (!tactic) {
                 return null;
             }
             else {
-                const allTechniques = await this.retrieveAllTechniques({});
-                const filteredTechniques = allTechniques.filter(this.techniqueMatchesTactic(tactic));
-                const pagedResults = this.getPageOfData(filteredTechniques, options);
+                const allTechniques = await TacticsService.retrieveAllTechniques({});
+                const filteredTechniques = allTechniques.filter(TacticsService.techniqueMatchesTactic(tactic));
+                const pagedResults = TacticsService.getPageOfData(filteredTechniques, options);
 
                 if (options.includePagination) {
                     const returnValue = {
@@ -91,4 +87,4 @@ class TacticsService extends BaseService {
 
 }
 
-module.exports = new TacticsService();
+module.exports = new TacticsService('x-mitre-tactic', TacticsRepository);
