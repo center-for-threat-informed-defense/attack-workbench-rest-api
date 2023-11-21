@@ -6,6 +6,7 @@ const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
 const config = require('../config/config');
 const BaseService = require('./_base.service');
+const MarkingDefinitionRepository = require('../repository/marking-definition-repository');
 const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
 
 const errors = {
