@@ -5,6 +5,7 @@ const Identity = require('../models/identity-model');
 const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
+const identitiesRepository = require('../repository/identities-repository');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -115,8 +116,6 @@ class IdentitiesService extends BaseService {
         }
     }
 
-    this.addCreatedByAndModifiedByIdentities = addCreatedByAndModifiedByIdentities;
-
     async addCreatedByAndModifiedByIdentitiesToAll(attackObjects) {
         const identityCache = new Map();
         const userAccountCache = new Map();
@@ -127,3 +126,5 @@ class IdentitiesService extends BaseService {
     }
 
 }
+
+module.exports = new IdentitiesService('x-mitre-identity', identitiesRepository);
