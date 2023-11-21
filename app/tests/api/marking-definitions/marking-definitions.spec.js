@@ -1,4 +1,4 @@
-const const res = await request = require('supertest');
+const res = require('supertest');
 const { expect } = require('expect');
 
 const database = require('../../../lib/database-in-memory');
