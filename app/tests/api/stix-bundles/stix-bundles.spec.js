@@ -616,148 +616,108 @@ describe('STIX Bundles Basic API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('POST /api/collection-bundles imports a collection bundle', function (done) {
+    it('POST /api/collection-bundles imports a collection bundle', async function () {
         const body = initialObjectData;
-        request(app)
+        const res = await request(app)
             .post('/api/collection-bundles')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get the created collection object
-                    const collection = res.body;
-                    expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(24);
-                    expect(collection.workspace.import_categories.errors.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created collection object
+        const collection = res.body;
+        expect(collection).toBeDefined();
+        expect(collection.workspace.import_categories.additions.length).toBe(24);
+        expect(collection.workspace.import_categories.errors.length).toBe(0);
     });
 
-    it('GET /api/stix-bundles exports an empty STIX bundle', function (done) {
-        request(app)
+    it('GET /api/stix-bundles exports an empty STIX bundle', async function () {
+        const res = await request(app)
             .get('/api/stix-bundles?domain=not-a-domain')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get the exported STIX bundle
-                    const stixBundle = res.body;
-                    expect(stixBundle).toBeDefined();
-                    expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    expect(stixBundle.objects.length).toBe(0);
-                    done();
-                }
-            });
+            .expect(200);
+
+        // We expect to get the exported STIX bundle
+        const stixBundle = res.body;
+        expect(stixBundle).toBeDefined();
+        expect(Array.isArray(stixBundle.objects)).toBe(true);
+        expect(stixBundle.objects.length).toBe(0);
+ 
     });
 
-    it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain', function (done) {
-        request(app)
+    it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain', async function () {
+        const res = await request(app)
             .get(`/api/stix-bundles?domain=${ enterpriseDomain }&includeNotes=true`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the exported STIX bundle
-                    const stixBundle = res.body;
-                    expect(stixBundle).toBeDefined();
-                    expect(Array.isArray(stixBundle.objects)).toBe(true);
+            .expect('Content-Type', /json/);
 
-                    // 4 primary objects, 7 relationship objects, 6 secondary objects,
-                    // 1 note, 1 identity, 1 marking definition
-                    //printBundleCount(stixBundle);
-                    expect(stixBundle.objects.length).toBe(20);
+        // We expect to get the exported STIX bundle
+        const stixBundle = res.body;
+        expect(stixBundle).toBeDefined();
+        expect(Array.isArray(stixBundle.objects)).toBe(true);
 
-                    done();
-                }
-            });
+        // 4 primary objects, 7 relationship objects, 6 secondary objects,
+        // 1 note, 1 identity, 1 marking definition
+        //printBundleCount(stixBundle);
+        expect(stixBundle.objects.length).toBe(20);
+
     });
 
-    it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain including deprecated objects', function (done) {
-        request(app)
+    it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain including deprecated objects', async function () {
+        const res = await request(app)
             .get(`/api/stix-bundles?domain=${ enterpriseDomain }&includeDeprecated=true&includeNotes=true`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the exported STIX bundle
-                    const stixBundle = res.body;
-                    expect(stixBundle).toBeDefined();
-                    expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    // 5 primary objects, 7 relationship objects, 6 secondary objects,
-                    // 1 note, 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(21);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the exported STIX bundle
+        const stixBundle = res.body;
+        expect(stixBundle).toBeDefined();
+        expect(Array.isArray(stixBundle.objects)).toBe(true);
+        // 5 primary objects, 7 relationship objects, 6 secondary objects,
+        // 1 note, 1 identity, 1 marking definition
+        expect(stixBundle.objects.length).toBe(21);
     });
 
-    it('GET /api/stix-bundles exports the STIX bundle for the mobile domain', function (done) {
-        request(app)
+    it('GET /api/stix-bundles exports the STIX bundle for the mobile domain', async function () {
+        const res = await request(app)
             .get(`/api/stix-bundles?domain=${ mobileDomain }`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the exported STIX bundle
-                    const stixBundle = res.body;
-                    expect(stixBundle).toBeDefined();
-                    expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    // 1 primary objects, 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(3);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the exported STIX bundle
+        const stixBundle = res.body;
+        expect(stixBundle).toBeDefined();
+        expect(Array.isArray(stixBundle.objects)).toBe(true);
+        // 1 primary objects, 1 identity, 1 marking definition
+        expect(stixBundle.objects.length).toBe(3);
+
     });
 
-    it('GET /api/stix-bundles exports the STIX bundle for the ics domain', function (done) {
-        request(app)
+    it('GET /api/stix-bundles exports the STIX bundle for the ics domain', async function () {
+        const res = await request(app)
             .get(`/api/stix-bundles?domain=${ icsDomain }`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the exported STIX bundle
-                    const stixBundle = res.body;
-                    expect(stixBundle).toBeDefined();
-                    expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    // 2 primary objects, 2 relationship objects, 3 secondary object,
-                    // 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(9);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the exported STIX bundle
+        const stixBundle = res.body;
+        expect(stixBundle).toBeDefined();
+        expect(Array.isArray(stixBundle.objects)).toBe(true);
+        // 2 primary objects, 2 relationship objects, 3 secondary object,
+        // 1 identity, 1 marking definition
+        expect(stixBundle.objects.length).toBe(9);
+
     });
 
     after(async function() {
