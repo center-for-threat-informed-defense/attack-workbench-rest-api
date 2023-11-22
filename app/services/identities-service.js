@@ -6,6 +6,7 @@ const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
 const identitiesRepository = require('../repository/identities-repository');
+const BaseService = require('./_base.service');
 
 const errors = {
     missingParameter: 'Missing required parameter',
