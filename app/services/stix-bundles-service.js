@@ -12,6 +12,7 @@ const Relationship = require('../models/relationship-model');
 const Software = require('../models/software-model');
 const Tactic = require('../models/tactic-model');
 const Technique = require('../models/technique-model');
+const StixBundleRepository = require('../repository/stix-bundles-repository');
 
 const linkById = require('../lib/linkById');
 const config = require("../config/config");
@@ -576,3 +577,4 @@ class StixBundlesService extends BaseService {
         return bundle;
     }
 }
+module.exports = new StixBundlesService('x-mitre-stix-bundle', StixBundleRepository)
