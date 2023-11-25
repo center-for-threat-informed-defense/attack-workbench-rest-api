@@ -18,10 +18,6 @@ const { BadlyFormattedParameterError, DuplicateIdError, MissingParameterError } 
 
 class NoteService extends BaseService {
 
-    constructor() {
-        super(NoteRepository, Note);
-    }
-
     async updateVersion(stixId, stixModified, data) {
         if (!stixId) {
             throw new MissingParameterError;
@@ -65,4 +61,4 @@ class NoteService extends BaseService {
 
 }
 
-module.exports = new NoteService();
+module.exports = new NoteService('x-mitre-note', NoteRepository);
