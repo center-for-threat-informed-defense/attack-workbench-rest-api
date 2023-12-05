@@ -1,7 +1,5 @@
 'use strict';
 
-const Campaign = require('../models/campaign-model');
-
 const campaignsRepository = require('../repository/campaigns-repository');
 
 const BaseService = require('./_base.service');
