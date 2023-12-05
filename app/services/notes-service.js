@@ -1,7 +1,5 @@
 'use strict';
 
-const Note = require('../models/note-model');
-
 const errors = {
     missingParameter: 'Missing required parameter',
     badlyFormattedParameter: 'Badly formatted parameter',
@@ -27,7 +25,7 @@ class NoteService extends BaseService {
             throw new MissingParameterError;
         }
         try {
-            const document = await this.model.findOne({ 'stix.id': stixId, 'stix.modified': stixModified });
+            const document = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': stixModified });
 
             if (!document) {
                 // document not found
@@ -61,4 +59,4 @@ class NoteService extends BaseService {
 
 }
 
-module.exports = new NoteService('x-mitre-note', NoteRepository);
+module.exports = new NoteService('note', NoteRepository);
