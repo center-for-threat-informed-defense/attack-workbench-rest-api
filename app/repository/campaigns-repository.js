@@ -5,9 +5,6 @@ const Campaign = require('../models/campaign-model');
 
 class CampaignRepository extends BaseRepository {
 
-    constructor() {
-        super(Campaign);
-    }
 }
 
-module.exports = new CampaignRepository();
+module.exports = new CampaignRepository(Campaign);

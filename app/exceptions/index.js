@@ -83,7 +83,7 @@ class NotImplementedError extends CustomError {
 
 class InvalidTypeError extends CustomError {
     constructor(options) {
-        super('Unable to create campaign. stix.type must be campaign', options);
+        super('Invalid stix.type', options);
     }
 }
 

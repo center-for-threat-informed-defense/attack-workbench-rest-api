@@ -1,18 +1,12 @@
 'use strict';
 
-const Campaign = require('../models/campaign-model');
-
 const campaignsRepository = require('../repository/campaigns-repository');
 
 const BaseService = require('./_base.service');
 
 class CampaignService extends BaseService {
 
-    constructor() {
-        super(campaignsRepository, Campaign);
-
-    }
 
 }
 
-module.exports = new CampaignService();
+module.exports = new CampaignService('campaign', campaignsRepository);
