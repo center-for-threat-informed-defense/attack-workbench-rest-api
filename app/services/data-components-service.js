@@ -9,10 +9,6 @@ const BaseService = require('./_base.service');
 
 class DataComponentsService extends BaseService {
 
-    constructor() {
-        super(DataComponentsRepository, DataComponent);
-    }
-
     static async retrieveAllAsync(options) {
         // Build the query
         const query = {};
@@ -96,4 +92,4 @@ class DataComponentsService extends BaseService {
 
 }
 
-module.exports = new DataComponentsService();
+module.exports = new DataComponentsService('x-mitre-data-component', DataComponentsRepository);
