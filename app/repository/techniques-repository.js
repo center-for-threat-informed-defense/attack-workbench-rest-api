@@ -5,9 +5,6 @@ const Technique = require('../models/technique-model');
 
 class TechniqueRepository extends BaseRepository {
 
-    constructor() {
-        super(Technique);
-    }
 }
 
-module.exports = new TechniqueRepository();
+module.exports = new TechniqueRepository(Technique);

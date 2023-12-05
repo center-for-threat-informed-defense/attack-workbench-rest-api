@@ -12,11 +12,9 @@ const BaseService = require('./_base.service');
 
 class TechniquesService extends BaseService {
 
-    constructor() {
-        super(techniquesRepository, Technique);
 
-        this.retrieveAllTactics = null;
-    }
+    static retrieveAllTactics = null;
+
 
     static tacticMatchesTechnique(technique) {
         return function(tactic) {
@@ -40,9 +38,9 @@ class TechniquesService extends BaseService {
 
     async retrieveTacticsForTechnique(stixId, modified, options) {
         // Late binding to avoid circular dependency between modules
-        if (!this.retrieveAllTactics) {
+        if (!retrieveAllTactics) {
             const tacticsService = require('./tactics-service');
-            this.retrieveAllTactics = util.promisify(tacticsService.retrieveAll);
+            retrieveAllTactics = util.promisify(tacticsService.retrieveAll);
         }
 
         // Retrieve the tactics associated with the technique (the technique identified by stixId and modified date)
@@ -92,4 +90,4 @@ class TechniquesService extends BaseService {
     }
 
 }
-module.exports = new TechniquesService();
+module.exports = new TechniquesService('attack-pattern', techniquesRepository);
