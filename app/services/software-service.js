@@ -12,9 +12,6 @@ const BaseService = require('./_base.service');
 const SoftwareRepository = require('../repository/software-repository');
 
 class SoftwareService extends BaseService {
-    constructor () {
-        super(SoftwareRepository, Software);
-    }
 
     static async create(data, options) {
         // This function handles two use cases:
@@ -95,4 +92,4 @@ class SoftwareService extends BaseService {
 
 }
 
-module.exports = new SoftwareService();
+module.exports = new SoftwareService(SoftwareRepository);
