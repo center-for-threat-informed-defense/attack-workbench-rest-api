@@ -1,12 +1,12 @@
 'use strict';
 
 const uuid = require('uuid');
-const util = require('util');
 
 const Technique = require('../models/technique-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
 const attackObjectsService = require('./attack-objects-service');
+const tacticsService = require('./tactics-service');
 const config = require('../config/config');
 const regexValidator = require('../lib/regex');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
@@ -406,14 +406,7 @@ function getPageOfData(data, options) {
     return data.slice(startPos, endPos);
 }
 
-let retrieveAllTactics;
 exports.retrieveTacticsForTechnique = async function(stixId, modified, options) {
-    // Late binding to avoid circular dependency between modules
-    if (!retrieveAllTactics) {
-        const tacticsService = require('./tactics-service');
-        retrieveAllTactics = util.promisify(tacticsService.retrieveAll);
-    }
-
     // Retrieve the tactics associated with the technique (the technique identified by stixId and modified date)
     if (!stixId) {
         const error = new Error(errors.missingParameter);
@@ -434,7 +427,7 @@ exports.retrieveTacticsForTechnique = async function(stixId, modified, options) 
             return null;
         }
         else {
-            const allTactics = await retrieveAllTactics({});
+            const allTactics = await tacticsService.retrieveAll({});
             const filteredTactics = allTactics.filter(tacticMatchesTechnique(technique));
             const pagedResults = getPageOfData(filteredTactics, options);
 

@@ -3,7 +3,7 @@
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 const workspaceDefinitions = require('./subschemas/workspace');
-const { ModelName } = require('../lib/attack-prefix-ids');
+const { ModelName } = require('../lib/model-names');
 
 const xMitreContent = {
     object_ref: { type: String, required: true },
