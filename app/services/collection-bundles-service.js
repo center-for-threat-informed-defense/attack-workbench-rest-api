@@ -464,7 +464,7 @@ exports.importBundle = function(collection, data, options, callback) {
                                                     });
                                             }
                                             else {
-                                                service.create(newObject, function (err, savedObject) {
+                                                service.create(newObject, { import: true }, function (err, savedObject) {
                                                     if (err) {
                                                         if (err.message === service.errors.duplicateId) {
                                                             // We've checked for this already, so this shouldn't occur

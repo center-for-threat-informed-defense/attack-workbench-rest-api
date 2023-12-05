@@ -50,204 +50,146 @@ describe('Tactics API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('GET /api/tactics returns an empty array of tactics', function (done) {
-        request(app)
+    it('GET /api/tactics returns an empty array of tactics', async function () {
+        const res = await request(app)
             .get('/api/tactics')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(0);             
     });
 
-    it('POST /api/tactics does not create an empty tactic', function (done) {
+    it('POST /api/tactics does not create an empty tactic', async function () {
         const body = { };
-        request(app)
+        await request(app) 
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
     let tactic1;
-    it('POST /api/tactics creates a tactic', function (done) {
+    it('POST /api/tactics creates a tactic', async function () {
         const timestamp = new Date().toISOString();
         initialObjectData.stix.created = timestamp;
         initialObjectData.stix.modified = timestamp;
         const body = initialObjectData;
-        request(app)
+        const res = await request(app)
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created tactic
-                    tactic1 = res.body;
-                    expect(tactic1).toBeDefined();
-                    expect(tactic1.stix).toBeDefined();
-                    expect(tactic1.stix.id).toBeDefined();
-                    expect(tactic1.stix.created).toBeDefined();
-                    expect(tactic1.stix.modified).toBeDefined();
-                    expect(tactic1.stix.created_by_ref).toBeDefined();
-                    expect(tactic1.stix.x_mitre_modified_by_ref).toBeDefined();
-                    expect(tactic1.stix.created_by_ref).toBe(tactic1.stix.x_mitre_modified_by_ref);
-                    expect(tactic1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the created tactic
+        tactic1 = res.body;
+        expect(tactic1).toBeDefined();
+        expect(tactic1.stix).toBeDefined();
+        expect(tactic1.stix.id).toBeDefined();
+        expect(tactic1.stix.created).toBeDefined();
+        expect(tactic1.stix.modified).toBeDefined();
+        expect(tactic1.stix.created_by_ref).toBeDefined();
+        expect(tactic1.stix.x_mitre_modified_by_ref).toBeDefined();
+        expect(tactic1.stix.created_by_ref).toBe(tactic1.stix.x_mitre_modified_by_ref);
+        expect(tactic1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
     });
 
-    it('GET /api/tactics returns the added tactic', function (done) {
-        request(app)
+    it('GET /api/tactics returns the added tactic', async function () {
+        const res = await request(app)
             .get('/api/tactics')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one tactic in an array
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one tactic in an array
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(1);
     });
 
-    it('GET /api/tactics/:id should not return a tactic when the id cannot be found', function (done) {
-        request(app)
+    it('GET /api/tactics/:id should not return a tactic when the id cannot be found', async function () {
+        await request(app)
             .get('/api/tactics/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(404);
     });
 
-    it('GET /api/tactics/:id returns the added tactic', function (done) {
-        request(app)
+    it('GET /api/tactics/:id returns the added tactic', async function () {
+        const res = await request(app)
             .get('/api/tactics/' + tactic1.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one tactic in an array
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    const tactic = tactics[0];
-                    expect(tactic).toBeDefined();
-                    expect(tactic.stix).toBeDefined();
-                    expect(tactic.stix.id).toBe(tactic1.stix.id);
-                    expect(tactic.stix.type).toBe(tactic1.stix.type);
-                    expect(tactic.stix.name).toBe(tactic1.stix.name);
-                    expect(tactic.stix.description).toBe(tactic1.stix.description);
-                    expect(tactic.stix.spec_version).toBe(tactic1.stix.spec_version);
-                    expect(tactic.stix.object_marking_refs).toEqual(expect.arrayContaining(tactic1.stix.object_marking_refs));
-                    expect(tactic.stix.created_by_ref).toBe(tactic1.stix.created_by_ref);
-                    expect(tactic.stix.x_mitre_modified_by_ref).toBe(tactic1.stix.x_mitre_modified_by_ref);
-                    expect(tactic.stix.x_mitre_attack_spec_version).toBe(tactic1.stix.x_mitre_attack_spec_version);
+        // We expect to get one tactic in an array
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(1);
 
-                    expect(tactic.stix.x_mitre_deprecated).not.toBeDefined();
+        const tactic = tactics[0];
+        expect(tactic).toBeDefined();
+        expect(tactic.stix).toBeDefined();
+        expect(tactic.stix.id).toBe(tactic1.stix.id);
+        expect(tactic.stix.type).toBe(tactic1.stix.type);
+        expect(tactic.stix.name).toBe(tactic1.stix.name);
+        expect(tactic.stix.description).toBe(tactic1.stix.description);
+        expect(tactic.stix.spec_version).toBe(tactic1.stix.spec_version);
+        expect(tactic.stix.object_marking_refs).toEqual(expect.arrayContaining(tactic1.stix.object_marking_refs));
+        expect(tactic.stix.created_by_ref).toBe(tactic1.stix.created_by_ref);
+        expect(tactic.stix.x_mitre_modified_by_ref).toBe(tactic1.stix.x_mitre_modified_by_ref);
+        expect(tactic.stix.x_mitre_attack_spec_version).toBe(tactic1.stix.x_mitre_attack_spec_version);
 
-                    done();
-                }
-            });
+        expect(tactic.stix.x_mitre_deprecated).not.toBeDefined();
     });
 
-    it('PUT /api/tactics updates a tactic', function (done) {
+    it('PUT /api/tactics updates a tactic', async function () {
         const originalModified = tactic1.stix.modified;
         const timestamp = new Date().toISOString();
         tactic1.stix.modified = timestamp;
         tactic1.stix.description = 'This is an updated tactic.'
         const body = tactic1;
-        request(app)
+        const res = await request(app)
             .put('/api/tactics/' + tactic1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the updated tactic
-                    const tactic = res.body;
-                    expect(tactic).toBeDefined();
-                    expect(tactic.stix.id).toBe(tactic1.stix.id);
-                    expect(tactic.stix.modified).toBe(tactic1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the updated tactic
+        const tactic = res.body;
+        expect(tactic).toBeDefined();
+        expect(tactic.stix.id).toBe(tactic1.stix.id);
+        expect(tactic.stix.modified).toBe(tactic1.stix.modified);
+
     });
 
-    it('POST /api/tactics does not create a tactic with the same id and modified date', function (done) {
+    it('POST /api/tactics does not create a tactic with the same id and modified date', async function () {
         const body = tactic1;
-        request(app)
+        // We expect to get the created tactic
+        await request(app)
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(409)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(409);
     });
 
     let tactic2;
-    it('POST /api/tactics should create a new version of a tactic with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/tactics should create a new version of a tactic with a duplicate stix.id but different stix.modified date', async function () {
         tactic2 = _.cloneDeep(tactic1);
         tactic2._id = undefined;
         tactic2.__t = undefined;
@@ -256,28 +198,22 @@ describe('Tactics API', function () {
         tactic2.stix.description = 'Still a tactic. Red.'
         tactic2.stix.modified = timestamp;
         const body = tactic2;
-        request(app)
+        const res = await request(app)
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created tactic
-                    const tactic = res.body;
-                    expect(tactic).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+        
+        // We expect to get the created tactic
+        const tactic = res.body;
+        expect(tactic).toBeDefined();
+
     });
     
     let tactic3;
-    it('POST /api/tactics should create a new version of a tactic with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/tactics should create a new version of a tactic with a duplicate stix.id but different stix.modified date', async function () {
         tactic3 = _.cloneDeep(tactic1);
         tactic3._id = undefined;
         tactic3.__t = undefined;
@@ -286,236 +222,161 @@ describe('Tactics API', function () {
         tactic3.stix.description = 'Still a tactic. Violet.'
         tactic3.stix.modified = timestamp;
         const body = tactic3;
-        request(app)
+        const res = await request(app)
             .post('/api/tactics')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created tactic
-                    const tactic = res.body;
-                    expect(tactic).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+            
+        // We expect to get the created tactic
+        const tactic = res.body;
+        expect(tactic).toBeDefined();
     });
     
 
-    it('GET /api/tactics returns the latest added tactic', function (done) {
-        request(app)
+    it('GET /api/tactics returns the latest added tactic', async function () {
+        const res = await request(app)
             .get('/api/tactics/' + tactic3.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one tactic in an array
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(1);
-                    const tactic = tactics[0];
-                    expect(tactic.stix.id).toBe(tactic3.stix.id);
-                    expect(tactic.stix.modified).toBe(tactic3.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one tactic in an array
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(1);
+        const tactic = tactics[0];
+        expect(tactic.stix.id).toBe(tactic3.stix.id);
+        expect(tactic.stix.modified).toBe(tactic3.stix.modified);
+
     });
 
-    it('GET /api/tactics returns all added tactics', function (done) {
-        request(app)
+    it('GET /api/tactics returns all added tactics', async function () {
+        const res = await request(app)
             .get('/api/tactics/' + tactic1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get two tactics in an array
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get two tactics in an array
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(3);
+
     });
 
-    it('GET /api/tactics/:id/modified/:modified returns the first added tactic', function (done) {
-        request(app)
+    it('GET /api/tactics/:id/modified/:modified returns the first added tactic', async function () {
+        const res = await request(app)
             .get('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one tactic in an array
-                    const tactic = res.body;
-                    expect(tactic).toBeDefined();
-                    expect(tactic.stix).toBeDefined();
-                    expect(tactic.stix.id).toBe(tactic1.stix.id);
-                    expect(tactic.stix.modified).toBe(tactic1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one tactic in an array
+        const tactic = res.body;
+        expect(tactic).toBeDefined();
+        expect(tactic.stix).toBeDefined();
+        expect(tactic.stix.id).toBe(tactic1.stix.id);
+        expect(tactic.stix.modified).toBe(tactic1.stix.modified);
+
     });
 
-    it('GET /api/tactics/:id/modified/:modified returns the second added tactic', function (done) {
-        request(app)
+    it('GET /api/tactics/:id/modified/:modified returns the second added tactic', async function () {
+        const res = await request(app)
             .get('/api/tactics/' + tactic2.stix.id + '/modified/' + tactic2.stix.modified)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one tactic in an array
-                    const tactic = res.body;
-                    expect(tactic).toBeDefined();
-                    expect(tactic.stix).toBeDefined();
-                    expect(tactic.stix.id).toBe(tactic2.stix.id);
-                    expect(tactic.stix.modified).toBe(tactic2.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one tactic in an array
+        const tactic = res.body;
+        expect(tactic).toBeDefined();
+        expect(tactic.stix).toBeDefined();
+        expect(tactic.stix.id).toBe(tactic2.stix.id);
+        expect(tactic.stix.modified).toBe(tactic2.stix.modified);
     });
 
-    it('GET /api/tactics uses the search parameter to return the latest version of the tactic', function (done) {
-        request(app)
+    it('GET /api/tactics uses the search parameter to return the latest version of the tactic', async function () {
+        const res = await request(app)
             .get('/api/tactics?search=violet')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one tactic in an array
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    // We expect it to be the latest version of the tactic
-                    const tactic = tactics[0];
-                    expect(tactic).toBeDefined();
-                    expect(tactic.stix).toBeDefined();
-                    expect(tactic.stix.id).toBe(tactic3.stix.id);
-                    expect(tactic.stix.modified).toBe(tactic3.stix.modified);
-                    done();
-                }
-            });
+        // We expect to get one tactic in an array
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(1);
+
+        // We expect it to be the latest version of the tactic
+        const tactic = tactics[0];
+        expect(tactic).toBeDefined();
+        expect(tactic.stix).toBeDefined();
+        expect(tactic.stix.id).toBe(tactic3.stix.id);
+        expect(tactic.stix.modified).toBe(tactic3.stix.modified);
+
     });
 
-    it('GET /api/tactics should not get the first version of the tactic when using the search parameter', function (done) {
-        request(app)
+    it('GET /api/tactics should not get the first version of the tactic when using the search parameter', async function () {
+        const res = await request(app)
             .get('/api/tactics?search=yellow')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get zero tactics in an array
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get zero tactics in an array
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(0);
+
     });
 
-    it('DELETE /api/tactics/:id should not delete a tactic when the id cannot be found', function (done) {
-        request(app)
+    it('DELETE /api/tactics/:id should not delete a tactic when the id cannot be found', async function () {
+        await request(app)
             .delete('/api/tactics/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(404);
     });
 
-    it('DELETE /api/tactics/:id/modified/:modified deletes a tactic', function (done) {
-        request(app)
+    it('DELETE /api/tactics/:id/modified/:modified deletes a tactic', async function () {
+        await request(app)
             .delete('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
     });
         
-    it('DELETE /api/tactics/:id should delete all the tactics with the same stix id', function (done) {
-        request(app)
+    it('DELETE /api/tactics/:id should delete all the tactics with the same stix id', async function () {
+        await request(app)
             .delete('/api/tactics/' + tactic2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
     });    
 	
-    it('GET /api/tactics returns an empty array of tactics', function (done) {
-        request(app)
+    it('GET /api/tactics returns an empty array of tactics', async function () {
+        const res = await request(app)
             .get('/api/tactics')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const tactics = res.body;
-                    expect(tactics).toBeDefined();
-                    expect(Array.isArray(tactics)).toBe(true);
-                    expect(tactics.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        const tactics = res.body;
+        expect(tactics).toBeDefined();
+        expect(Array.isArray(tactics)).toBe(true);
+        expect(tactics.length).toBe(0);
+
     });
 
     after(async function() {

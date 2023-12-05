@@ -1,19 +1,10 @@
 'use strict';
 
-const util = require('util');
+const uuid = require('uuid');
 
 const Technique = require('../models/technique-model');
 const config = require('../config/config');
 const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
-
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
-exports.errors = errors;
 
 const techniquesRepository = require('../repository/techniques-repository');
 

@@ -14,6 +14,23 @@
       "program": "${workspaceFolder}/bin/www",
       "outputCapture": "std",
       "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run Regression Tests",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "runtimeExecutable": "npm",
+      "args": [
+        "run",
+        "test"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "outputCapture": "std",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }
