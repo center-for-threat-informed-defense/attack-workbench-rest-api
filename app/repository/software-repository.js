@@ -5,9 +5,6 @@ const Software = require('../models/software-model');
 
 class SoftwareRepository extends BaseRepository {
 
-    constructor() {
-        super(Software);
-    }
 }
 
-module.exports = new SoftwareRepository();
+module.exports = new SoftwareRepository(Software);
