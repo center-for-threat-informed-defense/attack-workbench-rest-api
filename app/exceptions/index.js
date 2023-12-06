@@ -117,10 +117,7 @@ module.exports = {
     IdentityServiceError,
     TechniquesServiceError,
     TacticsServiceError,
-<<<<<<< HEAD
     MissingPropertyError,
     PropertyNotAllowedError,
-=======
-    InvalidTypeError
->>>>>>> project-orion
+    InvalidTypeError,
 };
