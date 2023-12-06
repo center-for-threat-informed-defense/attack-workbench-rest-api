@@ -5,9 +5,6 @@ const DataComponent = require('../models/data-component-model');
 
 class DataComponentsRepository extends BaseRepository {
 
-    constructor() {
-        super(DataComponent);
-    }
 }
 
-module.exports = new DataComponentsRepository();
+module.exports = new DataComponentsRepository(DataComponent);
