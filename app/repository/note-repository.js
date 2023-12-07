@@ -8,10 +8,6 @@ const { DatabaseError } = require('../exceptions');
 
 class NoteRepository extends BaseRepository {
 
-    constructor() {
-        super(Note);
-    }
-
     async retrieveAll(options) {
         try {
             // Build the query
@@ -82,4 +78,4 @@ class NoteRepository extends BaseRepository {
     }
 }
 
-module.exports = new NoteRepository();
+module.exports = new NoteRepository(Note);
