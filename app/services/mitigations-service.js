@@ -8,4 +8,4 @@ class MitigationsService extends BaseService {
 
 }
 
-module.exports = new MitigationsService('intrusion-set', mitigationsRepository);
+module.exports = new MitigationsService('course-of-action', mitigationsRepository);
