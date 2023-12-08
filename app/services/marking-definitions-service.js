@@ -81,4 +81,4 @@ class MarkingDefinitionsService extends BaseService {
 
 }
 
-module.exports = new MarkingDefinitionsService('x-mitre-marking-definition', MarkingDefinitionRepository);
+module.exports = new MarkingDefinitionsService('marking-definition', MarkingDefinitionRepository);
