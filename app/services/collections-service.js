@@ -29,10 +29,6 @@ const { MissingParameterError, NotFoundError } = require('../exceptions');
 
 class CollectionsService extends BaseService {
 
-    constructor() {
-        super(collectionsRepository, Collection);
-    }
-
     async getContents(objectList) {
         asyncLib.mapLimit(
             objectList,
@@ -184,4 +180,4 @@ class CollectionsService extends BaseService {
 
 }
 
-module.exports = new CollectionsService();
+module.exports = new CollectionsService('x-mitre-collection', collectionsRepository);
