@@ -2,7 +2,7 @@
 
 const relationshipsRepository = require('../repository/relationships-repository');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
-
+const BaseService = require('./_base.service');
 const errors = {
     missingParameter: 'Missing required parameter',
     badlyFormattedParameter: 'Badly formatted parameter',
