@@ -128,4 +128,4 @@ class IdentitiesService extends BaseService {
 
 }
 
-module.exports = new IdentitiesService('x-mitre-identity', identitiesRepository);
+module.exports = new IdentitiesService('identity', identitiesRepository);
