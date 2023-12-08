@@ -1,3 +1,4 @@
+const request = require('supertest');
 const res = require('supertest');
 const { expect } = require('expect');
 
