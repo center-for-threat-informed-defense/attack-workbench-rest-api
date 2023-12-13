@@ -8,6 +8,10 @@ const { DuplicateIdError, BadlyFormattedParameterError, MissingParameterError } 
 
 class ReferencesService {
 
+    constructor() {
+        this.model = Reference;
+    }
+
     async retrieveAll(options) {
         // Build the text search
         let textSearch;
