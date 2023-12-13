@@ -2,7 +2,7 @@
 
 const Reference = require('../models/reference-model');
 
-const ReferenceRepository = require('../repository/references-repository');
+// const ReferenceRepository = require('../repository/references-repository');
 
 const { DuplicateIdError, BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
@@ -72,7 +72,7 @@ class ReferencesService {
         else {
             return results[0].documents;
         }
-    };
+    }
     
     async create(data) {
         // Create the document
@@ -92,7 +92,7 @@ class ReferencesService {
                 throw err;
             }
         }
-    };
+    }
     
     async update(data) {
         // Note: source_name is used as the key and cannot be updated
@@ -124,7 +124,7 @@ class ReferencesService {
                 throw err;
             }
         }
-    };
+    }
 
     async deleteBySourceName(sourceName) {
         if (!sourceName) {
