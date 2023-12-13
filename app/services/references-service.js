@@ -4,14 +4,9 @@ const Reference = require('../models/reference-model');
 
 const ReferenceRepository = require('../repository/references-repository');
 
-const BaseService = require('./_base.service');
 const { DuplicateIdError, BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
-class ReferencesService extends BaseService {
-
-    constructor() {
-        super(ReferenceRepository, Reference);
-    }
+class ReferencesService {
 
     async retrieveAll(options) {
         // Build the text search
@@ -53,7 +48,7 @@ class ReferencesService extends BaseService {
         aggregation.push(facet);
     
         // Retrieve the documents
-        const results = await this.model.aggregate(aggregation);
+        const results = await Reference.aggregate(aggregation);
     
         if (options.includePagination) {
             let derivedTotalCount = 0;
@@ -73,11 +68,11 @@ class ReferencesService extends BaseService {
         else {
             return results[0].documents;
         }
-    }
-
+    };
+    
     async create(data) {
         // Create the document
-        const reference = new this.model(data);
+        const reference = new Reference(data);
     
         // Save the document in the database
         try {
@@ -86,14 +81,15 @@ class ReferencesService extends BaseService {
         }
         catch(err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
+                // 11000 = Duplicate index
                 throw new DuplicateIdError;
             } else {
                 console.log(`name: ${err.name} code: ${err.code}`);
                 throw err;
             }
         }
-    }
-
+    };
+    
     async update(data) {
         // Note: source_name is used as the key and cannot be updated
         if (!data.source_name) {
@@ -101,7 +97,7 @@ class ReferencesService extends BaseService {
         }
     
         try {
-            const document = await this.model.findOne({ 'source_name': data.source_name });
+            const document = await Reference.findOne({ 'source_name': data.source_name });
             if (!document) {
                 // document not found
                 return null;
@@ -118,12 +114,13 @@ class ReferencesService extends BaseService {
                 throw new BadlyFormattedParameterError;
             }
             else  if (err.name === 'MongoServerError' && err.code === 11000) {
+                // 11000 = Duplicate index
                 throw new DuplicateIdError;
             } else {
                 throw err;
             }
         }
-    }
+    };
 
     async deleteBySourceName(sourceName) {
         if (!sourceName) {
