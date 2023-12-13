@@ -1,31 +1,14 @@
 'use strict';
 
-const util = require('util');
-
-const Technique = require('../models/technique-model');
 const config = require('../config/config');
+
 const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
-exports.errors = errors;
-
-const techniquesRepository = require('../repository/techniques-repository');
-
 const BaseService = require('./_base.service');
+const TechniquesRepository = require('../repository/techniques-repository');
 
 class TechniquesService extends BaseService {
-
-    constructor() {
-        super(techniquesRepository, Technique);
-
-        this.retrieveAllTactics = null;
-    }
+    static tacticsService = null;
 
     static tacticMatchesTechnique(technique) {
         return function(tactic) {
@@ -46,12 +29,10 @@ class TechniquesService extends BaseService {
         return data.slice(startPos, endPos);
     }
 
-
     async retrieveTacticsForTechnique(stixId, modified, options) {
         // Late binding to avoid circular dependency between modules
-        if (!this.retrieveAllTactics) {
-            const tacticsService = require('./tactics-service');
-            this.retrieveAllTactics = util.promisify(tacticsService.retrieveAll);
+        if (!TechniquesService.tacticsService) {
+            TechniquesService.tacticsService = require('./tactics-service');
         }
 
         // Retrieve the tactics associated with the technique (the technique identified by stixId and modified date)
@@ -64,15 +45,15 @@ class TechniquesService extends BaseService {
         }
 
         try {
-            const technique = await Technique.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+            const technique = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': modified });
             if (!technique) {
                 // Note: document is null if not found
                 return null;
             }
             else {
-                const allTactics = await this.retrieveAllTactics({});
-                const filteredTactics = allTactics.filter(this.tacticMatchesTechnique(technique));
-                const pagedResults = this.getPageOfData(filteredTactics, options);
+                const allTactics = await TechniquesService.tacticsService.retrieveAll({});
+                const filteredTactics = allTactics.filter(TechniquesService.tacticMatchesTechnique(technique));
+                const pagedResults = TechniquesService.getPageOfData(filteredTactics, options);
 
                 if (options.includePagination) {
                     const returnValue = {
@@ -99,6 +80,6 @@ class TechniquesService extends BaseService {
             }
         }
     }
-
 }
-module.exports = new TechniquesService();
+
+module.exports = new TechniquesService('attack-pattern', TechniquesRepository);
