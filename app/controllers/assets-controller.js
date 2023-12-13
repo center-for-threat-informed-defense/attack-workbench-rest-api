@@ -2,6 +2,7 @@
 
 const assetsService = require('../services/assets-service');
 const logger = require('../lib/logger');
+const { DuplicateIdError, BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
 
 exports.retrieveAll = async function(req, res) {
     const options = {
@@ -50,15 +51,13 @@ exports.retrieveById = async function(req, res) {
         }
     }
     catch(err) {
-        if (err.message === assetsService.errors.badlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
-        }
-        else if (err.message === assetsService.errors.invalidQueryStringParameter) {
+        } else if (err instanceof InvalidQueryStringParameterError) {
             logger.warn('Invalid query string: versions=' + req.query.versions);
             return res.status(400).send('Query string parameter versions is invalid.');
-        }
-        else {
+        } else {
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get assets. Server error.');
         }
@@ -67,12 +66,15 @@ exports.retrieveById = async function(req, res) {
 };
 
 exports.retrieveVersionById = async function(req, res) {
-    const options = {
-        retrieveDataComponents: req.query.retrieveDataComponents
-    }
+
+    // TODO Remove after confirming these are not being used by assetsService.retrieveVersionById
+    // const options = {
+    //     retrieveDataComponents: req.query.retrieveDataComponents
+    // }
 
     try {
-        const asset = await assetsService.retrieveVersionById(req.params.stixId, req.params.modified, options);
+        // const asset = await assetsService.retrieveVersionById(req.params.stixId, req.params.modified, options);
+        const asset = await assetsService.retrieveVersionById(req.params.stixId, req.params.modified);
         if (!asset) {
             return res.status(404).send('Asset not found.');
         }
@@ -82,7 +84,7 @@ exports.retrieveVersionById = async function(req, res) {
         }
     }
     catch(err) {
-        if (err.message === assetsService.errors.badlyFormattedParameter) {
+        if (err instanceof BadlyFormattedParameterError) {
             logger.warn('Badly formatted stix id: ' + req.params.stixId);
             return res.status(400).send('Stix id is badly formatted.');
         }
@@ -108,7 +110,7 @@ exports.create = async function(req, res) {
         return res.status(201).send(asset);
     }
     catch(err) {
-        if (err.message === assetsService.errors.duplicateId) {
+        if (err instanceof DuplicateIdError) {
             logger.warn("Duplicate stix.id and stix.modified");
             return res.status(409).send('Unable to create asset. Duplicate stix.id and stix.modified properties.');
         }
