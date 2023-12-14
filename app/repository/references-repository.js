@@ -73,7 +73,7 @@ class ReferenceRepository {
     
     async create(data) {
         // Create the document
-        const reference = new Reference(data);
+        const reference = new this.model(data);
     
         // Save the document in the database
         try {

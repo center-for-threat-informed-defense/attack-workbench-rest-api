@@ -9,19 +9,23 @@ class ReferencesService {
     }
 
     async retrieveAll(options) {
-        return this.repository.retrieveAll(options);
+        const res = await this.repository.retrieveAll(options);
+        return res;
     }
     
     async create(data) {
-        return this.repository.create(data);
+        const res = await this.repository.create(data);
+        return res;
     }
     
     async update(data) {
-        return this.repository.update(data);
+        const res = await this.repository.update(data);
+        return res;
     }
 
     async deleteBySourceName(sourceName) {
-        return this.repository.deleteBySourceName(sourceName);
+        const res = await this.repository.deleteBySourceName(sourceName);
+        return res;
     }
 
 }
