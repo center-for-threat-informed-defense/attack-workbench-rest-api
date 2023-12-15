@@ -93,6 +93,12 @@ class PropertyNotAllowedError extends CustomError {
     }
 }
 
+class InvalidTypeError extends CustomError {
+    constructor(options) {
+        super('Invalid stix.type', options);
+    }
+}
+
 module.exports = {
 
     //** General errors */
@@ -115,4 +121,5 @@ module.exports = {
     TacticsServiceError,
     MissingPropertyError,
     PropertyNotAllowedError,
+    InvalidTypeError
 };

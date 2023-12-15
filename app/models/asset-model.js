@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const { ModelName } = require('../lib/model-names');
 
 const relatedAsset = {
     name: { type: String, required: true },
@@ -39,6 +40,6 @@ const assetDefinition = {
 const assetSchema = new mongoose.Schema(assetDefinition);
 
 // Create the model
-const AssetModel = AttackObject.discriminator('Asset', assetSchema);
+const AssetModel = AttackObject.discriminator(ModelName.Asset, assetSchema);
 
 module.exports = AssetModel;

@@ -4,10 +4,6 @@ const { DatabaseError, DuplicateIdError } = require('../exceptions');
 
 class UserAccountsRepository extends BaseRepository {
 
-    constructor() {
-        super(UserAccount);
-    }
-
     async retrieveOneByEmail(email) {
         try {
             return await this.model.findOne({ 'email': email }).lean().exec();
@@ -58,4 +54,4 @@ class UserAccountsRepository extends BaseRepository {
 
 }
 
-module.exports = new UserAccountsRepository();
+module.exports = new UserAccountsRepository(UserAccount);

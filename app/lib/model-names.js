@@ -6,6 +6,7 @@
  * @enum {string}
  */
 exports.ModelName = {
+    Asset: "Asset",
     Campaign: "Campaign",
     Collection: "Collection",
     DataComponent: "Data-Component",

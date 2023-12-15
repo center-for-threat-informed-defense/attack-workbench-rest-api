@@ -31,6 +31,22 @@ class BaseRepository extends AbstractRepository {
                     query['workspace.workflow.state'] = options.state;
                 }
             }
+            if (typeof options.domain !== 'undefined') {
+                if (Array.isArray(options.domain)) {
+                    query['stix.x_mitre_domains'] = { $in: options.domain };
+                }
+                else {
+                    query['stix.x_mitre_domains'] = options.domain;
+                }
+            }
+            if (typeof options.platform !== 'undefined') {
+                if (Array.isArray(options.platform)) {
+                    query['stix.x_mitre_platforms'] = { $in: options.platform };
+                }
+                else {
+                    query['stix.x_mitre_platforms'] = options.platform;
+                }
+            }
             if (typeof options.lastUpdatedBy !== 'undefined') {
                 query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
             }
@@ -53,7 +69,8 @@ class BaseRepository extends AbstractRepository {
                     $match: {
                         $or: [
                             { 'stix.name': { '$regex': options.search, '$options': 'i' } },
-                            { 'stix.description': { '$regex': options.search, '$options': 'i' } }
+                            { 'stix.description': { '$regex': options.search, '$options': 'i' } },
+                            { 'workspace.attack_id': { '$regex': options.search, '$options': 'i' } }
                         ]
                     }
                 };
