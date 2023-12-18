@@ -1,13 +1,8 @@
 'use strict';
 
-const uuid = require('uuid');
-const DataSource = require('../models/data-source-model');
-const systemConfigurationService = require('./system-configuration-service');
+const DataSourceRepository = require('../repository/data-source-repository');
 const identitiesService = require('./identities-service');
 const dataComponentsService = require('./data-components-service');
-const attackObjectsService = require('./attack-objects-service');
-const config = require('../config/config');
-const regexValidator = require('../lib/regex');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 const BaseService = require('./_base.service');
 
@@ -50,4 +45,4 @@ class DataSourcesService extends BaseService {
 
 }
 
-module.exports = new DataSourcesService('x-mitre-data-source', matrixRepository);
+module.exports = new DataSourcesService('x-mitre-data-source', DataSourceRepository);
