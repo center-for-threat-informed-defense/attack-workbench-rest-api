@@ -150,244 +150,178 @@ describe('Techniques Query API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('GET /api/techniques should return the preloaded techniques (not deprecated, not revoked)', function (done) {
-        request(app)
+    it('GET /api/techniques should return the preloaded techniques (not deprecated, not revoked)', async function () {
+        const res = await request(app)
             .get('/api/techniques')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // Expect techniques 1, 2, 6, and 7
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(4);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // Expect techniques 1, 2, 6, and 7
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(4);
+
     });
 
-    it('GET /api/techniques should return techniques with x_mitre_deprecated not set to true (false or undefined)', function (done) {
-        request(app)
+    it('GET /api/techniques should return techniques with x_mitre_deprecated not set to true (false or undefined)', async function () {
+        const res = await request(app)
             .get('/api/techniques?includeDeprecated=false')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // Expect techniques 1, 2, 6, and 7
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(4);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // Expect techniques 1, 2, 6, and 7
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(4);
+
     });
 
-    it('GET /api/techniques should include deprecated techniques (excluding revoked)', function (done) {
-        request(app)
+    it('GET /api/techniques should include deprecated techniques (excluding revoked)', async function () {
+        const res = await request(app)
             .get('/api/techniques?includeDeprecated=true')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // Expect techniques 1, 2, 3, 6, and 7
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(5);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // Expect techniques 1, 2, 3, 6, and 7
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(5);
+
     });
 
-    it('GET /api/techniques should return techniques with revoked not set to true (false or undefined)', function (done) {
-        request(app)
+    it('GET /api/techniques should return techniques with revoked not set to true (false or undefined)', async function () {
+        const res = await request(app)
             .get('/api/techniques?includeRevoked=false')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // Expect techniques 1,2, 6, and 7
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(4);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // Expect techniques 1,2, 6, and 7
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(4);
+
     });
 
-    it('GET /api/techniques should include revoked techniques (but not deprecated)', function (done) {
-        request(app)
+    it('GET /api/techniques should include revoked techniques (but not deprecated)', async function () {
+        const res = await request(app)
             .get('/api/techniques?includeRevoked=true')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // Expect techniques 1, 2, 4, 6, and 7
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(5);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // Expect techniques 1, 2, 4, 6, and 7
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(5);
+
     });
 
-    it('GET /api/techniques should return techniques with workflow.state set to work-in-progress', function (done) {
-        request(app)
+    it('GET /api/techniques should return techniques with workflow.state set to work-in-progress', async function () {
+        const res = await request(app)
             .get('/api/techniques?state=work-in-progress')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // Expect techniques 2 and 6
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(2);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // Expect techniques 2 and 6
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(2);
+
     });
 
-    it('GET /api/techniques should return techniques with workflow.state set to work-in-progress or reviewed', function (done) {
-        request(app)
+    it('GET /api/techniques should return techniques with workflow.state set to work-in-progress or reviewed', async function () {
+        const res = await request(app)
             .get('/api/techniques?state=work-in-progress&state=reviewed')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // Expect techniques 2, 6, and 7
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // Expect techniques 2, 6, and 7
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(3);
+
     });
 
-    it('GET /api/techniques should return techniques containing the domain', function (done) {
-        request(app)
+    it('GET /api/techniques should return techniques containing the domain', async function () {
+        const res = await request(app)
             .get('/api/techniques?domain=mobile-attack')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // Expect technique 2
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // Expect technique 2
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(1);
+
     });
 
-    it('GET /api/techniques should not return any techniques when searching for a non-existent domain', function (done) {
-        request(app)
+    it('GET /api/techniques should not return any techniques when searching for a non-existent domain', async function () {
+        const res = await request(app)
             .get('/api/techniques?domain=not-a-domain')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(0);
+
     });
 
-    it('GET /api/techniques should return techniques containing the platform', function (done) {
-        request(app)
+    it('GET /api/techniques should return techniques containing the platform', async function () {
+        const res = await request(app)
             .get('/api/techniques?platform=platform-3')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // Expect technique 2
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // Expect technique 2
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(1);
+
     });
 
-    it('GET /api/techniques should not return any techniques when searching for a non-existent platform', function (done) {
-        request(app)
+    it('GET /api/techniques should not return any techniques when searching for a non-existent platform', async function () {
+        const res = await request(app)
             .get('/api/techniques?platform=not-a-platform')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    const techniques = res.body;
-                    expect(techniques).toBeDefined();
-                    expect(Array.isArray(techniques)).toBe(true);
-                    expect(techniques.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        const techniques = res.body;
+        expect(techniques).toBeDefined();
+        expect(Array.isArray(techniques)).toBe(true);
+        expect(techniques.length).toBe(0);
+
     });
 
     after(async function() {
