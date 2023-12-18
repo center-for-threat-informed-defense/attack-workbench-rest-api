@@ -64,7 +64,7 @@ class MarkingDefinitionsService extends BaseService {
         });
     };
 
-    async delete(stixId, callback) {
+    async delete(stixId) {
         if (!stixId) {
             throw new MissingParameterError;
         }
@@ -72,7 +72,7 @@ class MarkingDefinitionsService extends BaseService {
         try {
             const markingDefinition = await MarkingDefinition.findOneAndRemove({ 'stix.id': stixId });
             //Note: markingDefinition is null if not found
-            return markingDefinition
+            return markingDefinition;
         } catch (err) {
             throw err;
         }
@@ -81,4 +81,4 @@ class MarkingDefinitionsService extends BaseService {
 
 }
 
-module.exports = new MarkingDefinitionsService('x-mitre-marking-definition', MarkingDefinitionRepository);
+module.exports = new MarkingDefinitionsService('marking-definition', MarkingDefinitionRepository);

@@ -1,3 +1,4 @@
+const request = require('supertest');
 const res = require('supertest');
 const { expect } = require('expect');
 
@@ -127,7 +128,7 @@ describe('Marking Definitions API', function () {
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
+            .expect('Content-Type', /json/);
 
         // We expect to get one marking definition in an array
         const markingDefinitions = res.body;
