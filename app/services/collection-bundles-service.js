@@ -30,6 +30,7 @@ const systemConfigurationService = require("./system-configuration-service");
 
 const linkById = require('../lib/linkById');
 const Note = require("../models/note-model");
+const { DuplicateIdError } = require("../exceptions");
 
 const forceImportParameters = {
     attackSpecVersionViolations: 'attack-spec-version-violations',
@@ -440,52 +441,27 @@ exports.importBundle = function(collection, data, options, callback) {
                                                 });
                                         }
                                         else {
-                                            if (service.createIsAsync) {
-                                                service.create(newObject, { import: true })
-                                                    .then(function(savedObject) {
-                                                        return callback2a();
-                                                    })
-                                                    .catch(function(err) {
-                                                        if (err.message === service.errors.duplicateId) {
-                                                            // We've checked for this already, so this shouldn't occur
-                                                            return callback2a(err);
-                                                        } else {
-                                                            // Record the error, but don't cancel the import
-                                                            const importError = {
-                                                                object_ref: importObject.id,
-                                                                object_modified: importObject.modified,
-                                                                error_type: importErrors.saveError,
-                                                                error_message: err.message
-                                                            }
-                                                            logger.verbose(`Import Bundle Error: Unable to save object. id = ${ importObject.id }, modified = ${ importObject.modified }, ${ err.message }`);
-                                                            importedCollection.workspace.import_categories.errors.push(importError);
-                                                            return callback2a();
-                                                        }
-                                                    });
-                                            }
-                                            else {
-                                                service.create(newObject, { import: true }, function (err, savedObject) {
-                                                    if (err) {
-                                                        if (err.message === service.errors.duplicateId) {
-                                                            // We've checked for this already, so this shouldn't occur
-                                                            return callback2a(err);
-                                                        } else {
-                                                            // Record the error, but don't cancel the import
-                                                            const importError = {
-                                                                object_ref: importObject.id,
-                                                                object_modified: importObject.modified,
-                                                                error_type: importErrors.saveError,
-                                                                error_message: err.message
-                                                            }
-                                                            logger.verbose(`Import Bundle Error: Unable to save object. id = ${ importObject.id }, modified = ${ importObject.modified }, ${ err.message }`);
-                                                            importedCollection.workspace.import_categories.errors.push(importError);
-                                                            return callback2a();
-                                                        }
+                                            service.create(newObject, { import: true })
+                                                .then(function(savedObject) {
+                                                    return callback2a();
+                                                })
+                                                .catch(function(err) {
+                                                    if (err.message === service.errors?.duplicateId || err instanceof DuplicateIdError) {
+                                                        // We've checked for this already, so this shouldn't occur
+                                                        return callback2a(err);
                                                     } else {
+                                                        // Record the error, but don't cancel the import
+                                                        const importError = {
+                                                            object_ref: importObject.id,
+                                                            object_modified: importObject.modified,
+                                                            error_type: importErrors.saveError,
+                                                            error_message: err.message
+                                                        }
+                                                        logger.verbose(`Import Bundle Error: Unable to save object. id = ${ importObject.id }, modified = ${ importObject.modified }, ${ err.message }`);
+                                                        importedCollection.workspace.import_categories.errors.push(importError);
                                                         return callback2a();
                                                     }
                                                 });
-                                            }
                                         }
                                     }
                                 }
