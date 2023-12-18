@@ -22,7 +22,7 @@ const errors = {
 };
 exports.errors = errors;
 
-class StixBundlesService extends BaseService {
+class StixBundlesService {
     // Retrieve the attack object from the database using its STIX ID
     async getAttackObject(stixId) {
         const attackObject = await AttackObject
