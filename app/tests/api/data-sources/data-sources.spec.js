@@ -129,149 +129,110 @@ describe('Data Sources API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('GET /api/data-sources returns an empty array of data sources', function (done) {
-        request(app)
+    it('GET /api/data-sources returns an empty array of data sources', async function () {
+        const res = await request(app)
             .get('/api/data-sources')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const dataSources = res.body;
-                    expect(dataSources).toBeDefined();
-                    expect(Array.isArray(dataSources)).toBe(true);
-                    expect(dataSources.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+        // We expect to get an empty array
+        const dataSources = res.body;
+        expect(dataSources).toBeDefined();
+        expect(Array.isArray(dataSources)).toBe(true);
+        expect(dataSources.length).toBe(0);
     });
 
-    it('POST /api/data-sources does not create an empty data source', function (done) {
+    it('POST /api/data-sources does not create an empty data source', async function () {
         const body = { };
-        request(app)
+        const res = await request(app)
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
+
     });
 
     let dataSource1;
-    it('POST /api/data-sources creates a data source', function (done) {
+    it('POST /api/data-sources creates a data source', async function () {
         const timestamp = new Date().toISOString();
         initialDataSourceData.stix.created = timestamp;
         initialDataSourceData.stix.modified = timestamp;
         const body = initialDataSourceData;
-        request(app)
+        const res = await request(app)
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created data source
-                    dataSource1 = res.body;
-                    expect(dataSource1).toBeDefined();
-                    expect(dataSource1.stix).toBeDefined();
-                    expect(dataSource1.stix.id).toBeDefined();
-                    expect(dataSource1.stix.created).toBeDefined();
-                    expect(dataSource1.stix.modified).toBeDefined();
-                    expect(dataSource1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the created data source
+        dataSource1 = res.body;
+        expect(dataSource1).toBeDefined();
+        expect(dataSource1.stix).toBeDefined();
+        expect(dataSource1.stix.id).toBeDefined();
+        expect(dataSource1.stix.created).toBeDefined();
+        expect(dataSource1.stix.modified).toBeDefined();
+        expect(dataSource1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
+
     });
 
-    it('GET /api/data-sources returns the added data source', function (done) {
-        request(app)
+    it('GET /api/data-sources returns the added data source', async function () {
+        const res = await request(app)
             .get('/api/data-sources')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one data source in an array
-                    const dataSource = res.body;
-                    expect(dataSource).toBeDefined();
-                    expect(Array.isArray(dataSource)).toBe(true);
-                    expect(dataSource.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one data source in an array
+        const dataSource = res.body;
+        expect(dataSource).toBeDefined();
+        expect(Array.isArray(dataSource)).toBe(true);
+        expect(dataSource.length).toBe(1);
+
     });
 
-    it('GET /api/data-sources/:id should not return a data source when the id cannot be found', function (done) {
-        request(app)
+    it('GET /api/data-sources/:id should not return a data source when the id cannot be found', async function () {
+        const res = await request(app)
             .get('/api/data-sources/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(404);
+
     });
 
-    it('GET /api/data-sources/:id returns the added data source', function (done) {
-        request(app)
+    it('GET /api/data-sources/:id returns the added data source', async function () {
+        const res = await request(app)
             .get('/api/data-sources/' + dataSource1.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one data source in an array
-                    const dataSources = res.body;
-                    expect(dataSources).toBeDefined();
-                    expect(Array.isArray(dataSources)).toBe(true);
-                    expect(dataSources.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    const dataSource = dataSources[0];
-                    expect(dataSource).toBeDefined();
-                    expect(dataSource.stix).toBeDefined();
-                    expect(dataSource.stix.id).toBe(dataSource1.stix.id);
-                    expect(dataSource.stix.type).toBe(dataSource1.stix.type);
-                    expect(dataSource.stix.name).toBe(dataSource1.stix.name);
-                    expect(dataSource.stix.description).toBe(dataSource1.stix.description);
-                    expect(dataSource.stix.spec_version).toBe(dataSource1.stix.spec_version);
-                    expect(dataSource.stix.object_marking_refs).toEqual(expect.arrayContaining(dataSource1.stix.object_marking_refs));
-                    expect(dataSource.stix.created_by_ref).toBe(dataSource1.stix.created_by_ref);
-                    expect(dataSource.stix.x_mitre_version).toBe(dataSource1.stix.x_mitre_version);
-                    expect(dataSource.stix.x_mitre_attack_spec_version).toBe(dataSource1.stix.x_mitre_attack_spec_version);
+        // We expect to get one data source in an array
+        const dataSources = res.body;
+        expect(dataSources).toBeDefined();
+        expect(Array.isArray(dataSources)).toBe(true);
+        expect(dataSources.length).toBe(1);
 
-                    done();
-                }
-            });
+        const dataSource = dataSources[0];
+        expect(dataSource).toBeDefined();
+        expect(dataSource.stix).toBeDefined();
+        expect(dataSource.stix.id).toBe(dataSource1.stix.id);
+        expect(dataSource.stix.type).toBe(dataSource1.stix.type);
+        expect(dataSource.stix.name).toBe(dataSource1.stix.name);
+        expect(dataSource.stix.description).toBe(dataSource1.stix.description);
+        expect(dataSource.stix.spec_version).toBe(dataSource1.stix.spec_version);
+        expect(dataSource.stix.object_marking_refs).toEqual(expect.arrayContaining(dataSource1.stix.object_marking_refs));
+        expect(dataSource.stix.created_by_ref).toBe(dataSource1.stix.created_by_ref);
+        expect(dataSource.stix.x_mitre_version).toBe(dataSource1.stix.x_mitre_version);
+        expect(dataSource.stix.x_mitre_attack_spec_version).toBe(dataSource1.stix.x_mitre_attack_spec_version);
+
+
     });
 
     it('GET /api/data-sources/:id returns the added data source with data components', async function () {
@@ -298,54 +259,41 @@ describe('Data Sources API', function () {
         expect(dataSource.dataComponents.length).toBe(5);
     });
 
-    it('PUT /api/data-sources updates a data source', function (done) {
+    it('PUT /api/data-sources updates a data source', async function () {
         const originalModified = dataSource1.stix.modified;
         const timestamp = new Date().toISOString();
         dataSource1.stix.modified = timestamp;
         dataSource1.stix.description = 'This is an updated data source.'
         const body = dataSource1;
-        request(app)
+        const res = await request(app)
             .put('/api/data-sources/' + dataSource1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the updated data source
-                    const dataSource = res.body;
-                    expect(dataSource).toBeDefined();
-                    expect(dataSource.stix.id).toBe(dataSource1.stix.id);
-                    expect(dataSource.stix.modified).toBe(dataSource1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the updated data source
+        const dataSource = res.body;
+        expect(dataSource).toBeDefined();
+        expect(dataSource.stix.id).toBe(dataSource1.stix.id);
+        expect(dataSource.stix.modified).toBe(dataSource1.stix.modified);
+
     });
 
-    it('POST /api/data-sources does not create a data source with the same id and modified date', function (done) {
+    it('POST /api/data-sources does not create a data source with the same id and modified date', async function () {
         const body = dataSource1;
-        request(app)
+        const res = await request(app)
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(409)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(409);
+
     });
 
     let dataSource2;
-    it('POST /api/data-sources should create a new version of a data source with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/data-sources should create a new version of a data source with a duplicate stix.id but different stix.modified date', async function () {
         dataSource2 = _.cloneDeep(dataSource1);
         dataSource2._id = undefined;
         dataSource2.__t = undefined;
@@ -353,121 +301,91 @@ describe('Data Sources API', function () {
         const timestamp = new Date().toISOString();
         dataSource2.stix.modified = timestamp;
         const body = dataSource2;
-        request(app)
+        const res = await request(app)
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created data source
-                    const dataSource = res.body;
-                    expect(dataSource).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created data source
+        const dataSource = res.body;
+        expect(dataSource).toBeDefined();
+
     });
 
-    it('GET /api/data-sources returns the latest added data source', function (done) {
-        request(app)
+    it('GET /api/data-sources returns the latest added data source', async function () {
+        const res = await request(app)
             .get('/api/data-sources/' + dataSource2.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one data source in an array
-                    const dataSources = res.body;
-                    expect(dataSources).toBeDefined();
-                    expect(Array.isArray(dataSources)).toBe(true);
-                    expect(dataSources.length).toBe(1);
-                    const dataSource = dataSources[0];
-                    expect(dataSource.stix.id).toBe(dataSource2.stix.id);
-                    expect(dataSource.stix.modified).toBe(dataSource2.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one data source in an array
+        const dataSources = res.body;
+        expect(dataSources).toBeDefined();
+        expect(Array.isArray(dataSources)).toBe(true);
+        expect(dataSources.length).toBe(1);
+        const dataSource = dataSources[0];
+        expect(dataSource.stix.id).toBe(dataSource2.stix.id);
+        expect(dataSource.stix.modified).toBe(dataSource2.stix.modified);
+
     });
 
-    it('GET /api/data-sources returns all added data source', function (done) {
-        request(app)
+    it('GET /api/data-sources returns all added data source', async function () {
+        const res = await request(app)
             .get('/api/data-sources/' + dataSource1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get two data sources in an array
-                    const dataSources = res.body;
-                    expect(dataSources).toBeDefined();
-                    expect(Array.isArray(dataSources)).toBe(true);
-                    expect(dataSources.length).toBe(2);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get two data sources in an array
+        const dataSources = res.body;
+        expect(dataSources).toBeDefined();
+        expect(Array.isArray(dataSources)).toBe(true);
+        expect(dataSources.length).toBe(2);
+
     });
 
-    it('GET /api/data-sources/:id/modified/:modified returns the first added data source', function (done) {
-        request(app)
+    it('GET /api/data-sources/:id/modified/:modified returns the first added data source', async function () {
+        const res = await request(app)
             .get('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one data source in an array
-                    const dataSource = res.body;
-                    expect(dataSource).toBeDefined();
-                    expect(dataSource.stix).toBeDefined();
-                    expect(dataSource.stix.id).toBe(dataSource1.stix.id);
-                    expect(dataSource.stix.modified).toBe(dataSource1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one data source in an array
+        const dataSource = res.body;
+        expect(dataSource).toBeDefined();
+        expect(dataSource.stix).toBeDefined();
+        expect(dataSource.stix.id).toBe(dataSource1.stix.id);
+        expect(dataSource.stix.modified).toBe(dataSource1.stix.modified);
+
     });
 
-    it('GET /api/data-sources/:id/modified/:modified returns the second added data source', function (done) {
-        request(app)
+    it('GET /api/data-sources/:id/modified/:modified returns the second added data source', async function () {
+        const res = await request(app)
             .get('/api/data-sources/' + dataSource2.stix.id + '/modified/' + dataSource2.stix.modified)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one data source in an array
-                    const dataSource = res.body;
-                    expect(dataSource).toBeDefined();
-                    expect(dataSource.stix).toBeDefined();
-                    expect(dataSource.stix.id).toBe(dataSource2.stix.id);
-                    expect(dataSource.stix.modified).toBe(dataSource2.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one data source in an array
+        const dataSource = res.body;
+        expect(dataSource).toBeDefined();
+        expect(dataSource.stix).toBeDefined();
+        expect(dataSource.stix.id).toBe(dataSource2.stix.id);
+        expect(dataSource.stix.modified).toBe(dataSource2.stix.modified);
+
     });
 
     let dataSource3;
-    it('POST /api/data-sources should create a new version of a data source with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/data-sources should create a new version of a data source with a duplicate stix.id but different stix.modified date', async function () {
         dataSource3 = _.cloneDeep(dataSource1);
         dataSource3._id = undefined;
         dataSource3.__t = undefined;
@@ -475,91 +393,58 @@ describe('Data Sources API', function () {
         const timestamp = new Date().toISOString();
         dataSource3.stix.modified = timestamp;
         const body = dataSource3;
-        request(app)
+        const res = await request(app)
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created data source
-                    const dataSource = res.body;
-                    expect(dataSource).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created data source
+        const dataSource = res.body;
+        expect(dataSource).toBeDefined();
+
     });
 
-    it('DELETE /api/data-sources/:id should not delete a data source when the id cannot be found', function (done) {
-        request(app)
+    it('DELETE /api/data-sources/:id should not delete a data source when the id cannot be found', async function () {
+        const res = await request(app)
             .delete('/api/data-sources/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(404);
+
     });
 
-    it('DELETE /api/data-sources/:id/modified/:modified deletes a data source', function (done) {
-        request(app)
+    it('DELETE /api/data-sources/:id/modified/:modified deletes a data source', async function () {
+        const res = await request(app)
             .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
+
     });
 
-    it('DELETE /api/data-sources/:id should delete all the data sources with the same stix id', function (done) {
-        request(app)
+    it('DELETE /api/data-sources/:id should delete all the data sources with the same stix id', async function () {
+        const res = await request(app)
             .delete('/api/data-sources/' + dataSource2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
+
     });
 
-    it('GET /api/data-sources returns an empty array of data sources', function (done) {
-        request(app)
+    it('GET /api/data-sources returns an empty array of data sources', async function () {
+        const res = await request(app)
             .get('/api/data-sources')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const dataSources = res.body;
-                    expect(dataSources).toBeDefined();
-                    expect(Array.isArray(dataSources)).toBe(true);
-                    expect(dataSources.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const dataSources = res.body;
+        expect(dataSources).toBeDefined();
+        expect(Array.isArray(dataSources)).toBe(true);
+        expect(dataSources.length).toBe(0);
+
     });
 
     after(async function() {
