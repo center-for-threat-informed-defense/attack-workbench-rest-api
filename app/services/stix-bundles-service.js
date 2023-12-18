@@ -3,7 +3,6 @@
 /* eslint-disable no-await-in-loop */
 
 const uuid = require('uuid');
-const BaseService = require('./_base.service');
 const AttackObject = require('../models/attack-object-model');
 const Matrix = require('../models/matrix-model');
 const Mitigation = require('../models/mitigation-model');
@@ -23,6 +22,12 @@ const errors = {
 exports.errors = errors;
 
 class StixBundlesService {
+
+    constructor(type, repository) {
+        this.type = type;
+        this.repository = repository;
+    }
+
     // Retrieve the attack object from the database using its STIX ID
     async getAttackObject(stixId) {
         const attackObject = await AttackObject
@@ -577,4 +582,4 @@ class StixBundlesService {
         return bundle;
     }
 }
-module.exports = new StixBundlesService('x-mitre-stix-bundle', StixBundleRepository)
+module.exports = new StixBundlesService('x-mitre-asset', StixBundleRepository)
