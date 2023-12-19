@@ -32,12 +32,14 @@ describe('App Configuration', function () {
     });
 
     it('The static marking definitions should be created', function(done) {
+        console.log("Calling retrieveall");
         const options = {};
         markingDefinitionsService.retrieveAll(options, function(err, markingDefinitions) {
             if (err) {
                 done(err);
             }
             else {
+                console.log("succeeded!");
                 // We expect to get two marking definitions
                 expect(markingDefinitions).toBeDefined();
                 expect(Array.isArray(markingDefinitions)).toBe(true);

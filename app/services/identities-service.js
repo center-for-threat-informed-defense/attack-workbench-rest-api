@@ -145,16 +145,16 @@ class IdentitiesService extends BaseService {
 
     async addCreatedByAndModifiedByIdentities(attackObject, identityCache, userAccountCache) {
         if (attackObject && attackObject.stix && attackObject.stix.created_by_ref) {
-            await addCreatedByIdentity(attackObject, identityCache);
+            await this.addCreatedByIdentity(attackObject, identityCache);
         }
 
         if (attackObject && attackObject.stix && attackObject.stix.x_mitre_modified_by_ref) {
-            await addModifiedByIdentity(attackObject, identityCache);
+            await this.addModifiedByIdentity(attackObject, identityCache);
         }
 
         // Add user account data
         if (attackObject?.workspace?.workflow?.created_by_user_account) {
-            await addCreatedByUserAccountWithCache(attackObject, userAccountCache);
+            await this.addCreatedByUserAccountWithCache(attackObject, userAccountCache);
         }
     }
 
@@ -163,7 +163,7 @@ class IdentitiesService extends BaseService {
         const userAccountCache = new Map();
         for (const attackObject of attackObjects) {
             // eslint-disable-next-line no-await-in-loop
-            await addCreatedByAndModifiedByIdentities(attackObject, identityCache, userAccountCache);
+            await this.addCreatedByAndModifiedByIdentities(attackObject, identityCache, userAccountCache);
         }
     }
 

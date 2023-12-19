@@ -82,6 +82,8 @@ exports.retrieveAll = function(options, callback) {
                     else {
                         return callback(null, results[0].documents);
                     }
+                }).catch(function(err) {
+                    console.log(err);
                 });
         }
     });
