@@ -29,6 +29,33 @@ const { MissingParameterError, NotFoundError } = require('../exceptions');
 
 class CollectionsService extends BaseService {
 
+    createIsAsync = true;
+    async create(data, options) {
+        // Create the document
+
+        // Save the document in the database
+        let insertionErrors = [];
+        try {
+            const savedCollection = await super.create(data, options);
+
+            if (options.addObjectsToCollection) {
+                insertionErrors = await this.addObjectsToCollection(savedCollection.stix.x_mitre_contents, savedCollection.stix.id, savedCollection.stix.modified);
+            }
+
+            return { savedCollection, insertionErrors };
+        }
+        catch (err) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                // 11000 = Duplicate index
+                const error = new Error(errors.duplicateId);
+                throw error;
+            }
+            else {
+                throw err;
+            }
+        }
+    };
+
     async getContents(objectList) {
         asyncLib.mapLimit(
             objectList,
