@@ -14,6 +14,8 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 // modified and created properties will be set before calling REST API
 const initialCollectionData = {
     workspace: {
+        workflow: {
+        },
         imported: new Date().toISOString(),
         import_categories: {
             additions: [],
