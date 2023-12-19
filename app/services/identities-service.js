@@ -7,6 +7,7 @@ const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
 const identitiesRepository = require('../repository/identities-repository');
 const BaseService = require('./_base.service');
+const { DuplicateIdError } = require('../exceptions');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -18,6 +19,46 @@ const errors = {
 exports.errors = errors;
 
 class IdentitiesService extends BaseService {
+
+    createIsAsync = true;
+    async create(data, options) {
+        // This function handles two use cases:
+        //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+        //      provided.
+        //   2. This is a new version of an existing object. Create a new object with the specified id.
+        //   Do not set the created_by_ref or x_mitre_modified_by_ref properties.
+
+        options = options || {};
+        if (!options.import) {
+            // Set the ATT&CK Spec Version
+            data.stix.x_mitre_attack_spec_version = data.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+
+            // Record the user account that created the object
+            if (options.userAccountId) {
+                data.workspace.workflow.created_by_user_account = options.userAccountId;
+            }
+
+            // Set the default marking definitions
+            await attackObjectsService.setDefaultMarkingDefinitions(data);
+
+            // Assign a new STIX id if not already provided
+            data.stix.id = data.stix.id || `identity--${uuid.v4()}`;
+        }
+
+        // Save the document in the database
+        try {
+            const savedIdentity = await identitiesRepository.save(data);
+            return savedIdentity;
+        }
+        catch (err) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                throw new DuplicateIdError;
+            }
+            else {
+                throw err;
+            }
+        }
+    };
 
     async getLatest(stixId) {
         const identity = await Identity
