@@ -10,6 +10,7 @@ const { PropertyNotAllowedError, DuplicateIdError } = require('../exceptions');
 
 const BaseService = require('./_base.service');
 const SoftwareRepository = require('../repository/software-repository');
+const softwareRepository = require('../repository/software-repository');
 
 class SoftwareService extends BaseService {
 
@@ -27,9 +28,41 @@ class SoftwareService extends BaseService {
         else if (data.stix && data.stix.type === 'tool' && data.stix.is_family !== undefined) {
             throw new PropertyNotAllowedError;
         }
-        
-        super.create(data, options);
+    
+        if (existingObject) {
+            // New version of an existing object
+            // Only set the x_mitre_modified_by_ref property
+            data.x_mitre_modified_by_ref = organizationIdentityRef;
+        }
+        else {
+            // New object
+            // Assign a new STIX id if not already provided
+            if (data.type === 'tool') {
+                data.id = data.id || `tool--${uuid.v4()}`;
+            }
+            else {
+                data.id = data.id || `malware--${uuid.v4()}`;
+            }
 
+            // Set the created_by_ref and x_mitre_modified_by_ref properties
+            data.created_by_ref = organizationIdentityRef;
+            data.x_mitre_modified_by_ref = organizationIdentityRef;
+        }
+    
+        // Save the document in the database
+        try {
+            const savedSoftware = await softwareRepository.save(data);
+            return savedSoftware;
+        }
+        catch(err) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                // 11000 = Duplicate index
+               throw new DuplicateIdError;
+            }
+            else {
+                throw err;
+            }
+        }
     }
 
 }
