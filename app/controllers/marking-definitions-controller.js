@@ -2,7 +2,7 @@
 
 const markingDefinitionsService = require('../services/marking-definitions-service');
 const logger = require('../lib/logger');
-const { BadlyFormattedParameterError } = require('../exceptions');
+const { BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
 
 // NOTE: A marking definition does not support the modified or revoked properties!!
 
@@ -45,7 +45,7 @@ exports.retrieveById = async function(req, res) {
                 logger.warn('Badly formatted stix id: ' + req.params.stixId);
                 return res.status(400).send('Stix id is badly formatted.');
             }
-            else if (err.message === markingDefinitionsService.errors.invalidQueryStringParameter) {
+            else if (err instanceof InvalidQueryStringParameterError) {
                 logger.warn('Invalid query string: versions=' + req.query.versions);
                 return res.status(400).send('Query string parameter versions is invalid.');
             }
@@ -60,12 +60,13 @@ exports.create = async function(req, res) {
     // Get the data from the request
     const markingDefinitionData = req.body;
 
+    const options = {
+        import: false,
+        userAccountId: req.user?.userAccountId
+    };
+
     // Create the marking definition
     try {
-        const options = {
-            import: false,
-            userAccountId: req.user?.userAccountId
-        };
         const markingDefinition = await markingDefinitionsService.create(markingDefinitionData, options);
         logger.debug("Success: Created marking definition with id " + markingDefinition.stix.id);
         return res.status(201).send(markingDefinition);
