@@ -1,10 +1,9 @@
 'use strict';
 
  const Reference = require('../models/reference-model');
- const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
+ const { BadlyFormattedParameterError, DuplicateIdError, DatabaseError } = require('../exceptions');
 
-class ReferenceRepository {
-
+class ReferencesRepository {
     constructor(model) {
         this.model = model;
     }
@@ -49,29 +48,10 @@ class ReferenceRepository {
         aggregation.push(facet);
     
         // Retrieve the documents
-        const results = await this.model.aggregate(aggregation);
-    
-        if (options.includePagination) {
-            let derivedTotalCount = 0;
-            if (results[0].totalCount.length > 0) {
-                derivedTotalCount = results[0].totalCount[0].totalCount;
-            }
-            const returnValue = {
-                pagination: {
-                    total: derivedTotalCount,
-                    offset: options.offset,
-                    limit: options.limit
-                },
-                data: results[0].documents
-            };
-            return returnValue;
-        }
-        else {
-            return results[0].documents;
-        }
+        return await this.model.aggregate(aggregation);
     }
     
-    async create(data) {
+    async save(data) {
         // Create the document
         const reference = new this.model(data);
     
@@ -83,20 +63,17 @@ class ReferenceRepository {
         catch(err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
                 // 11000 = Duplicate index
-                throw new DuplicateIdError;
-            } else {
-                console.log(`name: ${err.name} code: ${err.code}`);
-                throw err;
+                throw new DuplicateIdError({
+                    details: `Reference with source_name '${ data.source_name }' already exists.`
+                });
+            }
+            else {
+                throw new DatabaseError(err);
             }
         }
     }
     
-    async update(data) {
-        // Note: source_name is used as the key and cannot be updated
-        if (!data.source_name) {
-            throw new MissingParameterError;
-        }
-    
+    async updateAndSave(data) {
         try {
             const document = await this.model.findOne({ 'source_name': data.source_name });
             if (!document) {
@@ -112,26 +89,22 @@ class ReferenceRepository {
         }
         catch(err) {
             if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError;
+                throw new BadlyFormattedParameterError({ parameterName: 'source_name' });
             }
-            else  if (err.name === 'MongoServerError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                throw new DuplicateIdError;
-            } else {
-                throw err;
+            else {
+                throw new DatabaseError(err);
             }
         }
     }
 
-    async deleteBySourceName(sourceName) {
-        if (!sourceName) {
-            throw new MissingParameterError;
+    async findOneAndRemove(sourceName) {
+        try {
+            return await this.model.findOneAndRemove({ 'source_name': sourceName });
         }
-
-        const deletedReference = await this.model.findOneAndRemove({ 'source_name': sourceName });
-        return deletedReference;
+        catch(err) {
+            throw new DatabaseError(err);
+        }
     }
-
 }
 
-module.exports = new ReferenceRepository(Reference);
+module.exports = new ReferencesRepository(Reference);

@@ -61,11 +61,12 @@ exports.update = async function(req, res) {
     const referenceData = req.body;
 
     // Create the reference
-        try {
+    try {
         const reference = await referencesService.update(referenceData);
         if (!reference) {
             return res.status(404).send('Reference not found.');
-        } else {
+        }
+        else {
             logger.debug('Success: Updated reference with source_name ' + reference.source_name);
             return res.status(200).send(reference);
         }

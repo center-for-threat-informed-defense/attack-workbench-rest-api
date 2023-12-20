@@ -1,33 +1,41 @@
 'use strict';
 
-const ReferenceRepository = require('../repository/references-repository');
+const baseService = require('./_base.service');
+const ReferencesRepository = require('../repository/references-repository');
+const { MissingParameterError } = require('../exceptions');
 
 class ReferencesService {
-
     constructor() {
-        this.repository = ReferenceRepository;
+        this.repository = ReferencesRepository;
     }
 
     async retrieveAll(options) {
-        const res = await this.repository.retrieveAll(options);
-        return res;
+        const results = await this.repository.retrieveAll(options);
+        const paginatedResults = baseService.paginate(options, results);
+
+        return paginatedResults;
     }
     
     async create(data) {
-        const res = await this.repository.create(data);
-        return res;
+        return await this.repository.save(data);
     }
     
     async update(data) {
-        const res = await this.repository.update(data);
-        return res;
+        // Note: source_name is used as the key and cannot be updated
+        if (!data.source_name) {
+            throw new MissingParameterError({ parameterName: 'source_name' });
+        }
+
+        return await this.repository.updateAndSave(data);
     }
 
     async deleteBySourceName(sourceName) {
-        const res = await this.repository.deleteBySourceName(sourceName);
-        return res;
-    }
+        if (!sourceName) {
+            throw new MissingParameterError({ parameterName: 'source_name' });
+        }
 
+        return await this.repository.findOneAndRemove(sourceName);
+    }
 }
 
-module.exports = new ReferencesService(ReferenceRepository);
+module.exports = new ReferencesService(ReferencesRepository);
