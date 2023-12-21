@@ -1,6 +1,6 @@
 'use strict';
 
-const DataSourceRepository = require('../repository/data-source-repository');
+const dataSourceRepository = require('../repository/data-source-repository');
 const identitiesService = require('./identities-service');
 const dataComponentsService = require('./data-components-service');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
@@ -20,14 +20,14 @@ class DataSourcesService extends BaseService {
     async addExtraData(dataSource, retrieveDataComponents) {
         await identitiesService.addCreatedByAndModifiedByIdentities(dataSource);
         if (retrieveDataComponents) {
-            await addDataComponents(dataSource);
+            await this.addDataComponents(dataSource);
         }
     }
 
     async addExtraDataToAll(dataSources, retrieveDataComponents) {
         for (const dataSource of dataSources) {
             // eslint-disable-next-line no-await-in-loop
-            await addExtraData(dataSource, retrieveDataComponents);
+            await this.addExtraData(dataSource, retrieveDataComponents);
         }
     }
 
@@ -45,4 +45,4 @@ class DataSourcesService extends BaseService {
 
 }
 
-module.exports = new DataSourcesService('x-mitre-data-source', DataSourceRepository);
+module.exports = new DataSourcesService('x-mitre-data-source', dataSourceRepository);
