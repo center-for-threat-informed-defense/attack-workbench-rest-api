@@ -147,7 +147,6 @@ class BaseRepository extends AbstractRepository {
 
     // eslint-disable-next-line class-methods-use-this
     async save(data) {
-
         try {
             const document = new this.model(data);
             return await document.save();
