@@ -90,7 +90,7 @@ class ReferencesRepository {
         }
         catch(err) {
             if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError({ parameterName: 'source_name' }).exec();
+                throw new BadlyFormattedParameterError({ parameterName: 'source_name' });
             }
             else {
                 throw new DatabaseError(err);
