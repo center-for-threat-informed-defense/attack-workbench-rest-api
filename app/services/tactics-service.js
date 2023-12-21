@@ -44,7 +44,8 @@ class TacticsService extends BaseService {
         }
 
         try {
-            const tactic = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+            // const tactic = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+            const tactic = await this.repository.retrieveOneByVersion(stixId, modified);
 
             // Note: document is null if not found
             if (!tactic) {
@@ -83,4 +84,4 @@ class TacticsService extends BaseService {
 
 }
 
-module.exports = new TacticsService('x-mitre-tactic', TacticsRepository);
+module.exports = new TacticsService('x-mitre-tactic', tacticsRepository);
