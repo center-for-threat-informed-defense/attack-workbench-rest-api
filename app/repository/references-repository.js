@@ -49,7 +49,7 @@ class ReferencesRepository {
         aggregation.push(facet);
     
         // Retrieve the documents
-        return await this.model.aggregate(aggregation);
+        return await this.model.aggregate(aggregation).exec();
     }
     
     async save(data) {
