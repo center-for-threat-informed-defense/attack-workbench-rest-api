@@ -23,48 +23,8 @@ exports.errors = errors;
 
 class MarkingDefinitionsService extends BaseService {
 
-    async updateFull(stixId, data) {
-        if (!stixId) {
-            throw new MissingParameterError;
-        }
 
-        if (data?.workspace?.workflow?.state === 'static') {
-            throw new Error(errors.cannotUpdateStaticObject);
-        }
-
-        MarkingDefinition.findOne({ 'stix.id': stixId }, function(err, document) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    throw new BadlyFormattedParameterError;
-                }
-                else {
-                    throw err;
-                }
-            }
-            else if (!document) {
-                // document not found
-                return null;
-            }
-            else {
-                // Copy data to found document and save
-                Object.assign(document, data);
-
-                try {
-                    const savedDocument = document.save();
-                    return savedDocument;
-                } catch (err) {
-                    if (err.name === 'MongoServerError' && err.code === 11000) {
-                        throw new DuplicateIdError
-                    }
-                    else {
-                        throw err;
-                    }
-                }
-                }
-        });
-    };
-
-    async delete(stixId, callback) {
+    async delete(stixId) {
         if (!stixId) {
             throw new MissingParameterError;
         }
