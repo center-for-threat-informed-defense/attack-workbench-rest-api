@@ -51,7 +51,7 @@ class SoftwareService extends BaseService {
     
         // Save the document in the database
         try {
-            const savedSoftware = await softwareRepository.save(data);
+            const savedSoftware = await super.create(data, options);
             return savedSoftware;
         }
         catch(err) {
