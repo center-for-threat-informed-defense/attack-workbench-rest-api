@@ -7,7 +7,7 @@ const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
 const identitiesRepository = require('../repository/identities-repository');
 const BaseService = require('./_base.service');
-const { DuplicateIdError } = require('../exceptions');
+const { DuplicateIdError, MissingParameterError, BadlyFormattedParameterError } = require('../exceptions');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -19,6 +19,52 @@ const errors = {
 exports.errors = errors;
 
 class IdentitiesService extends BaseService {
+
+    async retrieveVersionById (stixId, modified) {
+        // Retrieve the versions of the identity with the matching stixId and modified date
+    
+        if (!stixId) {
+            throw new MissingParameterError;
+        }
+    
+        if (!modified) {
+            throw new MissingParameterError;
+        }
+    
+        try {
+            const identity = await Identity.findOne({ 'stix.id': stixId, 'stix.modified': modified }).exec();
+    
+            // Note: document is null if not found
+            return identity || null;
+        } catch (err) {
+            if (err.name === 'CastError') {
+                throw new BadlyFormattedParameterError;
+            } else {
+                throw err;
+            }
+        }
+    };
+
+    async deleteVersionById(stixId, stixModified) {
+        if (!stixId) {
+            throw new MissingParameterError;
+        }
+    
+        if (!stixModified) {
+            throw new MissingParameterError;
+        }
+    
+        try {
+            const identity = await Identity.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }).exec();
+    
+            // Note: identity is null if not found
+            return identity || null;
+        } catch (err) {
+            throw err;
+        }
+    };
+    
+    
 
     createIsAsync = true;
     async create(data, options) {
