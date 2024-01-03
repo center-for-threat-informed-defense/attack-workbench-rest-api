@@ -279,38 +279,28 @@ describe('Data Sources API', function () {
             });
     });
 
-    it('GET /api/data-sources/:id returns the added data source with data components', function (done) {
+    it('GET /api/data-sources/:id returns the added data source with data components', async function () {
         initialDataComponentData.stix.x_mitre_data_source_ref = dataSource1.stix.id;
-        loadDataComponents(initialDataComponentData);
+        await loadDataComponents(initialDataComponentData);
 
-        //this.timeout(0);
-
-        request(app)
+        const res = await request(app)
             .get(`/api/data-sources/${dataSource1.stix.id}?retrieveDataComponents=true`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
+            .expect('Content-Type', /json/);
 
-                    // We expect to get one data source in an array
-                    const dataSources = res.body;
-                    expect(dataSources).toBeDefined();
-                    expect(Array.isArray(dataSources)).toBe(true);
-                    expect(dataSources.length).toBe(1);
-                    const dataSource = dataSources[0];
-                    expect(dataSource).toBeDefined();
+        // We expect to get one data source in an array
+        const dataSources = res.body;
+        expect(dataSources).toBeDefined();
+        expect(Array.isArray(dataSources)).toBe(true);
+        expect(dataSources.length).toBe(1);
+        const dataSource = dataSources[0];
+        expect(dataSource).toBeDefined();
 
-                    // We expect to get 5 data components that reference this data source
-                    expect(dataSource.dataComponents).toBeDefined();
-                    expect(dataSource.dataComponents.length).toBe(5);
-                    done();
-                }
-            }); //.catch(done);
+        // We expect to get 5 data components that reference this data source
+        expect(dataSource.dataComponents).toBeDefined();
+        expect(dataSource.dataComponents.length).toBe(5);
     });
 
     it('PUT /api/data-sources updates a data source', function (done) {
