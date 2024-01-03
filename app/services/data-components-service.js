@@ -1,6 +1,5 @@
 'use strict';
 
-const DataComponent = require('../models/data-component-model');
 const identitiesService = require('./identities-service');
 
 const DataComponentsRepository = require('../repository/data-components-repository.js');
@@ -67,7 +66,7 @@ class DataComponentsService extends BaseService {
         aggregation.push(facet);
 
         // Retrieve the documents
-        const results = await DataComponent.aggregate(aggregation);
+        const results = await this.repository.model.aggregate(aggregation);
         await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
 
         if (options.includePagination) {
