@@ -9,7 +9,7 @@ const BaseService = require('./_base.service');
 
 class DataComponentsService extends BaseService {
 
-    static async retrieveAllAsync(options) {
+    async retrieveAllAsync(options) {
         // Build the query
         const query = {};
         if (!options.includeRevoked) {
