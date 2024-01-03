@@ -115,11 +115,6 @@ describe('Data Sources API', function () {
     let passportCookie;
 
     before(async function() {
-        // this.timeout(0);
-        // this.timeout(100000);
-
-
-
         // Establish the database connection
         // Use an in-memory database that we spin up for the test
         await database.initializeConnection();
