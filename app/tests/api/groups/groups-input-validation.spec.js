@@ -36,70 +36,47 @@ const initialObjectData = {
 function executeTests(getApp, propertyName, options) {
     options = options ?? {};
     if (options.required) {
-        it(`POST /api/groups does not create a group when ${propertyName} is missing`, function (done) {
+        it(`POST /api/groups does not create a group when ${propertyName} is missing`, async function () {
             const groupData = _.cloneDeep(initialObjectData);
             const timestamp = new Date().toISOString();
             groupData.stix.created = timestamp;
             groupData.stix.modified = timestamp;
             _.set(groupData, propertyName, undefined);
             const body = groupData;
-            request(getApp())
+            await request(getApp())
                 .post('/api/groups')
                 .send(body)
                 .set('Accept', 'application/json')
-                .expect(400)
-                .end(function (err, res) {
-                    if (err) {
-                        done(err);
-                    } else {
-                        done();
-                    }
-                });
+                .expect(400);
         });
     }
 
-    it(`POST /api/groups does not create a group when ${ propertyName } is a number`, function (done) {
+    it(`POST /api/groups does not create a group when ${ propertyName } is a number`, async function () {
         const groupData = _.cloneDeep(initialObjectData);
         const timestamp = new Date().toISOString();
         groupData.stix.created = timestamp;
         groupData.stix.modified = timestamp;
         _.set(groupData, propertyName, 9);
         const body = groupData;
-        request(getApp())
+        await request(getApp())
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
-    it(`POST /api/groups does not create a group when ${ propertyName } is an object`, function (done) {
+    it(`POST /api/groups does not create a group when ${ propertyName } is an object`, async function () {
         const groupData = _.cloneDeep(initialObjectData);
         const timestamp = new Date().toISOString();
         groupData.stix.created = timestamp;
         groupData.stix.modified = timestamp;
         _.set(groupData, propertyName, { value: 'group-name' });
         const body = groupData;
-        request(getApp())
+        await request(getApp())
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 }
 
@@ -125,90 +102,58 @@ describe('Groups API Input Validation', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('POST /api/groups does not create an empty group', function (done) {
+    it('POST /api/groups does not create an empty group', async function () {
         const body = { };
-        request(app)
+        await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
-    it('POST /api/groups does not create a group when an unknown query parameter is provided', function (done) {
+    it('POST /api/groups does not create a group when an unknown query parameter is provided', async function () {
         const groupData = _.cloneDeep(initialObjectData);
         const timestamp = new Date().toISOString();
         groupData.stix.created = timestamp;
         groupData.stix.modified = timestamp;
         const body = groupData;
-        request(app)
+        await request(app)
             .post('/api/groups?not-a-parameter=unexpectedvalue')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
-    it('POST /api/groups does not create a group when an invalid type is provided', function (done) {
+    it('POST /api/groups does not create a group when an invalid type is provided', async function () {
         const groupData = _.cloneDeep(initialObjectData);
         const timestamp = new Date().toISOString();
         groupData.stix.created = timestamp;
         groupData.stix.modified = timestamp;
         groupData.stix.type= 'not-a-type';
         const body = groupData;
-        request(app)
+        await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
-    it('POST /api/groups does not create a group when an incorrect type is provided', function (done) {
+    it('POST /api/groups does not create a group when an incorrect type is provided', async function () {
         const groupData = _.cloneDeep(initialObjectData);
         const timestamp = new Date().toISOString();
         groupData.stix.created = timestamp;
         groupData.stix.modified = timestamp;
         groupData.stix.type= 'malware';
         const body = groupData;
-        request(app)
+        await request(app)
             .post('/api/groups')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
     executeTests(() => app, 'stix.type', { required: true });

@@ -81,6 +81,12 @@ class NotImplementedError extends CustomError {
     }
 }
 
+class InvalidTypeError extends CustomError {
+    constructor(options) {
+        super('Invalid stix.type', options);
+    }
+}
+
 module.exports = {
 
     //** General errors */
@@ -101,4 +107,5 @@ module.exports = {
     IdentityServiceError,
     TechniquesServiceError,
     TacticsServiceError,
+    InvalidTypeError
 };

@@ -1,6 +1,5 @@
 'use strict';
 
-const DataComponent = require('../models/data-component-model');
 const identitiesService = require('./identities-service');
 
 const DataComponentsRepository = require('../repository/data-components-repository.js');
@@ -9,11 +8,7 @@ const BaseService = require('./_base.service');
 
 class DataComponentsService extends BaseService {
 
-    constructor() {
-        super(DataComponentsRepository, DataComponent);
-    }
-
-    static async retrieveAllAsync(options) {
+    async retrieveAllAsync(options) {
         // Build the query
         const query = {};
         if (!options.includeRevoked) {
@@ -71,7 +66,7 @@ class DataComponentsService extends BaseService {
         aggregation.push(facet);
 
         // Retrieve the documents
-        const results = await DataComponent.aggregate(aggregation);
+        const results = await this.repository.model.aggregate(aggregation);
         await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
 
         if (options.includePagination) {
@@ -96,4 +91,4 @@ class DataComponentsService extends BaseService {
 
 }
 
-module.exports = new DataComponentsService();
+module.exports = new DataComponentsService('x-mitre-data-component', DataComponentsRepository);
