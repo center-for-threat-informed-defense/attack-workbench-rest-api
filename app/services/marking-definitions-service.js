@@ -97,7 +97,7 @@ class MarkingDefinitionsService extends BaseService {
         try {
             const markingDefinition = await MarkingDefinition.findOneAndRemove({ 'stix.id': stixId });
             //Note: markingDefinition is null if not found
-            return markingDefinition
+            return markingDefinition;
         } catch (err) {
             throw err;
         }
