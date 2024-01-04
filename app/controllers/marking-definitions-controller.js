@@ -96,7 +96,6 @@ exports.updateFull = async function(req, res) {
             return res.status(200).send(markingDefinition);
         }
     } catch (err) {
-        console.log(err);
         if (err.message === markingDefinitionsService.errors.cannotUpdateStaticObject) {
             console.log("error triggered");
             logger.warn('Unable to update marking definition, cannot update static object');

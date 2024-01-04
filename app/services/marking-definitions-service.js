@@ -9,22 +9,21 @@ const BaseService = require('./_base.service');
 const MarkingDefinitionRepository = require('../repository/marking-definition-repository');
 const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter',
-    cannotUpdateStaticObject: 'Cannot update static object'
-};
-exports.errors = errors;
-
 // NOTE: A marking definition does not support the modified or revoked properties!!
 
 class MarkingDefinitionsService extends BaseService {
 
+    errors = {
+        missingParameter: 'Missing required parameter',
+        badlyFormattedParameter: 'Badly formatted parameter',
+        duplicateId: 'Duplicate id',
+        notFound: 'Document not found',
+        invalidQueryStringParameter: 'Invalid query string parameter',
+        cannotUpdateStaticObject: 'Cannot update static object'
+    };
 
     createIsAsync = true;
+
     async create(data, options) {
     // This function handles two use cases:
     //   1. This is a completely new object. Create a new object and generate the stix.id if not already
@@ -82,23 +81,23 @@ class MarkingDefinitionsService extends BaseService {
             throw err;
         }
     }
-};
+}
 
 
     async updateFull(stixId, data, callback) {
 
         if (data?.workspace?.workflow?.state === 'static') {
             if (callback) {
-                return callback(new Error(errors.cannotUpdateStaticObject));
+                return callback(new Error(this.errors.cannotUpdateStaticObject));
             }
 
-            throw new Error(errors.cannotUpdateStaticObject);
+            throw new Error(this.errors.cannotUpdateStaticObject);
         }
 
         const newDoc = await super.updateFull(stixId, data, callback);
 
         return newDoc;
-};
+}
 
     async retrieveById(stixId, options, callback) {
         try {
@@ -139,14 +138,10 @@ class MarkingDefinitionsService extends BaseService {
         if (!stixId) {
             throw new MissingParameterError;
         }
-
-        try {
-            const markingDefinition = await MarkingDefinition.findOneAndRemove({ 'stix.id': stixId });
-            //Note: markingDefinition is null if not found
-            return markingDefinition;
-        } catch (err) {
-            throw err;
-        }
+        
+        const markingDefinition = await this.repository.model.findOneAndRemove({ 'stix.id': stixId });
+        //Note: markingDefinition is null if not found
+        return markingDefinition;
 
     }
 

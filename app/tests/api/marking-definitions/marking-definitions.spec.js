@@ -1,5 +1,4 @@
 const request = require('supertest');
-const res = require('supertest');
 const { expect } = require('expect');
 
 const database = require('../../../lib/database-in-memory');
@@ -64,7 +63,7 @@ describe('Marking Definitions API', function () {
 
     it('POST /api/marking-definitions does not create an empty marking definition', async function () {
         const body = { };
-        const res = await request(app)
+        await request(app)
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
@@ -115,7 +114,7 @@ describe('Marking Definitions API', function () {
     });
 
     it('GET /api/marking-definitions/:id should not return a marking definition when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .get('/api/marking-definitions/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -169,7 +168,7 @@ describe('Marking Definitions API', function () {
 
     it('POST /api/marking-definitions does not create a marking definition with the same id', async function () {
         const body = markingDefinition1;
-        const res = await request(app)
+        await request(app)
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
@@ -178,7 +177,7 @@ describe('Marking Definitions API', function () {
     });
 
     it('DELETE /api/marking-definitions deletes a marking definition', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/marking-definitions/' + markingDefinition1.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
