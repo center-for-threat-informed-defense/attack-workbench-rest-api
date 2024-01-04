@@ -15,7 +15,7 @@ const errors = {
     duplicateId: 'Duplicate id',
     notFound: 'Document not found',
     invalidQueryStringParameter: 'Invalid query string parameter',
-    cannotUpdateStaticObject: ' Cannot update static object'
+    cannotUpdateStaticObject: 'Cannot update static object'
 };
 exports.errors = errors;
 
@@ -52,14 +52,12 @@ class MarkingDefinitionsService extends BaseService {
         // Check for an existing object
         let existingObject;
         if (markingDefinition.stix.id) {
-            existingObject = await MarkingDefinition.findOne({ 'stix.id': markingDefinition.stix.id });
+            existingObject = await this.repository.model.findOne({ 'stix.id': markingDefinition.stix.id });
         }
 
         if (existingObject) {
             // Cannot create a new version of an existing object
-            const error = new Error(errors.badlyFormattedParameter);
-            error.parameterName = 'stixId';
-            throw error;
+            throw new BadlyFormattedParameterError;
         }
         else {
             // New object
@@ -78,15 +76,63 @@ class MarkingDefinitionsService extends BaseService {
     }
     catch(err) {
         if (err.name === 'MongoServerError' && err.code === 11000) {
-            // 11000 = Duplicate index
-            const error = new Error(errors.duplicateId);
-            throw error;
+            throw new DuplicateIdError;
         }
         else {
             throw err;
         }
     }
 };
+
+
+    async updateFull(stixId, data, callback) {
+
+        if (data?.workspace?.workflow?.state === 'static') {
+            if (callback) {
+                return callback(new Error(errors.cannotUpdateStaticObject));
+            }
+
+            throw new Error(errors.cannotUpdateStaticObject);
+        }
+
+        const newDoc = await super.updateFull(stixId, data, callback);
+
+        return newDoc;
+};
+
+    async retrieveById(stixId, options, callback) {
+        try {
+            if (!stixId) {
+                throw new MissingParameterError;
+            }
+
+            const markingDefinition = await this.repository.model.findOne({ 'stix.id': stixId }).lean().exec();
+
+            // Note: document is null if not found
+            if (markingDefinition) {
+                await identitiesService.addCreatedByAndModifiedByIdentities(markingDefinition);
+                if (callback) {
+                    return callback(null, [markingDefinition]);
+                }
+                return [markingDefinition];
+            } else {
+                if (callback) {
+                    return callback(null, []);
+                }
+                return [];
+            }
+        } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
+            if (err.name === 'CastError') {
+                throw new BadlyFormattedParameterError;
+            } else {
+                throw err;
+            }
+        }
+}
+
 
 
     async delete(stixId) {
