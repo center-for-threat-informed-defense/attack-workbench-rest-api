@@ -5,17 +5,124 @@ const identitiesService = require('./identities-service');
 const dataComponentsService = require('./data-components-service');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 const BaseService = require('./_base.service');
+const { MissingParameterError, BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
-exports.errors = errors;
 
 class DataSourcesService extends BaseService {
+
+    errors = {
+        missingParameter: 'Missing required parameter',
+        badlyFormattedParameter: 'Badly formatted parameter',
+        duplicateId: 'Duplicate id',
+        notFound: 'Document not found',
+        invalidQueryStringParameter: 'Invalid query string parameter'
+    }
+
+    async retrieveById(stixId, options, callback) {
+        try {
+            // versions=all    Retrieve all versions of the data source with the stixId
+            // versions=latest Retrieve the data source with the latest modified date for this stixId
+    
+            if (!stixId) {
+                if (callback) {
+                    return callback(new Error(this.errors.missingParameter));
+                }
+                throw new MissingParameterError;
+            }
+    
+            if (options.versions === 'all') {
+                const dataSources = await this.repository.model.find({ 'stix.id': stixId }).lean().exec();
+                await addExtraDataToAll(dataSources, options.retrieveDataComponents);
+                if (callback) {
+                    return callback(null, dataSources);
+                }
+                return dataSources;
+            } else if (options.versions === 'latest') {
+                const dataSource = await this.repository.model.findOne({ 'stix.id': stixId }).sort('-stix.modified').lean().exec();
+    
+                // Note: document is null if not found
+                if (dataSource) {
+                    await addExtraData(dataSource, options.retrieveDataComponents);
+                    if (callback) {
+                        return callback(null, [dataSource]);
+                    }
+                    return [dataSource];
+                } else {
+                    if (callback) {
+                        return callback(null, []);
+                    }
+                    return [];
+                }
+            } else {
+                if (callback) {
+                    return callback(new Error(this.errors.invalidQueryStringParameter));
+                }
+                throw new InvalidQueryStringParameterError;
+            }
+        } catch (err) {
+            if (err.name === 'CastError') {
+                if (callback) {
+                    return callback(new Error(this.errors.badlyFormattedParameter));
+                }
+                throw new BadlyFormattedParameterError;
+            } else {
+                if (callback) {
+                    return callback(err);
+                }
+                throw err;
+            }
+        }
+    };
+    
+    
+    async retrieveVersionById(stixId, modified, options, callback) {
+        try {
+            // Retrieve the version of the data source with the matching stixId and modified date
+    
+            if (!stixId) {
+                if (callback) {
+                    return callback(new Error(this.errors.missingParameter));
+                }
+                throw new MissingParameterError;
+            }
+    
+            if (!modified) {
+                if (callback) {
+                    return callback(new Error(this.errors.missingParameter));
+                }
+                throw new MissingParameterError;
+            }
+    
+            const dataSource = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': modified }).exec();
+    
+            // Note: document is null if not found
+            if (dataSource) {
+                await addExtraData(dataSource, options.retrieveDataComponents);
+                if (callback) {
+                    return callback(null, dataSource);
+                }
+                return dataSource;
+            } else {
+                if (callback) {
+                    return callback(null, null);
+                }
+                return null;
+            }
+        } catch (err) {
+            if (err.name === 'CastError') {
+                if (callback) {
+                    return callback(new Error(this.errors.badlyFormattedParameter));
+                }
+                throw new BadlyFormattedParameterError;
+            } else {
+                if (callback) {
+                    return callback(err);
+                }
+                throw err;
+            }
+        }
+    };
+    
 
     async addExtraData(dataSource, retrieveDataComponents) {
         await identitiesService.addCreatedByAndModifiedByIdentities(dataSource);
