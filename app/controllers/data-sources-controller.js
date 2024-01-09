@@ -3,7 +3,6 @@
 const dataSourcesService = require('../services/data-sources-service');
 const logger = require('../lib/logger');
 const { DuplicateIdError, BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
-const { InvalidPointerError } = require('@apidevtools/json-schema-ref-parser');
 
 exports.retrieveAll = async function(req, res) {
     const options = {

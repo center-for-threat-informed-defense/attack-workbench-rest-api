@@ -145,7 +145,7 @@ describe('Data Sources API', function () {
 
     it('POST /api/data-sources does not create an empty data source', async function () {
         const body = { };
-        const res = await request(app)
+        await request(app)
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
@@ -197,7 +197,7 @@ describe('Data Sources API', function () {
     });
 
     it('GET /api/data-sources/:id should not return a data source when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .get('/api/data-sources/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -283,7 +283,7 @@ describe('Data Sources API', function () {
 
     it('POST /api/data-sources does not create a data source with the same id and modified date', async function () {
         const body = dataSource1;
-        const res = await request(app)
+        await request(app)
             .post('/api/data-sources')
             .send(body)
             .set('Accept', 'application/json')
@@ -408,7 +408,7 @@ describe('Data Sources API', function () {
     });
 
     it('DELETE /api/data-sources/:id should not delete a data source when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/data-sources/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404);
@@ -416,7 +416,7 @@ describe('Data Sources API', function () {
     });
 
     it('DELETE /api/data-sources/:id/modified/:modified deletes a data source', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
@@ -424,7 +424,7 @@ describe('Data Sources API', function () {
     });
 
     it('DELETE /api/data-sources/:id should delete all the data sources with the same stix id', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/data-sources/' + dataSource2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
