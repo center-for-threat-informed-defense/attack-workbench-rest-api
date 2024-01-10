@@ -20,6 +20,15 @@ exports.errors = errors;
 
 class IdentitiesService extends BaseService {
 
+    async addCreatedByAndModifiedByIdentitiesToAll(attackObjects) {
+        const identityCache = new Map();
+        const userAccountCache = new Map();
+        for (const attackObject of attackObjects) {
+            // eslint-disable-next-line no-await-in-loop
+            await this.addCreatedByAndModifiedByIdentities(attackObject, identityCache, userAccountCache);
+        }
+    }
+
     async retrieveVersionById (stixId, modified) {
         // Retrieve the versions of the identity with the matching stixId and modified date
     
@@ -201,15 +210,6 @@ class IdentitiesService extends BaseService {
         // Add user account data
         if (attackObject?.workspace?.workflow?.created_by_user_account) {
             await this.addCreatedByUserAccountWithCache(attackObject, userAccountCache);
-        }
-    }
-
-    async addCreatedByAndModifiedByIdentitiesToAll(attackObjects) {
-        const identityCache = new Map();
-        const userAccountCache = new Map();
-        for (const attackObject of attackObjects) {
-            // eslint-disable-next-line no-await-in-loop
-            await this.addCreatedByAndModifiedByIdentities(attackObject, identityCache, userAccountCache);
         }
     }
 
