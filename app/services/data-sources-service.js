@@ -18,21 +18,21 @@ class DataSourcesService extends BaseService {
     }
 
 
-    async addExtraData(dataSource, retrieveDataComponents) {
+    static async addExtraData(dataSource, retrieveDataComponents) {
         await identitiesService.addCreatedByAndModifiedByIdentities(dataSource);
         if (retrieveDataComponents) {
-            await this.addDataComponents(dataSource);
+            await DataSourcesService.addDataComponents(dataSource);
         }
     }
 
-    async addExtraDataToAll(dataSources, retrieveDataComponents) {
+    static async addExtraDataToAll(dataSources, retrieveDataComponents) {
         for (const dataSource of dataSources) {
             // eslint-disable-next-line no-await-in-loop
-            await this.addExtraData(dataSource, retrieveDataComponents);
+            await DataSourcesService.addExtraData(dataSource, retrieveDataComponents);
         }
     }
 
-    async addDataComponents(dataSource) {
+    static async addDataComponents(dataSource) {
         // We have to work with the latest version of all data components to avoid mishandling a situation
         // where an earlier version of a data component may reference a data source, but the latest
         // version doesn't.
@@ -58,7 +58,7 @@ class DataSourcesService extends BaseService {
     
             if (options.versions === 'all') {
                 const dataSources = await this.repository.model.find({ 'stix.id': stixId }).lean().exec();
-                await this.addExtraDataToAll(dataSources, options.retrieveDataComponents);
+                await DataSourcesService.addExtraDataToAll(dataSources, options.retrieveDataComponents);
                 if (callback) {
                     return callback(null, dataSources);
                 }
@@ -68,7 +68,7 @@ class DataSourcesService extends BaseService {
     
                 // Note: document is null if not found
                 if (dataSource) {
-                    await this.addExtraData(dataSource, options.retrieveDataComponents);
+                    await DataSourcesService.addExtraData(dataSource, options.retrieveDataComponents);
                     if (callback) {
                         return callback(null, [dataSource]);
                     }
@@ -123,7 +123,7 @@ class DataSourcesService extends BaseService {
     
             // Note: document is null if not found
             if (dataSource) {
-                await this.addExtraData(dataSource, options.retrieveDataComponents);
+                await DataSourcesService.addExtraData(dataSource, options.retrieveDataComponents);
                 if (callback) {
                     return callback(null, dataSource);
                 }
