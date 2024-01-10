@@ -150,8 +150,8 @@ exports.deleteVersionById = async function(req, res) {
             return res.status(204).end();
         }
     } catch (error) {
+        console.log(error);
         console.log("delete version by id error");
-        console.log(err);
         logger.error('Delete collection failed. ' + error);
         return res.status(500).send('Unable to delete collection. Server error.');
     }

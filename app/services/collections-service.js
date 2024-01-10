@@ -2,32 +2,34 @@
 
 const asyncLib = require('async');
 const superagent = require('superagent');
-
+const identitiesService = require('../services/identities-service');
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
 const attackObjectsService = require('./attack-objects-service');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badRequest: 'Bad request',
-    invalidFormat: 'Invalid format',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    hostNotFound: 'Host not found',
-    connectionRefused: 'Connection refused',
-    unauthorized: 'Unauthorized',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
-exports.errors = errors;
+
 
 const collectionsRepository = require('../repository/collections-repository');
 
 const BaseService = require('./_base.service');
-const { MissingParameterError, NotFoundError } = require('../exceptions');
+const { MissingParameterError, NotFoundError, BadlyFormattedParameterError } = require('../exceptions');
 
 class CollectionsService extends BaseService {
+
+    errors = {
+        missingParameter: 'Missing required parameter',
+        badRequest: 'Bad request',
+        invalidFormat: 'Invalid format',
+        badlyFormattedParameter: 'Badly formatted parameter',
+        duplicateId: 'Duplicate id',
+        notFound: 'Document not found',
+        hostNotFound: 'Host not found',
+        connectionRefused: 'Connection refused',
+        unauthorized: 'Unauthorized',
+        invalidQueryStringParameter: 'Invalid query string parameter'
+    };
+
 
     createIsAsync = true;
     async create(data, options) {
@@ -51,6 +53,56 @@ class CollectionsService extends BaseService {
                 throw error;
             }
             else {
+                throw err;
+            }
+        }
+    };
+
+    async retrieveVersionById (stixId, modified, options, callback) {
+        // Retrieve the versions of the collection with the matching stixID and modified date
+    
+        if (!stixId) {
+            if (callback) {
+                return callback(new Error(this.errors.missingParameter));
+            }
+       
+            throw new MissingParameterError;
+        }
+    
+        if (!modified) {
+            if (callback) {
+                return callback(new Error(this.errors.missingParameter));
+            }
+            throw new MissingParameterError;
+        }
+    
+        try {
+            const collection = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': modified }).lean().exec();
+    
+            if (collection) {
+                if (options.retrieveContents) {
+                    const contents = await this.getContents(collection.stix.x_mitre_contents);
+                    collection.contents = contents;
+                }
+    
+                await identitiesService.addCreatedByAndModifiedByIdentities(collection);
+                if (callback) {
+                    return callback(null, collection);
+                }
+                return collection;
+            } else {
+                if (callback) {
+                    return callback;
+                }
+                return;
+            }
+        } catch (err) {
+            if (err.name === 'CastError') {
+                if (callback) {
+                    return callback(new Error(this.errors.badlyFormattedParameter));
+                }
+                throw new BadlyFormattedParameterError;
+            } else {
                 throw err;
             }
         }
