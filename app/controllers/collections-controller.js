@@ -133,7 +133,7 @@ exports.delete = async function(req, res) {
         }
     } catch (error) {
         console.log("delete error");
-        console.log(err);
+        console.log(error);
         logger.error('Delete collections failed. ' + error);
         return res.status(500).send('Unable to delete collections. Server error.');
     }
