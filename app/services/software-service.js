@@ -28,33 +28,48 @@ class SoftwareService extends BaseService {
             throw new PropertyNotAllowedError;
         }
 
-        const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
-
-        let existingObject;
-        if (data.stix.id) {
-            existingObject = await Software.findOne({ 'stix.id': data.stix.id });
-        }
+        options = options || {};
+        if (!options.import) {
+            // Set the ATT&CK Spec Version
+            data.stix.x_mitre_attack_spec_version = data.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
     
-        if (existingObject) {
-            // New version of an existing object
-            // Only set the x_mitre_modified_by_ref property
-            data.x_mitre_modified_by_ref = organizationIdentityRef;
-        }
-        else {
-            // New object
-            // Assign a new STIX id if not already provided
-            if (data.type === 'tool') {
-                data.id = data.id || `tool--${uuid.v4()}`;
+            // Record the user account that created the object
+            if (options.userAccountId) {
+                data.workspace.workflow.created_by_user_account = options.userAccountId;
+            }
+    
+            // Set the default marking definitions
+            await attackObjectsService.setDefaultMarkingDefinitions(data);
+    
+            // Get the organization identity
+            const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+    
+            // Check for an existing object
+            let existingObject;
+            if (data.stix.id) {
+                existingObject = await Software.findOne({ 'stix.id': data.stix.id });
+            }
+    
+            if (existingObject) {
+                // New version of an existing object
+                // Only set the x_mitre_modified_by_ref property
+                data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
             }
             else {
-                data.id = data.id || `malware--${uuid.v4()}`;
+                // New object
+                // Assign a new STIX id if not already provided
+                if (data.stix.type === 'tool') {
+                    data.stix.id = data.stix.id || `tool--${uuid.v4()}`;
+                }
+                else {
+                    data.stix.id = data.stix.id || `malware--${uuid.v4()}`;
+                }
+    
+                // Set the created_by_ref and x_mitre_modified_by_ref properties
+                data.stix.created_by_ref = organizationIdentityRef;
+                data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
             }
 
-            // Set the created_by_ref and x_mitre_modified_by_ref properties
-            data.created_by_ref = organizationIdentityRef;
-            data.x_mitre_modified_by_ref = organizationIdentityRef;
-        }
-    
         // Save the document in the database
         try {
             const savedSoftware = await super.create(data, options);
@@ -71,6 +86,7 @@ class SoftwareService extends BaseService {
         }
     }
 
+}
 }
 
 module.exports = new SoftwareService(null, SoftwareRepository);
