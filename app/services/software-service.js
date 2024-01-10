@@ -10,7 +10,6 @@ const { PropertyNotAllowedError, DuplicateIdError } = require('../exceptions');
 
 const BaseService = require('./_base.service');
 const SoftwareRepository = require('../repository/software-repository');
-const softwareRepository = require('../repository/software-repository');
 
 class SoftwareService extends BaseService {
 
@@ -27,6 +26,11 @@ class SoftwareService extends BaseService {
         }
         else if (data.stix && data.stix.type === 'tool' && data.stix.is_family !== undefined) {
             throw new PropertyNotAllowedError;
+        }
+
+        let existingObject;
+        if (data.stix.id) {
+            existingObject = await Software.findOne({ 'stix.id': data.stix.id });
         }
     
         if (existingObject) {
