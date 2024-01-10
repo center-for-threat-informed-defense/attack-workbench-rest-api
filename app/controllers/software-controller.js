@@ -27,6 +27,8 @@ exports.retrieveAll = async function(req, res) {
         }
         return res.status(200).send(results);
     } catch (err) {
+        console.log("retrieve all error");
+        console.log(err);
         logger.error('Failed with error: ' + err);
         return res.status(500).send('Unable to get software. Server error.');
     }
@@ -56,6 +58,8 @@ exports.retrieveById = async function(req, res) {
             return res.status(400).send('Query string parameter versions is invalid.');
         }
         else {
+            console.log("retrieve by id error");
+            console.log(err);
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get software. Server error.');
         }
@@ -81,6 +85,8 @@ exports.retrieveVersionById = async function(req, res) {
             return res.status(400).send('Stix id is badly formatted.');
         }
         else {
+            console.log("retrieve version by id error");
+            console.log(err);
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get software. Server error.');
         }
@@ -116,6 +122,8 @@ exports.create = async function(req, res) {
             return res.status(400).send(`Unable to create software, property ${ err.propertyName } is not allowed`);
         }
         else {
+            console.log("create error");
+            console.log(err);
             logger.error("Failed with error: " + err);
             return res.status(500).send("Unable to create software. Server error.");
         }
@@ -137,6 +145,8 @@ exports.updateFull = async function(req, res) {
             return res.status(200).send(software);
         }
     }  catch (err) {
+        console.log("update full error");
+        console.log(err);
         logger.error("Failed with error: " + err);
         return res.status(500).send("Unable to update software. Server error.");
     }
@@ -154,6 +164,8 @@ exports.deleteVersionById = async function(req, res) {
         }
         
     } catch (err) {
+        console.log("delete version by id error");
+        console.log(err);
         logger.error('Delete software failed. ' + err);
         return res.status(500).send('Unable to delete software. Server error.');
     }
@@ -172,6 +184,8 @@ exports.deleteById = async function(req, res) {
         }
 
     } catch (err) {
+        console.log("delete by id error");
+        console.log(err);
         logger.error('Delete software failed. ' + err);
         return res.status(500).send('Unable to delete software. Server error.');
     }
