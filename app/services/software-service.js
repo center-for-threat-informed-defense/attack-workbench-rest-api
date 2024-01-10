@@ -72,6 +72,7 @@ class SoftwareService extends BaseService {
 
         // Save the document in the database
         try {
+            console.log(data.stix.type);
             const savedSoftware = await super.create(data, options);
             return savedSoftware;
         }
