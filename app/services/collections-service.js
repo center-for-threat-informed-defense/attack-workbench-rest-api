@@ -219,6 +219,38 @@ class CollectionsService extends BaseService {
         }
     };
 
+    async deleteVersionById (stixId, modified, deleteAllContents, callback) {
+        if (!stixId) {
+            if (callback) {
+                return callback(new Error(this.errors.missingParameter));
+            }
+            throw new MissingParameterError;
+        }
+    
+        const collection = await Collection.findOne({'stix.id': stixId, 'stix.modified': modified}).lean();
+        if (!collection) {
+            if (callback) {
+                return callback(new Error(this.errors.missingParameter));
+            }
+            throw new MissingParameterError;
+        }
+    
+        if (deleteAllContents) {
+            await this.deleteAllContentsOfCollection(collection, stixId, modified);
+        }
+    
+        try {
+            await Collection.findByIdAndDelete(collection._id).lean();
+        } catch (err) {
+            // Handle deletion error if needed
+        }
+        if (callback) {
+            return callback(null, collection);
+        }
+        return collection;
+    };
+    
+
     async retrieveByUrl(url) {
         if (!url) {
             const error = new MissingParameterError;
