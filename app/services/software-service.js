@@ -28,6 +28,8 @@ class SoftwareService extends BaseService {
             throw new PropertyNotAllowedError;
         }
 
+        const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+
         let existingObject;
         if (data.stix.id) {
             existingObject = await Software.findOne({ 'stix.id': data.stix.id });
