@@ -1,12 +1,11 @@
 'use strict';
 
 const uuid = require('uuid');
-const Software = require('../models/software-model');
 const systemConfigurationService = require('./system-configuration-service');
 const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 
-const { PropertyNotAllowedError, DuplicateIdError } = require('../exceptions');
+const { PropertyNotAllowedError} = require('../exceptions');
 
 const BaseService = require('./_base.service');
 const SoftwareRepository = require('../repository/software-repository');
@@ -21,6 +20,7 @@ class SoftwareService extends BaseService {
         //      Set stix.x_mitre_modified_by_ref to the organization identity.
     
         // is_family defaults to true for malware, not allowed for tools
+    try {
         if (data.stix && data.stix.type === 'malware' && typeof data.stix.is_family !== 'boolean') {
             data.stix.is_family = true;
         }
@@ -80,6 +80,6 @@ class SoftwareService extends BaseService {
       throw err;
   }
 }
-
+}
 
 module.exports = new SoftwareService(null, SoftwareRepository);
