@@ -220,9 +220,9 @@ class BaseService extends AbstractService {
         }
 
 
-        // if (data?.stix?.type !== this.type) {
-        //     throw new InvalidTypeError();
-        // }
+        if (data?.stix?.type !== this.type) {
+            throw new InvalidTypeError();
+        }
         
 
         // eslint-disable-next-line no-useless-catch
