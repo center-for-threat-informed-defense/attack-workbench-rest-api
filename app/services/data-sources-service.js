@@ -1,11 +1,10 @@
 'use strict';
 
-const dataSourceRepository = require('../repository/data-source-repository');
+const dataSourcesRepository = require('../repository/data-sources-repository');
 const identitiesService = require('./identities-service');
 const dataComponentsService = require('./data-components-service');
 const BaseService = require('./_base.service');
 const { MissingParameterError, BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
-
 
 class DataSourcesService extends BaseService {
 
@@ -16,7 +15,6 @@ class DataSourcesService extends BaseService {
         notFound: 'Document not found',
         invalidQueryStringParameter: 'Invalid query string parameter'
     }
-
 
     static async addExtraData(dataSource, retrieveDataComponents) {
         await identitiesService.addCreatedByAndModifiedByIdentities(dataSource);
@@ -99,8 +97,7 @@ class DataSourcesService extends BaseService {
             }
         }
     }
-    
-    
+
     async retrieveVersionById(stixId, modified, options, callback) {
         try {
             // Retrieve the version of the data source with the matching stixId and modified date
@@ -148,8 +145,6 @@ class DataSourcesService extends BaseService {
             }
         }
     }
-    
-
 }
 
-module.exports = new DataSourcesService('x-mitre-data-source', dataSourceRepository);
+module.exports = new DataSourcesService('x-mitre-data-source', dataSourcesRepository);

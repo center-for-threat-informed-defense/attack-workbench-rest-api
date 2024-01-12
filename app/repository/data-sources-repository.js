@@ -3,6 +3,6 @@
 const BaseRepository = require('./_base.repository');
 const DataSource = require('../models/data-source-model');
 
-class DataSourceRepository extends BaseRepository { }
+class DataSourcesRepository extends BaseRepository { }
 
-module.exports = new DataSourceRepository(DataSource);
+module.exports = new DataSourcesRepository(DataSource);
