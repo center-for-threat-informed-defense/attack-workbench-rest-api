@@ -1,7 +1,6 @@
 'use strict';
 
 const uuid = require('uuid');
-const MarkingDefinition = require('../models/marking-definition-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
 const config = require('../config/config');
@@ -13,69 +12,67 @@ const { MissingParameterError, BadlyFormattedParameterError, CannotUpdateStaticO
 
 class MarkingDefinitionsService extends BaseService {
     async create(data, options) {
-    // This function handles two use cases:
-    //   1. This is a completely new object. Create a new object and generate the stix.id if not already
-    //      provided. Set stix.created_by_ref to the organization identity.
-    //   2. stix.id is defined and options.import is set. Create a new object
-    //      using the specified stix.id and stix.created_by_ref.
-    // TBD: Overwrite existing object when importing??
+        // This function handles two use cases:
+        //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+        //      provided. Set stix.created_by_ref to the organization identity.
+        //   2. stix.id is defined and options.import is set. Create a new object
+        //      using the specified stix.id and stix.created_by_ref.
+        // TBD: Overwrite existing object when importing??
 
-    // Create the document
-    const markingDefinition = new MarkingDefinition(data);
+        const markingDefinition = this.repository.createNewDocument(data);
 
-    options = options || {};
-    if (!options.import) {
-        // Set the ATT&CK Spec Version
-        markingDefinition.stix.x_mitre_attack_spec_version = markingDefinition.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+        options = options || {};
+        if (!options.import) {
+            // Set the ATT&CK Spec Version
+            markingDefinition.stix.x_mitre_attack_spec_version = markingDefinition.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
-        // Record the user account that created the object
-        if (options.userAccountId) {
-            markingDefinition.workspace.workflow.created_by_user_account = options.userAccountId;
+            // Record the user account that created the object
+            if (options.userAccountId) {
+                markingDefinition.workspace.workflow.created_by_user_account = options.userAccountId;
+            }
+
+            // Get the organization identity
+            const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+
+            // Check for an existing object
+            let existingObject;
+            if (markingDefinition.stix.id) {
+                existingObject = await this.repository.retrieveOneById(markingDefinition.stix.id);
+            }
+
+            if (existingObject) {
+                // Cannot create a new version of an existing object
+                throw new BadlyFormattedParameterError;
+            }
+            else {
+                // New object
+                // Assign a new STIX id if not already provided
+                markingDefinition.stix.id = markingDefinition.stix.id || `marking-definition--${uuid.v4()}`;
+
+                // Set the created_by_ref property
+                markingDefinition.stix.created_by_ref = organizationIdentityRef;
+            }
         }
 
-        // Get the organization identity
-        const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
-
-        // Check for an existing object
-        let existingObject;
-        if (markingDefinition.stix.id) {
-            existingObject = await this.repository.model.findOne({ 'stix.id': markingDefinition.stix.id });
+        // Save the document in the database
+        try {
+            return await this.repository.saveDocument(markingDefinition);
         }
-
-        if (existingObject) {
-            // Cannot create a new version of an existing object
-            throw new BadlyFormattedParameterError;
-        }
-        else {
-            // New object
-            // Assign a new STIX id if not already provided
-            markingDefinition.stix.id = markingDefinition.stix.id || `marking-definition--${uuid.v4()}`;
-
-            // Set the created_by_ref property
-            markingDefinition.stix.created_by_ref = organizationIdentityRef;
+        catch(err) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                throw new DuplicateIdError;
+            }
+            else {
+                throw err;
+            }
         }
     }
-
-    // Save the document in the database
-    try {
-        const savedMarkingDefinition = await markingDefinition.save();
-        return savedMarkingDefinition;
-    }
-    catch(err) {
-        if (err.name === 'MongoServerError' && err.code === 11000) {
-            throw new DuplicateIdError;
-        }
-        else {
-            throw err;
-        }
-    }
-}
-
 
     async updateFull(stixId, data, callback) {
         if (data?.workspace?.workflow?.state === 'static') {
+            const err = new CannotUpdateStaticObjectError;
             if (callback) {
-                return callback(new Error(this.errors.cannotUpdateStaticObject));
+                return callback(err);
             }
 
             throw new CannotUpdateStaticObjectError;
@@ -91,7 +88,7 @@ class MarkingDefinitionsService extends BaseService {
                 throw new MissingParameterError;
             }
 
-            const markingDefinition = await this.repository.model.findOne({ 'stix.id': stixId }).lean().exec();
+            const markingDefinition = await this.repository.retrieveOneById(stixId );
 
             // Note: document is null if not found
             if (markingDefinition) {
@@ -116,17 +113,15 @@ class MarkingDefinitionsService extends BaseService {
                 throw err;
             }
         }
-}
+    }
 
     async delete(stixId) {
         if (!stixId) {
             throw new MissingParameterError;
         }
-        
-        const markingDefinition = await this.repository.model.findOneAndRemove({ 'stix.id': stixId });
-        //Note: markingDefinition is null if not found
-        return markingDefinition;
 
+        //Note: markingDefinition is null if not found
+        return await this.repository.deleteOneById(stixId);
     }
 }
 
