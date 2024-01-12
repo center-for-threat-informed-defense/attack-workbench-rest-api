@@ -4,6 +4,7 @@
  const { BadlyFormattedParameterError, DuplicateIdError, DatabaseError } = require('../exceptions');
 
 class ReferencesRepository {
+
     constructor(model) {
         this.model = model;
     }
@@ -48,7 +49,7 @@ class ReferencesRepository {
         aggregation.push(facet);
     
         // Retrieve the documents
-        return await this.model.aggregate(aggregation);
+        return await this.model.aggregate(aggregation).exec();
     }
     
     async save(data) {
@@ -75,7 +76,7 @@ class ReferencesRepository {
     
     async updateAndSave(data) {
         try {
-            const document = await this.model.findOne({ 'source_name': data.source_name });
+            const document = await this.model.findOne({ 'source_name': data.source_name }).exec();
             if (!document) {
                 // document not found
                 return null;
@@ -99,7 +100,7 @@ class ReferencesRepository {
 
     async findOneAndRemove(sourceName) {
         try {
-            return await this.model.findOneAndRemove({ 'source_name': sourceName });
+            return await this.model.findOneAndRemove({ 'source_name': sourceName }).exec();
         }
         catch(err) {
             throw new DatabaseError(err);

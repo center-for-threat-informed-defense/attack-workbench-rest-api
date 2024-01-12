@@ -163,6 +163,7 @@ class BaseRepository extends AbstractRepository {
     // eslint-disable-next-line class-methods-use-this
     async updateAndSave(document, data) {
         try {
+            // TODO validate that document is valid mongoose object first
             Object.assign(document, data);
             return await document.save();
         } catch (err) {

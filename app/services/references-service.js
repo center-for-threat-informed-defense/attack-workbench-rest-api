@@ -1,12 +1,13 @@
 'use strict';
 
 const baseService = require('./_base.service');
-const ReferencesRepository = require('../repository/references-repository');
+const referencesRepository = require('../repository/references-repository');
 const { MissingParameterError } = require('../exceptions');
 
 class ReferencesService {
-    constructor() {
-        this.repository = ReferencesRepository;
+
+    constructor(repository) {
+        this.repository = repository;
     }
 
     async retrieveAll(options) {
@@ -38,4 +39,4 @@ class ReferencesService {
     }
 }
 
-module.exports = new ReferencesService(ReferencesRepository);
+module.exports = new ReferencesService(referencesRepository);

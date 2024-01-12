@@ -5,7 +5,7 @@ const config = require('../config/config');
 const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
 const BaseService = require('./_base.service');
-const TechniquesRepository = require('../repository/techniques-repository');
+const techniquesRepository = require('../repository/techniques-repository');
 
 class TechniquesService extends BaseService {
     static tacticsService = null;
@@ -82,4 +82,4 @@ class TechniquesService extends BaseService {
     }
 }
 
-module.exports = new TechniquesService('attack-pattern', TechniquesRepository);
+module.exports = new TechniquesService('attack-pattern', techniquesRepository);
