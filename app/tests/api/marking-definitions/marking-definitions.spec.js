@@ -46,229 +46,157 @@ describe('Marking Definitions API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('GET /api/marking-definitions returns the pre-defined marking definitions', function (done) {
-        request(app)
+    it('GET /api/marking-definitions returns the pre-defined marking definitions', async function () {
+        const res = await request(app)
             .get('/api/marking-definitions')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const markingDefinitions = res.body;
-                    expect(markingDefinitions).toBeDefined();
-                    expect(Array.isArray(markingDefinitions)).toBe(true);
-                    expect(markingDefinitions.length).toBe(4);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const markingDefinitions = res.body;
+        expect(markingDefinitions).toBeDefined();
+        expect(Array.isArray(markingDefinitions)).toBe(true);
+        expect(markingDefinitions.length).toBe(4);
     });
 
-    it('POST /api/marking-definitions does not create an empty marking definition', function (done) {
+    it('POST /api/marking-definitions does not create an empty marking definition', async function () {
         const body = { };
-        request(app)
+        await request(app)
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
     let markingDefinition1;
-    it('POST /api/marking-definitions creates a marking definition', function (done) {
+    it('POST /api/marking-definitions creates a marking definition', async function () {
         const timestamp = new Date().toISOString();
         initialObjectData.stix.created = timestamp;
         const body = initialObjectData;
-        request(app)
+        const res = await request(app)
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created marking definition
-                    markingDefinition1 = res.body;
-                    expect(markingDefinition1).toBeDefined();
-                    expect(markingDefinition1.stix).toBeDefined();
-                    expect(markingDefinition1.stix.id).toBeDefined();
-                    expect(markingDefinition1.stix.created).toBeDefined();
-                    // stix.modified does not exist for marking definitions
-                    expect(markingDefinition1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get the created marking definition
+        markingDefinition1 = res.body;
+        expect(markingDefinition1).toBeDefined();
+        expect(markingDefinition1.stix).toBeDefined();
+        expect(markingDefinition1.stix.id).toBeDefined();
+        expect(markingDefinition1.stix.created).toBeDefined();
+        // stix.modified does not exist for marking definitions
+        expect(markingDefinition1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
     });
 
-    it('GET /api/marking-definitions returns the added marking definition', function (done) {
-        request(app)
+    it('GET /api/marking-definitions returns the added marking definition', async function () {
+        const res = await request(app)
             .get('/api/marking-definitions')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one additional marking definition in an array
-                    const markingDefinitions = res.body;
-                    expect(markingDefinitions).toBeDefined();
-                    expect(Array.isArray(markingDefinitions)).toBe(true);
 
-                    const addedMarkingDefinitions = markingDefinitions.filter(x => x.workspace.workflow.state === 'work-in-progress');
-                    expect(addedMarkingDefinitions.length).toBe(1);
+        // We expect to get one additional marking definition in an array
+        const markingDefinitions = res.body;
+        expect(markingDefinitions).toBeDefined();
+        expect(Array.isArray(markingDefinitions)).toBe(true);
 
-                    done();
-                }
-            });
+        const addedMarkingDefinitions = markingDefinitions.filter(x => x.workspace.workflow.state === 'work-in-progress');
+        expect(addedMarkingDefinitions.length).toBe(1);
+
     });
 
-    it('GET /api/marking-definitions/:id should not return a marking definition when the id cannot be found', function (done) {
-        request(app)
+    it('GET /api/marking-definitions/:id should not return a marking definition when the id cannot be found', async function () {
+        await request(app)
             .get('/api/marking-definitions/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(404);
     });
 
-    it('GET /api/marking-definitions/:id returns the added marking definition', function (done) {
-        request(app)
+    it('GET /api/marking-definitions/:id returns the added marking definition', async function () {
+        const res = await request(app)
             .get('/api/marking-definitions/' + markingDefinition1.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one marking definition in an array
-                    const markingDefinitions = res.body;
-                    expect(markingDefinitions).toBeDefined();
-                    expect(Array.isArray(markingDefinitions)).toBe(true);
-                    expect(markingDefinitions.length).toBe(1);
 
-                    const markingDefinition = markingDefinitions[0];
-                    expect(markingDefinition).toBeDefined();
-                    expect(markingDefinition.stix).toBeDefined();
-                    expect(markingDefinition.stix.id).toBe(markingDefinition1.stix.id);
-                    expect(markingDefinition.stix.type).toBe(markingDefinition1.stix.type);
-                    expect(markingDefinition.stix.name).toBe(markingDefinition1.stix.name);
-                    expect(markingDefinition.stix.description).toBe(markingDefinition1.stix.description);
-                    expect(markingDefinition.stix.spec_version).toBe(markingDefinition1.stix.spec_version);
-                    expect(markingDefinition.stix.object_marking_refs).toEqual(expect.arrayContaining(markingDefinition1.stix.object_marking_refs));
-                    expect(markingDefinition.stix.created_by_ref).toBe(markingDefinition1.stix.created_by_ref);
-                    expect(markingDefinition.stix.x_mitre_attack_spec_version).toBe(markingDefinition1.stix.x_mitre_attack_spec_version);
+        // We expect to get one marking definition in an array
+        const markingDefinitions = res.body;
+        expect(markingDefinitions).toBeDefined();
+        expect(Array.isArray(markingDefinitions)).toBe(true);
+        expect(markingDefinitions.length).toBe(1);
 
-                    done();
-                }
-            });
+        const markingDefinition = markingDefinitions[0];
+        expect(markingDefinition).toBeDefined();
+        expect(markingDefinition.stix).toBeDefined();
+        expect(markingDefinition.stix.id).toBe(markingDefinition1.stix.id);
+        expect(markingDefinition.stix.type).toBe(markingDefinition1.stix.type);
+        expect(markingDefinition.stix.name).toBe(markingDefinition1.stix.name);
+        expect(markingDefinition.stix.description).toBe(markingDefinition1.stix.description);
+        expect(markingDefinition.stix.spec_version).toBe(markingDefinition1.stix.spec_version);
+        expect(markingDefinition.stix.object_marking_refs).toEqual(expect.arrayContaining(markingDefinition1.stix.object_marking_refs));
+        expect(markingDefinition.stix.created_by_ref).toBe(markingDefinition1.stix.created_by_ref);
+        expect(markingDefinition.stix.x_mitre_attack_spec_version).toBe(markingDefinition1.stix.x_mitre_attack_spec_version);
+
     });
 
-    it('PUT /api/marking-definitions updates a marking definition', function (done) {
+    it('PUT /api/marking-definitions updates a marking definition', async function () {
         markingDefinition1.stix.description = 'This is an updated marking definition.'
         const body = markingDefinition1;
-        request(app)
+        const res = await request(app)
             .put('/api/marking-definitions/' + markingDefinition1.stix.id)
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the updated marking definition
-                    const markingDefinition = res.body;
-                    expect(markingDefinition).toBeDefined();
-                    expect(markingDefinition.stix.id).toBe(markingDefinition1.stix.id);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the updated marking definition
+        const markingDefinition = res.body;
+        expect(markingDefinition).toBeDefined();
+        expect(markingDefinition.stix.id).toBe(markingDefinition1.stix.id);
     });
 
-    it('POST /api/marking-definitions does not create a marking definition with the same id', function (done) {
+    it('POST /api/marking-definitions does not create a marking definition with the same id', async function () {
         const body = markingDefinition1;
-        request(app)
+        await request(app)
             .post('/api/marking-definitions')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
-    it('DELETE /api/marking-definitions deletes a marking definition', function (done) {
-        request(app)
+    it('DELETE /api/marking-definitions deletes a marking definition', async function () {
+        await request(app)
             .delete('/api/marking-definitions/' + markingDefinition1.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
     });
 
-    it('GET /api/marking-definitions returns the pre-defined marking definitions', function (done) {
-        request(app)
+    it('GET /api/marking-definitions returns the pre-defined marking definitions', async function () {
+        const res = await request(app)
             .get('/api/marking-definitions')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const markingDefinitions = res.body;
-                    expect(markingDefinitions).toBeDefined();
-                    expect(Array.isArray(markingDefinitions)).toBe(true);
-                    expect(markingDefinitions.length).toBe(4);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const markingDefinitions = res.body;
+        expect(markingDefinitions).toBeDefined();
+        expect(Array.isArray(markingDefinitions)).toBe(true);
+        expect(markingDefinitions.length).toBe(4);
+
     });
 
     after(async function() {
