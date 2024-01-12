@@ -62,7 +62,6 @@ exports.retrieveById = async function(req, res) {
 };
 
 exports.retrieveVersionById = async function(req, res) {
-
     try {
         const note = await notesService.retrieveVersionById(req.params.stixId, req.params.modified);
         if (!note) {
@@ -95,7 +94,6 @@ exports.create = async function(req, res) {
 
     // Create the note
     try {
-
         const note = await notesService.create(noteData, options);
         logger.debug("Success: Created note with id " + note.stix.id);
         return res.status(201).send(note);
@@ -117,7 +115,6 @@ exports.updateVersion = async function(req, res) {
     const noteData = req.body;
 
     // Create the note
-
     try {
         const note = await notesService.updateVersion(req.params.stixId, req.params.modified, noteData);
         if (!note) {
@@ -131,11 +128,9 @@ exports.updateVersion = async function(req, res) {
         logger.error("Failed with error: " + err);
         return res.status(500).send("Unable to update note. Server error.");
     }
-
 };
 
 exports.deleteById = async function(req, res) {
-    
     try {
         const results = await notesService.deleteById(req.params.stixId);
         if (results.deletedCount === 0) {
@@ -149,11 +144,9 @@ exports.deleteById = async function(req, res) {
         logger.error('Delete note failed. ' + err);
         return res.status(500).send('Unable to delete note. Server error.');
     }
-
 };
 
 exports.deleteVersionById = async function(req, res) {
-
     try {
         const note = await notesService.deleteVersionById(req.params.stixId, req.params.modified);
         if (!note) {
@@ -166,5 +159,4 @@ exports.deleteVersionById = async function(req, res) {
         logger.error('Delete note version failed. ' + err);
         return res.status(500).send('Unable to delete note. Server error.');
     }
-
 };

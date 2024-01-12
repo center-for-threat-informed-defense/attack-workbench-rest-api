@@ -1,14 +1,5 @@
 'use strict';
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter'
-};
-exports.errors = errors;
-
 const notesRepository = require('../repository/notes-repository');
 
 const BaseService = require('./_base.service');
@@ -24,14 +15,14 @@ class NotesService extends BaseService {
         if (!stixModified) {
             throw new MissingParameterError;
         }
+
         try {
-            const document = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': stixModified });
+            const document = await this.repository.retrieveOneByVersion(stixId, stixModified);
 
             if (!document) {
                 // document not found
                 return null;
             }
-
             else {
                 // Copy data to found document and save
                 try {
