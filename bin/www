@@ -87,6 +87,16 @@ async function runServer() {
         server.close();
     });
 
+    process.on('uncaughtException', (err, origin) => {
+        logger.error(`Uncaught exception: ${ err }`);
+        logger.error(`Exception origin: ${ origin }`);
+        logger.error(err.stack);
+
+        logger.error('Terminating app after uncaught exception');
+
+        process.exit(1);
+    });
+
     // Wait for the server to close
     const events = require('events');
     await events.once(server, 'close');
