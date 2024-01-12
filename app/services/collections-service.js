@@ -103,6 +103,9 @@ class CollectionsService extends BaseService {
                 }
                 throw new BadlyFormattedParameterError;
             } else {
+                if (callback) {
+                    return callback(err);
+                }
                 throw err;
             }
         }
@@ -147,16 +150,12 @@ class CollectionsService extends BaseService {
 
     async delete(stixId, deleteAllContents) {
         if (!stixId) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'stixId';
-            throw error;
+            throw new MissingParameterError;
         }
 
         const collections = await Collection.find({'stix.id': stixId}).lean();
         if (!collections) {
-            const error = new Error(errors.badlyFormattedParameter);
-            error.parameterName = 'stixId';
-            throw error;
+            throw new BadlyFormattedParameterError;
         }
 
         if (deleteAllContents) {
@@ -215,7 +214,7 @@ class CollectionsService extends BaseService {
             await collection.save();
         }
         else {
-            throw new Error(errors.notFound);
+            throw new NotFoundError;
         }
     };
 
@@ -262,7 +261,7 @@ class CollectionsService extends BaseService {
                 const body = JSON.parse(res.text);
                 return body;
             } catch (err) {
-                const error = new Error(errors.invalidFormat);
+                const error = new Error(this.errors.invalidFormat);
                 throw error;
             }
         }    
@@ -272,15 +271,15 @@ class CollectionsService extends BaseService {
                 throw error;
             }
             else if (err.response && err.response.badRequest) {
-                const error = new Error(errors.badRequest);
+                const error = new Error(this.errors.badRequest);
                 throw error;
             }
             else if (err.code === 'ENOTFOUND') {
-                const error = new Error(errors.hostNotFound);
+                const error = new Error(this.errors.hostNotFound);
                 throw error;
             }
             else if (err.code === 'ECONNREFUSED') {
-                const error = new Error(errors.connectionRefused);
+                const error = new Error(this.errors.connectionRefused);
                 throw error;
             }
             else {
