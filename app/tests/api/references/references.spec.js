@@ -52,369 +52,245 @@ describe('References API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('GET /api/references returns an empty array of references', function (done) {
-            request(app)
-                .get('/api/references')
-                .set('Accept', 'application/json')
-                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-                .expect(200)
-                .expect('Content-Type', /json/)
-                .end(function (err, res) {
-                    if (err) {
-                        done(err);
-                    } else {
-                        // We expect to get an empty array
-                        const references = res.body;
-                        expect(references).toBeDefined();
-                        expect(Array.isArray(references)).toBe(true);
-                        expect(references.length).toBe(0);
-                        done();
-                    }
-                })
-    });
-
-    it('POST /api/references does not create an empty reference', function (done) {
-        const body = { };
-        request(app)
-            .post('/api/references')
-            .send(body)
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
-    });
-
-    let reference1;
-    it('POST /api/references creates a reference', function (done) {
-        const body = initialObjectData1;
-        request(app)
-            .post('/api/references')
-            .send(body)
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created reference
-                    reference1 = res.body;
-                    expect(reference1).toBeDefined();
-                    done();
-                }
-            });
-    });
-
-    let reference2;
-    it('POST /api/references creates a second reference', function (done) {
-        const body = initialObjectData2;
-        request(app)
-            .post('/api/references')
-            .send(body)
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created reference
-                    reference2 = res.body;
-                    expect(reference2).toBeDefined();
-                    done();
-                }
-            });
-    });
-
-    let reference3;
-    it('POST /api/references creates a third reference', function (done) {
-        const body = initialObjectData3;
-        request(app)
-            .post('/api/references')
-            .send(body)
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created reference
-                    reference3 = res.body;
-                    expect(reference3).toBeDefined();
-                    done();
-                }
-            });
-    });
-
-    it('GET /api/references returns the added references', function (done) {
-        request(app)
+    it('GET /api/references returns an empty array of references', async function () {
+        const res = await request(app)
             .get('/api/references')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one reference in an array
-                    const references = res.body;
-                    expect(references).toBeDefined();
-                    expect(Array.isArray(references)).toBe(true);
-                    expect(references.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const references = res.body;
+        expect(references).toBeDefined();
+        expect(Array.isArray(references)).toBe(true);
+        expect(references.length).toBe(0);
     });
 
-    it('GET /api/references should return an empty array of references when the source_name cannot be found', function (done) {
-        request(app)
-            .get('/api/references?sourceName=notasourcename')
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const references = res.body;
-                    expect(references).toBeDefined();
-                    expect(Array.isArray(references)).toBe(true);
-                    expect(references.length).toBe(0);
-                    done();
-                }
-            });
-    });
-
-    it('GET /api/references returns the first added reference', function (done) {
-        request(app)
-            .get('/api/references?sourceName=' + encodeURIComponent(reference1.source_name))
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one reference in an array
-                    const references = res.body;
-                    expect(references).toBeDefined();
-                    expect(Array.isArray(references)).toBe(true);
-                    expect(references.length).toBe(1);
-
-                    const reference = references[0];
-                    expect(reference).toBeDefined();
-                    expect(reference.source_name).toBe(reference1.source_name);
-                    expect(reference.description).toBe(reference1.description);
-                    expect(reference.url).toBe(reference1.url);
-
-                    done();
-                }
-            });
-    });
-
-    it('GET /api/references uses the search parameter to return the third added reference', function (done) {
-        request(app)
-            .get('/api/references?search=' + encodeURIComponent('#3'))
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one reference in an array
-                    const references = res.body;
-                    expect(references).toBeDefined();
-                    expect(Array.isArray(references)).toBe(true);
-                    expect(references.length).toBe(1);
-
-                    const reference = references[0];
-                    expect(reference).toBeDefined();
-                    expect(reference.source_name).toBe(reference3.source_name);
-                    expect(reference.description).toBe(reference3.description);
-                    expect(reference.url).toBe(reference3.url);
-
-                    done();
-                }
-            });
-    });
-
-    it('GET /api/references uses the search parameter to return the third added reference searching fields in the source_name', function (done) {
-        request(app)
-            .get('/api/references?search=' + encodeURIComponent('unique'))
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one reference in an array
-                    const references = res.body;
-                    expect(references).toBeDefined();
-                    expect(Array.isArray(references)).toBe(true);
-                    expect(references.length).toBe(1);
-
-                    const reference = references[0];
-                    expect(reference).toBeDefined();
-                    expect(reference.source_name).toBe(reference3.source_name);
-                    expect(reference.description).toBe(reference3.description);
-                    expect(reference.url).toBe(reference3.url);
-
-                    done();
-                }
-            });
-    });
-
-    it('PUT /api/references does not update a reference when the source_name is missing', function (done) {
-        const body = { description: 'This reference does not have a source_name', url: '' };
-        request(app)
-            .put('/api/references')
-            .send(body)
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
-    });
-
-    it('PUT /api/references does not update a reference when the source_name is not in the database', function (done) {
-        const body = {  source_name: 'not-a-reference', description: 'This reference is not in the database', url: '' };
-        request(app)
-            .put('/api/references')
-            .send(body)
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function(err) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
-    });
-
-    it('PUT /api/references updates a reference', function (done) {
-        reference1.description = 'This is a new description';
-        const body = reference1;
-        request(app)
-            .put('/api/references')
-            .send(body)
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the updated reference
-                    const reference = res.body;
-                    expect(reference).toBeDefined();
-                    expect(reference.source_name).toBe(reference1.source_name);
-                    expect(reference.description).toBe(reference1.description);
-                    done();
-                }
-            });
-    });
-
-    it('POST /api/references does not create a reference with a duplicate source_name', function (done) {
-        const body = reference1;
-        request(app)
+    it('POST /api/references does not create an empty reference', async function () {
+        const body = { };
+        await request(app)
             .post('/api/references')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(409)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
-    it('DELETE /api/references does not delete a reference when the source_name is omitted', function (done) {
-        request(app)
+    let reference1;
+    it('POST /api/references creates a reference', async function () {
+        const body = initialObjectData1;
+        const res = await request(app)
+            .post('/api/references')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created reference
+        reference1 = res.body;
+        expect(reference1).toBeDefined();
+    });
+
+    let reference2;
+    it('POST /api/references creates a second reference', async function () {
+        const body = initialObjectData2;
+        const res = await request(app)
+            .post('/api/references')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created reference
+        reference2 = res.body;
+        expect(reference2).toBeDefined();
+
+    });
+
+    let reference3;
+    it('POST /api/references creates a third reference', async function () {
+        const body = initialObjectData3;
+        const res = await request(app)
+            .post('/api/references')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(201)
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created reference
+        reference3 = res.body;
+        expect(reference3).toBeDefined();
+    });
+
+    it('GET /api/references returns the added references', async function () {
+       const res = await request(app)
+            .get('/api/references')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/);
+
+
+        // We expect to get one reference in an array
+        const references = res.body;
+        expect(references).toBeDefined();
+        expect(Array.isArray(references)).toBe(true);
+        expect(references.length).toBe(3);
+    });
+
+    it('GET /api/references should return an empty array of references when the source_name cannot be found', async function () {
+        const res = await request(app)
+            .get('/api/references?sourceName=notasourcename')
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200);
+
+        // We expect to get an empty array
+        const references = res.body;
+        expect(references).toBeDefined();
+        expect(Array.isArray(references)).toBe(true);
+        expect(references.length).toBe(0);
+
+    });
+
+    it('GET /api/references returns the first added reference', async function () {
+        const res = await request(app)
+            .get('/api/references?sourceName=' + encodeURIComponent(reference1.source_name))
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/);
+
+        // We expect to get one reference in an array
+        const references = res.body;
+        expect(references).toBeDefined();
+        expect(Array.isArray(references)).toBe(true);
+        expect(references.length).toBe(1);
+
+        const reference = references[0];
+        expect(reference).toBeDefined();
+        expect(reference.source_name).toBe(reference1.source_name);
+        expect(reference.description).toBe(reference1.description);
+        expect(reference.url).toBe(reference1.url);
+    });
+
+    it('GET /api/references uses the search parameter to return the third added reference', async function () {
+        const res = await request(app)
+            .get('/api/references?search=' + encodeURIComponent('#3'))
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/);
+
+        // We expect to get one reference in an array
+        const references = res.body;
+        expect(references).toBeDefined();
+        expect(Array.isArray(references)).toBe(true);
+        expect(references.length).toBe(1);
+
+        const reference = references[0];
+        expect(reference).toBeDefined();
+        expect(reference.source_name).toBe(reference3.source_name);
+        expect(reference.description).toBe(reference3.description);
+        expect(reference.url).toBe(reference3.url);
+    });
+
+    it('GET /api/references uses the search parameter to return the third added reference searching fields in the source_name', async function () {
+        const res = await request(app)
+            .get('/api/references?search=' + encodeURIComponent('unique'))
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/);
+
+        // We expect to get one reference in an array
+        const references = res.body;
+        expect(references).toBeDefined();
+        expect(Array.isArray(references)).toBe(true);
+        expect(references.length).toBe(1);
+
+        const reference = references[0];
+        expect(reference).toBeDefined();
+        expect(reference.source_name).toBe(reference3.source_name);
+        expect(reference.description).toBe(reference3.description);
+        expect(reference.url).toBe(reference3.url);
+
+    });
+
+    it('PUT /api/references does not update a reference when the source_name is missing', async function () {
+        const body = { description: 'This reference does not have a source_name', url: '' };
+        await request(app)
+            .put('/api/references')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(400);
+    });
+
+    it('PUT /api/references does not update a reference when the source_name is not in the database', async function () {
+        const body = {  source_name: 'not-a-reference', description: 'This reference is not in the database', url: '' };
+        await request(app)
+            .put('/api/references')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(404);
+    });
+
+    it('PUT /api/references updates a reference', async function () {
+        reference1.description = 'This is a new description';
+        const body = reference1;
+        const res = await request(app)
+            .put('/api/references')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(200)
+            .expect('Content-Type', /json/);
+
+        // We expect to get the updated reference
+        const reference = res.body;
+        expect(reference).toBeDefined();
+        expect(reference.source_name).toBe(reference1.source_name);
+        expect(reference.description).toBe(reference1.description);
+    });
+
+    it('POST /api/references does not create a reference with a duplicate source_name', async function () {
+        const body = reference1;
+        await request(app)
+            .post('/api/references')
+            .send(body)
+            .set('Accept', 'application/json')
+            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .expect(409);
+    });
+
+    it('DELETE /api/references does not delete a reference when the source_name is omitted', async function () {
+        await request(app)
             .delete('/api/references')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
-    it('DELETE /api/references does not delete a reference with a non-existent source_name', function (done) {
-        request(app)
+    it('DELETE /api/references does not delete a reference with a non-existent source_name', async function () {
+        await request(app)
             .delete('/api/references?sourceName=not-a-reference')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(404);
     });
 
-    it('DELETE /api/references deletes a reference', function (done) {
-        request(app)
+    it('DELETE /api/references deletes a reference', async function () {
+        await request(app)
             .delete(`/api/references?sourceName=${ reference1.source_name }`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
     });
 
     after(async function() {

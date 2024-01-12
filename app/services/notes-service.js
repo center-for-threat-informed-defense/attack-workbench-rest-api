@@ -9,12 +9,12 @@ const errors = {
 };
 exports.errors = errors;
 
-const NoteRepository = require('../repository/note-repository');
+const notesRepository = require('../repository/notes-repository');
 
 const BaseService = require('./_base.service');
 const { BadlyFormattedParameterError, DuplicateIdError, MissingParameterError } = require('../exceptions');
 
-class NoteService extends BaseService {
+class NotesService extends BaseService {
 
     async updateVersion(stixId, stixModified, data) {
         if (!stixId) {
@@ -59,4 +59,4 @@ class NoteService extends BaseService {
 
 }
 
-module.exports = new NoteService('note', NoteRepository);
+module.exports = new NotesService('note', notesRepository);

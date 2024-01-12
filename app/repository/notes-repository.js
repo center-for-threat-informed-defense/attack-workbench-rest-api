@@ -6,8 +6,7 @@ const regexValidator = require('../lib/regex');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 const { DatabaseError } = require('../exceptions');
 
-class NoteRepository extends BaseRepository {
-
+class NotesRepository extends BaseRepository {
     async retrieveAll(options) {
         try {
             // Build the query
@@ -47,9 +46,9 @@ class NoteRepository extends BaseRepository {
             if (typeof options.search !== 'undefined') {
                 options.search = regexValidator.sanitizeRegex(options.search);
                 const match = { $match: { $or: [
-                    { 'stix.abstract': { '$regex': options.search, '$options': 'i' }},
-                    { 'stix.content': { '$regex': options.search, '$options': 'i' }}
-                ]}};
+                            { 'stix.abstract': { '$regex': options.search, '$options': 'i' }},
+                            { 'stix.content': { '$regex': options.search, '$options': 'i' }}
+                        ]}};
                 aggregation.push(match);
             }
 
@@ -78,4 +77,4 @@ class NoteRepository extends BaseRepository {
     }
 }
 
-module.exports = new NoteRepository(Note);
+module.exports = new NotesRepository(Note);
