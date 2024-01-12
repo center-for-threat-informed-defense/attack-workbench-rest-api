@@ -53,7 +53,7 @@ class BaseService extends AbstractService {
         try {
             results = await this.repository.retrieveAll(options);
         } catch (err) {
-            const databaseError = new DatabaseError(err); // Let the DatabaseError buddle up
+            const databaseError = new DatabaseError(err); // Let the DatabaseError bubble up
             if (callback) {
                 return callback(databaseError);
             }

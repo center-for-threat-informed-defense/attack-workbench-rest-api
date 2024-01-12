@@ -1,8 +1,11 @@
 const UserAccount = require('../models/user-account-model');
-const BaseRepository = require('./_base.repository');
 const { DatabaseError, DuplicateIdError } = require('../exceptions');
 
-class UserAccountsRepository extends BaseRepository {
+class UserAccountsRepository {
+
+    constructor(model) {
+        this.model = model;
+    }
 
     async retrieveOneByEmail(email) {
         try {
@@ -12,9 +15,17 @@ class UserAccountsRepository extends BaseRepository {
         }
     }
 
+    async retrieveOneByUserAccountId(userAccountId) {
+        try {
+            return await this.model.findOne({ 'id': userAccountId }).exec();
+        } catch (err) {
+            throw new DatabaseError(err);
+        }
+    }
+
     async updateById(userAccountId, data) {
 
-        const document = await this.retrieveOneById(userAccountId).exec();
+        const document = await this.retrieveOneByUserAccountId(userAccountId).exec();
 
         if (!document) {
             // document not found
