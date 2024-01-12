@@ -3,6 +3,6 @@
 const BaseRepository = require('./_base.repository');
 const MarkingDefinition = require('../models/marking-definition-model');
 
-class MarkingDefinitionRepository extends BaseRepository { }
+class MarkingDefinitionsRepository extends BaseRepository { }
 
-module.exports = new MarkingDefinitionRepository(MarkingDefinition);
+module.exports = new MarkingDefinitionsRepository(MarkingDefinition);

@@ -6,24 +6,12 @@ const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
 const config = require('../config/config');
 const BaseService = require('./_base.service');
-const MarkingDefinitionRepository = require('../repository/marking-definition-repository');
-const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
+const markingDefinitionsRepository = require('../repository/marking-definitions-repository');
+const { MissingParameterError, BadlyFormattedParameterError, CannotUpdateStaticObjectError, DuplicateIdError } = require('../exceptions');
 
 // NOTE: A marking definition does not support the modified or revoked properties!!
 
 class MarkingDefinitionsService extends BaseService {
-
-    errors = {
-        missingParameter: 'Missing required parameter',
-        badlyFormattedParameter: 'Badly formatted parameter',
-        duplicateId: 'Duplicate id',
-        notFound: 'Document not found',
-        invalidQueryStringParameter: 'Invalid query string parameter',
-        cannotUpdateStaticObject: 'Cannot update static object'
-    };
-
-    createIsAsync = true;
-
     async create(data, options) {
     // This function handles two use cases:
     //   1. This is a completely new object. Create a new object and generate the stix.id if not already
@@ -85,17 +73,15 @@ class MarkingDefinitionsService extends BaseService {
 
 
     async updateFull(stixId, data, callback) {
-
         if (data?.workspace?.workflow?.state === 'static') {
             if (callback) {
                 return callback(new Error(this.errors.cannotUpdateStaticObject));
             }
 
-            throw new Error(this.errors.cannotUpdateStaticObject);
+            throw new CannotUpdateStaticObjectError;
         }
 
         const newDoc = await super.updateFull(stixId, data, callback);
-
         return newDoc;
 }
 
@@ -132,8 +118,6 @@ class MarkingDefinitionsService extends BaseService {
         }
 }
 
-
-
     async delete(stixId) {
         if (!stixId) {
             throw new MissingParameterError;
@@ -144,7 +128,6 @@ class MarkingDefinitionsService extends BaseService {
         return markingDefinition;
 
     }
-
 }
 
-module.exports = new MarkingDefinitionsService('marking-definition', MarkingDefinitionRepository);
+module.exports = new MarkingDefinitionsService('marking-definition', markingDefinitionsRepository);
