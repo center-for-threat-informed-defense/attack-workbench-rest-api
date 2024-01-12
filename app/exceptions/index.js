@@ -44,6 +44,12 @@ class InvalidQueryStringParameterError extends CustomError {
     }
 }
 
+class CannotUpdateStaticObjectError extends CustomError {
+    constructor(options) {
+        super('Cannot update static object', options);
+    }
+}
+
 class IdentityServiceError extends CustomError {
     constructor(options) {
         super('An error occurred in the identities service.', options);
@@ -96,6 +102,7 @@ module.exports = {
     MissingParameterError,
     BadlyFormattedParameterError,
     InvalidQueryStringParameterError,
+    CannotUpdateStaticObjectError,
     
     //** Database-related errors */
     DuplicateIdError,
@@ -107,5 +114,5 @@ module.exports = {
     IdentityServiceError,
     TechniquesServiceError,
     TacticsServiceError,
-    InvalidTypeError
+    InvalidTypeError,
 };
