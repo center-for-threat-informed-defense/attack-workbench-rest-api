@@ -36,7 +36,7 @@ class DataSourcesService extends BaseService {
         // version doesn't.
 
         // Retrieve the latest version of all data components
-        const allDataComponents = await dataComponentsService.retrieveAllAsync({ includeDeprecated: true, includeRevoked: true });
+        const allDataComponents = await dataComponentsService.retrieveAll({ includeDeprecated: true, includeRevoked: true });
 
         // Add the data components that reference the data source
         dataSource.dataComponents = allDataComponents.filter(dataComponent => dataComponent.stix.x_mitre_data_source_ref === dataSource.stix.id);
