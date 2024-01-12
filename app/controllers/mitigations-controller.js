@@ -64,7 +64,6 @@ exports.retrieveById = async function(req, res) {
 };
 
 exports.retrieveVersionById = async function(req, res) {
-
     try {
         const mitigation = await mitigationsService.retrieveVersionById(req.params.stixId, req.params.modified);
         if (!mitigation) {
@@ -136,7 +135,6 @@ exports.updateFull = async function(req, res) {
 };
 
 exports.deleteVersionById = async function(req, res) {
-
     try {
         const mitigation = await mitigationsService.deleteVersionById(req.params.stixId, req.params.modified);
         if (!mitigation) {
@@ -153,7 +151,6 @@ exports.deleteVersionById = async function(req, res) {
 };
 
 exports.deleteById = async function(req, res) {
-
     try {
         const mitigations = await mitigationsService.deleteById(req.params.stixId);
         if (mitigations.deletedCount === 0) {
