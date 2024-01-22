@@ -29,6 +29,178 @@ class IdentitiesService extends BaseService {
         }
     }
 
+    async retrieveById(stixId, options, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
+
+        if (!stixId) {
+            const err = new MissingParameterError({ parameterName: 'stixId' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
+        }
+
+        try {
+            if (options.versions === 'all') {
+                const documents = await this.repository.retrieveAllById(stixId);
+
+                try {
+                    await this.addCreatedByAndModifiedByIdentitiesToAll(documents);
+                } catch (err) {
+                    const identityError = new IdentityServiceError({
+                        details: err.message,
+                        cause: err
+                    });
+                    if (callback) {
+                        return callback(identityError);
+                    } 
+                    throw identityError;
+                }
+                if (callback) {
+                    return callback(null, documents);
+                } 
+                return documents;
+
+            } else if (options.versions === 'latest') {
+                const document = await this.repository.retrieveLatestByStixId(stixId);
+
+                if (document) {
+                    try {
+                        await this.addCreatedByAndModifiedByIdentities(document);
+                    } catch (err) {
+                        const identityError = new IdentityServiceError({
+                            details: err.message,
+                            cause: err
+                        });
+                        if (callback) {
+                            return callback(identityError);
+                        }
+                        throw identityError;
+                    }
+                    if (callback) {
+                        return callback(null, [document]);
+                    }
+                    return [document];
+                } else {
+                    if (callback) {
+                        return callback(null, []);
+                    }
+                    return [];
+                }
+
+            } else {
+                const err = new InvalidQueryStringParameterError({ parameterName: 'versions' });
+                if (callback) {
+                    return callback(err);
+                }
+                throw err;
+            }
+        } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
+            throw err; // Let the DatabaseError bubble up
+        }
+    }
+
+
+    async retrieveVersionById(stixId, modified, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
+        if (!stixId) {
+            const err = new MissingParameterError({ parameterName: 'stixId' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
+        }
+
+        if (!modified) {
+            const err = new MissingParameterError({ parameterName: 'modified' });
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
+        }
+
+        // eslint-disable-next-line no-useless-catch
+        try {
+            const document = await this.repository.retrieveOneByVersion(stixId, modified);
+
+            if (!document) {
+                console.log('** NOT FOUND');
+                if (callback) {
+                    return callback(null, null);
+                }
+                return null;
+            } else {
+                try {
+                    await this.addCreatedByAndModifiedByIdentities(document);
+                } catch (err) {
+                    const identityError = new IdentityServiceError({
+                        details: err.message,
+                        cause: err
+                    });
+                    if (callback) {
+                        return callback(identityError);
+                    }
+                    throw identityError;
+                }
+                if (callback) {
+                    return callback(null, document);
+                }
+                return document;
+            }
+        } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
+            throw err; // Let the DatabaseError bubble up
+        }
+    }
+
+
+    async retrieveAll(options, callback) {
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
+
+        let results;
+        try {
+            results = await this.repository.retrieveAll(options);
+        } catch (err) {
+            const databaseError = new DatabaseError(err); // Let the DatabaseError buddle up
+            if (callback) {
+                return callback(databaseError);
+            }
+            throw databaseError;
+        }
+
+        try {
+            await this.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
+        } catch (err) {
+            const identityError = new IdentityServiceError({
+                details: err.message,
+                cause: err
+            });
+            if (callback) {
+                return callback(identityError);
+            }
+            throw identityError;
+
+        }
+
+        const paginatedResults = BaseService.paginate(options, results);
+        if (callback) {
+            return callback(null, paginatedResults);
+        }
+        return paginatedResults;
+
+    }
+
     async retrieveVersionById (stixId, modified) {
         // Retrieve the versions of the identity with the matching stixId and modified date
     
