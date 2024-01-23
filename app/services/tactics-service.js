@@ -5,7 +5,7 @@ const config = require('../config/config');
 const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
 const BaseService = require('./_base.service');
-const TacticsRepository = require('../repository/tactics-repository');
+const tacticsRepository = require('../repository/tactics-repository');
 
 class TacticsService extends BaseService {
     static techniquesService = null;
@@ -44,7 +44,7 @@ class TacticsService extends BaseService {
         }
 
         try {
-            const tactic = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+            const tactic = await this.repository.retrieveOneByVersion(stixId, modified);
 
             // Note: document is null if not found
             if (!tactic) {
@@ -83,4 +83,4 @@ class TacticsService extends BaseService {
 
 }
 
-module.exports = new TacticsService('x-mitre-tactic', TacticsRepository);
+module.exports = new TacticsService('x-mitre-tactic', tacticsRepository);
