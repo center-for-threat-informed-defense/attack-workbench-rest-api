@@ -310,7 +310,7 @@ class IdentitiesService extends BaseService {
             // No cache or not found in cache
             try {
                 // eslint-disable-next-line require-atomic-updates
-                const identityObject = await getLatest(attackObject.stix.created_by_ref);
+                const identityObject = await this.getLatest(attackObject.stix.created_by_ref);
                 attackObject.created_by_identity = identityObject;
 
                 if (cache) {
@@ -336,7 +336,7 @@ class IdentitiesService extends BaseService {
             // No cache or not found in cache
             try {
                 // eslint-disable-next-line require-atomic-updates
-                const identityObject = await getLatest(attackObject.stix.x_mitre_modified_by_ref);
+                const identityObject = await this.getLatest(attackObject.stix.x_mitre_modified_by_ref);
                 attackObject.modified_by_identity = identityObject;
 
                 if (cache) {
