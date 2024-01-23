@@ -210,19 +210,17 @@ class IdentitiesService extends BaseService {
             throw new MissingParameterError;
         }
     
-        try {
-            const identity = await Identity.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }).exec();
-    
-            // Note: identity is null if not found
-            return identity || null;
-        } catch (err) {
-            throw err;
-        }
-    };
+        const identity = await Identity.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }).exec();
+
+        // Note: identity is null if not found
+        return identity || null;
+
+    }
     
     
 
     createIsAsync = true;
+    
     async create(data, options) {
         // This function handles two use cases:
         //   1. This is a completely new object. Create a new object and generate the stix.id if not already
@@ -260,7 +258,7 @@ class IdentitiesService extends BaseService {
                 throw err;
             }
         }
-    };
+    }
 
     async getLatest(stixId) {
         const identity = await Identity
