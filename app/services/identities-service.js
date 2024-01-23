@@ -7,7 +7,7 @@ const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
 const identitiesRepository = require('../repository/identities-repository');
 const BaseService = require('./_base.service');
-const { DuplicateIdError, MissingParameterError, BadlyFormattedParameterError } = require('../exceptions');
+const { DuplicateIdError, MissingParameterError, BadlyFormattedParameterError, InvalidQueryStringParameterError, DatabaseError, IdentityServiceError } = require('../exceptions');
 
 const errors = {
     missingParameter: 'Missing required parameter',
