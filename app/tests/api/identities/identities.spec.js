@@ -65,7 +65,7 @@ describe('Identity API', function () {
 
     it('POST /api/identities does not create an empty identity', async function () {
         const body = { };
-        const res = await request(app)
+        await request(app)
             .post('/api/identities')
             .send(body)
             .set('Accept', 'application/json')
@@ -113,7 +113,7 @@ describe('Identity API', function () {
     });
 
     it('GET /api/identities/:id should not return an identity when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .get('/api/identities/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -173,7 +173,7 @@ describe('Identity API', function () {
 
     it('POST /api/identities does not create an identity with the same id and modified date', async function () {
         const body = identity1;
-        const res = await request(app)
+        await request(app)
             .post('/api/identities')
             .send(body)
             .set('Accept', 'application/json')
@@ -292,21 +292,21 @@ describe('Identity API', function () {
     });
 
     it('DELETE /api/identities/:id should not delete a identity when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/identities/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404);
     });
     
     it('DELETE /api/identities/:id/modified/:modified deletes an identity', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
     });
     
     it('DELETE /api/identities/:id should delete all the identities with the same stix id', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/identities/' + identity2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);

@@ -7,7 +7,7 @@ const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
 const identitiesRepository = require('../repository/identities-repository');
 const BaseService = require('./_base.service');
-const { DuplicateIdError, MissingParameterError, BadlyFormattedParameterError, InvalidQueryStringParameterError, DatabaseError, IdentityServiceError } = require('../exceptions');
+const { DuplicateIdError, MissingParameterError, InvalidQueryStringParameterError, DatabaseError, IdentityServiceError } = require('../exceptions');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -200,31 +200,6 @@ class IdentitiesService extends BaseService {
         return paginatedResults;
 
     }
-
-    async retrieveVersionById (stixId, modified) {
-        // Retrieve the versions of the identity with the matching stixId and modified date
-    
-        if (!stixId) {
-            throw new MissingParameterError;
-        }
-    
-        if (!modified) {
-            throw new MissingParameterError;
-        }
-    
-        try {
-            const identity = await Identity.findOne({ 'stix.id': stixId, 'stix.modified': modified }).exec();
-    
-            // Note: document is null if not found
-            return identity || null;
-        } catch (err) {
-            if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError;
-            } else {
-                throw err;
-            }
-        }
-    };
 
     async deleteVersionById(stixId, stixModified) {
         if (!stixId) {
