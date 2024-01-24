@@ -1,7 +1,6 @@
 'use strict';
 
 const uuid = require('uuid');
-const Identity = require('../models/identity-model');
 const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
@@ -210,7 +209,7 @@ class IdentitiesService extends BaseService {
             throw new MissingParameterError;
         }
     
-        const identity = await Identity.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }).exec();
+        const identity = await this.repository.model.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }).exec();
 
         // Note: identity is null if not found
         return identity || null;
@@ -247,7 +246,7 @@ class IdentitiesService extends BaseService {
 
         // Save the document in the database
         try {
-            const savedIdentity = await identitiesRepository.save(data);
+            const savedIdentity = await this.repository.save(data);
             return savedIdentity;
         }
         catch (err) {
@@ -261,7 +260,7 @@ class IdentitiesService extends BaseService {
     }
 
     async getLatest(stixId) {
-        const identity = await Identity
+        const identity = await this.repository.model
             .findOne({ 'stix.id': stixId })
             .sort('-stix.modified')
             .lean()
