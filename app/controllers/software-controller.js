@@ -2,7 +2,7 @@
 
 const softwareService = require('../services/software-service');
 const logger = require('../lib/logger');
-const { DuplicateIdError, BadlyFormattedParameterError, InvalidQueryStringParameterError, MissingPropertyError, PropertyNotAllowedError } = require('../exceptions');
+const { DuplicateIdError, BadlyFormattedParameterError, InvalidQueryStringParameterError, PropertyNotAllowedError } = require('../exceptions');
 
 exports.retrieveAll = async function(req, res) {
     const options = {
@@ -112,10 +112,6 @@ exports.create = async function(req, res) {
         if (err instanceof DuplicateIdError) {
             logger.warn("Duplicate stix.id and stix.modified");
             return res.status(409).send('Unable to create software. Duplicate stix.id and stix.modified properties.');
-        }
-        else if (err instanceof MissingPropertyError) {
-            logger.warn(`Unable to create software, missing property ${ err.propertyName }`);
-            return res.status(400).send(`Unable to create software, missing property ${ err.propertyName }`);
         }
         else if (err instanceof PropertyNotAllowedError) {
             logger.warn(`Unable to create software, property ${ err.propertyName } is not allowed`);
