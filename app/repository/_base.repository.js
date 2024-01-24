@@ -145,9 +145,27 @@ class BaseRepository extends AbstractRepository {
         }
     }
 
+    createNewDocument(data) {
+        return new this.model(data);
+    }
+
+    // eslint-disable-next-line class-methods-use-this
+    async saveDocument(document) {
+        try {
+            return await document.save();
+        }
+        catch(err) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                throw new DuplicateIdError({
+                    details: `Document with id '${ document.stix.id }' already exists.`
+                });
+            }
+            throw new DatabaseError(err);
+        }
+    }
+
     // eslint-disable-next-line class-methods-use-this
     async save(data) {
-
         try {
             const document = new this.model(data);
             return await document.save();
@@ -164,6 +182,7 @@ class BaseRepository extends AbstractRepository {
     // eslint-disable-next-line class-methods-use-this
     async updateAndSave(document, data) {
         try {
+            // TODO validate that document is valid mongoose object first
             Object.assign(document, data);
             return await document.save();
         } catch (err) {

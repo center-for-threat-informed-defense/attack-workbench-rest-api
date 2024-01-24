@@ -53,207 +53,152 @@ describe('Mitigations API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('GET /api/mitigations returns an empty array of mitigations', function (done) {
-        request(app)
+    it('GET /api/mitigations returns an empty array of mitigations', async function () {
+        const res = await request(app)
             .get('/api/mitigations')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const mitigations = res.body;
-                    expect(mitigations).toBeDefined();
-                    expect(Array.isArray(mitigations)).toBe(true);
-                    expect(mitigations.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const mitigations = res.body;
+        expect(mitigations).toBeDefined();
+        expect(Array.isArray(mitigations)).toBe(true);
+        expect(mitigations.length).toBe(0);
+     
     });
 
-    it('POST /api/mitigations does not create an empty mitigation', function (done) {
+    it('POST /api/mitigations does not create an empty mitigation', async function () {
         const body = { };
-        request(app)
+        await request(app)
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
     let mitigation1;
-    it('POST /api/mitigations creates a mitigation', function (done) {
+    it('POST /api/mitigations creates a mitigation', async function () {
         const timestamp = new Date().toISOString();
         initialObjectData.stix.created = timestamp;
         initialObjectData.stix.modified = timestamp;
         const body = initialObjectData;
-        request(app)
+        const res = await request(app)
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created mitigation
-                    mitigation1 = res.body;
-                    expect(mitigation1).toBeDefined();
-                    expect(mitigation1.stix).toBeDefined();
-                    expect(mitigation1.stix.id).toBeDefined();
-                    expect(mitigation1.stix.created).toBeDefined();
-                    expect(mitigation1.stix.modified).toBeDefined();
-                    expect(mitigation1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+            .expect('Content-Type', /json/);
 
-                    expect(mitigation1.stix.labels).toBeDefined();
-                    expect(Array.isArray(mitigation1.stix.labels)).toBe(true);
-                    expect(mitigation1.stix.labels.length).toBe(2);
+        // We expect to get the created mitigation
+        mitigation1 = res.body;
+        expect(mitigation1).toBeDefined();
+        expect(mitigation1.stix).toBeDefined();
+        expect(mitigation1.stix.id).toBeDefined();
+        expect(mitigation1.stix.created).toBeDefined();
+        expect(mitigation1.stix.modified).toBeDefined();
+        expect(mitigation1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
 
-                    done();
-                }
-            });
+        expect(mitigation1.stix.labels).toBeDefined();
+        expect(Array.isArray(mitigation1.stix.labels)).toBe(true);
+        expect(mitigation1.stix.labels.length).toBe(2);
+
     });
 
-    it('GET /api/mitigations returns the added mitigation', function (done) {
-        request(app)
+    it('GET /api/mitigations returns the added mitigation', async function () {
+        const res = await request(app)
             .get('/api/mitigations')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one mitigation in an array
-                    const mitigations = res.body;
-                    expect(mitigations).toBeDefined();
-                    expect(Array.isArray(mitigations)).toBe(true);
-                    expect(mitigations.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one mitigation in an array
+        const mitigations = res.body;
+        expect(mitigations).toBeDefined();
+        expect(Array.isArray(mitigations)).toBe(true);
+        expect(mitigations.length).toBe(1);
     });
 
-    it('GET /api/mitigations/:id should not return a mitigation when the id cannot be found', function (done) {
-        request(app)
+    it('GET /api/mitigations/:id should not return a mitigation when the id cannot be found', async function () {
+        await request(app)
             .get('/api/mitigations/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(404);
     });
 
-    it('GET /api/mitigations/:id returns the added mitigation', function (done) {
-        request(app)
+    it('GET /api/mitigations/:id returns the added mitigation', async function () {
+        const res = await request(app)
             .get('/api/mitigations/' + mitigation1.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one mitigation in an array
-                    const mitigations = res.body;
-                    expect(mitigations).toBeDefined();
-                    expect(Array.isArray(mitigations)).toBe(true);
-                    expect(mitigations.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    const mitigation = mitigations[0];
-                    expect(mitigation).toBeDefined();
-                    expect(mitigation.stix).toBeDefined();
-                    expect(mitigation.stix.id).toBe(mitigation1.stix.id);
-                    expect(mitigation.stix.type).toBe(mitigation1.stix.type);
-                    expect(mitigation.stix.name).toBe(mitigation1.stix.name);
-                    expect(mitigation.stix.description).toBe(mitigation1.stix.description);
-                    expect(mitigation.stix.spec_version).toBe(mitigation1.stix.spec_version);
-                    expect(mitigation.stix.object_marking_refs).toEqual(expect.arrayContaining(mitigation1.stix.object_marking_refs));
-                    expect(mitigation.stix.created_by_ref).toBe(mitigation1.stix.created_by_ref);
-                    expect(mitigation.stix.x_mitre_version).toBe(mitigation1.stix.x_mitre_version);
-                    expect(mitigation.stix.x_mitre_attack_spec_version).toBe(mitigation1.stix.x_mitre_attack_spec_version);
 
-                    expect(mitigation.stix.labels).toBeDefined();
-                    expect(Array.isArray(mitigation.stix.labels)).toBe(true);
-                    expect(mitigation.stix.labels.length).toBe(mitigation1.stix.labels.length);
+        // We expect to get one mitigation in an array
+        const mitigations = res.body;
+        expect(mitigations).toBeDefined();
+        expect(Array.isArray(mitigations)).toBe(true);
+        expect(mitigations.length).toBe(1);
 
-                    done();
-                }
-            });
+        const mitigation = mitigations[0];
+        expect(mitigation).toBeDefined();
+        expect(mitigation.stix).toBeDefined();
+        expect(mitigation.stix.id).toBe(mitigation1.stix.id);
+        expect(mitigation.stix.type).toBe(mitigation1.stix.type);
+        expect(mitigation.stix.name).toBe(mitigation1.stix.name);
+        expect(mitigation.stix.description).toBe(mitigation1.stix.description);
+        expect(mitigation.stix.spec_version).toBe(mitigation1.stix.spec_version);
+        expect(mitigation.stix.object_marking_refs).toEqual(expect.arrayContaining(mitigation1.stix.object_marking_refs));
+        expect(mitigation.stix.created_by_ref).toBe(mitigation1.stix.created_by_ref);
+        expect(mitigation.stix.x_mitre_version).toBe(mitigation1.stix.x_mitre_version);
+        expect(mitigation.stix.x_mitre_attack_spec_version).toBe(mitigation1.stix.x_mitre_attack_spec_version);
+
+        expect(mitigation.stix.labels).toBeDefined();
+        expect(Array.isArray(mitigation.stix.labels)).toBe(true);
+        expect(mitigation.stix.labels.length).toBe(mitigation1.stix.labels.length);
     });
 
-    it('PUT /api/mitigations updates a mitigation', function (done) {
+    it('PUT /api/mitigations updates a mitigation', async function () {
         const originalModified = mitigation1.stix.modified;
         const timestamp = new Date().toISOString();
         mitigation1.stix.modified = timestamp;
         mitigation1.stix.description = 'This is an updated mitigation.'
         const body = mitigation1;
-        request(app)
+        const res = await request(app)
             .put('/api/mitigations/' + mitigation1.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the updated mitigation
-                    const mitigation = res.body;
-                    expect(mitigation).toBeDefined();
-                    expect(mitigation.stix.id).toBe(mitigation1.stix.id);
-                    expect(mitigation.stix.modified).toBe(mitigation1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+
+        // We expect to get the updated mitigation
+        const mitigation = res.body;
+        expect(mitigation).toBeDefined();
+        expect(mitigation.stix.id).toBe(mitigation1.stix.id);
+        expect(mitigation.stix.modified).toBe(mitigation1.stix.modified);
+
     });
 
-    it('POST /api/mitigations does not create a mitigation with the same id and modified date', function (done) {
+    it('POST /api/mitigations does not create a mitigation with the same id and modified date', async function () {
         const body = mitigation1;
-        request(app)
+        await request(app)
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(409)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(409);
     });
 
     let mitigation2;
-    it('POST /api/mitigations should create a new version of a mitigation with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/mitigations should create a new version of a mitigation with a duplicate stix.id but different stix.modified date', async function () {
         mitigation2 = _.cloneDeep(mitigation1);
         mitigation2._id = undefined;
         mitigation2.__t = undefined;
@@ -261,28 +206,23 @@ describe('Mitigations API', function () {
         const timestamp = new Date().toISOString();
         mitigation2.stix.modified = timestamp;
         const body = mitigation2;
-        request(app)
+        const res = await request(app)
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created mitigation
-                    const mitigation = res.body;
-                    expect(mitigation).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+
+        // We expect to get the created mitigation
+        const mitigation = res.body;
+        expect(mitigation).toBeDefined();
+
     });
 
     let mitigation3;
-    it('POST /api/mitigations should create a new version of a mitigation with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/mitigations should create a new version of a mitigation with a duplicate stix.id but different stix.modified date', async function () {
         mitigation3 = _.cloneDeep(mitigation1);
         mitigation3._id = undefined;
         mitigation3.__t = undefined;
@@ -290,184 +230,127 @@ describe('Mitigations API', function () {
         const timestamp = new Date().toISOString();
         mitigation3.stix.modified = timestamp;
         const body = mitigation3;
-        request(app)
+        const res = await request(app)
             .post('/api/mitigations')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created mitigation
-                    const mitigation = res.body;
-                    expect(mitigation).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+
+        // We expect to get the created mitigation
+        const mitigation = res.body;
+        expect(mitigation).toBeDefined();
+
     });
     
-    it('GET /api/mitigations returns the latest added mitigation', function (done) {
-        request(app)
+    it('GET /api/mitigations returns the latest added mitigation', async function () {
+        const res = await request(app)
             .get('/api/mitigations/' + mitigation3.stix.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one mitigation in an array
-                    const mitigations = res.body;
-                    expect(mitigations).toBeDefined();
-                    expect(Array.isArray(mitigations)).toBe(true);
-                    expect(mitigations.length).toBe(1);
-                    const mitigation = mitigations[0];
-                    expect(mitigation.stix.id).toBe(mitigation3.stix.id);
-                    expect(mitigation.stix.modified).toBe(mitigation3.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+  
+        // We expect to get one mitigation in an array
+        const mitigations = res.body;
+        expect(mitigations).toBeDefined();
+        expect(Array.isArray(mitigations)).toBe(true);
+        expect(mitigations.length).toBe(1);
+        const mitigation = mitigations[0];
+        expect(mitigation.stix.id).toBe(mitigation3.stix.id);
+        expect(mitigation.stix.modified).toBe(mitigation3.stix.modified);
     });
 
-    it('GET /api/mitigations returns all added mitigations', function (done) {
-        request(app)
+    it('GET /api/mitigations returns all added mitigations', async function () {
+        const res = await request(app)
             .get('/api/mitigations/' + mitigation1.stix.id + '?versions=all')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get two mitigations in an array
-                    const mitigations = res.body;
-                    expect(mitigations).toBeDefined();
-                    expect(Array.isArray(mitigations)).toBe(true);
-                    expect(mitigations.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get two mitigations in an array
+        const mitigations = res.body;
+        expect(mitigations).toBeDefined();
+        expect(Array.isArray(mitigations)).toBe(true);
+        expect(mitigations.length).toBe(3);
+
     });
 
-    it('GET /api/mitigations/:id/modified/:modified returns the first added mitigation', function (done) {
-        request(app)
+    it('GET /api/mitigations/:id/modified/:modified returns the first added mitigation', async function () {
+        const res = await request(app)
             .get('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one mitigation in an array
-                    const mitigation = res.body;
-                    expect(mitigation).toBeDefined();
-                    expect(mitigation.stix).toBeDefined();
-                    expect(mitigation.stix.id).toBe(mitigation1.stix.id);
-                    expect(mitigation.stix.modified).toBe(mitigation1.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+
+        // We expect to get one mitigation in an array
+        const mitigation = res.body;
+        expect(mitigation).toBeDefined();
+        expect(mitigation.stix).toBeDefined();
+        expect(mitigation.stix.id).toBe(mitigation1.stix.id);
+        expect(mitigation.stix.modified).toBe(mitigation1.stix.modified);
+
     });
 
-    it('GET /api/mitigations/:id/modified/:modified returns the second added mitigation', function (done) {
-        request(app)
+    it('GET /api/mitigations/:id/modified/:modified returns the second added mitigation', async function () {
+        const res = await request(app)
             .get('/api/mitigations/' + mitigation2.stix.id + '/modified/' + mitigation2.stix.modified)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one mitigation in an array
-                    const mitigation = res.body;
-                    expect(mitigation).toBeDefined();
-                    expect(mitigation.stix).toBeDefined();
-                    expect(mitigation.stix.id).toBe(mitigation2.stix.id);
-                    expect(mitigation.stix.modified).toBe(mitigation2.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one mitigation in an array
+        const mitigation = res.body;
+        expect(mitigation).toBeDefined();
+        expect(mitigation.stix).toBeDefined();
+        expect(mitigation.stix.id).toBe(mitigation2.stix.id);
+        expect(mitigation.stix.modified).toBe(mitigation2.stix.modified);
+
     });
 
-    it('DELETE /api/mitigations/:id should not delete a mitigation when the id cannot be found', function (done) {
-        request(app)
+    it('DELETE /api/mitigations/:id should not delete a mitigation when the id cannot be found', async function () {
+        await request(app)
             .delete('/api/mitigations/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(404);
     });
 
-    it('DELETE /api/mitigations/:id/modified/:modified deletes a mitigation', function (done) {
-        request(app)
+    it('DELETE /api/mitigations/:id/modified/:modified deletes a mitigation', async function () {
+        await request(app)
             .delete('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
     });
 
-    it('DELETE /api/mitigations/:id should delete all the mitigations with the same stix id', function (done) {
-        request(app)
+    it('DELETE /api/mitigations/:id should delete all the mitigations with the same stix id', async function () {
+        await request(app)
             .delete('/api/mitigations/' + mitigation2.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .expect(204);
     });
 
-    it('GET /api/mitigations returns an empty array of mitigations', function (done) {
-        request(app)
+    it('GET /api/mitigations returns an empty array of mitigations', async function () {
+        const res = await request(app)
             .get('/api/mitigations')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const mitigations = res.body;
-                    expect(mitigations).toBeDefined();
-                    expect(Array.isArray(mitigations)).toBe(true);
-                    expect(mitigations.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const mitigations = res.body;
+        expect(mitigations).toBeDefined();
+        expect(Array.isArray(mitigations)).toBe(true);
+        expect(mitigations.length).toBe(0);
+   
+
     });
 
     after(async function() {

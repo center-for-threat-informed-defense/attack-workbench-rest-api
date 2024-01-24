@@ -4,7 +4,6 @@ const util = require('util');
 
 const AttackObject = require('../models/attack-object-model');
 const Relationship = require('../models/relationship-model');
-const identitiesService = require('./identities-service');
 const systemConfigurationService = require('./system-configuration-service');
 
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
@@ -22,6 +21,8 @@ const errors = {
 exports.errors = errors;
 
 const relationshipPrefix = 'relationship';
+
+let identitiesService;
 
 exports.retrieveAll = async function(options) {
     // require here to avoid circular dependency
@@ -114,6 +115,9 @@ exports.retrieveAll = async function(options) {
     }
 
     // Add identities
+    if (!identitiesService) {
+        identitiesService = require('./identities-service');
+    }
     await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(paginatedDocuments);
 
     // Prepare the return value
@@ -172,6 +176,9 @@ exports.retrieveVersionById = async function(stixId, modified) {
     }
 
     // Note: attackObject is null if not found
+    if (!identitiesService) {
+        identitiesService = require('./identities-service');
+    }
     await identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
     return attackObject;
 };

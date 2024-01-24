@@ -2,8 +2,6 @@
 
 const uuid = require('uuid');
 const systemConfigurationService = require('./system-configuration-service');
-const identitiesService = require('./identities-service');
-const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 const { DatabaseError,
     IdentityServiceError,
@@ -18,6 +16,20 @@ class BaseService extends AbstractService {
         super();
         this.type = type;
         this.repository = repository;
+    }
+
+    static attackObjectsService;
+
+    static identitiesService;
+
+    static requireServices() {
+        // Late binding to avoid circular dependencies
+        if (!BaseService.identitiesService) {
+            BaseService.identitiesService = require('./identities-service');
+        }
+        if (!BaseService.attackObjectsService) {
+            BaseService.attackObjectsService = require('./attack-objects-service');
+        }
     }
 
     // Helper function to determine if the last argument is a callback
@@ -45,6 +57,7 @@ class BaseService extends AbstractService {
     }
 
     async retrieveAll(options, callback) {
+        BaseService.requireServices();
         if (BaseService.isCallback(arguments[arguments.length - 1])) {
             callback = arguments[arguments.length - 1];
         }
@@ -53,7 +66,7 @@ class BaseService extends AbstractService {
         try {
             results = await this.repository.retrieveAll(options);
         } catch (err) {
-            const databaseError = new DatabaseError(err); // Let the DatabaseError buddle up
+            const databaseError = new DatabaseError(err); // Let the DatabaseError bubble up
             if (callback) {
                 return callback(databaseError);
             }
@@ -61,7 +74,7 @@ class BaseService extends AbstractService {
         }
 
         try {
-            await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
+            await BaseService.identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
         } catch (err) {
             const identityError = new IdentityServiceError({
                 details: err.message,
@@ -83,6 +96,8 @@ class BaseService extends AbstractService {
     }
 
     async retrieveById(stixId, options, callback) {
+        BaseService.requireServices();
+
         if (BaseService.isCallback(arguments[arguments.length - 1])) {
             callback = arguments[arguments.length - 1];
         }
@@ -100,7 +115,7 @@ class BaseService extends AbstractService {
                 const documents = await this.repository.retrieveAllById(stixId);
 
                 try {
-                    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(documents);
+                    await BaseService.identitiesService.addCreatedByAndModifiedByIdentitiesToAll(documents);
                 } catch (err) {
                     const identityError = new IdentityServiceError({
                         details: err.message,
@@ -121,7 +136,7 @@ class BaseService extends AbstractService {
 
                 if (document) {
                     try {
-                        await identitiesService.addCreatedByAndModifiedByIdentities(document);
+                        await BaseService.identitiesService.addCreatedByAndModifiedByIdentities(document);
                     } catch (err) {
                         const identityError = new IdentityServiceError({
                             details: err.message,
@@ -159,6 +174,8 @@ class BaseService extends AbstractService {
     }
 
     async retrieveVersionById(stixId, modified, callback) {
+        BaseService.requireServices();
+
         if (BaseService.isCallback(arguments[arguments.length - 1])) {
             callback = arguments[arguments.length - 1];
         }
@@ -190,7 +207,7 @@ class BaseService extends AbstractService {
                 return null;
             } else {
                 try {
-                    await identitiesService.addCreatedByAndModifiedByIdentities(document);
+                    await BaseService.identitiesService.addCreatedByAndModifiedByIdentities(document);
                 } catch (err) {
                     const identityError = new IdentityServiceError({
                         details: err.message,
@@ -215,6 +232,8 @@ class BaseService extends AbstractService {
     }
 
     async create(data, options, callback) {
+        BaseService.requireServices();
+
         if (BaseService.isCallback(arguments[arguments.length - 1])) {
             callback = arguments[arguments.length - 1];
         }
@@ -244,7 +263,7 @@ class BaseService extends AbstractService {
                 }
 
                 // Set the default marking definitions
-                await attackObjectsService.setDefaultMarkingDefinitions(data);
+                await BaseService.attackObjectsService.setDefaultMarkingDefinitions(data);
 
                 // Get the organization identity
                 const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
