@@ -321,7 +321,7 @@ class IdentitiesService extends BaseService {
         }
     }
 
-    async addCreatedByUserAccountWithCache(attackObject, cache) {
+    static async addCreatedByUserAccountWithCache(attackObject, cache) {
         const userAccountRef = attackObject?.workspace?.workflow?.created_by_user_account;
         if (userAccountRef) {
             // Use the cache if the caller provides one
@@ -353,7 +353,7 @@ class IdentitiesService extends BaseService {
 
         // Add user account data
         if (attackObject?.workspace?.workflow?.created_by_user_account) {
-            await this.addCreatedByUserAccountWithCache(attackObject, userAccountCache);
+            await IdentitiesService.addCreatedByUserAccountWithCache(attackObject, userAccountCache);
         }
     }
 
