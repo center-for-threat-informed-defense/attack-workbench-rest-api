@@ -24,8 +24,6 @@ exports.retrieveAll = async function(req, res) {
         }
         return res.status(200).send(results);
     } catch (err) {
-        console.log("retrieve all error");
-        console.log(err);
         logger.error('Failed with error: ' + err);
         return res.status(500).send('Unable to get identities. Server error.');
     }
@@ -56,8 +54,6 @@ exports.retrieveById = async function(req, res) {
             return res.status(400).send('Query string parameter versions is invalid.');
         }
         else {
-            console.log("retrieve by id error");
-            console.log(err);
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get identities. Server error.');
         }
@@ -82,8 +78,6 @@ exports.retrieveVersionById = async function(req, res) {
             return res.status(400).send('Stix id is badly formatted.');
         }
         else {
-            console.log("retrieve version by id error");
-            console.log(err);
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get identity. Server error.');
         }
@@ -111,8 +105,6 @@ exports.create = async function(req, res) {
             return res.status(409).send('Unable to create identity. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            console.log("create error");
-            console.log(err);
             logger.error("Failed with error: " + err);
             return res.status(500).send("Unable to create identity. Server error.");
         }
@@ -133,8 +125,6 @@ exports.updateFull = async function(req, res) {
             return res.status(200).send(identity);
         }
     } catch (err) {
-        console.log("update full error");
-        console.log(err);
         logger.error("Failed with error: " + err);
         return res.status(500).send("Unable to update identity. Server error.");
     }
@@ -151,8 +141,6 @@ exports.deleteVersionById = async function(req, res) {
             return res.status(204).end();
         }
     } catch (err) {
-        console.log("delete version by id error");
-        console.log(err);
         logger.error('Delete identity failed. ' + err);
         return res.status(500).send('Unable to delete identity. Server error.');
     }
@@ -170,8 +158,6 @@ exports.deleteById = async function(req, res) {
             return res.status(204).end();
         }
     } catch (err) {
-        console.log("delete by id error");
-        console.log(err);
         logger.error('Delete identity failed. ' + err);
         return res.status(500).send('Unable to identity identity. Server error.');
     }
