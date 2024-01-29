@@ -87,6 +87,12 @@ class NotImplementedError extends CustomError {
     }
 }
 
+class PropertyNotAllowedError extends CustomError {
+    constructor(propertyName, options) {
+        super(`Unable to create software, property ${propertyName} is not allowed`, options);
+    }
+}
+        
 class InvalidTypeError extends CustomError {
     constructor(options) {
         super('Invalid stix.type', options);
@@ -114,5 +120,7 @@ module.exports = {
     IdentityServiceError,
     TechniquesServiceError,
     TacticsServiceError,
+    PropertyNotAllowedError,
+
     InvalidTypeError,
 };
