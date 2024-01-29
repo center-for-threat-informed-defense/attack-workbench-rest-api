@@ -6,7 +6,7 @@ const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
 const identitiesRepository = require('../repository/identities-repository');
 const BaseService = require('./_base.service');
-const { DuplicateIdError, MissingParameterError, InvalidQueryStringParameterError, DatabaseError, IdentityServiceError } = require('../exceptions');
+const { InvalidTypeError } = require('../exceptions');
 
 const errors = {
     missingParameter: 'Missing required parameter',
@@ -16,6 +16,8 @@ const errors = {
     invalidQueryStringParameter: 'Invalid query string parameter'
 };
 exports.errors = errors;
+
+const identityType = 'identity';
 
 class IdentitiesService extends BaseService {
 
@@ -27,205 +29,15 @@ class IdentitiesService extends BaseService {
             await this.addCreatedByAndModifiedByIdentities(attackObject, identityCache, userAccountCache);
         }
     }
-
-    async retrieveById(stixId, options, callback) {
-        if (BaseService.isCallback(arguments[arguments.length - 1])) {
-            callback = arguments[arguments.length - 1];
-        }
-
-        if (!stixId) {
-            const err = new MissingParameterError({ parameterName: 'stixId' });
-            if (callback) {
-                return callback(err);
-            }
-            throw err;
-        }
-
-        try {
-            if (options.versions === 'all') {
-                const documents = await this.repository.retrieveAllById(stixId);
-
-                try {
-                    await this.addCreatedByAndModifiedByIdentitiesToAll(documents);
-                } catch (err) {
-                    const identityError = new IdentityServiceError({
-                        details: err.message,
-                        cause: err
-                    });
-                    if (callback) {
-                        return callback(identityError);
-                    } 
-                    throw identityError;
-                }
-                if (callback) {
-                    return callback(null, documents);
-                } 
-                return documents;
-
-            } else if (options.versions === 'latest') {
-                const document = await this.repository.retrieveLatestByStixId(stixId);
-
-                if (document) {
-                    try {
-                        await this.addCreatedByAndModifiedByIdentities(document);
-                    } catch (err) {
-                        const identityError = new IdentityServiceError({
-                            details: err.message,
-                            cause: err
-                        });
-                        if (callback) {
-                            return callback(identityError);
-                        }
-                        throw identityError;
-                    }
-                    if (callback) {
-                        return callback(null, [document]);
-                    }
-                    return [document];
-                } else {
-                    if (callback) {
-                        return callback(null, []);
-                    }
-                    return [];
-                }
-
-            } else {
-                const err = new InvalidQueryStringParameterError({ parameterName: 'versions' });
-                if (callback) {
-                    return callback(err);
-                }
-                throw err;
-            }
-        } catch (err) {
-            if (callback) {
-                return callback(err);
-            }
-            throw err; // Let the DatabaseError bubble up
-        }
-    }
-
-
-    async retrieveVersionById(stixId, modified, callback) {
-        if (BaseService.isCallback(arguments[arguments.length - 1])) {
-            callback = arguments[arguments.length - 1];
-        }
-        if (!stixId) {
-            const err = new MissingParameterError({ parameterName: 'stixId' });
-            if (callback) {
-                return callback(err);
-            }
-            throw err;
-        }
-
-        if (!modified) {
-            const err = new MissingParameterError({ parameterName: 'modified' });
-            if (callback) {
-                return callback(err);
-            }
-            throw err;
-        }
-
-        // eslint-disable-next-line no-useless-catch
-        try {
-            const document = await this.repository.retrieveOneByVersion(stixId, modified);
-
-            if (!document) {
-                console.log('** NOT FOUND');
-                if (callback) {
-                    return callback(null, null);
-                }
-                return null;
-            } else {
-                try {
-                    await this.addCreatedByAndModifiedByIdentities(document);
-                } catch (err) {
-                    const identityError = new IdentityServiceError({
-                        details: err.message,
-                        cause: err
-                    });
-                    if (callback) {
-                        return callback(identityError);
-                    }
-                    throw identityError;
-                }
-                if (callback) {
-                    return callback(null, document);
-                }
-                return document;
-            }
-        } catch (err) {
-            if (callback) {
-                return callback(err);
-            }
-            throw err; // Let the DatabaseError bubble up
-        }
-    }
-
-
-    async retrieveAll(options, callback) {
-        if (BaseService.isCallback(arguments[arguments.length - 1])) {
-            callback = arguments[arguments.length - 1];
-        }
-
-        let results;
-        try {
-            results = await this.repository.retrieveAll(options);
-        } catch (err) {
-            const databaseError = new DatabaseError(err); // Let the DatabaseError buddle up
-            if (callback) {
-                return callback(databaseError);
-            }
-            throw databaseError;
-        }
-
-        try {
-            await this.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
-        } catch (err) {
-            const identityError = new IdentityServiceError({
-                details: err.message,
-                cause: err
-            });
-            if (callback) {
-                return callback(identityError);
-            }
-            throw identityError;
-
-        }
-
-        const paginatedResults = BaseService.paginate(options, results);
-        if (callback) {
-            return callback(null, paginatedResults);
-        }
-        return paginatedResults;
-
-    }
-
-    async deleteVersionById(stixId, stixModified) {
-        if (!stixId) {
-            throw new MissingParameterError;
-        }
-    
-        if (!stixModified) {
-            throw new MissingParameterError;
-        }
-    
-        const identity = await this.repository.model.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': stixModified }).exec();
-
-        // Note: identity is null if not found
-        return identity || null;
-
-    }
-    
-    
-
-    createIsAsync = true;
     
     async create(data, options) {
-        // This function handles two use cases:
-        //   1. This is a completely new object. Create a new object and generate the stix.id if not already
-        //      provided.
-        //   2. This is a new version of an existing object. Create a new object with the specified id.
-        //   Do not set the created_by_ref or x_mitre_modified_by_ref properties.
+        // This function overrides the base class create() because
+        //   1. It does not set the created_by_ref or x_mitre_modified_by_ref properties
+        //   2. It does not check for an existing identity object
+
+        if (data?.stix?.type !== identityType) {
+            throw new InvalidTypeError();
+        }
 
         options = options || {};
         if (!options.import) {
@@ -245,28 +57,8 @@ class IdentitiesService extends BaseService {
         }
 
         // Save the document in the database
-        try {
-            const savedIdentity = await this.repository.save(data);
-            return savedIdentity;
-        }
-        catch (err) {
-            if (err.name === 'MongoServerError' && err.code === 11000) {
-                throw new DuplicateIdError;
-            }
-            else {
-                throw err;
-            }
-        }
-    }
-
-    async getLatest(stixId) {
-        const identity = await this.repository.model
-            .findOne({ 'stix.id': stixId })
-            .sort('-stix.modified')
-            .lean()
-            .exec();
-
-        return identity;
+        const savedIdentity = await this.repository.save(data);
+        return savedIdentity;
     }
 
     async addCreatedByIdentity(attackObject, cache) {
@@ -282,7 +74,7 @@ class IdentitiesService extends BaseService {
             // No cache or not found in cache
             try {
                 // eslint-disable-next-line require-atomic-updates
-                const identityObject = await this.getLatest(attackObject.stix.created_by_ref);
+                const identityObject = await this.repository.retrieveLatestByStixId(attackObject.stix.created_by_ref);
                 attackObject.created_by_identity = identityObject;
 
                 if (cache) {
@@ -308,7 +100,7 @@ class IdentitiesService extends BaseService {
             // No cache or not found in cache
             try {
                 // eslint-disable-next-line require-atomic-updates
-                const identityObject = await this.getLatest(attackObject.stix.x_mitre_modified_by_ref);
+                const identityObject = await this.repository.retrieveLatestByStixId(attackObject.stix.x_mitre_modified_by_ref);
                 attackObject.modified_by_identity = identityObject;
 
                 if (cache) {
@@ -356,7 +148,6 @@ class IdentitiesService extends BaseService {
             await IdentitiesService.addCreatedByUserAccountWithCache(attackObject, userAccountCache);
         }
     }
-
 }
 
-module.exports = new IdentitiesService('identity', identitiesRepository);
+module.exports = new IdentitiesService(identityType, identitiesRepository);
