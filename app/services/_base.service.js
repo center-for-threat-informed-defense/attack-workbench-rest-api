@@ -84,7 +84,6 @@ class BaseService extends AbstractService {
                 return callback(identityError);
             }
             throw identityError;
-
         }
 
         const paginatedResults = BaseService.paginate(options, results);
@@ -92,7 +91,6 @@ class BaseService extends AbstractService {
             return callback(null, paginatedResults);
         }
         return paginatedResults;
-
     }
 
     async retrieveById(stixId, options, callback) {
@@ -200,7 +198,6 @@ class BaseService extends AbstractService {
             const document = await this.repository.retrieveOneByVersion(stixId, modified);
 
             if (!document) {
-                console.log('** NOT FOUND');
                 if (callback) {
                     return callback(null, null);
                 }
