@@ -65,22 +65,19 @@ class UserAccountsService extends BaseService {
         }
     };
 
-    exports.delete = function (userAccountId, callback) {
+    async delete (userAccountId) {
         if (!userAccountId) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'userId';
-            return callback(error);
+            throw new MissingParameterError('userId');
         }
-
-        UserAccount.findOneAndRemove({ 'id': userAccountId }, function (err, userAccount) {
-            if (err) {
-                return callback(err);
-            } else {
-                //Note: userAccount is null if not found
-                return callback(null, userAccount);
-            }
-        });
+    
+        try {
+            const userAccount = await UserAccount.findOneAndRemove({ 'id': userAccountId }).exec();
+            return userAccount;
+        } catch (err) {
+            throw err;
+        }
     };
+    
 
     async getLatest(userAccountId) {
         const userAccount = await UserAccount
@@ -112,71 +109,67 @@ class UserAccountsService extends BaseService {
         }
     }
 
-    exports.retrieveTeamsByUserId = function (userAccountId, options, callback) {
+    async retrieveTeamsByUserId (userAccountId, options) {
         if (!userAccountId) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'userId';
-            return callback(error);
+            throw new MissingParameterError('userId');
         }
-
+    
         // Build the aggregation
         const aggregation = [
             { $sort: { 'name': 1 } },
+            {
+                $match: {
+                    userIDs: { $in: [userAccountId] }
+                }
+            },
+            {
+                $facet: {
+                    totalCount: [{ $count: 'totalCount' }],
+                    documents: []
+                }
+            }
         ];
-
-        const match = {
-            $match: {
-                userIDs: { $in: [userAccountId] }
-            }
-        };
-
-        aggregation.push(match);
-
-        const facet = {
-            $facet: {
-                totalCount: [{ $count: 'totalCount' }],
-                documents: []
-            }
-        };
+    
         if (options.offset) {
-            facet.$facet.documents.push({ $skip: options.offset });
+            aggregation[2].$facet.documents.push({ $skip: options.offset });
+        } else {
+            aggregation[2].$facet.documents.push({ $skip: 0 });
         }
-        else {
-            facet.$facet.documents.push({ $skip: 0 });
-        }
+    
         if (options.limit) {
-            facet.$facet.documents.push({ $limit: options.limit });
+            aggregation[2].$facet.documents.push({ $limit: options.limit });
         }
-        aggregation.push(facet);
-
-        // Retrieve the documents
-        Team.aggregate(aggregation, function (err, results) {
-            if (err) {
-                return callback(err);
-            }
-            else {
-                const teams = results[0].documents;
-                if (options.includePagination) {
-                    let derivedTotalCount = 0;
-                    if (results[0].totalCount.length > 0) {
-                        derivedTotalCount = results[0].totalCount[0].totalCount;
-                    }
-                    const returnValue = {
-                        pagination: {
-                            total: derivedTotalCount,
-                            offset: options.offset,
-                            limit: options.limit
-                        },
-                        data: teams
-                    };
-                    return callback(null, returnValue);
+    
+        try {
+            const results = await Team.aggregate(aggregation).exec();
+    
+            const teams = results[0].documents;
+    
+            if (options.includePagination) {
+                let derivedTotalCount = 0;
+    
+                if (results[0].totalCount.length > 0) {
+                    derivedTotalCount = results[0].totalCount[0].totalCount;
                 }
-                else {
-                    return callback(null, teams);
-                }
+    
+                const returnValue = {
+                    pagination: {
+                        total: derivedTotalCount,
+                        offset: options.offset,
+                        limit: options.limit
+                    },
+                    data: teams
+                };
+    
+                return returnValue;
+            } else {
+                return teams;
             }
-        });
+        } catch (err) {
+            throw err;
+        }
     };
+    
 
 }
 
