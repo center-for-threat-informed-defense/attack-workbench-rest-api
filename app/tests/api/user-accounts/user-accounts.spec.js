@@ -44,299 +44,226 @@ describe('User Accounts API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('GET /api/user-accounts returns an array with the anonymous user account', function (done) {
-        request(app)
+    it('GET /api/user-accounts returns an array with the anonymous user account', async function () {
+        const res = await request(app)
             .get('/api/user-accounts')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get an array with one entry (the anonymous user account)
-                    const userAccounts = res.body;
-                    expect(userAccounts).toBeDefined();
-                    expect(Array.isArray(userAccounts)).toBe(true);
-                    expect(userAccounts.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get an array with one entry (the anonymous user account)
+        const userAccounts = res.body;
+        expect(userAccounts).toBeDefined();
+        expect(Array.isArray(userAccounts)).toBe(true);
+        expect(userAccounts.length).toBe(1);
     });
 
-    it('POST /api/user-accounts does not create an empty user account', function (done) {
+    it('POST /api/user-accounts does not create an empty user account', async function () {
         const body = {};
-        request(app)
+        await request(app)
             .post('/api/user-accounts')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(400);
+
     });
 
     let userAccount1;
-    it('POST /api/user-accounts creates a user account', function (done) {
+    it('POST /api/user-accounts creates a user account', async function () {
         const body = initialObjectData;
-        request(app)
+        const res = await request(app)
             .post('/api/user-accounts')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get the created user account
-                    userAccount1 = res.body;
-                    expect(userAccount1).toBeDefined();
-                    expect(userAccount1.id).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created user account
+        userAccount1 = res.body;
+        expect(userAccount1).toBeDefined();
+        expect(userAccount1.id).toBeDefined();
+
     });
 
-    it('GET /api/user-accounts returns the added user account', function (done) {
-        request(app)
+    it('GET /api/user-accounts returns the added user account', async function () {
+        const res = await request(app)
             .get('/api/user-accounts')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get the added user account and the anonymous user account
-                    const userAccounts = res.body;
-                    expect(userAccounts).toBeDefined();
-                    expect(Array.isArray(userAccounts)).toBe(true);
-                    expect(userAccounts.length).toBe(2);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the added user account and the anonymous user account
+        const userAccounts = res.body;
+        expect(userAccounts).toBeDefined();
+        expect(Array.isArray(userAccounts)).toBe(true);
+        expect(userAccounts.length).toBe(2);
+
     });
 
-    it('GET /api/user-accounts/:id should not return a user account when the id cannot be found', function (done) {
-        request(app)
+    it('GET /api/user-accounts/:id should not return a user account when the id cannot be found', async function () {
+        await request(app)
             .get('/api/user-accounts/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(404);
+
+
     });
 
-    it('GET /api/user-accounts/:id returns the added user account', function (done) {
-        request(app)
+    it('GET /api/user-accounts/:id returns the added user account', async function () {
+        const res = await request(app)
             .get('/api/user-accounts/' + userAccount1.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get one user account in an array
-                    const userAccount = res.body;
-                    expect(userAccount).toBeDefined();
-                    expect(userAccount.id).toBe(userAccount1.id);
-                    expect(userAccount.email).toBe(userAccount1.email);
-                    expect(userAccount.username).toBe(userAccount1.username);
-                    expect(userAccount.displayName).toBe(userAccount1.displayName);
-                    expect(userAccount.status).toBe(userAccount1.status);
-                    expect(userAccount.role).toBe(userAccount1.role);
+            .expect('Content-Type', /json/);
 
-                    // The created and modified timestamps should match
-                    expect(userAccount.created).toBeDefined();
-                    expect(userAccount.modified).toBeDefined();
-                    expect(userAccount.created).toEqual(userAccount.modified);
+        // We expect to get one user account in an array
+        const userAccount = res.body;
+        expect(userAccount).toBeDefined();
+        expect(userAccount.id).toBe(userAccount1.id);
+        expect(userAccount.email).toBe(userAccount1.email);
+        expect(userAccount.username).toBe(userAccount1.username);
+        expect(userAccount.displayName).toBe(userAccount1.displayName);
+        expect(userAccount.status).toBe(userAccount1.status);
+        expect(userAccount.role).toBe(userAccount1.role);
 
-                    done();
-                }
-            });
+        // The created and modified timestamps should match
+        expect(userAccount.created).toBeDefined();
+        expect(userAccount.modified).toBeDefined();
+        expect(userAccount.created).toEqual(userAccount.modified);
+
+
     });
 
-    it('GET /api/user-accounts/:id returns the added user account with a derived STIX Identity object', function (done) {
-        request(app)
+    it('GET /api/user-accounts/:id returns the added user account with a derived STIX Identity object', async function () {
+        const res = await request(app)
             .get('/api/user-accounts/' + userAccount1.id + '?includeStixIdentity=true')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get one user account in an array
-                    const userAccount = res.body;
-                    expect(userAccount).toBeDefined();
-                    expect(userAccount.id).toBe(userAccount1.id);
-                    expect(userAccount.email).toBe(userAccount1.email);
-                    expect(userAccount.username).toBe(userAccount1.username);
-                    expect(userAccount.displayName).toBe(userAccount1.displayName);
-                    expect(userAccount.status).toBe(userAccount1.status);
-                    expect(userAccount.role).toBe(userAccount1.role);
+            .expect('Content-Type', /json/);
 
-                    // The created and modified timestamps should match
-                    expect(userAccount.created).toBeDefined();
-                    expect(userAccount.modified).toBeDefined();
-                    expect(userAccount.created).toEqual(userAccount.modified);
+        // We expect to get one user account in an array
+        const userAccount = res.body;
+        expect(userAccount).toBeDefined();
+        expect(userAccount.id).toBe(userAccount1.id);
+        expect(userAccount.email).toBe(userAccount1.email);
+        expect(userAccount.username).toBe(userAccount1.username);
+        expect(userAccount.displayName).toBe(userAccount1.displayName);
+        expect(userAccount.status).toBe(userAccount1.status);
+        expect(userAccount.role).toBe(userAccount1.role);
 
-                    // The added STIX identity should have the correct data
-                    const identity = userAccount.identity;
-                    expect(identity).toBeDefined();
-                    expect(identity.id).toBe(userAccount1.id);
-                    expect(identity.type).toBe('identity');
-                    expect(identity.created).toBe(userAccount1.created);
-                    expect(identity.modified).toBe(userAccount1.modified);
-                    expect(identity.identity_class).toBe('individual');
+        // The created and modified timestamps should match
+        expect(userAccount.created).toBeDefined();
+        expect(userAccount.modified).toBeDefined();
+        expect(userAccount.created).toEqual(userAccount.modified);
 
-                    done();
-                }
-            });
+        // The added STIX identity should have the correct data
+        const identity = userAccount.identity;
+        expect(identity).toBeDefined();
+        expect(identity.id).toBe(userAccount1.id);
+        expect(identity.type).toBe('identity');
+        expect(identity.created).toBe(userAccount1.created);
+        expect(identity.modified).toBe(userAccount1.modified);
+        expect(identity.identity_class).toBe('individual');
+
+
     });
 
-    it('PUT /api/user-accounts updates a user account', function (done) {
+    it('PUT /api/user-accounts updates a user account', async function () {
         const body = userAccount1;
         body.role = 'admin';
-        request(app)
+        const res = await request(app)
             .put('/api/user-accounts/' + userAccount1.id)
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get the updated user account
-                    const userAccount = res.body;
-                    expect(userAccount).toBeDefined();
-                    expect(userAccount.identity).toBe(userAccount1.identity);
+            .expect('Content-Type', /json/);
 
-                    // The modified timestamp should be different from the created timestamp
-                    expect(userAccount.created).toBeDefined();
-                    expect(userAccount.modified).toBeDefined();
-                    expect(userAccount.created).not.toEqual(userAccount.modified);
+        // We expect to get the updated user account
+        const userAccount = res.body;
+        expect(userAccount).toBeDefined();
+        expect(userAccount.identity).toBe(userAccount1.identity);
 
-                    done();
-                }
-            });
+        // The modified timestamp should be different from the created timestamp
+        expect(userAccount.created).toBeDefined();
+        expect(userAccount.modified).toBeDefined();
+        expect(userAccount.created).not.toEqual(userAccount.modified);
+
+
     });
 
-    it('GET /api/user-accounts uses the search parameter to return the user account', function (done) {
-        request(app)
+    it('GET /api/user-accounts uses the search parameter to return the user account', async function () {
+        const res = await request(app)
             .get('/api/user-accounts?search=first')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one user account in an array
-                    const userAccounts = res.body;
-                    expect(userAccounts).toBeDefined();
-                    expect(Array.isArray(userAccounts)).toBe(true);
-                    expect(userAccounts.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        // We expect to get one user account in an array
+        const userAccounts = res.body;
+        expect(userAccounts).toBeDefined();
+        expect(Array.isArray(userAccounts)).toBe(true);
+        expect(userAccounts.length).toBe(1);
+
+
     });
 
-    it('POST /api/user-accounts does not create a user account with a duplicate email', function (done) {
+    it('POST /api/user-accounts does not create a user account with a duplicate email', async function () {
         const body = initialObjectData;
-        request(app)
+        await request(app)
             .post('/api/user-accounts')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
-    it('DELETE /api/user-accounts deletes a user account', function (done) {
-        request(app)
+    it('DELETE /api/user-accounts deletes a user account', async function () {
+        await request(app)
             .delete('/api/user-accounts/' + userAccount1.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(204);
     });
 
     let anonymousUserId = null;
-    it('GET /api/user-accounts returns an array with the anonymous user account', function (done) {
-        request(app)
+    it('GET /api/user-accounts returns an array with the anonymous user account', async function () {
+        await request(app)
             .get('/api/user-accounts')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get an empty array
-                    const userAccount = res.body;
-                    expect(userAccount).toBeDefined();
-                    expect(Array.isArray(userAccount)).toBe(true);
-                    expect(userAccount.length).toBe(1);
-                    anonymousUserId = userAccount[0].id;
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const userAccount = res.body;
+        expect(userAccount).toBeDefined();
+        expect(Array.isArray(userAccount)).toBe(true);
+        expect(userAccount.length).toBe(1);
+        anonymousUserId = userAccount[0].id;
+
     });
 
-    it('GET /api/user-accounts/{id}/teams should return an empty array when no teams have been associated with a user', function (done) {
-        request(app)
+    it('GET /api/user-accounts/{id}/teams should return an empty array when no teams have been associated with a user', async function () {
+       await request(app)
             .get(`/api/user-accounts/${ anonymousUserId }/teams`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    const teams = res.body;
-                    expect(teams).toBeDefined();
-                    expect(Array.isArray(teams)).toBe(true);
-                    expect(teams.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        const teams = res.body;
+        expect(teams).toBeDefined();
+        expect(Array.isArray(teams)).toBe(true);
+        expect(teams.length).toBe(0);
+
     });
 
     it('GET /api/user-accounts/{id}/teams should return an array with the list of teams a user is associated with', async function () {
