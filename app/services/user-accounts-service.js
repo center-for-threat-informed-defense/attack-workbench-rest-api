@@ -28,8 +28,6 @@ class UserAccountsService extends BaseService {
         }
     }
 
-    addEffectiveRole = addEffectiveRole;
-
     userAccountAsIdentity(userAccount) {
     return {
         type: 'identity',
@@ -42,8 +40,6 @@ class UserAccountsService extends BaseService {
     }
     }
 
-
-    userAccountAsIdentity = userAccountAsIdentity;
 
     async retrieveByEmail(email) {
         if (!email) {
@@ -78,6 +74,73 @@ class UserAccountsService extends BaseService {
         }
     };
     
+    async create(data, options, callback) {
+        BaseService.requireServices();
+
+        if (BaseService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
+
+        // eslint-disable-next-line no-useless-catch
+        try {
+            // This function handles two use cases:
+            //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+            //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
+            //   2. This is a new version of an existing object. Create a new object with the specified id.
+            //      Set stix.x_mitre_modified_by_ref to the organization identity.
+
+            options = options || {};
+            if (!options.import) {
+                // Set the ATT&CK Spec Version
+                data.stix.x_mitre_attack_spec_version = data.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+
+                // Record the user account that created the object
+                if (options.userAccountId) {
+                    data.workspace.workflow.created_by_user_account = options.userAccountId;
+                }
+
+                // Set the default marking definitions
+                await BaseService.attackObjectsService.setDefaultMarkingDefinitions(data);
+
+                // Get the organization identity
+                const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+
+                // Check for an existing object
+                let existingObject;
+                if (data.stix.id) {
+                    existingObject = await this.repository.retrieveOneById(data.stix.id);
+                }
+
+                if (existingObject) {
+                    // New version of an existing object
+                    // Only set the x_mitre_modified_by_ref property
+                    data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+                }
+                else {
+                    // New object
+                    // Assign a new STIX id if not already provided
+                    if (!data.stix.id) {
+                        // const stixIdPrefix = getStixIdPrefixFromModel(this.model.modelName, data.stix.type);
+                        data.stix.id = `${data.stix.type}--${uuid.v4()}`;
+                    }
+
+                    // Set the created_by_ref and x_mitre_modified_by_ref properties
+                    data.stix.created_by_ref = organizationIdentityRef;
+                    data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+                }
+            }
+            const res = await this.repository.save(data);
+            if (callback) {
+                return callback(null, res);
+            }
+            return res;
+        } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
+            throw err;
+        }
+    }
 
     async getLatest(userAccountId) {
         const userAccount = await UserAccount
@@ -100,7 +163,6 @@ class UserAccountsService extends BaseService {
             }
         }
     }
-    addCreatedByUserAccount = addCreatedByUserAccount;
 
     async addCreatedByUserAccountToAll(attackObjects) {
         for (const attackObject of attackObjects) {
