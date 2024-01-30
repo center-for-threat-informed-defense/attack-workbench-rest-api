@@ -3,6 +3,7 @@
 const userAccountsService = require('../services/user-accounts-service');
 const logger = require('../lib/logger');
 const config = require('../config/config');
+const { BadlyFormattedParameterError } = require('../exceptions');
 
 exports.retrieveAllAsync = async function (req, res) {
     const options = {
@@ -31,7 +32,7 @@ exports.retrieveAllAsync = async function (req, res) {
     }
 };
 
-exports.retrieveAll = function (req, res) {
+exports.retrieveAll = async function (req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
@@ -42,21 +43,21 @@ exports.retrieveAll = function (req, res) {
         includeStixIdentity: req.query.includeStixIdentity
     };
 
-    userAccountsService.retrieveAll(options, function (err, results) {
-        if (err) {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get user accounts. Server error.');
+    try {
+
+        const results = await userAccountsService.retrieveAll(options);
+
+        if (options.includePagination) {
+            logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total user account(s)`);
         }
         else {
-            if (options.includePagination) {
-                logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total user account(s)`);
-            }
-            else {
-                logger.debug(`Success: Retrieved ${results.length} user account(s)`);
-            }
-            return res.status(200).send(results);
+            logger.debug(`Success: Retrieved ${results.length} user account(s)`);
         }
-    });
+        return res.status(200).send(results);
+    } catch (err) {
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get user accounts. Server error.');
+    }
 };
 
 exports.retrieveByIdAsync = async function (req, res) {
@@ -84,32 +85,30 @@ exports.retrieveByIdAsync = async function (req, res) {
     }
 };
 
-exports.retrieveById = function (req, res) {
+exports.retrieveById = async function (req, res) {
     const options = {
         includeStixIdentity: req.query.includeStixIdentity
     };
 
-    userAccountsService.retrieveById(req.params.id, options, function (err, userAccount) {
-        if (err) {
-            if (err.message === userAccountsService.errors.badlyFormattedParameter) {
-                logger.warn('Badly formatted user account id: ' + req.params.id);
-                return res.status(400).send('User account id is badly formatted.');
-            }
-            else {
-                logger.error('Failed with error: ' + err);
-                return res.status(500).send('Unable to get user account. Server error.');
-            }
+    try {
+        const userAccount = await userAccountsService.retrieveById(req.params.id, options);
+        if (!userAccount) {
+            return res.status(404).send('User account not found.');
         }
         else {
-            if (!userAccount) {
-                return res.status(404).send('User account not found.');
-            }
-            else {
-                logger.debug(`Success: Retrieved user account with id ${req.params.id}`);
-                return res.status(200).send(userAccount);
-            }
+            logger.debug(`Success: Retrieved user account with id ${req.params.id}`);
+            return res.status(200).send(userAccount);
         }
-    });
+    } catch (err) {
+        if (err instanceof BadlyFormattedParameterError) {
+            logger.warn('Badly formatted user account id: ' + req.params.id);
+            return res.status(400).send('User account id is badly formatted.');
+        }
+        else {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to get user account. Server error.');
+        }
+    }
 };
 
 exports.create = async function(req, res) {
@@ -156,25 +155,23 @@ exports.updateFullAsync = async function (req, res) {
     }
 };
 
-exports.updateFull = function (req, res) {
+exports.updateFull = async function (req, res) {
     // Get the data from the request
     const userAccount = req.body;
 
     // Create the technique
-    userAccountsService.updateFull(req.params.id, userAccount, function (err, userAccount) {
-        if (err) {
-            logger.error("Failed with error: " + err);
-            return res.status(500).send("Unable to update user account. Server error.");
+    try {
+        await userAccountsService.updateFull(req.params.id, userAccount);
+        if (!userAccount) {
+            return res.status(404).send('User account not found.');
+        } else {
+            logger.debug("Success: Updated user account with id " + userAccount.id);
+            return res.status(200).send(userAccount);
         }
-        else {
-            if (!userAccount) {
-                return res.status(404).send('User account not found.');
-            } else {
-                logger.debug("Success: Updated user account with id " + userAccount.id);
-                return res.status(200).send(userAccount);
-            }
-        }
-    });
+    } catch (err) {
+        logger.error("Failed with error: " + err);
+        return res.status(500).send("Unable to update user account. Server error.");
+    }
 };
 
 exports.deleteAsync = async function (req, res) {
@@ -192,21 +189,20 @@ exports.deleteAsync = async function (req, res) {
     }
 };
 
-exports.delete = function (req, res) {
-    userAccountsService.delete(req.params.id, function (err, userAccount) {
-        if (err) {
-            logger.error('Delete user account failed. ' + err);
-            return res.status(500).send('Unable to delete user account. Server error.');
+exports.delete = async function (req, res) {
+
+    try {
+        const userAccount = await userAccountsService.delete(req.params.id);
+        if (!userAccount) {
+            return res.status(404).send('User account not found.');
+        } else {
+            logger.debug("Success: Deleted user account with id " + userAccount.id);
+            return res.status(204).end();
         }
-        else {
-            if (!userAccount) {
-                return res.status(404).send('User account not found.');
-            } else {
-                logger.debug("Success: Deleted user account with id " + userAccount.id);
-                return res.status(204).end();
-            }
-        }
-    });
+    } catch (err) {
+        logger.error('Delete user account failed. ' + err);
+        return res.status(500).send('Unable to delete user account. Server error.');
+    }
 };
 
 exports.register = async function(req, res) {
@@ -280,7 +276,7 @@ exports.retrieveTeamsByUserIdAsync = async function (req, res) {
     }
 };
 
-exports.retrieveTeamsByUserId = function (req, res) {
+exports.retrieveTeamsByUserId = async function (req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
@@ -289,20 +285,17 @@ exports.retrieveTeamsByUserId = function (req, res) {
     };
 
     const userId = req.params.id;
-
-    userAccountsService.retrieveTeamsByUserId(userId, options, function (err, results) {
-        if (err) {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get teams. Server error.');
+    try {
+        const results = await userAccountsService.retrieveTeamsByUserId(userId, options);
+        if (options.includePagination) {
+            logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total team(s)`);
         }
         else {
-            if (options.includePagination) {
-                logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total team(s)`);
-            }
-            else {
-                logger.debug(`Success: Retrieved ${results.length} team(s)`);
-            }
-            return res.status(200).send(results);
+            logger.debug(`Success: Retrieved ${results.length} team(s)`);
         }
-    });
+        return res.status(200).send(results);
+    } catch (err) {
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get teams. Server error.');
+    }
 };
