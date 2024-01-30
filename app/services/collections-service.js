@@ -13,7 +13,7 @@ const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 const collectionsRepository = require('../repository/collections-repository');
 
 const BaseService = require('./_base.service');
-const { MissingParameterError, NotFoundError, BadlyFormattedParameterError } = require('../exceptions');
+const { MissingParameterError, NotFoundError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
 
 class CollectionsService extends BaseService {
 
@@ -49,8 +49,7 @@ class CollectionsService extends BaseService {
         catch (err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
                 // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
-                throw error;
+                throw new DuplicateIdError;
             }
             else {
                 throw err;
