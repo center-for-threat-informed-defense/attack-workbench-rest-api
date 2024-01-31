@@ -13,7 +13,8 @@ const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 const collectionsRepository = require('../repository/collections-repository');
 
 const BaseService = require('./_base.service');
-const { MissingParameterError, NotFoundError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
+const { MissingParameterError, NotFoundError, BadlyFormattedParameterError, DuplicateIdError, InvalidQueryStringParameterError } = require('../exceptions');
+const { InvalidPointerError } = require('@apidevtools/json-schema-ref-parser');
 
 class CollectionsService extends BaseService {
 
@@ -157,9 +158,7 @@ class CollectionsService extends BaseService {
                 }
             }
         } else {
-            const error = new Error(errors.invalidQueryStringParameter);
-            error.parameterName = 'versions';
-            throw error;
+            throw new InvalidQueryStringParameterError('versions');
         }
     };
 
