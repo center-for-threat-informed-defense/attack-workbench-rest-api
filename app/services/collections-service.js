@@ -123,7 +123,7 @@ class CollectionsService extends BaseService {
     
                 if (options.retrieveContents) {
                     await asyncLib.eachSeries(collections, async function (collection) {
-                        const contents = await getContentsAsync(collection.stix.x_mitre_contents);
+                        const contents = await this.getContents(collection.stix.x_mitre_contents);
                         collection.contents = contents;
                     });
                 }
@@ -144,7 +144,7 @@ class CollectionsService extends BaseService {
     
                 if (collection) {
                     if (options.retrieveContents) {
-                        const contents = await getContentsAsync(collection.stix.x_mitre_contents);
+                        const contents = await this.getContents(collection.stix.x_mitre_contents);
                         collection.contents = contents;
                         return [collection];
                     } else {
