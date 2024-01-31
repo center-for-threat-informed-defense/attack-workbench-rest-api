@@ -110,6 +110,65 @@ class CollectionsService extends BaseService {
         }
     };
 
+    async retrieveById (stixId, options) {
+        if (!stixId) {
+            const error = new Error(errors.missingParameter);
+            error.parameterName = 'stixId';
+            throw error;
+        }
+    
+        if (options.versions === 'all') {
+            try {
+                const collections = await Collection.find({'stix.id': stixId}).lean().exec();
+    
+                if (options.retrieveContents) {
+                    await asyncLib.eachSeries(collections, async function (collection) {
+                        const contents = await getContentsAsync(collection.stix.x_mitre_contents);
+                        collection.contents = contents;
+                    });
+                }
+    
+                return collections;
+            } catch (err) {
+                if (err.name === 'CastError') {
+                    const error = new Error(errors.badlyFormattedParameter);
+                    error.parameterName = 'stixId';
+                    throw error;
+                } else {
+                    throw err;
+                }
+            }
+        } else if (options.versions === 'latest') {
+            try {
+                const collection = await Collection.findOne({'stix.id': stixId}).sort('-stix.modified').lean().exec();
+    
+                if (collection) {
+                    if (options.retrieveContents) {
+                        const contents = await getContentsAsync(collection.stix.x_mitre_contents);
+                        collection.contents = contents;
+                        return [collection];
+                    } else {
+                        return [collection];
+                    }
+                } else {
+                    return [];
+                }
+            } catch (err) {
+                if (err.name === 'CastError') {
+                    const error = new Error(errors.badlyFormattedParameter);
+                    error.parameterName = 'stixId';
+                    throw error;
+                } else {
+                    throw err;
+                }
+            }
+        } else {
+            const error = new Error(errors.invalidQueryStringParameter);
+            error.parameterName = 'versions';
+            throw error;
+        }
+    };
+
     async getContents(objectList) {
         asyncLib.mapLimit(
             objectList,
