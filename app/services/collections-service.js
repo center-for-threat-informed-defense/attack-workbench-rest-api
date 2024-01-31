@@ -112,14 +112,12 @@ class CollectionsService extends BaseService {
 
     async retrieveById (stixId, options) {
         if (!stixId) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'stixId';
-            throw error;
+            throw new MissingParameterError('stixId');
         }
     
         if (options.versions === 'all') {
             try {
-                const collections = await Collection.find({'stix.id': stixId}).lean().exec();
+                const collections = await this.repository.model.find({'stix.id': stixId}).lean().exec();
     
                 if (options.retrieveContents) {
                     await asyncLib.eachSeries(collections, async function (collection) {
@@ -131,9 +129,7 @@ class CollectionsService extends BaseService {
                 return collections;
             } catch (err) {
                 if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    throw error;
+                    throw new BadlyFormattedParameterError('stixId');
                 } else {
                     throw err;
                 }
@@ -155,9 +151,7 @@ class CollectionsService extends BaseService {
                 }
             } catch (err) {
                 if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    throw error;
+                    throw new BadlyFormattedParameterError('stixId');
                 } else {
                     throw err;
                 }
