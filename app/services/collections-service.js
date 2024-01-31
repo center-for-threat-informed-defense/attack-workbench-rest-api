@@ -124,7 +124,7 @@ class CollectionsService extends BaseService {
                 }
                 else {
                     const filteredResults = results.filter(item => item);
-                    return filteredResults
+                    return filteredResults;
                 }
             });
     }

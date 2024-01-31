@@ -55,7 +55,7 @@ exports.retrieveById = async function(req, res) {
             return res.status(400).send('Query string parameter versions is invalid.');
         }
         else {
-            console.log("retrieveby id error");
+            console.log("retrieve by id error");
             console.log(err);
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get collections. Server error.');
