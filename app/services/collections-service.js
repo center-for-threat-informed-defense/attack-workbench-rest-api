@@ -136,7 +136,7 @@ class CollectionsService extends BaseService {
             }
         } else if (options.versions === 'latest') {
             try {
-                const collection = await Collection.findOne({'stix.id': stixId}).sort('-stix.modified').lean().exec();
+                const collection = await this.repository.model.findOne({'stix.id': stixId}).sort('-stix.modified').lean().exec();
     
                 if (collection) {
                     if (options.retrieveContents) {
