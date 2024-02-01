@@ -239,6 +239,51 @@ class UserAccountsService extends BaseService {
             throw err;
         }
     };
+
+    async updateFull (userAccountId, data) {
+        try {
+            if (!userAccountId) {
+                const error = new Error(errors.missingParameter);
+                error.parameterName = 'userId';
+                throw error;
+            }
+    
+            const document = await UserAccount.findOne({ 'id': userAccountId });
+    
+            if (!document) {
+                // Document not found
+                return null;
+            }
+    
+            // Copy data to found document
+            document.email = data.email;
+            document.username = data.username;
+            document.displayName = data.displayName;
+            document.status = data.status;
+            document.role = data.role;
+    
+            // Set the modified timestamp
+            document.modified = new Date().toISOString();
+    
+            // And save
+            const savedDocument = await document.save();
+    
+            return savedDocument;
+        } catch (err) {
+            if (err.name === 'CastError') {
+                const error = new Error(errors.badlyFormattedParameter);
+                error.parameterName = 'userId';
+                throw error;
+            } else if (err.name === 'MongoServerError' && err.code === 11000) {
+                // 11000 = Duplicate index
+                const error = new Error(errors.duplicateId);
+                throw error;
+            } else {
+                throw err;
+            }
+        }
+    };
+    
     
 
     async getLatest(userAccountId) {
