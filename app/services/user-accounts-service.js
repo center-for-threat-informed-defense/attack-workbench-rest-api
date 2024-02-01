@@ -11,7 +11,6 @@ const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError } 
 class UserAccountsService {
 
     constructor(type, repository) {
-        super();
         this.type = type;
         this.repository = repository;
     }
@@ -26,7 +25,7 @@ class UserAccountsService {
     };
 
     // Helper function to determine if the last argument is a callback
-    static isCallback(arg) {
+    isCallback(arg) {
         return typeof arg === 'function';
     }
 
