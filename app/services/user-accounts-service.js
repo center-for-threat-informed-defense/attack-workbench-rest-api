@@ -57,7 +57,7 @@ class UserAccountsService {
         }
 
         try {
-            const userAccount = await UserAccount.findOne({ 'email': email }).lean();
+            const userAccount = await this.repository.retrieveOneByEmail(email);
             addEffectiveRole(userAccount);
 
             return userAccount;
@@ -77,7 +77,7 @@ class UserAccountsService {
         }
     
         try {
-            const userAccount = await this.repository.findOneAndRemove({ 'id': userAccountId }).exec();
+            const userAccount = await this.repository.findOneAndRemove(userAccountId).exec();
             return userAccount;
         } catch (err) {
             throw err;
