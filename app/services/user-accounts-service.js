@@ -6,7 +6,6 @@ const Team = require('../models/team-model');
 const regexValidator = require('../lib/regex');
 const UserAccountsRespository = require('../repository/user-accounts-repository');
 const TeamstRespository = require('../repository/teams-repository');
-const BaseService = require('./_base.service');
 const { MissingParameterError, BadlyFormattedParameterError } = require('../exceptions');
 
 class UserAccountsService {
@@ -110,7 +109,7 @@ class UserAccountsService {
                 }
 
                 // Set the default marking definitions
-                await BaseService.attackObjectsService.setDefaultMarkingDefinitions(data);
+                await attackObjectsService.setDefaultMarkingDefinitions(data);
 
                 // Get the organization identity
                 const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
