@@ -9,7 +9,7 @@ const TeamstRespository = require('../repository/teams-repository');
 const BaseService = require('./_base.service');
 const { MissingParameterError, BadlyFormattedParameterError } = require('../exceptions');
 
-class UserAccountsService extends BaseService {
+class UserAccountsService {
 
     errors = {
         missingParameter: 'Missing required parameter',
