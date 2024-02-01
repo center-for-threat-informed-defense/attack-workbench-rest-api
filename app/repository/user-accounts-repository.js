@@ -107,7 +107,7 @@ class UserAccountsRepository {
 
     async retrieveOneById(stixId) {
         try {
-            return await this.model.findOne({ 'stix.id': stixId }).exec();
+            return await this.model.findOne({ 'id': stixId }).exec();
         } catch (err) {
             throw new DatabaseError(err);
         }
@@ -194,9 +194,9 @@ class UserAccountsRepository {
         }
     }
 
-    async findOneAndRemove(stixId, modified) {
+    async findOneAndRemove(stixId) {
         try {
-            return await this.model.findOneAndRemove({ 'stix.id': stixId, 'stix.modified': modified }).exec();
+            return await this.model.findOneAndRemove({ 'id': stixId}).exec();
         } catch (err) {
             throw new DatabaseError(err);
         }
@@ -204,7 +204,7 @@ class UserAccountsRepository {
 
     async deleteMany(stixId) {
         try {
-            return await this.model.deleteMany({ 'stix.id': stixId }).exec();
+            return await this.model.deleteMany({ 'id': stixId }).exec();
         } catch (err) {
             throw new DatabaseError(err);
         }

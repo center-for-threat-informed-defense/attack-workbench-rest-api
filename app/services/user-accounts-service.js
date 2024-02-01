@@ -6,7 +6,7 @@ const Team = require('../models/team-model');
 const regexValidator = require('../lib/regex');
 const UserAccountsRespository = require('../repository/user-accounts-repository');
 const TeamstRespository = require('../repository/teams-repository');
-const { MissingParameterError, BadlyFormattedParameterError } = require('../exceptions');
+const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
 
 class UserAccountsService {
 
@@ -77,12 +77,41 @@ class UserAccountsService {
         }
     
         try {
-            const userAccount = await UserAccount.findOneAndRemove({ 'id': userAccountId }).exec();
+            const userAccount = await this.repository.findOneAndRemove({ 'id': userAccountId }).exec();
             return userAccount;
         } catch (err) {
             throw err;
         }
     };
+
+    async retrieveById (userAccountId, options) {
+        try {
+            if (!userAccountId) {
+                throw new MissingParameterError('userId');
+            }
+    
+            const userAccount = await this.repository.retrieveOneById(userAccountId);
+    
+            if (!userAccount) {
+                return null; // Document not found
+            }
+    
+            addEffectiveRole(userAccount);
+    
+            if (options.includeStixIdentity) {
+                userAccount.identity = userAccountAsIdentity(userAccount);
+            }
+    
+            return userAccount;
+        } catch (err) {
+            if (err.name === 'CastError') {
+                throw new BadlyFormattedParameterError('userId');
+            } else {
+                throw err;
+            }
+        }
+    };
+    
     
     async create(data, options, callback) {
 
@@ -159,12 +188,10 @@ class UserAccountsService {
     async updateFull (userAccountId, data) {
         try {
             if (!userAccountId) {
-                const error = new Error(errors.missingParameter);
-                error.parameterName = 'userId';
-                throw error;
+                throw new MissingParameterError('userId');
             }
     
-            const document = await UserAccount.findOne({ 'id': userAccountId });
+            const document = await this.repository.retrieveOneById(userAccountId);
     
             if (!document) {
                 // Document not found
@@ -182,18 +209,14 @@ class UserAccountsService {
             document.modified = new Date().toISOString();
     
             // And save
-            const savedDocument = await document.save();
+            const savedDocument = await this.repository.savedDocument(document);
     
             return savedDocument;
         } catch (err) {
             if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'userId';
-                throw error;
+                throw new BadlyFormattedParameterError('userId');
             } else if (err.name === 'MongoServerError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
-                throw error;
+                throw new DuplicateIdError;
             } else {
                 throw err;
             }
