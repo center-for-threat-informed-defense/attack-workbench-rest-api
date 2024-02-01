@@ -1,5 +1,12 @@
 const UserAccount = require('../models/user-account-model');
 const { DatabaseError, DuplicateIdError } = require('../exceptions');
+const uuid = require('uuid');
+const Team = require('../models/team-model');
+const regexValidator = require('../lib/regex');
+const UserAccountsRespository = require('../repository/user-accounts-repository');
+const TeamstRespository = require('../repository/teams-repository');
+const { MissingParameterError, BadlyFormattedParameterError } = require('../exceptions');
+
 
 class UserAccountsRepository {
 
@@ -7,6 +14,15 @@ class UserAccountsRepository {
         this.model = model;
     }
     
+
+    addEffectiveRole(userAccount) {
+        // Initially, this forces all pending and inactive accounts to have the role 'none'.
+        // TBD: Make the role configurable
+            if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
+                userAccount.role = 'none';
+            }
+    }
+
     async retrieveAll(options) {
         try {
             // Build the query
@@ -75,7 +91,7 @@ class UserAccountsRepository {
     
             const userAccounts = results[0].documents;
             userAccounts.forEach(userAccount => {
-                addEffectiveRole(userAccount);
+                this.addEffectiveRole(userAccount);
                 if (options.includeStixIdentity) {
                     userAccount.identity = userAccountAsIdentity(userAccount);
                 }

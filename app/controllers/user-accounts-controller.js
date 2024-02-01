@@ -27,6 +27,8 @@ exports.retrieveAllAsync = async function (req, res) {
         return res.status(200).send(results);
     }
     catch (error) {
+        console.log("retrieveallasync");
+        console.log(err);
         logger.error('Failed with error: ' + error);
         return res.status(500).send('Unable to get user accounts. Server error.');
     }
@@ -55,6 +57,8 @@ exports.retrieveAll = async function (req, res) {
         }
         return res.status(200).send(results);
     } catch (err) {
+        console.log("retrieveall");
+        console.log(err);
         logger.error('Failed with error: ' + err);
         return res.status(500).send('Unable to get user accounts. Server error.');
     }
@@ -79,6 +83,8 @@ exports.retrieveByIdAsync = async function (req, res) {
             return res.status(400).send('User account id is badly formatted.');
         }
         else {
+            console.log("retrievebyidasync");
+            console.log(err);
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get user account. Server error.');
         }
@@ -105,6 +111,8 @@ exports.retrieveById = async function (req, res) {
             return res.status(400).send('User account id is badly formatted.');
         }
         else {
+            console.log("retrievebyid");
+            console.log(err);
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get user account. Server error.');
         }
@@ -133,6 +141,8 @@ exports.create = async function(req, res) {
             return res.status(400).send('Duplicate email');
         }
         else {
+            console.log("create");
+            console.log(err);
             logger.error("Failed with error: " + err);
             return res.status(500).send('Unable to create user account. Server error.');
         }
@@ -150,6 +160,8 @@ exports.updateFullAsync = async function (req, res) {
             return res.status(200).send(userAccount);
         }
     } catch (err) {
+        console.log("updatefullasync");
+        console.log(err);
         logger.error("Failed with error: " + err);
         return res.status(500).send("Unable to update user account. Server error.");
     }
@@ -169,6 +181,8 @@ exports.updateFull = async function (req, res) {
             return res.status(200).send(userAccount);
         }
     } catch (err) {
+        console.log("updatefull");
+        console.log(err);
         logger.error("Failed with error: " + err);
         return res.status(500).send("Unable to update user account. Server error.");
     }
@@ -184,6 +198,8 @@ exports.deleteAsync = async function (req, res) {
             return res.status(204).end();
         }
     } catch (err) {
+        console.log("deleteasync");
+        console.log(err);
         logger.error('Delete user account failed. ' + err);
         return res.status(500).send('Unable to delete user account. Server error.');
     }
@@ -200,6 +216,8 @@ exports.delete = async function (req, res) {
             return res.status(204).end();
         }
     } catch (err) {
+        console.log("delete");
+        console.log(err);
         logger.error('Delete user account failed. ' + err);
         return res.status(500).send('Unable to delete user account. Server error.');
     }
@@ -240,6 +258,8 @@ exports.register = async function(req, res) {
         return res.status(201).send(userAccount);
     }
     catch(err) {
+        console.log("register");
+        console.log(err);
         if (err.message === userAccountsService.errors.duplicateEmail) {
             logger.warn(`Unable to register user account, duplicate email: ${ userAccountData.email }`);
             return res.status(400).send('Duplicate email');
@@ -271,6 +291,8 @@ exports.retrieveTeamsByUserIdAsync = async function (req, res) {
         }
         return res.status(200).send(results);
     } catch (err) {
+        console.log("retrieveTeamsByUserIdAsync");
+        console.log(err);
         logger.error('Failed with error: ' + err);
         return res.status(500).send('Unable to get teams. Server error.');
     }
@@ -295,6 +317,8 @@ exports.retrieveTeamsByUserId = async function (req, res) {
         }
         return res.status(200).send(results);
     } catch (err) {
+        console.log("retrieveTeamsByUserId");
+        console.log(err);
         logger.error('Failed with error: ' + err);
         return res.status(500).send('Unable to get teams. Server error.');
     }

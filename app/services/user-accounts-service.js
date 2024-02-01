@@ -76,7 +76,7 @@ class UserAccountsService {
         }
     
         try {
-            const userAccount = await this.repository.findOneAndRemove(userAccountId).exec();
+            const userAccount = await this.repository.findOneAndRemove(userAccountId);
             return userAccount;
         } catch (err) {
             throw err;
@@ -193,7 +193,7 @@ class UserAccountsService {
             document.modified = new Date().toISOString();
     
             // And save
-            const savedDocument = await this.repository.savedDocument(document);
+            const savedDocument = await this.repository.saveDocument(document);
     
             return savedDocument;
         } catch (err) {
