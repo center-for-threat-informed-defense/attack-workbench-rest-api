@@ -112,70 +112,55 @@ class UserAccountsService {
     };
     
     
-    async create(data, options, callback) {
-
-        if (this.isCallback(arguments[arguments.length - 1])) {
-            callback = arguments[arguments.length - 1];
+    createIsAsync = true;
+    async create(data) {
+        // Check for a duplicate email
+        if (data.email) {
+            // Note: We could try to insert the new document without this check and allow Mongoose to throw a duplicate
+            // index error. But the Error that's thrown doesn't allow us to distinguish between a duplicate id (which is
+            // unexpected and may indicate a deeper problem) and a duplicate email (which is likely a client error).
+            // So we perform this check here to catch the duplicate email and then treat the duplicate index as a server
+            // error if it occurs.
+            const userAccount = await this.repository.retrieveOneById(data.email);
+            if (userAccount) {
+                throw new DuplicateIdError;
+            }
         }
-
-        // eslint-disable-next-line no-useless-catch
+    
+        // Create the document
+        const userAccount = await this.repository.createNewDocument(data);
+    
+        // Create a unique id for this user
+        // This should usually be undefined. It will only be defined when migrating user accounts from another system.
+        if (!userAccount.id) {
+            userAccount.id = `identity--${uuid.v4()}`;
+        }
+    
+        // Add a timestamp recording when the user account was first created
+        // This should usually be undefined. It will only be defined when migrating user accounts from another system.
+        if (!userAccount.created) {
+            userAccount.created = new Date().toISOString();
+        }
+    
+        // Add a timestamp recording when the user account was last modified
+        if (!userAccount.modified) {
+            userAccount.modified = userAccount.created;
+        }
+    
+        // Save the document in the database
         try {
-            // This function handles two use cases:
-            //   1. This is a completely new object. Create a new object and generate the stix.id if not already
-            //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
-            //   2. This is a new version of an existing object. Create a new object with the specified id.
-            //      Set stix.x_mitre_modified_by_ref to the organization identity.
-
-            options = options || {};
-            if (!options.import) {
-                // Set the ATT&CK Spec Version
-                data.stix.x_mitre_attack_spec_version = data.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
-
-                // Record the user account that created the object
-                if (options.userAccountId) {
-                    data.workspace.workflow.created_by_user_account = options.userAccountId;
-                }
-
-                // Set the default marking definitions
-                await attackObjectsService.setDefaultMarkingDefinitions(data);
-
-                // Get the organization identity
-                const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
-
-                // Check for an existing object
-                let existingObject;
-                if (data.stix.id) {
-                    existingObject = await this.repository.retrieveOneById(data.stix.id);
-                }
-
-                if (existingObject) {
-                    // New version of an existing object
-                    // Only set the x_mitre_modified_by_ref property
-                    data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
-                }
-                else {
-                    // New object
-                    // Assign a new STIX id if not already provided
-                    if (!data.stix.id) {
-                        // const stixIdPrefix = getStixIdPrefixFromModel(this.model.modelName, data.stix.type);
-                        data.stix.id = `${data.stix.type}--${uuid.v4()}`;
-                    }
-
-                    // Set the created_by_ref and x_mitre_modified_by_ref properties
-                    data.stix.created_by_ref = organizationIdentityRef;
-                    data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
-                }
+            const savedUserAccount = await this.repository.save(userAccount);
+            this.addEffectiveRole(savedUserAccount);
+    
+            return savedUserAccount;
+        }
+        catch (err) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                throw new DuplicateIdError;
             }
-            const res = await this.repository.save(data);
-            if (callback) {
-                return callback(null, res);
+            else {
+                throw err;
             }
-            return res;
-        } catch (err) {
-            if (callback) {
-                return callback(err);
-            }
-            throw err;
         }
     }
 
