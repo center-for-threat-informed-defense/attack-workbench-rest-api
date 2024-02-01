@@ -111,8 +111,11 @@ class CollectionsService extends BaseService {
         }
     };
 
-    async retrieveById (stixId, options) {
+    async retrieveById (stixId, options, callback) {
         if (!stixId) {
+            if (callback) {
+                return callback(new Error(this.errors.missingParameter));
+            }
             throw new MissingParameterError('stixId');
         }
     
@@ -126,12 +129,20 @@ class CollectionsService extends BaseService {
                         collection.contents = contents;
                     });
                 }
-    
+                if (callback) {
+                    return callback(null, collections);
+                }
                 return collections;
             } catch (err) {
                 if (err.name === 'CastError') {
+                    if (callback) {
+                        return callback(new Error(this.errors.badlyFormattedParameter));
+                    }
                     throw new BadlyFormattedParameterError('stixId');
                 } else {
+                    if (callback) {
+                        return callback(err);
+                    }
                     throw err;
                 }
             }
@@ -143,21 +154,39 @@ class CollectionsService extends BaseService {
                     if (options.retrieveContents) {
                         const contents = await this.getContents(collection.stix.x_mitre_contents);
                         collection.contents = contents;
+                        if (callback) {
+                            return callback(null, [collection]);
+                        }
                         return [collection];
                     } else {
+                        if (callback) {
+                            return callback(null, [collection]);
+                        }
                         return [collection];
                     }
                 } else {
+                    if (callback) {
+                        return callback(null, []);
+                    }
                     return [];
                 }
             } catch (err) {
                 if (err.name === 'CastError') {
+                    if (callback) {
+                        return callback(new Error(this.errors.badlyFormattedParameter));
+                    }
                     throw new BadlyFormattedParameterError('stixId');
                 } else {
+                    if (callback) {
+                        return callback(err);
+                    }
                     throw err;
                 }
             }
         } else {
+            if (callback) {
+                return callback(new Error(this.errors.invalidQueryStringParameter));
+            }
             throw new InvalidQueryStringParameterError('versions');
         }
     };
