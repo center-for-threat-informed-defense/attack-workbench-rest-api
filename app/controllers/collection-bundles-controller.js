@@ -159,6 +159,8 @@ exports.exportBundle = async function(req, res) {
             return res.status(404).send('Collection not found');
         }
         else {
+            console.log("export bundle error");
+            
             logger.error('Unable to export collection: ' + err);
             return res.status(500).send('Unable to export collection.');
         }

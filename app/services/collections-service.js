@@ -1,20 +1,14 @@
 'use strict';
 
-const asyncLib = require('async');
 const superagent = require('superagent');
 const identitiesService = require('../services/identities-service');
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
 const attackObjectsService = require('./attack-objects-service');
 const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
-
-
-
 const collectionsRepository = require('../repository/collections-repository');
-
 const BaseService = require('./_base.service');
 const { MissingParameterError, NotFoundError, BadlyFormattedParameterError, DuplicateIdError, InvalidQueryStringParameterError } = require('../exceptions');
-const { InvalidPointerError } = require('@apidevtools/json-schema-ref-parser');
 
 class CollectionsService extends BaseService {
 
@@ -31,6 +25,68 @@ class CollectionsService extends BaseService {
         invalidQueryStringParameter: 'Invalid query string parameter'
     };
 
+    async retrieveAll(options) {
+        try {
+            // Build the query
+            const query = {};
+            if (!options.includeRevoked) {
+                query['stix.revoked'] = { $in: [null, false] };
+            }
+            if (!options.includeDeprecated) {
+                query['stix.x_mitre_deprecated'] = { $in: [null, false] };
+            }
+            if (typeof options.state !== 'undefined') {
+                if (Array.isArray(options.state)) {
+                    query['workspace.workflow.state'] = { $in: options.state };
+                } else {
+                    query['workspace.workflow.state'] = options.state;
+                }
+            }
+            if (typeof options.lastUpdatedBy !== 'undefined') {
+                query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
+            }
+    
+            // Build the aggregation
+            const aggregation = [{ $sort: { 'stix.id': 1, 'stix.modified': -1 }}];
+            if (options.versions === 'latest') {
+                // Group the documents by stix.id, sorted by stix.modified
+                // Use the first document in each group (according to the value of stix.modified)
+                // Then sort again since the $group does not retain the sort order
+                aggregation.push({ $group: { _id: '$stix.id', document: { $first: '$$ROOT' }}});
+                aggregation.push({ $replaceRoot: { newRoot: '$document' }});
+                aggregation.push({ $sort: { 'stix.id': 1 }});
+            }
+    
+            // Apply query, skip and limit options
+            aggregation.push({ $match: query });
+    
+            if (typeof options.search !== 'undefined') {
+                options.search = regexValidator.sanitizeRegex(options.search);
+                const match = { $match: { $or: [
+                    { 'stix.name': { '$regex': options.search, '$options': 'i' }},
+                    { 'stix.description': { '$regex': options.search, '$options': 'i' }}
+                ]}};
+                aggregation.push(match);
+            }
+    
+            if (options.skip) {
+                aggregation.push({ $skip: options.skip });
+            }
+            if (options.limit) {
+                aggregation.push({ $limit: options.limit });
+            }
+    
+            // Retrieve the documents
+            const collections = await Collection.aggregate(aggregation);
+    
+            // Add created by and modified by identities to all collections
+            await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(collections);
+    
+            return collections;
+        } catch (err) {
+            throw err;
+        }
+    }
 
     createIsAsync = true;
     async create(data, options) {
