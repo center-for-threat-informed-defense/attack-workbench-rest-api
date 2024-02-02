@@ -191,23 +191,15 @@ class CollectionsService extends BaseService {
         }
     };
 
-    async getContents(objectList) {
-        asyncLib.mapLimit(
-            objectList,
-            5,
-            async function(objectRef) {
-                const attackObject = await attackObjectsService.retrieveVersionById(objectRef.object_ref, objectRef.object_modified);
-                return attackObject;
-            },
-            function(err, results) {
-                if (err) {
-                    throw err;
-                }
-                else {
-                    const filteredResults = results.filter(item => item);
-                    return filteredResults;
-                }
-            });
+    async getContents(objectList) {     
+        const result = []
+        for (const objectRef of objectList) {
+            const attackObject = await attackObjectsService.retrieveVersionById(objectRef.object_ref, objectRef.object_modified);
+            if (attackObject) {
+                result.push(attackObject);
+            }
+        }
+        return result;
     }
 
 
