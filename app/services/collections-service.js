@@ -124,10 +124,9 @@ class CollectionsService extends BaseService {
                 const collections = await this.repository.model.find({'stix.id': stixId}).lean().exec();
     
                 if (options.retrieveContents) {
-                    await asyncLib.eachSeries(collections, async function (collection) {
-                        const contents = await this.getContents(collection.stix.x_mitre_contents);
-                        collection.contents = contents;
-                    });
+                    for (const collection of collections) {
+                        collection.contents  = await this.getContents(collection.stix.x_mitre_contents);
+                    }
                 }
                 if (callback) {
                     return callback(null, collections);
