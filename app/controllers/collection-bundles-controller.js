@@ -121,6 +121,8 @@ exports.importBundle = function(req, res) {
                 return res.status(400).send(errorResult);
             }
             else {
+                console.log("import bundle error");
+                console.log(err);
                 logger.error("Unable to import collection, create collection index failed with error: " + err);
                 return res.status(500).send("Unable to import collection, unable to create collection index. Server error.");
             }
@@ -160,7 +162,7 @@ exports.exportBundle = async function(req, res) {
         }
         else {
             console.log("export bundle error");
-            
+            console.log(err);
             logger.error('Unable to export collection: ' + err);
             return res.status(500).send('Unable to export collection.');
         }

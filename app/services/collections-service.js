@@ -25,7 +25,7 @@ class CollectionsService extends BaseService {
         invalidQueryStringParameter: 'Invalid query string parameter'
     };
 
-    async retrieveAll(options) {
+    async retrieveAll(options, callback) {
         try {
             // Build the query
             const query = {};
@@ -81,9 +81,14 @@ class CollectionsService extends BaseService {
     
             // Add created by and modified by identities to all collections
             await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(collections);
-    
+            if (callback) {
+                return callback(null, collections);
+            }
             return collections;
         } catch (err) {
+            if (callback) {
+                return callback(err);
+            }
             throw err;
         }
     }
