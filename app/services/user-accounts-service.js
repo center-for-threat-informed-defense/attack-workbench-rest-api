@@ -95,7 +95,7 @@ class UserAccountsService {
                 return null; // Document not found
             }
     
-            addEffectiveRole(userAccount);
+            this.addEffectiveRole(userAccount);
     
             if (options.includeStixIdentity) {
                 userAccount.identity = userAccountAsIdentity(userAccount);
