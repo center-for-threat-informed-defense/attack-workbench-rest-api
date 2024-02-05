@@ -98,7 +98,7 @@ class UserAccountsService {
             this.addEffectiveRole(userAccount);
     
             if (options.includeStixIdentity) {
-                userAccount.identity = userAccountAsIdentity(userAccount);
+                userAccount.identity = this.userAccountAsIdentity(userAccount);
             }
     
             return userAccount;
@@ -149,7 +149,7 @@ class UserAccountsService {
     
         // Save the document in the database
         try {
-            const savedUserAccount = await this.repository.save(userAccount);
+            const savedUserAccount = await this.repository.saveDocument(userAccount);
             this.addEffectiveRole(savedUserAccount);
     
             return savedUserAccount;

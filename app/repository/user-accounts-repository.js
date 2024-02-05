@@ -192,7 +192,7 @@ class UserAccountsRepository {
         } catch (err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
                 throw new DuplicateIdError({
-                    details: `Document with id '${data.stix.id}' already exists.`
+                    details: `Document with id '${data.id}' already exists.`
                 });
             }
             throw new DatabaseError(err);
