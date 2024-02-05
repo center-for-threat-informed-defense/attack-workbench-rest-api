@@ -235,7 +235,7 @@ describe('User Accounts API', function () {
 
     let anonymousUserId = null;
     it('GET /api/user-accounts returns an array with the anonymous user account', async function () {
-        await request(app)
+        const res = await request(app)
             .get('/api/user-accounts')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -252,7 +252,7 @@ describe('User Accounts API', function () {
     });
 
     it('GET /api/user-accounts/{id}/teams should return an empty array when no teams have been associated with a user', async function () {
-       await request(app)
+        const res = await request(app)
             .get(`/api/user-accounts/${ anonymousUserId }/teams`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
