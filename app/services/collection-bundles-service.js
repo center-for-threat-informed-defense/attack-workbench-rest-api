@@ -669,8 +669,7 @@ exports.exportBundle = async function(options) {
     if (options.collectionModified) {
         // Retrieve the collection with the provided id and modified date
         const retrievalOptions = { retrieveContents: true };
-        const retrieveCollection = util.promisify(collectionsService.retrieveVersionById);
-        const collection = await retrieveCollection(options.collectionId, options.collectionModified, retrievalOptions);
+        const collection = await collectionsService.retrieveById(options.collectionId, options.collectionModified, retrievalOptions);
         if (collection) {
             const bundle = await createBundle(collection, options);
             return bundle;
@@ -686,8 +685,7 @@ exports.exportBundle = async function(options) {
             versions: 'latest',
             retrieveContents: true
         };
-        const retrieveCollection = util.promisify(collectionsService.retrieveById);
-        const collections = await retrieveCollection(options.collectionId, retrievalOptions);
+        const collections = await collectionsService.retrieveById(options.collectionId, retrievalOptions);
         if (collections.length === 1) {
             const exportedCollection = collections[0];
             const bundle = await createBundle(exportedCollection, options);
