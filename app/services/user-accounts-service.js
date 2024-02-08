@@ -123,7 +123,7 @@ class UserAccountsService {
             // error if it occurs.
             const userAccount = await UserAccount.findOne({ 'email': data.email }).lean();
             if (userAccount) {
-                throw new DuplicateIdError;
+                throw new Error(this.errors.duplicateEmail);
             }
         }
     
