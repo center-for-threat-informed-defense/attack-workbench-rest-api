@@ -121,7 +121,7 @@ class UserAccountsService {
             // unexpected and may indicate a deeper problem) and a duplicate email (which is likely a client error).
             // So we perform this check here to catch the duplicate email and then treat the duplicate index as a server
             // error if it occurs.
-            const userAccount = await UserAccount.findOne({ 'email': data.email }).lean();
+            const userAccount = await this.repository.retrieveOneByEmail(data.email);
             if (userAccount) {
                 throw new Error(this.errors.duplicateEmail);
             }
