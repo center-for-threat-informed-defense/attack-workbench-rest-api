@@ -121,14 +121,14 @@ class UserAccountsService {
             // unexpected and may indicate a deeper problem) and a duplicate email (which is likely a client error).
             // So we perform this check here to catch the duplicate email and then treat the duplicate index as a server
             // error if it occurs.
-            const userAccount = await this.repository.retrieveOneById(data.email);
+            const userAccount = await UserAccount.findOne({ 'email': data.email }).lean();
             if (userAccount) {
                 throw new DuplicateIdError;
             }
         }
     
         // Create the document
-        const userAccount = await this.repository.createNewDocument(data);
+        const userAccount = new UserAccount(data);
     
         // Create a unique id for this user
         // This should usually be undefined. It will only be defined when migrating user accounts from another system.
@@ -149,7 +149,7 @@ class UserAccountsService {
     
         // Save the document in the database
         try {
-            const savedUserAccount = await this.repository.saveDocument(userAccount);
+            const savedUserAccount = await userAccount.save();
             this.addEffectiveRole(savedUserAccount);
     
             return savedUserAccount;
