@@ -128,7 +128,7 @@ class UserAccountsService {
         }
     
         // Create the document
-        const userAccount = new UserAccount(data);
+        const userAccount = await this.repository.createNewDocument(data);
     
         // Create a unique id for this user
         // This should usually be undefined. It will only be defined when migrating user accounts from another system.
@@ -149,7 +149,7 @@ class UserAccountsService {
     
         // Save the document in the database
         try {
-            const savedUserAccount = await userAccount.save();
+            const savedUserAccount = await this.repository.saveDocument(userAccount);
             this.addEffectiveRole(savedUserAccount);
     
             return savedUserAccount;
