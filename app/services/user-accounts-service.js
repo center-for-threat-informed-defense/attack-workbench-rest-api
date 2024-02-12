@@ -175,7 +175,7 @@ class UserAccountsService {
                 throw new MissingParameterError('userId');
             }
     
-            const document = await this.repository.retrieveOneById(userAccountId);
+            const document = await UserAccount.findOne({ 'id': userAccountId });
     
             if (!document) {
                 // Document not found
@@ -193,7 +193,7 @@ class UserAccountsService {
             document.modified = new Date().toISOString();
     
             // And save
-            const savedDocument = await this.repository.saveDocument(document);
+            const savedDocument = await document.save();
     
             return savedDocument;
         } catch (err) {
@@ -214,7 +214,7 @@ class UserAccountsService {
             .findOne({ 'id': userAccountId })
             .lean()
             .exec();
-        addEffectiveRole(userAccount);
+        this.addEffectiveRole(userAccount);
 
         return userAccount;
     }
@@ -223,7 +223,7 @@ class UserAccountsService {
         if (attackObject?.workspace?.workflow?.created_by_user_account) {
             try {
                 // eslint-disable-next-line require-atomic-updates
-                attackObject.created_by_user_account = await getLatest(attackObject.workspace.workflow.created_by_user_account);
+                attackObject.created_by_user_account = await this.getLatest(attackObject.workspace.workflow.created_by_user_account);
             }
             catch(err) {
                 // Ignore lookup errors
@@ -234,7 +234,7 @@ class UserAccountsService {
     async addCreatedByUserAccountToAll(attackObjects) {
         for (const attackObject of attackObjects) {
             // eslint-disable-next-line no-await-in-loop
-            await addCreatedByUserAccount(attackObject);
+            await this.addCreatedByUserAccount(attackObject);
         }
     }
 
