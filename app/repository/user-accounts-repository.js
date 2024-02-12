@@ -255,8 +255,8 @@ class UserAccountsRepository {
     }
 
     async updateById(userAccountId, data) {
-
-        const document = await this.retrieveOneByUserAccountId(userAccountId);
+        try {
+            const document = await this.retrieveOneByUserAccountId(userAccountId);
 
         if (!document) {
             // document not found
@@ -284,6 +284,14 @@ class UserAccountsRepository {
             }
             throw new DatabaseError(err);
         }
+    } catch (err) {
+        if (err.name === 'CastError') {
+            throw new BadlyFormattedParameterError('userId');
+        }
+        else {
+            throw err;
+        }
+    }
     }
 
     async removeById(userAccountId) {
