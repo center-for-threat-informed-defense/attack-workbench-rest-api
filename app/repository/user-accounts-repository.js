@@ -256,7 +256,7 @@ class UserAccountsRepository {
 
     async updateById(userAccountId, data) {
 
-        const document = await this.model.retrieveOneByUserAccountId(userAccountId).exec();
+        const document = await this.retrieveOneByUserAccountId(userAccountId);
 
         if (!document) {
             // document not found
