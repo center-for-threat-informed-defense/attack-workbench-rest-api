@@ -170,41 +170,8 @@ class UserAccountsService {
     };
 
     async updateFull (userAccountId, data) {
-        try {
-            if (!userAccountId) {
-                throw new MissingParameterError('userId');
-            }
-    
-            const document = await UserAccount.findOne({ 'id': userAccountId });
-    
-            if (!document) {
-                // Document not found
-                return null;
-            }
-    
-            // Copy data to found document
-            document.email = data.email;
-            document.username = data.username;
-            document.displayName = data.displayName;
-            document.status = data.status;
-            document.role = data.role;
-    
-            // Set the modified timestamp
-            document.modified = new Date().toISOString();
-    
-            // And save
-            const savedDocument = await document.save();
-    
-            return savedDocument;
-        } catch (err) {
-            if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError('userId');
-            } else if (err.name === 'MongoServerError' && err.code === 11000) {
-                throw new DuplicateIdError;
-            } else {
-                throw err;
-            }
-        }
+        const res = await this.repository.updateById(userAccountId, data);
+        return res;
     };
     
     
