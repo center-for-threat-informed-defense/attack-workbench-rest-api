@@ -38,15 +38,15 @@ class UserAccountsService {
     }
 
     userAccountAsIdentity(userAccount) {
-    return {
-        type: 'identity',
-        spec_version: '2.1',
-        id: userAccount.id,
-        created: userAccount.created,
-        modified: userAccount.modified,
-        name: userAccount.displayName,
-        identity_class: 'individual'
-    }
+        return {
+            type: 'identity',
+            spec_version: '2.1',
+            id: userAccount.id,
+            created: userAccount.created,
+            modified: userAccount.modified,
+            name: userAccount.displayName,
+            identity_class: 'individual'
+        }
     }
 
 
@@ -57,7 +57,7 @@ class UserAccountsService {
 
         try {
             const userAccount = await this.repository.retrieveOneByEmail(email);
-            addEffectiveRole(userAccount);
+            this.addEffectiveRole(userAccount);
 
             return userAccount;
         }

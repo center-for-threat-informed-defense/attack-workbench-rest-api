@@ -23,6 +23,18 @@ class UserAccountsRepository {
             }
     }
 
+    userAccountAsIdentity(userAccount) {
+        return {
+            type: 'identity',
+            spec_version: '2.1',
+            id: userAccount.id,
+            created: userAccount.created,
+            modified: userAccount.modified,
+            name: userAccount.displayName,
+            identity_class: 'individual'
+        }
+    }
+
     async retrieveAll(options) {
         try {
             // Build the query
@@ -90,12 +102,12 @@ class UserAccountsRepository {
             const results = await UserAccount.aggregate(aggregation);
     
             const userAccounts = results[0].documents;
-            userAccounts.forEach(userAccount => {
+            for (const userAccount in userAccounts) {
                 this.addEffectiveRole(userAccount);
                 if (options.includeStixIdentity) {
-                    userAccount.identity = userAccountAsIdentity(userAccount);
-                }
-            });
+                    userAccount.identity = this.userAccountAsIdentity(userAccount);
+                } 
+            }
     
             if (options.includePagination) {
                 let derivedTotalCount = 0;
