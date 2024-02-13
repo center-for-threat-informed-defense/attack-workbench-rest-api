@@ -5,7 +5,7 @@ const { NotImplementedError } = require('../exceptions');
 const AttackObject = require('../models/attack-object-model');
 const Relationship = require('../models/relationship-model');
 const systemConfigurationService = require('./system-configuration-service');
-
+const BaseService = require('./_base.service');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 
 const regexValidator = require('../lib/regex');
@@ -249,3 +249,4 @@ class AttackObjectsService extends BaseService {
         }
     }
 }
+module.exports = new AttackObjectsService(null, AttackObject);
