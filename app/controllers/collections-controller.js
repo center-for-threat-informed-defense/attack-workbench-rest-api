@@ -17,8 +17,6 @@ exports.retrieveAll = function(req, res) {
 
     collectionsService.retrieveAll(options, function(err, collections) {
         if (err) {
-            console.log("retrieveall error");
-            console.log(err);
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get collections. Server error.');
         }
@@ -46,8 +44,6 @@ exports.retrieveById = function(req, res) {
                 return res.status(400).send('Query string parameter versions is invalid.');
             }
             else {
-                console.log("retrievebyid error");
-                console.log(err);
                 logger.error('Failed with error: ' + err);
                 return res.status(500).send('Unable to get collections. Server error.');
             }
@@ -75,8 +71,6 @@ exports.retrieveVersionById = function(req, res) {
                 return res.status(400).send('Stix id is badly formatted.');
             }
             else {
-                console.log("retrieveversionbyid error");
-                console.log(err);
                 logger.error('Failed with error: ' + err);
                 return res.status(500).send('Unable to get collections. Server error.');
             }
@@ -117,8 +111,6 @@ exports.create = async function(req, res) {
             return res.status(409).send('Unable to create collection. Duplicate stix.id and stix.modified properties.');
         }
         else {
-            console.log("create error");
-            console.log(err);
             logger.error("Failed with error: " + err);
             return res.status(500).send("Unable to create collection. Server error.");
         }
@@ -135,8 +127,6 @@ exports.delete = async function(req, res) {
             return res.status(204).end();
         }
     } catch (error) {
-        console.log("delete error");
-        console.log(error);
         logger.error('Delete collections failed. ' + error);
         return res.status(500).send('Unable to delete collections. Server error.');
     }
@@ -153,8 +143,6 @@ exports.deleteVersionById = async function(req, res) {
             return res.status(204).end();
         }
     } catch (error) {
-        console.log("deleteversionbyid error");
-        console.log(error);
     logger.error('Delete collection failed. ' + error);
     return res.status(500).send('Unable to delete collection. Server error.');
     }
