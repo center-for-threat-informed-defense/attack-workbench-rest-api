@@ -25,7 +25,7 @@ class AttackObjectsRepository extends BaseRepository {
 
     async retrieveAll(options) {
         // require here to avoid circular dependency
-        const relationshipsService = require('./relationships-service');
+        const relationshipsService = require('../services/relationships-service');
 
         // Build the query
         const query = {};
@@ -115,7 +115,7 @@ class AttackObjectsRepository extends BaseRepository {
 
         // Add identities
         if (!this.identitiesService) {
-            this.identitiesService = require('./identities-service');
+            this.identitiesService = require('../services/identities-service');
         }
         await this.identitiesService.addCreatedByAndModifiedByIdentitiesToAll(paginatedDocuments);
 
@@ -140,7 +140,7 @@ class AttackObjectsRepository extends BaseRepository {
         // Retrieve the version of the attack object with the matching stixId and modified date
 
         // require here to avoid circular dependency
-        const relationshipsService = require('./relationships-service');
+        const relationshipsService = require('../services/relationships-service');
         const retrieveRelationshipsVersionById = util.promisify(relationshipsService.retrieveVersionById);
 
         if (!stixId) {
@@ -170,7 +170,7 @@ class AttackObjectsRepository extends BaseRepository {
 
         // Note: attackObject is null if not found
         if (!this.identitiesService) {
-            this.identitiesService = require('./identities-service');
+            this.identitiesService = require('../services/identities-service');
         }
         await this.identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
         return attackObject;

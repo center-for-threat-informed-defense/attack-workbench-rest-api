@@ -149,43 +149,8 @@ class AttackObjectsService extends BaseService {
     }
 
     async retrieveVersionById(stixId, modified) {
-        // Retrieve the version of the attack object with the matching stixId and modified date
-
-        // require here to avoid circular dependency
-        const relationshipsService = require('./relationships-service');
-        const retrieveRelationshipsVersionById = util.promisify(relationshipsService.retrieveVersionById);
-
-        if (!stixId) {
-            throw new MissingParameterError('stixId');
-        }
-
-        if (!modified) {
-            throw new MissingParameterError('modified');
-        }
-
-        let attackObject;
-        if (stixId.startsWith(this.relationshipPrefix)) {
-            attackObject = await retrieveRelationshipsVersionById(stixId, modified);
-        }
-        else {
-            try {
-                attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
-            }
-            catch(err) {
-                if (err.name === 'CastError') {
-                    throw new BadlyFormattedParameterError('stixId');
-                } else {
-                    throw err;
-                }
-            }
-        }
-
-        // Note: attackObject is null if not found
-        if (!this.identitiesService) {
-            this.identitiesService = require('./identities-service');
-        }
-        await this.identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
-        return attackObject;
+        const res = await this.repository.retrieveVersionById(stixId, modified);
+        return res;
     }
 
     // Record that this object is part of a collection
