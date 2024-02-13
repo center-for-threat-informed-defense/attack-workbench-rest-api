@@ -11,7 +11,7 @@ const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 const regexValidator = require('../lib/regex');
 
 class AttackObjectsService extends BaseService {
-    
+
     errors = {
         missingParameter: 'Missing required parameter',
         badlyFormattedParameter: 'Badly formatted parameter',
@@ -170,7 +170,7 @@ class AttackObjectsService extends BaseService {
         }
 
         let attackObject;
-        if (stixId.startsWith(relationshipPrefix)) {
+        if (stixId.startsWith(this.relationshipPrefix)) {
             attackObject = await retrieveRelationshipsVersionById(stixId, modified);
         }
         else {
@@ -187,17 +187,17 @@ class AttackObjectsService extends BaseService {
         }
 
         // Note: attackObject is null if not found
-        if (!identitiesService) {
-            identitiesService = require('./identities-service');
+        if (!this.identitiesService) {
+            this.identitiesService = require('./identities-service');
         }
-        await identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
+        await this.identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
         return attackObject;
     };
 
     // Record that this object is part of a collection
     async insertCollection(stixId, modified, collectionId, collectionModified) {
         let attackObject;
-        if (stixId.startsWith(relationshipPrefix)) {
+        if (stixId.startsWith(this.relationshipPrefix)) {
             attackObject = await Relationship.findOne({ 'stix.id': stixId, 'stix.modified': modified });
         }
         else {
