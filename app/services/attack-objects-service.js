@@ -4,13 +4,15 @@ const util = require('util');
 const { NotImplementedError, BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 const AttackObject = require('../models/attack-object-model');
 const Relationship = require('../models/relationship-model');
-const systemConfigurationService = require('./system-configuration-service');
+
 const BaseService = require('./_base.service');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 
 const regexValidator = require('../lib/regex');
 
 class AttackObjectsService extends BaseService {
+
+    systemConfigurationService = require('./system-configuration-service');
 
     errors = {
         missingParameter: 'Missing required parameter',
@@ -227,7 +229,7 @@ class AttackObjectsService extends BaseService {
 
     async setDefaultMarkingDefinitions(attackObject) {
         // Add any default marking definitions that are not in the current list for this object
-        const defaultMarkingDefinitions = await systemConfigurationService.retrieveDefaultMarkingDefinitions({ refOnly: true });
+        const defaultMarkingDefinitions = await this.systemConfigurationService.retrieveDefaultMarkingDefinitions({ refOnly: true });
         if (attackObject.stix.object_marking_refs) {
             attackObject.stix.object_marking_refs = attackObject.stix.object_marking_refs.concat(defaultMarkingDefinitions.filter(e => !attackObject.stix.object_marking_refs.includes(e)));
         }
