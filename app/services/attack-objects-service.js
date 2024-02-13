@@ -25,19 +25,11 @@ class AttackObjectsService extends BaseService {
 
     identitiesService;
 
-    async retrieveAll(options, callback) {
-        throw new NotImplementedError(this.constructor.name, 'retrieveAll');
-    }
-
-    async retrieveById(stixId, options, callback) {
+    retrieveById(stixId, options, callback) {
         throw new NotImplementedError(this.constructor.name, 'retrieveById');
     }
 
-    async retrieveVersionById(stixId, modified, callback) {
-        throw new NotImplementedError(this.constructor.name, 'retrieveVersionById');
-    }
-
-    async create(data, options, callback) {
+    create(data, options, callback) {
         throw new NotImplementedError(this.constructor.name, 'create');
     }
 
@@ -152,7 +144,7 @@ class AttackObjectsService extends BaseService {
         else {
             return paginatedDocuments;
         }
-    };
+    }
 
     async retrieveVersionById(stixId, modified) {
         // Retrieve the version of the attack object with the matching stixId and modified date
@@ -192,7 +184,7 @@ class AttackObjectsService extends BaseService {
         }
         await this.identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
         return attackObject;
-    };
+    }
 
     // Record that this object is part of a collection
     async insertCollection(stixId, modified, collectionId, collectionModified) {
@@ -231,7 +223,7 @@ class AttackObjectsService extends BaseService {
         else {
             throw new Error(this.errors.notFound);
         }
-    };
+    }
 
     async setDefaultMarkingDefinitions(attackObject) {
         // Add any default marking definitions that are not in the current list for this object
