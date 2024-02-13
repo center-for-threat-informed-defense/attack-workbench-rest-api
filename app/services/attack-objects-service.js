@@ -9,6 +9,7 @@ const systemConfigurationService = require('./system-configuration-service');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 
 const regexValidator = require('../lib/regex');
+
 class AttackObjectsService extends BaseService {
     errors = {
         missingParameter: 'Missing required parameter',
@@ -39,7 +40,7 @@ class AttackObjectsService extends BaseService {
         throw new NotImplementedError(this.constructor.name, 'create');
     }
 
-    exports.retrieveAll = async function(options) {
+    async retrieveAll(options) {
         // require here to avoid circular dependency
         const relationshipsService = require('./relationships-service');
 
@@ -152,7 +153,7 @@ class AttackObjectsService extends BaseService {
         }
     };
 
-    exports.retrieveVersionById = async function(stixId, modified) {
+    async retrieveVersionById(stixId, modified) {
         // Retrieve the version of the attack object with the matching stixId and modified date
 
         // require here to avoid circular dependency
@@ -199,7 +200,7 @@ class AttackObjectsService extends BaseService {
     };
 
     // Record that this object is part of a collection
-    exports.insertCollection = async function(stixId, modified, collectionId, collectionModified) {
+    async insertCollection(stixId, modified, collectionId, collectionModified) {
         let attackObject;
         if (stixId.startsWith(relationshipPrefix)) {
             attackObject = await Relationship.findOne({ 'stix.id': stixId, 'stix.modified': modified });
@@ -237,7 +238,7 @@ class AttackObjectsService extends BaseService {
         }
     };
 
-    exports.setDefaultMarkingDefinitions = async function(attackObject) {
+    async setDefaultMarkingDefinitions(attackObject) {
         // Add any default marking definitions that are not in the current list for this object
         const defaultMarkingDefinitions = await systemConfigurationService.retrieveDefaultMarkingDefinitions({ refOnly: true });
         if (attackObject.stix.object_marking_refs) {
