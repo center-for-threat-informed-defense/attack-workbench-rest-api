@@ -1,7 +1,7 @@
 'use strict';
 
 const util = require('util');
-const { NotImplementedError } = require('../exceptions');
+const { NotImplementedError, BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 const AttackObject = require('../models/attack-object-model');
 const Relationship = require('../models/relationship-model');
 const systemConfigurationService = require('./system-configuration-service');
@@ -11,6 +11,7 @@ const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 const regexValidator = require('../lib/regex');
 
 class AttackObjectsService extends BaseService {
+    
     errors = {
         missingParameter: 'Missing required parameter',
         badlyFormattedParameter: 'Badly formatted parameter',
@@ -161,15 +162,11 @@ class AttackObjectsService extends BaseService {
         const retrieveRelationshipsVersionById = util.promisify(relationshipsService.retrieveVersionById);
 
         if (!stixId) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'stixId';
-            throw error;
+            throw new MissingParameterError('stixId');
         }
 
         if (!modified) {
-            const error = new Error(errors.missingParameter);
-            error.parameterName = 'modified';
-            throw error;
+            throw new MissingParameterError('modified');
         }
 
         let attackObject;
@@ -182,9 +179,7 @@ class AttackObjectsService extends BaseService {
             }
             catch(err) {
                 if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    throw error;
+                    throw new BadlyFormattedParameterError('stixId');
                 } else {
                     throw err;
                 }
@@ -226,7 +221,7 @@ class AttackObjectsService extends BaseService {
             const duplicateCollection = attackObject.workspace.collections.find(
                 item => item.collection_ref === collection.collection_ref && item.collection_modified === collection.collection_modified);
             if (duplicateCollection) {
-                throw new Error(errors.duplicateCollection);
+                throw new Error(this.errors.duplicateCollection);
             }
 
             attackObject.workspace.collections.push(collection);
@@ -234,7 +229,7 @@ class AttackObjectsService extends BaseService {
             await attackObject.save();
         }
         else {
-            throw new Error(errors.notFound);
+            throw new Error(this.errors.notFound);
         }
     };
 
