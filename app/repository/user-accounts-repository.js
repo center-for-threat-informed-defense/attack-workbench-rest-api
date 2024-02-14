@@ -1,38 +1,12 @@
 const UserAccount = require('../models/user-account-model');
 const { DatabaseError, DuplicateIdError } = require('../exceptions');
-const uuid = require('uuid');
-const Team = require('../models/team-model');
 const regexValidator = require('../lib/regex');
-const UserAccountsRespository = require('../repository/user-accounts-repository');
-const TeamstRespository = require('../repository/teams-repository');
 const { MissingParameterError, BadlyFormattedParameterError } = require('../exceptions');
-
 
 class UserAccountsRepository {
 
     constructor(model) {
         this.model = model;
-    }
-    
-
-    addEffectiveRole(userAccount) {
-        // Initially, this forces all pending and inactive accounts to have the role 'none'.
-        // TBD: Make the role configurable
-            if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
-                userAccount.role = 'none';
-            }
-    }
-
-    userAccountAsIdentity(userAccount) {
-        return {
-            type: 'identity',
-            spec_version: '2.1',
-            id: userAccount.id,
-            created: userAccount.created,
-            modified: userAccount.modified,
-            name: userAccount.displayName,
-            identity_class: 'individual'
-        }
     }
 
     async retrieveAll(options) {
@@ -99,80 +73,17 @@ class UserAccountsRepository {
             aggregation.push(facet);
     
             // Retrieve the documents
-            const results = await UserAccount.aggregate(aggregation);
-    
-            const userAccounts = results[0].documents;
-            for (const userAccount in userAccounts) {
-                this.addEffectiveRole(userAccount);
-                if (options.includeStixIdentity) {
-                    userAccount.identity = this.userAccountAsIdentity(userAccount);
-                } 
-            }
-    
-            if (options.includePagination) {
-                let derivedTotalCount = 0;
-                if (results[0].totalCount.length > 0) {
-                    derivedTotalCount = results[0].totalCount[0].totalCount;
-                }
-    
-                const returnValue = {
-                    pagination: {
-                        total: derivedTotalCount,
-                        offset: options.offset,
-                        limit: options.limit
-                    },
-                    data: userAccounts
-                };
-    
-                return returnValue;
-            } else {
-                return userAccounts;
-            }
-        } catch (err) {
-            throw err;
+            return await this.model.aggregate(aggregation).exec();
+        }
+        catch (err) {
+            throw new DatabaseError(err);
         }
     }
 
     async retrieveOneById(stixId) {
         try {
-            return await this.model.findOne({ 'id': stixId }).exec();
+            return await this.model.findOne({ 'id': stixId }).lean().exec();
         } catch (err) {
-            throw new DatabaseError(err);
-        }
-    }
-
-    async retrieveAllById(stixId) {
-        try {
-            return await this.model.find({ 'stix.id': stixId })
-                .sort('-stix.modified')
-                .lean()
-                .exec();
-        } catch (err) {
-            throw new DatabaseError(err);
-        }
-    }
-
-    async retrieveLatestByStixId(stixId) {
-        try {
-            return await this.model.findOne({ 'stix.id': stixId })
-                .sort('-stix.modified')
-                .lean()
-                .exec();
-        } catch (err) {
-            throw new DatabaseError(err);
-        }
-    }
-
-    async retrieveOneByVersion(stixId, modified) {
-        try {
-            return await this.model.findOne({ 'stix.id': stixId, 'stix.modified': modified })
-                .exec();
-        } catch (err) {
-            if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
-            } else if (err.name === 'MongoServerError' && err.code === 11000) {
-                throw new DuplicateIdError();
-            }
             throw new DatabaseError(err);
         }
     }
@@ -211,28 +122,9 @@ class UserAccountsRepository {
         }
     }
 
-    // eslint-disable-next-line class-methods-use-this
-    async updateAndSave(document, data) {
-        try {
-            // TODO validate that document is valid mongoose object first
-            Object.assign(document, data);
-            return await document.save();
-        } catch (err) {
-            throw new DatabaseError(err);
-        }
-    }
-
     async findOneAndRemove(stixId) {
         try {
             return await this.model.findOneAndRemove({ 'id': stixId}).exec();
-        } catch (err) {
-            throw new DatabaseError(err);
-        }
-    }
-
-    async deleteMany(stixId) {
-        try {
-            return await this.model.deleteMany({ 'id': stixId }).exec();
         } catch (err) {
             throw new DatabaseError(err);
         }
@@ -258,50 +150,43 @@ class UserAccountsRepository {
         try {
             const document = await this.retrieveOneByUserAccountId(userAccountId);
 
-        if (!document) {
-            // document not found
-            return null;
-        }
-
-        // Copy data to found document
-        document.email = data.email;
-        document.username = data.username;
-        document.displayName = data.displayName;
-        document.status = data.status;
-        document.role = data.role;
-
-        // Set the modified timestamp
-        document.modified = new Date().toISOString();
-
-        // Save and return the document
-        try {
-            return await document.save();
-        } catch (err) {
-            if (err.name === 'MongoServerError' && err.code === 11000) {
-                throw new DuplicateIdError({
-                    details: `Document with id '${data.stix.id}' already exists.`
-                });
+            if (!document) {
+                // document not found
+                return null;
             }
-            throw new DatabaseError(err);
-        }
-    } catch (err) {
-        if (err.name === 'CastError') {
-            throw new BadlyFormattedParameterError('userId');
-        }
-        else {
-            throw err;
-        }
-    }
-    }
 
-    async removeById(userAccountId) {
-        try {
-            return await this.model.findOneAndRemove({ 'id': userAccountId }).exec();
-        } catch (err) {
-            throw new DatabaseError(err);
+            // Copy data to found document
+            document.email = data.email;
+            document.username = data.username;
+            document.displayName = data.displayName;
+            document.status = data.status;
+            document.role = data.role;
+
+            // Set the modified timestamp
+            document.modified = new Date().toISOString();
+
+            // Save and return the document
+            try {
+                return await document.save();
+            }
+            catch (err) {
+                if (err.name === 'MongoServerError' && err.code === 11000) {
+                    throw new DuplicateIdError({
+                        details: `Document with id '${data.stix.id}' already exists.`
+                    });
+                }
+                throw new DatabaseError(err);
+            }
+        }
+        catch (err) {
+            if (err.name === 'CastError') {
+                throw new BadlyFormattedParameterError('userId');
+            }
+            else {
+                throw err;
+            }
         }
     }
-
 }
 
 module.exports = new UserAccountsRepository(UserAccount);

@@ -1,11 +1,8 @@
 'use strict';
 
 const uuid = require('uuid');
-const UserAccount = require('../models/user-account-model');
-const Team = require('../models/team-model');
-const regexValidator = require('../lib/regex');
-const UserAccountsRespository = require('../repository/user-accounts-repository');
-const TeamstRespository = require('../repository/teams-repository');
+const TeamsRepository = require('../repository/teams-repository');
+const UserAccountsRepository = require('../repository/user-accounts-repository');
 const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
 
 class UserAccountsService {
@@ -25,11 +22,11 @@ class UserAccountsService {
     };
 
     // Helper function to determine if the last argument is a callback
-    isCallback(arg) {
+    static isCallback(arg) {
         return typeof arg === 'function';
     }
 
-    addEffectiveRole(userAccount) {
+    static addEffectiveRole(userAccount) {
     // Initially, this forces all pending and inactive accounts to have the role 'none'.
     // TBD: Make the role configurable
         if (userAccount?.status === 'pending' || userAccount?.status === 'inactive') {
@@ -37,7 +34,11 @@ class UserAccountsService {
         }
     }
 
-    userAccountAsIdentity(userAccount) {
+    addEffectiveRole(userAccount) {
+        return UserAccountsService.addEffectiveRole(userAccount);
+    }
+
+    static userAccountAsIdentity(userAccount) {
         return {
             type: 'identity',
             spec_version: '2.1',
@@ -49,6 +50,63 @@ class UserAccountsService {
         }
     }
 
+    async retrieveAll (options) {
+        const results = await this.repository.retrieveAll(options);
+
+        const userAccounts = results[0].documents;
+        userAccounts.forEach(userAccount => {
+            UserAccountsService.addEffectiveRole(userAccount);
+            if (options.includeStixIdentity) {
+                userAccount.identity = UserAccountsService.userAccountAsIdentity(userAccount);
+            }
+        });
+
+        if (options.includePagination) {
+            let derivedTotalCount = 0;
+            if (results[0].totalCount.length > 0) {
+                derivedTotalCount = results[0].totalCount[0].totalCount;
+            }
+            const paginatedResults = {
+                pagination: {
+                    total: derivedTotalCount,
+                    offset: options.offset,
+                    limit: options.limit
+                },
+                data: userAccounts
+            };
+            return paginatedResults;
+        }
+        else {
+            return userAccounts;
+        }
+    }
+
+    async retrieveById(userAccountId, options) {
+        try {
+            if (!userAccountId) {
+                throw new MissingParameterError('userAccountId');
+            }
+
+            const userAccount = await this.repository.retrieveOneById(userAccountId);
+            if (!userAccount) {
+                return null; // Document not found
+            }
+
+            UserAccountsService.addEffectiveRole(userAccount);
+
+            if (options.includeStixIdentity) {
+                userAccount.identity = UserAccountsService.userAccountAsIdentity(userAccount);
+            }
+
+            return userAccount;
+        } catch (err) {
+            if (err.name === 'CastError') {
+                throw new BadlyFormattedParameterError('userId');
+            } else {
+                throw err;
+            }
+        }
+    }
 
     async retrieveByEmail(email) {
         if (!email) {
@@ -57,7 +115,7 @@ class UserAccountsService {
 
         try {
             const userAccount = await this.repository.retrieveOneByEmail(email);
-            this.addEffectiveRole(userAccount);
+            UserAccountsService.addEffectiveRole(userAccount);
 
             return userAccount;
         }
@@ -68,51 +126,8 @@ class UserAccountsService {
                 throw err;
             }
         }
-    };
+    }
 
-    async delete (userAccountId) {
-        if (!userAccountId) {
-            throw new MissingParameterError('userId');
-        }
-    
-        try {
-            const userAccount = await this.repository.findOneAndRemove(userAccountId);
-            return userAccount;
-        } catch (err) {
-            throw err;
-        }
-    };
-
-    async retrieveById (userAccountId, options) {
-        try {
-            if (!userAccountId) {
-                throw new MissingParameterError('userId');
-            }
-    
-            const userAccount = await this.repository.retrieveOneById(userAccountId);
-    
-            if (!userAccount) {
-                return null; // Document not found
-            }
-    
-            this.addEffectiveRole(userAccount);
-    
-            if (options.includeStixIdentity) {
-                userAccount.identity = this.userAccountAsIdentity(userAccount);
-            }
-    
-            return userAccount;
-        } catch (err) {
-            if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError('userId');
-            } else {
-                throw err;
-            }
-        }
-    };
-    
-    
-    createIsAsync = true;
     async create(data) {
         // Check for a duplicate email
         if (data.email) {
@@ -126,32 +141,32 @@ class UserAccountsService {
                 throw new Error(this.errors.duplicateEmail);
             }
         }
-    
+
         // Create the document
         const userAccount = await this.repository.createNewDocument(data);
-    
+
         // Create a unique id for this user
         // This should usually be undefined. It will only be defined when migrating user accounts from another system.
         if (!userAccount.id) {
-            userAccount.id = `identity--${uuid.v4()}`;
+            userAccount.id = `identity--${ uuid.v4() }`;
         }
-    
+
         // Add a timestamp recording when the user account was first created
         // This should usually be undefined. It will only be defined when migrating user accounts from another system.
         if (!userAccount.created) {
             userAccount.created = new Date().toISOString();
         }
-    
+
         // Add a timestamp recording when the user account was last modified
         if (!userAccount.modified) {
             userAccount.modified = userAccount.created;
         }
-    
+
         // Save the document in the database
         try {
             const savedUserAccount = await this.repository.saveDocument(userAccount);
-            this.addEffectiveRole(savedUserAccount);
-    
+            UserAccountsService.addEffectiveRole(savedUserAccount);
+
             return savedUserAccount;
         }
         catch (err) {
@@ -164,24 +179,26 @@ class UserAccountsService {
         }
     }
 
-    async retrieveAll (options) {
-        const res = await this.repository.retrieveAll(options);
-        return res;
-    };
-
     async updateFull (userAccountId, data) {
-        const res = await this.repository.updateById(userAccountId, data);
-        return res;
-    };
-    
-    
+        if (!userAccountId) {
+            throw new MissingParameterError('userAccountId');
+        }
+
+        return await this.repository.updateById(userAccountId, data);
+    }
+
+    async delete (userAccountId) {
+        if (!userAccountId) {
+            throw new MissingParameterError('userAccountId');
+        }
+
+        const userAccount = await this.repository.findOneAndRemove(userAccountId);
+        return userAccount;
+    }
 
     async getLatest(userAccountId) {
-        const userAccount = await UserAccount
-            .findOne({ 'id': userAccountId })
-            .lean()
-            .exec();
-        this.addEffectiveRole(userAccount);
+        const userAccount = await this.repository.retrieveOneById(userAccountId);
+        UserAccountsService.addEffectiveRole(userAccount);
 
         return userAccount;
     }
@@ -207,66 +224,34 @@ class UserAccountsService {
 
     async retrieveTeamsByUserId (userAccountId, options) {
         if (!userAccountId) {
-            throw new MissingParameterError('userId');
+            throw new MissingParameterError('userAccountId');
         }
-    
-        // Build the aggregation
-        const aggregation = [
-            { $sort: { 'name': 1 } },
-            {
-                $match: {
-                    userIDs: { $in: [userAccountId] }
-                }
-            },
-            {
-                $facet: {
-                    totalCount: [{ $count: 'totalCount' }],
-                    documents: []
-                }
-            }
-        ];
-    
-        if (options.offset) {
-            aggregation[2].$facet.documents.push({ $skip: options.offset });
-        } else {
-            aggregation[2].$facet.documents.push({ $skip: 0 });
-        }
-    
-        if (options.limit) {
-            aggregation[2].$facet.documents.push({ $limit: options.limit });
-        }
-    
-        try {
-            const results = await Team.aggregate(aggregation).exec();
-    
-            const teams = results[0].documents;
-    
-            if (options.includePagination) {
-                let derivedTotalCount = 0;
-    
-                if (results[0].totalCount.length > 0) {
-                    derivedTotalCount = results[0].totalCount[0].totalCount;
-                }
-    
-                const returnValue = {
-                    pagination: {
-                        total: derivedTotalCount,
-                        offset: options.offset,
-                        limit: options.limit
-                    },
-                    data: teams
-                };
-    
-                return returnValue;
-            } else {
-                return teams;
-            }
-        } catch (err) {
-            throw err;
-        }
-    };
-    
 
+        const results = await TeamsRepository.retrieveByUserId(userAccountId, options);
+        const teams = results[0].documents;
+
+        if (options.includePagination) {
+            let derivedTotalCount = 0;
+
+            if (results[0].totalCount.length > 0) {
+                derivedTotalCount = results[0].totalCount[0].totalCount;
+            }
+
+            const returnValue = {
+                pagination: {
+                    total: derivedTotalCount,
+                    offset: options.offset,
+                    limit: options.limit
+                },
+                data: teams
+            };
+
+            return returnValue;
+        }
+        else {
+            return teams;
+        }
+    }
 }
 
-module.exports = new UserAccountsService(null, UserAccountsRespository);
+module.exports = new UserAccountsService(null, UserAccountsRepository);

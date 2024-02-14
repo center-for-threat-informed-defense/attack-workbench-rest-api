@@ -194,9 +194,8 @@ describe('User Accounts API', function () {
         // The modified timestamp should be different from the created timestamp
         expect(userAccount.created).toBeDefined();
         expect(userAccount.modified).toBeDefined();
+        expect(userAccount.role).toBe('admin');
         expect(userAccount.created).not.toEqual(userAccount.modified);
-
-
     });
 
     it('GET /api/user-accounts uses the search parameter to return the user account', async function () {
@@ -212,8 +211,6 @@ describe('User Accounts API', function () {
         expect(userAccounts).toBeDefined();
         expect(Array.isArray(userAccounts)).toBe(true);
         expect(userAccounts.length).toBe(1);
-
-
     });
 
     it('POST /api/user-accounts does not create a user account with a duplicate email', async function () {

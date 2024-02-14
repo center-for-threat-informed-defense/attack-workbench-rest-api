@@ -5,35 +5,6 @@ const logger = require('../lib/logger');
 const config = require('../config/config');
 const { BadlyFormattedParameterError } = require('../exceptions');
 
-exports.retrieveAllAsync = async function (req, res) {
-    const options = {
-        offset: req.query.offset || 0,
-        limit: req.query.limit || 0,
-        status: req.query.status,
-        role: req.query.role,
-        search: req.query.search,
-        includePagination: req.query.includePagination,
-        includeStixIdentity: req.query.includeStixIdentity
-    };
-
-    try {
-        const results = await userAccountsService.retrieveAll(options);
-        if (options.includePagination) {
-            logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total user account(s)`);
-        }
-        else {
-            logger.debug(`Success: Retrieved ${results.length} user account(s)`);
-        }
-        return res.status(200).send(results);
-    }
-    catch (error) {
-        console.log("retrieveallasync");
-        console.log(err);
-        logger.error('Failed with error: ' + error);
-        return res.status(500).send('Unable to get user accounts. Server error.');
-    }
-};
-
 exports.retrieveAll = async function (req, res) {
     const options = {
         offset: req.query.offset || 0,
@@ -64,33 +35,6 @@ exports.retrieveAll = async function (req, res) {
     }
 };
 
-exports.retrieveByIdAsync = async function (req, res) {
-    const options = {
-        includeStixIdentity: req.query.includeStixIdentity
-    };
-    try {
-        const userAccount = await userAccountsService.retrieveById(req.params.id, options);
-        if (!userAccount) {
-            return res.status(404).send('User account not found.');
-        }
-        else {
-            logger.debug(`Success: Retrieved user account with id ${req.params.id}`);
-            return res.status(200).send(userAccount);
-        }
-    } catch (err) {
-        if (err.message === userAccountsService.errors.badlyFormattedParameter) {
-            logger.warn('Badly formatted user account id: ' + req.params.id);
-            return res.status(400).send('User account id is badly formatted.');
-        }
-        else {
-            console.log("retrievebyidasync");
-            console.log(err);
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get user account. Server error.');
-        }
-    }
-};
-
 exports.retrieveById = async function (req, res) {
     const options = {
         includeStixIdentity: req.query.includeStixIdentity
@@ -111,8 +55,6 @@ exports.retrieveById = async function (req, res) {
             return res.status(400).send('User account id is badly formatted.');
         }
         else {
-            console.log("retrievebyid");
-            console.log(err);
             logger.error('Failed with error: ' + err);
             return res.status(500).send('Unable to get user account. Server error.');
         }
@@ -168,12 +110,9 @@ exports.updateFullAsync = async function (req, res) {
 };
 
 exports.updateFull = async function (req, res) {
-    // Get the data from the request
-    const userAccount = req.body;
-
     // Create the technique
     try {
-        await userAccountsService.updateFull(req.params.id, userAccount);
+        const userAccount = await userAccountsService.updateFull(req.params.id, req.body);
         if (!userAccount) {
             return res.status(404).send('User account not found.');
         } else {
@@ -181,8 +120,6 @@ exports.updateFull = async function (req, res) {
             return res.status(200).send(userAccount);
         }
     } catch (err) {
-        console.log("updatefull");
-        console.log(err);
         logger.error("Failed with error: " + err);
         return res.status(500).send("Unable to update user account. Server error.");
     }
@@ -268,33 +205,6 @@ exports.register = async function(req, res) {
             logger.error("Failed with error: " + err);
             return res.status(500).send('Unable to register user account. Server error.');
         }
-    }
-};
-
-exports.retrieveTeamsByUserIdAsync = async function (req, res) {
-  const options = {
-      offset: req.query.offset || 0,
-      limit: req.query.limit || 0,
-      status: req.query.status,
-      includePagination: req.query.includePagination,
-  };
-
-    const userId = req.params.id;
-
-    try {
-        const results = await userAccountsService.retrieveTeamsByUserId(userId, options);
-        if (options.includePagination) {
-            logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total team(s)`);
-        }
-        else {
-            logger.debug(`Success: Retrieved ${results.length} team(s)`);
-        }
-        return res.status(200).send(results);
-    } catch (err) {
-        console.log("retrieveTeamsByUserIdAsync");
-        console.log(err);
-        logger.error('Failed with error: ' + err);
-        return res.status(500).send('Unable to get teams. Server error.');
     }
 };
 
