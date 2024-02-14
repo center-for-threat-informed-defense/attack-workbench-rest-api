@@ -1,7 +1,7 @@
 const UserAccount = require('../models/user-account-model');
 const { DatabaseError, DuplicateIdError } = require('../exceptions');
 const regexValidator = require('../lib/regex');
-const { MissingParameterError, BadlyFormattedParameterError } = require('../exceptions');
+const { BadlyFormattedParameterError } = require('../exceptions');
 
 class UserAccountsRepository {
 

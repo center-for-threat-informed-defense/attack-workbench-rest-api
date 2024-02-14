@@ -218,7 +218,7 @@ exports.retrieveTeamsByUserId = async function (req, res) {
 
     const userId = req.params.id;
     try {
-        const results = await userAccountsService.retrieveTeamsByUserId(userId, options);
+        const results = await userAccountsService.constructor.retrieveTeamsByUserId(userId, options);
         if (options.includePagination) {
             logger.debug(`Success: Retrieved ${results.data.length} of ${results.pagination.total} total team(s)`);
         }

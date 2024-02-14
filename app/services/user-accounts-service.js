@@ -34,10 +34,6 @@ class UserAccountsService {
         }
     }
 
-    addEffectiveRole(userAccount) {
-        return UserAccountsService.addEffectiveRole(userAccount);
-    }
-
     static userAccountAsIdentity(userAccount) {
         return {
             type: 'identity',
@@ -222,7 +218,7 @@ class UserAccountsService {
         }
     }
 
-    async retrieveTeamsByUserId (userAccountId, options) {
+    static async retrieveTeamsByUserId (userAccountId, options) {
         if (!userAccountId) {
             throw new MissingParameterError('userAccountId');
         }
