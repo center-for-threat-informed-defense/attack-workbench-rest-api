@@ -44,6 +44,12 @@ class InvalidQueryStringParameterError extends CustomError {
     }
 }
 
+class CannotUpdateStaticObjectError extends CustomError {
+    constructor(options) {
+        super('Cannot update static object', options);
+    }
+}
+
 class IdentityServiceError extends CustomError {
     constructor(options) {
         super('An error occurred in the identities service.', options);
@@ -81,6 +87,18 @@ class NotImplementedError extends CustomError {
     }
 }
 
+class PropertyNotAllowedError extends CustomError {
+    constructor(propertyName, options) {
+        super(`Unable to create software, property ${propertyName} is not allowed`, options);
+    }
+}
+        
+class InvalidTypeError extends CustomError {
+    constructor(options) {
+        super('Invalid stix.type', options);
+    }
+}
+
 module.exports = {
 
     //** General errors */
@@ -90,6 +108,7 @@ module.exports = {
     MissingParameterError,
     BadlyFormattedParameterError,
     InvalidQueryStringParameterError,
+    CannotUpdateStaticObjectError,
     
     //** Database-related errors */
     DuplicateIdError,
@@ -101,4 +120,7 @@ module.exports = {
     IdentityServiceError,
     TechniquesServiceError,
     TacticsServiceError,
+    PropertyNotAllowedError,
+
+    InvalidTypeError,
 };

@@ -4,11 +4,6 @@ const BaseRepository = require('./_base.repository');
 
 class TeamsRepository extends BaseRepository {
 
-    constructor() {
-        super();
-        this.model = Team;
-    }
-
     // TODO decouple DB logic; migrate DB logic to DAO/repository class
     findTeamsByUserId(userAccountId, options) {
         const aggregation = [
@@ -25,9 +20,9 @@ class TeamsRepository extends BaseRepository {
             }
         ];
 
-        return Team.aggregate(aggregation).exec();
+        return this.model.aggregate(aggregation).exec();
     }
 }
 
-module.exports = new TeamsRepository();
+module.exports = new TeamsRepository(Team);
 
