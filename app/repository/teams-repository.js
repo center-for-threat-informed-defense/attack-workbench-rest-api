@@ -5,7 +5,7 @@ const BaseRepository = require('./_base.repository');
 class TeamsRepository extends BaseRepository {
 
     // TODO decouple DB logic; migrate DB logic to DAO/repository class
-    findTeamsByUserId(userAccountId, options) {
+    retrieveByUserId(userAccountId, options) {
         const aggregation = [
             { $sort: { 'name': 1 } },
             { $match: { userIDs: { $in: [userAccountId] } } },

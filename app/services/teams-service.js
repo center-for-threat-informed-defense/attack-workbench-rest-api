@@ -4,7 +4,7 @@ const uuid = require('uuid');
 const Team = require('../models/team-model');
 const regexValidator = require('../lib/regex');
 const UserAccount = require('../models/user-account-model');
-const { addEffectiveRole, userAccountAsIdentity } = require('./user-accounts-service');
+const userAccountsService = require('./user-accounts-service');
 
 const TeamRepository = require('../repository/teams-repository');
 
@@ -87,9 +87,9 @@ class TeamsService extends BaseService {
                         const results = await UserAccount.aggregate(aggregation);
                         const userAccounts = results[0].documents;
                         userAccounts.forEach(userAccount => {
-                            addEffectiveRole(userAccount);
+                            userAccountsService.constructor.addEffectiveRole(userAccount);
                             if (options.includeStixIdentity) {
-                                userAccount.identity = userAccountAsIdentity(userAccount);
+                                userAccount.identity = userAccountsService.constructor.userAccountAsIdentity(userAccount);
                             }
                         });
             
@@ -109,10 +109,9 @@ class TeamsService extends BaseService {
                             return returnValue;
                         } else {
                             return userAccounts;
+
+
                         }
-                    } catch (err) {
-                        throw err;
-                    }
             } 
             catch (err) {
                 if (err.name === 'CastError') {
