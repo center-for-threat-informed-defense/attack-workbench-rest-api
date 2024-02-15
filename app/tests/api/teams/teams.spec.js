@@ -57,25 +57,18 @@ describe('Teams API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('POST /api/teams does not create an empty team', function (done) {
+    it('POST /api/teams does not create an empty team', async function () {
         const body = {};
         request(app)
             .post('/api/teams')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(400);
     });
 
     let team1;
-    it('POST /api/teams creates a team', function (done) {
+    it('POST /api/teams creates a team', async function () {
         const body = initialObjectData;
         request(app)
             .post('/api/teams')
@@ -83,88 +76,65 @@ describe('Teams API', function () {
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get the created team
-                    team1 = res.body;
-                    expect(team1).toBeDefined();
-                    expect(team1.id).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created team
+        team1 = res.body;
+        expect(team1).toBeDefined();
+        expect(team1.id).toBeDefined();
     });
 
-    it('GET /api/teams returns the added team', function (done) {
+    it('GET /api/teams returns the added team', async function () {
         request(app)
             .get('/api/teams')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get the added team
-                    const teams = res.body;
-                    expect(teams).toBeDefined();
-                    expect(Array.isArray(teams)).toBe(true);
-                    expect(teams.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the added team
+        const teams = res.body;
+        expect(teams).toBeDefined();
+        expect(Array.isArray(teams)).toBe(true);
+        expect(teams.length).toBe(1);
+
     });
 
-    it('GET /api/teams/:id should not return a team when the id cannot be found', function (done) {
+    it('GET /api/teams/:id should not return a team when the id cannot be found', async function () {
         request(app)
             .get('/api/teams/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(404);
     });
 
-    it('GET /api/teams/:id returns the added team', function (done) {
+    it('GET /api/teams/:id returns the added team', async function () {
         request(app)
             .get('/api/teams/' + team1.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get one team in an array
-                    const team = res.body;
-                    expect(team).toBeDefined();
-                    expect(team.id).toBe(team1.id);
-                    expect(team.name).toBe(team1.name);
-                    expect(team.description).toBe(team1.description);
-                    expect(team.userIDs.length).toBe(team1.userIDs.length);
-                    expect(team.userIDs[0]).toBe(team1.userIDs[0]);
+            .expect('Content-Type', /json/);
 
-                    // The created and modified timestamps should match
-                    expect(team.created).toBeDefined();
-                    expect(team.modified).toBeDefined();
-                    expect(team.created).toEqual(team.modified);
+        // We expect to get one team in an array
+        const team = res.body;
+        expect(team).toBeDefined();
+        expect(team.id).toBe(team1.id);
+        expect(team.name).toBe(team1.name);
+        expect(team.description).toBe(team1.description);
+        expect(team.userIDs.length).toBe(team1.userIDs.length);
+        expect(team.userIDs[0]).toBe(team1.userIDs[0]);
 
-                    done();
-                }
-            });
+        // The created and modified timestamps should match
+        expect(team.created).toBeDefined();
+        expect(team.modified).toBeDefined();
+        expect(team.created).toEqual(team.modified);
+
+
     });
 
 
-    it('PUT /api/teams updates a team', function (done) {
+    it('PUT /api/teams updates a team', async function () {
         const body = team1;
         body.description = 'updated';
         request(app)
@@ -173,67 +143,49 @@ describe('Teams API', function () {
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // We expect to get the updated team
-                    const team = res.body;
-                    expect(team).toBeDefined();
-                    expect(team.id).toBe(team1.id);
+            .expect('Content-Type', /json/);
 
-                    // The modified timestamp should be different from the created timestamp
-                    expect(team.created).toBeDefined();
-                    expect(team.modified).toBeDefined();
-                    expect(team.created).not.toEqual(team.modified);
+        // We expect to get the updated team
+        const team = res.body;
+        expect(team).toBeDefined();
+        expect(team.id).toBe(team1.id);
 
-                    done();
-                }
-            });
+        // The modified timestamp should be different from the created timestamp
+        expect(team.created).toBeDefined();
+        expect(team.modified).toBeDefined();
+        expect(team.created).not.toEqual(team.modified);
+
+
     });
 
-    it('GET /api/teams uses the search parameter to return the team', function (done) {
+    it('GET /api/teams uses the search parameter to return the team', async function () {
         request(app)
             .get('/api/teams?search=team')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one team in an array
-                    const teams = res.body;
-                    expect(teams).toBeDefined();
-                    expect(Array.isArray(teams)).toBe(true);
-                    expect(teams.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+            // We expect to get one team in an array
+            const teams = res.body;
+            expect(teams).toBeDefined();
+            expect(Array.isArray(teams)).toBe(true);
+            expect(teams.length).toBe(1);
+
+
     });
 
-    it('POST /api/teams does not create a team with a duplicate name', function (done) {
+    it('POST /api/teams does not create a team with a duplicate name', async function () {
         const body = initialObjectData;
         request(app)
             .post('/api/teams')
             .send(body)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(409)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(409);
     });
 
-    it('GET /api/teams/:id/users returns a list of users', function (done) {
+    it('GET /api/teams/:id/users returns a list of users', async function () {
       const body = initialObjectData;
       request(app)
           .get(`/api/teams/${team1.id}/users`)
@@ -241,36 +193,21 @@ describe('Teams API', function () {
           .set('Accept', 'application/json')
           .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
           .expect(200)
-          .expect('Content-Type', /json/)
-          .end(function (err, res) {
-            if (err) {
-              done(err);
-            }
-            else {
-                // We expect to get one team in an array
-                const users = res.body;
-                expect(users).toBeDefined();
-                expect(Array.isArray(users)).toBe(true);
-                expect(users.length).toBe(1);
-                expect(users[0].id).toBe(exampleUser.id)
-
-                done();
-            }
-          });
+          .expect('Content-Type', /json/);
+          
+        // We expect to get one team in an array
+        const users = res.body;
+        expect(users).toBeDefined();
+        expect(Array.isArray(users)).toBe(true);
+        expect(users.length).toBe(1);
+        expect(users[0].id).toBe(exampleUser.id);
   });
 
-    it('DELETE /api/teams deletes a teams', function (done) {
+    it('DELETE /api/teams deletes a teams', async function () {
         request(app)
             .delete('/api/teams/' + team1.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .expect(204);
     });
 
     after(async function() {
