@@ -59,7 +59,7 @@ describe('Teams API', function () {
 
     it('POST /api/teams does not create an empty team', async function () {
         const body = {};
-        request(app)
+        await request(app)
             .post('/api/teams')
             .send(body)
             .set('Accept', 'application/json')
@@ -70,7 +70,7 @@ describe('Teams API', function () {
     let team1;
     it('POST /api/teams creates a team', async function () {
         const body = initialObjectData;
-        request(app)
+        const res = await request(app)
             .post('/api/teams')
             .send(body)
             .set('Accept', 'application/json')
@@ -79,13 +79,13 @@ describe('Teams API', function () {
             .expect('Content-Type', /json/);
 
         // We expect to get the created team
-        team1 = res.body;
+        const team1 = res.body;
         expect(team1).toBeDefined();
         expect(team1.id).toBeDefined();
     });
 
     it('GET /api/teams returns the added team', async function () {
-        request(app)
+        const res = await request(app)
             .get('/api/teams')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -101,7 +101,7 @@ describe('Teams API', function () {
     });
 
     it('GET /api/teams/:id should not return a team when the id cannot be found', async function () {
-        request(app)
+        await request(app)
             .get('/api/teams/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -109,7 +109,7 @@ describe('Teams API', function () {
     });
 
     it('GET /api/teams/:id returns the added team', async function () {
-        request(app)
+        const res = await request(app)
             .get('/api/teams/' + team1.id)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -137,7 +137,7 @@ describe('Teams API', function () {
     it('PUT /api/teams updates a team', async function () {
         const body = team1;
         body.description = 'updated';
-        request(app)
+        const res = await request(app)
             .put('/api/teams/' + team1.id)
             .send(body)
             .set('Accept', 'application/json')
@@ -159,25 +159,25 @@ describe('Teams API', function () {
     });
 
     it('GET /api/teams uses the search parameter to return the team', async function () {
-        request(app)
+        const res = await request(app)
             .get('/api/teams?search=team')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(200)
             .expect('Content-Type', /json/);
 
-            // We expect to get one team in an array
-            const teams = res.body;
-            expect(teams).toBeDefined();
-            expect(Array.isArray(teams)).toBe(true);
-            expect(teams.length).toBe(1);
+        // We expect to get one team in an array
+        const teams = res.body;
+        expect(teams).toBeDefined();
+        expect(Array.isArray(teams)).toBe(true);
+        expect(teams.length).toBe(1);
 
 
     });
 
     it('POST /api/teams does not create a team with a duplicate name', async function () {
         const body = initialObjectData;
-        request(app)
+        await request(app)
             .post('/api/teams')
             .send(body)
             .set('Accept', 'application/json')
@@ -187,7 +187,7 @@ describe('Teams API', function () {
 
     it('GET /api/teams/:id/users returns a list of users', async function () {
       const body = initialObjectData;
-      request(app)
+      const res = await request(app)
           .get(`/api/teams/${team1.id}/users`)
           .send(body)
           .set('Accept', 'application/json')
@@ -204,7 +204,7 @@ describe('Teams API', function () {
   });
 
     it('DELETE /api/teams deletes a teams', async function () {
-        request(app)
+        await request(app)
             .delete('/api/teams/' + team1.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
