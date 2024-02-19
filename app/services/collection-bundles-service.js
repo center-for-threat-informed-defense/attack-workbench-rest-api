@@ -175,6 +175,9 @@ exports.importBundle = function(collection, data, options, callback) {
                 additions: [],
                 changes: [],
                 duplicates: []
+            },
+            workflow : {
+                
             }
         },
         stix: collection
