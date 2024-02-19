@@ -25,10 +25,6 @@ class CollectionsService extends BaseService {
         invalidQueryStringParameter: 'Invalid query string parameter'
     };
 
-    isCallback(arg) {
-        return typeof arg === 'function';
-    }
-
     async retrieveAll(options, callback) {
         try {
             // Build the query
@@ -121,7 +117,7 @@ class CollectionsService extends BaseService {
                 throw err;
             }
         }
-    };
+    }
 
     async retrieveVersionById (stixId, modified, options, callback) {
         // Retrieve the versions of the collection with the matching stixID and modified date
@@ -174,7 +170,7 @@ class CollectionsService extends BaseService {
                 throw err;
             }
         }
-    };
+    }
 
     async retrieveById(stixId, options, callback) {
         if (!stixId) {
@@ -248,12 +244,12 @@ class CollectionsService extends BaseService {
                 }
             }
         } else {
-            if (this.isCallback(callback)) {
+            if (CollectionsService.isCallback(callback)) {
                 return callback(new Error(this.errors.invalidQueryStringParameter));
             }
             throw new InvalidQueryStringParameterError('versions');
         }
-    };
+    }
 
     async getContents(objectList) {     
         const result = []
@@ -352,7 +348,7 @@ class CollectionsService extends BaseService {
         else {
             throw new NotFoundError;
         }
-    };
+    }
 
     async deleteVersionById (stixId, modified, deleteAllContents, callback) {
         if (!stixId) {
@@ -383,7 +379,7 @@ class CollectionsService extends BaseService {
             return callback(null, collection);
         }
         return collection;
-    };
+    }
     
 
     async retrieveByUrl(url) {
@@ -422,7 +418,7 @@ class CollectionsService extends BaseService {
                 throw err;
             }
         }
-    };
+    }
 
 }
 

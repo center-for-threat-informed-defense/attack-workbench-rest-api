@@ -229,7 +229,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
 
     it('POST /api/collections does not create an empty collection', async function() {
         const body = {};
-        const res = await request(app)
+        await request(app)
             .post('/api/collections')
             .send(body)
             .set('Accept', 'application/json')
@@ -277,7 +277,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     });
 
     it('GET /api/collections/:id should not return a collection when the id cannot be found', async function() {
-        const res = await request(app)
+        await request(app)
             .get('/api/collections/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -347,7 +347,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
 
     it('POST /api/collections does not create a collection with the same id and modified date', async function() {
         const body = collection1;
-        const res = await request(app)
+        await request(app)
             .post('/api/collections')
             .send(body)
             .set('Accept', 'application/json')
@@ -495,21 +495,21 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     });
 
     it('DELETE /api/collections/:id should not delete a collection when the id cannot be found', async function() {
-        const res = await request(app)
+        await request(app)
             .delete('/api/collections/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404);
     });
 
     it('DELETE /api/collections/:id/modified/:modified deletes a collection and its contents', async function() {
-        const res = await request(app)
+        await request(app)
             .delete('/api/collections/' + collection2.stix.id + '/modified/' + collection2.stix.modified + '?deleteAllContents=true')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
     });
 
     it('GET /api/mitigations/:id should not return a mitigation that was deleted when the collection was deleted', async function() {
-        const res = await request(app)
+        await request(app)
             .get(`/api/mitigations/${ mitigation2.stix.id }`)
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -543,7 +543,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     });
 
     it('DELETE /api/collections/:id should delete all of the collections with the stix id', async function() {
-        const res = await request(app)
+        await request(app)
             .delete('/api/collections/' + collection1.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
