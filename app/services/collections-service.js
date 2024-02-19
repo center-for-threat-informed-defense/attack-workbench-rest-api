@@ -25,6 +25,10 @@ class CollectionsService extends BaseService {
         invalidQueryStringParameter: 'Invalid query string parameter'
     };
 
+    isCallback(arg) {
+        return typeof arg === 'function';
+    }
+
     async retrieveAll(options, callback) {
         try {
             // Build the query
@@ -172,7 +176,7 @@ class CollectionsService extends BaseService {
         }
     };
 
-    async retrieveById (stixId, options, callback) {
+    async retrieveById(stixId, options, callback) {
         if (!stixId) {
             if (callback) {
                 return callback(new Error(this.errors.missingParameter));
@@ -244,7 +248,7 @@ class CollectionsService extends BaseService {
                 }
             }
         } else {
-            if (callback) {
+            if (this.isCallback(callback)) {
                 return callback(new Error(this.errors.invalidQueryStringParameter));
             }
             throw new InvalidQueryStringParameterError('versions');
