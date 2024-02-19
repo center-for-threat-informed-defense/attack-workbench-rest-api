@@ -94,6 +94,7 @@ class CollectionsService extends BaseService {
     }
 
     createIsAsync = true;
+    
     async create(data, options) {
         // Create the document
 

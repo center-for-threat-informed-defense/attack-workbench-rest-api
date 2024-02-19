@@ -1,7 +1,6 @@
 'use strict';
 
 const uuid = require('uuid');
-const util = require('util');
 const semver = require('semver');
 
 const collectionsService = require('../services/collections-service');
