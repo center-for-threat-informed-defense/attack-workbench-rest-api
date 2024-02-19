@@ -238,6 +238,9 @@ class BaseService extends AbstractService {
 
                 // Record the user account that created the object
                 if (options.userAccountId) {
+
+                    data.workspace.workflow = data.workspace.workflow || {}
+                    
                     data.workspace.workflow.created_by_user_account = options.userAccountId;
                 }
 
