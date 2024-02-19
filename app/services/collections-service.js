@@ -106,7 +106,7 @@ class CollectionsService extends BaseService {
             const savedCollection = await super.create(data, options);
 
             if (options.addObjectsToCollection) {
-                insertionErrors = await this.addObjectsToCollection(savedCollection.stix.x_mitre_contents, savedCollection.stix.id, savedCollection.stix.modified);
+                insertionErrors = await CollectionsService.addObjectsToCollection(savedCollection.stix.x_mitre_contents, savedCollection.stix.id, savedCollection.stix.modified);
             }
 
             return { savedCollection, insertionErrors };
@@ -266,7 +266,7 @@ class CollectionsService extends BaseService {
     }
 
 
-    async addObjectsToCollection(objectList, collectionID, collectionModified) {
+    static async addObjectsToCollection(objectList, collectionID, collectionModified) {
         // Modify the objects in the collection to show that they are part of the collection
         const insertionErrors = [];
         for (const attackObject of objectList) {
@@ -337,7 +337,7 @@ class CollectionsService extends BaseService {
     }
 
     async insertExport(stixId, modified, exportData) {
-        const collection = await Collection.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+        const collection = await this.repository.model.findOne({ 'stix.id': stixId, 'stix.modified': modified });
 
         if (collection) {
             // Make sure the exports array exists
