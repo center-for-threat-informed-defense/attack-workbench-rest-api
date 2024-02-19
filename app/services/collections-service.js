@@ -5,12 +5,14 @@ const identitiesService = require('../services/identities-service');
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
 const attackObjectsService = require('./attack-objects-service');
-const {lastUpdatedByQueryHelper} = require('../lib/request-parameter-helper');
 const collectionsRepository = require('../repository/collections-repository');
 const BaseService = require('./_base.service');
+const regexValidator = require('../lib/regex');
 const { MissingParameterError, NotFoundError, BadlyFormattedParameterError, DuplicateIdError, InvalidQueryStringParameterError } = require('../exceptions');
 
 class CollectionsService extends BaseService {
+
+    lastUpdatedByQueryHelper = require('../lib/request-parameter-helper');
 
     errors = {
         missingParameter: 'Missing required parameter',
@@ -43,7 +45,7 @@ class CollectionsService extends BaseService {
                 }
             }
             if (typeof options.lastUpdatedBy !== 'undefined') {
-                query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
+                query['workspace.workflow.created_by_user_account'] = this.lastUpdatedByQueryHelper(options.lastUpdatedBy);
             }
     
             // Build the aggregation
@@ -143,7 +145,7 @@ class CollectionsService extends BaseService {
     
             if (collection) {
                 if (options.retrieveContents) {
-                    const contents = await this.getContents(collection.stix.x_mitre_contents);
+                    const contents = await CollectionsService.getContents(collection.stix.x_mitre_contents);
                     collection.contents = contents;
                 }
     
@@ -187,7 +189,7 @@ class CollectionsService extends BaseService {
     
                 if (options.retrieveContents) {
                     for (const collection of collections) {
-                        collection.contents  = await this.getContents(collection.stix.x_mitre_contents);
+                        collection.contents  = await CollectionsService.getContents(collection.stix.x_mitre_contents);
                     }
                 }
                 if (callback) {
@@ -213,7 +215,7 @@ class CollectionsService extends BaseService {
     
                 if (collection) {
                     if (options.retrieveContents) {
-                        const contents = await this.getContents(collection.stix.x_mitre_contents);
+                        const contents = await CollectionsService.getContents(collection.stix.x_mitre_contents);
                         collection.contents = contents;
                         if (callback) {
                             return callback(null, [collection]);
@@ -252,7 +254,7 @@ class CollectionsService extends BaseService {
         }
     }
 
-    async getContents(objectList) {     
+    static async getContents(objectList) {     
         const result = []
         for (const objectRef of objectList) {
             const attackObject = await attackObjectsService.retrieveVersionById(objectRef.object_ref, objectRef.object_modified);
@@ -293,7 +295,7 @@ class CollectionsService extends BaseService {
 
         if (deleteAllContents) {
             for (const collection of collections) {
-                await deleteAllContentsOfCollection(collection, stixId);
+                await this.deleteAllContentsOfCollection(collection, stixId);
             }
         }
 
@@ -308,7 +310,7 @@ class CollectionsService extends BaseService {
             removedCollections.push(collection);
         }
         return removedCollections;
-    };
+    }
 
 
     async deleteAllContentsOfCollection(collection, stixId, modified) {
@@ -320,7 +322,7 @@ class CollectionsService extends BaseService {
                 delete matchQuery['stix.id'];
                 matchQuery['$or'] = [{'stix.id': {'$ne': stixId}},{'stix.modified': {'$ne': modified}}];
             }
-            const matches = await Collection.find(matchQuery).lean();
+            const matches = await this.repository.model.find(matchQuery).lean();
             if (matches.length === 0) {
                 // if this attack object is NOT in another collection, we can just delete it
                 await AttackObject.findByIdAndDelete(referenceObj._id);
