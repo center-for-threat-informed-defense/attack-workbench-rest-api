@@ -71,7 +71,7 @@ exports.retrieveAllowedValuesForTypePropertyDomain = retrieveAllowedValuesForTyp
 
 exports.retrieveOrganizationIdentityRef = async function() {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById(SystemConfiguration);
+    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
 
     if (systemConfig && systemConfig.organization_identity_ref) {
         return systemConfig.organization_identity_ref;
@@ -83,7 +83,7 @@ exports.retrieveOrganizationIdentityRef = async function() {
 
 exports.retrieveOrganizationIdentity = async function() {
     // There should be exactly one system configuration document
-    const systemConfig = await await SystemConfigurationRepository.retrieveOneById(SystemConfiguration);
+    const systemConfig = await await SystemConfigurationRepository.retrieveOneById();
 
     if (systemConfig && systemConfig.organization_identity_ref) {
         const identity = await Identity.findOne({ 'stix.id': systemConfig.organization_identity_ref }).lean();
@@ -103,7 +103,7 @@ exports.retrieveOrganizationIdentity = async function() {
 
 exports.setOrganizationIdentity = async function(stixId) {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById(SystemConfiguration);
+    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
 
     if (systemConfig) {
         // The document exists already. Set the identity reference.
@@ -124,7 +124,7 @@ exports.retrieveDefaultMarkingDefinitions = async function(options) {
     options = options ?? {};
 
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneByIdLean(SystemConfiguration);
+    const systemConfig = await SystemConfigurationRepository.retrieveOneByIdLean();
 
     if (systemConfig) {
         if (systemConfig.default_marking_definitions) {
@@ -161,7 +161,7 @@ exports.retrieveDefaultMarkingDefinitions = async function(options) {
 
 exports.setDefaultMarkingDefinitions = async function(stixIds) {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById(SystemConfiguration);
+    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
 
     if (systemConfig) {
         // The document exists already. Set the default marking definitions.
@@ -180,7 +180,7 @@ exports.setDefaultMarkingDefinitions = async function(stixIds) {
 
 exports.retrieveAnonymousUserAccount = async function() {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById(SystemConfiguration);
+    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
 
     if (systemConfig && systemConfig.anonymous_user_account_id) {
         const userAccount = await UserAccount.findOne({ 'id': systemConfig.anonymous_user_account_id });
@@ -200,7 +200,7 @@ exports.retrieveAnonymousUserAccount = async function() {
 
 exports.setAnonymousUserAccountId = async function(userAccountId) {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById(SystemConfiguration);
+    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
 
     if (systemConfig) {
         // The document exists already. Set the anonymous user account id.
@@ -225,7 +225,7 @@ exports.retrieveAuthenticationConfig = function() {
 
 exports.retrieveOrganizationNamespace = async function() {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById(SystemConfiguration);
+    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
 
     if (systemConfig) {
         return systemConfig.organization_namespace;
@@ -237,7 +237,7 @@ exports.retrieveOrganizationNamespace = async function() {
 
 exports.setOrganizationNamespace = async function(namespace) {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById(SystemConfiguration);
+    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
 
     if (systemConfig) {
         systemConfig.organization_namespace = namespace;

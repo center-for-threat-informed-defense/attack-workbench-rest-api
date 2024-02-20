@@ -1,6 +1,11 @@
-const { DatabaseError, DuplicateIdError, BadlyFormattedParameterError } = require('../exceptions');
+const { DatabaseError, DuplicateIdError } = require('../exceptions');
+const SystemConfiguration = require('../models/system-configuration-model');
 
 class SystemConfigurationsRepository { 
+
+    constructor(model) {
+        this.model = model;
+    }
 
     async saveDocument(document) {
         try {
@@ -17,14 +22,14 @@ class SystemConfigurationsRepository {
     }
 
     async retrieveOneById(model) {
-        const res = await model.findOne();
+        const res = await this.model.findOne();
         return res;
     }
 
     async retrieveOneByIdLean(model) {
-        const res = await model.findOne().lean();
+        const res = await this.model.findOne().lean();
         return res;
     }
 }
 
-module.exports = new SystemConfigurationsRepository();
+module.exports = new SystemConfigurationsRepository(SystemConfiguration);
