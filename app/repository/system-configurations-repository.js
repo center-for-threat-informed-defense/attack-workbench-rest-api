@@ -15,6 +15,16 @@ class SystemConfigurationsRepository {
             throw new DatabaseError(err);
         }
     }
+
+    async retrieveOneById(model) {
+        const res = await model.findOne();
+        return res;
+    }
+
+    async retrieveOneByIdLean(model) {
+        const res = await model.findOne().lean();
+        return res;
+    }
 }
 
 module.exports = new SystemConfigurationsRepository();
