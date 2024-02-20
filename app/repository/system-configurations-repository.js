@@ -4,6 +4,7 @@ const SystemConfiguration = require('../models/system-configuration-model');
 class SystemConfigurationsRepository { 
 
     DatabaseError = require('../exceptions');
+    
     DuplicateIdError = require('../exceptions');
 
     constructor(model) {
