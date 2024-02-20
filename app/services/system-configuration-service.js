@@ -7,6 +7,7 @@ const SystemConfiguration = require('../models/system-configuration-model');
 const Identity = require('../models/identity-model');
 const UserAccount = require('../models/user-account-model');
 const MarkingDefinition = require('../models/marking-definition-model');
+const SystemConfigurationRepository = require('../repository/system-configurations-repository');
 
 let allowedValues;
 
@@ -107,7 +108,7 @@ exports.setOrganizationIdentity = async function(stixId) {
     if (systemConfig) {
         // The document exists already. Set the identity reference.
         systemConfig.organization_identity_ref = stixId;
-        await systemConfig.save();
+        await SystemConfigurationRepository.saveDocument(systemConfig);
     }
     else {
         // The document doesn't exist yet. Create a new one.
@@ -115,7 +116,7 @@ exports.setOrganizationIdentity = async function(stixId) {
             organization_identity_ref: stixId
         };
         const systemConfig = new SystemConfiguration(systemConfigData);
-        await systemConfig.save();
+        await SystemConfigurationRepository.saveDocument(systemConfig);
     }
 }
 
@@ -165,7 +166,7 @@ exports.setDefaultMarkingDefinitions = async function(stixIds) {
     if (systemConfig) {
         // The document exists already. Set the default marking definitions.
         systemConfig.default_marking_definitions = stixIds;
-        await systemConfig.save();
+        await SystemConfigurationRepository.saveDocument(systemConfig);
     }
     else {
         // The document doesn't exist yet. Create a new one.
@@ -173,7 +174,7 @@ exports.setDefaultMarkingDefinitions = async function(stixIds) {
             default_marking_definitions: stixIds
         };
         const systemConfig = new SystemConfiguration(systemConfigData);
-        await systemConfig.save();
+        await SystemConfigurationRepository.saveDocument(systemConfig);
     }
 }
 
@@ -204,7 +205,7 @@ exports.setAnonymousUserAccountId = async function(userAccountId) {
     if (systemConfig) {
         // The document exists already. Set the anonymous user account id.
         systemConfig.anonymous_user_account_id = userAccountId;
-        await systemConfig.save();
+        await SystemConfigurationRepository.saveDocument(systemConfig);
     }
     else {
         throw new Error(errors.systemConfigurationDocumentNotFound);
@@ -240,7 +241,7 @@ exports.setOrganizationNamespace = async function(namespace) {
 
     if (systemConfig) {
         systemConfig.organization_namespace = namespace;
-        await systemConfig.save();
+        await SystemConfigurationRepository.saveDocument(systemConfig);
     }
     else {
         throw new Error(errors.systemConfigurationDocumentNotFound);
