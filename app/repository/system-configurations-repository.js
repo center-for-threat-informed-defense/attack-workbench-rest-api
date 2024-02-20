@@ -1,7 +1,10 @@
-const { DatabaseError, DuplicateIdError } = require('../exceptions');
+
 const SystemConfiguration = require('../models/system-configuration-model');
 
 class SystemConfigurationsRepository { 
+
+    DatabaseError = require('../exceptions');
+    DuplicateIdError = require('../exceptions');
 
     constructor(model) {
         this.model = model;
@@ -13,11 +16,11 @@ class SystemConfigurationsRepository {
         }
         catch(err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
-                throw new DuplicateIdError({
+                throw new this.DuplicateIdError({
                     details: `Document with id '${ document.stix.id }' already exists.`
                 });
             }
-            throw new DatabaseError(err);
+            throw new this.DatabaseError(err);
         }
     }
 
