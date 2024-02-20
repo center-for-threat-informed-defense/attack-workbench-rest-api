@@ -6,7 +6,7 @@ const regexValidator = require('../lib/regex');
 const UserAccount = require('../models/user-account-model');
 const userAccountsService = require('./user-accounts-service');
 const BaseService = require('./_base.service');
-const { MissingParameterError, BadlyFormattedParameterError, NotFoundError } = require('../exceptions');
+const { MissingParameterError, BadlyFormattedParameterError, NotFoundError, DuplicateIdError } = require('../exceptions');
 const teamsRepository = require('../repository/teams-repository');
 
 
@@ -85,9 +85,7 @@ class TeamsService extends BaseService {
     async retrieveById(teamId) {
         try {
             if (!teamId) {
-                const error = new Error(this.errors.missingParameter);
-                error.parameterName = 'teamId';
-                throw error;
+               throw new MissingParameterError;
             }
     
             const team = await Team.findOne({ 'id': teamId }).lean().exec();
@@ -95,9 +93,7 @@ class TeamsService extends BaseService {
             return team;
         } catch (err) {
             if (err.name === 'CastError') {
-                const error = new Error(this.errors.badlyFormattedParameter);
-                error.parameterName = 'teamId';
-                throw error;
+                throw new BadlyFormattedParameterError;
             } else {
                 throw err;
             }
@@ -132,7 +128,7 @@ class TeamsService extends BaseService {
         } catch (err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
                 // 11000 = Duplicate index
-                const error = err.message.includes('name_') ? new Error(this.errors.duplicateName) : new Error(this.errors.duplicateId);
+                const error = err.message.includes('name_') ? new Error(this.errors.duplicateName) : new DuplicateIdError;
                 throw error;
             } else {
                 throw err;
@@ -144,9 +140,7 @@ class TeamsService extends BaseService {
     async updateFull(teamId, data) {
         try {
             if (!teamId) {
-                const error = new Error(this.errors.missingParameter);
-                error.parameterName = 'teamId';
-                throw error;
+                throw new MissingParameterError;
             }
     
             const document = await Team.findOne({ 'id': teamId });
@@ -170,12 +164,10 @@ class TeamsService extends BaseService {
             return savedDocument;
         } catch (err) {
             if (err.name === 'CastError') {
-                const error = new Error(this.errors.badlyFormattedParameter);
-                error.parameterName = 'teamId';
-                throw error;
+                throw new BadlyFormattedParameterError;
             } else if (err.name === 'MongoServerError' && err.code === 11000) {
                 // 11000 = Duplicate index
-                const error = err.message.includes('name_') ? new Error(this.errors.duplicateName) : new Error(this.errors.duplicateId);
+                const error = err.message.includes('name_') ? new Error(this.errors.duplicateName) : new DuplicateIdError;
                 throw error;
             } else {
                 throw err;
