@@ -2,52 +2,50 @@
 
 const collectionIndexService = require('../services/collection-indexes-service');
 const logger = require('../lib/logger');
+const { BadlyFormattedParameterError } = require('../exceptions');
 
-exports.retrieveAll = function(req, res) {
+exports.retrieveAll = async function(req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0
     }
 
-    collectionIndexService.retrieveAll(options, function(err, collectionIndexes) {
-        if (err) {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to get collection indexes. Server error.');
-        }
-        else {
-            logger.debug(`Success: Retrieved ${ collectionIndexes.length } collectionIndex(es)`);
-            return res.status(200).send(collectionIndexes);
-        }
-    });
+    try {
+        const collectionIndexes = await collectionIndexService.retrieveAll(options);
+        logger.debug(`Success: Retrieved ${ collectionIndexes.length } collectionIndex(es)`);
+        return res.status(200).send(collectionIndexes);
+    } catch (err) {
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to get collection indexes. Server error.');
+    }
+
 };
 
-exports.retrieveById = function(req, res) {
+exports.retrieveById = async function(req, res) {
     // Get the id from the request
     const id = req.params.id;
 
-    collectionIndexService.retrieveById(id, function (err, collectionIndex) {
-        if (err) {
-            if (err.message === collectionIndexService.errors.badlyFormattedParameter) {
-                logger.warn('Badly formatted id: ' + id);
-                return res.status(400).send('Id is badly formatted.');
-            }
-            else {
-                logger.error('Failed with error: ' + err);
-                return res.status(500).send('Unable to get collection index. Server error.');
-            }
+    try {
+        const collectionIndex = await collectionIndexService.retrieveById(id);
+        if (collectionIndex) {
+            return res.status(200).send(collectionIndex);
         }
         else {
-            if (collectionIndex) {
-                return res.status(200).send(collectionIndex);
-            }
-            else {
-                return res.status(404).send('Collection Index not found.');
-            }
+            return res.status(404).send('Collection Index not found.');
         }
-    });
+    } catch (err) {
+        if (err instanceof BadlyFormattedParameterError) {
+            logger.warn('Badly formatted id: ' + id);
+            return res.status(400).send('Id is badly formatted.');
+        }
+        else {
+            logger.error('Failed with error: ' + err);
+            return res.status(500).send('Unable to get collection index. Server error.');
+        }
+    }
 };
 
-exports.create = function(req, res) {
+exports.create = async function(req, res) {
     // Get the data from the request
     const collectionIndexData = req.body;
 
@@ -58,25 +56,24 @@ exports.create = function(req, res) {
     }
 
     // Create the collection index
-    collectionIndexService.create(collectionIndexData, function(err, collectionIndex) {
-        if (err) {
-            if (err.message === collectionIndexService.errors.duplicateId) {
-                logger.warn("Create collection index failed: Duplicate id");
-                return res.status(409).send('Unable to create collection index. Duplicate id.');
-            }
-            else {
-                logger.error("Create collection index failed with error: " + err);
-                return res.status(500).send("Unable to create collection index. Server error.");
-            }
+
+    try {
+        const collectionIndex =  await collectionIndexService.create(collectionIndexData);
+        logger.debug("Success: Created collection index with id " + collectionIndex.collection_index.id);
+        return res.status(201).send(collectionIndex);
+    } catch (err) {
+        if (err.message === collectionIndexService.errors.duplicateId) {
+            logger.warn("Create collection index failed: Duplicate id");
+            return res.status(409).send('Unable to create collection index. Duplicate id.');
         }
         else {
-            logger.debug("Success: Created collection index with id " + collectionIndex.collection_index.id);
-            return res.status(201).send(collectionIndex);
+            logger.error("Create collection index failed with error: " + err);
+            return res.status(500).send("Unable to create collection index. Server error.");
         }
-    });
+    }
 };
 
-exports.updateFull = function(req, res) {
+exports.updateFull = async function(req, res) {
     // Get the data and id from the request
     const collectionIndexData = req.body;
     const id = req.params.id;
@@ -87,23 +84,21 @@ exports.updateFull = function(req, res) {
     }
 
     // Update the collection index
-    collectionIndexService.updateFull(id, collectionIndexData, function(err, collectionIndex) {
-        if (err) {
-            logger.error("Update collection index failed with error: " + err);
-            return res.status(500).send("Unable to update collection index. Server error.");
+    try {
+        const collectionIndex =  collectionIndexService.updateFull(id, collectionIndexData);
+        if (!collectionIndex) {
+            return res.status(404).send('Collection index not found.');
+        } else {
+            logger.debug('Success: Updated collection index.');
+            return res.status(200).send(collectionIndex);
         }
-        else {
-            if (!collectionIndex) {
-                return res.status(404).send('Collection index not found.');
-            } else {
-                logger.debug('Success: Updated collection index.');
-                return res.status(200).send(collectionIndex);
-            }
-        }
-    });
+    } catch (err) {
+        logger.error("Update collection index failed with error: " + err);
+        return res.status(500).send("Unable to update collection index. Server error.");
+    }
 };
 
-exports.delete = function(req, res) {
+exports.delete = async function(req, res) {
     // Get the id from the request
     const id = req.params.id;
 
@@ -113,38 +108,33 @@ exports.delete = function(req, res) {
     }
 
     // Delete the collection index
-    collectionIndexService.delete(id, function (err, collectionIndex) {
-        if (err) {
-            logger.error('Delete collection index failed with error: ' + err);
-            return res.status(500).send('Unable to delete collection index. Server error.');
+    try {
+        const collectionIndex = await collectionIndexService.delete(id);
+        if (!collectionIndex) {
+            return res.status(404).send('Collection index not found.');
+        } else {
+            logger.debug('Success: Deleted collection index.');
+            return res.status(204).end();
         }
-        else {
-            if (!collectionIndex) {
-                return res.status(404).send('Collection index not found.');
-            } else {
-                logger.debug('Success: Deleted collection index.');
-                return res.status(204).end();
-            }
-        }
-    });
+    }  catch (err) {
+        logger.error('Delete collection index failed with error: ' + err);
+        return res.status(500).send('Unable to delete collection index. Server error.');
+    }
 };
 
-exports.refresh = function(req, res) {
+exports.refresh = async function(req, res) {
     const id = req.params.id;
 
     if (!id) {
         logger.warn('Refresh collection index failed with error: Missing id');
         return res.status(400).send('Unable to refresh collection index. Missing id.')
     }
-
-    collectionIndexService.refresh(id, function(err, collectionIndex) {
-        if (err) {
-            logger.error('Failed with error: ' + err);
-            return res.status(500).send('Unable to refresh collection index. Server error.');
-        }
-        else {
-            logger.debug("Success: Refreshed collection index");
-            return res.status(200).send(collectionIndex);
-        }
-    });
+    try {
+        const collectionIndex = await collectionIndexService.refresh(id);
+        logger.debug("Success: Refreshed collection index");
+        return res.status(200).send(collectionIndex);
+    } catch (err) {
+        logger.error('Failed with error: ' + err);
+        return res.status(500).send('Unable to refresh collection index. Server error.');
+    }
 };

@@ -4,6 +4,7 @@ const superagent = require('superagent');
 
 const CollectionIndex = require('../models/collection-index-model');
 const config = require('../config/config');
+const CollectionIndexRepository = require('../repository/collection-index-repository');
 
 class CollectionIndexService {
 
