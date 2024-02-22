@@ -23,20 +23,20 @@ class CollectionIndexService {
     };
 
 
-    exports.retrieveAll = function (options, callback) {
-        CollectionIndex.find()
-            .skip(options.offset)
-            .limit(options.limit)
-            .lean()
-            .exec(function (err, collectionIndexes) {
-                if (err) {
-                    return callback(err);
-                }
-                else {
-                    return callback(null, collectionIndexes);
-                }
-            });
+    async retrieveAll(options) {
+        try {
+            const collectionIndexes = await CollectionIndex.find()
+                .skip(options.offset)
+                .limit(options.limit)
+                .lean()
+                .exec();
+    
+            return collectionIndexes;
+        } catch (err) {
+            throw err;
+        }
     };
+    
 
     async retrieveById(id) {
         try {
@@ -190,3 +190,7 @@ class CollectionIndexService {
     
 
 }
+
+}
+
+module.exports = new CollectionIndexService(null, CollectionIndexRepository);
