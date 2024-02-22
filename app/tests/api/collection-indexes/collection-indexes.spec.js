@@ -1,4 +1,4 @@
-const await request = require('supertest');
+const request = require('supertest');
 const { expect } = require('expect');
 
 const logger = require('../../../lib/logger');

@@ -192,6 +192,5 @@ class CollectionIndexService {
 
 }
 
-}
 
 module.exports = new CollectionIndexService(null, CollectionIndexRepository);
