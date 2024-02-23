@@ -5,6 +5,7 @@ const superagent = require('superagent');
 const CollectionIndex = require('../models/collection-index-model');
 const config = require('../config/config');
 const CollectionIndexRepository = require('../repository/collection-index-repository');
+const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
 
 class CollectionIndexService {
 
@@ -42,7 +43,7 @@ class CollectionIndexService {
     async retrieveById(id) {
         try {
             if (!id) {
-                const error = new Error(errors.missingParameter);
+                const error = new Error(this.errors.missingParameter);
                 error.parameterName = 'id';
                 throw error;
             }
@@ -52,7 +53,7 @@ class CollectionIndexService {
             return collectionIndex; // Note: collectionIndex is null if not found
         } catch (err) {
             if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
+                const error = new Error(this.errors.badlyFormattedParameter);
                 error.parameterName = 'id';
                 throw error;
             } else {
@@ -78,7 +79,7 @@ class CollectionIndexService {
         } catch (err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
                 // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
+                const error = new Error(this.errors.duplicateId);
                 throw error;
             } else {
                 throw err;
@@ -90,9 +91,7 @@ class CollectionIndexService {
     async updateFull(id, data) {
         try {
             if (!id) {
-                const error = new Error(errors.missingParameter);
-                error.parameterName = 'id';
-                throw error;
+                throw new MissingParameterError;
             }
     
             const collectionIndex = await CollectionIndex.findOne({ "collection_index.id": id });
@@ -111,13 +110,9 @@ class CollectionIndexService {
             return savedCollectionIndex;
         } catch (err) {
             if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'id';
-                throw error;
+                throw new BadlyFormattedParameterError;
             } else if (err.name === 'MongoServerError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = new Error(errors.duplicateId);
-                throw error;
+                throw new DuplicateIdError;
             } else {
                 throw err;
             }
@@ -128,7 +123,7 @@ class CollectionIndexService {
     async delete(id) {
         try {
             if (!id) {
-                const error = new Error(errors.missingParameter);
+                const error = new Error(this.errors.missingParameter);
                 error.parameterName = 'id';
                 throw error;
             }
@@ -149,7 +144,7 @@ class CollectionIndexService {
     async retrieveByUrl(url) {
         try {
             if (!url) {
-                const error = new Error(errors.missingParameter);
+                const error = new Error(this.errors.missingParameter);
                 throw error;
             }
     
@@ -157,10 +152,10 @@ class CollectionIndexService {
     
             // Handle different error cases
             if (res.notFound) {
-                const error = new Error(errors.notFound);
+                const error = new Error(this.errors.notFound);
                 throw error;
             } else if (res.badRequest) {
-                const error = new Error(errors.badRequest);
+                const error = new Error(this.errors.badRequest);
                 throw error;
             }
     
@@ -169,9 +164,9 @@ class CollectionIndexService {
             return collectionIndex;
         } catch (err) {
             if (err.code === 'ENOTFOUND') {
-                throw new Error(errors.hostNotFound);
+                throw new Error(this.errors.hostNotFound);
             } else if (err.code === 'ECONNREFUSED') {
-                throw new Error(errors.connectionRefused);
+                throw new Error(this.errors.connectionRefused);
             } else {
                 throw err;
             }
