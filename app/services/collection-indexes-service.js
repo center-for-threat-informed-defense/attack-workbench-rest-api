@@ -26,36 +26,12 @@ class CollectionIndexService {
 
 
     async retrieveAll(options) {
-        const collectionIndexes = await CollectionIndex.find()
-            .skip(options.offset)
-            .limit(options.limit)
-            .lean()
-            .exec();
-
-        return collectionIndexes;
+        return await this.repository.retrieveAll(options);
     }
     
 
     async retrieveById(id) {
-        try {
-            if (!id) {
-                const error = new Error(this.errors.missingParameter);
-                error.parameterName = 'id';
-                throw error;
-            }
-    
-            const collectionIndex = await CollectionIndex.findOne({ "collection_index.id": id });
-    
-            return collectionIndex; // Note: collectionIndex is null if not found
-        } catch (err) {
-            if (err.name === 'CastError') {
-                const error = new Error(this.errors.badlyFormattedParameter);
-                error.parameterName = 'id';
-                throw error;
-            } else {
-                throw err;
-            }
-        }
+        return await this.repository.retrieveById(id);
     }
     
 
