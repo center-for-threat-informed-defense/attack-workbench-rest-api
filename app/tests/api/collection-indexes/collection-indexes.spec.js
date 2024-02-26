@@ -99,7 +99,7 @@ describe('Collection Indexes Basic API', function () {
 
     it('POST /api/collection-indexes does not create an empty collection index', async function () {
         const body = {};
-        const res = await request(app)
+        await request(app)
             .post('/api/collection-indexes')
             .send(body)
             .set('Accept', 'application/json')

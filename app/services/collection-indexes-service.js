@@ -26,18 +26,14 @@ class CollectionIndexService {
 
 
     async retrieveAll(options) {
-        try {
-            const collectionIndexes = await CollectionIndex.find()
-                .skip(options.offset)
-                .limit(options.limit)
-                .lean()
-                .exec();
-    
-            return collectionIndexes;
-        } catch (err) {
-            throw err;
-        }
-    };
+        const collectionIndexes = await CollectionIndex.find()
+            .skip(options.offset)
+            .limit(options.limit)
+            .lean()
+            .exec();
+
+        return collectionIndexes;
+    }
     
 
     async retrieveById(id) {
@@ -60,7 +56,7 @@ class CollectionIndexService {
                 throw err;
             }
         }
-    };
+    }
     
 
     async create(data) {
@@ -85,7 +81,7 @@ class CollectionIndexService {
                 throw err;
             }
         }
-    };
+    }
     
 
     async updateFull(id, data) {
@@ -117,24 +113,20 @@ class CollectionIndexService {
                 throw err;
             }
         }
-    };
+    }
     
 
     async delete(id) {
-        try {
-            if (!id) {
-                const error = new Error(this.errors.missingParameter);
-                error.parameterName = 'id';
-                throw error;
-            }
-    
-            const collectionIndex = await CollectionIndex.findOneAndRemove({ "collection_index.id": id });
-    
-            return collectionIndex; // Note: collectionIndex is null if not found
-        } catch (err) {
-            throw err;
+        if (!id) {
+            const error = new Error(this.errors.missingParameter);
+            error.parameterName = 'id';
+            throw error;
         }
-    };
+
+        const collectionIndex = await CollectionIndex.findOneAndRemove({ "collection_index.id": id });
+
+        return collectionIndex; // Note: collectionIndex is null if not found
+    }
     
 
     /**
@@ -171,21 +163,17 @@ class CollectionIndexService {
                 throw err;
             }
         }
-    };
+    }
     
 
     async refresh(id) {
-        try {
-            // Do nothing for now
-            await new Promise(resolve => process.nextTick(resolve));
-            return {};
-        } catch (err) {
-            throw err;
-        }
-    };
-    
+        // Do nothing for now
+        await new Promise(resolve => process.nextTick(resolve));
+        return {}; 
+    } 
 
 }
+
 
 
 module.exports = new CollectionIndexService(null, CollectionIndexRepository);
