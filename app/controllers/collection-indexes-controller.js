@@ -85,7 +85,7 @@ exports.updateFull = async function(req, res) {
 
     // Update the collection index
     try {
-        const collectionIndex =  collectionIndexService.updateFull(id, collectionIndexData);
+        const collectionIndex = await collectionIndexService.updateFull(id, collectionIndexData);
         if (!collectionIndex) {
             return res.status(404).send('Collection index not found.');
         } else {
