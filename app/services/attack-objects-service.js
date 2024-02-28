@@ -1,27 +1,15 @@
 'use strict';
 
-const { NotImplementedError} = require('../exceptions');
-const AttackObject = require('../models/attack-object-model');
+const { NotImplementedError } = require('../exceptions');
 const Relationship = require('../models/relationship-model');
-const AttackObjectsRepository = require('../repository/attack-objects-repository');
+const attackObjectsRepository = require('../repository/attack-objects-repository');
 const BaseService = require('./_base.service');
 
 class AttackObjectsService extends BaseService {
 
     systemConfigurationService = require('./system-configuration-service');
 
-    errors = {
-        missingParameter: 'Missing required parameter',
-        badlyFormattedParameter: 'Badly formatted parameter',
-        duplicateId: 'Duplicate id',
-        notFound: 'Document not found',
-        invalidQueryStringParameter: 'Invalid query string parameter',
-        duplicateCollection: 'Duplicate collection'
-    };
-
     relationshipPrefix = 'relationship';
-
-    identitiesService;
 
     retrieveById(stixId, options, callback) {
         throw new NotImplementedError(this.constructor.name, 'retrieveById');
@@ -31,24 +19,27 @@ class AttackObjectsService extends BaseService {
         throw new NotImplementedError(this.constructor.name, 'create');
     }
 
-    async retrieveAll(options) {
-        const res = await this.repository.retrieveAll(options);
-        return res;
+    updateFull(stixId, stixModified, data, callback) {
+        throw new NotImplementedError(this.constructor.name, 'updateFull');
     }
 
-    async retrieveVersionById(stixId, modified) {
-        const res = await this.repository.retrieveVersionById(stixId, modified);
-        return res;
+    deleteVersionById(stixId, stixModified, callback) {
+        throw new NotImplementedError(this.constructor.name, 'deleteVersionById');
+    }
+
+    deleteById(stixId, callback) {
+        throw new NotImplementedError(this.constructor.name, 'deleteById');
     }
 
     // Record that this object is part of a collection
     async insertCollection(stixId, modified, collectionId, collectionModified) {
         let attackObject;
         if (stixId.startsWith(this.relationshipPrefix)) {
+            // TBD: Use relationships service when that is converted to async
             attackObject = await Relationship.findOne({ 'stix.id': stixId, 'stix.modified': modified });
         }
         else {
-            attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+            attackObject = await this.repository.retrieveOneByVersion(stixId, modified);
         }
 
         if (attackObject) {
@@ -91,4 +82,5 @@ class AttackObjectsService extends BaseService {
         }
     }
 }
-module.exports = new AttackObjectsService(null, AttackObjectsRepository);
+
+module.exports = new AttackObjectsService(null, attackObjectsRepository);

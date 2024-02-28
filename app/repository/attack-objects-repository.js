@@ -2,8 +2,6 @@
 
 const BaseRepository = require('./_base.repository');
 const AttackObject = require('../models/attack-object-model');
-const util = require('util');
-const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 
 const regexValidator = require('../lib/regex');
@@ -18,8 +16,6 @@ class AttackObjectsRepository extends BaseRepository {
         invalidQueryStringParameter: 'Invalid query string parameter',
         duplicateCollection: 'Duplicate collection'
     };
-
-    relationshipPrefix = 'relationship';
 
     identitiesService;
 
@@ -84,7 +80,7 @@ class AttackObjectsRepository extends BaseRepository {
         }
 
         // Retrieve the documents
-        let documents = await AttackObject.aggregate(aggregation);
+        let documents = await this.model.aggregate(aggregation);
 
         // Add relationships from separate collection
         if (!options.attackId && !options.search) {
@@ -113,69 +109,12 @@ class AttackObjectsRepository extends BaseRepository {
             paginatedDocuments = documents.slice(offset);
         }
 
-        // Add identities
-        if (!this.identitiesService) {
-            this.identitiesService = require('../services/identities-service');
-        }
-        await this.identitiesService.addCreatedByAndModifiedByIdentitiesToAll(paginatedDocuments);
-
-        // Prepare the return value
-        if (options.includePagination) {
-            const returnValue = {
-                pagination: {
-                    total: documents.length,
-                    offset: options.offset,
-                    limit: options.limit
-                },
-                data: paginatedDocuments
-            };
-            return returnValue;
-        }
-        else {
-            return paginatedDocuments;
-        }
+        // Mimic the format that the base repository uses to return documents
+        return [{
+            documents: paginatedDocuments,
+            totalCount: [ { totalCount: documents.length } ]
+        }];
     }
-
-    async retrieveVersionById(stixId, modified) {
-        // Retrieve the version of the attack object with the matching stixId and modified date
-
-        // require here to avoid circular dependency
-        const relationshipsService = require('../services/relationships-service');
-        const retrieveRelationshipsVersionById = util.promisify(relationshipsService.retrieveVersionById);
-
-        if (!stixId) {
-            throw new MissingParameterError('stixId');
-        }
-
-        if (!modified) {
-            throw new MissingParameterError('modified');
-        }
-
-        let attackObject;
-        if (stixId.startsWith(this.relationshipPrefix)) {
-            attackObject = await retrieveRelationshipsVersionById(stixId, modified);
-        }
-        else {
-            try {
-                attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
-            }
-            catch(err) {
-                if (err.name === 'CastError') {
-                    throw new BadlyFormattedParameterError('stixId');
-                } else {
-                    throw err;
-                }
-            }
-        }
-
-        // Note: attackObject is null if not found
-        if (!this.identitiesService) {
-            this.identitiesService = require('../services/identities-service');
-        }
-        await this.identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
-        return attackObject;
-    }
-
- }
+}
 
 module.exports = new AttackObjectsRepository(AttackObject);
