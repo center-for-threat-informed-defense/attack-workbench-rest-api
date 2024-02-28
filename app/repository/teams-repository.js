@@ -2,8 +2,20 @@
 const Team = require('../models/team-model'); // Import the Team model appropriately
 const BaseRepository = require('./_base.repository');
 const regexValidator = require('../lib/regex');
+const uuid = require('uuid');
+const UserAccount = require('../models/user-account-model');
+const userAccountsService = require('../services/user-accounts-service');
 
 class TeamsRepository extends BaseRepository {
+
+    errors = {
+        missingParameter: 'Missing required parameter',
+        badlyFormattedParameter: 'Badly formatted parameter',
+        duplicateId: 'Duplicate id',
+        notFound: 'Document not found',
+        invalidQueryStringParameter: 'Invalid query string parameter',
+        duplicateName: 'Duplicate name',
+    }
 
     // TODO decouple DB logic; migrate DB logic to DAO/repository class
     retrieveByUserId(userAccountId, options) {
@@ -37,6 +49,42 @@ class TeamsRepository extends BaseRepository {
         } catch (err) {
             if (err.name === 'CastError') {
                 throw new BadlyFormattedParameterError;
+            } else {
+                throw err;
+            }
+        }
+    }
+
+    async create(data) {
+        try {
+            // Create the document
+            const team = new Team(data);
+    
+            // Create a unique id for this team
+            // This should usually be undefined. It will only be defined when migrating teams from another system.
+            if (!team.id) {
+                team.id = `identity--${uuid.v4()}`;
+            }
+    
+            // Add a timestamp recording when the team was first created
+            // This should usually be undefined. It will only be defined when migrating teams from another system.
+            if (!team.created) {
+                team.created = new Date().toISOString();
+            }
+    
+            // Add a timestamp recording when the team was last modified
+            if (!team.modified) {
+                team.modified = team.created;
+            }
+    
+            // Save the document in the database
+            const savedTeam = await team.save();
+            return savedTeam;
+        } catch (err) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                // 11000 = Duplicate index
+                const error = err.message.includes('name_') ? new Error(this.errors.duplicateName) : new DuplicateIdError;
+                throw error;
             } else {
                 throw err;
             }

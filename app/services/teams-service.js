@@ -30,39 +30,7 @@ class TeamsService extends BaseService {
     }
 
     async create(data) {
-        try {
-            // Create the document
-            const team = new Team(data);
-    
-            // Create a unique id for this team
-            // This should usually be undefined. It will only be defined when migrating teams from another system.
-            if (!team.id) {
-                team.id = `identity--${uuid.v4()}`;
-            }
-    
-            // Add a timestamp recording when the team was first created
-            // This should usually be undefined. It will only be defined when migrating teams from another system.
-            if (!team.created) {
-                team.created = new Date().toISOString();
-            }
-    
-            // Add a timestamp recording when the team was last modified
-            if (!team.modified) {
-                team.modified = team.created;
-            }
-    
-            // Save the document in the database
-            const savedTeam = await team.save();
-            return savedTeam;
-        } catch (err) {
-            if (err.name === 'MongoServerError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = err.message.includes('name_') ? new Error(this.errors.duplicateName) : new DuplicateIdError;
-                throw error;
-            } else {
-                throw err;
-            }
-        }
+        return await this.repository.create(data);
     }
     
 
