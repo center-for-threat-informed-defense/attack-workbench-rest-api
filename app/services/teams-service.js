@@ -35,41 +35,7 @@ class TeamsService extends BaseService {
     
 
     async updateFull(teamId, data) {
-        try {
-            if (!teamId) {
-                throw new MissingParameterError;
-            }
-    
-            const document = await Team.findOne({ 'id': teamId });
-    
-            if (!document) {
-                // Document not found
-                return null;
-            }
-    
-            // Copy data to found document
-            document.name = data.name;
-            document.description = data.description;
-            document.userIDs = data.userIDs;
-    
-            // Set the modified timestamp
-            document.modified = new Date().toISOString();
-    
-            // And save
-            const savedDocument = await document.save();
-    
-            return savedDocument;
-        } catch (err) {
-            if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError;
-            } else if (err.name === 'MongoServerError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = err.message.includes('name_') ? new Error(this.errors.duplicateName) : new DuplicateIdError;
-                throw error;
-            } else {
-                throw err;
-            }
-        }
+        return await this.repository.updateFull(teamId, data);
     }
     
 
