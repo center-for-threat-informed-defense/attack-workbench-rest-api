@@ -25,25 +25,9 @@ class TeamsService extends BaseService {
         return await this.repository.retrieveAll(options);
     }
     
-
     async retrieveById(teamId) {
-        try {
-            if (!teamId) {
-               throw new MissingParameterError;
-            }
-    
-            const team = await Team.findOne({ 'id': teamId }).lean().exec();
-    
-            return team;
-        } catch (err) {
-            if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError;
-            } else {
-                throw err;
-            }
-        }
+        return await this.repository.retrieveById(teamId);
     }
-    
 
     async create(data) {
         try {

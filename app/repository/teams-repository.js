@@ -24,6 +24,25 @@ class TeamsRepository extends BaseRepository {
         return this.model.aggregate(aggregation).exec();
     }
 
+
+    async retrieveById(teamId) {
+        try {
+            if (!teamId) {
+               throw new MissingParameterError;
+            }
+    
+            const team = await Team.findOne({ 'id': teamId }).lean().exec();
+    
+            return team;
+        } catch (err) {
+            if (err.name === 'CastError') {
+                throw new BadlyFormattedParameterError;
+            } else {
+                throw err;
+            }
+        }
+    }
+
     async retrieveAll(options) {
         try {
             // Build the aggregation
