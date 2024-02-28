@@ -1,12 +1,10 @@
 'use strict';
 
-const uuid = require('uuid');
-const Team = require('../models/team-model');
 const regexValidator = require('../lib/regex');
 const UserAccount = require('../models/user-account-model');
 const userAccountsService = require('./user-accounts-service');
 const BaseService = require('./_base.service');
-const { MissingParameterError, BadlyFormattedParameterError, NotFoundError, DuplicateIdError } = require('../exceptions');
+const { MissingParameterError, BadlyFormattedParameterError, NotFoundError } = require('../exceptions');
 const teamsRepository = require('../repository/teams-repository');
 
 
@@ -44,22 +42,18 @@ class TeamsService extends BaseService {
             throw new MissingParameterError;
         }
 
-        try {
-            const team = await Team.findOneAndRemove({ 'id': teamId });
-                //Note: userAccount is null if not found
-            return team;
-        } catch (err) {
-            throw err;
-        }
+        const team = await this.repository.model.findOneAndRemove({ 'id': teamId });
+            //Note: userAccount is null if not found
+        return team;
 
-    };
+    }
 
     async retrieveAllUsers(teamId, options) {
     if (!teamId) {
         throw new MissingParameterError('teamId');
     }
             try {
-                const team = await Team.findOne({ 'id': teamId })
+                const team = await this.repository.model.findOne({ 'id': teamId })
                 .lean()
                 .exec();
                 if (!team) {
