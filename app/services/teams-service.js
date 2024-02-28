@@ -124,7 +124,8 @@ class TeamsService extends BaseService {
             }
     
             // Save the document in the database
-            return await team.save();
+            const savedTeam = await team.save();
+            return savedTeam;
         } catch (err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
                 // 11000 = Duplicate index

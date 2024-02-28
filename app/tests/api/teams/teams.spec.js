@@ -79,7 +79,7 @@ describe('Teams API', function () {
             .expect('Content-Type', /json/);
 
         // We expect to get the created team
-        const team1 = res.body;
+        team1 = res.body;
         expect(team1).toBeDefined();
         expect(team1.id).toBeDefined();
     });
