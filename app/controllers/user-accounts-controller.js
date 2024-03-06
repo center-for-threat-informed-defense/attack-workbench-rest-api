@@ -3,7 +3,7 @@
 const userAccountsService = require('../services/user-accounts-service');
 const logger = require('../lib/logger');
 const config = require('../config/config');
-const { BadlyFormattedParameterError } = require('../exceptions');
+const { BadlyFormattedParameterError, DuplicateEmailError } = require('../exceptions');
 
 exports.retrieveAll = async function (req, res) {
     const options = {
@@ -78,7 +78,7 @@ exports.create = async function(req, res) {
         return res.status(201).send(userAccount);
     }
     catch(err) {
-        if (err.message === userAccountsService.errors.duplicateEmail) {
+        if (err instanceof DuplicateEmailError) {
             logger.warn(`Unable to create user account, duplicate email: ${ userAccountData.email }`);
             return res.status(400).send('Duplicate email');
         }
