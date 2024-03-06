@@ -4,11 +4,11 @@ const mongoose = require('mongoose');
 
 // Create the definition
 const teamDefinition = {
-    id: { 
-      type: String, 
+    id: {
+      type: String,
       index: {
         unique: true
-      } 
+      }
     },
     name: { type: String, required: true, unique: true },
     description: { type: String },
