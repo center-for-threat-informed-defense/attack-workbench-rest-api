@@ -2,7 +2,7 @@
 
 const teamsService = require('../services/teams-service');
 const logger = require('../lib/logger');
-const { NotFoundError, BadlyFormattedParameterError } = require('../exceptions');
+const { NotFoundError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
 
 exports.retrieveAll = async function(req, res) {
     const options = {
@@ -61,14 +61,14 @@ exports.create = async function(req, res) {
         return res.status(201).send(team);
     }
     catch(err) {
-        if (err.message === teamsService.errors.duplicateName) {
+        if (err instanceof DuplicateIdError) {
             logger.error("Duplicated team name");
             return res.status(409).send('Team name must be unique.');
-        } else {
+        }
+        else {
             logger.error("Failed with error: " + err);
             return res.status(500).send('Unable to create team. Server error.');
         }
-        
     }
 };
 

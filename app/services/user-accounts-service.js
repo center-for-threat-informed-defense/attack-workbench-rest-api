@@ -3,7 +3,7 @@
 const uuid = require('uuid');
 const TeamsRepository = require('../repository/teams-repository');
 const UserAccountsRepository = require('../repository/user-accounts-repository');
-const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
+const { MissingParameterError, BadlyFormattedParameterError, DuplicateIdError, DuplicateEmailError } = require('../exceptions');
 
 class UserAccountsService {
 
@@ -11,15 +11,6 @@ class UserAccountsService {
         this.type = type;
         this.repository = repository;
     }
-
-    errors = {
-        missingParameter: 'Missing required parameter',
-        badlyFormattedParameter: 'Badly formatted parameter',
-        duplicateId: 'Duplicate id',
-        duplicateEmail: 'Duplicate email',
-        notFound: 'Document not found',
-        invalidQueryStringParameter: 'Invalid query string parameter'
-    };
 
     // Helper function to determine if the last argument is a callback
     static isCallback(arg) {
@@ -134,7 +125,7 @@ class UserAccountsService {
             // error if it occurs.
             const userAccount = await this.repository.retrieveOneByEmail(data.email);
             if (userAccount) {
-                throw new Error(this.errors.duplicateEmail);
+                throw new DuplicateEmailError;
             }
         }
 

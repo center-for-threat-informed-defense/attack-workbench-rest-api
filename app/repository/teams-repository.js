@@ -1,22 +1,19 @@
-/* eslint-disable class-methods-use-this */
-const Team = require('../models/team-model'); // Import the Team model appropriately
-const BaseRepository = require('./_base.repository');
+'use strict';
+
+const Team = require('../models/team-model');
+const {
+    BadlyFormattedParameterError,
+    MissingParameterError,
+    DuplicateIdError,
+    DatabaseError, DuplicateNameError
+} = require('../exceptions');
 const regexValidator = require('../lib/regex');
-const uuid = require('uuid');
-const { BadlyFormattedParameterError, MissingParameterError, DuplicateIdError } = require('../exceptions');
 
-class TeamsRepository extends BaseRepository {
-
-    errors = {
-        missingParameter: 'Missing required parameter',
-        badlyFormattedParameter: 'Badly formatted parameter',
-        duplicateId: 'Duplicate id',
-        notFound: 'Document not found',
-        invalidQueryStringParameter: 'Invalid query string parameter',
-        duplicateName: 'Duplicate name',
+class TeamsRepository {
+    constructor(model) {
+        this.model = model;
     }
 
-    // TODO decouple DB logic; migrate DB logic to DAO/repository class
     retrieveByUserId(userAccountId, options) {
         const aggregation = [
             { $sort: { 'name': 1 } },
@@ -68,27 +65,7 @@ class TeamsRepository extends BaseRepository {
         aggregation.push(facet);
 
         // Retrieve the documents
-        const results = await Team.aggregate(aggregation);
-
-        const teams = results[0].documents;
-
-        if (options.includePagination) {
-            let derivedTotalCount = 0;
-            if (results[0].totalCount.length > 0) {
-                derivedTotalCount = results[0].totalCount[0].totalCount;
-            }
-            const returnValue = {
-                pagination: {
-                    total: derivedTotalCount,
-                    offset: options.offset,
-                    limit: options.limit
-                },
-                data: teams
-            };
-            return returnValue;
-        } else {
-            return teams;
-        }
+        return await this.model.aggregate(aggregation);
     }
 
     async retrieveById(teamId) {
@@ -97,10 +74,11 @@ class TeamsRepository extends BaseRepository {
                throw new MissingParameterError;
             }
     
-            const team = await Team.findOne({ 'id': teamId }).lean().exec();
+            const team = await this.model.findOne({ 'id': teamId }).lean().exec();
     
             return team;
-        } catch (err) {
+        }
+        catch (err) {
             if (err.name === 'CastError') {
                 throw new BadlyFormattedParameterError;
             } else {
@@ -109,39 +87,21 @@ class TeamsRepository extends BaseRepository {
         }
     }
 
-    async create(data) {
+    createNewDocument(data) {
+        return new this.model(data);
+    }
+
+    static async saveDocument(document) {
         try {
-            // Create the document
-            const team = new Team(data);
-    
-            // Create a unique id for this team
-            // This should usually be undefined. It will only be defined when migrating teams from another system.
-            if (!team.id) {
-                team.id = `identity--${uuid.v4()}`;
-            }
-    
-            // Add a timestamp recording when the team was first created
-            // This should usually be undefined. It will only be defined when migrating teams from another system.
-            if (!team.created) {
-                team.created = new Date().toISOString();
-            }
-    
-            // Add a timestamp recording when the team was last modified
-            if (!team.modified) {
-                team.modified = team.created;
-            }
-    
-            // Save the document in the database
-            const savedTeam = await team.save();
-            return savedTeam;
-        } catch (err) {
+            return await document.save();
+        }
+        catch(err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
-                // 11000 = Duplicate index
-                const error = err.message.includes('name_') ? new Error(this.errors.duplicateName) : new DuplicateIdError;
-                throw error;
-            } else {
-                throw err;
+                throw new DuplicateIdError({
+                    details: `Document with id '${ document.id }' already exists.`
+                });
             }
+            throw new DatabaseError(err);
         }
     }
 
@@ -151,7 +111,7 @@ class TeamsRepository extends BaseRepository {
                 throw new MissingParameterError;
             }
     
-            const document = await Team.findOne({ 'id': teamId });
+            const document = await this.model.findOne({ 'id': teamId });
     
             if (!document) {
                 // Document not found
@@ -175,7 +135,7 @@ class TeamsRepository extends BaseRepository {
                 throw new BadlyFormattedParameterError;
             } else if (err.name === 'MongoServerError' && err.code === 11000) {
                 // 11000 = Duplicate index
-                const error = err.message.includes('name_') ? new Error(this.errors.duplicateName) : new DuplicateIdError;
+                const error = err.message.includes('name_') ? new Error(DuplicateNameError) : new DuplicateIdError;
                 throw error;
             } else {
                 throw err;

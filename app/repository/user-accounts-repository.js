@@ -1,10 +1,11 @@
+'use strict';
+
 const UserAccount = require('../models/user-account-model');
 const { DatabaseError, DuplicateIdError } = require('../exceptions');
 const regexValidator = require('../lib/regex');
 const { BadlyFormattedParameterError } = require('../exceptions');
 
 class UserAccountsRepository {
-
     constructor(model) {
         this.model = model;
     }
@@ -100,7 +101,7 @@ class UserAccountsRepository {
         catch(err) {
             if (err.name === 'MongoServerError' && err.code === 11000) {
                 throw new DuplicateIdError({
-                    details: `Document with id '${ document.stix.id }' already exists.`
+                    details: `Document with id '${ document.id }' already exists.`
                 });
             }
             throw new DatabaseError(err);
@@ -172,7 +173,7 @@ class UserAccountsRepository {
             catch (err) {
                 if (err.name === 'MongoServerError' && err.code === 11000) {
                     throw new DuplicateIdError({
-                        details: `Document with id '${data.stix.id}' already exists.`
+                        details: `Document with id '${ data.stix.id }' already exists.`
                     });
                 }
                 throw new DatabaseError(err);
