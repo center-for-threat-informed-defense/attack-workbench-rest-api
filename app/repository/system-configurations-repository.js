@@ -1,38 +1,33 @@
 
 const SystemConfiguration = require('../models/system-configuration-model');
+const { DatabaseError } = require('../exceptions');
 
-class SystemConfigurationsRepository { 
-
-    DatabaseError = require('../exceptions');
-    
-    DuplicateIdError = require('../exceptions');
-
+class SystemConfigurationsRepository {
     constructor(model) {
         this.model = model;
     }
 
-    async saveDocument(document) {
+    createNewDocument(data) {
+        return new this.model(data);
+    }
+
+    static async saveDocument(document) {
         try {
             return await document.save();
         }
         catch(err) {
-            if (err.name === 'MongoServerError' && err.code === 11000) {
-                throw new this.DuplicateIdError({
-                    details: `Document with id '${ document.stix.id }' already exists.`
-                });
-            }
-            throw new this.DatabaseError(err);
+            throw new DatabaseError(err);
         }
     }
 
-    async retrieveOneById(model) {
-        const res = await this.model.findOne();
-        return res;
-    }
-
-    async retrieveOneByIdLean(model) {
-        const res = await this.model.findOne().lean();
-        return res;
+    async retrieveOne(options) {
+        options = options ?? {};
+        if (options.lean) {
+            return await this.model.findOne().lean();
+        }
+        else {
+            return await this.model.findOne();
+        }
     }
 }
 

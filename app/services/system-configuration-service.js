@@ -2,25 +2,19 @@
 
 const fs = require('fs');
 const config = require('../config/config');
-
-const SystemConfiguration = require('../models/system-configuration-model');
-const Identity = require('../models/identity-model');
-const UserAccount = require('../models/user-account-model');
-const MarkingDefinition = require('../models/marking-definition-model');
-const SystemConfigurationRepository = require('../repository/system-configurations-repository');
+const systemConfigurationRepository = require('../repository/system-configurations-repository');
+const userAccountsService = require('./user-accounts-service');
+const {
+    SystemConfigurationNotFound,
+    OrganizationIdentityNotSetError,
+    OrganizationIdentityNotFoundError,
+    DefaultMarkingDefinitionsNotFoundError,
+    AnonymousUserAccountNotSetError,
+    AnonymousUserAccountNotFoundError } = require('../exceptions');
 
 let allowedValues;
-
-const errors = {
-    systemConfigurationDocumentNotFound: 'System configuration document not found',
-    organizationIdentityNotFound: 'Organization identity not found',
-    organizationIdentityNotSet: 'Organization identity not set',
-    anonymousUserAccountNotFound: 'Anonymous user account not found',
-    anonymousUserAccountNotSet: 'Anonymous user account not set',
-    defaultMarkingDefinitionNotFound: 'Default marking definition not found',
-    systemConfigurationNotFound: 'System configuration not found'
-};
-exports.errors = errors;
+let markingDefinitionsService;
+let identitiesService;
 
 // NOTE: Some parts of the system configuration are stored in the systemconfiguration collection in the database
 //   (the systemconfiguration collection should have exactly one document)
@@ -71,60 +65,64 @@ exports.retrieveAllowedValuesForTypePropertyDomain = retrieveAllowedValuesForTyp
 
 exports.retrieveOrganizationIdentityRef = async function() {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
+    const systemConfig = await systemConfigurationRepository.retrieveOne();
 
     if (systemConfig && systemConfig.organization_identity_ref) {
         return systemConfig.organization_identity_ref;
     }
     else {
-        throw new Error(errors.organizationIdentityNotSet);
+        throw new OrganizationIdentityNotSetError;
     }
 }
 
 exports.retrieveOrganizationIdentity = async function() {
+    if (!identitiesService) {
+        identitiesService = require('./identities-service');
+    }
     // There should be exactly one system configuration document
-    const systemConfig = await await SystemConfigurationRepository.retrieveOneById();
+    const systemConfig = await systemConfigurationRepository.retrieveOne({ lean: true });
 
     if (systemConfig && systemConfig.organization_identity_ref) {
-        const identity = await Identity.findOne({ 'stix.id': systemConfig.organization_identity_ref }).lean();
-        if (identity) {
-            return identity;
+        const identities = await identitiesService.retrieveById(systemConfig.organization_identity_ref, { versions: 'latest' });
+        if (identities.length === 1) {
+            return identities[0];
         }
         else {
-            const error = new Error(errors.organizationIdentityNotFound)
-            error.organizationIdentityRef = systemConfig.organization_identity_ref;
-            throw error;
+            throw new OrganizationIdentityNotFoundError(systemConfig.organization_identity_ref);
         }
     }
     else {
-        throw new Error(errors.organizationIdentityNotSet);
+        throw new OrganizationIdentityNotSetError;
     }
 }
 
 exports.setOrganizationIdentity = async function(stixId) {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
+    const systemConfig = await systemConfigurationRepository.retrieveOne();
 
     if (systemConfig) {
         // The document exists already. Set the identity reference.
         systemConfig.organization_identity_ref = stixId;
-        await SystemConfigurationRepository.saveDocument(systemConfig);
+        await systemConfigurationRepository.constructor.saveDocument(systemConfig);
     }
     else {
         // The document doesn't exist yet. Create a new one.
         const systemConfigData = {
             organization_identity_ref: stixId
         };
-        const systemConfig = new SystemConfiguration(systemConfigData);
-        await SystemConfigurationRepository.saveDocument(systemConfig);
+        const systemConfig = systemConfigurationRepository.createNewDocument(systemConfigData);
+        await systemConfigurationRepository.constructor.saveDocument(systemConfig);
     }
 }
 
 exports.retrieveDefaultMarkingDefinitions = async function(options) {
+    if (!markingDefinitionsService) {
+        markingDefinitionsService = require('./marking-definitions-service');
+    }
     options = options ?? {};
 
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneByIdLean();
+    const systemConfig = await systemConfigurationRepository.retrieveOne({ lean: true });
 
     if (systemConfig) {
         if (systemConfig.default_marking_definitions) {
@@ -135,16 +133,14 @@ exports.retrieveDefaultMarkingDefinitions = async function(options) {
                 const defaultMarkingDefinitions = [];
                 for (const stixId of systemConfig.default_marking_definitions) {
                     // eslint-disable-next-line no-await-in-loop
-                    const markingDefinition = await MarkingDefinition.findOne({ 'stix.id': stixId }).lean();
-                    if (markingDefinition) {
-                        defaultMarkingDefinitions.push(markingDefinition);
-                    } else {
-                        const error = new Error(errors.defaultMarkingDefinitionNotFound);
-                        error.markingDefinitionRef = stixId;
-                        throw error;
+                    const markingDefinition = await markingDefinitionsService.retrieveById(stixId);
+                    if (markingDefinition.length === 1) {
+                        defaultMarkingDefinitions.push(markingDefinition[0]);
+                    }
+                    else {
+                        throw new DefaultMarkingDefinitionsNotFoundError;
                     }
                 }
-
                 return defaultMarkingDefinitions;
             }
         }
@@ -161,54 +157,52 @@ exports.retrieveDefaultMarkingDefinitions = async function(options) {
 
 exports.setDefaultMarkingDefinitions = async function(stixIds) {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
+    const systemConfig = await systemConfigurationRepository.retrieveOne();
 
     if (systemConfig) {
         // The document exists already. Set the default marking definitions.
         systemConfig.default_marking_definitions = stixIds;
-        await SystemConfigurationRepository.saveDocument(systemConfig);
+        await systemConfigurationRepository.constructor.saveDocument(systemConfig);
     }
     else {
         // The document doesn't exist yet. Create a new one.
         const systemConfigData = {
             default_marking_definitions: stixIds
         };
-        const systemConfig = new SystemConfiguration(systemConfigData);
-        await SystemConfigurationRepository.saveDocument(systemConfig);
+        const systemConfig = systemConfigurationRepository.createNewDocument(systemConfigData);
+        await systemConfigurationRepository.constructor.saveDocument(systemConfig);
     }
 }
 
 exports.retrieveAnonymousUserAccount = async function() {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
+    const systemConfig = await systemConfigurationRepository.retrieveOne({ lean: true });
 
     if (systemConfig && systemConfig.anonymous_user_account_id) {
-        const userAccount = await UserAccount.findOne({ 'id': systemConfig.anonymous_user_account_id });
+        const userAccount = await userAccountsService.retrieveById(systemConfig.anonymous_user_account_id, {});
         if (userAccount) {
             return userAccount;
         }
         else {
-            const error = new Error(errors.anonymousUserAccountNotFound)
-            error.anonymousUserAccountId = systemConfig.anonymous_user_account_id;
-            throw error;
+            throw new AnonymousUserAccountNotFoundError(systemConfig.anonymous_user_account_id);
         }
     }
     else {
-        throw new Error(errors.anonymousUserAccountNotSet);
+        throw new AnonymousUserAccountNotSetError;
     }
 }
 
 exports.setAnonymousUserAccountId = async function(userAccountId) {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
+    const systemConfig = await systemConfigurationRepository.retrieveOne();
 
     if (systemConfig) {
         // The document exists already. Set the anonymous user account id.
         systemConfig.anonymous_user_account_id = userAccountId;
-        await SystemConfigurationRepository.saveDocument(systemConfig);
+        await systemConfigurationRepository.constructor.saveDocument(systemConfig);
     }
     else {
-        throw new Error(errors.systemConfigurationDocumentNotFound);
+        throw new SystemConfigurationNotFound;
     }
 }
 
@@ -225,25 +219,25 @@ exports.retrieveAuthenticationConfig = function() {
 
 exports.retrieveOrganizationNamespace = async function() {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
+    const systemConfig = await systemConfigurationRepository.retrieveOne({ lean: true });
 
     if (systemConfig) {
         return systemConfig.organization_namespace;
     }
     else {
-        throw new Error(errors.systemConfigurationDocumentNotFound);
+        throw new SystemConfigurationNotFound;
     }
 }
 
 exports.setOrganizationNamespace = async function(namespace) {
     // There should be exactly one system configuration document
-    const systemConfig = await SystemConfigurationRepository.retrieveOneById();
+    const systemConfig = await systemConfigurationRepository.retrieveOne();
 
     if (systemConfig) {
         systemConfig.organization_namespace = namespace;
-        await SystemConfigurationRepository.saveDocument(systemConfig);
+        await systemConfigurationRepository.constructor.saveDocument(systemConfig);
     }
     else {
-        throw new Error(errors.systemConfigurationDocumentNotFound);
+        throw new SystemConfigurationNotFound;
     }
 }
