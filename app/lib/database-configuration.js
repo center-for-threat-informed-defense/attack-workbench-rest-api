@@ -11,6 +11,7 @@ const logger = require('../lib/logger');
 const AttackObject = require('../models/attack-object-model');
 const CollectionIndex = require('../models/collection-index-model');
 const MarkingDefinition = require('../models/marking-definition-model');
+const { OrganizationIdentityNotFoundError, OrganizationIdentityNotSetError, AnonymousUserAccountNotFoundError, AnonymousUserAccountNotSetError } = require('../exceptions');
 
 async function createPlaceholderOrganizationIdentity() {
     // Create placeholder identity object
@@ -74,11 +75,11 @@ async function checkForOrganizationIdentity() {
         logger.info(`Success: Organization identity is set to ${ identity.stix.name }`);
     }
     catch(err) {
-        if (err.message === systemConfigurationService.errors.organizationIdentityNotFound) {
-            logger.warn(`Organization identity with id ${ err.organizationIdentityRef } not found, setting to placeholder identity`);
+        if (err instanceof OrganizationIdentityNotFoundError) {
+            logger.warn(`Organization identity with id ${ err } not found, setting to placeholder identity`);
             await createPlaceholderOrganizationIdentity();
         }
-        else if (err.message === systemConfigurationService.errors.organizationIdentityNotSet) {
+        else if (err instanceof OrganizationIdentityNotSetError) {
             logger.warn(`Organization identity not set, setting to placeholder identity`);
             await createPlaceholderOrganizationIdentity();
         }
@@ -100,11 +101,11 @@ async function checkForAnonymousUserAccount() {
             logger.info(`Success: Anonymous user account is set to ${ anonymousUserAccount.id }`);
         }
         catch (err) {
-            if (err.message === systemConfigurationService.errors.anonymousUserAccountNotFound) {
+            if (err instanceof AnonymousUserAccountNotFoundError) {
                 logger.warn(`Anonymous user account with id ${ err.anonymousUserAccountId } not found, creating new anonymous user account`);
                 await createAnonymousUserAccount();
             }
-            else if (err.message === systemConfigurationService.errors.anonymousUserAccountNotSet) {
+            else if (err instanceof AnonymousUserAccountNotSetError) {
                 logger.warn(`Anonymous user account not set, creating new anonymous user account`);
                 await createAnonymousUserAccount();
             }
