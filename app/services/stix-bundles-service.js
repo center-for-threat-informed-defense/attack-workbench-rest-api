@@ -208,7 +208,7 @@ exports.exportBundle = async function(options) {
     }
 
     // Put the primary objects in the bundle
-    // Also create a map of the objects added to the bundle (only use the id, since relationships only reference the id)
+    // Also create a map of the objects added to the bundle (use the id as the key, since relationships only reference the id)
     const objectsMap = new Map();
     for (const primaryObject of primaryObjects) {
         bundle.objects.push(primaryObject.stix);
@@ -340,6 +340,22 @@ exports.exportBundle = async function(options) {
         }
         bundle.objects.push(secondaryObject.stix);
         addAttackObjectToMap(secondaryObject);
+    }
+
+    // Add groups to the bundle that are referenced by a campaign but are not referenced by a primary object
+    for (const relationship of allRelationships) {
+        if (relationship.stix.relationship_type === 'attributed-to') {
+            if (objectsMap.has(relationship.stix.source_ref) && !objectsMap.has(relationship.stix.target_ref)) {
+                // Add the group to the bundle
+                const groupObject = await getAttackObject(relationship.stix.target_ref);
+                if (groupObject.stix.type === 'intrusion-set' && secondaryObjectIsValid(groupObject)) {
+                    groupObject.stix.x_mitre_domains = [ options.domain ];
+                    bundle.objects.push(groupObject.stix);
+                    objectsMap.set(groupObject.stix.id, true);
+                    // relationships will be added to the bundle later
+                }
+            }
+        }
     }
 
     // Data components have already been added to the bundle because they're referenced in a relationship
