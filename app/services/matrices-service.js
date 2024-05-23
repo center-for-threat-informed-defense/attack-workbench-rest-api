@@ -281,7 +281,7 @@ exports.retrieveTechniquesForMatrix = function(stixId, modified, callback) {
                         }
                         // Add techniques to tactic & store tactic
                         tactic.techniques = parentTechniques;
-                        tacticsTechniques[tactic.stix.name] = tactic;
+                        tacticsTechniques[tactic.stix.id] = tactic;
                     }
                 }
                 return callback(null, tacticsTechniques);
