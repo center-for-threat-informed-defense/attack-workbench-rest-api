@@ -1,239 +1,115 @@
 'use strict';
 
-const uuid = require('uuid');
-const Team = require('../models/team-model');
 const regexValidator = require('../lib/regex');
 const UserAccount = require('../models/user-account-model');
-const { addEffectiveRole, userAccountAsIdentity } = require('./user-accounts-service');
+const userAccountsService = require('./user-accounts-service');
+const { MissingParameterError, BadlyFormattedParameterError, NotFoundError, DuplicateIdError} = require('../exceptions');
+const teamsRepository = require('../repository/teams-repository');
+const uuid = require("uuid");
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter',
-    duplicateName: 'Duplicate name',
-};
-exports.errors = errors;
-
-exports.retrieveAll = function(options, callback) {
-    // Build the aggregation
-    const aggregation = [
-        { $sort: { 'name': 1 } },
-    ];
-
-    if (typeof options.search !== 'undefined') {
-        options.search = regexValidator.sanitizeRegex(options.search);
-        const match = { $match: { $or: [
-                    { 'name': { '$regex': options.search, '$options': 'i' }},
-                    { 'description': { '$regex': options.search, '$options': 'i' }},
-                ]}};
-        aggregation.push(match);
+class TeamsService {
+    constructor(type, repository) {
+        this.type = type;
+        this.repository = repository;
     }
 
-    const facet = {
-        $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [ ]
-        }
-    };
-    if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
-    }
-    else {
-        facet.$facet.documents.push({ $skip: 0 });
-    }
-    if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-    }
-    aggregation.push(facet);
+    async retrieveAll(options) {
+        const results = await this.repository.retrieveAll(options);
 
-    // Retrieve the documents
-    Team.aggregate(aggregation, function(err, results) {
-        if (err) {
-            return callback(err);
+        const teams = results[0].documents;
+
+        if (options.includePagination) {
+            let derivedTotalCount = 0;
+            if (results[0].totalCount.length > 0) {
+                derivedTotalCount = results[0].totalCount[0].totalCount;
+            }
+            const paginatedResults = {
+                pagination: {
+                    total: derivedTotalCount,
+                    offset: options.offset,
+                    limit: options.limit
+                },
+                data: teams
+            };
+            return paginatedResults;
         }
         else {
-            const teams = results[0].documents;
-            if (options.includePagination) {
-                let derivedTotalCount = 0;
-                if (results[0].totalCount.length > 0) {
-                    derivedTotalCount = results[0].totalCount[0].totalCount;
-                }
-                const returnValue = {
-                    pagination: {
-                        total: derivedTotalCount,
-                        offset: options.offset,
-                        limit: options.limit
-                    },
-                    data: teams
-                };
-                return callback(null, returnValue);
-            } else {
-                return callback(null, teams);
-            }
-        }
-    });
-};
-
-exports.retrieveById = function(teamId, callback) {
-    if (!teamId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'teamId';
-        return callback(error);
-    }
-
-    Team.findOne({ 'id': teamId })
-        .lean()
-        .exec(function (err, team) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'teamId';
-                    return callback(error);
-                } else {
-                    return callback(err);
-                }
-            } else {
-                return callback(null, team);
-            }
-        });
-};
-
-exports.createIsAsync = true;
-exports.create = async function(data) {
-    // Create the document
-    const team = new Team(data);
-
-    // Create a unique id for this user
-    // This should usually be undefined. It will only be defined when migrating user accounts from another system.
-    if (!team.id) {
-      team.id = `identity--${uuid.v4()}`;
-    }
-
-    // Add a timestamp recording when the user account was first created
-    // This should usually be undefined. It will only be defined when migrating user accounts from another system.
-    if (!team.created) {
-      team.created = new Date().toISOString();
-    }
-
-    // Add a timestamp recording when the user account was last modified
-    if (!team.modified) {
-      team.modified = team.created;
-    }
-
-    // Save the document in the database
-    try {
-        return await team.save();
-    }
-    catch (err) {
-        if (err.name === 'MongoServerError' && err.code === 11000) {
-            // 11000 = Duplicate index
-            const error = err.message.includes('name_') ? new Error(errors.duplicateName) :new Error(errors.duplicateId);
-            throw error;
-        }
-        else {
-            throw err;
+            return teams;
         }
     }
-};
-
-exports.updateFull = function(teamId, data, callback) {
-    if (!teamId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'teamId';
-        return callback(error);
+    
+    async retrieveById(teamId) {
+        return await this.repository.retrieveById(teamId);
     }
 
-    Team.findOne({ 'id': teamId }, function(err, document) {
-        if (err) {
-            if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'teamId';
-                return callback(error);
+    async create(data) {
+        // Create the document
+        const team = await this.repository.createNewDocument(data);
+
+        // Create a unique id for this user
+        // This should usually be undefined. It will only be defined when migrating teams from another system.
+        if (!team.id) {
+            team.id = `identity--${ uuid.v4() }`;
+        }
+
+        // Add a timestamp recording when the team was first created
+        // This should usually be undefined. It will only be defined when migrating teams from another system.
+        if (!team.created) {
+            team.created = new Date().toISOString();
+        }
+
+        // Add a timestamp recording when the team was last modified
+        if (!team.modified) {
+            team.modified = team.created;
+        }
+
+        // Save the document in the database
+        try {
+            return await this.repository.constructor.saveDocument(team);
+        }
+        catch (err) {
+            if (err.name === 'MongoServerError' && err.code === 11000) {
+                throw new DuplicateIdError;
             }
             else {
-                return callback(err);
+                throw err;
             }
         }
-        else if (!document) {
-            // document not found
-            return callback(null);
-        }
-        else {
-            // Copy data to found document
-            document.name = data.name;
-            document.description = data.description;
-            document.userIDs = data.userIDs;
-
-            // Set the modified timestamp
-            document.modified = new Date().toISOString();
-
-            // And save
-            document.save(function(err, savedDocument) {
-                if (err) {
-                    if (err.name === 'MongoServerError' && err.code === 11000) {
-                        // 11000 = Duplicate index
-                        const error = err.message.contains('name_') ? new Error(errors.duplicateName) :new Error(errors.duplicateId);
-                        return callback(error);
-                    }
-                    else {
-                        return callback(err);
-                    }
-                }
-                else {
-                    return callback(null, savedDocument);
-                }
-            });
-        }
-    });
-};
-
-exports.delete = function (teamId, callback) {
-    if (!teamId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'teamId';
-        return callback(error);
     }
 
-    Team.findOneAndRemove({ 'id': teamId }, function (err, team) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: userAccount is null if not found
-            return callback(null, team);
-        }
-    });
-};
+    async updateFull(teamId, data) {
+        return await this.repository.updateFull(teamId, data);
+    }
 
-exports.retrieveAllUsers = function(teamId, options, callback) {
-  if (!teamId) {
-      const error = new Error(errors.missingParameter);
-      error.parameterName = 'teamId';
-      return callback(error);
-  }
-  Team.findOne({ 'id': teamId })
-      .lean()
-      .exec(function (err, team) {
-          if (err) {
-              if (err.name === 'CastError') {
-                  const error = new Error(errors.badlyFormattedParameter);
-                  error.parameterName = 'teamId';
-                  return callback(error);
-              } else {
-                  return callback(err);
-              }
-          } else {
-              if (!team) {
-                const error = new Error(errors.notFound);
-                return callback(error);
-              }
-              const matchQuery = {'id': {$in: team.userIDs}};
-              const aggregation = [
+    async delete(teamId) {
+        if (!teamId) {
+            throw new MissingParameterError;
+        }
+
+        const team = await this.repository.model.findOneAndRemove({ 'id': teamId });
+            //Note: userAccount is null if not found
+        return team;
+
+    }
+
+    async retrieveAllUsers(teamId, options) {
+        if (!teamId) {
+            throw new MissingParameterError('teamId');
+        }
+
+        try {
+            const team = await this.repository.model.findOne({ 'id': teamId })
+                .lean()
+                .exec();
+            if (!team) {
+                throw new NotFoundError;
+            }
+            const matchQuery = {'id': {$in: team.userIDs}};
+            const aggregation = [
                 { $sort: { 'username': 1 } },
                 { $match: matchQuery }
-              ];
-              if (typeof options.search !== 'undefined') {
+            ];
+            if (typeof options.search !== 'undefined') {
                 options.search = regexValidator.sanitizeRegex(options.search);
                 const match = { $match: { $or: [
                             { 'username': { '$regex': options.search, '$options': 'i' }},
@@ -241,55 +117,67 @@ exports.retrieveAllUsers = function(teamId, options, callback) {
                             { 'displayName': { '$regex': options.search, '$options': 'i' }}
                         ]}};
                 aggregation.push(match);
-              }
-              const facet = {
-                  $facet: {
-                      totalCount: [ { $count: 'totalCount' }],
-                      documents: [ ]
-                  }
-              };
-              if (options.offset) {
-                  facet.$facet.documents.push({ $skip: options.offset });
-              }
-              else {
-                  facet.$facet.documents.push({ $skip: 0 });
-              }
-              if (options.limit) {
-                  facet.$facet.documents.push({ $limit: options.limit });
-              }
-              aggregation.push(facet);
-              UserAccount.aggregate(aggregation, function(err, results) {
-                if (err) {
-                    return callback(err);
+            }
+            const facet = {
+                $facet: {
+                    totalCount: [ { $count: 'totalCount' }],
+                    documents: [ ]
                 }
-                else {
-                    const userAccounts = results[0].documents;
-                    userAccounts.forEach(userAccount => {
-                        addEffectiveRole(userAccount);
-                        if (options.includeStixIdentity) {
-                            userAccount.identity = userAccountAsIdentity(userAccount);
-                        }
-                    });
-        
-                    if (options.includePagination) {
-                        let derivedTotalCount = 0;
-                        if (results[0].totalCount.length > 0) {
-                            derivedTotalCount = results[0].totalCount[0].totalCount;
-                        }
-                        const returnValue = {
-                            pagination: {
-                                total: derivedTotalCount,
-                                offset: options.offset,
-                                limit: options.limit
-                            },
-                            data: userAccounts
-                        };
-                        return callback(null, returnValue);
-                    } else {
-                        return callback(null, userAccounts);
+            };
+            if (options.offset) {
+                facet.$facet.documents.push({ $skip: options.offset });
+            }
+            else {
+                facet.$facet.documents.push({ $skip: 0 });
+            }
+            if (options.limit) {
+                facet.$facet.documents.push({ $limit: options.limit });
+            }
+            aggregation.push(facet);
+            try {
+                const results = await UserAccount.aggregate(aggregation);
+                const userAccounts = results[0].documents;
+                userAccounts.forEach(userAccount => {
+                    userAccountsService.constructor.addEffectiveRole(userAccount);
+                    if (options.includeStixIdentity) {
+                        userAccount.identity = userAccountsService.constructor.userAccountAsIdentity(userAccount);
                     }
+                });
+
+                if (options.includePagination) {
+                    let derivedTotalCount = 0;
+                    if (results[0].totalCount.length > 0) {
+                        derivedTotalCount = results[0].totalCount[0].totalCount;
+                    }
+                    const returnValue = {
+                        pagination: {
+                            total: derivedTotalCount,
+                            offset: options.offset,
+                            limit: options.limit
+                        },
+                        data: userAccounts
+                    };
+                    return returnValue;
+                } else {
+                    return userAccounts;
                 }
-            });
-          }
-      });
-};
+            }
+            catch (err) {
+                if (err.name === 'CastError') {
+                    throw new BadlyFormattedParameterError("teamId");
+                } else {
+                    throw err;
+                }
+            }
+        }
+        catch (err) {
+            if (err.name === 'CastError') {
+                throw new BadlyFormattedParameterError("teamId");
+            } else {
+                throw err;
+            }
+        }
+    }
+}
+
+module.exports = new TeamsService(null, teamsRepository);

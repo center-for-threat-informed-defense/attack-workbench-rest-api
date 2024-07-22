@@ -32,6 +32,18 @@ class DuplicateIdError extends CustomError {
     }
 }
 
+class DuplicateEmailError extends CustomError {
+    constructor(options) {
+        super('Duplicate email', options);
+    }
+}
+
+class DuplicateNameError extends CustomError {
+    constructor(options) {
+        super('Duplicate name', options);
+    }
+}
+
 class NotFoundError extends CustomError {
     constructor(options) {
         super('Document not found', options);
@@ -41,6 +53,12 @@ class NotFoundError extends CustomError {
 class InvalidQueryStringParameterError extends CustomError {
     constructor(options) {
         super('Invalid query string parameter', options);
+    }
+}
+
+class CannotUpdateStaticObjectError extends CustomError {
+    constructor(options) {
+        super('Cannot update static object', options);
     }
 }
 
@@ -81,6 +99,54 @@ class NotImplementedError extends CustomError {
     }
 }
 
+class PropertyNotAllowedError extends CustomError {
+    constructor(propertyName, options) {
+        super(`Unable to create software, property ${propertyName} is not allowed`, options);
+    }
+}
+
+class SystemConfigurationNotFound extends CustomError {
+    constructor(options) {
+        super(`System configuration not found`, options);
+    }
+}
+
+class OrganizationIdentityNotSetError extends CustomError {
+    constructor(options) {
+        super(`Organization identity not set`, options);
+    }
+}
+
+class DefaultMarkingDefinitionsNotFoundError extends CustomError {
+    constructor(options) {
+        super(`Default marking definitions not found`, options);
+    }
+}
+
+class OrganizationIdentityNotFoundError extends CustomError {
+    constructor(identityRef, options) {
+        super(`Identity with id ${ identityRef } not found`, options);
+    }
+}
+
+class AnonymousUserAccountNotSetError extends CustomError {
+    constructor(options) {
+        super(`Anonymous user account not set`, options);
+    }
+}
+
+class AnonymousUserAccountNotFoundError extends CustomError {
+    constructor(userAccountid, options) {
+        super(`Anonymous user account ${ userAccountid } not found`, options);
+    }
+}
+
+class InvalidTypeError extends CustomError {
+    constructor(options) {
+        super('Invalid stix.type', options);
+    }
+}
+
 module.exports = {
 
     //** General errors */
@@ -90,9 +156,12 @@ module.exports = {
     MissingParameterError,
     BadlyFormattedParameterError,
     InvalidQueryStringParameterError,
+    CannotUpdateStaticObjectError,
     
     //** Database-related errors */
     DuplicateIdError,
+    DuplicateEmailError,
+    DuplicateNameError,
     NotFoundError,
     DatabaseError,
     
@@ -101,4 +170,13 @@ module.exports = {
     IdentityServiceError,
     TechniquesServiceError,
     TacticsServiceError,
+    PropertyNotAllowedError,
+    SystemConfigurationNotFound,
+    DefaultMarkingDefinitionsNotFoundError,
+    OrganizationIdentityNotSetError,
+    OrganizationIdentityNotFoundError,
+    AnonymousUserAccountNotSetError,
+    AnonymousUserAccountNotFoundError,
+
+    InvalidTypeError,
 };
