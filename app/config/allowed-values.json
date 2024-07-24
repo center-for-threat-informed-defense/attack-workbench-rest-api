@@ -18,7 +18,9 @@
               "SaaS",
               "IaaS",
               "Google Workspace",
-              "Containers"
+              "Containers",
+              "Identity as a Service",
+              "Office Suite"
             ]
           },
           {
@@ -163,7 +165,9 @@
               "Azure AD",
               "IaaS",
               "SaaS",
-              "Containers"
+              "Containers",
+              "Identity as a Service",
+              "Office Suite"
             ]
           },
           {
@@ -238,7 +242,9 @@
               "SaaS",
               "Office 365",
               "Google Workspace",
-              "Network"
+              "Network",
+              "Identity as a Service",
+              "Office Suite"
             ]
           },
           {
