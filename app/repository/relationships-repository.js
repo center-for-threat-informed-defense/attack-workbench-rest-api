@@ -1,10 +1,9 @@
-'use strict'
+'use strict';
 
-import BaseRepository from './_base.repository';
-import RelationshipModel from '../models/relationship-model';
-import { lastUpdatedByQueryHelper } from '../lib/request-parameter-helper';
-
-import { BadlyFormattedParameterError, DatabaseError, DuplicateIdError } from '../exceptions';
+const BaseRepository = require('./_base.repository');
+const RelationshipModel = require('../models/relationship-model');
+const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
+const { BadlyFormattedParameterError, DatabaseError, DuplicateIdError } = require('../exceptions');
 
 
 class RelationshipsRepository extends BaseRepository {

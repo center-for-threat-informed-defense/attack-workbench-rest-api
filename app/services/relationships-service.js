@@ -1,13 +1,19 @@
 'use strict';
 
 const uuid = require('uuid');
+
 const BaseService = require('./_base.service');
-const relationshipsRepository = require('../repositories/relationships-repository');
+
+const relationshipsRepository = require('../repository/relationships-repository');
+
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
 const attackObjectsService = require('./attack-objects-service');
+
 const config = require('../config/config');
+
 const { MissingParameterError, InvalidQueryStringParameterError } = require('../exceptions');
+
 
 class RelationshipsService extends BaseService {
 

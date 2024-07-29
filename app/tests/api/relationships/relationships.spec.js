@@ -62,198 +62,139 @@ describe('Relationships API', function () {
         passportCookie = await login.loginAnonymous(app);
     });
 
-    it('GET /api/relationships returns an empty array of relationships', function (done) {
-        request(app)
+    it('GET /api/relationships returns an empty array of relationships', async function () {
+        const response = await request(app)
             .get('/api/relationships')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get an empty array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(0);
     });
 
-    it('POST /api/relationships does not create an empty relationship', function (done) {
-        const body = { };
-        request(app)
+    it('POST /api/relationships does not create an empty relationship', async function () {
+        const body = {};
+        await request(app)
             .post('/api/relationships')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(400)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(400);
     });
 
     let relationship1a;
-    it('POST /api/relationships creates a relationship', function (done) {
+    it('POST /api/relationships creates a relationship', async function () {
         const timestamp = new Date().toISOString();
         initialObjectData.stix.created = timestamp;
         initialObjectData.stix.modified = timestamp;
         const body = initialObjectData;
-        request(app)
+
+        const response = await request(app)
             .post('/api/relationships')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created relationship
-                    relationship1a = res.body;
-                    expect(relationship1a).toBeDefined();
-                    expect(relationship1a.stix).toBeDefined();
-                    expect(relationship1a.stix.id).toBeDefined();
-                    expect(relationship1a.stix.created).toBeDefined();
-                    expect(relationship1a.stix.modified).toBeDefined();
-                    expect(relationship1a.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+            .expect('Content-Type', /json/);
 
-                    done();
-                }
-            });
+        relationship1a = response.body;
+        expect(relationship1a).toBeDefined();
+        expect(relationship1a.stix).toBeDefined();
+        expect(relationship1a.stix.id).toBeDefined();
+        expect(relationship1a.stix.created).toBeDefined();
+        expect(relationship1a.stix.modified).toBeDefined();
+        expect(relationship1a.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
     });
 
-    it('GET /api/relationships returns the added relationship', function (done) {
-        request(app)
+    it('GET /api/relationships returns the added relationship', async function () {
+        const response = await request(app)
             .get('/api/relationships')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(1);
     });
 
-    it('GET /api/relationships/:id should not return a relationship when the id cannot be found', function (done) {
-        request(app)
+    it('GET /api/relationships/:id should not return a relationship when the id cannot be found', async function () {
+        await request(app)
             .get('/api/relationships/not-an-id')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(404);
     });
 
-    it('GET /api/relationships/:id returns the added relationship', function (done) {
-        request(app)
+    it('GET /api/relationships/:id returns the added relationship', async function () {
+        const response = await request(app)
             .get('/api/relationships/' + relationship1a.stix.id)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(1);
+            .expect('Content-Type', /json/);
 
-                    const relationship = relationships[0];
-                    expect(relationship).toBeDefined();
-                    expect(relationship.stix).toBeDefined();
-                    expect(relationship.stix.id).toBe(relationship1a.stix.id);
-                    expect(relationship.stix.type).toBe(relationship1a.stix.type);
-                    expect(relationship.stix.name).toBe(relationship1a.stix.name);
-                    expect(relationship.stix.description).toBe(relationship1a.stix.description);
-                    expect(relationship.stix.spec_version).toBe(relationship1a.stix.spec_version);
-                    expect(relationship.stix.object_marking_refs).toEqual(expect.arrayContaining(relationship1a.stix.object_marking_refs));
-                    expect(relationship.stix.created_by_ref).toBe(relationship1a.stix.created_by_ref);
-                    expect(relationship.stix.x_mitre_attack_spec_version).toBe(relationship1a.stix.x_mitre_attack_spec_version);
+        // We expect to get one relationship in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(1);
 
-                    done();
-                }
-            });
+        const relationship = relationships[0];
+        expect(relationship).toBeDefined();
+        expect(relationship.stix).toBeDefined();
+        expect(relationship.stix.id).toBe(relationship1a.stix.id);
+        expect(relationship.stix.type).toBe(relationship1a.stix.type);
+        expect(relationship.stix.name).toBe(relationship1a.stix.name);
+        expect(relationship.stix.description).toBe(relationship1a.stix.description);
+        expect(relationship.stix.spec_version).toBe(relationship1a.stix.spec_version);
+        expect(relationship.stix.object_marking_refs).toEqual(expect.arrayContaining(relationship1a.stix.object_marking_refs));
+        expect(relationship.stix.created_by_ref).toBe(relationship1a.stix.created_by_ref);
+        expect(relationship.stix.x_mitre_attack_spec_version).toBe(relationship1a.stix.x_mitre_attack_spec_version);
     });
 
-    it('PUT /api/relationships updates a relationship', function (done) {
+    it('PUT /api/relationships updates a relationship', async function () {
         const originalModified = relationship1a.stix.modified;
         const timestamp = new Date().toISOString();
         relationship1a.stix.modified = timestamp;
         relationship1a.stix.description = 'This is an updated relationship.'
         const body = relationship1a;
-        request(app)
+
+        const response = await request(app)
             .put('/api/relationships/' + relationship1a.stix.id + '/modified/' + originalModified)
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the updated relationship
-                    const relationship = res.body;
-                    expect(relationship).toBeDefined();
-                    expect(relationship.stix.id).toBe(relationship1a.stix.id);
-                    expect(relationship.stix.modified).toBe(relationship1a.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the updated relationship
+        const relationship = response.body;
+        expect(relationship).toBeDefined();
+        expect(relationship.stix.id).toBe(relationship1a.stix.id);
+        expect(relationship.stix.modified).toBe(relationship1a.stix.modified);
     });
 
-    it('POST /api/relationships does not create a relationship with the same id and modified date', function (done) {
+    it('POST /api/relationships does not create a relationship with the same id and modified date', async function () {
         const body = relationship1a;
-        request(app)
+        await request(app)
             .post('/api/relationships')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(409)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(409);
     });
 
     let relationship1b;
-    it('POST /api/relationships should create a new version of a relationship with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/relationships should create a new version of a relationship with a duplicate stix.id but different stix.modified date', async function () {
         relationship1b = _.cloneDeep(relationship1a);
         relationship1b._id = undefined;
         relationship1b.__t = undefined;
@@ -261,28 +202,22 @@ describe('Relationships API', function () {
         const timestamp = new Date().toISOString();
         relationship1b.stix.modified = timestamp;
         const body = relationship1b;
-        request(app)
+
+        const response = await request(app)
             .post('/api/relationships')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created relationship
-                    const relationship = res.body;
-                    expect(relationship).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created relationship
+        const relationship = response.body;
+        expect(relationship).toBeDefined();
     });
     
     let relationship1c;
-    it('POST /api/relationships should create a new version of a relationship with a duplicate stix.id but different stix.modified date', function (done) {
+    it('POST /api/relationships should create a new version of a relationship with a duplicate stix.id but different stix.modified date', async function () {
         relationship1c = _.cloneDeep(relationship1a);
         relationship1c._id = undefined;
         relationship1c.__t = undefined;
@@ -290,411 +225,273 @@ describe('Relationships API', function () {
         const timestamp = new Date().toISOString();
         relationship1c.stix.modified = timestamp;
         const body = relationship1c;
-        request(app)
+
+        const response = await request(app)
             .post('/api/relationships')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created relationship
-                    const relationship = res.body;
-                    expect(relationship).toBeDefined();
-                    done();
-                }
-            });
-    });
-    
+            .expect('Content-Type', /json/);
 
-    it('GET /api/relationships returns the latest added relationship', function (done) {
-        request(app)
+        // We expect to get the created relationship
+        const relationship = response.body;
+        expect(relationship).toBeDefined();
+    });
+
+    it('GET /api/relationships returns the latest added relationship', async function () {
+        const response = await request(app)
             .get('/api/relationships')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(1);
-                    const relationship = relationships[0];
-                    expect(relationship.stix.id).toBe(relationship1c.stix.id);
-                    expect(relationship.stix.modified).toBe(relationship1c.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(1);
+        const relationship = relationships[0];
+        expect(relationship.stix.id).toBe(relationship1c.stix.id);
+        expect(relationship.stix.modified).toBe(relationship1c.stix.modified);
     });
 
-    it('GET /api/relationships returns all added relationships', function (done) {
-        request(app)
+    it('GET /api/relationships returns all added relationships', async function () {
+        const response = await request(app)
             .get('/api/relationships?versions=all')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get two relationships in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get two relationships in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(3);
     });
 
-    it('GET /api/relationships/:stixId returns the latest added relationship', function (done) {
-        request(app)
+    it('GET /api/relationships/:stixId returns the latest added relationship', async function () {
+        const response = await request(app)
             .get('/api/relationships/' + relationship1b.stix.id)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(1);
-                    const relationship = relationships[0];
-                    expect(relationship.stix.id).toBe(relationship1c.stix.id);
-                    expect(relationship.stix.modified).toBe(relationship1c.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(1);
+        const relationship = relationships[0];
+        expect(relationship.stix.id).toBe(relationship1c.stix.id);
+        expect(relationship.stix.modified).toBe(relationship1c.stix.modified);
     });
 
-    it('GET /api/relationships/:stixId returns all added relationships', function (done) {
-        request(app)
+    it('GET /api/relationships/:stixId returns all added relationships', async function () {
+        const response = await request(app)
             .get('/api/relationships/' + relationship1a.stix.id + '?versions=all')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get two relationships in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(3);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get two relationships in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(3);
     });
 
-    it('GET /api/relationships/:id/modified/:modified returns the first added relationship', function (done) {
-        request(app)
+    it('GET /api/relationships/:id/modified/:modified returns the first added relationship', async function () {
+        const response = await request(app)
             .get('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationship = res.body;
-                    expect(relationship).toBeDefined();
-                    expect(relationship.stix).toBeDefined();
-                    expect(relationship.stix.id).toBe(relationship1a.stix.id);
-                    expect(relationship.stix.modified).toBe(relationship1a.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationship = response.body;
+        expect(relationship).toBeDefined();
+        expect(relationship.stix).toBeDefined();
+        expect(relationship.stix.id).toBe(relationship1a.stix.id);
+        expect(relationship.stix.modified).toBe(relationship1a.stix.modified);
     });
 
-    it('GET /api/relationships/:id/modified/:modified returns the second added relationship', function (done) {
-        request(app)
+    it('GET /api/relationships/:id/modified/:modified returns the second added relationship', async function () {
+        const response = await request(app)
             .get('/api/relationships/' + relationship1b.stix.id + '/modified/' + relationship1b.stix.modified)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationship = res.body;
-                    expect(relationship).toBeDefined();
-                    expect(relationship.stix).toBeDefined();
-                    expect(relationship.stix.id).toBe(relationship1b.stix.id);
-                    expect(relationship.stix.modified).toBe(relationship1b.stix.modified);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationship = response.body;
+        expect(relationship).toBeDefined();
+        expect(relationship.stix).toBeDefined();
+        expect(relationship.stix.id).toBe(relationship1b.stix.id);
+        expect(relationship.stix.modified).toBe(relationship1b.stix.modified);
     });
 
     let relationship2;
-    it('POST /api/relationships creates a relationship', function (done) {
+    it('POST /api/relationships creates a relationship', async function () {
         const timestamp = new Date().toISOString();
         initialObjectData.stix.created = timestamp;
         initialObjectData.stix.modified = timestamp;
         initialObjectData.stix.source_ref = sourceRef2;
         initialObjectData.stix.target_ref = targetRef2;
         const body = initialObjectData;
-        request(app)
+
+        const response = await request(app)
             .post('/api/relationships')
             .send(body)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(201)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the created relationship
-                    relationship2 = res.body;
-                    expect(relationship2).toBeDefined();
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get the created relationship
+        relationship2 = response.body;
+        expect(relationship2).toBeDefined();
     });
 
-    it('GET /api/relationships returns the (latest) relationship matching a source_ref', function (done) {
-        request(app)
+    it('GET /api/relationships returns the (latest) relationship matching a source_ref', async function () {
+        const response = await request(app)
             .get('/api/relationships?sourceRef=' + sourceRef1)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(1);
     });
 
-    it('GET /api/relationships returns the (latest) relationship matching a target_ref', function (done) {
-        request(app)
+    it('GET /api/relationships returns the (latest) relationship matching a target_ref', async function () {
+        const response = await request(app)
             .get('/api/relationships?targetRef=' + targetRef1)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(1);
     });
 
-    it('GET /api/relationships returns the (latest) relationship matching a sourceOrTargetRef', function (done) {
-        request(app)
+    it('GET /api/relationships returns the (latest) relationship matching a sourceOrTargetRef', async function () {
+        const response = await request(app)
             .get('/api/relationships?sourceOrTargetRef=' + sourceRef1)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(1);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(1);
     });
 
-    it('GET /api/relationships returns zero relationships for a non-matching source_ref', function (done) {
-        request(app)
+    it('GET /api/relationships returns zero relationships for a non-matching source_ref', async function () {
+        const response = await request(app)
             .get('/api/relationships?sourceRef=' + sourceRef3)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get zero relationships in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get zero relationships in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(0);
     });
 
-    it('GET /api/relationships returns zero relationships for a non-matching target_ref', function (done) {
-        request(app)
+    it('GET /api/relationships returns zero relationships for a non-matching target_ref', async function () {
+        const response = await request(app)
             .get('/api/relationships?targetRef=' + targetRef3)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(0);
     });
 
-    it('GET /api/relationships returns zero relationships for a non-matching sourceOrTargetRef', function (done) {
-        request(app)
+    it('GET /api/relationships returns zero relationships for a non-matching sourceOrTargetRef', async function () {
+        const response = await request(app)
             .get('/api/relationships?sourceOrTargetRef=' + sourceRef3)
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get one relationship in an array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        // We expect to get one relationship in an array
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(0);
     });
 
-    it('DELETE /api/relationships/:id should not delete a relationship when the id cannot be found', function (done) {
-        request(app)
+    it('DELETE /api/relationships/:id should not delete a relationship when the id cannot be found', async function () {
+        await request(app)
             .delete('/api/relationships/not-an-id')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(404)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(404);
     });
 
-    it('DELETE /api/relationships/:id/modified/:modified deletes a relationship', function (done) {
-        request(app)
+    it('DELETE /api/relationships/:id/modified/:modified deletes a relationship', async function () {
+        await request(app)
             .delete('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified)
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(204);
     });
     
-    it('DELETE /api/relationships/:id should delete all the relationships with the same stix id', function (done) {
-        request(app)
+    it('DELETE /api/relationships/:id should delete all the relationships with the same stix id', async function () {
+        await request(app)
             .delete('/api/relationships/' + relationship1b.stix.id)
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(204);
     });    
 
-    it('DELETE /api/relationships should delete the third relationship', function (done) {
-        request(app)
+    it('DELETE /api/relationships should delete the third relationship', async function () {
+        await request(app)
             .delete('/api/relationships/' + relationship2.stix.id + '/modified/' + relationship2.stix.modified)
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-            .expect(204)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    done();
-                }
-            });
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+            .expect(204);
     });
 
-    it('GET /api/relationships returns an empty array of relationships', function (done) {
-        request(app)
+    it('GET /api/relationships returns an empty array of relationships', async function () {
+        const response = await request(app)
             .get('/api/relationships')
             .set('Accept', 'application/json')
-            .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
+            .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
             .expect(200)
-            .expect('Content-Type', /json/)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get an empty array
-                    const relationships = res.body;
-                    expect(relationships).toBeDefined();
-                    expect(Array.isArray(relationships)).toBe(true);
-                    expect(relationships.length).toBe(0);
-                    done();
-                }
-            });
+            .expect('Content-Type', /json/);
+
+        const relationships = response.body;
+        expect(relationships).toBeDefined();
+        expect(Array.isArray(relationships)).toBe(true);
+        expect(relationships.length).toBe(0);
     });
 
     after(async function() {
         await database.closeConnection();
     });
 });
-
