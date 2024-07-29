@@ -3,27 +3,27 @@
 const BaseRepository = require('./_base.repository');
 const RelationshipModel = require('../models/relationship-model');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
-const { BadlyFormattedParameterError, DatabaseError, DuplicateIdError } = require('../exceptions');
+const { DatabaseError } = require('../exceptions');
 
 
 class RelationshipsRepository extends BaseRepository {
 
     async retrieveAll(options) {
-        const query = this._buildQuery(options);
-        const aggregation = this._buildAggregation(options, query);
+        const query = RelationshipsRepository._buildQuery(options);
+        const aggregation = RelationshipsRepository._buildAggregation(options, query);
 
         if (options.lookupRefs) {
-            this._addLookupStages(aggregation);
+            RelationshipsRepository._addLookupStages(aggregation);
         }
         try {
             const results = await this.model.aggregate(aggregation);
-            return this._applyFilters(results, options);
+            return RelationshipsRepository._applyFilters(results, options);
         } catch (err) {
             throw new DatabaseError(err);
         }
     }
 
-    _buildQuery(options) {
+    static _buildQuery(options) {
         const query = {};
         if (!options.includeRevoked) {
             query['stix.revoked'] = { $in: [null, false] };
@@ -52,7 +52,7 @@ class RelationshipsRepository extends BaseRepository {
         return query;
     }
 
-    _buildAggregation(options, query) {
+    static _buildAggregation(options, query) {
         const aggregation = [];
         if (options.versions === 'latest') {
             aggregation.push(
@@ -68,7 +68,7 @@ class RelationshipsRepository extends BaseRepository {
         return aggregation;
     }
 
-    _addLookupStages(aggregation) {
+    static _addLookupStages(aggregation) {
         aggregation.push(
             {
                 $lookup: {
@@ -89,7 +89,7 @@ class RelationshipsRepository extends BaseRepository {
         );
     }
 
-    _applyFilters(results, options) {
+    static _applyFilters(results, options) {
         const objectTypeMap = new Map([
             ['malware', 'software'],
             ['tool', 'software'],
