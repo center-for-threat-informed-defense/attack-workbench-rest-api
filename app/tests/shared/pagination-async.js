@@ -24,6 +24,7 @@ class PaginationTests {
 
         this.options.stateQuery = options.state ? `&state=${options.state}` : '';
     }
+
     async loadObjects() {
         // Initialize the data
         for (let i = 0; i < this.options.numberOfObjects; i++) {
@@ -42,6 +43,7 @@ class PaginationTests {
             }
         }
     }
+
     executeTests() {
         const self = this;
 
@@ -141,7 +143,7 @@ class PaginationTests {
 
             const pageSizeList = [5, 10, 20];
             const offset = 10;
-            pageSizeList.forEach((pageSize) => {
+            pageSizeList.forEach(pageSize => {
                 it(`GET ${self.options.baseUrl} returns a page of preloaded objects`, async function () {
                     const response = await request(app)
                         .get(`${self.options.baseUrl}?offset=${offset}&limit=${pageSize}${self.options.stateQuery}`)
