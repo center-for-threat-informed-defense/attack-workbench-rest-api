@@ -25,7 +25,7 @@ class RecentActivityService extends BaseService {
         if (options.includePagination) {
             return {
                 pagination: {
-                    total: allDocuments.length,
+                    total: documents.length,
                     offset: options.offset,
                     limit: options.limit
                 },
