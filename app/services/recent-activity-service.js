@@ -13,10 +13,10 @@ class RecentActivityService extends BaseService {
         documents.sort((a, b) => b.stix.modified - a.stix.modified);
 
         // Process source and target objects
-        this._processSourceTargetObjects(documents);
+        RecentActivityService._processSourceTargetObjects(documents);
 
         // Apply pagination
-        const paginatedDocuments = this._applyPagination(documents, options);
+        const paginatedDocuments = RecentActivityService._applyPagination(documents, options);
 
         // Add identities
         await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(paginatedDocuments);
@@ -36,7 +36,7 @@ class RecentActivityService extends BaseService {
         }
     }
 
-    _processSourceTargetObjects(documents) {
+    static _processSourceTargetObjects(documents) {
         for (const document of documents) {
             if (Array.isArray(document.source_objects)) {
                 document.source_object = document.source_objects.length > 0 ? document.source_objects[0] : undefined;
@@ -50,7 +50,7 @@ class RecentActivityService extends BaseService {
         }
     }
 
-    _applyPagination(documents, options) {
+    static _applyPagination(documents, options) {
         const offset = options.offset ?? 0;
         const limit = options.limit ?? 0;
 
