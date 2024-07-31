@@ -15,8 +15,8 @@ class RecentActivityRepository extends BaseRepository {
     }
 
     async retrieveAll(options) {
-        const query = this._buildQuery(options);
-        const aggregation = this._buildAggregation(options, query);
+        const query = RecentActivityRepository._buildQuery(options);
+        const aggregation = RecentActivityRepository._buildAggregation(options, query);
 
         const objectDocuments = await this.attackModel.aggregate(aggregation);
         const relationshipDocuments = await this.relationshipModel.aggregate(aggregation);
@@ -24,7 +24,7 @@ class RecentActivityRepository extends BaseRepository {
         return objectDocuments.concat(relationshipDocuments);
     }
 
-    _buildQuery(options) {
+    static _buildQuery(options) {
         const query = {};
         if (!options.includeRevoked) {
             query['stix.revoked'] = { $in: [null, false] };
@@ -39,7 +39,7 @@ class RecentActivityRepository extends BaseRepository {
         return query;
     }
 
-    _buildAggregation(options, query) {
+    static _buildAggregation(options, query) {
         const aggregation = [
             { $sort: { 'stix.modified': -1 } },
             { $match: query }

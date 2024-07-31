@@ -3,7 +3,6 @@
 const BaseService = require('./_base.service');
 const recentActivityRepository = require('../repository/recent-activity-repository');
 const identitiesService = require('./identities-service');
-const { MissingParameterError, BadlyFormattedParameterError, NotFoundError, InvalidQueryStringParameterError } = require('../exceptions');
 
 class RecentActivityService extends BaseService {
 
