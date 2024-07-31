@@ -1,5 +1,5 @@
 const relationshipsService = require('../../../services/relationships-service');
-const PaginationTests = require('../../shared/pagination');
+const PaginationTests = require('../../shared/pagination-async');
 
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
