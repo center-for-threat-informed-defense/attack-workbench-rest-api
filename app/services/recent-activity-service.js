@@ -1,142 +1,66 @@
 'use strict';
 
-const AttackObject = require('../models/attack-object-model');
-const Relationship = require('../models/relationship-model');
-const identitiesService = require('./identities-service');
-
-const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
-
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter',
-    duplicateCollection: 'Duplicate collection'
-};
-exports.errors = errors;
-
-const recentActivityRepository = require('../repository/recent-activity-repository');
-
 const BaseService = require('./_base.service');
+const recentActivityRepository = require('../repository/recent-activity-repository');
+const identitiesService = require('./identities-service');
+const { MissingParameterError, BadlyFormattedParameterError, NotFoundError, InvalidQueryStringParameterError } = require('../exceptions');
 
 class RecentActivityService extends BaseService {
 
-    constructor() {
-        super(recentActivityRepository, AttackObject);
-
-        this.AttackObj = AttackObject;
-        this.Relational = Relationship;
-    }
-
     async retrieveAll(options) {
-        // Build the query
-        const query = {};
-        if (!options.includeRevoked) {
-            query['stix.revoked'] = { $in: [null, false] };
-        }
-        if (!options.includeDeprecated) {
-            query['stix.x_mitre_deprecated'] = { $in: [null, false] };
-        }
-        if (typeof options.lastUpdatedBy !== 'undefined') {
-            query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
-        }
-
-        // Filter out objects without modified dates (incl. Marking Definitions & Identities)
-        query['stix.modified'] = { $exists: true };
-
-        // Build the aggregation
-        const aggregation = [];
-
-        // Sort objects by last modified
-        aggregation.push({ $sort: { 'stix.modified': -1 } });
-
-        // Limit documents to prevent memory issues
-        const limit = options.limit ?? 0;
-        if (limit) {
-            aggregation.push({ $limit: limit });
-        }
-
-        // Then apply query, skip and limit options
-        aggregation.push({ $match: query });
-
-        // Retrieve the documents
-        const objectDocuments = await this.AttackObj.aggregate(aggregation);
-
-        // Lookup source/target refs for relationships
-        aggregation.push({
-            $lookup: {
-                from: 'attackObjects',
-                localField: 'stix.source_ref',
-                foreignField: 'stix.id',
-                as: 'source_objects'
-            }
-        });
-        aggregation.push({
-            $lookup: {
-                from: 'attackObjects',
-                localField: 'stix.target_ref',
-                foreignField: 'stix.id',
-                as: 'target_objects'
-            }
-        });
-        const relationshipDocuments = await this.Relational.aggregate(aggregation);
-        const documents = objectDocuments.concat(relationshipDocuments);
+        const documents = await this.repository.retrieveAll(options);
 
         // Sort by most recent
         documents.sort((a, b) => b.stix.modified - a.stix.modified);
 
-        // Move latest source and target objects to a non-array property, then remove array of source and target objects
-        for (const document of documents) {
-            if (Array.isArray(document.source_objects)) {
-                if (document.source_objects.length === 0) {
-                    document.source_objects = undefined;
-                }
-                else {
-                    document.source_object = document.source_objects[0];
-                    document.source_objects = undefined;
-                }
-            }
-
-            if (Array.isArray(document.target_objects)) {
-                if (document.target_objects.length === 0) {
-                    document.target_objects = undefined;
-                }
-                else {
-                    document.target_object = document.target_objects[0];
-                    document.target_objects = undefined;
-                }
-            }
-        }
+        // Process source and target objects
+        this._processSourceTargetObjects(documents);
 
         // Apply pagination
-        const offset = options.offset ?? 0;
-        let paginatedDocuments;
-        if (limit > 0) {
-            paginatedDocuments = documents.slice(offset, offset + limit);
-        }
-        else {
-            paginatedDocuments = documents.slice(offset);
-        }
+        const paginatedDocuments = this._applyPagination(documents, options);
 
         // Add identities
         await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(paginatedDocuments);
 
         // Prepare the return value
         if (options.includePagination) {
-            const returnValue = {
+            return {
                 pagination: {
-                    total: documents.length,
+                    total: allDocuments.length,
                     offset: options.offset,
                     limit: options.limit
                 },
                 data: paginatedDocuments
             };
-            return returnValue;
-        }
-        else {
+        } else {
             return paginatedDocuments;
         }
     }
+
+    _processSourceTargetObjects(documents) {
+        for (const document of documents) {
+            if (Array.isArray(document.source_objects)) {
+                document.source_object = document.source_objects.length > 0 ? document.source_objects[0] : undefined;
+                delete document.source_objects;
+            }
+
+            if (Array.isArray(document.target_objects)) {
+                document.target_object = document.target_objects.length > 0 ? document.target_objects[0] : undefined;
+                delete document.target_objects;
+            }
+        }
+    }
+
+    _applyPagination(documents, options) {
+        const offset = options.offset ?? 0;
+        const limit = options.limit ?? 0;
+
+        if (limit > 0) {
+            return documents.slice(offset, offset + limit);
+        } else {
+            return documents.slice(offset);
+        }
+    }
 }
-module.exports = new RecentActivityService();
+
+module.exports = new RecentActivityService('recent-activity', recentActivityRepository);
