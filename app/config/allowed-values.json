@@ -13,13 +13,10 @@
               "macOS",
               "Windows",
               "Network",
-              "Office 365",
-              "Azure AD",
               "SaaS",
               "IaaS",
-              "Google Workspace",
               "Containers",
-              "Identity as a Service",
+              "Identity Provider",
               "Office Suite"
             ]
           },
@@ -161,12 +158,10 @@
               "macOS",
               "Windows",
               "Network",
-              "Office 365",
-              "Azure AD",
               "IaaS",
               "SaaS",
               "Containers",
-              "Identity as a Service",
+              "Identity Provider",
               "Office Suite"
             ]
           },
@@ -235,15 +230,12 @@
             "allowedValues": [
               "Containers",
               "Windows",
-              "Azure AD",
               "Linux",
               "macOS",
               "IaaS",
               "SaaS",
-              "Office 365",
-              "Google Workspace",
               "Network",
-              "Identity as a Service",
+              "Identity Provider",
               "Office Suite"
             ]
           },
