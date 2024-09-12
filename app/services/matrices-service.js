@@ -274,7 +274,7 @@ exports.retrieveTechniquesForMatrix = function(stixId, modified, callback) {
                         for (const parentTechnique of parentTechniques) {
                             parentTechnique.subtechniques = [];
                             for (const subtechnique of subtechniques) {
-                                if (subtechnique.workspace.attack_id.split(".")[0]  === parentTechnique.workspace.attack_id) {
+                                if (subtechnique.workspace.attack_id && subtechnique.workspace.attack_id.split(".")[0]  === parentTechnique.workspace.attack_id) {
                                     parentTechnique.subtechniques.push(subtechnique);
                                 }
                             }
