@@ -110,7 +110,8 @@ function verifyClientCredentialsToken(token, decodedHeader, done) {
                 // Make sure the client is allowed to access the REST API
                 // Okta returns the client id in payload.cid
                 // Keycloak returns the client id in payload.clientId
-                clientId = payload.cid || payload.clientId;
+                // Newer versions of keycloak appear to return the client id in payload.client_id
+                clientId = payload.cid || payload.clientId || payload.client_id;
                 const clients = config.serviceAuthn.oidcClientCredentials.clients;
                 const client = clients.find(c => c.clientId === clientId);
                 if (!client) {
