@@ -65,6 +65,10 @@ const initialObjectData = {
                     "object_modified": "2020-06-03T20:22:40.401Z"
                 },
                 {
+                    "object_ref": "intrusion-set--ed0222fb-b970-4337-b9a2-62aeb02860e5",
+                    "object_modified": "2023-05-02T20:19:40.401Z"
+                },
+                {
                     "object_ref": "relationship--12098dee-27b3-4d0b-a15a-6b5955ba8879",
                     "object_modified": "2019-09-04T14:32:13.000Z"
                 },
@@ -74,6 +78,10 @@ const initialObjectData = {
                 },
                 {
                     "object_ref": "campaign--a3038910-f8ca-4ba8-b116-21d0f333f231",
+                    "object_modified": "2020-07-03T20:22:40.401Z"
+                },
+                {
+                    "object_ref": "campaign--649b389e-1f7a-4696-8a95-04d0851bd551",
                     "object_modified": "2020-07-03T20:22:40.401Z"
                 },
                 {
@@ -127,7 +135,15 @@ const initialObjectData = {
                 {
                     "object_ref": "relationship--a5a80c31-0dde-4fd7-a520-a7593d21c954",
                     "object_modified": "2021-06-08T14:00:00.000Z"
-                }
+                },
+                {
+                    "object_ref": "relationship--1e1c5e5a-2a3e-423f-b1d0-67b7dc5b90cc",
+                    "object_modified": "2023-06-08T14:00:00.000Z"
+                },
+                {
+                    "object_ref": "relationship--d5426745-9530-485e-a757-d8c540f600f8",
+                    "object_modified": "2021-06-06T14:00:00.000Z"
+                },
             ]
         },
         {
@@ -344,6 +360,30 @@ const initialObjectData = {
             x_mitre_version: "1.2"
         },
         {
+            type: "intrusion-set",
+            id: "intrusion-set--ed0222fb-b970-4337-b9a2-62aeb02860e5",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            name: "Another group",
+            description: "This is another group. It isn't referenced by a technique, but is associated with a campaign",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            external_references: [
+                {
+                    source_name: "mitre-attack",
+                    url: "https://attack.mitre.org/groups/G0999",
+                    external_id: "G0999"
+                }
+            ],
+            aliases: [
+                "Some group alias"
+            ],
+            modified: "2023-05-02T20:19:40.401Z",
+            created: "2018-10-17T00:19:20.652Z",
+            spec_version: "2.1",
+            x_mitre_version: "1.2"
+        },
+        {
             type: "campaign",
             id: "campaign--a3038910-f8ca-4ba8-b116-21d0f333f231",
             created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -361,6 +401,34 @@ const initialObjectData = {
                     source_name: "mitre-attack",
                     url: "https://attack.mitre.org/campaigns/C0001",
                     external_id: "C0001"
+                }
+            ],
+            aliases: [
+                "Another campaign name"
+            ],
+            modified: "2020-07-03T20:22:40.401Z",
+            created: "2018-11-17T00:14:20.652Z",
+            spec_version: "2.1",
+            x_mitre_version: "1.2"
+        },
+        {
+            type: "campaign",
+            id: "campaign--649b389e-1f7a-4696-8a95-04d0851bd551",
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            name: "campaign-2",
+            description: "This is another campaign",
+            first_seen: "2016-04-06T00:00:00.000Z",
+            last_seen: "2016-07-12T00:00:00.000Z",
+            x_mitre_first_seen_citation: "(Citation: Article 1)",
+            x_mitre_last_seen_citation: "(Citation: Article 2)",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            external_references: [
+                {
+                    source_name: "mitre-attack",
+                    url: "https://attack.mitre.org/campaigns/C0002",
+                    external_id: "C0002"
                 }
             ],
             aliases: [
@@ -538,6 +606,21 @@ const initialObjectData = {
             object_marking_refs: [
                 "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
             ],
+            source_ref: "campaign--649b389e-1f7a-4696-8a95-04d0851bd551",
+            target_ref: "attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483",
+            external_references: [],
+            description: "Campaign uses technique",
+            relationship_type: "uses",
+            id: "relationship--d5426745-9530-485e-a757-d8c540f600f8",
+            type: "relationship",
+            modified: "2021-06-06T14:00:00.000Z",
+            created: "2021-06-06T14:00:00.000Z",
+            spec_version: "2.1"
+        },        {
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
             source_ref: "campaign--a3038910-f8ca-4ba8-b116-21d0f333f231",
             target_ref: "malware--04227b24-7817-4de1-9050-b7b1b57f5866",
             external_references: [],
@@ -563,6 +646,22 @@ const initialObjectData = {
             type: "relationship",
             modified: "2021-06-08T14:00:00.000Z",
             created: "2021-06-08T14:00:00.000Z",
+            spec_version: "2.1"
+        },
+        {
+            created_by_ref: "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
+            object_marking_refs: [
+                "marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168"
+            ],
+            source_ref: "campaign--649b389e-1f7a-4696-8a95-04d0851bd551",
+            target_ref: "intrusion-set--ed0222fb-b970-4337-b9a2-62aeb02860e5",
+            external_references: [],
+            description: "Campaign attributed to group and is the only reference to the group",
+            relationship_type: "attributed-to",
+            id: "relationship--1e1c5e5a-2a3e-423f-b1d0-67b7dc5b90cc",
+            type: "relationship",
+            modified: "2023-06-08T14:00:00.000Z",
+            created: "2023-06-08T14:00:00.000Z",
             spec_version: "2.1"
         }
     ]
@@ -632,7 +731,7 @@ describe('STIX Bundles Basic API', function () {
                     // We expect to get the created collection object
                     const collection = res.body;
                     expect(collection).toBeDefined();
-                    expect(collection.workspace.import_categories.additions.length).toBe(24);
+                    expect(collection.workspace.import_categories.additions.length).toBe(initialObjectData.objects[0].x_mitre_contents.length);
                     expect(collection.workspace.import_categories.errors.length).toBe(0);
                     done();
                 }
@@ -751,9 +850,12 @@ describe('STIX Bundles Basic API', function () {
                     const stixBundle = res.body;
                     expect(stixBundle).toBeDefined();
                     expect(Array.isArray(stixBundle.objects)).toBe(true);
-                    // 2 primary objects, 2 relationship objects, 3 secondary object,
+                    // 3 primary objects, 5 relationship objects, 5 secondary objects,
                     // 1 identity, 1 marking definition
-                    expect(stixBundle.objects.length).toBe(9);
+                    expect(stixBundle.objects.length).toBe(15);
+
+                    const groupObjects = stixBundle.objects.filter(o => o.type === 'intrusion-set');
+                    expect(groupObjects.length).toBe(2);
 
                     done();
                 }

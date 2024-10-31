@@ -274,14 +274,14 @@ exports.retrieveTechniquesForMatrix = function(stixId, modified, callback) {
                         for (const parentTechnique of parentTechniques) {
                             parentTechnique.subtechniques = [];
                             for (const subtechnique of subtechniques) {
-                                if (subtechnique.workspace.attack_id.split(".")[0]  === parentTechnique.workspace.attack_id) {
+                                if (subtechnique.workspace.attack_id && subtechnique.workspace.attack_id.split(".")[0]  === parentTechnique.workspace.attack_id) {
                                     parentTechnique.subtechniques.push(subtechnique);
                                 }
                             }
                         }
                         // Add techniques to tactic & store tactic
                         tactic.techniques = parentTechniques;
-                        tacticsTechniques[tactic.stix.name] = tactic;
+                        tacticsTechniques[tactic.stix.id] = tactic;
                     }
                 }
                 return callback(null, tacticsTechniques);

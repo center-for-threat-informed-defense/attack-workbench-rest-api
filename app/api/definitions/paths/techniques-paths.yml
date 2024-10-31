@@ -80,7 +80,7 @@ paths:
         - name: search
           in: query
           description: |
-            Only return objects where the provided search text occurs in the `name` or `description`.
+            Only return objects where the provided search text occurs in the `attack_id`, `name`, or `description`.
             The search is case-insensitive.
           schema:
             type: string

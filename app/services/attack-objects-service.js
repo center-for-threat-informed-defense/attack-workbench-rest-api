@@ -75,6 +75,7 @@ exports.retrieveAll = async function(options) {
         const match = {
             $match: {
                 $or: [
+                    { 'workspace.attack_id': { '$regex': options.search, '$options': 'i' }},
                     { 'stix.name': { '$regex': options.search, '$options': 'i' } },
                     { 'stix.description': { '$regex': options.search, '$options': 'i' } }
                 ]
