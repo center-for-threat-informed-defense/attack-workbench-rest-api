@@ -24,7 +24,7 @@ const oidcServiceClientSecret = '774ca536-b281-4783-bfed-cc362c39405b';
 const localServerHost = 'localhost';
 const localServerPort = 3000;
 const localServerRedirectUrl = `http://${ localServerHost }:${localServerPort }/api/authn/oidc/*`;
-const jwksUri = `http://${ oidcHost }/auth/realms/${ oidcRealm }/protocol/openid-connect/certs`;
+const jwksUri = `http://${ oidcHost }/realms/${ oidcRealm }/protocol/openid-connect/certs`;
 
 describe('Client Credentials Service Authentication', function () {
     let app;
