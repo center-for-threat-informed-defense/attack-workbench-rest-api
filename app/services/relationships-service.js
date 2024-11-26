@@ -4,7 +4,6 @@ const uuid = require('uuid');
 const Relationship = require('../models/relationship-model');
 const systemConfigurationService = require('./system-configuration-service');
 const identitiesService = require('./identities-service');
-const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
@@ -292,6 +291,9 @@ exports.create = async function(data, options) {
     //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
     //   2. This is a new version of an existing object. Create a new object with the specified id.
     //      Set stix.x_mitre_modified_by_ref to the organization identity.
+    
+    // Avoid circular dependency
+    const attackObjectsService = require('./attack-objects-service');
 
     // Create the document
     const relationship = new Relationship(data);
