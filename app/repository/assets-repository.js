@@ -2,6 +2,9 @@
 
 const BaseRepository = require('./_base.repository');
 const Asset = require('../models/asset-model');
+const regexValidator = require('../lib/regex');
+const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
+const { DatabaseError } = require('../exceptions');
 
 class AssetsRepository extends BaseRepository { 
 
