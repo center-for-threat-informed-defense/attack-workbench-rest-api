@@ -14,10 +14,7 @@
     "cybersecurity",
     "stix"
   ],
-  "license": {
-    "type": "Apache-2.0",
-    "url": "https://opensource.org/licenses/apache2.0.php"
-  },
+  "license": "Apache-2.0",
   "main": "index.js",
   "scripts": {
     "coverage:cobertura": "c8 --reporter=cobertura npm test",
