@@ -54,7 +54,6 @@ function setupCors(app, config, logger) {
         return; // Skip setting up the CORS middleware
     }
 
-    logger.info('CORS is enabled');
     const cors = require('cors');
 
     // Normalize corsAllowedOrigins to an array of origins
@@ -75,6 +74,8 @@ function setupCors(app, config, logger) {
     };
 
     app.use(cors(corsOptions));
+
+    logger.info(`CORS is enabled for domains: ${origins}`)
 }
 
 /**
