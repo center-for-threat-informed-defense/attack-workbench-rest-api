@@ -65,6 +65,55 @@ function arrayFormat(name) {
 convict.addFormat(arrayFormat('oidc-client'));
 convict.addFormat(arrayFormat('service-account'));
 
+/**
+ * Validates a comma-separated string of domains or FQDNs.
+ * Allows the wildcard character `*` to indicate all origins.
+ * Supports the value `disable` to explicitly disable CORS.
+ *
+ * A valid FQDN must:
+ * - Contain only alphanumeric characters, hyphens, and dots.
+ * - Have at least one dot separating the domain levels.
+ * - End with a valid top-level domain (e.g., `.com`, `.org`).
+ *
+ * @param {string} value - The input string to validate. Can be a single domain, a wildcard (`*`), `disable`, or a comma-separated list of domains.
+ * @throws {Error} If any domain in the list is invalid.
+ * 
+ * @example
+ * // Valid examples:
+ * validateDomains('*'); // No error
+ * validateDomains('example.com'); // No error
+ * validateDomains('example.com,api.example.com,sub.example.co.uk'); // No error
+ * validateDomains('disable'); // No error
+ * 
+ * // Invalid examples:
+ * validateDomains('http://example.com'); // Throws error (protocol is not allowed)
+ * validateDomains('example_com'); // Throws error (underscore is not allowed)
+ * validateDomains('example'); // Throws error (missing top-level domain)
+ * validateDomains(',example.com'); // Throws error (empty domain before the comma)
+ */
+function validateDomains(value) {
+    if (value === '*' || value === 'disable') {
+        return; // '*' allows all origins; 'disable' explicitly disables CORS.
+    }
+
+    const origins = value.split(',').map(origin => origin.trim());
+
+    // Regex to validate FQDNs
+    const fqdnRegex = /^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}$/;
+
+    origins.forEach(origin => {
+        if (!fqdnRegex.test(origin)) {
+            throw new Error(`Invalid domain: ${origin}`);
+        }
+    });
+}
+
+convict.addFormat({
+    name: 'domains',
+    validate: validateDomains,
+    coerce: value => value.split(',').map(origin => origin.trim()), // Normalize the input
+});
+
 function loadConfig() {
     const config = convict({
         server: {
@@ -74,11 +123,11 @@ function loadConfig() {
                 default: 3000,
                 env: 'PORT'
             },
-            enableCorsAnyOrigin: {
-                doc: 'Access-Control-Allow-Origin will be set to the wildcard (*), allowing requests from any domain to access the REST API endpoints',
-                format: Boolean,
-                default: true,
-                env: 'ENABLE_CORS_ANY_ORIGIN'
+            corsAllowedOrigins: {
+                doc: 'Comma-separated list of origins allowed to access the REST API endpoints. Use * to allow any origin.',
+                format: 'domains',
+                default: '*',
+                env: 'CORS_ALLOWED_ORIGINS'
             }
         },
         app: {
