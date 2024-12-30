@@ -17,6 +17,68 @@ function disableUpgradeInsecureRequests(app, helmet) {
 }
 
 /**
+ * Configures and applies the CORS middleware to the Express application.
+ *
+ * - If `corsAllowedOrigins` is set to `disable`, CORS middleware is not applied, effectively disabling CORS.
+ * - If `corsAllowedOrigins` is `*`, it allows all origins.
+ * - Otherwise, it parses the comma-separated list of origins and uses them as the allowed origins.
+ *
+ * @param {import('express').Application} app - The Express application instance.
+ * @param {Object} config - The application configuration object.
+ * @param {Object} config.server - The server-specific configuration.
+ * @param {string} config.server.corsAllowedOrigins - The CORS allowed origins setting.
+ * @param {import('winston').Logger} logger - The logger instance for logging messages.
+ *
+ * @throws {Error} Throws an error if the configuration is invalid or missing required fields.
+ *
+ * @example
+ * // CORS is disabled
+ * const config = { server: { corsAllowedOrigins: 'disable' } };
+ * setupCors(app, config, logger); // No CORS middleware applied
+ *
+ * @example
+ * // CORS allows all origins
+ * const config = { server: { corsAllowedOrigins: '*' } };
+ * setupCors(app, config, logger); // CORS middleware with `origin: true`
+ *
+ * @example
+ * // CORS with specific origins
+ * const config = { server: { corsAllowedOrigins: 'example.com,api.example.com' } };
+ * setupCors(app, config, logger); // CORS middleware with specific origins
+ */
+function setupCors(app, config, logger) {
+    const corsAllowedOrigins = config.server.corsAllowedOrigins;
+
+    if (corsAllowedOrigins === 'disable') {
+        logger.info('CORS is disabled');
+        return; // Skip setting up the CORS middleware
+    }
+
+    const cors = require('cors');
+
+    // Normalize corsAllowedOrigins to an array of origins
+    let origins;
+    if (typeof corsAllowedOrigins === 'string') {
+        origins = corsAllowedOrigins === '*' ? true : corsAllowedOrigins.split(',').map(origin => origin.trim());
+    } else if (Array.isArray(corsAllowedOrigins)) {
+        origins = corsAllowedOrigins; // Already an array
+    } else {
+        throw new Error(
+            `Invalid value for server.corsAllowedOrigins: expected a string or array, but got ${typeof corsAllowedOrigins}`
+        );
+    }
+
+    const corsOptions = {
+        credentials: true,
+        origin: origins,
+    };
+
+    app.use(cors(corsOptions));
+
+    logger.info(`CORS is enabled for domains: ${origins}`)
+}
+
+/**
  * Creates a new instance of the express app.
  * @return The new express app
  */
@@ -37,19 +99,7 @@ exports.initializeApp = async function() {
     const requestId = require('./lib/requestId');
     app.use(requestId);
 
-    // Allow CORS
-    if (config.server.enableCorsAnyOrigin) {
-        logger.info('CORS is enabled');
-        const cors = require('cors');
-        const corsOptions = {
-            credentials: true,
-            origin: true
-        };
-        app.use(cors(corsOptions));
-    }
-    else {
-        logger.info('CORS is not enabled');
-    }
+    setupCors(app, config, logger);
 
     // Compress response bodies
     const compression = require('compression');

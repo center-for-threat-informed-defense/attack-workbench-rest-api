@@ -69,7 +69,7 @@ Note that any values set in a configuration file take precedence over values set
 | name                                 | required | default       | description                                               |
 |--------------------------------------|----------|---------------|-----------------------------------------------------------|
 | **PORT**                             | no       | `3000`        | Port the HTTP server should listen on                     |
-| **ENABLE_CORS_ANY_ORIGIN**           | no       | `true`        | Allows requests from any domain to access the REST API endpoints |
+| **CORS_ALLOWED_ORIGINS**             | no       | `*`           | Configures CORS policy. Accepts a comma-separated list of allowed domains. (`*` allows all domains; `disable` disables CORS entirely.) |
 | **NODE_ENV**                         | no       | `development` | Environment that the app is running in                    |
 | **DATABASE_URL**                     | yes      | none          | URL of the MongoDB server                                 |
 | **AUTHN_MECHANISM**                  | no       | `anonymous`   | Mechanism to use for authenticating users                 |
@@ -89,7 +89,7 @@ If the `JSON_CONFIG_PATH` environment variable is set, the app will also read co
 | name                                | type     | corresponding environment variable |
 |-------------------------------------|----------|------------------------------------|
 | **server.port**                     | int      | PORT                               |
-| **server.enableCorsAnyOrigin**      | boolean  | ENABLE_CORS_ANY_ORIGIN             |
+| **server.corsAllowedOrigins**       | boolean  | CORS_ALLOWED_ORIGINS               |
 | **app.env**                         | string   | NODE_ENV                           |
 | **database.url**                    | string   | DATABASE_URL                       |
 | **collectionIndex.defaultInterval** | int      | DEFAULT_INTERVAL                   |
