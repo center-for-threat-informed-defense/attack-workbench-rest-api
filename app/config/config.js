@@ -101,11 +101,11 @@ function validateDomains(value) {
         ? value
         : value.split(',').map(origin => origin.trim());
 
-    // Regex to validate FQDNs
-    const fqdnRegex = /^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}$/;
+    // Regex to validate FQDNs with or without protocols
+    const originRegex = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/;
 
     origins.forEach(origin => {
-        if (!fqdnRegex.test(origin)) {
+        if (!originRegex.test(origin)) {
             throw new Error(`Invalid domain: ${origin}`);
         }
     });
