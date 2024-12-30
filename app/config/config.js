@@ -96,7 +96,10 @@ function validateDomains(value) {
         return; // '*' allows all origins; 'disable' explicitly disables CORS.
     }
 
-    const origins = value.split(',').map(origin => origin.trim());
+    // Normalize value to an array of origins
+    const origins = Array.isArray(value)
+        ? value
+        : value.split(',').map(origin => origin.trim());
 
     // Regex to validate FQDNs
     const fqdnRegex = /^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}$/;
@@ -111,7 +114,12 @@ function validateDomains(value) {
 convict.addFormat({
     name: 'domains',
     validate: validateDomains,
-    coerce: value => value.split(',').map(origin => origin.trim()), // Normalize the input
+    coerce: value => {
+        if (Array.isArray(value)) {
+            return value.map(origin => origin.trim());
+        }
+        return value.split(',').map(origin => origin.trim()); // Normalize strings to arrays
+    },
 });
 
 function loadConfig() {
