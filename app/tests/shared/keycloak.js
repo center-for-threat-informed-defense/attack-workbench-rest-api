@@ -119,19 +119,6 @@ async function getClientSecret(basePath, realmName, idOfClient, token) {
     }
 }
 
-async function getWellKnownConfiguration(basePath, realmName, token) {
-    try {
-        const res = await request
-            .get(`${ basePath }/realms/${ realmName }/.well-known/openid-configuration`)
-            .set('Authorization', `bearer ${ token }`);
-        console.log(res);
-    }
-    catch (err) {
-        logger.error('Unable to get well known configuration');
-        throw err;
-    }
-}
-
 async function createUser(basePath, realmName, userOptions, token) {
     const userData = {
         email: userOptions.email,
