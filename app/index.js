@@ -58,9 +58,9 @@ function setupCors(app, config, logger) {
     const cors = require('cors');
     const corsOptions = {
         credentials: true,
-        origin: corsAllowedOrigins === '*'
-            ? true
-            : corsAllowedOrigins.split(',').map(origin => origin.trim()),
+        origin: corsAllowedOrigins === '*' ?
+            true :
+            corsAllowedOrigins.split(',').map(origin => origin.trim()),
     };
 
     app.use(cors(corsOptions));
