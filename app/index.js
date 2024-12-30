@@ -56,11 +56,22 @@ function setupCors(app, config, logger) {
 
     logger.info('CORS is enabled');
     const cors = require('cors');
+
+    // Normalize corsAllowedOrigins to an array of origins
+    let origins;
+    if (typeof corsAllowedOrigins === 'string') {
+        origins = corsAllowedOrigins === '*' ? true : corsAllowedOrigins.split(',').map(origin => origin.trim());
+    } else if (Array.isArray(corsAllowedOrigins)) {
+        origins = corsAllowedOrigins; // Already an array
+    } else {
+        throw new Error(
+            `Invalid value for server.corsAllowedOrigins: expected a string or array, but got ${typeof corsAllowedOrigins}`
+        );
+    }
+
     const corsOptions = {
         credentials: true,
-        origin: corsAllowedOrigins === '*' ?
-            true :
-            corsAllowedOrigins.split(',').map(origin => origin.trim()),
+        origin: origins,
     };
 
     app.use(cors(corsOptions));
