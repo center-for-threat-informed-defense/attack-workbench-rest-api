@@ -18,9 +18,6 @@ class AttackObjectsService extends BaseService {
         if (!AttackObjectsService.identitiesService) {
             AttackObjectsService.identitiesService = require('./identities-service');
         }
-        if (!AttackObjectsService.attackObjectsService) {
-            AttackObjectsService.attackObjectsService = require('./attack-objects-service');
-        }
         if (!AttackObjectsService.relationshipsService) {
             AttackObjectsService.relationshipsService = require('./relationships-service');
         }
