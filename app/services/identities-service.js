@@ -1,7 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
-const attackObjectsService = require('./attack-objects-service');
+const systemConfigurationService = require('./system-configuration-service');
 const config = require('../config/config');
 const userAccountsService = require('./user-accounts-service');
 const identitiesRepository = require('../repository/identities-repository');
@@ -50,7 +50,7 @@ class IdentitiesService extends BaseService {
             }
 
             // Set the default marking definitions
-            await attackObjectsService.setDefaultMarkingDefinitions(data);
+            await systemConfigurationService.setDefaultMarkingDefinitionsForObject(data);
 
             // Assign a new STIX id if not already provided
             data.stix.id = data.stix.id || `identity--${uuid.v4()}`;

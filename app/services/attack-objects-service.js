@@ -136,17 +136,6 @@ class AttackObjectsService extends BaseService {
             throw new Error(this.errors.notFound);
         }
     }
-
-    async setDefaultMarkingDefinitions(attackObject) {
-        // Add any default marking definitions that are not in the current list for this object
-        const defaultMarkingDefinitions = await this.systemConfigurationService.retrieveDefaultMarkingDefinitions({ refOnly: true });
-        if (attackObject.stix.object_marking_refs) {
-            attackObject.stix.object_marking_refs = attackObject.stix.object_marking_refs.concat(defaultMarkingDefinitions.filter(e => !attackObject.stix.object_marking_refs.includes(e)));
-        }
-        else {
-            attackObject.stix.object_marking_refs = defaultMarkingDefinitions;
-        }
-    }
 }
 
 module.exports = new AttackObjectsService(null, attackObjectsRepository);

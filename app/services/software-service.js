@@ -2,7 +2,6 @@
 
 const uuid = require('uuid');
 const systemConfigurationService = require('./system-configuration-service');
-const attackObjectsService = require('./attack-objects-service');
 const config = require('../config/config');
 
 const { PropertyNotAllowedError, InvalidTypeError } = require('../exceptions');
@@ -42,7 +41,7 @@ class SoftwareService extends BaseService {
                 }
 
                 // Set the default marking definitions
-                await attackObjectsService.setDefaultMarkingDefinitions(data);
+                await systemConfigurationService.setDefaultMarkingDefinitionsForObject(data);
 
                 // Get the organization identity
                 const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();

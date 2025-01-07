@@ -115,7 +115,7 @@ exports.setOrganizationIdentity = async function(stixId) {
     }
 }
 
-exports.retrieveDefaultMarkingDefinitions = async function(options) {
+const retrieveDefaultMarkingDefinitions = async function(options) {
     if (!markingDefinitionsService) {
         markingDefinitionsService = require('./marking-definitions-service');
     }
@@ -152,6 +152,19 @@ exports.retrieveDefaultMarkingDefinitions = async function(options) {
     else {
         // No system config
         return [];
+    }
+}
+exports.retrieveDefaultMarkingDefinitions = retrieveDefaultMarkingDefinitions;
+
+// ** migrated from attack-objects-service **
+exports.setDefaultMarkingDefinitionsForObject = async function(attackObject) {
+    // Add any default marking definitions that are not in the current list for this object
+    const defaultMarkingDefinitions = await retrieveDefaultMarkingDefinitions({ refOnly: true });
+    if (attackObject.stix.object_marking_refs) {
+        attackObject.stix.object_marking_refs = attackObject.stix.object_marking_refs.concat(defaultMarkingDefinitions.filter(e => !attackObject.stix.object_marking_refs.includes(e)));
+    }
+    else {
+        attackObject.stix.object_marking_refs = defaultMarkingDefinitions;
     }
 }
 

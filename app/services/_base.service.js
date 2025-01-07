@@ -22,13 +22,15 @@ class BaseService extends AbstractService {
 
     static identitiesService;
 
+    static systemConfigurationService;
+
     static requireServices() {
         // Late binding to avoid circular dependencies
         if (!BaseService.identitiesService) {
             BaseService.identitiesService = require('./identities-service');
         }
-        if (!BaseService.attackObjectsService) {
-            BaseService.attackObjectsService = require('./attack-objects-service');
+        if (!BaseService.systemConfigurationService) {
+            BaseService.systemConfigurationService = require('./system-configuration-service');
         }
     }
 
@@ -258,7 +260,7 @@ class BaseService extends AbstractService {
                 }
 
                 // Set the default marking definitions
-                await BaseService.attackObjectsService.setDefaultMarkingDefinitions(data);
+                await BaseService.systemConfigurationService.setDefaultMarkingDefinitionsForObject(data);
 
                 // Get the organization identity
                 const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();

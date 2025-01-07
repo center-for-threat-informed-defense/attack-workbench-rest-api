@@ -293,7 +293,7 @@ exports.create = async function(data, options) {
         }
 
         // Set the default marking definitions
-        await attackObjectsService.setDefaultMarkingDefinitions(collection);
+        await systemConfigurationService.setDefaultMarkingDefinitionsForObject(collection);
 
         // Get the organization identity
         const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
