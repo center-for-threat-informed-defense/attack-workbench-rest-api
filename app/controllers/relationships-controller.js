@@ -4,7 +4,7 @@ const relationshipsService = require('../services/relationships-service');
 const logger = require('../lib/logger');
 const { BadlyFormattedParameterError, InvalidQueryStringParameterError, DuplicateIdError } = require('../exceptions');
 
-exports.retrieveAll = async async function(req, res) {
+exports.retrieveAll = async function(req, res) {
     const options = {
         offset: req.query.offset || 0,
         limit: req.query.limit || 0,
