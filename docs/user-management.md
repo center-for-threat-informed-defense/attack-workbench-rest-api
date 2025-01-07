@@ -9,19 +9,19 @@ Each registered user has an associated user account document in the database.
 
 The User Account document has the following properties:
 
-| property        | type    | description                                                                              |
-|-----------------|---------|------------------------------------------------------------------------------------------|
-| **id**          | string  | Unique id for this user, assigned when the user account is created                       |
-| **email**       | string  | User's email address                                                                     |
-| **username**    | string  | Name used to authenticate with the identity provider (commonly the user's email address) |
-| **displayName** | string  | User's display name                                                                      |
-| **status**      | string  | `pending`, `active`, or `inactive`                                                       |
-| **role**        | string  | `visitor`, `editor`, `admin`, or undefined                                               |
+| property        | type   | description                                                                              |
+| --------------- | ------ | ---------------------------------------------------------------------------------------- |
+| **id**          | string | Unique id for this user, assigned when the user account is created                       |
+| **email**       | string | User's email address                                                                     |
+| **username**    | string | Name used to authenticate with the identity provider (commonly the user's email address) |
+| **displayName** | string | User's display name                                                                      |
+| **status**      | string | `pending`, `active`, or `inactive`                                                       |
+| **role**        | string | `visitor`, `editor`, `admin`, or undefined                                               |
 
 ## User Status
 
 | status     | description                                                              |
-|------------|--------------------------------------------------------------------------|
+| ---------- | ------------------------------------------------------------------------ |
 | `pending`  | The user has registered with the workspace and is waiting to be approved |
 | `active`   | The user has been registered and approved                                |
 | `inactive` | The user is no longer active                                             |
@@ -33,10 +33,11 @@ The User Account document has the following properties:
 3. Later, a user with the `admin` role marks the user as inactive. This results in the user's status changing to `inactive`.
 
 ## Roles
+
 The ATT&CK Workbench supports the following roles:
 
 | role      | description                                                                         |
-|-----------|-------------------------------------------------------------------------------------|
+| --------- | ----------------------------------------------------------------------------------- |
 | `none`    | No access to the system allowed.                                                    |
 | `visitor` | Read access to all of the ATT&CK objects in the workspace.                          |
 | `editor`  | Read and write access to all of the ATT&CK objects in the workspace, except for ??? |
@@ -53,13 +54,13 @@ For users who are registered and active, their effective role will always be the
 Some organizations may want to allow access to the system for users who aren't registered and active.
 The effective roles for these users is as specified in the following table:
 
-| authentication | user registered and logged in? | user status | effective role  | default |
-|----------------|--------------------------------|-------------|-----------------|---------|
-| anonymous      | no                             | --          | `admin`         | --      |
-| OIDC           | no                             | --          | configurable    | `none`  |
-| OIDC           | yes                            | pending     | configurable    | `none`  |
-| OIDC           | yes                            | active      | as assigned     | --      |
-| OIDC           | yes                            | inactive    | configurable    | `none`  |
+| authentication | user registered and logged in? | user status | effective role | default |
+| -------------- | ------------------------------ | ----------- | -------------- | ------- |
+| anonymous      | no                             | --          | `admin`        | --      |
+| OIDC           | no                             | --          | configurable   | `none`  |
+| OIDC           | yes                            | pending     | configurable   | `none`  |
+| OIDC           | yes                            | active      | as assigned    | --      |
+| OIDC           | yes                            | inactive    | configurable   | `none`  |
 
 Note that the default OIDC configuration only allows registered and active users to access the system.
 The system must be specifically configured to allow other users access.
@@ -71,6 +72,7 @@ These endpoints are disabled if the app is configured to use the anonymous authe
 The STIX ID of the corresponding identity object is used by the user management endpoints as the unique identifier for a user.
 
 ##### Get Users
+
 ```
 GET /api/user-accounts
 ```
@@ -84,6 +86,7 @@ Query string parameters for searching are TBD.
 This endpoint will only be available to users with the `admin` role.
 
 ##### Get User
+
 ```
 GET /api/user-accounts/:id
 ```
@@ -95,6 +98,7 @@ Retrieve a user account document by its id.
 This endpoint will only be available to users with the `admin` role or for a logged in user with the matching user account `id`.
 
 ##### Register User
+
 ```
 POST /api/user-accounts/register
 ```
@@ -109,11 +113,12 @@ The user document will have the `email` and `username` properties set based on t
 This endpoint will only be available for a logged in user who is in the process of registering.
 
 ##### Update User
+
 ```
 PUT /api/user-accounts/:id
 ```
 
-Update an existing user document in the database. 
+Update an existing user document in the database.
 
 ###### Authorization
 

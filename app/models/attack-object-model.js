@@ -8,30 +8,32 @@ const config = require('../config/config');
 
 // Create the definition
 const attackObjectDefinition = {
-    workspace: {
-        ...workspaceDefinitions.common
-    },
-    stix: {
-        ...stixCoreDefinitions.commonRequiredSDO,
-        ...stixCoreDefinitions.commonOptionalSDO
-    }
+  workspace: {
+    ...workspaceDefinitions.common,
+  },
+  stix: {
+    ...stixCoreDefinitions.commonRequiredSDO,
+    ...stixCoreDefinitions.commonOptionalSDO,
+  },
 };
 
 // Create the schema
 const options = {
-    collection: 'attackObjects'
+  collection: 'attackObjects',
 };
 const attackObjectSchema = new mongoose.Schema(attackObjectDefinition, options);
 
 //Save the ATT&CK ID in a more easily queried location
-attackObjectSchema.pre('save', function(next) {
-    if (this.stix.external_references) {
-        const mitreAttackReference = this.stix.external_references.find(externalReference => config.attackSourceNames.includes(externalReference.source_name));
-        if (mitreAttackReference && mitreAttackReference.external_id) {
-            this.workspace.attack_id = mitreAttackReference.external_id;
-        }
+attackObjectSchema.pre('save', function (next) {
+  if (this.stix.external_references) {
+    const mitreAttackReference = this.stix.external_references.find((externalReference) =>
+      config.attackSourceNames.includes(externalReference.source_name),
+    );
+    if (mitreAttackReference && mitreAttackReference.external_id) {
+      this.workspace.attack_id = mitreAttackReference.external_id;
     }
-    return next();
+  }
+  return next();
 });
 
 // Add an index on stix.id and stix.modified

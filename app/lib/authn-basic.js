@@ -6,9 +6,9 @@ const { BasicStrategy } = require('passport-http');
 const config = require('../config/config');
 
 let strategyName;
-exports.strategyName = function() {
-    return strategyName;
-}
+exports.strategyName = function () {
+  return strategyName;
+};
 
 /**
  * This strategy is intended to support service authentication using the Basic strategy. The service must
@@ -21,17 +21,16 @@ exports.strategyName = function() {
  * This function takes the user session object and returns the value (the userSessionKey) that will be
  * stored in the express session for this user
  */
-exports.serializeUser = function(userSession, done) {
-    if (userSession.strategy === 'basic') {
-        // This indicates that the client has been authenticated using the Basic strategy. This will be used when
-        // deserializing.
-        const userSessionKey = { strategy: 'basic' };
-        done(null, userSessionKey);
-    }
-    else {
-        // Try the next serializer
-        done('pass');
-    }
+exports.serializeUser = function (userSession, done) {
+  if (userSession.strategy === 'basic') {
+    // This indicates that the client has been authenticated using the Basic strategy. This will be used when
+    // deserializing.
+    const userSessionKey = { strategy: 'basic' };
+    done(null, userSessionKey);
+  } else {
+    // Try the next serializer
+    done('pass');
+  }
 };
 
 /**
@@ -45,46 +44,44 @@ exports.serializeUser = function(userSession, done) {
  * Note that req.user will be set to the correct value after the strategy calls verifyCallback() and the Basic token
  * is verified.
  */
-exports.deserializeUser = function(userSessionKey, done) {
-    if (userSessionKey.strategy === 'basic') {
-        done(null, null);
-    }
-    else {
-        // Try the next deserializer
-        done('pass');
-    }
+exports.deserializeUser = function (userSessionKey, done) {
+  if (userSessionKey.strategy === 'basic') {
+    done(null, null);
+  } else {
+    // Try the next deserializer
+    done('pass');
+  }
 };
 
 let authenticateWithBasicToken;
-exports.getStrategy = function() {
-    const strategy = new BasicStrategy(verifyCallback);
-    strategyName = strategy.name;
+exports.getStrategy = function () {
+  const strategy = new BasicStrategy(verifyCallback);
+  strategyName = strategy.name;
 
-    // Get a passport authenticate middleware function for this strategy
-    authenticateWithBasicToken = passport.authenticate(strategy.name);
+  // Get a passport authenticate middleware function for this strategy
+  authenticateWithBasicToken = passport.authenticate(strategy.name);
 
-    return strategy;
-}
+  return strategy;
+};
 
 function verifyApikey(serviceName, apikey, done) {
-    // Do not attempt to verify the apikey unless basic apikey authentication is enabled
-    if (!config.serviceAuthn.basicApikey.enable) {
-        return done(null, false, { message: 'Authentication mechanism not found' });
-    }
+  // Do not attempt to verify the apikey unless basic apikey authentication is enabled
+  if (!config.serviceAuthn.basicApikey.enable) {
+    return done(null, false, { message: 'Authentication mechanism not found' });
+  }
 
-    // Verify that the service is on the list of configured services and the apikey is correct
-    const services = config.serviceAuthn.basicApikey.serviceAccounts;
-    const service = services.find(s => s.name === serviceName);
-    if (!service) {
-        return done(null, false, { message: 'Service not found' });
-    }
-    else if (service.apikey !== apikey) {
-        return done(null, false, { message: 'Invalid apikey' });
-    }
+  // Verify that the service is on the list of configured services and the apikey is correct
+  const services = config.serviceAuthn.basicApikey.serviceAccounts;
+  const service = services.find((s) => s.name === serviceName);
+  if (!service) {
+    return done(null, false, { message: 'Service not found' });
+  } else if (service.apikey !== apikey) {
+    return done(null, false, { message: 'Invalid apikey' });
+  }
 
-    const userSession = makeUserSession(null, serviceName);
+  const userSession = makeUserSession(null, serviceName);
 
-    return done(null, userSession);
+  return done(null, userSession);
 }
 
 /**
@@ -92,25 +89,25 @@ function verifyApikey(serviceName, apikey, done) {
  * It verifies that the userid (service name) and password (apikey) is valid, then creates and returns the user session for this user.
  */
 function verifyCallback(serviceName, apikey, done) {
-    if (!serviceName) {
-        return done(null, false, { message: 'Missing service name' });
-    }
-    if (!apikey) {
-        return done(null, false, { message: 'Missing apikey' });
-    }
+  if (!serviceName) {
+    return done(null, false, { message: 'Missing service name' });
+  }
+  if (!apikey) {
+    return done(null, false, { message: 'Missing apikey' });
+  }
 
-    return verifyApikey(serviceName, apikey, done);
+  return verifyApikey(serviceName, apikey, done);
 }
 
 function makeUserSession(clientId, serviceName) {
-    const userSession = {
-        strategy: 'basic',
-        clientId,
-        serviceName,
-        service: true
-    };
+  const userSession = {
+    strategy: 'basic',
+    clientId,
+    serviceName,
+    service: true,
+  };
 
-    return userSession;
+  return userSession;
 }
 
 /**
@@ -118,12 +115,10 @@ function makeUserSession(clientId, serviceName) {
  * calls the authenticate() function for the Basic strategy (which cause the apikey to be validated).
  *
  */
-exports.authenticate = function(req, res, next) {
-    if (authenticateWithBasicToken) {
-        authenticateWithBasicToken(req, res, next);
-    }
-    else {
-        throw new Error('Basic strategy not configured');
-    }
-}
-
+exports.authenticate = function (req, res, next) {
+  if (authenticateWithBasicToken) {
+    authenticateWithBasicToken(req, res, next);
+  } else {
+    throw new Error('Basic strategy not configured');
+  }
+};

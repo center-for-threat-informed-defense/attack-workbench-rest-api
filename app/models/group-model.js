@@ -5,26 +5,26 @@ const AttackObject = require('./attack-object-model');
 const { ModelName } = require('../lib/model-names');
 
 const stixIntrusionSet = {
-    // STIX intrusion-set specific properties
-    modified: { type: Date, required: true },
-    name: { type: String, required: true },
-    description: String,
+  // STIX intrusion-set specific properties
+  modified: { type: Date, required: true },
+  name: { type: String, required: true },
+  description: String,
 
-    // ATT&CK custom stix properties
-    aliases: [ String ],
-    x_mitre_modified_by_ref: String,
-    x_mitre_deprecated: Boolean,
-    x_mitre_domains: [ String ], // TBD drop this property
-    x_mitre_version: String,
-    x_mitre_attack_spec_version: String,
-    x_mitre_contributors: [ String ]
+  // ATT&CK custom stix properties
+  aliases: [String],
+  x_mitre_modified_by_ref: String,
+  x_mitre_deprecated: Boolean,
+  x_mitre_domains: [String], // TBD drop this property
+  x_mitre_version: String,
+  x_mitre_attack_spec_version: String,
+  x_mitre_contributors: [String],
 };
 
 // Create the definition
 const groupDefinition = {
-    stix: {
-        ...stixIntrusionSet
-    }
+  stix: {
+    ...stixIntrusionSet,
+  },
 };
 
 // Create the schema

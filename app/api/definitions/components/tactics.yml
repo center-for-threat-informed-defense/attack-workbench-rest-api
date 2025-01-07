@@ -24,7 +24,7 @@ components:
               example: 'Collection'
             description:
               type: string
-              example: "This is a tactic."
+              example: 'This is a tactic.'
             # ATT&CK custom properties
             x_mitre_modified_by_ref:
               type: string

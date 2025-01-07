@@ -4,6 +4,6 @@ const dataComponentsRepository = require('../repository/data-components-reposito
 
 const BaseService = require('./_base.service');
 
-class DataComponentsService extends BaseService { }
+class DataComponentsService extends BaseService {}
 
 module.exports = new DataComponentsService('x-mitre-data-component', dataComponentsRepository);

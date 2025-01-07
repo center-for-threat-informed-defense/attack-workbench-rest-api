@@ -6,123 +6,127 @@ const identitiesService = require('./identities-service');
 const config = require('../config/config');
 const BaseService = require('./_base.service');
 const markingDefinitionsRepository = require('../repository/marking-definitions-repository');
-const { MissingParameterError, BadlyFormattedParameterError, CannotUpdateStaticObjectError, DuplicateIdError } = require('../exceptions');
+const {
+  MissingParameterError,
+  BadlyFormattedParameterError,
+  CannotUpdateStaticObjectError,
+  DuplicateIdError,
+} = require('../exceptions');
 
 // NOTE: A marking definition does not support the modified or revoked properties!!
 
 class MarkingDefinitionsService extends BaseService {
-    async create(data, options) {
-        // This function handles two use cases:
-        //   1. This is a completely new object. Create a new object and generate the stix.id if not already
-        //      provided. Set stix.created_by_ref to the organization identity.
-        //   2. stix.id is defined and options.import is set. Create a new object
-        //      using the specified stix.id and stix.created_by_ref.
-        // TBD: Overwrite existing object when importing??
+  async create(data, options) {
+    // This function handles two use cases:
+    //   1. This is a completely new object. Create a new object and generate the stix.id if not already
+    //      provided. Set stix.created_by_ref to the organization identity.
+    //   2. stix.id is defined and options.import is set. Create a new object
+    //      using the specified stix.id and stix.created_by_ref.
+    // TBD: Overwrite existing object when importing??
 
-        const markingDefinition = this.repository.createNewDocument(data);
+    const markingDefinition = this.repository.createNewDocument(data);
 
-        options = options || {};
-        if (!options.import) {
-            // Set the ATT&CK Spec Version
-            markingDefinition.stix.x_mitre_attack_spec_version = markingDefinition.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+    options = options || {};
+    if (!options.import) {
+      // Set the ATT&CK Spec Version
+      markingDefinition.stix.x_mitre_attack_spec_version =
+        markingDefinition.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
-            // Record the user account that created the object
-            if (options.userAccountId) {
-                markingDefinition.workspace.workflow.created_by_user_account = options.userAccountId;
-            }
+      // Record the user account that created the object
+      if (options.userAccountId) {
+        markingDefinition.workspace.workflow.created_by_user_account = options.userAccountId;
+      }
 
-            // Get the organization identity
-            const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+      // Get the organization identity
+      const organizationIdentityRef =
+        await systemConfigurationService.retrieveOrganizationIdentityRef();
 
-            // Check for an existing object
-            let existingObject;
-            if (markingDefinition.stix.id) {
-                existingObject = await this.repository.retrieveOneById(markingDefinition.stix.id);
-            }
+      // Check for an existing object
+      let existingObject;
+      if (markingDefinition.stix.id) {
+        existingObject = await this.repository.retrieveOneById(markingDefinition.stix.id);
+      }
 
-            if (existingObject) {
-                // Cannot create a new version of an existing object
-                throw new BadlyFormattedParameterError;
-            }
-            else {
-                // New object
-                // Assign a new STIX id if not already provided
-                markingDefinition.stix.id = markingDefinition.stix.id || `marking-definition--${uuid.v4()}`;
+      if (existingObject) {
+        // Cannot create a new version of an existing object
+        throw new BadlyFormattedParameterError();
+      } else {
+        // New object
+        // Assign a new STIX id if not already provided
+        markingDefinition.stix.id = markingDefinition.stix.id || `marking-definition--${uuid.v4()}`;
 
-                // Set the created_by_ref property
-                markingDefinition.stix.created_by_ref = organizationIdentityRef;
-            }
-        }
-
-        // Save the document in the database
-        try {
-            return await this.repository.saveDocument(markingDefinition);
-        }
-        catch(err) {
-            if (err.name === 'MongoServerError' && err.code === 11000) {
-                throw new DuplicateIdError;
-            }
-            else {
-                throw err;
-            }
-        }
+        // Set the created_by_ref property
+        markingDefinition.stix.created_by_ref = organizationIdentityRef;
+      }
     }
 
-    async updateFull(stixId, data, callback) {
-        if (data?.workspace?.workflow?.state === 'static') {
-            const err = new CannotUpdateStaticObjectError;
-            if (callback) {
-                return callback(err);
-            }
+    // Save the document in the database
+    try {
+      return await this.repository.saveDocument(markingDefinition);
+    } catch (err) {
+      if (err.name === 'MongoServerError' && err.code === 11000) {
+        throw new DuplicateIdError();
+      } else {
+        throw err;
+      }
+    }
+  }
 
-            throw new CannotUpdateStaticObjectError;
-        }
+  async updateFull(stixId, data, callback) {
+    if (data?.workspace?.workflow?.state === 'static') {
+      const err = new CannotUpdateStaticObjectError();
+      if (callback) {
+        return callback(err);
+      }
 
-        const newDoc = await super.updateFull(stixId, data, callback);
-        return newDoc;
-}
-
-    async retrieveById(stixId, options, callback) {
-        try {
-            if (!stixId) {
-                throw new MissingParameterError;
-            }
-
-            const markingDefinition = await this.repository.retrieveOneById(stixId );
-
-            // Note: document is null if not found
-            if (markingDefinition) {
-                await identitiesService.addCreatedByAndModifiedByIdentities(markingDefinition);
-                if (callback) {
-                    return callback(null, [markingDefinition]);
-                }
-                return [markingDefinition];
-            } else {
-                if (callback) {
-                    return callback(null, []);
-                }
-                return [];
-            }
-        } catch (err) {
-            if (callback) {
-                return callback(err);
-            }
-            if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError;
-            } else {
-                throw err;
-            }
-        }
+      throw new CannotUpdateStaticObjectError();
     }
 
-    async delete(stixId) {
-        if (!stixId) {
-            throw new MissingParameterError;
-        }
+    const newDoc = await super.updateFull(stixId, data, callback);
+    return newDoc;
+  }
 
-        //Note: markingDefinition is null if not found
-        return await this.repository.deleteOneById(stixId);
+  async retrieveById(stixId, options, callback) {
+    try {
+      if (!stixId) {
+        throw new MissingParameterError();
+      }
+
+      const markingDefinition = await this.repository.retrieveOneById(stixId);
+
+      // Note: document is null if not found
+      if (markingDefinition) {
+        await identitiesService.addCreatedByAndModifiedByIdentities(markingDefinition);
+        if (callback) {
+          return callback(null, [markingDefinition]);
+        }
+        return [markingDefinition];
+      } else {
+        if (callback) {
+          return callback(null, []);
+        }
+        return [];
+      }
+    } catch (err) {
+      if (callback) {
+        return callback(err);
+      }
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError();
+      } else {
+        throw err;
+      }
     }
+  }
+
+  async delete(stixId) {
+    if (!stixId) {
+      throw new MissingParameterError();
+    }
+
+    //Note: markingDefinition is null if not found
+    return await this.repository.deleteOneById(stixId);
+  }
 }
 
 module.exports = new MarkingDefinitionsService('marking-definition', markingDefinitionsRepository);

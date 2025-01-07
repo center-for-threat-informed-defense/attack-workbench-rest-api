@@ -5,25 +5,25 @@ const AttackObject = require('./attack-object-model');
 const { ModelName } = require('../lib/model-names');
 
 const stixDataComponent = {
-    // STIX x-mitre-data-component specific properties
-    modified: { type: Date, required: true },
-    name: { type: String, required: true },
-    description: String,
+  // STIX x-mitre-data-component specific properties
+  modified: { type: Date, required: true },
+  name: { type: String, required: true },
+  description: String,
 
-    // ATT&CK custom stix properties
-    x_mitre_data_source_ref: String,
-    x_mitre_modified_by_ref: String,
-    x_mitre_deprecated: Boolean,
-    x_mitre_domains: [ String ],
-    x_mitre_version: String,
-    x_mitre_attack_spec_version: String
+  // ATT&CK custom stix properties
+  x_mitre_data_source_ref: String,
+  x_mitre_modified_by_ref: String,
+  x_mitre_deprecated: Boolean,
+  x_mitre_domains: [String],
+  x_mitre_version: String,
+  x_mitre_attack_spec_version: String,
 };
 
 // Create the definition
 const dataComponentDefinition = {
-    stix: {
-        ...stixDataComponent
-    }
+  stix: {
+    ...stixDataComponent,
+  },
 };
 
 // Create the schema

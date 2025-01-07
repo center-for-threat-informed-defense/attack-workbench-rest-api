@@ -17,4 +17,3 @@ components:
           $ref: 'identities.yml#/components/schemas/identity'
         registered:
           type: boolean
-

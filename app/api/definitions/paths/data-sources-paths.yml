@@ -204,7 +204,7 @@ paths:
       responses:
         '204':
           description: 'All the data source versions were successfully deleted.'
-          
+
   /api/data-sources/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a data source matching the STIX id and modified date'
