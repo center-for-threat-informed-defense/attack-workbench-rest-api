@@ -125,7 +125,7 @@ exports.updateFull = async function(req, res) {
 
     // Create the relationship
     try {
-        const relationship = relationshipsService.updateFull(req.params.stixId, req.params.modified, relationshipData);
+        const relationship = await relationshipsService.updateFull(req.params.stixId, req.params.modified, relationshipData);
         if (!relationship) {
             return res.status(404).send('Relationship not found.');
         } else {
@@ -157,7 +157,7 @@ exports.deleteVersionById = async function(req, res) {
 
 exports.deleteById = async function(req, res) {
     try {
-        const relationship = await relationshipsService.deleteById(req.params.stixId);
+        const relationships = await relationshipsService.deleteById(req.params.stixId);
         if (relationships.deletedCount === 0) {
             return res.status(404).send('Relationship not found.');
         }
