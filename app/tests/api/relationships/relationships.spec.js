@@ -79,7 +79,7 @@ describe('Relationships API', function () {
 
     it('POST /api/relationships does not create an empty relationship', async function () {
         const body = { };
-        const res = await request(app)
+        await request(app)
             .post('/api/relationships')
             .send(body)
             .set('Accept', 'application/json')
@@ -131,7 +131,7 @@ describe('Relationships API', function () {
     });
 
     it('GET /api/relationships/:id should not return a relationship when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .get('/api/relationships/not-an-id')
             .set('Accept', 'application/json')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
@@ -192,7 +192,7 @@ describe('Relationships API', function () {
 
     it('POST /api/relationships does not create a relationship with the same id and modified date', async function () {
         const body = relationship1a;
-        const res = await request(app)
+        await request(app)
             .post('/api/relationships')
             .send(body)
             .set('Accept', 'application/json')
@@ -470,7 +470,7 @@ describe('Relationships API', function () {
     });
 
     it('DELETE /api/relationships/:id should not delete a relationship when the id cannot be found', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/relationships/not-an-id')
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(404);
@@ -479,7 +479,7 @@ describe('Relationships API', function () {
     });
 
     it('DELETE /api/relationships/:id/modified/:modified deletes a relationship', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/relationships/' + relationship1a.stix.id + '/modified/' + relationship1a.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
@@ -488,7 +488,7 @@ describe('Relationships API', function () {
     });
     
     it('DELETE /api/relationships/:id should delete all the relationships with the same stix id', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/relationships/' + relationship1b.stix.id)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
@@ -497,7 +497,7 @@ describe('Relationships API', function () {
     });    
 
     it('DELETE /api/relationships should delete the third relationship', async function () {
-        const res = await request(app)
+        await request(app)
             .delete('/api/relationships/' + relationship2.stix.id + '/modified/' + relationship2.stix.modified)
             .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
             .expect(204);
