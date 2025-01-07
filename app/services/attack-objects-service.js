@@ -1,30 +1,17 @@
 'use strict';
 
-const { NotImplementedError } = require('../exceptions');
 const Relationship = require('../models/relationship-model');
 const attackObjectsRepository = require('../repository/attack-objects-repository');
 const BaseService = require('./_base.service');
-const { DatabaseError,
-    IdentityServiceError } = require('../exceptions');
+
+const identitiesService = require('./identities-service');
+const relationshipsService = require('./relationships-service');
+
+const { DatabaseError, IdentityServiceError, NotImplementedError } = require('../exceptions');
 
 class AttackObjectsService extends BaseService {
 
-    systemConfigurationService = require('./system-configuration-service');
-
-    relationshipPrefix = 'relationship';
-
-    static requireServices() {
-        // Late binding to avoid circular dependencies
-        if (!AttackObjectsService.identitiesService) {
-            AttackObjectsService.identitiesService = require('./identities-service');
-        }
-        if (!AttackObjectsService.relationshipsService) {
-            AttackObjectsService.relationshipsService = require('./relationships-service');
-        }
-    }
-
     async retrieveAll(options, callback) {
-        AttackObjectsService.requireServices();
         if (AttackObjectsService.isCallback(arguments[arguments.length - 1])) {
             callback = arguments[arguments.length - 1];
         }
@@ -41,7 +28,7 @@ class AttackObjectsService extends BaseService {
         }
 
         try {
-            await AttackObjectsService.identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
+            await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
         } catch (err) {
             const identityError = new IdentityServiceError({
                 details: err.message,
@@ -63,7 +50,7 @@ class AttackObjectsService extends BaseService {
                 includeIdentities: false,
                 lastUpdatedBy: options.lastUpdatedBy
             };
-            const relationships = await AttackObjectsService.relationshipsService.retrieveAll(relationshipsOptions);
+            const relationships = await relationshipsService.retrieveAll(relationshipsOptions);
             if (relationships.length > 0) {
                 results[0].documents = results[0].documents.concat(relationships);
                 results[0].totalCount[0].totalCount += 1;
@@ -100,7 +87,7 @@ class AttackObjectsService extends BaseService {
     // Record that this object is part of a collection
     async insertCollection(stixId, modified, collectionId, collectionModified) {
         let attackObject;
-        if (stixId.startsWith(this.relationshipPrefix)) {
+        if (stixId.startsWith('relationship')) {
             // TBD: Use relationships service when that is converted to async
             attackObject = await Relationship.findOne({ 'stix.id': stixId, 'stix.modified': modified });
         }
@@ -138,4 +125,4 @@ class AttackObjectsService extends BaseService {
     }
 }
 
-module.exports = new AttackObjectsService(null, attackObjectsRepository);
+module.exports = new AttackObjectsService('not-a-valid-type', attackObjectsRepository);
