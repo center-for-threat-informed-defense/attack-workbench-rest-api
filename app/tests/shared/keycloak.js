@@ -11,7 +11,7 @@ async function deleteRealm(basePath, realmName, token) {
     // Delete the realm if it exists
     try {
         await request
-            .delete(`${ basePath }/auth/admin/realms/${ realmName }`)
+            .delete(`${ basePath }/admin/realms/${ realmName }`)
             .set('Authorization', `bearer ${token}`);
         console.info(`Deleted existing realm ${ realmName }`);
     }
@@ -34,7 +34,7 @@ async function createRealm(basePath, realmName, token) {
 
     try {
         await request
-            .post(`${ basePath }/auth/admin/realms`)
+            .post(`${ basePath }/admin/realms`)
             .set('Authorization', `bearer ${token}`)
             .send(realmData);
         console.info(`Created realm ${ realmName }`);
@@ -61,7 +61,7 @@ async function createClient(options, token) {
 
     try {
         await request
-            .post(`${ options.basePath }/auth/admin/realms/${ options.realmName }/clients`)
+            .post(`${ options.basePath }/admin/realms/${ options.realmName }/clients`)
             .set('Authorization', `bearer ${token}`)
             .send(clientData);
         console.info(`Created client ${ options.clientId }`);
@@ -75,7 +75,7 @@ async function createClient(options, token) {
 async function getClient(options, token) {
     try {
         const res = await request
-            .get(`${ options.basePath }/auth/admin/realms/${ options.realmName }/clients?clientId=${ options.clientId }`)
+            .get(`${ options.basePath }/admin/realms/${ options.realmName }/clients?clientId=${ options.clientId }`)
             .set('Authorization', `bearer ${token}`);
 
         if (res.body.length === 1) {
@@ -94,7 +94,7 @@ async function getClient(options, token) {
 async function createClientSecret(basePath, realmName, idOfClient, token) {
     try {
         const res = await request
-            .post(`${ basePath }/auth/admin/realms/${ realmName }/clients/${ idOfClient }/client-secret`)
+            .post(`${ basePath }/admin/realms/${ realmName }/clients/${ idOfClient }/client-secret`)
             .set('Authorization', `bearer ${token}`);
 
         return res.body;
@@ -108,7 +108,7 @@ async function createClientSecret(basePath, realmName, idOfClient, token) {
 async function getClientSecret(basePath, realmName, idOfClient, token) {
     try {
         const res = await request
-            .get(`${ basePath }/auth/admin/realms/${ realmName }/clients/${ idOfClient }/client-secret`)
+            .get(`${ basePath }/admin/realms/${ realmName }/clients/${ idOfClient }/client-secret`)
             .set('Authorization', `bearer ${token}`);
 
         return res.body;
@@ -118,6 +118,19 @@ async function getClientSecret(basePath, realmName, idOfClient, token) {
         throw err;
     }
 }
+
+// async function getWellKnownConfiguration(basePath, realmName, token) {
+//     try {
+//         const res = await request
+//             .get(`${ basePath }/realms/${ realmName }/.well-known/openid-configuration`)
+//             .set('Authorization', `bearer ${ token }`);
+//         console.log(res);
+//     }
+//     catch (err) {
+//         logger.error('Unable to get well known configuration');
+//         throw err;
+//     }
+// }
 
 async function createUser(basePath, realmName, userOptions, token) {
     const userData = {
@@ -137,8 +150,8 @@ async function createUser(basePath, realmName, userOptions, token) {
 
     try {
         await request
-            .post(`${ basePath }/auth/admin/realms/${ realmName }/users`)
-            .set('Authorization', `bearer ${token}`)
+            .post(`${ basePath }/admin/realms/${ realmName }/users`)
+            .set('Authorization', `bearer ${ token }`)
             .send(userData);
         console.info(`Added user '${ userOptions.username }' to the realm '${ realmName }' on the Keycloak server`);
     }
@@ -151,7 +164,7 @@ async function createUser(basePath, realmName, userOptions, token) {
 async function getAuthorizationToken(basePath) {
     console.info(`Requesting authorization token from ${ basePath }`);
     const res = await request
-        .post(`${ basePath }/auth/realms/master/protocol/openid-connect/token`)
+        .post(`${ basePath }/realms/master/protocol/openid-connect/token`)
         .send(`client_id=${ adminClientId }`)
         .send(`username=${ defaultAdminUsername }`)
         .send(`password=${ defaultAdminPassword }`)
@@ -189,6 +202,8 @@ exports.addUsersToKeycloak = async function (serverOptions, users) {
         // eslint-disable-next-line no-await-in-loop
         await createUser(serverOptions.basePath, serverOptions.realmName, user, adminAccessToken);
     }
+
+    // await getWellKnownConfiguration(serverOptions.basePath, serverOptions.realmName, adminAccessToken);
 }
 
 exports.addClientToKeycloak = async function(clientOptions) {
@@ -206,7 +221,7 @@ exports.addClientToKeycloak = async function(clientOptions) {
 exports.getAccessTokenToClient = async function(clientOptions) {
     console.info(`Requesting client access token for ${ clientOptions.clientId } from ${ clientOptions.basePath }`);
     const res = await request
-        .post(`${ clientOptions.basePath }/auth/realms/${ clientOptions.realmName }/protocol/openid-connect/token`)
+        .post(`${ clientOptions.basePath }/realms/${ clientOptions.realmName }/protocol/openid-connect/token`)
         .send(`client_id=${ clientOptions.clientId }`)
         .send(`client_secret=${ clientOptions.clientSecret }`)
         .send(`grant_type=client_credentials`);

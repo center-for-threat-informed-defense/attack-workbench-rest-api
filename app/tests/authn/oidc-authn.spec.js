@@ -69,7 +69,7 @@ describe('OIDC User Authentication', function () {
     before(async function() {
         // Configure the test to use OIDC authentication
         process.env.AUTHN_MECHANISM = 'oidc';
-        process.env.AUTHN_OIDC_ISSUER_URL = `http://${ oidcHost }/auth/realms/${ oidcRealm }/.well-known/openid-configuration`;
+        process.env.AUTHN_OIDC_ISSUER_URL = `http://${ oidcHost }/realms/${ oidcRealm }/.well-known/openid-configuration`;
         process.env.AUTHN_OIDC_CLIENT_ID = oidcClientId;
 
         config.reloadConfig();

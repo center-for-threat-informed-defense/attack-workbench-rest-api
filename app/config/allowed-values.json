@@ -13,12 +13,11 @@
               "macOS",
               "Windows",
               "Network",
-              "Office 365",
-              "Azure AD",
               "SaaS",
               "IaaS",
-              "Google Workspace",
-              "Containers"
+              "Containers",
+              "Identity Provider",
+              "Office Suite"
             ]
           },
           {
@@ -159,13 +158,11 @@
               "macOS",
               "Windows",
               "Network",
-              "AWS",
-              "GCP",
-              "Azure",
-              "Office 365",
-              "Azure AD",
+              "IaaS",
               "SaaS",
-              "Containers"
+              "Containers",
+              "Identity Provider",
+              "Office Suite"
             ]
           },
           {
@@ -233,14 +230,13 @@
             "allowedValues": [
               "Containers",
               "Windows",
-              "Azure AD",
               "Linux",
               "macOS",
               "IaaS",
               "SaaS",
-              "Office 365",
-              "Google Workspace",
-              "Network"
+              "Network",
+              "Identity Provider",
+              "Office Suite"
             ]
           },
           {

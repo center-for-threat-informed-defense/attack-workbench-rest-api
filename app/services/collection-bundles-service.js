@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const util = require('util');
 const semver = require('semver');
 
+const assetsService = require('../services/assets-service');
 const collectionsService = require('../services/collections-service');
 const techniquesService = require('../services/techniques-service');
 const tacticsService = require('../services/tactics-service');
@@ -306,6 +307,9 @@ exports.importBundle = function(collection, data, options, callback) {
                         }
                         else if (importObject.type === 'x-mitre-data-component') {
                             service = dataComponentsService;
+                        }
+                        else if (importObject.type === 'x-mitre-asset') {
+                            service = assetsService;
                         }
 
                         if (service) {

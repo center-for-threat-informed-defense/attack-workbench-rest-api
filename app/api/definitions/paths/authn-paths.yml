@@ -64,6 +64,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: iss
+          in: query
+          description: |
+            iss provided by the identity server.
+          schema:
+            type: string
         - name: state
           in: query
           description: |

@@ -4,12 +4,78 @@ const { NotImplementedError } = require('../exceptions');
 const Relationship = require('../models/relationship-model');
 const attackObjectsRepository = require('../repository/attack-objects-repository');
 const BaseService = require('./_base.service');
+const { DatabaseError,
+    IdentityServiceError } = require('../exceptions');
 
 class AttackObjectsService extends BaseService {
 
     systemConfigurationService = require('./system-configuration-service');
 
     relationshipPrefix = 'relationship';
+
+    static requireServices() {
+        // Late binding to avoid circular dependencies
+        if (!AttackObjectsService.identitiesService) {
+            AttackObjectsService.identitiesService = require('./identities-service');
+        }
+        if (!AttackObjectsService.relationshipsService) {
+            AttackObjectsService.relationshipsService = require('./relationships-service');
+        }
+    }
+
+    async retrieveAll(options, callback) {
+        AttackObjectsService.requireServices();
+        if (AttackObjectsService.isCallback(arguments[arguments.length - 1])) {
+            callback = arguments[arguments.length - 1];
+        }
+
+        let results;
+        try {
+            results = await this.repository.retrieveAll(options);
+        } catch (err) {
+            const databaseError = new DatabaseError(err); // Let the DatabaseError bubble up
+            if (callback) {
+                return callback(databaseError);
+            }
+            throw databaseError;
+        }
+
+        try {
+            await AttackObjectsService.identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
+        } catch (err) {
+            const identityError = new IdentityServiceError({
+                details: err.message,
+                cause: err
+            });
+            if (callback) {
+                return callback(identityError);
+            }
+            throw identityError;
+        }
+        // Add relationships from separate collection
+        if (!options.attackId && !options.search) {
+            const relationshipsOptions = {
+                includeRevoked: options.includeRevoked,
+                includeDeprecated: options.includeDeprecated,
+                state: options.state,
+                versions: options.versions,
+                lookupRefs: false,
+                includeIdentities: false,
+                lastUpdatedBy: options.lastUpdatedBy
+            };
+            const relationships = await AttackObjectsService.relationshipsService.retrieveAll(relationshipsOptions);
+            if (relationships.length > 0) {
+                results[0].documents = results[0].documents.concat(relationships);
+                results[0].totalCount[0].totalCount += 1;
+            }
+        }
+
+        const paginatedResults = AttackObjectsService.paginate(options, results);
+        if (callback) {
+            return callback(null, paginatedResults);
+        }
+        return paginatedResults;
+    }
 
     retrieveById(stixId, options, callback) {
         throw new NotImplementedError(this.constructor.name, 'retrieveById');

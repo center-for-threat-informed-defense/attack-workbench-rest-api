@@ -20,9 +20,6 @@ class AttackObjectsRepository extends BaseRepository {
     identitiesService;
 
     async retrieveAll(options) {
-        // require here to avoid circular dependency
-        const relationshipsService = require('../services/relationships-service');
-
         // Build the query
         const query = {};
         if (typeof options.attackId !== 'undefined') {
@@ -71,6 +68,7 @@ class AttackObjectsRepository extends BaseRepository {
             const match = {
                 $match: {
                     $or: [
+                        { 'workspace.attack_id': { '$regex': options.search, '$options': 'i' }},
                         { 'stix.name': { '$regex': options.search, '$options': 'i' } },
                         { 'stix.description': { '$regex': options.search, '$options': 'i' } }
                     ]
@@ -79,41 +77,25 @@ class AttackObjectsRepository extends BaseRepository {
             aggregation.push(match);
         }
 
-        // Retrieve the documents
-        let documents = await this.model.aggregate(aggregation);
-
-        // Add relationships from separate collection
-        if (!options.attackId && !options.search) {
-            const relationshipsOptions = {
-                includeRevoked: options.includeRevoked,
-                includeDeprecated: options.includeDeprecated,
-                state: options.state,
-                versions: options.versions,
-                lookupRefs: false,
-                includeIdentities: false,
-                lastUpdatedBy: options.lastUpdatedBy
-            };
-            const relationships = await relationshipsService.retrieveAll(relationshipsOptions);
-            documents = documents.concat(relationships);
-        }
-
-        // Apply pagination
-        const offset = options.offset ?? 0;
-        const limit = options.limit ?? 0;
-
-        let paginatedDocuments;
-        if (limit > 0) {
-            paginatedDocuments = documents.slice(offset, offset + limit);
+        const facet = {
+            $facet: {
+                totalCount: [{ $count: 'totalCount' }],
+                documents: []
+            }
+        };
+        if (options.offset) {
+            facet.$facet.documents.push({ $skip: options.offset });
         }
         else {
-            paginatedDocuments = documents.slice(offset);
+            facet.$facet.documents.push({ $skip: 0 });
         }
+        if (options.limit) {
+            facet.$facet.documents.push({ $limit: options.limit });
+        }
+        aggregation.push(facet);
 
-        // Mimic the format that the base repository uses to return documents
-        return [{
-            documents: paginatedDocuments,
-            totalCount: [ { totalCount: documents.length } ]
-        }];
+        // Retrieve the documents
+        return await this.model.aggregate(aggregation).exec();
     }
 }
 
