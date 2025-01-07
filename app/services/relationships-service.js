@@ -145,4 +145,4 @@ class RelationshipsService extends BaseService {
     }
 }
 
-module.exports = new RelationshipsService(relationshipsRepository);
+module.exports = new RelationshipsService('relationship', relationshipsRepository);
