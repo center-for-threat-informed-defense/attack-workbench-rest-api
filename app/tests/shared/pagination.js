@@ -66,108 +66,82 @@ PaginationTests.prototype.executeTests = function () {
       passportCookie = await login.loginAnonymous(app);
     });
 
-    it(`GET ${self.options.baseUrl} return an empty page`, function (done) {
-      request(app)
+    it(`GET ${self.options.baseUrl} return an empty page`, async function () {
+      const res = await request(app)
         .get(`${self.options.baseUrl}?offset=0&limit=10${self.options.stateQuery}`)
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(200)
-        .expect('Content-Type', /json/)
-        .end(function (err, res) {
-          if (err) {
-            done(err);
-          } else {
-            // We expect to get an array with zero test objects
-            const testObjects = res.body;
-            expect(testObjects).toBeDefined();
-            expect(Array.isArray(testObjects)).toBe(true);
-            expect(testObjects.length).toBe(0);
-            done();
-          }
-        });
+        .expect('Content-Type', /json/);
+
+      // We expect to get an array with zero test objects
+      const testObjects = res.body;
+      expect(testObjects).toBeDefined();
+      expect(Array.isArray(testObjects)).toBe(true);
+      expect(testObjects.length).toBe(0);
     });
 
-    it(`GET ${self.options.baseUrl} return an empty page with offset`, function (done) {
-      request(app)
+    it(`GET ${self.options.baseUrl} return an empty page with offset`, async function () {
+      const res = await request(app)
         .get(`${self.options.baseUrl}?offset=10&limit=10${self.options.stateQuery}`)
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(200)
-        .expect('Content-Type', /json/)
-        .end(function (err, res) {
-          if (err) {
-            done(err);
-          } else {
-            // We expect to get an array with zero test objects
-            const testObjects = res.body;
-            expect(testObjects).toBeDefined();
-            expect(Array.isArray(testObjects)).toBe(true);
-            expect(testObjects.length).toBe(0);
-            done();
-          }
-        });
+        .expect('Content-Type', /json/);
+
+      // We expect to get an array with zero test objects
+      const testObjects = res.body;
+      expect(testObjects).toBeDefined();
+      expect(Array.isArray(testObjects)).toBe(true);
+      expect(testObjects.length).toBe(0);
     });
 
-    it(`GET ${self.options.baseUrl} return an empty page with pagination data`, function (done) {
-      request(app)
+    it(`GET ${self.options.baseUrl} return an empty page with pagination data`, async function () {
+      const res = await request(app)
         .get(
           `${self.options.baseUrl}?offset=0&limit=10&includePagination=true${self.options.stateQuery}`,
         )
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(200)
-        .expect('Content-Type', /json/)
-        .end(function (err, res) {
-          if (err) {
-            done(err);
-          } else {
-            // We expect to get an array with zero test objects
-            const testObjects = res.body.data;
-            expect(testObjects).toBeDefined();
-            expect(Array.isArray(testObjects)).toBe(true);
-            expect(testObjects.length).toBe(0);
+        .expect('Content-Type', /json/);
 
-            // We expect pagination data to be included
-            const pagination = res.body.pagination;
-            expect(pagination).toBeDefined();
-            expect(pagination.total).toBe(0);
-            expect(pagination.limit).toBe(10);
-            expect(pagination.offset).toBe(0);
+      // We expect to get an array with zero test objects
+      const testObjects = res.body.data;
+      expect(testObjects).toBeDefined();
+      expect(Array.isArray(testObjects)).toBe(true);
+      expect(testObjects.length).toBe(0);
 
-            done();
-          }
-        });
+      // We expect pagination data to be included
+      const pagination = res.body.pagination;
+      expect(pagination).toBeDefined();
+      expect(pagination.total).toBe(0);
+      expect(pagination.limit).toBe(10);
+      expect(pagination.offset).toBe(0);
     });
 
-    it(`GET ${self.options.baseUrl} return an empty page with offset with pagination data`, function (done) {
-      request(app)
+    it(`GET ${self.options.baseUrl} return an empty page with offset with pagination data`, async function () {
+      const res = await request(app)
         .get(
           `${self.options.baseUrl}?offset=10&limit=10&includePagination=true${self.options.stateQuery}`,
         )
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(200)
-        .expect('Content-Type', /json/)
-        .end(function (err, res) {
-          if (err) {
-            done(err);
-          } else {
-            // We expect to get an array with zero test objects
-            const testObjects = res.body.data;
-            expect(testObjects).toBeDefined();
-            expect(Array.isArray(testObjects)).toBe(true);
-            expect(testObjects.length).toBe(0);
+        .expect('Content-Type', /json/);
 
-            // We expect pagination data to be included
-            const pagination = res.body.pagination;
-            expect(pagination).toBeDefined();
-            expect(pagination.total).toBe(0);
-            expect(pagination.limit).toBe(10);
-            expect(pagination.offset).toBe(10);
+      // We expect to get an array with zero test objects
+      const testObjects = res.body.data;
+      expect(testObjects).toBeDefined();
+      expect(Array.isArray(testObjects)).toBe(true);
+      expect(testObjects.length).toBe(0);
 
-            done();
-          }
-        });
+      // We expect pagination data to be included
+      const pagination = res.body.pagination;
+      expect(pagination).toBeDefined();
+      expect(pagination.total).toBe(0);
+      expect(pagination.limit).toBe(10);
+      expect(pagination.offset).toBe(10);
     });
 
     it(`GET ${self.options.baseUrl} returns the array of preloaded objects`, async function () {
@@ -190,110 +164,85 @@ PaginationTests.prototype.executeTests = function () {
     const pageSizeList = [5, 10, 20];
     const offset = 10;
     pageSizeList.forEach(function (pageSize) {
-      it(`GET ${self.options.baseUrl} returns a page of preloaded objects`, function (done) {
-        request(app)
+      it(`GET ${self.options.baseUrl} returns a page of preloaded objects`, async function () {
+        const res = await request(app)
           .get(
             `${self.options.baseUrl}?offset=${offset}&limit=${pageSize}${self.options.stateQuery}`,
           )
           .set('Accept', 'application/json')
           .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
           .expect(200)
-          .expect('Content-Type', /json/)
-          .end(function (err, res) {
-            if (err) {
-              done(err);
-            } else {
-              // We expect to get an array with one page of test objects
-              const testObjects = res.body;
-              expect(testObjects).toBeDefined();
-              expect(Array.isArray(testObjects)).toBe(true);
-              expect(testObjects.length).toBe(pageSize);
-              done();
-            }
-          });
+          .expect('Content-Type', /json/);
+
+        // We expect to get an array with one page of test objects
+        const testObjects = res.body;
+        expect(testObjects).toBeDefined();
+        expect(Array.isArray(testObjects)).toBe(true);
+        expect(testObjects.length).toBe(pageSize);
       });
 
-      it(`GET ${self.options.baseUrl} returns a page of preloaded objects with pagination data`, function (done) {
-        request(app)
+      it(`GET ${self.options.baseUrl} returns a page of preloaded objects with pagination data`, async function () {
+        const res = await request(app)
           .get(
             `${self.options.baseUrl}?offset=${offset}&limit=${pageSize}&includePagination=true${self.options.stateQuery}`,
           )
           .set('Accept', 'application/json')
           .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
           .expect(200)
-          .expect('Content-Type', /json/)
-          .end(function (err, res) {
-            if (err) {
-              done(err);
-            } else {
-              // We expect to get an array with one page of test objects
-              const testObjects = res.body.data;
-              expect(testObjects).toBeDefined();
-              expect(Array.isArray(testObjects)).toBe(true);
-              expect(testObjects.length).toBe(pageSize);
+          .expect('Content-Type', /json/);
 
-              // We expect pagination data to be included
-              const pagination = res.body.pagination;
-              expect(pagination).toBeDefined();
-              expect(pagination.total).toBe(self.options.numberOfObjects);
-              expect(pagination.limit).toBe(pageSize);
-              expect(pagination.offset).toBe(offset);
+        // We expect to get an array with one page of test objects
+        const testObjects = res.body.data;
+        expect(testObjects).toBeDefined();
+        expect(Array.isArray(testObjects)).toBe(true);
+        expect(testObjects.length).toBe(pageSize);
 
-              done();
-            }
-          });
+        // We expect pagination data to be included
+        const pagination = res.body.pagination;
+        expect(pagination).toBeDefined();
+        expect(pagination.total).toBe(self.options.numberOfObjects);
+        expect(pagination.limit).toBe(pageSize);
+        expect(pagination.offset).toBe(offset);
       });
     });
 
-    it(`GET ${self.options.baseUrl} return a partial page of preloaded objects`, function (done) {
-      request(app)
+    it(`GET ${self.options.baseUrl} return a partial page of preloaded objects`, async function () {
+      const res = await request(app)
         .get(`${self.options.baseUrl}?offset=40&limit=20${self.options.stateQuery}`)
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(200)
-        .expect('Content-Type', /json/)
-        .end(function (err, res) {
-          if (err) {
-            done(err);
-          } else {
-            // We expect to get an array with one page of test objects
-            const testObjects = res.body;
-            expect(testObjects).toBeDefined();
-            expect(Array.isArray(testObjects)).toBe(true);
-            expect(testObjects.length).toBe(5);
-            done();
-          }
-        });
+        .expect('Content-Type', /json/);
+
+      // We expect to get an array with one page of test objects
+      const testObjects = res.body;
+      expect(testObjects).toBeDefined();
+      expect(Array.isArray(testObjects)).toBe(true);
+      expect(testObjects.length).toBe(5);
     });
 
-    it(`GET ${self.options.baseUrl} return a partial page of preloaded objects with pagination data`, function (done) {
-      request(app)
+    it(`GET ${self.options.baseUrl} return a partial page of preloaded objects with pagination data`, async function () {
+      const res = await request(app)
         .get(
           `${self.options.baseUrl}?offset=40&limit=20&includePagination=true${self.options.stateQuery}`,
         )
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(200)
-        .expect('Content-Type', /json/)
-        .end(function (err, res) {
-          if (err) {
-            done(err);
-          } else {
-            // We expect to get an array with one page of test objects
-            const testObjects = res.body.data;
-            expect(testObjects).toBeDefined();
-            expect(Array.isArray(testObjects)).toBe(true);
-            expect(testObjects.length).toBe(5);
+        .expect('Content-Type', /json/);
 
-            // We expect pagination data to be included
-            const pagination = res.body.pagination;
-            expect(pagination).toBeDefined();
-            expect(pagination.total).toBe(45);
-            expect(pagination.limit).toBe(20);
-            expect(pagination.offset).toBe(40);
-            done();
-          }
-        });
+      // We expect to get an array with one page of test objects
+      const testObjects = res.body.data;
+      expect(testObjects).toBeDefined();
+      expect(Array.isArray(testObjects)).toBe(true);
+      expect(testObjects.length).toBe(5);
+
+      // We expect pagination data to be included
+      const pagination = res.body.pagination;
+      expect(pagination).toBeDefined();
+      expect(pagination.total).toBe(45);
+      expect(pagination.limit).toBe(20);
+      expect(pagination.offset).toBe(40);
     });
 
     after(async function () {
