@@ -1,6 +1,6 @@
 'use strict';
 
-const baseService = require('./_base.service');
+const BaseService = require('./_base.service');
 const referencesRepository = require('../repository/references-repository');
 const { MissingParameterError } = require('../exceptions');
 
@@ -11,7 +11,7 @@ class ReferencesService {
 
   async retrieveAll(options) {
     const results = await this.repository.retrieveAll(options);
-    const paginatedResults = baseService.paginate(options, results);
+    const paginatedResults = BaseService.paginate(options, results);
 
     return paginatedResults;
   }

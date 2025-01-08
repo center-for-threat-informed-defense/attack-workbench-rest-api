@@ -1,11 +1,9 @@
 'use strict';
 
 const config = require('../config/config');
-
-const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
-
 const BaseService = require('./_base.service');
 const tacticsRepository = require('../repository/tactics-repository');
+
 const { Tactic: TacticType } = require('../lib/types');
 const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
