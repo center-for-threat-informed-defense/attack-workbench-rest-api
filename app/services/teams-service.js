@@ -118,24 +118,29 @@ class TeamsService {
                         ]}};
                 aggregation.push(match);
             }
-            const facet = {
-                $facet: {
-                    totalCount: [ { $count: 'totalCount' }],
-                    documents: [ ]
-                }
-            };
+            // Get the total count of documents, pre-limit
+            const totalCount = await UserAccount.aggregate(aggregation).count("totalCount").exec();
+
             if (options.offset) {
-                facet.$facet.documents.push({ $skip: options.offset });
+                aggregation.push({ $skip: options.offset });
             }
             else {
-                facet.$facet.documents.push({ $skip: 0 });
+                aggregation.push({ $skip: 0 });
             }
+
             if (options.limit) {
-                facet.$facet.documents.push({ $limit: options.limit });
+                aggregation.push({ $limit: options.limit });
             }
-            aggregation.push(facet);
+
+            // Retrieve the documents
+            const documents = await UserAccount.aggregate(aggregation).exec();
+
+            const results = [{
+                totalCount: [{ totalCount: totalCount[0]?.totalCount || 0, }],
+                documents: documents
+            }]
+
             try {
-                const results = await UserAccount.aggregate(aggregation);
                 const userAccounts = results[0].documents;
                 userAccounts.forEach(userAccount => {
                     userAccountsService.constructor.addEffectiveRole(userAccount);
@@ -145,13 +150,9 @@ class TeamsService {
                 });
 
                 if (options.includePagination) {
-                    let derivedTotalCount = 0;
-                    if (results[0].totalCount.length > 0) {
-                        derivedTotalCount = results[0].totalCount[0].totalCount;
-                    }
                     const returnValue = {
                         pagination: {
-                            total: derivedTotalCount,
+                            total: results[0].totalCount[0].totalCount,
                             offset: options.offset,
                             limit: options.limit
                         },

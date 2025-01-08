@@ -14,22 +14,34 @@ class TeamsRepository {
         this.model = model;
     }
 
-    retrieveByUserId(userAccountId, options) {
+    async retrieveByUserId(userAccountId, options) {
         const aggregation = [
             { $sort: { 'name': 1 } },
-            { $match: { userIDs: { $in: [userAccountId] } } },
-            {
-                $facet: {
-                    totalCount: [{ $count: 'totalCount' }],
-                    documents: [
-                        { $skip: options.offset || 0 },
-                        ...options.limit ? [{ $limit: options.limit }] : []
-                    ]
-                }
-            }
+            { $match: { userIDs: { $in: [userAccountId] } } }
         ];
 
-        return this.model.aggregate(aggregation).exec();
+        // Get the total count of documents, pre-limit
+        const totalCount = await this.model.aggregate(aggregation).count("totalCount").exec();
+
+        if (options.offset) {
+            aggregation.push({ $skip: options.offset });
+        }
+        else {
+            aggregation.push({ $skip: 0 });
+        }
+
+        if (options.limit) {
+            aggregation.push({ $limit: options.limit });
+        }
+
+        // Retrieve the documents
+        const documents = await this.model.aggregate(aggregation).exec();
+
+        // Return data in the format previously given by $facet
+        return [{
+            totalCount: [{ totalCount: totalCount[0]?.totalCount || 0, }],
+            documents: documents
+        }]
     }
 
     async retrieveAll(options) {
@@ -74,7 +86,7 @@ class TeamsRepository {
     async retrieveById(teamId) {
         try {
             if (!teamId) {
-               throw new MissingParameterError;
+                throw new MissingParameterError;
             }
     
             const team = await this.model.findOne({ 'id': teamId }).lean().exec();
