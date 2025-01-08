@@ -1,8 +1,6 @@
 'use strict';
 
 const uuid = require('uuid');
-const systemConfigurationService = require('./system-configuration-service');
-const identitiesService = require('./identities-service');
 const config = require('../config/config');
 const BaseService = require('./_base.service');
 const markingDefinitionsRepository = require('../repository/marking-definitions-repository');
@@ -40,8 +38,7 @@ class MarkingDefinitionsService extends BaseService {
       }
 
       // Get the organization identity
-      const organizationIdentityRef =
-        await systemConfigurationService.retrieveOrganizationIdentityRef();
+      const organizationIdentityRef = await this.retrieveOrganizationIdentityRef();
 
       // Check for an existing object
       let existingObject;
@@ -98,7 +95,7 @@ class MarkingDefinitionsService extends BaseService {
 
       // Note: document is null if not found
       if (markingDefinition) {
-        await identitiesService.addCreatedByAndModifiedByIdentities(markingDefinition);
+        await this.addCreatedByAndModifiedByIdentities(markingDefinition);
         if (callback) {
           return callback(null, [markingDefinition]);
         }

@@ -6,12 +6,16 @@ const superagent = require('superagent');
 
 const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
-const systemConfigurationService = require('./system-configuration-service');
 const attackObjectsService = require('./attack-objects-service');
+const BaseService = require('./_base.service');
 const identitiesService = require('./identities-service');
 const config = require('../config/config');
 const regexValidator = require('../lib/regex');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
+const { Collection: CollectionType } = require('../lib/types');
+
+// type and repository arguments not needed to call BaseService.setDefaultMarkingDefinitionsForObject
+const baseService = new BaseService(null, null);
 
 const errors = {
   missingParameter: 'Missing required parameter',
@@ -293,11 +297,10 @@ exports.create = async function (data, options) {
     }
 
     // Set the default marking definitions
-    await systemConfigurationService.setDefaultMarkingDefinitionsForObject(collection);
+    await baseService.setDefaultMarkingDefinitionsForObject(collection);
 
     // Get the organization identity
-    const organizationIdentityRef =
-      await systemConfigurationService.retrieveOrganizationIdentityRef();
+    const organizationIdentityRef = await baseService.retrieveOrganizationIdentityRef();
 
     // Check for an existing object
     let existingObject;
@@ -312,7 +315,7 @@ exports.create = async function (data, options) {
     } else {
       // New object
       // Assign a new STIX id if not already provided
-      collection.stix.id = collection.stix.id || `x-mitre-collection--${uuid.v4()}`;
+      collection.stix.id = collection.stix.id || `${CollectionType}--${uuid.v4()}`;
 
       // Set the created_by_ref and x_mitre_modified_by_ref properties
       collection.stix.created_by_ref = organizationIdentityRef;

@@ -1,7 +1,6 @@
 'use strict';
 
 const uuid = require('uuid');
-const systemConfigurationService = require('./system-configuration-service');
 const config = require('../config/config');
 const {
   DatabaseError,
@@ -9,36 +8,29 @@ const {
   MissingParameterError,
   InvalidQueryStringParameterError,
   InvalidTypeError,
+  OrganizationIdentityNotSetError,
 } = require('../exceptions');
 const AbstractService = require('./_abstract.service');
+
+// Import required repositories
+const systemConfigurationRepository = require('../repository/system-configurations-repository');
+const identitiesRepository = require('../repository/identities-repository');
+const userAccountsService = require('./user-accounts-service');
 
 class BaseService extends AbstractService {
   constructor(type, repository) {
     super();
     this.type = type;
     this.repository = repository;
+
+    // Initialize caches for identity lookups
+    this.identityCache = new Map();
+    this.userAccountCache = new Map();
   }
 
-  static attackObjectsService;
-
-  static identitiesService;
-
-  static systemConfigurationService;
-
-  static requireServices() {
-    // Late binding to avoid circular dependencies
-    if (!BaseService.identitiesService) {
-      BaseService.identitiesService = require('./identities-service');
-    }
-    if (!BaseService.systemConfigurationService) {
-      BaseService.systemConfigurationService = require('./system-configuration-service');
-    }
-  }
-
-  // Helper function to determine if the last argument is a callback
-  static isCallback(arg) {
-    return typeof arg === 'function';
-  }
+  // ============================
+  // Pagination and Utility Methods
+  // ============================
 
   static paginate(options, results) {
     if (options.includePagination) {
@@ -59,8 +51,123 @@ class BaseService extends AbstractService {
     }
   }
 
+  static isCallback(arg) {
+    return typeof arg === 'function';
+  }
+
+  // ============================
+  // System Configuration Methods
+  // ============================
+
+  async retrieveOrganizationIdentityRef() {
+    const systemConfig = await systemConfigurationRepository.retrieveOne();
+
+    if (systemConfig && systemConfig.organization_identity_ref) {
+      return systemConfig.organization_identity_ref;
+    } else {
+      throw new OrganizationIdentityNotSetError();
+    }
+  }
+
+  async setDefaultMarkingDefinitionsForObject(attackObject) {
+    const systemConfig = await systemConfigurationRepository.retrieveOne({ lean: true });
+    if (!systemConfig) return;
+
+    const defaultMarkingDefinitions = systemConfig.default_marking_definitions || [];
+
+    if (attackObject.stix.object_marking_refs) {
+      attackObject.stix.object_marking_refs = attackObject.stix.object_marking_refs.concat(
+        defaultMarkingDefinitions.filter((e) => !attackObject.stix.object_marking_refs.includes(e)),
+      );
+    } else {
+      attackObject.stix.object_marking_refs = defaultMarkingDefinitions;
+    }
+  }
+
+  // ============================
+  // Identity Management Methods
+  // ============================
+
+  async addCreatedByAndModifiedByIdentitiesToAll(attackObjects) {
+    for (const attackObject of attackObjects) {
+      await this.addCreatedByAndModifiedByIdentities(attackObject);
+    }
+  }
+
+  async addCreatedByAndModifiedByIdentities(attackObject) {
+    if (attackObject?.stix?.created_by_ref) {
+      await this.addCreatedByIdentity(attackObject);
+    }
+
+    if (attackObject?.stix?.x_mitre_modified_by_ref) {
+      await this.addModifiedByIdentity(attackObject);
+    }
+
+    if (attackObject?.workspace?.workflow?.created_by_user_account) {
+      await this.addCreatedByUserAccountWithCache(attackObject);
+    }
+  }
+
+  async addCreatedByIdentity(attackObject) {
+    if (this.identityCache.has(attackObject.stix.created_by_ref)) {
+      attackObject.created_by_identity = this.identityCache.get(attackObject.stix.created_by_ref);
+      return;
+    }
+
+    if (!attackObject.created_by_identity) {
+      try {
+        const identityObject = await identitiesRepository.retrieveLatestByStixId(
+          attackObject.stix.created_by_ref,
+        );
+        attackObject.created_by_identity = identityObject;
+        this.identityCache.set(attackObject.stix.created_by_ref, identityObject);
+      } catch (err) {
+        // Ignore lookup errors
+      }
+    }
+  }
+
+  async addModifiedByIdentity(attackObject) {
+    if (this.identityCache.has(attackObject.stix.x_mitre_modified_by_ref)) {
+      attackObject.modified_by_identity = this.identityCache.get(
+        attackObject.stix.x_mitre_modified_by_ref,
+      );
+      return;
+    }
+
+    if (!attackObject.modified_by_identity) {
+      try {
+        const identityObject = await identitiesRepository.retrieveLatestByStixId(
+          attackObject.stix.x_mitre_modified_by_ref,
+        );
+        attackObject.modified_by_identity = identityObject;
+        this.identityCache.set(attackObject.stix.x_mitre_modified_by_ref, identityObject);
+      } catch (err) {
+        // Ignore lookup errors
+      }
+    }
+  }
+
+  async addCreatedByUserAccountWithCache(attackObject) {
+    const userAccountRef = attackObject?.workspace?.workflow?.created_by_user_account;
+    if (!userAccountRef) return;
+
+    if (this.userAccountCache.has(userAccountRef)) {
+      attackObject.created_by_user_account = this.userAccountCache.get(userAccountRef);
+      return;
+    }
+
+    if (!attackObject.created_by_user_account) {
+      await userAccountsService.addCreatedByUserAccount(attackObject);
+      this.userAccountCache.set(userAccountRef, attackObject.created_by_user_account);
+    }
+  }
+
+  // ============================
+  // CRUD Operations
+  // ============================
+
   async retrieveAll(options, callback) {
-    BaseService.requireServices();
     if (BaseService.isCallback(arguments[arguments.length - 1])) {
       callback = arguments[arguments.length - 1];
     }
@@ -69,7 +176,7 @@ class BaseService extends AbstractService {
     try {
       results = await this.repository.retrieveAll(options);
     } catch (err) {
-      const databaseError = new DatabaseError(err); // Let the DatabaseError bubble up
+      const databaseError = new DatabaseError(err);
       if (callback) {
         return callback(databaseError);
       }
@@ -77,9 +184,7 @@ class BaseService extends AbstractService {
     }
 
     try {
-      await BaseService.identitiesService.addCreatedByAndModifiedByIdentitiesToAll(
-        results[0].documents,
-      );
+      await this.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
     } catch (err) {
       const identityError = new IdentityServiceError({
         details: err.message,
@@ -99,8 +204,6 @@ class BaseService extends AbstractService {
   }
 
   async retrieveById(stixId, options, callback) {
-    BaseService.requireServices();
-
     if (BaseService.isCallback(arguments[arguments.length - 1])) {
       callback = arguments[arguments.length - 1];
     }
@@ -118,7 +221,7 @@ class BaseService extends AbstractService {
         const documents = await this.repository.retrieveAllById(stixId);
 
         try {
-          await BaseService.identitiesService.addCreatedByAndModifiedByIdentitiesToAll(documents);
+          await this.addCreatedByAndModifiedByIdentitiesToAll(documents);
         } catch (err) {
           const identityError = new IdentityServiceError({
             details: err.message,
@@ -138,7 +241,7 @@ class BaseService extends AbstractService {
 
         if (document) {
           try {
-            await BaseService.identitiesService.addCreatedByAndModifiedByIdentities(document);
+            await this.addCreatedByAndModifiedByIdentities(document);
           } catch (err) {
             const identityError = new IdentityServiceError({
               details: err.message,
@@ -170,13 +273,11 @@ class BaseService extends AbstractService {
       if (callback) {
         return callback(err);
       }
-      throw err; // Let the DatabaseError bubble up
+      throw err;
     }
   }
 
   async retrieveVersionById(stixId, modified, callback) {
-    BaseService.requireServices();
-
     if (BaseService.isCallback(arguments[arguments.length - 1])) {
       callback = arguments[arguments.length - 1];
     }
@@ -196,7 +297,6 @@ class BaseService extends AbstractService {
       throw err;
     }
 
-    // eslint-disable-next-line no-useless-catch
     try {
       const document = await this.repository.retrieveOneByVersion(stixId, modified);
 
@@ -207,7 +307,7 @@ class BaseService extends AbstractService {
         return null;
       } else {
         try {
-          await BaseService.identitiesService.addCreatedByAndModifiedByIdentities(document);
+          await this.addCreatedByAndModifiedByIdentities(document);
         } catch (err) {
           const identityError = new IdentityServiceError({
             details: err.message,
@@ -227,13 +327,11 @@ class BaseService extends AbstractService {
       if (callback) {
         return callback(err);
       }
-      throw err; // Let the DatabaseError bubble up
+      throw err;
     }
   }
 
   async create(data, options, callback) {
-    BaseService.requireServices();
-
     if (BaseService.isCallback(arguments[arguments.length - 1])) {
       callback = arguments[arguments.length - 1];
     }
@@ -242,14 +340,7 @@ class BaseService extends AbstractService {
       throw new InvalidTypeError();
     }
 
-    // eslint-disable-next-line no-useless-catch
     try {
-      // This function handles two use cases:
-      //   1. This is a completely new object. Create a new object and generate the stix.id if not already
-      //      provided. Set both stix.created_by_ref and stix.x_mitre_modified_by_ref to the organization identity.
-      //   2. This is a new version of an existing object. Create a new object with the specified id.
-      //      Set stix.x_mitre_modified_by_ref to the organization identity.
-
       options = options || {};
       if (!options.import) {
         // Set the ATT&CK Spec Version
@@ -262,11 +353,10 @@ class BaseService extends AbstractService {
         }
 
         // Set the default marking definitions
-        await BaseService.systemConfigurationService.setDefaultMarkingDefinitionsForObject(data);
+        await this.setDefaultMarkingDefinitionsForObject(data);
 
         // Get the organization identity
-        const organizationIdentityRef =
-          await systemConfigurationService.retrieveOrganizationIdentityRef();
+        const organizationIdentityRef = await this.retrieveOrganizationIdentityRef();
 
         // Check for an existing object
         let existingObject;
@@ -282,7 +372,6 @@ class BaseService extends AbstractService {
           // New object
           // Assign a new STIX id if not already provided
           if (!data.stix.id) {
-            // const stixIdPrefix = getStixIdPrefixFromModel(this.model.modelName, data.stix.type);
             data.stix.id = `${data.stix.type}--${uuid.v4()}`;
           }
 
@@ -325,7 +414,6 @@ class BaseService extends AbstractService {
     }
 
     let document;
-    // eslint-disable-next-line no-useless-catch
     try {
       document = await this.repository.retrieveOneByVersion(stixId, stixModified);
     } catch (err) {
@@ -388,7 +476,7 @@ class BaseService extends AbstractService {
       }
       throw err;
     }
-    // eslint-disable-next-line no-useless-catch
+
     try {
       const document = await this.repository.findOneAndRemove(stixId, stixModified);
 
@@ -422,7 +510,7 @@ class BaseService extends AbstractService {
       }
       throw err;
     }
-    // eslint-disable-next-line no-useless-catch
+
     try {
       const res = await this.repository.deleteMany(stixId);
       if (callback) {
