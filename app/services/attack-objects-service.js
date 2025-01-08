@@ -1,44 +1,25 @@
 'use strict';
 
-const Relationship = require('../models/relationship-model');
+const util = require('util');
 const attackObjectsRepository = require('../repository/attack-objects-repository');
 const BaseService = require('./_base.service');
-
 const identitiesService = require('./identities-service');
 const relationshipsService = require('./relationships-service');
 
-const { DatabaseError, IdentityServiceError, NotImplementedError } = require('../exceptions');
+const { NotImplementedError } = require('../exceptions');
 
 class AttackObjectsService extends BaseService {
-  async retrieveAll(options, callback) {
-    if (AttackObjectsService.isCallback(arguments[arguments.length - 1])) {
-      callback = arguments[arguments.length - 1];
-    }
+  /**
+   * Override of base class retrieveAll() because:
+   * 1. Adds special handling for relationships
+   * 2. Uses custom pagination logic
+   */
+  async retrieveAll(options) {
+    // Get attack objects from repository
+    const results = await this.repository.retrieveAll(options);
+    let documents = results[0].documents;
 
-    let results;
-    try {
-      results = await this.repository.retrieveAll(options);
-    } catch (err) {
-      const databaseError = new DatabaseError(err); // Let the DatabaseError bubble up
-      if (callback) {
-        return callback(databaseError);
-      }
-      throw databaseError;
-    }
-
-    try {
-      await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
-    } catch (err) {
-      const identityError = new IdentityServiceError({
-        details: err.message,
-        cause: err,
-      });
-      if (callback) {
-        return callback(identityError);
-      }
-      throw identityError;
-    }
-    // Add relationships from separate collection
+    // Add relationships from separate collection if not filtering by attackId or search
     if (!options.attackId && !options.search) {
       const relationshipsOptions = {
         includeRevoked: options.includeRevoked,
@@ -50,82 +31,94 @@ class AttackObjectsService extends BaseService {
         lastUpdatedBy: options.lastUpdatedBy,
       };
       const relationships = await relationshipsService.retrieveAll(relationshipsOptions);
-      if (relationships.length > 0) {
-        results[0].documents = results[0].documents.concat(relationships);
-        results[0].totalCount[0].totalCount += 1;
-      }
+      documents = documents.concat(relationships);
     }
 
-    const paginatedResults = AttackObjectsService.paginate(options, results);
-    if (callback) {
-      return callback(null, paginatedResults);
-    }
-    return paginatedResults;
-  }
+    // Add identities
+    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(documents);
 
-  retrieveById(stixId, options, callback) {
-    throw new NotImplementedError(this.constructor.name, 'retrieveById');
-  }
-
-  create(data, options, callback) {
-    throw new NotImplementedError(this.constructor.name, 'create');
-  }
-
-  updateFull(stixId, stixModified, data, callback) {
-    throw new NotImplementedError(this.constructor.name, 'updateFull');
-  }
-
-  deleteVersionById(stixId, stixModified, callback) {
-    throw new NotImplementedError(this.constructor.name, 'deleteVersionById');
-  }
-
-  deleteById(stixId, callback) {
-    throw new NotImplementedError(this.constructor.name, 'deleteById');
-  }
-
-  // Record that this object is part of a collection
-  async insertCollection(stixId, modified, collectionId, collectionModified) {
-    let attackObject;
-    if (stixId.startsWith('relationship')) {
-      // TBD: Use relationships service when that is converted to async
-      attackObject = await Relationship.findOne({
-        'stix.id': stixId,
-        'stix.modified': modified,
-      });
-    } else {
-      attackObject = await this.repository.retrieveOneByVersion(stixId, modified);
-    }
-
-    if (attackObject) {
-      // Create the collection reference
-      const collection = {
-        collection_ref: collectionId,
-        collection_modified: collectionModified,
+    // Handle pagination
+    if (options.includePagination) {
+      return {
+        pagination: {
+          total: results[0].totalCount[0]?.totalCount || 0,
+          offset: options.offset,
+          limit: options.limit,
+        },
+        data: documents,
       };
-
-      // Make sure the exports array exists and add the collection reference
-      if (!attackObject.workspace.collections) {
-        attackObject.workspace.collections = [];
-      }
-
-      // Check to see if the collection is already added
-      // (collection with same id and version should only be created--and therefore objects added--one time)
-      const duplicateCollection = attackObject.workspace.collections.find(
-        (item) =>
-          item.collection_ref === collection.collection_ref &&
-          item.collection_modified === collection.collection_modified,
-      );
-      if (duplicateCollection) {
-        throw new Error(this.errors.duplicateCollection);
-      }
-
-      attackObject.workspace.collections.push(collection);
-
-      await attackObject.save();
-    } else {
-      throw new Error(this.errors.notFound);
     }
+    return documents;
+  }
+
+  /**
+   * Override of base class retrieveVersionById() because:
+   * 1. Adds special handling for relationships
+   */
+  async retrieveVersionById(stixId, modified) {
+    // Handle relationships separately
+    if (stixId.startsWith('relationship')) {
+      const retrieveRelationshipVersionById = util.promisify(
+        relationshipsService.retrieveVersionById,
+      );
+      const relationship = await retrieveRelationshipVersionById(stixId, modified);
+      await identitiesService.addCreatedByAndModifiedByIdentities(relationship);
+      return relationship;
+    }
+
+    // Otherwise use base class implementation
+    return super.retrieveVersionById(stixId, modified);
+  }
+
+  /**
+   * Record that this object is part of a collection
+   */
+  async insertCollection(stixId, modified, collectionId, collectionModified) {
+    // Validate inputs
+    if (!stixId || !modified || !collectionId || !collectionModified) {
+      throw new Error('Missing required parameter');
+    }
+
+    // Get the document
+    const document = await this.retrieveVersionById(stixId, modified);
+    if (!document) {
+      throw new Error('Document not found');
+    }
+
+    // Create the collection reference
+    const collection = {
+      collection_ref: collectionId,
+      collection_modified: collectionModified,
+    };
+
+    // Initialize collections array if needed
+    if (!document.workspace.collections) {
+      document.workspace.collections = [];
+    }
+
+    // Check for duplicate collection
+    const isDuplicate = document.workspace.collections.some(
+      (item) =>
+        item.collection_ref === collection.collection_ref &&
+        item.collection_modified === collection.collection_modified,
+    );
+    if (isDuplicate) {
+      throw new Error('Duplicate collection');
+    }
+
+    // Add collection and save
+    document.workspace.collections.push(collection);
+    return this.repository.saveDocument(document);
+  }
+
+  /**
+   * Override of base class create() because:
+   * 1. create() requires a STIX `type` -- this service does not define a type
+   */
+  async create(data, options, callback) {
+    throw new NotImplementedError(this.constructor.name, 'create');
   }
 }
 
-module.exports = new AttackObjectsService('not-a-valid-type', attackObjectsRepository);
+// Export an instance of the service
+module.exports = new AttackObjectsService(null, attackObjectsRepository);
