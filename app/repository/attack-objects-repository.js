@@ -7,17 +7,6 @@ const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 const regexValidator = require('../lib/regex');
 
 class AttackObjectsRepository extends BaseRepository {
-  errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter',
-    duplicateCollection: 'Duplicate collection',
-  };
-
-  identitiesService;
-
   async retrieveAll(options) {
     // Build the query
     const query = {};
