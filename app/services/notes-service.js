@@ -1,8 +1,9 @@
 'use strict';
 
 const notesRepository = require('../repository/notes-repository');
-
 const BaseService = require('./_base.service');
+const { Note: NoteType } = require('../lib/types');
+
 const {
   BadlyFormattedParameterError,
   DuplicateIdError,
@@ -49,4 +50,4 @@ class NotesService extends BaseService {
   }
 }
 
-module.exports = new NotesService('note', notesRepository);
+module.exports = new NotesService(NoteType, notesRepository);

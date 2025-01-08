@@ -9,6 +9,8 @@ const { PropertyNotAllowedError, InvalidTypeError } = require('../exceptions');
 const BaseService = require('./_base.service');
 const softwareRepository = require('../repository/software-repository');
 
+const { Malware: MalwareType, Tool: ToolType } = require('../lib/types');
+
 class SoftwareService extends BaseService {
   async create(data, options, callback) {
     // This function handles two use cases:
@@ -19,13 +21,13 @@ class SoftwareService extends BaseService {
 
     // is_family defaults to true for malware, not allowed for tools
     try {
-      if (data?.stix?.type !== 'malware' && data?.stix?.type !== 'tool') {
+      if (data?.stix?.type !== MalwareType && data?.stix?.type !== ToolType) {
         throw new InvalidTypeError();
       }
 
-      if (data.stix && data.stix.type === 'malware' && typeof data.stix.is_family !== 'boolean') {
+      if (data.stix && data.stix.type === MalwareType && typeof data.stix.is_family !== 'boolean') {
         data.stix.is_family = true;
-      } else if (data.stix && data.stix.type === 'tool' && data.stix.is_family !== undefined) {
+      } else if (data.stix && data.stix.type === ToolType && data.stix.is_family !== undefined) {
         throw new PropertyNotAllowedError();
       }
 
@@ -41,7 +43,7 @@ class SoftwareService extends BaseService {
         }
 
         // Set the default marking definitions
-        await systemConfigurationService.setDefaultMarkingDefinitionsForObject(data);
+        await this.setDefaultMarkingDefinitionsForObject(data);
 
         // Get the organization identity
         const organizationIdentityRef =

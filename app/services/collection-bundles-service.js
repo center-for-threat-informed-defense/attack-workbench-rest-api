@@ -22,6 +22,9 @@ const dataSourcesService = require('../services/data-sources-service');
 const dataComponentsService = require('../services/data-components-service');
 
 const Collection = require('../models/collection-model');
+const Note = require('../models/note-model');
+
+const workbenchObjectTypes = require('../lib/types');
 
 const logger = require('../lib/logger');
 const config = require('../config/config');
@@ -30,7 +33,6 @@ const async = require('async');
 const systemConfigurationService = require('./system-configuration-service');
 
 const linkById = require('../lib/linkById');
-const Note = require('../models/note-model');
 const { DuplicateIdError } = require('../exceptions');
 
 const forceImportParameters = {
@@ -291,33 +293,36 @@ exports.importBundle = function (collection, data, options, callback) {
             }
 
             let service;
-            if (importObject.type === 'attack-pattern') {
+            if (importObject.type === workbenchObjectTypes.Technique) {
               service = techniquesService;
-            } else if (importObject.type === 'x-mitre-tactic') {
+            } else if (importObject.type === workbenchObjectTypes.Tactic) {
               service = tacticsService;
-            } else if (importObject.type === 'intrusion-set') {
+            } else if (importObject.type === workbenchObjectTypes.Group) {
               service = groupsService;
-            } else if (importObject.type === 'campaign') {
+            } else if (importObject.type === workbenchObjectTypes.Campaign) {
               service = campaignsService;
-            } else if (importObject.type === 'course-of-action') {
+            } else if (importObject.type === workbenchObjectTypes.Mitigation) {
               service = mitigationsService;
-            } else if (importObject.type === 'malware' || importObject.type === 'tool') {
+            } else if (
+              importObject.type === workbenchObjectTypes.Malware ||
+              importObject.type === workbenchObjectTypes.Tool
+            ) {
               service = softwareService;
-            } else if (importObject.type === 'x-mitre-matrix') {
+            } else if (importObject.type === workbenchObjectTypes.Matrix) {
               service = matricesService;
-            } else if (importObject.type === 'relationship') {
+            } else if (importObject.type === workbenchObjectTypes.Relationship) {
               service = relationshipService;
-            } else if (importObject.type === 'marking-definition') {
+            } else if (importObject.type === workbenchObjectTypes.MarkingDefinition) {
               service = markingDefinitionsService;
-            } else if (importObject.type === 'identity') {
+            } else if (importObject.type === workbenchObjectTypes.Identity) {
               service = identitiesService;
-            } else if (importObject.type === 'note') {
+            } else if (importObject.type === workbenchObjectTypes.Note) {
               service = notesService;
-            } else if (importObject.type === 'x-mitre-data-source') {
+            } else if (importObject.type === workbenchObjectTypes.DataSource) {
               service = dataSourcesService;
-            } else if (importObject.type === 'x-mitre-data-component') {
+            } else if (importObject.type === workbenchObjectTypes.DataComponent) {
               service = dataComponentsService;
-            } else if (importObject.type === 'x-mitre-asset') {
+            } else if (importObject.type === workbenchObjectTypes.Asset) {
               service = assetsService;
             }
 

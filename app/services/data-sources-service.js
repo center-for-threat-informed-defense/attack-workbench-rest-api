@@ -4,6 +4,7 @@ const dataSourcesRepository = require('../repository/data-sources-repository');
 const identitiesService = require('./identities-service');
 const dataComponentsService = require('./data-components-service');
 const BaseService = require('./_base.service');
+const { DataSource: DataSourceType } = require('../lib/types');
 const {
   MissingParameterError,
   BadlyFormattedParameterError,
@@ -161,4 +162,4 @@ class DataSourcesService extends BaseService {
   }
 }
 
-module.exports = new DataSourcesService('x-mitre-data-source', dataSourcesRepository);
+module.exports = new DataSourcesService(DataSourceType, dataSourcesRepository);

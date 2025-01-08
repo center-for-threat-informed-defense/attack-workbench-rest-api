@@ -1,11 +1,12 @@
 'use strict';
 
 const util = require('util');
-const { GenericServiceError, MissingParameterError } = require('../exceptions');
-
-const matrixRepository = require('../repository/matrix-repository');
 
 const BaseService = require('./_base.service');
+const matrixRepository = require('../repository/matrix-repository');
+const { Matrix: MatrixType } = require('../lib/types');
+
+const { GenericServiceError, MissingParameterError } = require('../exceptions');
 
 class MatrixService extends BaseService {
   constructor(type, repository) {
@@ -119,4 +120,4 @@ class MatrixService extends BaseService {
   }
 }
 
-module.exports = new MatrixService('x-mitre-matrix', matrixRepository);
+module.exports = new MatrixService(MatrixType, matrixRepository);

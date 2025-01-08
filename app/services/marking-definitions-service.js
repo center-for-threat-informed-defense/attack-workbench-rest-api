@@ -6,6 +6,8 @@ const identitiesService = require('./identities-service');
 const config = require('../config/config');
 const BaseService = require('./_base.service');
 const markingDefinitionsRepository = require('../repository/marking-definitions-repository');
+const { MarkingDefinition: MarkingDefinitionType } = require('../lib/types');
+
 const {
   MissingParameterError,
   BadlyFormattedParameterError,
@@ -129,4 +131,4 @@ class MarkingDefinitionsService extends BaseService {
   }
 }
 
-module.exports = new MarkingDefinitionsService('marking-definition', markingDefinitionsRepository);
+module.exports = new MarkingDefinitionsService(MarkingDefinitionType, markingDefinitionsRepository);

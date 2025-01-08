@@ -3,11 +3,7 @@
 //** core dependencies **/
 const BaseService = require('./_base.service');
 const relationshipsRepository = require('../repository/relationships-repository');
-
-// ** service dependencies **/
-const identitiesService = require('./identities-service');
-const systemConfigService = require('./system-configuration-service');
-const config = require('../config/config');
+const { Relationship: RelationshipType } = require('../lib/types');
 
 // ** misc **/
 const uuid = require('uuid');
@@ -154,4 +150,4 @@ class RelationshipsService extends BaseService {
   }
 }
 
-module.exports = new RelationshipsService('relationship', relationshipsRepository);
+module.exports = new RelationshipsService(RelationshipType, relationshipsRepository);
