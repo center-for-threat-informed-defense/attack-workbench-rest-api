@@ -174,7 +174,7 @@ paths:
           description: 'All the data component versions were successfully deleted.'
         '404':
           description: 'A data component with the requested STIX id was not found.'
-          
+
   /api/data-components/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a data component matching the STIX id and modified date'

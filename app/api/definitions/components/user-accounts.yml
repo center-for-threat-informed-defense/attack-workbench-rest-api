@@ -16,11 +16,11 @@ components:
           type: string
         status:
           type: string
-          enum: [ 'pending', 'active', 'inactive' ]
+          enum: ['pending', 'active', 'inactive']
           example: 'active'
         role:
           type: string
-          enum: [ 'visitor', 'editor', 'admin' ]
+          enum: ['visitor', 'editor', 'admin']
           example: 'editor'
         created:
           type: string

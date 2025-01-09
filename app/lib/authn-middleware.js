@@ -17,33 +17,34 @@ const authnBasic = require('../lib/authn-basic');
  */
 const bearerScheme = 'bearer';
 const basicScheme = 'basic';
-exports.authenticate = function(req, res, next) {
-    const authzHeader = req.get('Authorization');
-    const authzScheme = getScheme(authzHeader);
-    if ((config.serviceAuthn.oidcClientCredentials.enable  || config.serviceAuthn.challengeApikey.enable) && (authzHeader && authzScheme === bearerScheme)) {
-        // Authorization header found
-        // Authenticate the service using the Bearer token
-        authnBearer.authenticate(req, res, next);
-    }
-    else if (config.serviceAuthn.basicApikey.enable && (authzHeader && authzScheme === basicScheme)) {
-        // Authorization header found
-        // Authenticate the service using Basic Authentication with apikey
-        authnBasic.authenticate(req, res, next);
-    }
-    else if (req.isAuthenticated()) {
-        // User has been authenticated using a non-Bearer strategy
-        next();
-    }
-    else {
-        return res.status(401).send('Not authorized');
-    }
-}
+exports.authenticate = function (req, res, next) {
+  const authzHeader = req.get('Authorization');
+  const authzScheme = getScheme(authzHeader);
+  if (
+    (config.serviceAuthn.oidcClientCredentials.enable ||
+      config.serviceAuthn.challengeApikey.enable) &&
+    authzHeader &&
+    authzScheme === bearerScheme
+  ) {
+    // Authorization header found
+    // Authenticate the service using the Bearer token
+    authnBearer.authenticate(req, res, next);
+  } else if (config.serviceAuthn.basicApikey.enable && authzHeader && authzScheme === basicScheme) {
+    // Authorization header found
+    // Authenticate the service using Basic Authentication with apikey
+    authnBasic.authenticate(req, res, next);
+  } else if (req.isAuthenticated()) {
+    // User has been authenticated using a non-Bearer strategy
+    next();
+  } else {
+    return res.status(401).send('Not authorized');
+  }
+};
 
 function getScheme(authorizationHeader) {
-    if (authorizationHeader) {
-        return authorizationHeader.split(' ')[0].toLowerCase();
-    }
-    else {
-        return null;
-    }
+  if (authorizationHeader) {
+    return authorizationHeader.split(' ')[0].toLowerCase();
+  } else {
+    return null;
+  }
 }

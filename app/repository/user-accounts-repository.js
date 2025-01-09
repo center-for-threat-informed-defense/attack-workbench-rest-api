@@ -6,9 +6,9 @@ const regexValidator = require('../lib/regex');
 const { BadlyFormattedParameterError } = require('../exceptions');
 
 class UserAccountsRepository {
-    constructor(model) {
-        this.model = model;
-    }
+  constructor(model) {
+    this.model = model;
+  }
 
     async retrieveAll(options) {
         try {
@@ -81,113 +81,109 @@ class UserAccountsRepository {
         }
     }
 
-    async retrieveOneById(stixId) {
-        try {
-            return await this.model.findOne({ 'id': stixId }).lean().exec();
-        } catch (err) {
-            throw new DatabaseError(err);
-        }
+  async retrieveOneById(stixId) {
+    try {
+      return await this.model.findOne({ id: stixId }).lean().exec();
+    } catch (err) {
+      throw new DatabaseError(err);
     }
+  }
 
-    createNewDocument(data) {
-        return new this.model(data);
+  createNewDocument(data) {
+    return new this.model(data);
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  async saveDocument(document) {
+    try {
+      return await document.save();
+    } catch (err) {
+      if (err.name === 'MongoServerError' && err.code === 11000) {
+        throw new DuplicateIdError({
+          details: `Document with id '${document.id}' already exists.`,
+        });
+      }
+      throw new DatabaseError(err);
     }
+  }
 
-    // eslint-disable-next-line class-methods-use-this
-    async saveDocument(document) {
-        try {
-            return await document.save();
-        }
-        catch(err) {
-            if (err.name === 'MongoServerError' && err.code === 11000) {
-                throw new DuplicateIdError({
-                    details: `Document with id '${ document.id }' already exists.`
-                });
-            }
-            throw new DatabaseError(err);
-        }
+  // eslint-disable-next-line class-methods-use-this
+  async save(data) {
+    try {
+      const document = new this.model(data);
+      return await document.save();
+    } catch (err) {
+      if (err.name === 'MongoServerError' && err.code === 11000) {
+        throw new DuplicateIdError({
+          details: `Document with id '${data.id}' already exists.`,
+        });
+      }
+      throw new DatabaseError(err);
     }
+  }
 
-    // eslint-disable-next-line class-methods-use-this
-    async save(data) {
-        try {
-            const document = new this.model(data);
-            return await document.save();
-        } catch (err) {
-            if (err.name === 'MongoServerError' && err.code === 11000) {
-                throw new DuplicateIdError({
-                    details: `Document with id '${data.id}' already exists.`
-                });
-            }
-            throw new DatabaseError(err);
-        }
+  async findOneAndRemove(stixId) {
+    try {
+      return await this.model.findOneAndRemove({ id: stixId }).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
     }
+  }
 
-    async findOneAndRemove(stixId) {
-        try {
-            return await this.model.findOneAndRemove({ 'id': stixId}).exec();
-        } catch (err) {
-            throw new DatabaseError(err);
-        }
+  async retrieveOneByEmail(email) {
+    try {
+      return await this.model.findOne({ email: email }).lean().exec();
+    } catch (err) {
+      throw new DatabaseError(err);
     }
+  }
 
-    async retrieveOneByEmail(email) {
-        try {
-            return await this.model.findOne({ 'email': email }).lean().exec();
-        } catch (err) {
-            throw new DatabaseError(err);
-        }
+  async retrieveOneByUserAccountId(userAccountId) {
+    try {
+      return await this.model.findOne({ id: userAccountId }).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
     }
+  }
 
-    async retrieveOneByUserAccountId(userAccountId) {
-        try {
-            return await this.model.findOne({ 'id': userAccountId }).exec();
-        } catch (err) {
-            throw new DatabaseError(err);
+  async updateById(userAccountId, data) {
+    try {
+      const document = await this.retrieveOneByUserAccountId(userAccountId);
+
+      if (!document) {
+        // document not found
+        return null;
+      }
+
+      // Copy data to found document
+      document.email = data.email;
+      document.username = data.username;
+      document.displayName = data.displayName;
+      document.status = data.status;
+      document.role = data.role;
+
+      // Set the modified timestamp
+      document.modified = new Date().toISOString();
+
+      // Save and return the document
+      try {
+        return await document.save();
+      } catch (err) {
+        if (err.name === 'MongoServerError' && err.code === 11000) {
+          throw new DuplicateIdError({
+            details: `Document with id '${data.stix.id}' already exists.`,
+          });
         }
+        throw new DatabaseError(err);
+      }
+    } catch (err) {
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError('userId');
+      } else {
+        throw err;
+      }
     }
-
-    async updateById(userAccountId, data) {
-        try {
-            const document = await this.retrieveOneByUserAccountId(userAccountId);
-
-            if (!document) {
-                // document not found
-                return null;
-            }
-
-            // Copy data to found document
-            document.email = data.email;
-            document.username = data.username;
-            document.displayName = data.displayName;
-            document.status = data.status;
-            document.role = data.role;
-
-            // Set the modified timestamp
-            document.modified = new Date().toISOString();
-
-            // Save and return the document
-            try {
-                return await document.save();
-            }
-            catch (err) {
-                if (err.name === 'MongoServerError' && err.code === 11000) {
-                    throw new DuplicateIdError({
-                        details: `Document with id '${ data.stix.id }' already exists.`
-                    });
-                }
-                throw new DatabaseError(err);
-            }
-        }
-        catch (err) {
-            if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError('userId');
-            }
-            else {
-                throw err;
-            }
-        }
-    }
+  }
 }
 
 module.exports = new UserAccountsRepository(UserAccount);

@@ -2,181 +2,179 @@
 'use strict';
 
 class CustomError extends Error {
-    constructor(message, options = {}) {
-        super(message);
+  constructor(message, options = {}) {
+    super(message);
 
-        // Apply options (if defined) to the error object
-        for (const key in options) {
-            if (Object.prototype.hasOwnProperty.call(options, key)) {
-                this[key] = options[key];
-            }
-        }
+    // Apply options (if defined) to the error object
+    for (const key in options) {
+      if (Object.prototype.hasOwnProperty.call(options, key)) {
+        this[key] = options[key];
+      }
     }
+  }
 }
 
 class MissingParameterError extends CustomError {
-    constructor(options) {
-        super('Missing required parameter', options);
-    }
+  constructor(options) {
+    super('Missing required parameter', options);
+  }
 }
 
 class BadlyFormattedParameterError extends CustomError {
-    constructor(options) {
-        super('Badly formatted parameter', options);
-    }
+  constructor(options) {
+    super('Badly formatted parameter', options);
+  }
 }
 
 class DuplicateIdError extends CustomError {
-    constructor(options) {
-        super('Duplicate id', options);
-    }
+  constructor(options) {
+    super('Duplicate id', options);
+  }
 }
 
 class DuplicateEmailError extends CustomError {
-    constructor(options) {
-        super('Duplicate email', options);
-    }
+  constructor(options) {
+    super('Duplicate email', options);
+  }
 }
 
 class DuplicateNameError extends CustomError {
-    constructor(options) {
-        super('Duplicate name', options);
-    }
+  constructor(options) {
+    super('Duplicate name', options);
+  }
 }
 
 class NotFoundError extends CustomError {
-    constructor(options) {
-        super('Document not found', options);
-    }
+  constructor(options) {
+    super('Document not found', options);
+  }
 }
 
 class InvalidQueryStringParameterError extends CustomError {
-    constructor(options) {
-        super('Invalid query string parameter', options);
-    }
+  constructor(options) {
+    super('Invalid query string parameter', options);
+  }
 }
 
 class CannotUpdateStaticObjectError extends CustomError {
-    constructor(options) {
-        super('Cannot update static object', options);
-    }
+  constructor(options) {
+    super('Cannot update static object', options);
+  }
 }
 
 class IdentityServiceError extends CustomError {
-    constructor(options) {
-        super('An error occurred in the identities service.', options);
-    }
+  constructor(options) {
+    super('An error occurred in the identities service.', options);
+  }
 }
 
 class TechniquesServiceError extends CustomError {
-    constructor(options) {
-        super('An error occurred in the techniques service.', options);
-    }
+  constructor(options) {
+    super('An error occurred in the techniques service.', options);
+  }
 }
 
 class TacticsServiceError extends CustomError {
-    constructor(options) {
-        super('An error occurred in the tactics service.', options);
-    }
+  constructor(options) {
+    super('An error occurred in the tactics service.', options);
+  }
 }
 
 class GenericServiceError extends CustomError {
-    constructor(options) {
-        super('An error occurred in a service.', options);
-    }
+  constructor(options) {
+    super('An error occurred in a service.', options);
+  }
 }
 
 class DatabaseError extends CustomError {
-    constructor(options) {
-        super('The database operation failed.', options);
-    }
+  constructor(options) {
+    super('The database operation failed.', options);
+  }
 }
 
 class NotImplementedError extends CustomError {
-    constructor(moduleName, functionName, options) {
-        super(`The function ${functionName} in module ${moduleName} is not implemented!`, options);
-
-    }
+  constructor(moduleName, functionName, options) {
+    super(`The function ${functionName} in module ${moduleName} is not implemented!`, options);
+  }
 }
 
 class PropertyNotAllowedError extends CustomError {
-    constructor(propertyName, options) {
-        super(`Unable to create software, property ${propertyName} is not allowed`, options);
-    }
+  constructor(propertyName, options) {
+    super(`Unable to create software, property ${propertyName} is not allowed`, options);
+  }
 }
 
 class SystemConfigurationNotFound extends CustomError {
-    constructor(options) {
-        super(`System configuration not found`, options);
-    }
+  constructor(options) {
+    super(`System configuration not found`, options);
+  }
 }
 
 class OrganizationIdentityNotSetError extends CustomError {
-    constructor(options) {
-        super(`Organization identity not set`, options);
-    }
+  constructor(options) {
+    super(`Organization identity not set`, options);
+  }
 }
 
 class DefaultMarkingDefinitionsNotFoundError extends CustomError {
-    constructor(options) {
-        super(`Default marking definitions not found`, options);
-    }
+  constructor(options) {
+    super(`Default marking definitions not found`, options);
+  }
 }
 
 class OrganizationIdentityNotFoundError extends CustomError {
-    constructor(identityRef, options) {
-        super(`Identity with id ${ identityRef } not found`, options);
-    }
+  constructor(identityRef, options) {
+    super(`Identity with id ${identityRef} not found`, options);
+  }
 }
 
 class AnonymousUserAccountNotSetError extends CustomError {
-    constructor(options) {
-        super(`Anonymous user account not set`, options);
-    }
+  constructor(options) {
+    super(`Anonymous user account not set`, options);
+  }
 }
 
 class AnonymousUserAccountNotFoundError extends CustomError {
-    constructor(userAccountid, options) {
-        super(`Anonymous user account ${ userAccountid } not found`, options);
-    }
+  constructor(userAccountid, options) {
+    super(`Anonymous user account ${userAccountid} not found`, options);
+  }
 }
 
 class InvalidTypeError extends CustomError {
-    constructor(options) {
-        super('Invalid stix.type', options);
-    }
+  constructor(options) {
+    super('Invalid stix.type', options);
+  }
 }
 
 module.exports = {
+  //** General errors */
+  NotImplementedError,
 
-    //** General errors */
-    NotImplementedError,
-    
-    //** User-related errors */
-    MissingParameterError,
-    BadlyFormattedParameterError,
-    InvalidQueryStringParameterError,
-    CannotUpdateStaticObjectError,
-    
-    //** Database-related errors */
-    DuplicateIdError,
-    DuplicateEmailError,
-    DuplicateNameError,
-    NotFoundError,
-    DatabaseError,
-    
-    /** Service-specific errors */
-    GenericServiceError,
-    IdentityServiceError,
-    TechniquesServiceError,
-    TacticsServiceError,
-    PropertyNotAllowedError,
-    SystemConfigurationNotFound,
-    DefaultMarkingDefinitionsNotFoundError,
-    OrganizationIdentityNotSetError,
-    OrganizationIdentityNotFoundError,
-    AnonymousUserAccountNotSetError,
-    AnonymousUserAccountNotFoundError,
+  //** User-related errors */
+  MissingParameterError,
+  BadlyFormattedParameterError,
+  InvalidQueryStringParameterError,
+  CannotUpdateStaticObjectError,
 
-    InvalidTypeError,
+  //** Database-related errors */
+  DuplicateIdError,
+  DuplicateEmailError,
+  DuplicateNameError,
+  NotFoundError,
+  DatabaseError,
+
+  /** Service-specific errors */
+  GenericServiceError,
+  IdentityServiceError,
+  TechniquesServiceError,
+  TacticsServiceError,
+  PropertyNotAllowedError,
+  SystemConfigurationNotFound,
+  DefaultMarkingDefinitionsNotFoundError,
+  OrganizationIdentityNotSetError,
+  OrganizationIdentityNotFoundError,
+  AnonymousUserAccountNotSetError,
+  AnonymousUserAccountNotFoundError,
+
+  InvalidTypeError,
 };

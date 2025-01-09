@@ -2,7 +2,7 @@
   "app": {
     "name": "test-config"
   },
-  "configurationFiles" : {
+  "configurationFiles": {
     "staticMarkingDefinitionsPath": "./app/tests/config/test-static-marking-definitions"
   },
   "collectionIndex": {

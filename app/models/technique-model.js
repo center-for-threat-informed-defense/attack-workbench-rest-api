@@ -7,9 +7,9 @@ const { ModelName } = require('../lib/model-names');
 
 // Create the definition
 const techniqueDefinition = {
-    stix: {
-        ...attackPatternDefinitions.attackPattern
-    }
+  stix: {
+    ...attackPatternDefinitions.attackPattern,
+  },
 };
 // Use Object.assign() to add properties in case there are duplicates
 Object.assign(techniqueDefinition.stix, attackPatternDefinitions.attackPatternEnterpriseDomain);

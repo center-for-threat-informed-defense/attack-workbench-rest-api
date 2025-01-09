@@ -1,14 +1,14 @@
 {
-    "serviceAuthn": {
-        "basicApikey": {
-            "enable": true,
-            "serviceAccounts": [
-                {
-                    "name": "navigator",
-                    "apikey": "sample-navigator-apikey",
-                    "serviceRole": "read-only"
-                }
-            ]
+  "serviceAuthn": {
+    "basicApikey": {
+      "enable": true,
+      "serviceAccounts": [
+        {
+          "name": "navigator",
+          "apikey": "sample-navigator-apikey",
+          "serviceRole": "read-only"
         }
+      ]
     }
+  }
 }

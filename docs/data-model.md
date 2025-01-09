@@ -2,6 +2,7 @@
 
 The ATT&CK Workbench database supports the following ATT&CK object types
 (with the corresponding STIX types where applicable):
+
 - Collection (x-mitre-collection)
 - Matrix (x-mitre-matrix)
 - Technique (attack-pattern)
@@ -29,7 +30,7 @@ Objects in the `attackObjects` collection follow a consistent pattern,
 though each type has a number of properties that are specific to that type.
 
 The `stix` property holds a STIX formatted object and contains the data that is eligible to be exported.
-The `workspace` property holds the data that is used within the workspace to manage the object. 
+The `workspace` property holds the data that is used within the workspace to manage the object.
 
 ### Unique Identifiers
 
@@ -56,6 +57,7 @@ objects stored in the `attackObjects` collection.
 ### Sample Technique
 
 A technique is stored in the database in the following format:
+
 ```json
 {
     "_id": ObjectId("5fb1b9d8e1af0600177092ec"),
@@ -68,7 +70,7 @@ A technique is stored in the database in the following format:
             "modified": "2020-10-08T17:36:01.675Z",
             "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
             "description": "Adversaries may attempt to find group and permission settings. This information can help adversaries determine which user accounts and groups are available, the membership of users in particular groups, and which users and groups have elevated permissions.",
-            "spec_version": "2.1", 
+            "spec_version": "2.1",
             "external_references": [
                 {
                     "source_name": "mitre-attack",

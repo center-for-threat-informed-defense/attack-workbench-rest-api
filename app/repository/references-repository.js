@@ -1,13 +1,12 @@
 'use strict';
 
- const Reference = require('../models/reference-model');
- const { BadlyFormattedParameterError, DuplicateIdError, DatabaseError } = require('../exceptions');
+const Reference = require('../models/reference-model');
+const { BadlyFormattedParameterError, DuplicateIdError, DatabaseError } = require('../exceptions');
 
 class ReferencesRepository {
-
-    constructor(model) {
-        this.model = model;
-    }
+  constructor(model) {
+    this.model = model;
+  }
 
     async retrieveAll(options) {
         // Build the text search
@@ -101,14 +100,13 @@ class ReferencesRepository {
         }
     }
 
-    async findOneAndRemove(sourceName) {
-        try {
-            return await this.model.findOneAndRemove({ 'source_name': sourceName }).exec();
-        }
-        catch(err) {
-            throw new DatabaseError(err);
-        }
+  async findOneAndRemove(sourceName) {
+    try {
+      return await this.model.findOneAndRemove({ source_name: sourceName }).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
     }
+  }
 }
 
 module.exports = new ReferencesRepository(Reference);

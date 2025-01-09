@@ -8,11 +8,12 @@ const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
-router.route('/attack-objects')
-    .get(
-        authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-        attackObjectsController.retrieveAll
-    );
+router
+  .route('/attack-objects')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    attackObjectsController.retrieveAll,
+  );
 
 module.exports = router;

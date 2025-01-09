@@ -22,10 +22,7 @@
           },
           {
             "domainName": "mobile-attack",
-            "allowedValues": [
-              "Android",
-              "iOS"
-            ]
+            "allowedValues": ["Android", "iOS"]
           },
           {
             "domainName": "ics-attack",
@@ -62,10 +59,7 @@
         "domains": [
           {
             "domainName": "enterprise-attack",
-            "allowedValues": [
-              "Availability",
-              "Integrity"
-            ]
+            "allowedValues": ["Availability", "Integrity"]
           }
         ]
       },
@@ -74,13 +68,7 @@
         "domains": [
           {
             "domainName": "enterprise-attack",
-            "allowedValues": [
-              "Administrator",
-              "root",
-              "SYSTEM",
-              "User",
-              "Remote Desktop Users"
-            ]
+            "allowedValues": ["Administrator", "root", "SYSTEM", "User", "Remote Desktop Users"]
           }
         ]
       },
@@ -89,13 +77,7 @@
         "domains": [
           {
             "domainName": "enterprise-attack",
-            "allowedValues": [
-              "Administrator",
-              "root",
-              "SYSTEM",
-              "User",
-              "Remote Desktop Users"
-            ]
+            "allowedValues": ["Administrator", "root", "SYSTEM", "User", "Remote Desktop Users"]
           }
         ]
       },
@@ -167,10 +149,7 @@
           },
           {
             "domainName": "mobile-attack",
-            "allowedValues": [
-              "Android",
-              "iOS"
-            ]
+            "allowedValues": ["Android", "iOS"]
           },
           {
             "domainName": "ics-attack",
@@ -197,28 +176,15 @@
         "domains": [
           {
             "domainName": "enterprise-attack",
-            "allowedValues": [
-              "Cloud Control Plane",
-              "Container",
-              "Host",
-              "Network",
-              "OSINT"
-            ]
+            "allowedValues": ["Cloud Control Plane", "Container", "Host", "Network", "OSINT"]
           },
           {
             "domainName": "mobile-attack",
-            "allowedValues": [
-              "Device",
-              "Report"
-            ]
+            "allowedValues": ["Device", "Report"]
           },
           {
             "domainName": "ics-attack",
-            "allowedValues": [
-              "Cloud Control Plane",
-              "Host",
-              "Network"
-            ]
+            "allowedValues": ["Cloud Control Plane", "Host", "Network"]
           }
         ]
       },
@@ -241,10 +207,7 @@
           },
           {
             "domainName": "mobile-attack",
-            "allowedValues": [
-              "Android",
-              "iOS"
-            ]
+            "allowedValues": ["Android", "iOS"]
           },
           {
             "domainName": "ics-attack",
@@ -294,17 +257,10 @@
         "domains": [
           {
             "domainName": "ics-attack",
-            "allowedValues": [
-              "Windows",
-              "Linux",
-              "Network",
-              "Embedded",
-              "Cloud"
-            ]
+            "allowedValues": ["Windows", "Linux", "Network", "Embedded", "Cloud"]
           }
         ]
       }
     ]
   }
 ]
-

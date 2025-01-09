@@ -5,24 +5,24 @@ const AttackObject = require('./attack-object-model');
 const { ModelName } = require('../lib/model-names');
 
 const noteProperties = {
-    // note specific properties
-    modified: { type: Date, required: true },
-    abstract: String,
-    content: { type: String, required: true },
-    authors: [ String ],
-    object_refs: { type: [ String ], required: true },
+  // note specific properties
+  modified: { type: Date, required: true },
+  abstract: String,
+  content: { type: String, required: true },
+  authors: [String],
+  object_refs: { type: [String], required: true },
 
-    // ATT&CK custom stix properties
-    x_mitre_modified_by_ref: String,
-    x_mitre_deprecated: Boolean,
-    x_mitre_attack_spec_version: String
+  // ATT&CK custom stix properties
+  x_mitre_modified_by_ref: String,
+  x_mitre_deprecated: Boolean,
+  x_mitre_attack_spec_version: String,
 };
 
 // Create the definition
 const noteDefinition = {
-    stix: {
-        ...noteProperties
-    }
+  stix: {
+    ...noteProperties,
+  },
 };
 
 // Create the schema

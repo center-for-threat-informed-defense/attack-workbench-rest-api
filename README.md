@@ -1,19 +1,20 @@
 # ATT&CK Workbench REST API
 
-The ATT&CK Workbench is an application allowing users to **explore**, **create**, **annotate**, and **share** extensions of the MITRE ATT&CK® knowledge base. 
+The ATT&CK Workbench is an application allowing users to **explore**, **create**, **annotate**, and **share** extensions of the MITRE ATT&CK® knowledge base.
 
-This repository contains the REST API service for storing, querying, and editing ATT&CK objects. It is a Node.js application that uses a MongoDB database for persisting data. 
+This repository contains the REST API service for storing, querying, and editing ATT&CK objects. It is a Node.js application that uses a MongoDB database for persisting data.
 
 The ATT&CK Workbench application requires additional components for full operation. The [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) repository contains the full documentation of the scope and function of the project. See the [install and run](#install-and-run) instructions for more details about setting up the entire project.
 
 ## REST API Documentation
 
 When running with the NODE_ENV environment variable set to `development`, the app hosts a description of the REST API using the Swagger UI module.
-The REST API documentation can be viewed using a browser at the path `/api-docs`. 
+The REST API documentation can be viewed using a browser at the path `/api-docs`.
 
 For a basic installation on the local machine this documentation can be accessed at `http://localhost:3000/api-docs`.
 
 The [docs](/docs/README.md) folder contains additional documentation about using the REST API:
+
 - [changelog](/docs/changelog.md): records of updates to the REST API.
 - [workbench data model](/docs/data-model.md): additional information about data model of objects stored via the REST API.
 - [standalone docker installation](/docs/docker.md): instructions for setting up the REST API via docker. Note that this is not the same as the full [ATT&CK Workbench Docker Installation](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md).
@@ -22,16 +23,19 @@ The [docs](/docs/README.md) folder contains additional documentation about using
 ## Install and run
 
 The ATT&CK Workbench application is made up of several repositories. For the full application to operate each needs to be running at the same time. The [docker install instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) will install all components and is recommended for most deployments.
-- [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) 
-  
+
+- [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend)
+
   The front-end user interface for the ATT&CK Workbench tool, and the primary interface through which the knowledge base is accessed.
+
 - [ATT&CK Workbench REST API](https://github.com/center-for-threat-informed-defense/attack-workbench-rest-api) (this repository)
 
   REST API service for storing, querying and editing ATT&CK objects.
 
-The manual install instructions in each repository describe how each component to be deployed to a separate machine or with customized settings. 
+The manual install instructions in each repository describe how each component to be deployed to a separate machine or with customized settings.
 
 ### Installing using Docker
+
 Please refer to our [Docker install instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) for information on installing and deploying the app using Docker. The docker setup is the easiest way to deploy the application.
 
 ### Manual Installation
@@ -40,7 +44,7 @@ Please refer to our [Docker install instructions](https://github.com/center-for-
 
 - [Node.js](https://nodejs.org) version `18.12.1` or greater
 - An instance of [MongoDB](https://www.mongodb.com/) version `4.4.x` or greater
- 
+
 #### Installation
 
 ##### Step 1. Clone the git repository
@@ -66,17 +70,17 @@ Note that any values set in a configuration file take precedence over values set
 
 ###### Using Environment Variables
 
-| name                                 | required | default       | description                                               |
-|--------------------------------------|----------|---------------|-----------------------------------------------------------|
-| **PORT**                             | no       | `3000`        | Port the HTTP server should listen on                     |
-| **ENABLE_CORS_ANY_ORIGIN**           | no       | `true`        | Allows requests from any domain to access the REST API endpoints |
-| **NODE_ENV**                         | no       | `development` | Environment that the app is running in                    |
-| **DATABASE_URL**                     | yes      | none          | URL of the MongoDB server                                 |
-| **AUTHN_MECHANISM**                  | no       | `anonymous`   | Mechanism to use for authenticating users                 |
-| **DEFAULT_INTERVAL**                 | no       | `300`         | How often collection indexes should check for updates (in seconds) |
-| **JSON_CONFIG_PATH**                 | no       | ``            | Location of a JSON file containing configuration values   |
-| **LOG_LEVEL**                        | no       | `info`        | Level of messages to be written to the log (error, warn, http, info, verbose, debug) |
-| **WB_REST_STATIC_MARKING_DEFS_PATH** | no       | `./app/lib/default-static-marking-definitions/` | Path to a directory containing static marking definitions |
+| name                                 | required | default                                         | description                                                                          |
+| ------------------------------------ | -------- | ----------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **PORT**                             | no       | `3000`                                          | Port the HTTP server should listen on                                                |
+| **ENABLE_CORS_ANY_ORIGIN**           | no       | `true`                                          | Allows requests from any domain to access the REST API endpoints                     |
+| **NODE_ENV**                         | no       | `development`                                   | Environment that the app is running in                                               |
+| **DATABASE_URL**                     | yes      | none                                            | URL of the MongoDB server                                                            |
+| **AUTHN_MECHANISM**                  | no       | `anonymous`                                     | Mechanism to use for authenticating users                                            |
+| **DEFAULT_INTERVAL**                 | no       | `300`                                           | How often collection indexes should check for updates (in seconds)                   |
+| **JSON_CONFIG_PATH**                 | no       | ``                                              | Location of a JSON file containing configuration values                              |
+| **LOG_LEVEL**                        | no       | `info`                                          | Level of messages to be written to the log (error, warn, http, info, verbose, debug) |
+| **WB_REST_STATIC_MARKING_DEFS_PATH** | no       | `./app/lib/default-static-marking-definitions/` | Path to a directory containing static marking definitions                            |
 
 A typical value for DATABASE_URL when running on a development machine is `mongodb://localhost/attack-workspace`.
 This assumes that a MongoDB server is running on the same machine and is listening on the standard port of 27017.
@@ -86,14 +90,14 @@ The MongoDB server can be running natively or in a Docker container.
 
 If the `JSON_CONFIG_PATH` environment variable is set, the app will also read configuration settings from a JSON file at that location.
 
-| name                                | type     | corresponding environment variable |
-|-------------------------------------|----------|------------------------------------|
-| **server.port**                     | int      | PORT                               |
-| **server.enableCorsAnyOrigin**      | boolean  | ENABLE_CORS_ANY_ORIGIN             |
-| **app.env**                         | string   | NODE_ENV                           |
-| **database.url**                    | string   | DATABASE_URL                       |
-| **collectionIndex.defaultInterval** | int      | DEFAULT_INTERVAL                   |
-| **logging.logLevel**                | string   | LOG_LEVEL                          |
+| name                                | type    | corresponding environment variable |
+| ----------------------------------- | ------- | ---------------------------------- |
+| **server.port**                     | int     | PORT                               |
+| **server.enableCorsAnyOrigin**      | boolean | ENABLE_CORS_ANY_ORIGIN             |
+| **app.env**                         | string  | NODE_ENV                           |
+| **database.url**                    | string  | DATABASE_URL                       |
+| **collectionIndex.defaultInterval** | int     | DEFAULT_INTERVAL                   |
+| **logging.logLevel**                | string  | LOG_LEVEL                          |
 
 Sample configuration file setting the server port and database url:
 
@@ -123,17 +127,17 @@ Workbench supports OIDC authentication for users, allowing you to integrate Work
 In order to use OIDC authentication, your Workbench instance must be registered with your organization's OIDC authentication server.
 The details depend on your authentication server, but the following values should cover most of what you need:
 
-* Workbench uses the *Authorization Code Flow* for authenticating users
-* Claims:
+- Workbench uses the _Authorization Code Flow_ for authenticating users
+- Claims:
 
-| claim                  | required | description                                                                                                                                     |
-|------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| **email**              | yes      | Identifies the user account associated with an authenticated user                                                                               |
+| claim                  | required | description                                                                                                                                        |
+| ---------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **email**              | yes      | Identifies the user account associated with an authenticated user                                                                                  |
 | **preferred_username** | no       | If present, the `preferred_username` claim is used to set the `name` property of the user account when the user initially registers with Workbench |
-| **name**               | no       | If present, the `name` claim is used to set the `displayName` property of the user account when the user initially registers with Workbench      |
+| **name**               | no       | If present, the `name` claim is used to set the `displayName` property of the user account when the user initially registers with Workbench        |
 
-* Grant Types: *Client Credentials*, *Authorization Code* and *Refresh Token*
-* Redirect URL: `<host_url>/api/authn/oidc/callback`
+- Grant Types: _Client Credentials_, _Authorization Code_ and _Refresh Token_
+- Redirect URL: `<host_url>/api/authn/oidc/callback`
 
 After registering with the OIDC authentication system, you will need the `client_id` and `client_secret` assigned as part of that process.
 You will also need the Issuer URL for the OIDC Identity Server.
@@ -143,7 +147,7 @@ You will also need the Issuer URL for the OIDC Identity Server.
 Configuring Workbench to use OIDC can be done using environment variables or the corresponding properties in a configuration file.
 
 | environment variable           | required | description                                                                                           | configuration file property name |
-|--------------------------------|----------|-------------------------------------------------------------------------------------------------------|----------------------------------|
+| ------------------------------ | -------- | ----------------------------------------------------------------------------------------------------- | -------------------------------- |
 | **AUTHN_MECHANISM**            | yes      | Must be set to `oidc`                                                                                 | userAuthn.mechanism              |
 | **AUTHN_OIDC_CLIENT_ID**       | yes      | Client ID assigned to the Workbench instance when registering with the OIDC authentication system     | userAuthn.oidc.clientId          |
 | **AUTHN_OIDC_CLIENT_SECRET**   | yes      | Client secret assigned to the Workbench instance when registering with the OIDC authentication system | userAuthn.oidc.clientSecret      |
@@ -192,15 +196,15 @@ This project is configured to run a Github workflow when one or more commits are
 
 The workflow is defined in `.github/workflows/ci-workflow.yml`
 
-## Notice 
+## Notice
 
 Copyright 2020-2024 MITRE Engenuity. Approved for public release. Document number CT0020
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at 
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0 
+http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License. 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
 This project makes use of ATT&CK®
 

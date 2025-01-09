@@ -243,7 +243,7 @@ paths:
           description: 'All the relationship versions were successfully deleted.'
         '404':
           description: 'A relationship with the requested STIX id was not found.'
-          
+
   /api/relationships/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a relationship matching the STIX id and modified date'

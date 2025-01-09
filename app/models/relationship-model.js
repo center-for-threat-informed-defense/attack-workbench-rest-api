@@ -6,33 +6,33 @@ const stixCoreDefinitions = require('./subschemas/stix-core');
 const { ModelName } = require('../lib/model-names');
 
 const relationshipProperties = {
-    // relationship specific properties
-    modified: { type: Date, required: true },
-    name: String,
-    description: String,
-    relationship_type: { type: String, required: true },
-    source_ref: { type: String, required: true },
-    target_ref: { type: String, required: true },
-    start_time: Date,
-    stop_time: Date,
+  // relationship specific properties
+  modified: { type: Date, required: true },
+  name: String,
+  description: String,
+  relationship_type: { type: String, required: true },
+  source_ref: { type: String, required: true },
+  target_ref: { type: String, required: true },
+  start_time: Date,
+  stop_time: Date,
 
-    // ATT&CK custom stix properties
-    x_mitre_modified_by_ref: String,
-    x_mitre_deprecated: Boolean,
-    x_mitre_version: String,
-    x_mitre_attack_spec_version: String
+  // ATT&CK custom stix properties
+  x_mitre_modified_by_ref: String,
+  x_mitre_deprecated: Boolean,
+  x_mitre_version: String,
+  x_mitre_attack_spec_version: String,
 };
 
 // Create the definition
 const relationshipDefinition = {
-    workspace: {
-        ...workspaceDefinitions.common
-    },
-    stix: {
-        ...stixCoreDefinitions.commonRequiredSDO,
-        ...stixCoreDefinitions.commonOptionalSDO,
-        ...relationshipProperties
-    }
+  workspace: {
+    ...workspaceDefinitions.common,
+  },
+  stix: {
+    ...stixCoreDefinitions.commonRequiredSDO,
+    ...stixCoreDefinitions.commonOptionalSDO,
+    ...relationshipProperties,
+  },
 };
 
 // Create the schema
