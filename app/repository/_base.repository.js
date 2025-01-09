@@ -185,10 +185,10 @@ class BaseRepository extends AbstractRepository {
     }
   }
 
-  async findOneAndRemove(stixId, modified) {
+  async findOneAndDelete(stixId, modified) {
     try {
       return await this.model
-        .findOneAndRemove({ 'stix.id': stixId, 'stix.modified': modified })
+        .findOneAndDelete({ 'stix.id': stixId, 'stix.modified': modified })
         .exec();
     } catch (err) {
       throw new DatabaseError(err);

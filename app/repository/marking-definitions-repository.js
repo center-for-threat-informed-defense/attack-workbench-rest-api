@@ -7,7 +7,7 @@ const { DatabaseError } = require('../exceptions');
 class MarkingDefinitionsRepository extends BaseRepository {
   async deleteOneById(stixId) {
     try {
-      return await this.model.findOneAndRemove({ 'stix.id': stixId }).exec();
+      return await this.model.findOneAndDelete({ 'stix.id': stixId }).exec();
     } catch (err) {
       throw new DatabaseError(err);
     }

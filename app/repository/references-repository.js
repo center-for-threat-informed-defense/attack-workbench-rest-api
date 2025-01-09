@@ -96,9 +96,9 @@ class ReferencesRepository {
     }
   }
 
-  async findOneAndRemove(sourceName) {
+  async findOneAndDelete(sourceName) {
     try {
-      return await this.model.findOneAndRemove({ source_name: sourceName }).exec();
+      return await this.model.findOneAndDelete({ source_name: sourceName }).exec();
     } catch (err) {
       throw new DatabaseError(err);
     }

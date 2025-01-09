@@ -117,9 +117,9 @@ class UserAccountsRepository {
     }
   }
 
-  async findOneAndRemove(stixId) {
+  async findOneAndDelete(stixId) {
     try {
-      return await this.model.findOneAndRemove({ id: stixId }).exec();
+      return await this.model.findOneAndDelete({ id: stixId }).exec();
     } catch (err) {
       throw new DatabaseError(err);
     }

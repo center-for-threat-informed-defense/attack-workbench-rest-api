@@ -179,7 +179,7 @@ class UserAccountsService {
       throw new MissingParameterError('userAccountId');
     }
 
-    const userAccount = await this.repository.findOneAndRemove(userAccountId);
+    const userAccount = await this.repository.findOneAndDelete(userAccountId);
     return userAccount;
   }
 

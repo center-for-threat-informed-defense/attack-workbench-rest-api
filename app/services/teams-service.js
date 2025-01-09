@@ -88,7 +88,7 @@ class TeamsService {
       throw new MissingParameterError();
     }
 
-    const team = await this.repository.model.findOneAndRemove({ id: teamId });
+    const team = await this.repository.model.findOneAndDelete({ id: teamId });
     //Note: userAccount is null if not found
     return team;
   }
