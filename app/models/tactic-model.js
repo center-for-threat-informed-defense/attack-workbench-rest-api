@@ -5,26 +5,26 @@ const AttackObject = require('./attack-object-model');
 const { ModelName } = require('../lib/model-names');
 
 const stixTactic = {
-    // STIX x-mitre-tactic specific properties
-    modified: { type: Date, required: true },
-    name: { type: String, required: true },
-    description: String,
+  // STIX x-mitre-tactic specific properties
+  modified: { type: Date, required: true },
+  name: { type: String, required: true },
+  description: String,
 
-    // ATT&CK custom stix properties
-    x_mitre_modified_by_ref: String,
-    x_mitre_deprecated: Boolean,
-    x_mitre_domains: [ String ],
-    x_mitre_version: String,
-    x_mitre_attack_spec_version: String,
-    x_mitre_contributors: [ String ],
-    x_mitre_shortname: String
+  // ATT&CK custom stix properties
+  x_mitre_modified_by_ref: String,
+  x_mitre_deprecated: Boolean,
+  x_mitre_domains: [String],
+  x_mitre_version: String,
+  x_mitre_attack_spec_version: String,
+  x_mitre_contributors: [String],
+  x_mitre_shortname: String,
 };
 
 // Create the definition
 const tacticDefinition = {
-    stix: {
-        ...stixTactic
-    }
+  stix: {
+    ...stixTactic,
+  },
 };
 
 // Create the schema

@@ -4,25 +4,25 @@ const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 
 const stixCourseOfAction = {
-    // STIX course-of-action specific properties
-    modified: { type: Date, required: true },
-    name: { type: String, required: true },
-    description: String,
-    labels: [ String ],
+  // STIX course-of-action specific properties
+  modified: { type: Date, required: true },
+  name: { type: String, required: true },
+  description: String,
+  labels: [String],
 
-    // ATT&CK custom stix properties
-    x_mitre_modified_by_ref: String,
-    x_mitre_deprecated: Boolean,
-    x_mitre_domains: [ String ],
-    x_mitre_version: String,
-    x_mitre_attack_spec_version: String
+  // ATT&CK custom stix properties
+  x_mitre_modified_by_ref: String,
+  x_mitre_deprecated: Boolean,
+  x_mitre_domains: [String],
+  x_mitre_version: String,
+  x_mitre_attack_spec_version: String,
 };
 
 // Create the definition
 const mitigationDefinition = {
-    stix: {
-        ...stixCourseOfAction
-    }
+  stix: {
+    ...stixCourseOfAction,
+  },
 };
 
 // Create the schema

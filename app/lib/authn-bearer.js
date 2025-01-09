@@ -11,25 +11,24 @@ const config = require('../config/config');
 let jwksClient;
 
 let strategyName;
-exports.strategyName = function() {
-    return strategyName;
-}
+exports.strategyName = function () {
+  return strategyName;
+};
 
 /**
  * This function takes the user session object and returns the value (the userSessionKey) that will be
  * stored in the express session for this user
  */
-exports.serializeUser = function(userSession, done) {
-    if (userSession.strategy === 'bearer') {
-        // This indicates that the client has been authenticated using the Bearer strategy. This will be used when
-        // deserializing.
-        const userSessionKey = { strategy: 'bearer' };
-        done(null, userSessionKey);
-    }
-    else {
-        // Try the next serializer
-        done('pass');
-    }
+exports.serializeUser = function (userSession, done) {
+  if (userSession.strategy === 'bearer') {
+    // This indicates that the client has been authenticated using the Bearer strategy. This will be used when
+    // deserializing.
+    const userSessionKey = { strategy: 'bearer' };
+    done(null, userSessionKey);
+  } else {
+    // Try the next serializer
+    done('pass');
+  }
 };
 
 /**
@@ -43,100 +42,101 @@ exports.serializeUser = function(userSession, done) {
  * Note that req.user will be set to the correct value after the strategy calls verifyCallback() and the Bearer token
  * is verified.
  */
-exports.deserializeUser = function(userSessionKey, done) {
-    if (userSessionKey.strategy === 'bearer') {
-        done(null, null);
-    }
-    else {
-        // Try the next deserializer
-        done('pass');
-    }
+exports.deserializeUser = function (userSessionKey, done) {
+  if (userSessionKey.strategy === 'bearer') {
+    done(null, null);
+  } else {
+    // Try the next deserializer
+    done('pass');
+  }
 };
 
 let authenticateWithBearerToken;
-exports.getStrategy = function() {
-    // Create the JWKS client
-    jwksClient = jwks({
-        jwksUri: config.serviceAuthn.oidcClientCredentials.jwksUri
-    });
+exports.getStrategy = function () {
+  // Create the JWKS client
+  jwksClient = jwks({
+    jwksUri: config.serviceAuthn.oidcClientCredentials.jwksUri,
+  });
 
-    const strategy = new BearerStrategy(verifyCallback);
-    strategyName = strategy.name;
+  const strategy = new BearerStrategy(verifyCallback);
+  strategyName = strategy.name;
 
-    // Get a passport authenticate middleware function for this strategy
-    authenticateWithBearerToken = passport.authenticate(strategy.name);
+  // Get a passport authenticate middleware function for this strategy
+  authenticateWithBearerToken = passport.authenticate(strategy.name);
 
-    return strategy;
-}
+  return strategy;
+};
 
 function verifyApikeyToken(token, done) {
-    // Do not attempt to verify the token unless apikey authentication is enabled
-    if (!config.serviceAuthn.challengeApikey.enable) {
-        return done(null, false, { message: 'Authentication mechanism not found' });
+  // Do not attempt to verify the token unless apikey authentication is enabled
+  if (!config.serviceAuthn.challengeApikey.enable) {
+    return done(null, false, { message: 'Authentication mechanism not found' });
+  }
+
+  let payload;
+  try {
+    // Verify that the token is valid and extract the payload
+    payload = jwt.verify(token, config.serviceAuthn.challengeApikey.secret, {
+      algorithms: ['HS256'],
+    });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return done(null, false, { message: 'Token expired' });
+    } else if (err.name === 'JsonWebTokenError' && err.message === 'invalid signature') {
+      return done(null, false, { message: 'Invalid signature' });
+    } else {
+      return done(err);
     }
+  }
 
-    let payload;
-    try {
-        // Verify that the token is valid and extract the payload
-        payload = jwt.verify(token, config.serviceAuthn.challengeApikey.secret, { algorithms: ['HS256'] });
-    } catch (err) {
-        if (err.name === 'TokenExpiredError') {
-            return done(null, false, { message: 'Token expired' });
-        } else if (err.name === 'JsonWebTokenError' && err.message === 'invalid signature') {
-            return done(null, false, { message: 'Invalid signature' });
-        } else {
-            return done(err);
-        }
-    }
+  const userSession = makeUserSession(null, payload.serviceName);
 
-    const userSession = makeUserSession(null, payload.serviceName);
-
-    return done(null, userSession);
+  return done(null, userSession);
 }
 
 function verifyClientCredentialsToken(token, decodedHeader, done) {
-    // Do not attempt to verify the token unless client credentials authentication is enabled
-    if (!config.serviceAuthn.oidcClientCredentials.enable) {
-        return done(null, false, { message: 'Authentication mechanism not found' });
-    }
+  // Do not attempt to verify the token unless client credentials authentication is enabled
+  if (!config.serviceAuthn.oidcClientCredentials.enable) {
+    return done(null, false, { message: 'Authentication mechanism not found' });
+  }
 
-    jwksClient.getSigningKey(decodedHeader.kid)
-        .then(function (signingKey) {
-            let payload;
-            let clientId;
-            try {
-                payload = jwt.verify(token, signingKey.getPublicKey(), { algorithms: ['RS256'] });
+  jwksClient
+    .getSigningKey(decodedHeader.kid)
+    .then(function (signingKey) {
+      let payload;
+      let clientId;
+      try {
+        payload = jwt.verify(token, signingKey.getPublicKey(), { algorithms: ['RS256'] });
 
-                // Make sure the client is allowed to access the REST API
-                // Okta returns the client id in payload.cid
-                // Keycloak returns the client id in payload.clientId
-                // Newer versions of keycloak appear to return the client id in payload.client_id
-                clientId = payload.cid || payload.clientId || payload.client_id;
-                const clients = config.serviceAuthn.oidcClientCredentials.clients;
-                const client = clients.find(c => c.clientId === clientId);
-                if (!client) {
-                    return done(null, false, { message: 'Client not found' });
-                }
-            } catch (err) {
-                if (err.name === 'TokenExpiredError') {
-                    return done(null, false, { message: 'Token expired' });
-                } else {
-                    return done(err);
-                }
-            }
+        // Make sure the client is allowed to access the REST API
+        // Okta returns the client id in payload.cid
+        // Keycloak returns the client id in payload.clientId
+        // Newer versions of keycloak appear to return the client id in payload.client_id
+        clientId = payload.cid || payload.clientId || payload.client_id;
+        const clients = config.serviceAuthn.oidcClientCredentials.clients;
+        const client = clients.find((c) => c.clientId === clientId);
+        if (!client) {
+          return done(null, false, { message: 'Client not found' });
+        }
+      } catch (err) {
+        if (err.name === 'TokenExpiredError') {
+          return done(null, false, { message: 'Token expired' });
+        } else {
+          return done(err);
+        }
+      }
 
-            const userSession = makeUserSession(clientId);
+      const userSession = makeUserSession(clientId);
 
-            return done(null, userSession);
-        })
-        .catch(err => {
-            if (err.name === 'SigningKeyNotFoundError') {
-                return done(null, false, { message: 'Signing key not found'});
-            }
-            else {
-                return done(err);
-            }
-        });
+      return done(null, userSession);
+    })
+    .catch((err) => {
+      if (err.name === 'SigningKeyNotFoundError') {
+        return done(null, false, { message: 'Signing key not found' });
+      } else {
+        return done(err);
+      }
+    });
 }
 
 /**
@@ -146,38 +146,35 @@ function verifyClientCredentialsToken(token, decodedHeader, done) {
  * the OIDC client credentials flow, and if the alg property is 'HS256' that the token was generated from an apikey.
  */
 function verifyCallback(token, done) {
-    if (!token) {
-        return done(null, false, { message: 'Missing token' });
-    }
+  if (!token) {
+    return done(null, false, { message: 'Missing token' });
+  }
 
-    let decodedHeader;
-    try {
-        decodedHeader = jwtDecoder(token, { header: true });
-    }
-    catch(err) {
-        return done(null, false, err);
-    }
+  let decodedHeader;
+  try {
+    decodedHeader = jwtDecoder(token, { header: true });
+  } catch (err) {
+    return done(null, false, err);
+  }
 
-    if (decodedHeader.alg === 'RS256') {
-        return verifyClientCredentialsToken(token, decodedHeader, done);
-    }
-    else if (decodedHeader.alg === 'HS256') {
-        return verifyApikeyToken(token, done);
-    }
-    else {
-        return done(null, false, { message: 'Unknown token' });
-    }
+  if (decodedHeader.alg === 'RS256') {
+    return verifyClientCredentialsToken(token, decodedHeader, done);
+  } else if (decodedHeader.alg === 'HS256') {
+    return verifyApikeyToken(token, done);
+  } else {
+    return done(null, false, { message: 'Unknown token' });
+  }
 }
 
 function makeUserSession(clientId, serviceName) {
-    const userSession = {
-        strategy: 'bearer',
-        clientId,
-        serviceName,
-        service: true
-    };
+  const userSession = {
+    strategy: 'bearer',
+    clientId,
+    serviceName,
+    service: true,
+  };
 
-    return userSession;
+  return userSession;
 }
 
 /**
@@ -185,12 +182,10 @@ function makeUserSession(clientId, serviceName) {
  * calls the authenticate() function for the Bearer strategy (which cause the token to be validated).
  *
  */
-exports.authenticate = function(req, res, next) {
-    if (authenticateWithBearerToken) {
-        authenticateWithBearerToken(req, res, next);
-    }
-    else {
-        throw new Error('Bearer strategy not configured');
-    }
-}
-
+exports.authenticate = function (req, res, next) {
+  if (authenticateWithBearerToken) {
+    authenticateWithBearerToken(req, res, next);
+  } else {
+    throw new Error('Bearer strategy not configured');
+  }
+};

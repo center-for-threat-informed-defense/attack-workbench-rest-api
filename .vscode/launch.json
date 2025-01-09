@@ -8,9 +8,7 @@
       "type": "node",
       "request": "launch",
       "name": "Launch Program",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
+      "skipFiles": ["<node_internals>/**"],
       "program": "${workspaceFolder}/bin/www",
       "outputCapture": "std",
       "envFile": "${workspaceFolder}/.env"
@@ -19,14 +17,9 @@
       "type": "node",
       "request": "launch",
       "name": "Run Regression Tests",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
+      "skipFiles": ["<node_internals>/**"],
       "runtimeExecutable": "npm",
-      "args": [
-        "run",
-        "test"
-      ],
+      "args": ["run", "test"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "outputCapture": "std",

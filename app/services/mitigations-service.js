@@ -1,9 +1,9 @@
 'use strict';
 
 const mitigationsRepository = require('../repository/mitigations-repository');
-
 const BaseService = require('./_base.service');
+const { Mitigation: MitigationType } = require('../lib/types');
 
-class MitigationsService extends BaseService { }
+class MitigationsService extends BaseService {}
 
-module.exports = new MitigationsService('course-of-action', mitigationsRepository);
+module.exports = new MitigationsService(MitigationType, mitigationsRepository);

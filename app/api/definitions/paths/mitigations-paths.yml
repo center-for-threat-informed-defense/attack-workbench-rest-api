@@ -186,7 +186,7 @@ paths:
           description: 'All the mitigation versions were successfully deleted.'
         '404':
           description: 'A mitigation with the requested STIX id was not found.'
-          
+
   /api/mitigations/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a mitigation matching the STIX id and modified date'

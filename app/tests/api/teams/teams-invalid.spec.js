@@ -11,37 +11,37 @@ const teams = require('./teams.invalid.json');
 const login = require('../../shared/login');
 
 describe('Teams API Test Invalid Data', function () {
-    let app;
-    let passportCookie;
+  let app;
+  let passportCookie;
 
-    before(async function() {
-        // Establish the database connection
-        // Use an in-memory database that we spin up for the test
-        await database.initializeConnection();
+  before(async function () {
+    // Establish the database connection
+    // Use an in-memory database that we spin up for the test
+    await database.initializeConnection();
 
-        // Check for a valid database configuration
-        await databaseConfiguration.checkSystemConfiguration();
+    // Check for a valid database configuration
+    await databaseConfiguration.checkSystemConfiguration();
 
-        // Initialize the express app
-        app = await require('../../../index').initializeApp();
+    // Initialize the express app
+    app = await require('../../../index').initializeApp();
 
-        // Log into the app
-        passportCookie = await login.loginAnonymous(app);
+    // Log into the app
+    passportCookie = await login.loginAnonymous(app);
+  });
+
+  for (const teamData of teams) {
+    it(`POST /api/teams does not create a user account with invalid data (${teamData.description})`, async function () {
+      const body = teamData;
+      await request(app)
+        .post('/api/teams')
+        .send(body)
+        .set('Accept', 'application/json')
+        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .expect(400);
     });
+  }
 
-    for (const teamData of teams) {
-        it(`POST /api/teams does not create a user account with invalid data (${ teamData.description })`, async function () {
-            const body = teamData;
-            await request(app)
-                .post('/api/teams')
-                .send(body)
-                .set('Accept', 'application/json')
-                .set('Cookie', `${ login.passportCookieName }=${ passportCookie.value }`)
-                .expect(400);
-        });
-    }
-
-    after(async function() {
-        await database.closeConnection();
-    });
+  after(async function () {
+    await database.closeConnection();
+  });
 });

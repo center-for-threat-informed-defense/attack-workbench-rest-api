@@ -1,125 +1,122 @@
 #!/usr/bin/env node
 
 const errors = {
-    noDatabaseConnection: 'No database connection',
-    databaseMigrationFailed: 'Database migration failed'
+  noDatabaseConnection: 'No database connection',
+  databaseMigrationFailed: 'Database migration failed',
 };
 
 async function runServer() {
-    // Configure the logger
-    const logger = require('../app/lib/logger');
+  // Configure the logger
+  const logger = require('../app/lib/logger');
 
-    const os = require('os');
-    logger.info('** hostname = ' + os.hostname());
-    logger.info('** type = ' + os.type());
-    logger.info('** platform = ' + os.platform());
-    logger.info('** arch = ' + os.arch());
-    logger.info('** release = ' + os.release());
-    logger.info('** uptime = ' + os.uptime());
-    logger.info('** versions = ' + JSON.stringify(process.versions));
+  const os = require('os');
+  logger.info('** hostname = ' + os.hostname());
+  logger.info('** type = ' + os.type());
+  logger.info('** platform = ' + os.platform());
+  logger.info('** arch = ' + os.arch());
+  logger.info('** release = ' + os.release());
+  logger.info('** uptime = ' + os.uptime());
+  logger.info('** versions = ' + JSON.stringify(process.versions));
 
-    const config = require('../app/config/config');
-    logger.info(`Log level set to ${ config.logging.logLevel }`);
+  const config = require('../app/config/config');
+  logger.info(`Log level set to ${config.logging.logLevel}`);
 
-    // Establish the database connection
-    logger.info('Setting up the database connection...');
-    try {
-        await require('../app/lib/database-connection').initializeConnection();
+  // Establish the database connection
+  logger.info('Setting up the database connection...');
+  try {
+    await require('../app/lib/database-connection').initializeConnection();
+  } catch (err) {
+    logger.error('Unable to connect to database');
+    logger.error(err.message);
+    logger.error('Database connection is required; terminating app');
+    throw new Error(errors.noDatabaseConnection);
+  }
+
+  // Apply any database migration actions required
+  const migrateDatabase = require('../app/lib/migration/migrate-database');
+  try {
+    await migrateDatabase.migrateDatabase();
+  } catch (err) {
+    logger.error('Unable to perform database migration');
+    logger.error(err.message);
+    logger.error('Database migration is required; terminating app');
+    throw new Error(errors.databaseMigrationFailed);
+  }
+
+  // Check for valid database configuration
+  const databaseConfiguration = require('../app/lib/database-configuration');
+  await databaseConfiguration.checkSystemConfiguration();
+
+  // Create the app
+  const app = await require('../app').initializeApp();
+
+  // Create the scheduler
+  const scheduler = require('../app/scheduler/scheduler');
+  scheduler.initializeScheduler();
+
+  // Start the server
+  logger.info('Starting the HTTP server...');
+  const server = app.listen(config.server.port, function () {
+    const host = server.address().address;
+    const port = server.address().port;
+
+    logger.info(`Listening at http://${host}:${port}`);
+    logger.info('ATT&CK Workbench REST API start up complete');
+  });
+
+  server.on('error', function (err) {
+    if (err.code === 'EADDRINUSE') {
+      logger.error('Unable to start the HTTP server');
+      logger.error(err.message);
+      logger.error('HTTP server is required; terminating app');
+      // Don't need to throw error, this error is automatically raised to the calling function
     }
-    catch(err) {
-        logger.error('Unable to connect to database');
-        logger.error(err.message);
-        logger.error('Database connection is required; terminating app');
-        throw new Error(errors.noDatabaseConnection);
-    }
+  });
 
-    // Apply any database migration actions required
-    const migrateDatabase = require('../app/lib/migration/migrate-database');
-    try {
-        await migrateDatabase.migrateDatabase();
-    }
-    catch (err) {
-        logger.error('Unable to perform database migration');
-        logger.error(err.message);
-        logger.error('Database migration is required; terminating app');
-        throw new Error(errors.databaseMigrationFailed);
-    }
+  // Listen for a ctrl-c
+  process.on('SIGINT', () => {
+    logger.info('SIGINT received, stopping HTTP server');
+    server.close();
+  });
 
-    // Check for valid database configuration
-    const databaseConfiguration = require('../app/lib/database-configuration');
-    await databaseConfiguration.checkSystemConfiguration();
+  // Docker terminates a container with a SIGTERM
+  process.on('SIGTERM', () => {
+    logger.info('SIGTERM received, stopping HTTP server');
+    server.close();
+  });
 
-    // Create the app
-    const app = await require('../app').initializeApp();
+  process.on('uncaughtException', (err, origin) => {
+    logger.error(`Uncaught exception: ${err}`);
+    logger.error(`Exception origin: ${origin}`);
+    logger.error(err.stack);
 
-    // Create the scheduler
-    const scheduler = require('../app/scheduler/scheduler');
-    scheduler.initializeScheduler();
+    logger.error('Terminating app after uncaught exception');
 
-    // Start the server
-    logger.info('Starting the HTTP server...');
-    const server = app.listen(config.server.port, function () {
-        const host = server.address().address;
-        const port = server.address().port;
+    process.exit(1);
+  });
 
-        logger.info(`Listening at http://${host}:${port}`);
-        logger.info('ATT&CK Workbench REST API start up complete');
-    });
+  // Wait for the server to close
+  const events = require('events');
+  await events.once(server, 'close');
 
-    server.on('error', function(err) {
-        if (err.code === 'EADDRINUSE') {
-            logger.error('Unable to start the HTTP server');
-            logger.error(err.message);
-            logger.error('HTTP server is required; terminating app');
-            // Don't need to throw error, this error is automatically raised to the calling function
-        }
-    });
-
-    // Listen for a ctrl-c
-    process.on('SIGINT', () => {
-        logger.info('SIGINT received, stopping HTTP server');
-        server.close();
-    });
-
-    // Docker terminates a container with a SIGTERM
-    process.on('SIGTERM', () => {
-        logger.info('SIGTERM received, stopping HTTP server');
-        server.close();
-    });
-
-    process.on('uncaughtException', (err, origin) => {
-        logger.error(`Uncaught exception: ${ err }`);
-        logger.error(`Exception origin: ${ origin }`);
-        logger.error(err.stack);
-
-        logger.error('Terminating app after uncaught exception');
-
-        process.exit(1);
-    });
-
-    // Wait for the server to close
-    const events = require('events');
-    await events.once(server, 'close');
-
-    logger.info('ATT&CK Workbench REST API terminating');
+  logger.info('ATT&CK Workbench REST API terminating');
 }
 
 runServer()
-    .then(() => {
-        console.log('runServer() - Terminating normally');
-        process.exit();
-    })
-    .catch(err => {
-        if (err.code === 'EADDRINUSE' || Object.values(errors).includes(err.message)) {
-            // Trap the explicitly handled errors
-            console.error('runServer() - Terminating after error');
-        }
-        else {
-            // Trap and log any other error
-            console.error('runServer() - Terminating after unexpected error:');
-            console.error(err.message);
-            console.error(err.stack);
-        }
+  .then(() => {
+    console.log('runServer() - Terminating normally');
+    process.exit();
+  })
+  .catch((err) => {
+    if (err.code === 'EADDRINUSE' || Object.values(errors).includes(err.message)) {
+      // Trap the explicitly handled errors
+      console.error('runServer() - Terminating after error');
+    } else {
+      // Trap and log any other error
+      console.error('runServer() - Terminating after unexpected error:');
+      console.error(err.message);
+      console.error(err.stack);
+    }
 
-        process.exit(1);
-    });
+    process.exit(1);
+  });

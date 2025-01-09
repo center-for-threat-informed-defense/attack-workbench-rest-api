@@ -7,10 +7,6 @@ const authn = require('../lib/authn-middleware');
 
 const router = express.Router();
 
-router.route('/session')
-    .get(
-        authn.authenticate,
-        sessionController.retrieveCurrentSession
-    );
+router.route('/session').get(authn.authenticate, sessionController.retrieveCurrentSession);
 
 module.exports = router;
