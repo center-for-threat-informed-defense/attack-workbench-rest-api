@@ -98,88 +98,87 @@ class TeamsService {
       throw new MissingParameterError('teamId');
     }
 
-        try {
-            const team = await this.repository.model.findOne({ 'id': teamId })
-                .lean()
-                .exec();
-            if (!team) {
-                throw new NotFoundError;
-            }
-            const matchQuery = {'id': {$in: team.userIDs}};
-            const aggregation = [
-                { $sort: { 'username': 1 } },
-                { $match: matchQuery }
-            ];
-            if (typeof options.search !== 'undefined') {
-                options.search = regexValidator.sanitizeRegex(options.search);
-                const match = { $match: { $or: [
-                            { 'username': { '$regex': options.search, '$options': 'i' }},
-                            { 'email': { '$regex': options.search, '$options': 'i' }},
-                            { 'displayName': { '$regex': options.search, '$options': 'i' }}
-                        ]}};
-                aggregation.push(match);
-            }
-            // Get the total count of documents, pre-limit
-            const totalCount = await UserAccount.aggregate(aggregation).count("totalCount").exec();
+    try {
+      const team = await this.repository.model.findOne({ id: teamId }).lean().exec();
+      if (!team) {
+        throw new NotFoundError();
+      }
+      const matchQuery = { id: { $in: team.userIDs } };
+      const aggregation = [{ $sort: { username: 1 } }, { $match: matchQuery }];
+      if (typeof options.search !== 'undefined') {
+        options.search = regexValidator.sanitizeRegex(options.search);
+        const match = {
+          $match: {
+            $or: [
+              { username: { $regex: options.search, $options: 'i' } },
+              { email: { $regex: options.search, $options: 'i' } },
+              { displayName: { $regex: options.search, $options: 'i' } },
+            ],
+          },
+        };
+        aggregation.push(match);
+      }
+      // Get the total count of documents, pre-limit
+      const totalCount = await UserAccount.aggregate(aggregation).count('totalCount').exec();
 
-            if (options.offset) {
-                aggregation.push({ $skip: options.offset });
-            }
-            else {
-                aggregation.push({ $skip: 0 });
-            }
+      if (options.offset) {
+        aggregation.push({ $skip: options.offset });
+      } else {
+        aggregation.push({ $skip: 0 });
+      }
 
-            if (options.limit) {
-                aggregation.push({ $limit: options.limit });
-            }
+      if (options.limit) {
+        aggregation.push({ $limit: options.limit });
+      }
 
-            // Retrieve the documents
-            const documents = await UserAccount.aggregate(aggregation).exec();
+      // Retrieve the documents
+      const documents = await UserAccount.aggregate(aggregation).exec();
 
-            const results = [{
-                totalCount: [{ totalCount: totalCount[0]?.totalCount || 0, }],
-                documents: documents
-            }]
+      const results = [
+        {
+          totalCount: [{ totalCount: totalCount[0]?.totalCount || 0 }],
+          documents: documents,
+        },
+      ];
 
-            try {
-                const userAccounts = results[0].documents;
-                userAccounts.forEach(userAccount => {
-                    userAccountsService.constructor.addEffectiveRole(userAccount);
-                    if (options.includeStixIdentity) {
-                        userAccount.identity = userAccountsService.constructor.userAccountAsIdentity(userAccount);
-                    }
-                });
+      try {
+        const userAccounts = results[0].documents;
+        userAccounts.forEach((userAccount) => {
+          userAccountsService.constructor.addEffectiveRole(userAccount);
+          if (options.includeStixIdentity) {
+            userAccount.identity =
+              userAccountsService.constructor.userAccountAsIdentity(userAccount);
+          }
+        });
 
-                if (options.includePagination) {
-                    const returnValue = {
-                        pagination: {
-                            total: results[0].totalCount[0].totalCount,
-                            offset: options.offset,
-                            limit: options.limit
-                        },
-                        data: userAccounts
-                    };
-                    return returnValue;
-                } else {
-                    return userAccounts;
-                }
-            }
-            catch (err) {
-                if (err.name === 'CastError') {
-                    throw new BadlyFormattedParameterError("teamId");
-                } else {
-                    throw err;
-                }
-            }
+        if (options.includePagination) {
+          const returnValue = {
+            pagination: {
+              total: results[0].totalCount[0].totalCount,
+              offset: options.offset,
+              limit: options.limit,
+            },
+            data: userAccounts,
+          };
+          return returnValue;
+        } else {
+          return userAccounts;
         }
-        catch (err) {
-            if (err.name === 'CastError') {
-                throw new BadlyFormattedParameterError("teamId");
-            } else {
-                throw err;
-            }
+      } catch (err) {
+        if (err.name === 'CastError') {
+          throw new BadlyFormattedParameterError('teamId');
+        } else {
+          throw err;
         }
+      }
+    } catch (err) {
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError('teamId');
+      } else {
+        throw err;
+      }
     }
+  }
 }
 
 module.exports = new TeamsService(null, teamsRepository);

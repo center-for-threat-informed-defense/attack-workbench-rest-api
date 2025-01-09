@@ -10,76 +10,71 @@ class UserAccountsRepository {
     this.model = model;
   }
 
-    async retrieveAll(options) {
-        try {
-            // Build the query
-            const query = {};
-            if (typeof options.status !== 'undefined') {
-                if (Array.isArray(options.status)) {
-                    query['status'] = { $in: options.status };
-                }
-                else {
-                    query['status'] = options.status;
-                }
-            }
-    
-            if (typeof options.role !== 'undefined') {
-                if (Array.isArray(options.role)) {
-                    query['role'] = { $in: options.role };
-                }
-                else {
-                    query['role'] = options.role;
-                }
-            }
-    
-            // Build the aggregation
-            // - Then apply query, skip, and limit options
-            const aggregation = [
-                { $sort: { 'username': 1 } },
-                { $match: query }
-            ];
-    
-            if (typeof options.search !== 'undefined') {
-                options.search = regexValidator.sanitizeRegex(options.search);
-                const match = {
-                    $match: {
-                        $or: [
-                            { 'username': { '$regex': options.search, '$options': 'i' } },
-                            { 'email': { '$regex': options.search, '$options': 'i' } },
-                            { 'displayName': { '$regex': options.search, '$options': 'i' } }
-                        ]
-                    }
-                };
-                aggregation.push(match);
-            }
-    
-            // Get the total count of documents, pre-limit
-            const totalCount = await this.model.aggregate(aggregation).count("totalCount").exec();
-
-            if (options.offset) {
-                aggregation.push({ $skip: options.offset });
-            }
-            else {
-                aggregation.push({ $skip: 0 });
-            }
-
-            if (options.limit) {
-                aggregation.push({ $limit: options.limit });
-            }
-
-            // Retrieve the documents
-            const documents = await this.model.aggregate(aggregation).exec();
-
-            // Return data in the format previously given by $facet
-            return [{
-                totalCount: [{ totalCount: totalCount[0]?.totalCount || 0, }],
-                documents: documents
-            }]
+  async retrieveAll(options) {
+    try {
+      // Build the query
+      const query = {};
+      if (typeof options.status !== 'undefined') {
+        if (Array.isArray(options.status)) {
+          query['status'] = { $in: options.status };
+        } else {
+          query['status'] = options.status;
         }
-        catch (err) {
-            throw new DatabaseError(err);
+      }
+
+      if (typeof options.role !== 'undefined') {
+        if (Array.isArray(options.role)) {
+          query['role'] = { $in: options.role };
+        } else {
+          query['role'] = options.role;
         }
+      }
+
+      // Build the aggregation
+      // - Then apply query, skip, and limit options
+      const aggregation = [{ $sort: { username: 1 } }, { $match: query }];
+
+      if (typeof options.search !== 'undefined') {
+        options.search = regexValidator.sanitizeRegex(options.search);
+        const match = {
+          $match: {
+            $or: [
+              { username: { $regex: options.search, $options: 'i' } },
+              { email: { $regex: options.search, $options: 'i' } },
+              { displayName: { $regex: options.search, $options: 'i' } },
+            ],
+          },
+        };
+        aggregation.push(match);
+      }
+
+      // Get the total count of documents, pre-limit
+      const totalCount = await this.model.aggregate(aggregation).count('totalCount').exec();
+
+      if (options.offset) {
+        aggregation.push({ $skip: options.offset });
+      } else {
+        aggregation.push({ $skip: 0 });
+      }
+
+      if (options.limit) {
+        aggregation.push({ $limit: options.limit });
+      }
+
+      // Retrieve the documents
+      const documents = await this.model.aggregate(aggregation).exec();
+
+      // Return data in the format previously given by $facet
+      return [
+        {
+          totalCount: [{ totalCount: totalCount[0]?.totalCount || 0 }],
+          documents: documents,
+        },
+      ];
+    } catch (err) {
+      throw new DatabaseError(err);
     }
+  }
 
   async retrieveOneById(stixId) {
     try {
