@@ -14,17 +14,21 @@ const {
   DefaultMarkingDefinitionsNotFoundError,
   AnonymousUserAccountNotSetError,
   AnonymousUserAccountNotFoundError,
+  NotImplementedError,
 } = require('../exceptions');
 
-let allowedValues;
-
 class SystemConfigurationService extends BaseService {
+  constructor() {
+    super(null, systemConfigurationRepository);
+    this._allowedValues = null;
+  }
+
   /**
    * @public
-   * CRUD Operation: Read
+   * (CRUD Operation: Read)
    * Returns the system version information
    */
-  retrieveSystemVersion() {
+  static retrieveSystemVersion() {
     return {
       version: config.app.version,
       attackSpecVersion: config.app.attackSpecVersion,
@@ -37,12 +41,12 @@ class SystemConfigurationService extends BaseService {
    * Returns allowed values for system configuration
    */
   async retrieveAllowedValues() {
-    if (allowedValues) {
-      return allowedValues;
+    if (this._allowedValues) {
+      return this._allowedValues;
     }
     const data = await fs.promises.readFile(config.configurationFiles.allowedValues);
-    allowedValues = JSON.parse(data);
-    return allowedValues;
+    this._allowedValues = JSON.parse(data);
+    return this._allowedValues;
   }
 
   /**
@@ -207,7 +211,7 @@ class SystemConfigurationService extends BaseService {
    * CRUD Operation: Read
    * Returns the authentication configuration
    */
-  retrieveAuthenticationConfig() {
+  static retrieveAuthenticationConfig() {
     return {
       mechanisms: [{ authnType: config.userAuthn.mechanism }],
     };
@@ -248,7 +252,7 @@ class SystemConfigurationService extends BaseService {
    * Override of base class create() because:
    * 1. create() requires a STIX `type` -- this service does not define a type
    */
-  async create(data, options, callback) {
+  create(data, options, callback) {
     throw new NotImplementedError(this.constructor.name, 'create');
   }
 }
@@ -256,3 +260,5 @@ class SystemConfigurationService extends BaseService {
 // Export an instance of the service
 // Pass null for type since SystemConfiguration isn't a STIX type
 module.exports = new SystemConfigurationService(null, systemConfigurationRepository);
+
+module.exports.SystemConfigurationService = SystemConfigurationService;

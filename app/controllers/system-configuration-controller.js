@@ -1,11 +1,12 @@
 'use strict';
 
 const systemConfigurationService = require('../services/system-configuration-service');
+const { SystemConfigurationService } = require('../services/system-configuration-service');
 const logger = require('../lib/logger');
 
 exports.retrieveSystemVersion = function (req, res) {
   try {
-    const systemVersionInfo = systemConfigurationService.retrieveSystemVersion();
+    const systemVersionInfo = SystemConfigurationService.retrieveSystemVersion();
     logger.debug(
       `Success: Retrieved system version, version: ${systemVersionInfo.version}, attackSpecVersion: ${systemVersionInfo.attackSpecVersion}`,
     );
@@ -57,7 +58,7 @@ exports.setOrganizationIdentity = async function (req, res) {
 
 exports.retrieveAuthenticationConfig = function (req, res) {
   try {
-    const authenticationConfig = systemConfigurationService.retrieveAuthenticationConfig();
+    const authenticationConfig = SystemConfigurationService.retrieveAuthenticationConfig();
     logger.debug('Success: Retrieved authentication configuration.');
     return res.status(200).send(authenticationConfig);
   } catch (err) {

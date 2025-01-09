@@ -5,7 +5,7 @@ const config = require('../config/config');
 const identitiesRepository = require('../repository/identities-repository');
 const BaseService = require('./_base.service');
 const { InvalidTypeError } = require('../exceptions');
-const { Identity: IdentityType } = require('../lib/stix-types');
+const { Identity: IdentityType } = require('../lib/types');
 
 class IdentitiesService extends BaseService {
   /**
@@ -42,55 +42,12 @@ class IdentitiesService extends BaseService {
     }
 
     // Save the document in the database
-    try {
-      return await this.repository.save(data);
-    } catch (err) {
-      th
-    }
+    return await this.repository.save(data);
   }
-
-  /**
-   * @public
-   * CRUD Operation: Read
-   * Inherited from BaseService
-   * retrieveAll(options)
-   */
-
-  /**
-   * @public
-   * CRUD Operation: Read
-   * Inherited from BaseService
-   * retrieveById(stixId, options)
-   */
-
-  /**
-   * @public
-   * CRUD Operation: Read
-   * Inherited from BaseService
-   * retrieveVersionById(stixId, modified)
-   */
-
-  /**
-   * @public
-   * CRUD Operation: Update
-   * Inherited from BaseService
-   * updateFull(stixId, modified, data)
-   */
-
-  /**
-   * @public
-   * CRUD Operation: Delete
-   * Inherited from BaseService
-   * deleteVersionById(stixId, modified)
-   */
-
-  /**
-   * @public
-   * CRUD Operation: Delete
-   * Inherited from BaseService
-   * deleteById(stixId)
-   */
 }
+
+//Default export
+module.exports.IdentitiesService = IdentitiesService;
 
 // Export an instance of the service
 module.exports = new IdentitiesService(IdentityType, identitiesRepository);

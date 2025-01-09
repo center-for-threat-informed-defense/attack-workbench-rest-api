@@ -20,71 +20,87 @@ const objectTypeMap = new Map([
 
 class RelationshipsService extends BaseService {
   async retrieveAll(options) {
-    let results = await super.retrieveAll(options);
+    let results = await this.repository.retrieveAll(options);
 
-    if (options.lookupRefs) {
-      results = Array.isArray(results) ? results : results.data;
-
-      // Filter by source type if specified
-      if (options.sourceType) {
-        results = results.filter((document) => {
-          if (document.source_objects?.length === 0) {
-            return false;
-          }
+    // Filter out relationships that don't reference the source type
+    if (options.sourceType) {
+      results = results.filter((document) => {
+        if (document.source_objects.length === 0) {
+          return false;
+        } else {
           document.source_objects.sort((a, b) => b.stix.modified - a.stix.modified);
           return objectTypeMap.get(document.source_objects[0].stix.type) === options.sourceType;
-        });
-      }
+        }
+      });
+    }
 
-      // Filter by target type if specified
-      if (options.targetType) {
-        results = results.filter((document) => {
-          if (document.target_objects?.length === 0) {
-            return false;
-          }
+    // Filter out relationships that don't reference the target type
+    if (options.targetType) {
+      results = results.filter((document) => {
+        if (document.target_objects.length === 0) {
+          return false;
+        } else {
           document.target_objects.sort((a, b) => b.stix.modified - a.stix.modified);
           return objectTypeMap.get(document.target_objects[0].stix.type) === options.targetType;
-        });
+        }
+      });
+    }
+
+    const prePaginationTotal = results.length;
+
+    // Apply pagination parameters
+    if (options.offset || options.limit) {
+      const start = options.offset || 0;
+      if (options.limit) {
+        const end = start + options.limit;
+        results = results.slice(start, end);
+      } else {
+        results = results.slice(start);
+      }
+    }
+
+    // Move latest source and target objects to a non-array property, then remove array of source and target objects
+    for (const document of results) {
+      if (Array.isArray(document.source_objects)) {
+        if (document.source_objects.length === 0) {
+          document.source_objects = undefined;
+        } else {
+          document.source_object = document.source_objects[0];
+          document.source_objects = undefined;
+        }
       }
 
-      // Move latest source and target objects to non-array properties
-      for (const document of results) {
-        if (Array.isArray(document.source_objects)) {
-          if (document.source_objects.length === 0) {
-            document.source_objects = undefined;
-          } else {
-            document.source_object = document.source_objects[0];
-            document.source_objects = undefined;
-          }
-        }
-
-        if (Array.isArray(document.target_objects)) {
-          if (document.target_objects.length === 0) {
-            document.target_objects = undefined;
-          } else {
-            document.target_object = document.target_objects[0];
-            document.target_objects = undefined;
-          }
+      if (Array.isArray(document.target_objects)) {
+        if (document.target_objects.length === 0) {
+          document.target_objects = undefined;
+        } else {
+          document.target_object = document.target_objects[0];
+          document.target_objects = undefined;
         }
       }
     }
 
-    // this does not work:
-    // return RelationshipsService.paginate(options, results);
+    if (options.includeIdentities) {
+      await this.addCreatedByAndModifiedByIdentitiesToAll(results);
+    }
 
     if (options.includePagination) {
       return {
         pagination: {
-          total: results.length,
+          total: prePaginationTotal,
           offset: options.offset,
           limit: options.limit,
         },
         data: results,
       };
+    } else {
+      return results;
     }
-
-    return results;
   }
 }
 
+// Default export
+module.exports.RelationshipsService = RelationshipsService;
+
+// Default export - export an instance of the service
 module.exports = new RelationshipsService(RelationshipType, relationshipsRepository);

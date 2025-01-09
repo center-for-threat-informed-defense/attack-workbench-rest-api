@@ -115,10 +115,12 @@ class AttackObjectsService extends BaseService {
    * Override of base class create() because:
    * 1. create() requires a STIX `type` -- this service does not define a type
    */
-  async create(data, options, callback) {
+  create(data, options, callback) {
     throw new NotImplementedError(this.constructor.name, 'create');
   }
 }
+
+module.exports.AttackObjectsService = AttackObjectsService;
 
 // Export an instance of the service
 module.exports = new AttackObjectsService(null, attackObjectsRepository);

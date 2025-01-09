@@ -2,6 +2,8 @@
 
 const BaseRepository = require('./_base.repository');
 const Relationship = require('../models/relationship-model');
+const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
+const { DatabaseError } = require('../exceptions');
 
 class RelationshipsRepository extends BaseRepository {
   async retrieveAll(options) {
@@ -72,24 +74,6 @@ class RelationshipsRepository extends BaseRepository {
           },
         });
       }
-
-      const facet = {
-        $facet: {
-          totalCount: [{ $count: 'totalCount' }],
-          documents: [],
-        },
-      };
-
-      if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
-      } else {
-        facet.$facet.documents.push({ $skip: 0 });
-      }
-      if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-      }
-
-      aggregation.push(facet);
 
       return await this.model.aggregate(aggregation).exec();
     } catch (err) {
