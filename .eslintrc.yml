@@ -22,9 +22,7 @@ rules:
   array-callback-return: 'off'
   array-element-newline: 'off'
   arrow-body-style: error
-  arrow-parens:
-    - error
-    - as-needed
+  arrow-parens: 'off' # Let Prettier handle arrow function parentheses
   arrow-spacing:
     - error
     - after: true
@@ -68,9 +66,7 @@ rules:
   id-blacklist: error
   id-length: 'off'
   id-match: error
-  implicit-arrow-linebreak:
-    - error
-    - beside
+  implicit-arrow-linebreak: 'off' # Allow arrow function expressions to span multiple lines
   indent: 'off'
   indent-legacy: 'off'
   init-declarations: 'off'
@@ -221,9 +217,7 @@ rules:
   one-var: 'off'
   one-var-declaration-per-line: 'off'
   operator-assignment: 'off'
-  operator-linebreak:
-    - error
-    - after
+  operator-linebreak: 'off' # Let Prettier handle operator line breaks
   padded-blocks: 'off'
   padding-line-between-statements: error
   prefer-arrow-callback: 'off'
