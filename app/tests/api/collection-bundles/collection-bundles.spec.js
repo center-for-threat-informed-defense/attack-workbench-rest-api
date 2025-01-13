@@ -84,10 +84,7 @@ const collectionBundleData = {
       description: 'This is a technique.',
       external_references: [
         { source_name: 'source-1', external_id: 's1' },
-        {
-          source_name: 'attack-pattern-1 source',
-          description: 'this is a source description',
-        },
+        { source_name: 'attack-pattern-1 source', description: 'this is a source description' },
       ],
       object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
       created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
@@ -109,10 +106,7 @@ const collectionBundleData = {
       description: 'This is another technique.',
       external_references: [
         { source_name: 'source-1', external_id: 's1' },
-        {
-          source_name: 'attack-pattern-2 source',
-          description: 'this is a source description 2',
-        },
+        { source_name: 'attack-pattern-2 source', description: 'this is a source description 2' },
       ],
       object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
       created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
@@ -133,10 +127,7 @@ const collectionBundleData = {
       description: 'This is technique that is missing a spec_version.',
       external_references: [
         { source_name: 'source-1', external_id: 's1' },
-        {
-          source_name: 'attack-pattern-2 source',
-          description: 'this is a source description 2',
-        },
+        { source_name: 'attack-pattern-2 source', description: 'this is a source description 2' },
       ],
       object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
       created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
@@ -321,10 +312,7 @@ const collectionBundleData4 = {
       description: 'This is a technique.',
       external_references: [
         { source_name: 'source-1', external_id: 's1' },
-        {
-          source_name: 'attack-pattern-1 source',
-          description: 'this is a source description',
-        },
+        { source_name: 'attack-pattern-1 source', description: 'this is a source description' },
       ],
       object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
       created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
@@ -346,10 +334,7 @@ const collectionBundleData4 = {
       description: 'This is a technique.',
       external_references: [
         { source_name: 'source-1', external_id: 's1' },
-        {
-          source_name: 'attack-pattern-1 source',
-          description: 'this is a source description',
-        },
+        { source_name: 'attack-pattern-1 source', description: 'this is a source description' },
       ],
       object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
       created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
@@ -400,10 +385,7 @@ const collectionBundleData5 = {
       description: 'This is a technique.',
       external_references: [
         { source_name: 'source-1', external_id: 's1' },
-        {
-          source_name: 'attack-pattern-1 source',
-          description: 'this is a source description',
-        },
+        { source_name: 'attack-pattern-1 source', description: 'this is a source description' },
       ],
       object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
       created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
@@ -465,242 +447,159 @@ describe('Collection Bundles Basic API', function () {
     passportCookie = await login.loginAnonymous(app);
   });
 
-  it('POST /api/collection-bundles does not import an empty collection bundle', function (done) {
+  it('POST /api/collection-bundles does not import an empty collection bundle', async function () {
     const body = {};
-    request(app)
+    await request(app)
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(400);
   });
 
-  it('POST /api/collection-bundles does not import a collection bundle with multiple x-mitre-collection objects', function (done) {
+  it('POST /api/collection-bundles does not import a collection bundle with multiple x-mitre-collection objects', async function () {
     const body = collectionBundleData2;
-    request(app)
+    const response = await request(app)
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          const errorResult = res.body;
-          expect(errorResult.bundleErrors.moreThanOneCollection).toBe(true);
+      .expect(400);
 
-          done();
-        }
-      });
+    const errorResult = response.body;
+    expect(errorResult.bundleErrors.moreThanOneCollection).toBe(true);
   });
 
-  it('POST /api/collection-bundles does not import a collection bundle with zero x-mitre-collection objects', function (done) {
+  it('POST /api/collection-bundles does not import a collection bundle with zero x-mitre-collection objects', async function () {
     const body = collectionBundleData3;
-    request(app)
+    const response = await request(app)
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          const errorResult = res.body;
-          expect(errorResult.bundleErrors.noCollection).toBe(true);
+      .expect(400);
 
-          done();
-        }
-      });
+    const errorResult = response.body;
+    expect(errorResult.bundleErrors.noCollection).toBe(true);
   });
 
-  it('POST /api/collection-bundles does not import a collection bundle with duplicate objects in the bundle', function (done) {
+  it('POST /api/collection-bundles does not import a collection bundle with duplicate objects in the bundle', async function () {
     const body = collectionBundleData4;
-    request(app)
+    const response = await request(app)
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          const errorResult = res.body;
-          expect(errorResult.objectErrors.summary.duplicateObjectInBundleCount).toBe(1);
+      .expect(400);
 
-          done();
-        }
-      });
+    const errorResult = response.body;
+    expect(errorResult.objectErrors.summary.duplicateObjectInBundleCount).toBe(1);
   });
 
-  it('POST /api/collection-bundles does not import a collection bundle with an attack spec version violation', function (done) {
+  it('POST /api/collection-bundles does not import a collection bundle with an attack spec version violation', async function () {
     const body = collectionBundleData5;
-    request(app)
+    const response = await request(app)
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          const errorResult = res.body;
-          expect(errorResult.objectErrors.summary.invalidAttackSpecVersionCount).toBe(1);
+      .expect(400);
 
-          done();
-        }
-      });
+    const errorResult = response.body;
+    expect(errorResult.objectErrors.summary.invalidAttackSpecVersionCount).toBe(1);
   });
 
-  it('POST /api/collection-bundles DOES import a collection bundle with an attack spec version violation if forceImport is set', function (done) {
+  it('POST /api/collection-bundles DOES import a collection bundle with an attack spec version violation if forceImport is set', async function () {
     const body = collectionBundleData5;
-    request(app)
+    await request(app)
       .post('/api/collection-bundles?forceImport=attack-spec-version-violations')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(201)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(201);
   });
 
-  it('POST /api/collection-bundles previews the import of a collection bundle (checkOnly)', function (done) {
+  it('POST /api/collection-bundles previews the import of a collection bundle (checkOnly)', async function () {
     const body = collectionBundleData;
-    request(app)
+    const response = await request(app)
       .post('/api/collection-bundles?checkOnly=true')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created collection object
-          const collection = res.body;
-          expect(collection).toBeDefined();
-          expect(collection.workspace.import_categories.additions.length).toBe(8);
-          expect(collection.workspace.import_categories.errors.length).toBe(3);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get the created collection object
+    const collection = response.body;
+    expect(collection).toBeDefined();
+    expect(collection.workspace.import_categories.additions.length).toBe(8);
+    expect(collection.workspace.import_categories.errors.length).toBe(3);
   });
 
   let collection1;
-  it('POST /api/collection-bundles previews the import of a collection bundle (previewOnly)', function (done) {
+  it('POST /api/collection-bundles previews the import of a collection bundle (previewOnly)', async function () {
     const body = collectionBundleData;
-    request(app)
+    const response = await request(app)
       .post('/api/collection-bundles?previewOnly=true')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created collection object
-          const collection = res.body;
-          expect(collection).toBeDefined();
-          expect(collection.workspace.import_categories.additions.length).toBe(8);
-          expect(collection.workspace.import_categories.errors.length).toBe(3);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    const collection = response.body;
+    expect(collection).toBeDefined();
+    expect(collection.workspace.import_categories.additions.length).toBe(8);
+    expect(collection.workspace.import_categories.errors.length).toBe(3);
   });
 
-  it('POST /api/collection-bundles imports a collection bundle', function (done) {
+  it('POST /api/collection-bundles imports a collection bundle', async function () {
     const body = collectionBundleData;
-    request(app)
+    const response = await request(app)
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created collection object
-          collection1 = res.body;
-          expect(collection1).toBeDefined();
-          expect(collection1.workspace.import_categories.additions.length).toBe(8);
-          expect(collection1.workspace.import_categories.errors.length).toBe(4);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    collection1 = response.body;
+    expect(collection1).toBeDefined();
+    expect(collection1.workspace.import_categories.additions.length).toBe(8);
+    expect(collection1.workspace.import_categories.errors.length).toBe(4);
   });
 
-  it('POST /api/collection-bundles does not show a successful preview with a duplicate collection bundle', function (done) {
+  it('POST /api/collection-bundles does not show a successful preview with a duplicate collection bundle', async function () {
     const body = collectionBundleData;
-    request(app)
+    await request(app)
       .post('/api/collection-bundles?checkOnly=true')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(400);
   });
 
-  it('POST /api/collection-bundles does not import a duplicate collection bundle', function (done) {
+  it('POST /api/collection-bundles does not import a duplicate collection bundle', async function () {
     const body = collectionBundleData;
-    request(app)
+    await request(app)
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(400);
   });
 
-  it('POST /api/collection-bundles DOES import a duplicate collection bundle if forceImport is set', function (done) {
+  it('POST /api/collection-bundles DOES import a duplicate collection bundle if forceImport is set', async function () {
     const body = collectionBundleData;
-    request(app)
+    await request(app)
       .post('/api/collection-bundles?forceImport=duplicate-collection')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(201)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(201);
   });
 
-  it('POST /api/collection-bundles imports an updated collection bundle', function (done) {
+  it('POST /api/collection-bundles imports an updated collection bundle', async function () {
     const updateTimestamp = new Date().toISOString();
     const updatedCollection = _.cloneDeep(collectionBundleData);
     updatedCollection.objects[0].modified = updateTimestamp;
@@ -708,265 +607,179 @@ describe('Collection Bundles Basic API', function () {
     updatedCollection.objects[1].modified = updateTimestamp;
     updatedCollection.objects[1].x_mitre_version = '1.1';
 
-    const body = updatedCollection;
-    request(app)
+    const response = await request(app)
       .post('/api/collection-bundles')
-      .send(body)
+      .send(updatedCollection)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created collection object
-          const collection2 = res.body;
-          expect(collection2).toBeDefined();
-          expect(collection2.workspace.import_categories.changes.length).toBe(1);
-          expect(collection2.workspace.import_categories.duplicates.length).toBe(6);
-          expect(collection2.workspace.import_categories.errors.length).toBe(4);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    const collection2 = response.body;
+    expect(collection2).toBeDefined();
+    expect(collection2.workspace.import_categories.changes.length).toBe(1);
+    expect(collection2.workspace.import_categories.duplicates.length).toBe(6);
+    expect(collection2.workspace.import_categories.errors.length).toBe(4);
   });
 
-  it('GET /api/references returns the malware added reference', function (done) {
-    request(app)
+  it('GET /api/references returns the malware added reference', async function () {
+    const response = await request(app)
       .get('/api/references?sourceName=' + encodeURIComponent('malware-1 source'))
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one reference in an array
-          const references = res.body;
-          expect(references).toBeDefined();
-          expect(Array.isArray(references)).toBe(true);
-          expect(references.length).toBe(1);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    const references = response.body;
+    expect(references).toBeDefined();
+    expect(Array.isArray(references)).toBe(true);
+    expect(references.length).toBe(1);
   });
 
-  it('GET /api/references does not return the malware alias', function (done) {
-    request(app)
+  it('GET /api/references does not return the malware alias', async function () {
+    const res = await request(app)
       .get('/api/references?sourceName=' + encodeURIComponent('xyzzy'))
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get zero references in an array
-          const references = res.body;
-          expect(references).toBeDefined();
-          expect(Array.isArray(references)).toBe(true);
-          expect(references.length).toBe(0);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // We expect to get zero references in an array
+    const references = res.body;
+    expect(references).toBeDefined();
+    expect(Array.isArray(references)).toBe(true);
+    expect(references.length).toBe(0);
   });
 
-  it('GET /api/references returns the group added reference', function (done) {
-    request(app)
+  it('GET /api/references returns the group added reference', async function () {
+    const res = await request(app)
       .get('/api/references?sourceName=' + encodeURIComponent('group source'))
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one reference in an array
-          const references = res.body;
-          expect(references).toBeDefined();
-          expect(Array.isArray(references)).toBe(true);
-          expect(references.length).toBe(1);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // We expect to get one reference in an array
+    const references = res.body;
+    expect(references).toBeDefined();
+    expect(Array.isArray(references)).toBe(true);
+    expect(references.length).toBe(1);
   });
 
-  it('GET /api/references does not return the group alias', function (done) {
-    request(app)
+  it('GET /api/references does not return the group alias', async function () {
+    const res = await request(app)
       .get('/api/references?sourceName=' + encodeURIComponent('group-xyzzy'))
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get zero references in an array
-          const references = res.body;
-          expect(references).toBeDefined();
-          expect(Array.isArray(references)).toBe(true);
-          expect(references.length).toBe(0);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // We expect to get zero references in an array
+    const references = res.body;
+    expect(references).toBeDefined();
+    expect(Array.isArray(references)).toBe(true);
+    expect(references.length).toBe(0);
   });
 
-  it('GET /api/collection-bundles does not export the collection bundle with a bad id', function (done) {
-    request(app)
+  it('GET /api/collection-bundles does not export the collection bundle with a bad id', async function () {
+    await request(app)
       .get('/api/collection-bundles?collectionId=not-an-id')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(404)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(404);
   });
 
-  it('GET /api/collection-bundles previews the export of the collection bundle', function (done) {
-    request(app)
+  it('GET /api/collection-bundles previews the export of the collection bundle', async function () {
+    const res = await request(app)
       .get(
         `/api/collection-bundles?previewOnly=true&collectionId=x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647`,
       )
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported collection bundle
-          const collectionBundle = res.body;
-          expect(collectionBundle).toBeDefined();
-          expect(Array.isArray(collectionBundle.objects)).toBe(true);
-          expect(collectionBundle.objects.length).toBe(7);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // We expect to get the exported collection bundle
+    const collectionBundle = res.body;
+    expect(collectionBundle).toBeDefined();
+    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+    expect(collectionBundle.objects.length).toBe(7);
   });
 
-  it('GET /api/collection-bundles exports the collection bundle', function (done) {
-    request(app)
+  it('GET /api/collection-bundles exports the collection bundle', async function () {
+    const res = await request(app)
       .get(`/api/collection-bundles?collectionId=${collectionId}`)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported collection bundle
-          const collectionBundle = res.body;
-          expect(collectionBundle).toBeDefined();
-          expect(Array.isArray(collectionBundle.objects)).toBe(true);
-          expect(collectionBundle.objects.length).toBe(7);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // We expect to get the exported collection bundle
+    const collectionBundle = res.body;
+    expect(collectionBundle).toBeDefined();
+    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+    expect(collectionBundle.objects.length).toBe(7);
   });
 
   let exportedCollectionBundle;
-  it('GET /api/collection-bundles exports the collection bundle with id and modified', function (done) {
-    request(app)
+  it('GET /api/collection-bundles exports the collection bundle with id and modified', async function () {
+    const res = await request(app)
       .get(
         `/api/collection-bundles?collectionId=${collectionId}&collectionModified=${encodeURIComponent(collectionTimestamp)}`,
       )
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported collection bundle
-          exportedCollectionBundle = res.body;
-          expect(exportedCollectionBundle).toBeDefined();
-          expect(Array.isArray(exportedCollectionBundle.objects)).toBe(true);
-          expect(exportedCollectionBundle.objects.length).toBe(7);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // We expect to get the exported collection bundle
+    exportedCollectionBundle = res.body;
+    expect(exportedCollectionBundle).toBeDefined();
+    expect(Array.isArray(exportedCollectionBundle.objects)).toBe(true);
+    expect(exportedCollectionBundle.objects.length).toBe(7);
   });
 
-  it('POST /api/collections creates the collection with a subset of the imported data', function (done) {
+  it('POST /api/collections creates the collection with a subset of the imported data', async function () {
     const body = collectionData6;
-    request(app)
+    await request(app)
       .post('/api/collections')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(201)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(201);
   });
 
-  it('GET /api/collection-bundles exports the subset collection without the note', function (done) {
-    request(app)
+  it('GET /api/collection-bundles exports the subset collection without the note', async function () {
+    const res = await request(app)
       .get(`/api/collection-bundles?collectionId=${collectionId6}`)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported collection bundle
-          const collectionBundle = res.body;
-          expect(collectionBundle).toBeDefined();
-          expect(Array.isArray(collectionBundle.objects)).toBe(true);
-          expect(collectionBundle.objects.length).toBe(3);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // We expect to get the exported collection bundle
+    const collectionBundle = res.body;
+    expect(collectionBundle).toBeDefined();
+    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+    expect(collectionBundle.objects.length).toBe(3);
   });
 
-  it('GET /api/collection-bundles exports the subset collection with the note', function (done) {
-    request(app)
+  it('GET /api/collection-bundles exports the subset collection with the note', async function () {
+    const res = await request(app)
       .get(`/api/collection-bundles?collectionId=${collectionId6}&includeNotes=true`)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported collection bundle
-          const collectionBundle = res.body;
-          expect(collectionBundle).toBeDefined();
-          expect(Array.isArray(collectionBundle.objects)).toBe(true);
-          expect(collectionBundle.objects.length).toBe(4);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // We expect to get the exported collection bundle
+    const collectionBundle = res.body;
+    expect(collectionBundle).toBeDefined();
+    expect(Array.isArray(collectionBundle.objects)).toBe(true);
+    expect(collectionBundle.objects.length).toBe(4);
   });
 
-  it('POST /api/collection-bundles imports the previously exported collection bundle', function (done) {
+  it('POST /api/collection-bundles imports the previously exported collection bundle', async function () {
     // Update the exported collection bundle so it isn't a duplicate
     const updateTimestamp = new Date().toISOString();
     const updatedCollection = _.cloneDeep(exportedCollectionBundle);
@@ -976,23 +789,17 @@ describe('Collection Bundles Basic API', function () {
     updatedCollection.objects[1].x_mitre_version = '1.1';
 
     const body = updatedCollection;
-    request(app)
+    const res = await request(app)
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created collection object
-          const collection = res.body;
-          expect(collection).toBeDefined();
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get the created collection object
+    const collection = res.body;
+    expect(collection).toBeDefined();
   });
 
   after(async function () {
