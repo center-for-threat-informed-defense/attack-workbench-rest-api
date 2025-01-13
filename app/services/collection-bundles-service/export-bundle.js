@@ -4,9 +4,9 @@ const uuid = require('uuid');
 
 const systemConfigurationService = require('../../services/system-configuration-service');
 const collectionsService = require('../../services/collections-service');
+const notesService = require('../../services/notes-service');
 const linkById = require('../../lib/linkById');
 const logger = require('../../lib/logger');
-const Note = require('../../models/note-model');
 
 const { errors } = require('./bundle-helpers');
 
@@ -44,7 +44,7 @@ async function createBundle(collection, options) {
 
   await addDerivedDataSources(bundle.objects);
   if (options.includeNotes) {
-    await addNotes(bundle.objects);
+      await notesService.addNotes(bundle.objects);
   }
   await convertLinkedById(bundle.objects, attackObjectMap);
 
@@ -191,39 +191,6 @@ function filterToValidIcsSources(technique, icsDataSourceValues) {
   } else {
     technique.x_mitre_data_sources = [];
   }
-}
-
-/**
- * Adds relevant notes to the bundle
- * @param {Array<Object>} bundleObjects - Objects in the bundle
- */
-async function addNotes(bundleObjects) {
-  // Get latest version of all active notes
-  const noteQuery = {
-    'stix.revoked': { $in: [null, false] },
-    'stix.x_mitre_deprecated': { $in: [null, false] },
-  };
-  const noteAggregation = [
-    { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
-    { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
-    { $replaceRoot: { newRoot: '$document' } },
-    { $match: noteQuery },
-  ];
-  const allNotes = await Note.aggregate(noteAggregation);
-
-  // Map bundle objects for reference checking
-  const bundleObjectMap = new Map(bundleObjects.map((obj) => [obj.id, obj]));
-
-  // Find notes referencing bundle objects
-  const notesToAdd = allNotes.filter(
-    (note) =>
-      Array.isArray(note?.stix?.object_refs) &&
-      note.stix.object_refs.some((ref) => bundleObjectMap.has(ref)) &&
-      !bundleObjectMap.has(note.stix.id),
-  );
-
-  // Add filtered notes to bundle
-  bundleObjects.push(...notesToAdd.map((note) => note.stix));
 }
 
 /**

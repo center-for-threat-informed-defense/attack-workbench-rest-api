@@ -84,6 +84,26 @@ class NotesRepository extends BaseRepository {
       throw new DatabaseError(err);
     }
   }
+
+  async retrieveAllActiveNotes() {
+    try {
+      const query = {
+        'stix.revoked': { $in: [null, false] },
+        'stix.x_mitre_deprecated': { $in: [null, false] },
+      };
+
+      const aggregation = [
+        { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+        { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
+        { $replaceRoot: { newRoot: '$document' } },
+        { $match: query },
+      ];
+
+      return await this.model.aggregate(aggregation).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
 }
 
 module.exports = new NotesRepository(Note);

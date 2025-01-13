@@ -48,6 +48,38 @@ class NotesService extends BaseService {
       }
     }
   }
+
+  /**
+   * Adds relevant notes to the bundle
+   * @param {Array<Object>} bundleObjects - Objects in the bundle
+   */
+  async addNotes(bundleObjects) {
+    if (!Array.isArray(bundleObjects)) {
+      throw new BadlyFormattedParameterError({
+        parameterName: 'bundleObjects',
+        details: 'Bundle objects must be an array',
+      });
+    }
+
+    // Get all active notes from repository
+    const allNotes = await this.repository.retrieveAllActiveNotes();
+
+    // Map bundle objects for reference checking
+    const bundleObjectMap = new Map(bundleObjects.map((obj) => [obj.id, obj]));
+
+    // Find notes referencing bundle objects
+    const notesToAdd = allNotes.filter(
+      (note) =>
+        Array.isArray(note?.stix?.object_refs) &&
+        note.stix.object_refs.some((ref) => bundleObjectMap.has(ref)) &&
+        !bundleObjectMap.has(note.stix.id),
+    );
+
+    // Add filtered notes to bundle
+    bundleObjects.push(...notesToAdd.map((note) => note.stix));
+
+    return bundleObjects;
+  }
 }
 
 module.exports = new NotesService(NoteType, notesRepository);
