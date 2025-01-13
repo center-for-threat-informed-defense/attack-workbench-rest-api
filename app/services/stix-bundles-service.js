@@ -1,7 +1,5 @@
 'use strict';
 
-/* eslint-disable no-await-in-loop */
-
 const uuid = require('uuid');
 
 const AttackObject = require('../models/attack-object-model');

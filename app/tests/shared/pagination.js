@@ -36,7 +36,6 @@ PaginationTests.prototype.loadObjects = async function () {
     data.stix.modified = timestamp.toISOString();
 
     try {
-      // eslint-disable-next-line no-await-in-loop
       await this.service.create(data, { import: false });
     } catch (err) {
       console.log(err);

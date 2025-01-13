@@ -145,7 +145,6 @@ async function checkForInvalidEnterpriseCollectionId() {
     if (attackObject.stix.type === 'x-mitre-collection') {
       if (invalidIds.includes(attackObject.stix.id)) {
         attackObject.stix.id = validId;
-        // eslint-disable-next-line no-await-in-loop
         await attackObject.save();
         collectionUpdates += 1;
       }
@@ -160,7 +159,6 @@ async function checkForInvalidEnterpriseCollectionId() {
         }
       }
       if (attackObjectUpdated) {
-        // eslint-disable-next-line no-await-in-loop
         await attackObject.save();
         objectUpdates += 1;
       }
@@ -190,7 +188,6 @@ async function checkForInvalidEnterpriseCollectionId() {
     }
 
     if (collectionIndexUpdated) {
-      // eslint-disable-next-line no-await-in-loop
       await collectionIndex.save();
       collectionIndexUpdates += 1;
     }

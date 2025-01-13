@@ -265,7 +265,6 @@ async function addObjectsToCollection(objectList, collectionID, collectionModifi
   const insertionErrors = [];
   for (const attackObject of objectList) {
     try {
-      // eslint-disable-next-line no-await-in-loop
       await attackObjectsService.insertCollection(
         attackObject.object_ref,
         attackObject.object_modified,

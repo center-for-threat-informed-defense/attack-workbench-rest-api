@@ -47,7 +47,6 @@ class MatrixService extends BaseService {
     }
 
     let matrix;
-    // eslint-disable-next-line no-useless-catch
     try {
       matrix = await matrixRepository.retrieveOneByVersion(stixId, modified);
     } catch (err) {
