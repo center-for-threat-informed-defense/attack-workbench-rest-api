@@ -90,7 +90,6 @@ describe('OIDC User Account Registration', function () {
       clientSecret: oidcClientSecret,
     };
     const clientCredentials = await keycloak.initializeKeycloak(options);
-    // eslint-disable-next-line require-atomic-updates
     config.userAuthn.oidc.clientSecret = clientCredentials.value;
 
     // Add a test user

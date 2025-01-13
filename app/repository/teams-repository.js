@@ -15,22 +15,32 @@ class TeamsRepository {
     this.model = model;
   }
 
-  retrieveByUserId(userAccountId, options) {
-    const aggregation = [
-      { $sort: { name: 1 } },
-      { $match: { userIDs: { $in: [userAccountId] } } },
+  async retrieveByUserId(userAccountId, options) {
+    const aggregation = [{ $sort: { name: 1 } }, { $match: { userIDs: { $in: [userAccountId] } } }];
+
+    // Get the total count of documents, pre-limit
+    const totalCount = await this.model.aggregate(aggregation).count('totalCount').exec();
+
+    if (options.offset) {
+      aggregation.push({ $skip: options.offset });
+    } else {
+      aggregation.push({ $skip: 0 });
+    }
+
+    if (options.limit) {
+      aggregation.push({ $limit: options.limit });
+    }
+
+    // Retrieve the documents
+    const documents = await this.model.aggregate(aggregation).exec();
+
+    // Return data in the format previously given by $facet
+    return [
       {
-        $facet: {
-          totalCount: [{ $count: 'totalCount' }],
-          documents: [
-            { $skip: options.offset || 0 },
-            ...(options.limit ? [{ $limit: options.limit }] : []),
-          ],
-        },
+        totalCount: [{ totalCount: totalCount[0]?.totalCount || 0 }],
+        documents: documents,
       },
     ];
-
-    return this.model.aggregate(aggregation).exec();
   }
 
   async retrieveAll(options) {
@@ -50,24 +60,29 @@ class TeamsRepository {
       aggregation.push(match);
     }
 
-    const facet = {
-      $facet: {
-        totalCount: [{ $count: 'totalCount' }],
-        documents: [],
-      },
-    };
+    // Get the total count of documents, pre-limit
+    const totalCount = await this.model.aggregate(aggregation).count('totalCount').exec();
+
     if (options.offset) {
-      facet.$facet.documents.push({ $skip: options.offset });
+      aggregation.push({ $skip: options.offset });
     } else {
-      facet.$facet.documents.push({ $skip: 0 });
+      aggregation.push({ $skip: 0 });
     }
+
     if (options.limit) {
-      facet.$facet.documents.push({ $limit: options.limit });
+      aggregation.push({ $limit: options.limit });
     }
-    aggregation.push(facet);
 
     // Retrieve the documents
-    return await this.model.aggregate(aggregation);
+    const documents = await this.model.aggregate(aggregation).exec();
+
+    // Return data in the format previously given by $facet
+    return [
+      {
+        totalCount: [{ totalCount: totalCount[0]?.totalCount || 0 }],
+        documents: documents,
+      },
+    ];
   }
 
   async retrieveById(teamId) {

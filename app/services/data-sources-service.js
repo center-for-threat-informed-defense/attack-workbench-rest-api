@@ -29,7 +29,6 @@ class DataSourcesService extends BaseService {
 
   static async addExtraDataToAll(dataSources, retrieveDataComponents) {
     for (const dataSource of dataSources) {
-      // eslint-disable-next-line no-await-in-loop
       await DataSourcesService.addExtraData(dataSource, retrieveDataComponents);
     }
   }

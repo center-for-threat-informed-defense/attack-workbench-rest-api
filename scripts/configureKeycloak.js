@@ -97,7 +97,6 @@ async function configureKeycloak() {
   const workbenchUsers = [adminWBUser, editorWBUser, visitorWBUser];
   for (const user of workbenchUsers) {
     try {
-      // eslint-disable-next-line no-await-in-loop
       await userAccountService.create(user);
       console.log(`Added user ${user.email} to the Workbench database`);
     } catch (err) {

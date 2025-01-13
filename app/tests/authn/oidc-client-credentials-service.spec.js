@@ -55,7 +55,6 @@ describe('Client Credentials Service Authentication', function () {
       clientSecret: oidcRestApiClientSecret,
     };
     await keycloak.initializeKeycloak(options);
-    // eslint-disable-next-line require-atomic-updates
 
     const clientOptions = {
       basePath: oidcHost,

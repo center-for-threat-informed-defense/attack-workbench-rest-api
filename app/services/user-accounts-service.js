@@ -179,7 +179,7 @@ class UserAccountsService {
       throw new MissingParameterError('userAccountId');
     }
 
-    const userAccount = await this.repository.findOneAndRemove(userAccountId);
+    const userAccount = await this.repository.findOneAndDelete(userAccountId);
     return userAccount;
   }
 
@@ -193,7 +193,6 @@ class UserAccountsService {
   async addCreatedByUserAccount(attackObject) {
     if (attackObject?.workspace?.workflow?.created_by_user_account) {
       try {
-        // eslint-disable-next-line require-atomic-updates
         attackObject.created_by_user_account = await this.getLatest(
           attackObject.workspace.workflow.created_by_user_account,
         );
@@ -205,7 +204,6 @@ class UserAccountsService {
 
   async addCreatedByUserAccountToAll(attackObjects) {
     for (const attackObject of attackObjects) {
-      // eslint-disable-next-line no-await-in-loop
       await this.addCreatedByUserAccount(attackObject);
     }
   }

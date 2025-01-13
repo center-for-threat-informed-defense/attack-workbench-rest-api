@@ -482,7 +482,7 @@ class BaseService extends AbstractService {
     }
 
     try {
-      const document = await this.repository.findOneAndRemove(stixId, stixModified);
+      const document = await this.repository.findOneAndDelete(stixId, stixModified);
 
       if (!document) {
         //Note: document is null if not found

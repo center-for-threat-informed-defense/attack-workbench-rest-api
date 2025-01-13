@@ -11,6 +11,9 @@ exports.initializeConnection = async function () {
 
   const uri = mongod.getUri();
 
+  // Set `strictQuery` to `true` to omit unknown fields in queries.
+  mongoose.set('strictQuery', true);
+
   // Configure mongoose to use ES6 promises
   mongoose.Promise = global.Promise;
 
@@ -39,7 +42,6 @@ exports.clearDatabase = async function () {
 
   for (const key in collections) {
     const collection = collections[key];
-    // eslint-disable-next-line no-await-in-loop
     await collection.deleteMany();
   }
 };

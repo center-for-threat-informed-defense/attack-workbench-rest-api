@@ -122,7 +122,6 @@ async function loadTechniques(techniques) {
       technique.stix.modified = timestamp;
     }
 
-    // eslint-disable-next-line no-await-in-loop
     await techniquesService.create(technique);
   }
 }

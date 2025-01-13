@@ -75,8 +75,8 @@ class AbstractRepository {
    * @param {*} modified The modification date for the document.
    * @returns {Object} The removed document.
    */
-  async findOneAndRemove(stixId, modified) {
-    throw new NotImplementedError(this.constructor.name, 'findOneAndRemove');
+  async findOneAndDelete(stixId, modified) {
+    throw new NotImplementedError(this.constructor.name, 'findOneAndDelete');
   }
 
   /**

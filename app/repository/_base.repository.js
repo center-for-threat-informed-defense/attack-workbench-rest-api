@@ -76,24 +76,29 @@ class BaseRepository extends AbstractRepository {
         aggregation.push(match);
       }
 
-      const facet = {
-        $facet: {
-          totalCount: [{ $count: 'totalCount' }],
-          documents: [],
-        },
-      };
+      // Get the total count of documents, pre-limit
+      const totalCount = await this.model.aggregate(aggregation).count('totalCount').exec();
+
       if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
+        aggregation.push({ $skip: options.offset });
       } else {
-        facet.$facet.documents.push({ $skip: 0 });
+        aggregation.push({ $skip: 0 });
       }
+
       if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
+        aggregation.push({ $limit: options.limit });
       }
-      aggregation.push(facet);
 
       // Retrieve the documents
-      return await this.model.aggregate(aggregation).exec();
+      const documents = await this.model.aggregate(aggregation).exec();
+
+      // Return data in the format previously given by $facet
+      return [
+        {
+          totalCount: [{ totalCount: totalCount[0]?.totalCount || 0 }],
+          documents: documents,
+        },
+      ];
     } catch (err) {
       throw new DatabaseError(err);
     }
@@ -154,7 +159,6 @@ class BaseRepository extends AbstractRepository {
     }
   }
 
-  // eslint-disable-next-line class-methods-use-this
   async save(data) {
     try {
       const document = new this.model(data);
@@ -180,10 +184,10 @@ class BaseRepository extends AbstractRepository {
     }
   }
 
-  async findOneAndRemove(stixId, modified) {
+  async findOneAndDelete(stixId, modified) {
     try {
       return await this.model
-        .findOneAndRemove({ 'stix.id': stixId, 'stix.modified': modified })
+        .findOneAndDelete({ 'stix.id': stixId, 'stix.modified': modified })
         .exec();
     } catch (err) {
       throw new DatabaseError(err);

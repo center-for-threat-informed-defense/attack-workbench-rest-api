@@ -128,7 +128,7 @@ exports.delete = function (id, callback) {
     return callback(error);
   }
 
-  CollectionIndex.findOneAndRemove({ 'collection_index.id': id }, function (err, collectionIndex) {
+  CollectionIndex.findOneAndDelete({ 'collection_index.id': id }, function (err, collectionIndex) {
     if (err) {
       return callback(err);
     } else {

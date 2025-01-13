@@ -34,7 +34,7 @@ class ReferencesService {
       throw new MissingParameterError({ parameterName: 'source_name' });
     }
 
-    return await this.repository.findOneAndRemove(sourceName);
+    return await this.repository.findOneAndDelete(sourceName);
   }
 }
 
