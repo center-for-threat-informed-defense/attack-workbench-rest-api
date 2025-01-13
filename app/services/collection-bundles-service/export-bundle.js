@@ -44,7 +44,7 @@ async function createBundle(collection, options) {
 
   await addDerivedDataSources(bundle.objects);
   if (options.includeNotes) {
-      await notesService.addNotes(bundle.objects);
+    await notesService.addNotes(bundle.objects);
   }
   await convertLinkedById(bundle.objects, attackObjectMap);
 

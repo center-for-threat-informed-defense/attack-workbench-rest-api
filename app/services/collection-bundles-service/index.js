@@ -4,7 +4,7 @@ import exportBundle from './export-bundle';
 
 // Default export
 module.exports = {
-    importBundle,
-    validateBundle,
-    exportBundle
+  importBundle,
+  validateBundle,
+  exportBundle,
 };
