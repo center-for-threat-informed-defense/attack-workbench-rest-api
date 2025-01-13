@@ -1,5 +1,7 @@
 'use strict';
 
+const logger = require('../lib/logger');
+
 exports.sanitizeRegex = function (expression) {
   // Compile the expression. If it's valid, return the expression. Otherwise, return an empty string.
   try {
@@ -9,6 +11,7 @@ exports.sanitizeRegex = function (expression) {
     new RegExp(expression);
     return expression;
   } catch (err) {
+    logger.warn(err);
     return '';
   }
 };
