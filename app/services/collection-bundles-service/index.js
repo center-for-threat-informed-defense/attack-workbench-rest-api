@@ -1,10 +1,8 @@
-import importBundle from './import-bundle';
-import validateBundle from './validate-bundle';
-import exportBundle from './export-bundle';
-
 // Default export
 module.exports = {
-  importBundle,
-  validateBundle,
-  exportBundle,
+  importBundle: require('./import-bundle'),
+  validateBundle: require('./validate-bundle'),
+  exportBundle: require('./export-bundle'),
+  errors: require('./bundle-helpers').errors,
+  forceImportParameters: require('./bundle-helpers').forceImportParameters,
 };
