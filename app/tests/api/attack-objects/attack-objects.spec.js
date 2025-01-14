@@ -9,7 +9,6 @@ const AttackObject = require('../../../models/attack-object-model');
 const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
-const util = require('util');
 const collectionBundlesService = require('../../../services/collection-bundles-service');
 logger.level = 'debug';
 
@@ -45,7 +44,7 @@ describe('ATT&CK Objects API', function () {
   let app;
   let passportCookie;
 
-  const importBundle = util.promisify(collectionBundlesService.importBundle);
+  // const importBundle = util.promisify(collectionBundlesService.importBundle);
   before(async function () {
     // Establish the database connection
     // Use an in-memory database that we spin up for the test
@@ -66,14 +65,14 @@ describe('ATT&CK Objects API', function () {
     );
 
     const importOptions = {};
-    await importBundle(collectionList1[0], collectionBundle1, importOptions);
+    await collectionBundlesService.importBundle(collectionList1[0], collectionBundle1, importOptions);
 
     const collectionBundle2 = await readJson('./attack-objects-2.json');
     const collectionList2 = collectionBundle2.objects.filter(
       (object) => object.type === 'x-mitre-collection',
     );
 
-    await importBundle(collectionList2[0], collectionBundle2, importOptions);
+    await collectionBundlesService.importBundle(collectionList2[0], collectionBundle2, importOptions);
 
     // Log into the app
     passportCookie = await login.loginAnonymous(app);
