@@ -140,300 +140,227 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     passportCookie = await login.loginAnonymous(app);
   });
 
-  it('POST /api/mitigations creates a mitigation', function (done) {
+  it('POST /api/mitigations creates a mitigation', async function () {
     const timestamp = new Date().toISOString();
     mitigationData1.stix.created = timestamp;
     mitigationData1.stix.modified = timestamp;
     const body = mitigationData1;
-    request(app)
+    const res = await request(app)
       .post('/api/mitigations')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created mitigation
-          const mitigation = res.body;
-          expect(mitigation).toBeDefined();
-          expect(mitigation.stix).toBeDefined();
-          expect(mitigation.stix.id).toBeDefined();
+      .expect('Content-Type', /json/);
 
-          // Add this object to the collection data
-          const contentsObject = {
-            object_ref: mitigation.stix.id,
-            object_modified: mitigation.stix.modified,
-          };
-          initialCollectionData.stix.x_mitre_contents.push(contentsObject);
+    // We expect to get the created mitigation
+    const mitigation = res.body;
+    expect(mitigation).toBeDefined();
+    expect(mitigation.stix).toBeDefined();
+    expect(mitigation.stix.id).toBeDefined();
 
-          done();
-        }
-      });
+    // Add this object to the collection data
+    const contentsObject = {
+      object_ref: mitigation.stix.id,
+      object_modified: mitigation.stix.modified,
+    };
+    initialCollectionData.stix.x_mitre_contents.push(contentsObject);
   });
 
   let mitigation2;
-  it('POST /api/mitigations creates another mitigation', function (done) {
+  it('POST /api/mitigations creates another mitigation', async function () {
     const timestamp = new Date().toISOString();
     mitigationData2.stix.created = timestamp;
     mitigationData2.stix.modified = timestamp;
     const body = mitigationData2;
-    request(app)
+    const res = await request(app)
       .post('/api/mitigations')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          mitigation2 = res.body;
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // TODO should we do any validation here?
+    mitigation2 = res.body;
   });
-  it('POST /api/software creates a software', function (done) {
+
+  it('POST /api/software creates a software', async function () {
     const timestamp = new Date().toISOString();
     softwareData.stix.created = timestamp;
     softwareData.stix.modified = timestamp;
     const body = softwareData;
-    request(app)
+    const res = await request(app)
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created software
-          const software = res.body;
-          expect(software).toBeDefined();
-          expect(software.stix).toBeDefined();
-          expect(software.stix.id).toBeDefined();
+      .expect('Content-Type', /json/);
 
-          // Add this object to the collection data
-          const contentsObject = {
-            object_ref: software.stix.id,
-            object_modified: software.stix.modified,
-          };
-          initialCollectionData.stix.x_mitre_contents.push(contentsObject);
+    // We expect to get the created software
+    const software = res.body;
+    expect(software).toBeDefined();
+    expect(software.stix).toBeDefined();
+    expect(software.stix.id).toBeDefined();
 
-          done();
-        }
-      });
+    // Add this object to the collection data
+    const contentsObject = {
+      object_ref: software.stix.id,
+      object_modified: software.stix.modified,
+    };
+    initialCollectionData.stix.x_mitre_contents.push(contentsObject);
   });
 
-  it('GET /api/collections returns an empty array of collections', function (done) {
-    request(app)
+  it('GET /api/collections returns an empty array of collections', async function () {
+    const res = await request(app)
       .get('/api/collections')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get an empty array
-          const collections = res.body;
-          expect(collections).toBeDefined();
-          expect(Array.isArray(collections)).toBe(true);
-          expect(collections.length).toBe(0);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get an empty array
+    const collections = res.body;
+    expect(collections).toBeDefined();
+    expect(Array.isArray(collections)).toBe(true);
+    expect(collections.length).toBe(0);
   });
 
-  it('POST /api/collections does not create an empty collection', function (done) {
+  it('POST /api/collections does not create an empty collection', async function () {
     const body = {};
-    request(app)
+    await request(app)
       .post('/api/collections')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(400);
   });
 
   let collection1;
-  it('POST /api/collections creates a collection', function (done) {
+  it('POST /api/collections creates a collection', async function () {
     const timestamp = new Date().toISOString();
     initialCollectionData.stix.created = timestamp;
     initialCollectionData.stix.modified = timestamp;
     const body = initialCollectionData;
-    request(app)
+    const res = await request(app)
       .post('/api/collections')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created collection
-          collection1 = res.body;
-          expect(collection1).toBeDefined();
-          expect(collection1.stix).toBeDefined();
-          expect(collection1.stix.id).toBeDefined();
-          expect(collection1.stix.created).toBeDefined();
-          expect(collection1.stix.modified).toBeDefined();
-          expect(collection1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    // We expect to get the created collection
+    collection1 = res.body;
+    expect(collection1).toBeDefined();
+    expect(collection1.stix).toBeDefined();
+    expect(collection1.stix.id).toBeDefined();
+    expect(collection1.stix.created).toBeDefined();
+    expect(collection1.stix.modified).toBeDefined();
+    expect(collection1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
   });
 
-  it('GET /api/collections returns the added collection', function (done) {
-    request(app)
+  it('GET /api/collections returns the added collection', async function () {
+    const res = await request(app)
       .get('/api/collections')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection in an array
-          const collections = res.body;
-          expect(collections).toBeDefined();
-          expect(Array.isArray(collections)).toBe(true);
-          expect(collections.length).toBe(1);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get one collection in an array
+    const collections = res.body;
+    expect(collections).toBeDefined();
+    expect(Array.isArray(collections)).toBe(true);
+    expect(collections.length).toBe(1);
   });
 
-  it('GET /api/collections/:id should not return a collection when the id cannot be found', function (done) {
-    request(app)
+  it('GET /api/collections/:id should not return a collection when the id cannot be found', async function () {
+    await request(app)
       .get('/api/collections/not-an-id')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(404)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(404);
   });
 
-  it('GET /api/collections/:id returns the added collection', function (done) {
-    request(app)
+  it('GET /api/collections/:id returns the added collection', async function () {
+    const res = await request(app)
       .get('/api/collections/' + collection1.stix.id)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection in an array
-          const collections = res.body;
-          expect(collections).toBeDefined();
-          expect(Array.isArray(collections)).toBe(true);
-          expect(collections.length).toBe(1);
+      .expect('Content-Type', /json/);
 
-          const collection = collections[0];
-          expect(collection).toBeDefined();
-          expect(collection.stix).toBeDefined();
-          expect(collection.stix.id).toBe(collection1.stix.id);
-          expect(collection.stix.type).toBe(collection1.stix.type);
-          expect(collection.stix.name).toBe(collection1.stix.name);
-          expect(collection.stix.description).toBe(collection1.stix.description);
-          expect(collection.stix.spec_version).toBe(collection1.stix.spec_version);
-          expect(collection.stix.object_marking_refs).toEqual(
-            expect.arrayContaining(collection1.stix.object_marking_refs),
-          );
-          expect(collection.stix.created_by_ref).toBe(collection1.stix.created_by_ref);
-          expect(collection.stix.x_mitre_attack_spec_version).toBe(
-            collection1.stix.x_mitre_attack_spec_version,
-          );
+    // We expect to get one collection in an array
+    const collections = res.body;
+    expect(collections).toBeDefined();
+    expect(Array.isArray(collections)).toBe(true);
+    expect(collections.length).toBe(1);
 
-          expect(collection.contents).toBeUndefined();
+    const collection = collections[0];
+    expect(collection).toBeDefined();
+    expect(collection.stix).toBeDefined();
+    expect(collection.stix.id).toBe(collection1.stix.id);
+    expect(collection.stix.type).toBe(collection1.stix.type);
+    expect(collection.stix.name).toBe(collection1.stix.name);
+    expect(collection.stix.description).toBe(collection1.stix.description);
+    expect(collection.stix.spec_version).toBe(collection1.stix.spec_version);
+    expect(collection.stix.object_marking_refs).toEqual(
+      expect.arrayContaining(collection1.stix.object_marking_refs),
+    );
+    expect(collection.stix.created_by_ref).toBe(collection1.stix.created_by_ref);
+    expect(collection.stix.x_mitre_attack_spec_version).toBe(
+      collection1.stix.x_mitre_attack_spec_version,
+    );
 
-          done();
-        }
-      });
+    expect(collection.contents).toBeUndefined();
   });
 
-  it('GET /api/collections/:id with retrieveContents flag returns the added collection with contents', function (done) {
-    request(app)
+  it('GET /api/collections/:id with retrieveContents flag returns the added collection with contents', async function () {
+    const res = await request(app)
       .get('/api/collections/' + collection1.stix.id + '?retrieveContents=true')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection in an array
-          const collections = res.body;
-          expect(collections).toBeDefined();
-          expect(Array.isArray(collections)).toBe(true);
-          expect(collections.length).toBe(1);
+      .expect('Content-Type', /json/);
 
-          const collection = collections[0];
-          expect(collection).toBeDefined();
-          expect(collection.stix).toBeDefined();
-          expect(collection.stix.id).toBe(collection1.stix.id);
-          expect(collection.stix.type).toBe(collection1.stix.type);
-          expect(collection.stix.name).toBe(collection1.stix.name);
-          expect(collection.stix.description).toBe(collection1.stix.description);
-          expect(collection.stix.spec_version).toBe(collection1.stix.spec_version);
-          expect(collection.stix.object_marking_refs).toEqual(
-            expect.arrayContaining(collection1.stix.object_marking_refs),
-          );
-          expect(collection.stix.created_by_ref).toBe(collection1.stix.created_by_ref);
+    // We expect to get one collection in an array
+    const collections = res.body;
+    expect(collections).toBeDefined();
+    expect(Array.isArray(collections)).toBe(true);
+    expect(collections.length).toBe(1);
 
-          expect(collection.contents).toBeDefined();
-          expect(Array.isArray(collection.contents)).toBe(true);
-          expect(collection.contents.length).toBe(2);
+    const collection = collections[0];
+    expect(collection).toBeDefined();
+    expect(collection.stix).toBeDefined();
+    expect(collection.stix.id).toBe(collection1.stix.id);
+    expect(collection.stix.type).toBe(collection1.stix.type);
+    expect(collection.stix.name).toBe(collection1.stix.name);
+    expect(collection.stix.description).toBe(collection1.stix.description);
+    expect(collection.stix.spec_version).toBe(collection1.stix.spec_version);
+    expect(collection.stix.object_marking_refs).toEqual(
+      expect.arrayContaining(collection1.stix.object_marking_refs),
+    );
+    expect(collection.stix.created_by_ref).toBe(collection1.stix.created_by_ref);
 
-          done();
-        }
-      });
+    expect(collection.contents).toBeDefined();
+    expect(Array.isArray(collection.contents)).toBe(true);
+    expect(collection.contents.length).toBe(2);
   });
 
-  it('POST /api/collections does not create a collection with the same id and modified date', function (done) {
+  it('POST /api/collections does not create a collection with the same id and modified date', async function () {
     const body = collection1;
-    request(app)
+    await request(app)
       .post('/api/collections')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(409)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(409);
   });
 
   let collection2;
-  it('POST /api/collections should create a new version of a collection with a duplicate stix.id but different stix.modified date', function (done) {
+  it('POST /api/collections should create a new version of a collection with a duplicate stix.id but different stix.modified date', async function () {
     const collection = _.cloneDeep(collection1);
     collection._id = undefined;
     collection.__t = undefined;
@@ -449,73 +376,56 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     collection.stix.x_mitre_contents.push(contentsObject);
 
     const body = collection;
-    request(app)
+
+    const res = await request(app)
       .post('/api/collections')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created collection
-          collection2 = res.body;
-          expect(collection2).toBeDefined();
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get the created collection
+    collection2 = res.body;
+    expect(collection2).toBeDefined();
   });
 
-  it('GET /api/collections/:id returns the latest added collection', function (done) {
-    request(app)
+  it('GET /api/collections/:id returns the latest added collection', async function () {
+    const res = await request(app)
       .get('/api/collections/' + collection2.stix.id)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection in an array
-          const collections = res.body;
-          expect(collections).toBeDefined();
-          expect(Array.isArray(collections)).toBe(true);
-          expect(collections.length).toBe(1);
-          const collection = collections[0];
-          expect(collection.stix.id).toBe(collection2.stix.id);
-          expect(collection.stix.modified).toBe(collection2.stix.modified);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get one collection in an array
+    const collections = res.body;
+    expect(collections).toBeDefined();
+    expect(Array.isArray(collections)).toBe(true);
+    expect(collections.length).toBe(1);
+    const collection = collections[0];
+    expect(collection.stix.id).toBe(collection2.stix.id);
+    expect(collection.stix.modified).toBe(collection2.stix.modified);
   });
 
-  it('GET /api/collections/:id/modified/:modified returns the proper collection', function (done) {
-    request(app)
+  it('GET /api/collections/:id/modified/:modified returns the proper collection', async function () {
+    const res = await request(app)
       .get('/api/collections/' + collection1.stix.id + '/modified/' + collection1.stix.modified)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection
-          const collection = res.body;
-          expect(collection).toBeDefined();
-          expect(collection.stix).toBeDefined();
-          expect(collection.stix.id).toBe(collection1.stix.id);
-          expect(collection.stix.modified).toBe(collection1.stix.modified);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get one collection
+    const collection = res.body;
+    expect(collection).toBeDefined();
+    expect(collection.stix).toBeDefined();
+    expect(collection.stix.id).toBe(collection1.stix.id);
+    expect(collection.stix.modified).toBe(collection1.stix.modified);
   });
 
-  it('GET /api/collections/:id/modified/:modified with retrieveContents flag returns the first version of the collection with its contents', function (done) {
-    request(app)
+  it('GET /api/collections/:id/modified/:modified with retrieveContents flag returns the first version of the collection with its contents', async function () {
+    const res = await request(app)
       .get(
         '/api/collections/' +
           collection1.stix.id +
@@ -526,28 +436,22 @@ describe('Collections (x-mitre-collection) Basic API', function () {
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection
-          const collection = res.body;
-          expect(collection).toBeDefined();
-          expect(collection.stix).toBeDefined();
-          expect(collection.stix.id).toBe(collection1.stix.id);
-          expect(collection.stix.modified).toBe(collection1.stix.modified);
+      .expect('Content-Type', /json/);
 
-          expect(collection.contents).toBeDefined();
-          expect(Array.isArray(collection.contents)).toBe(true);
-          expect(collection.contents.length).toBe(2);
-          done();
-        }
-      });
+    // We expect to get one collection
+    const collection = res.body;
+    expect(collection).toBeDefined();
+    expect(collection.stix).toBeDefined();
+    expect(collection.stix.id).toBe(collection1.stix.id);
+    expect(collection.stix.modified).toBe(collection1.stix.modified);
+
+    expect(collection.contents).toBeDefined();
+    expect(Array.isArray(collection.contents)).toBe(true);
+    expect(collection.contents.length).toBe(2);
   });
 
-  it('GET /api/collections/:id/modified/:modified with retrieveContents flag returns the second version of the collection with its contents', function (done) {
-    request(app)
+  it('GET /api/collections/:id/modified/:modified with retrieveContents flag returns the second version of the collection with its contents', async function () {
+    const res = await request(app)
       .get(
         '/api/collections/' +
           collection2.stix.id +
@@ -558,84 +462,59 @@ describe('Collections (x-mitre-collection) Basic API', function () {
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection
-          const collection = res.body;
-          expect(collection).toBeDefined();
-          expect(collection.stix).toBeDefined();
-          expect(collection.stix.id).toBe(collection2.stix.id);
-          expect(collection.stix.modified).toBe(collection2.stix.modified);
+      .expect('Content-Type', /json/);
 
-          expect(collection.contents).toBeDefined();
-          expect(Array.isArray(collection.contents)).toBe(true);
-          expect(collection.contents.length).toBe(3);
-          done();
-        }
-      });
+    // We expect to get one collection
+    const collection = res.body;
+    expect(collection).toBeDefined();
+    expect(collection.stix).toBeDefined();
+    expect(collection.stix.id).toBe(collection2.stix.id);
+    expect(collection.stix.modified).toBe(collection2.stix.modified);
+
+    expect(collection.contents).toBeDefined();
+    expect(Array.isArray(collection.contents)).toBe(true);
+    expect(collection.contents.length).toBe(3);
   });
 
-  it('GET /api/collections returns all versions of all added collections', function (done) {
-    request(app)
+  it('GET /api/collections returns all versions of all added collections', async function () {
+    const res = await request(app)
       .get('/api/collections?versions=all')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get two collections in an array
-          const collections = res.body;
-          expect(collections).toBeDefined();
-          expect(Array.isArray(collections)).toBe(true);
-          expect(collections.length).toBe(2);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get two collections in an array
+    const collections = res.body;
+    expect(collections).toBeDefined();
+    expect(Array.isArray(collections)).toBe(true);
+    expect(collections.length).toBe(2);
   });
 
-  it('GET /api/collections returns all versions of one added collection', function (done) {
-    request(app)
+  it('GET /api/collections returns all versions of one added collection', async function () {
+    const res = await request(app)
       .get('/api/collections/' + collection1.stix.id + '?versions=all')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get two collections in an array
-          const collections = res.body;
-          expect(collections).toBeDefined();
-          expect(Array.isArray(collections)).toBe(true);
-          expect(collections.length).toBe(2);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get two collections in an array
+    const collections = res.body;
+    expect(collections).toBeDefined();
+    expect(Array.isArray(collections)).toBe(true);
+    expect(collections.length).toBe(2);
   });
 
-  it('DELETE /api/collections/:id should not delete a collection when the id cannot be found', function (done) {
-    request(app)
+  it('DELETE /api/collections/:id should not delete a collection when the id cannot be found', async function () {
+    await request(app)
       .delete('/api/collections/not-an-id')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(404)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(404);
   });
 
-  it('DELETE /api/collections/:id/modified/:modified deletes a collection and its contents', function (done) {
-    request(app)
+  it('DELETE /api/collections/:id/modified/:modified deletes a collection and its contents', async function () {
+    await request(app)
       .delete(
         '/api/collections/' +
           collection2.stix.id +
@@ -644,76 +523,48 @@ describe('Collections (x-mitre-collection) Basic API', function () {
           '?deleteAllContents=true',
       )
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(204)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(204);
   });
 
-  it('GET /api/mitigations/:id should not return a mitigation that was deleted when the collection was deleted', function (done) {
-    request(app)
+  it('GET /api/mitigations/:id should not return a mitigation that was deleted when the collection was deleted', async function () {
+    await request(app)
       .get(`/api/mitigations/${mitigation2.stix.id}`)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(404)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(404);
   });
 
   // This should return all the objects, showing that the previous delete didn't remove objects that were in both
   // versions of the collection
-  it('GET /api/collections/:id with retrieveContents flag returns the added collection with contents', function (done) {
-    request(app)
+  it('GET /api/collections/:id with retrieveContents flag returns the added collection with contents', async function () {
+    const res = await request(app)
       .get('/api/collections/' + collection1.stix.id + '?retrieveContents=true')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection in an array
-          const collections = res.body;
-          expect(collections).toBeDefined();
-          expect(Array.isArray(collections)).toBe(true);
-          expect(collections.length).toBe(1);
+      .expect('Content-Type', /json/);
 
-          const collection = collections[0];
-          expect(collection).toBeDefined();
-          expect(collection.stix).toBeDefined();
-          expect(collection.stix.id).toBe(collection1.stix.id);
+    // We expect to get one collection in an array
+    const collections = res.body;
+    expect(collections).toBeDefined();
+    expect(Array.isArray(collections)).toBe(true);
+    expect(collections.length).toBe(1);
 
-          expect(collection.contents).toBeDefined();
-          expect(Array.isArray(collection.contents)).toBe(true);
-          expect(collection.contents.length).toBe(2);
+    const collection = collections[0];
+    expect(collection).toBeDefined();
+    expect(collection.stix).toBeDefined();
+    expect(collection.stix.id).toBe(collection1.stix.id);
 
-          done();
-        }
-      });
+    expect(collection.contents).toBeDefined();
+    expect(Array.isArray(collection.contents)).toBe(true);
+    expect(collection.contents.length).toBe(2);
   });
 
-  it('DELETE /api/collections/:id should delete all of the collections with the stix id', function (done) {
-    request(app)
+  it('DELETE /api/collections/:id should delete all of the collections with the stix id', async function () {
+    await request(app)
       .delete('/api/collections/' + collection1.stix.id)
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(204)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(204);
   });
 
   after(async function () {
