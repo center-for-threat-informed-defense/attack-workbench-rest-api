@@ -25,7 +25,7 @@ function extractForceImportParameters(req) {
   return params;
 }
 
-exports.importBundle = function (req, res) {
+exports.importBundle = async function (req, res) {
   // Get the data from the request
   const collectionBundleData = req.body;
 
@@ -125,37 +125,34 @@ exports.importBundle = function (req, res) {
   };
 
   // Import the collection bundle
-  collectionBundlesService.importBundle(
-    collections[0],
-    collectionBundleData,
-    options,
-    function (err, importedCollection) {
-      if (err) {
-        if (err.message === collectionBundlesService.errors.duplicateCollection) {
-          errorResult.bundleErrors.duplicateCollection = true;
-          logger.error('Unable to import collection, duplicate x-mitre-collection.');
-          return res.status(400).send(errorResult);
-        } else {
-          logger.error(
-            'Unable to import collection, create collection index failed with error: ' + err,
-          );
-          return res
-            .status(500)
-            .send('Unable to import collection, unable to create collection index. Server error.');
-        }
-      } else {
-        if (req.query.checkOnly) {
-          logger.debug(
-            'Success: Previewed import of collection with id ' + importedCollection.stix.id,
-          );
-          return res.status(201).send(importedCollection);
-        } else {
-          logger.debug('Success: Imported collection with id ' + importedCollection.stix.id);
-          return res.status(201).send(importedCollection);
-        }
-      }
-    },
-  );
+  try {
+    const importedCollection = await collectionBundlesService.importBundle(
+      collections[0],
+      collectionBundleData,
+      options,
+    );
+
+    if (req.query.checkOnly) {
+      logger.debug('Success: Previewed import of collection with id ' + importedCollection.stix.id);
+      return res.status(201).send(importedCollection);
+    } else {
+      logger.debug('Success: Imported collection with id ' + importedCollection.stix.id);
+      return res.status(201).send(importedCollection);
+    }
+  } catch (err) {
+    if (err.message === collectionBundlesService.errors.duplicateCollection) {
+      errorResult.bundleErrors.duplicateCollection = true;
+      logger.error('Unable to import collection, duplicate x-mitre-collection.');
+      return res.status(400).send(errorResult);
+    } else {
+      logger.error(
+        'Unable to import collection, create collection index failed with error: ' + err,
+      );
+      return res
+        .status(500)
+        .send('Unable to import collection, unable to create collection index. Server error.');
+    }
+  }
 };
 
 exports.exportBundle = async function (req, res) {
