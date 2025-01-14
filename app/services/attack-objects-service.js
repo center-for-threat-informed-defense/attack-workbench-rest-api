@@ -1,6 +1,5 @@
 'use strict';
 
-const util = require('util');
 const attackObjectsRepository = require('../repository/attack-objects-repository');
 const BaseService = require('./_base.service');
 const identitiesService = require('./identities-service');
@@ -58,10 +57,7 @@ class AttackObjectsService extends BaseService {
   async retrieveVersionById(stixId, modified) {
     // Handle relationships separately
     if (stixId.startsWith('relationship')) {
-      const retrieveRelationshipVersionById = util.promisify(
-        relationshipsService.retrieveVersionById,
-      );
-      const relationship = await retrieveRelationshipVersionById(stixId, modified);
+      const relationship = await relationshipsService.retrieveVersionById(stixId, modified);
       await identitiesService.addCreatedByAndModifiedByIdentities(relationship);
       return relationship;
     }
