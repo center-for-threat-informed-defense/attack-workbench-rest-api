@@ -1,5 +1,7 @@
 'use strict';
 
+const semver = require('semver');
+
 const {
   errors,
   importErrors,
@@ -12,38 +14,36 @@ const {
 const { DuplicateIdError } = require('../../exceptions');
 const { Collection: CollectionType } = require('../../lib/types');
 
-const semver = require('semver');
-const logger = require('../lib/logger');
-const config = require('../config/config');
+const logger = require('../../lib/logger');
+const config = require('../../config/config');
+const types = require('../../lib/types');
 
 const collectionsService = require('../../services/collections-service');
 const referencesService = require('../../services/references-service');
 
-const Collection = require('../models/collection-model');
-
-const types = require('../../lib/types');
+const Collection = require('../../models/collection-model');
 
 // Service mapping object using the type constants
 const serviceMap = {
-  [types.Technique]: require('../services/techniques-service'),
-  [types.Tactic]: require('../services/tactics-service'),
-  [types.Group]: require('../services/groups-service'),
-  [types.Campaign]: require('../services/campaigns-service'),
-  [types.Mitigation]: require('../services/mitigations-service'),
-  [types.Matrix]: require('../services/matrices-service'),
-  [types.Relationship]: require('../services/relationships-service'),
-  [types.MarkingDefinition]: require('../services/marking-definitions-service'),
-  [types.Identity]: require('../services/identities-service'),
-  [types.Note]: require('../services/notes-service'),
-  [types.DataSource]: require('../services/data-sources-service'),
-  [types.DataComponent]: require('../services/data-components-service'),
-  [types.Asset]: require('../services/assets-service'),
+  [types.Technique]: require('../../services/techniques-service'),
+  [types.Tactic]: require('../../services/tactics-service'),
+  [types.Group]: require('../../services/groups-service'),
+  [types.Campaign]: require('../../services/campaigns-service'),
+  [types.Mitigation]: require('../../services/mitigations-service'),
+  [types.Matrix]: require('../../services/matrices-service'),
+  [types.Relationship]: require('../../services/relationships-service'),
+  [types.MarkingDefinition]: require('../../services/marking-definitions-service'),
+  [types.Identity]: require('../../services/identities-service'),
+  [types.Note]: require('../../services/notes-service'),
+  [types.DataSource]: require('../../services/data-sources-service'),
+  [types.DataComponent]: require('../../services/data-components-service'),
+  [types.Asset]: require('../../services/assets-service'),
 };
 
 // Handle special cases that share a service
 const softwareTypes = [types.Malware, types.Tool];
 softwareTypes.forEach((type) => {
-  serviceMap[type] = require('../services/software-service');
+  serviceMap[type] = require('../../services/software-service');
 });
 
 /**

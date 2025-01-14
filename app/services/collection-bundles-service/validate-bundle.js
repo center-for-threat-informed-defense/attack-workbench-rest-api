@@ -1,7 +1,7 @@
 'use strict';
 
 const semver = require('semver');
-const config = require('../config/config');
+const config = require('../../config/config');
 
 // Constants for validation error types
 const { validationErrors, defaultAttackSpecVersion, makeKey } = require('./bundle-helpers');
