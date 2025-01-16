@@ -15,9 +15,10 @@ class CollectionRepository extends BaseRepository {
 
   // A lean variant of BaseService.retrieveOneById
   // TODO merge the two methods by supporting method argument 'lean=false' that toggles .lean() on/off
+  // TODO change function name to reflect that it returns an array, or fix the calling function
   async retrieveOneByIdLean(stixId) {
     try {
-      return await this.model.findOne({ 'stix.id': stixId }).lean().exec();
+      return await this.model.find({ 'stix.id': stixId }).lean().exec();
     } catch (err) {
       throw new DatabaseError(err);
     }
