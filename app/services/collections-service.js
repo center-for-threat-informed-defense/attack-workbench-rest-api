@@ -203,7 +203,7 @@ class CollectionsService extends BaseService {
     }
 
     const collection = await this.repository.retrieveOneByVersionLean(stixId, modified);
-    
+
     if (!collection) {
       throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
     }

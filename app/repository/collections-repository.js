@@ -129,7 +129,6 @@ class CollectionRepository extends BaseRepository {
           documents: documents,
         },
       ];
-
     } catch (err) {
       throw new DatabaseError(err);
     }
