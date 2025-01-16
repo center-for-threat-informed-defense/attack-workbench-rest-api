@@ -127,10 +127,10 @@ exports.delete = async function (req, res) {
       req.params.stixId,
       req.query.deleteAllContents,
     );
-    if (removedCollections.length === 0) {
+    if (removedCollections.deletedCount === 0) {
       return res.status(404).send('Collection not found.');
     } else {
-      logger.debug('Success: Deleted collection with id ' + removedCollections[0].id);
+      logger.debug(`Success: Deleted collection with id ${req.params.stixId}.`);
       return res.status(204).end();
     }
   } catch (error) {
