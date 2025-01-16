@@ -136,7 +136,7 @@ class CollectionRepository extends BaseRepository {
 
   async insertExport(stixId, modified, exportData) {
     try {
-      const collection = await this.repository.findOne({
+      const collection = await this.model.findOne({
         'stix.id': stixId,
         'stix.modified': modified,
       });
