@@ -2,43 +2,41 @@
 
 const BaseRepository = require('./_base.repository');
 const Collection = require('../models/collection-model');
+const AttackObject = require('../models/attack-object-model');
 const regexValidator = require('../lib/regex');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 const { DatabaseError } = require('../exceptions');
 
 class CollectionRepository extends BaseRepository {
-  async findWithContents(query, options = {}) {
-    try {
-      let dbQuery = Collection.find(query);
-
-      if (options.sort) {
-        dbQuery = dbQuery.sort(options.sort);
-      }
-
-      if (options.lean) {
-        dbQuery = dbQuery.lean();
-      }
-
-      return await dbQuery.exec();
-    } catch (err) {
-      throw new DatabaseError(err);
-    }
+  constructor(model, attackObjectModel) {
+    super(model);
+    this._attackObjectModel = attackObjectModel;
   }
 
-  async findOneWithContents(query, options = {}) {
+  // A lean variant of BaseService.retrieveOneById
+  // TODO merge the two methods by supporting method argument 'lean=false' that toggles .lean() on/off
+  async retrieveOneByIdLean(stixId) {
+      try {
+          return await this.model.findOne({ 'stix.id': stixId }).lean().exec();
+        } catch (err) {
+            throw new DatabaseError(err);
+        }
+    }
+
+  // A lean variant of BaseService.retrieveOneByVersion
+  // TODO merge the two methods by supporting method argument 'lean=false' that toggles .lean() on/off
+  async retrieveOneByVersionLean(stixId, modified) {
     try {
-      let dbQuery = Collection.findOne(query);
-
-      if (options.sort) {
-        dbQuery = dbQuery.sort(options.sort);
-      }
-
-      if (options.lean) {
-        dbQuery = dbQuery.lean();
-      }
-
-      return await dbQuery.exec();
+      return await this.model
+        .findOne({ 'stix.id': stixId, 'stix.modified': modified })
+        .lean()
+        .exec();
     } catch (err) {
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
+      } else if (err.name === 'MongoServerError' && err.code === 11000) {
+        throw new DuplicateIdError();
+      }
       throw new DatabaseError(err);
     }
   }
@@ -97,7 +95,7 @@ class CollectionRepository extends BaseRepository {
         aggregation.push({ $limit: options.limit });
       }
 
-      return await Collection.aggregate(aggregation);
+      return await this.repository.aggregate(aggregation);
     } catch (err) {
       throw new DatabaseError(err);
     }
@@ -105,7 +103,10 @@ class CollectionRepository extends BaseRepository {
 
   async insertExport(stixId, modified, exportData) {
     try {
-      const collection = await Collection.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+      const collection = await this.repository.findOne({
+        'stix.id': stixId,
+        'stix.modified': modified,
+      });
 
       if (!collection) {
         throw new Error('Document not found');
@@ -124,7 +125,7 @@ class CollectionRepository extends BaseRepository {
 
   async findAttackObject(query, options = {}) {
     try {
-      let dbQuery = AttackObject.findOne(query);
+      let dbQuery = this._attackObjectModel.findOne(query);
 
       if (options.lean) {
         dbQuery = dbQuery.lean();
@@ -138,7 +139,7 @@ class CollectionRepository extends BaseRepository {
 
   async deleteAttackObjectById(id) {
     try {
-      return await AttackObject.findByIdAndDelete(id);
+      return await this._attackObjectModel.findByIdAndDelete(id);
     } catch (err) {
       throw new DatabaseError(err);
     }
@@ -146,11 +147,11 @@ class CollectionRepository extends BaseRepository {
 
   async updateAttackObject(id, update) {
     try {
-      return await AttackObject.findByIdAndUpdate(id, update);
+      return await this._attackObjectModel.findByIdAndUpdate(id, update);
     } catch (err) {
       throw new DatabaseError(err);
     }
   }
 }
 
-module.exports = new CollectionRepository(Collection);
+module.exports = new CollectionRepository(Collection, AttackObject);
