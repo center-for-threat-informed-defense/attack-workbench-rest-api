@@ -2,7 +2,6 @@ const fs = require('fs').promises;
 
 const request = require('supertest');
 const { expect } = require('expect');
-const util = require('util');
 
 const login = require('../../shared/login');
 
@@ -18,8 +17,6 @@ async function readJson(path) {
   const data = await fs.readFile(require.resolve(path));
   return JSON.parse(data);
 }
-
-const importBundle = util.promisify(collectionBundlesService.importBundle);
 
 describe('Techniques with Tactics API', function () {
   let app;
@@ -42,7 +39,7 @@ describe('Techniques with Tactics API', function () {
     );
 
     const importOptions = {};
-    await importBundle(collections[0], collectionBundle, importOptions);
+    await collectionBundlesService.importBundle(collections[0], collectionBundle, importOptions);
 
     // Log into the app
     passportCookie = await login.loginAnonymous(app);
