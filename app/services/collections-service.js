@@ -20,7 +20,6 @@ const {
 } = require('../exceptions');
 
 class CollectionsService extends BaseService {
-
   async getContents(objectList) {
     const contents = [];
     for (const objectRef of objectList) {
@@ -47,7 +46,7 @@ class CollectionsService extends BaseService {
 
     let collections;
     if (options.versions === 'all') {
-      collections = await this.repository.findWithContents({ 'stix.id': stixId }, { lean: true });
+      collections = await this.repository.retrieveOneByIdLean(stixId);
 
       if (options.retrieveContents) {
         for (const collection of collections) {
@@ -55,10 +54,7 @@ class CollectionsService extends BaseService {
         }
       }
     } else if (options.versions === 'latest') {
-      const collection = await this.repository.findOneWithContents(
-        { 'stix.id': stixId },
-        { sort: '-stix.modified', lean: true },
-      );
+      const collection = await this.repository.retrieveLatestByStixId(stixId);
 
       if (collection) {
         if (options.retrieveContents) {
@@ -84,10 +80,7 @@ class CollectionsService extends BaseService {
       throw new MissingParameterError({ parameterName: 'modified' });
     }
 
-    const collection = await this.repository.findOneWithContents(
-      { 'stix.id': stixId, 'stix.modified': modified },
-      { lean: true },
-    );
+    const collection = await this.repository.retrieveOneByVersionLean(stixId, modified);
 
     if (!collection) {
       return null;
@@ -127,7 +120,8 @@ class CollectionsService extends BaseService {
         savedCollection.stix.x_mitre_contents,
         savedCollection.stix.id,
         savedCollection.stix.modified,
-      );    }
+      );
+    }
 
     return { savedCollection, insertionErrors };
   }
@@ -165,7 +159,7 @@ class CollectionsService extends BaseService {
 
       if (matches.length === 0) {
         // If this attack object is NOT in another collection, delete it
-        await AttackObject.findByIdAndDelete(referenceObj._id);
+        await attackObjectsService.findByIdAndDelete(referenceObj._id);
       } else if (referenceObj.workspace?.collections) {
         // If this object IS in another collection, update the workspace.collections array
         const newCollectionsArr = referenceObj.workspace.collections.filter(
