@@ -461,6 +461,7 @@ class BaseService extends AbstractService {
     }
   }
 
+  // TODO rename to deleteVersionByStixId and repurpose the existing name for deleting by the document's unique _id 
   async deleteVersionById(stixId, stixModified, callback) {
     if (BaseService.isCallback(arguments[arguments.length - 1])) {
       callback = arguments[arguments.length - 1];
@@ -503,6 +504,7 @@ class BaseService extends AbstractService {
     }
   }
 
+  // TODO rename to deleteManyByStixId
   async deleteById(stixId, callback) {
     if (BaseService.isCallback(arguments[arguments.length - 1])) {
       callback = arguments[arguments.length - 1];
