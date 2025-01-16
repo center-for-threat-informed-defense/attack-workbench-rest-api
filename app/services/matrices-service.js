@@ -1,7 +1,5 @@
 'use strict';
 
-const util = require('util');
-
 const BaseService = require('./_base.service');
 const matrixRepository = require('../repository/matrix-repository');
 const { Matrix: MatrixType } = require('../lib/types');
