@@ -108,6 +108,9 @@ class CollectionRepository extends BaseRepository {
         aggregation.push(match);
       }
 
+      // Get the total count of documents, pre-limit
+      const totalCount = await this.model.aggregate(aggregation).count('totalCount').exec();
+
       if (options.skip) {
         aggregation.push({ $skip: options.skip });
       }
@@ -115,7 +118,17 @@ class CollectionRepository extends BaseRepository {
         aggregation.push({ $limit: options.limit });
       }
 
-      return await this.repository.aggregate(aggregation);
+      // Retrieve the documents
+      const documents = await this.model.aggregate(aggregation).exec();
+
+      // Return data in the format previously given by $facet
+      return [
+        {
+          totalCount: [{ totalCount: totalCount[0]?.totalCount || 0 }],
+          documents: documents,
+        },
+      ];
+
     } catch (err) {
       throw new DatabaseError(err);
     }
