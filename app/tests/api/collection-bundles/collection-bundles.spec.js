@@ -403,7 +403,9 @@ const collectionId6 = 'x-mitre-collection--5c48cab9-f320-407a-808f-455466372519'
 const collectionTimestamp6 = new Date().toISOString();
 
 const collectionData6 = {
-  workspace: {},
+  workspace: {
+    workflow: {},
+  },
   stix: {
     id: collectionId6,
     created: collectionTimestamp6,

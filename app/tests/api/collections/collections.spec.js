@@ -27,6 +27,7 @@ const initialCollectionData = {
       out_of_date: [],
       errors: [],
     },
+    workflow: {},
   },
   stix: {
     id: 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647',
