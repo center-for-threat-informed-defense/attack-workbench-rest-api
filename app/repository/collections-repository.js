@@ -41,6 +41,26 @@ class CollectionRepository extends BaseRepository {
     }
   }
 
+  // A temporary fix for a query in CollectionService::deleteAllContentsOfCollection
+  // TODO refactor the service to bring the query logic in here.
+  async findWithContents(query, options = {}) {
+    try {
+      let dbQuery = Collection.find(query);
+
+      if (options.sort) {
+        dbQuery = dbQuery.sort(options.sort);
+      }
+
+      if (options.lean) {
+        dbQuery = dbQuery.lean();
+      }
+
+      return await dbQuery.exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async retrieveAll(options) {
     try {
       // Build the query

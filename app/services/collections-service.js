@@ -126,6 +126,8 @@ class CollectionsService extends BaseService {
     return { savedCollection, insertionErrors };
   }
 
+  // TODO get rid of direct calls to AttackObject model
+  // TODO move query logic into CollectionsRepository::findWithContents
   async deleteAllContentsOfCollection(collection, stixId, modified) {
     for (const reference of collection.stix.x_mitre_contents) {
       const referenceObj = await AttackObject.findOne({
@@ -159,7 +161,7 @@ class CollectionsService extends BaseService {
 
       if (matches.length === 0) {
         // If this attack object is NOT in another collection, delete it
-        await attackObjectsService.findByIdAndDelete(referenceObj._id);
+        await AttackObject.findByIdAndDelete(referenceObj._id);
       } else if (referenceObj.workspace?.collections) {
         // If this object IS in another collection, update the workspace.collections array
         const newCollectionsArr = referenceObj.workspace.collections.filter(
@@ -201,7 +203,7 @@ class CollectionsService extends BaseService {
     }
 
     const collection = await this.repository.retrieveOneByVersionLean(stixId, modified);
-
+    
     if (!collection) {
       throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
     }
