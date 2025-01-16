@@ -196,9 +196,7 @@ class BaseRepository extends AbstractRepository {
 
   async findByIdAndDelete(_id) {
     try {
-      return await this.model
-        .findByIdAndDelete(_id)
-        .exec();
+      return await this.model.findByIdAndDelete(_id).exec();
     } catch (err) {
       throw new DatabaseError(err);
     }

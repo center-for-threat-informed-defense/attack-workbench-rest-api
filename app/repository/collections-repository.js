@@ -16,12 +16,12 @@ class CollectionRepository extends BaseRepository {
   // A lean variant of BaseService.retrieveOneById
   // TODO merge the two methods by supporting method argument 'lean=false' that toggles .lean() on/off
   async retrieveOneByIdLean(stixId) {
-      try {
-          return await this.model.findOne({ 'stix.id': stixId }).lean().exec();
-        } catch (err) {
-            throw new DatabaseError(err);
-        }
+    try {
+      return await this.model.findOne({ 'stix.id': stixId }).lean().exec();
+    } catch (err) {
+      throw new DatabaseError(err);
     }
+  }
 
   // A lean variant of BaseService.retrieveOneByVersion
   // TODO merge the two methods by supporting method argument 'lean=false' that toggles .lean() on/off

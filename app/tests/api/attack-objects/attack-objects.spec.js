@@ -65,14 +65,22 @@ describe('ATT&CK Objects API', function () {
     );
 
     const importOptions = {};
-    await collectionBundlesService.importBundle(collectionList1[0], collectionBundle1, importOptions);
+    await collectionBundlesService.importBundle(
+      collectionList1[0],
+      collectionBundle1,
+      importOptions,
+    );
 
     const collectionBundle2 = await readJson('./attack-objects-2.json');
     const collectionList2 = collectionBundle2.objects.filter(
       (object) => object.type === 'x-mitre-collection',
     );
 
-    await collectionBundlesService.importBundle(collectionList2[0], collectionBundle2, importOptions);
+    await collectionBundlesService.importBundle(
+      collectionList2[0],
+      collectionBundle2,
+      importOptions,
+    );
 
     // Log into the app
     passportCookie = await login.loginAnonymous(app);
