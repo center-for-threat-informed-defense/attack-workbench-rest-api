@@ -26,7 +26,7 @@ class MatrixService extends BaseService {
     // Lazy loading of services
     if (!this.retrieveTacticById || !this.retrieveTechniquesForTactic) {
       const tacticsService = require('./tactics-service');
-      this.retrieveTacticById = util.promisify(tacticsService.retrieveById);
+      this.retrieveTacticById = tacticsService.retrieveById;
       this.retrieveTechniquesForTactic = tacticsService.retrieveTechniquesForTactic;
     }
 
