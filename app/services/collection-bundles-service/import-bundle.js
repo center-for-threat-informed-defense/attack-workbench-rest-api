@@ -25,7 +25,6 @@ const Collection = require('../../models/collection-model');
 
 // Service mapping object using the type constants
 const serviceMap = {
-  [types.Collection]: require('../../services/collections-service'),
   [types.Technique]: require('../../services/techniques-service'),
   [types.Tactic]: require('../../services/tactics-service'),
   [types.Group]: require('../../services/groups-service'),
