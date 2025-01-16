@@ -2,6 +2,11 @@
 
 const collectionsService = require('../services/collections-service');
 const logger = require('../lib/logger');
+const {
+  BadlyFormattedParameterError,
+  InvalidQueryStringParameterError,
+  DuplicateIdError,
+} = require('../exceptions');
 
 exports.retrieveAll = async function (req, res) {
   const options = {
@@ -41,10 +46,10 @@ exports.retrieveById = async function (req, res) {
       return res.status(200).send(collections);
     }
   } catch (err) {
-    if (err.message === collectionsService.errors.badlyFormattedParameter) {
+    if (err instanceof BadlyFormattedParameterError) {
       logger.warn('Badly formatted stix id: ' + req.params.stixId);
       return res.status(400).send('Stix id is badly formatted.');
-    } else if (err.message === collectionsService.errors.invalidQueryStringParameter) {
+    } else if (err instanceof InvalidQueryStringParameterError) {
       logger.warn('Invalid query string: versions=' + req.query.versions);
       return res.status(400).send('Query string parameter versions is invalid.');
     } else {
@@ -71,7 +76,7 @@ exports.retrieveVersionById = async function (req, res) {
       return res.status(200).send(collection);
     }
   } catch (err) {
-    if (err.message === collectionsService.errors.badlyFormattedParameter) {
+    if (err instanceof BadlyFormattedParameterError) {
       logger.warn('Badly formatted stix id: ' + req.params.stixId);
       return res.status(400).send('Stix id is badly formatted.');
     } else {
@@ -104,7 +109,7 @@ exports.create = async function (req, res) {
     }
     return res.status(201).send(savedCollection);
   } catch (err) {
-    if (err.message === collectionsService.errors.duplicateId) {
+    if (err instanceof DuplicateIdError) {
       logger.warn('Duplicate stix.id and stix.modified');
       return res
         .status(409)
