@@ -177,10 +177,7 @@ class CollectionsService extends BaseService {
       throw new MissingParameterError({ parameterName: 'stixId' });
     }
 
-    const collections = await this.repository.findWithContents(
-      { 'stix.id': stixId },
-      { lean: true },
-    );
+    const collections = await this.repository.retrieveOneByIdLean(stixId);
     if (!collections) {
       throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
     }
@@ -203,10 +200,7 @@ class CollectionsService extends BaseService {
       throw new MissingParameterError({ parameterName: 'modified' });
     }
 
-    const collection = await this.repository.findOneWithContents(
-      { 'stix.id': stixId, 'stix.modified': modified },
-      { lean: true },
-    );
+    const collection = await this.repository.retrieveOneByVersionLean(stixId, modified);
 
     if (!collection) {
       throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
