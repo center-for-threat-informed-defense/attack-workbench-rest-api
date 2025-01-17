@@ -92,6 +92,30 @@ class DatabaseError extends CustomError {
   }
 }
 
+class BadRequestError extends CustomError {
+  constructor(options) {
+    super('Bad request.', options);
+  }
+}
+
+class HostNotFoundError extends CustomError {
+  constructor(options) {
+    super('Host not found.', options);
+  }
+}
+
+class ConnectionRefusedError extends CustomError {
+  constructor(options) {
+    super('Connection refused.', options);
+  }
+}
+
+class HTTPError extends CustomError {
+  constructor(options) {
+    super('The HTTP operation failed.', options);
+  }
+}
+
 class NotImplementedError extends CustomError {
   constructor(moduleName, functionName, options) {
     super(`The function ${functionName} in module ${moduleName} is not implemented!`, options);
@@ -163,7 +187,13 @@ module.exports = {
   NotFoundError,
   DatabaseError,
 
-  /** Service-specific errors */
+  //** HTTP-related errors*/
+  BadRequestError,
+  HostNotFoundError,
+  ConnectionRefusedError,
+  HTTPError,
+
+  //** Service-specific errors */
   GenericServiceError,
   IdentityServiceError,
   TechniquesServiceError,

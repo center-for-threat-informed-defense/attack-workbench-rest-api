@@ -2,184 +2,94 @@
 
 const superagent = require('superagent');
 
-const CollectionIndex = require('../models/collection-index-model');
+const CollectionIndexesRepository = require('../repository/collection-indexes-repository');
+const BaseService = require('./_base.service');
+const {
+  MissingParameterError,
+  NotFoundError,
+  BadRequestError,
+  HostNotFoundError,
+  ConnectionRefusedError,
+  HTTPError,
+} = require('../exceptions');
 const config = require('../config/config');
 
-const errors = {
-  badRequest: 'Bad request',
-  missingParameter: 'Missing required parameter',
-  badlyFormattedParameter: 'Badly formatted parameter',
-  duplicateId: 'Duplicate id',
-  notFound: 'Document not found',
-  hostNotFound: 'Host not found',
-  connectionRefused: 'Connection refused',
-};
-exports.errors = errors;
-
-exports.retrieveAll = function (options, callback) {
-  CollectionIndex.find()
-    .skip(options.offset)
-    .limit(options.limit)
-    .lean()
-    .exec(function (err, collectionIndexes) {
-      if (err) {
-        return callback(err);
-      } else {
-        return callback(null, collectionIndexes);
-      }
-    });
-};
-
-exports.retrieveById = function (id, callback) {
-  if (!id) {
-    const error = new Error(errors.missingParameter);
-    error.parameterName = 'id';
-    return callback(error);
+class CollectionIndexesService extends BaseService {
+  async retrieveAll(options) {
+    return await this.repository.retrieveAll(options);
   }
 
-  CollectionIndex.findOne({ 'collection_index.id': id }, function (err, collectionIndex) {
-    if (err) {
-      if (err.name === 'CastError') {
-        const error = new Error(errors.badlyFormattedParameter);
-        error.parameterName = 'id';
-        return callback(error);
-      } else {
-        return callback(err);
-      }
-    } else {
-      // Note: document is null if not found
-      return callback(null, collectionIndex);
+  async retrieveById(id) {
+    return await this.repository.retrieveById(id);
+  }
+
+  async retrieveByUrl(url) {
+    if (!url) {
+      throw new MissingParameterError({ parameterName: 'url' });
     }
-  });
-};
 
-exports.create = function (data, callback) {
-  // Create the document
-  const collectionIndex = new CollectionIndex(data);
+    try {
+      const res = await superagent.get(url).accept('application/json');
+      return JSON.parse(res.text);
+    } catch (err) {
+      if (err.response && err.response.notFound) {
+        throw new NotFoundError(err);
+      } else if (err.response && err.response.badRequest) {
+        throw new BadRequestError(err);
+      } else if (err.code === 'ENOTFOUND') {
+        throw new HostNotFoundError(err);
+      } else if (err.code === 'ECONNREFUSED') {
+        throw new ConnectionRefusedError(err);
+      } else {
+        throw new HTTPError(err);
+      }
+    }
+  }
 
-  if (collectionIndex.workspace.update_policy) {
+  async create(data) {
     if (
-      collectionIndex.workspace.update_policy.automatic &&
-      !collectionIndex.workspace.update_policy.interval
+      data.workspace.update_policy &&
+      data.workspace.update_policy.automatic &&
+      !data.workspace.update_policy.interval
     ) {
-      collectionIndex.workspace.update_policy.interval = config.collectionIndex.defaultInterval;
+      data.workspace.update_policy.interval = config.collectionIndex.defaultInterval;
     }
+
+    return await this.repository.save(data);
   }
 
-  // Save the document in the database
-  collectionIndex.save(function (err, collectionIndex) {
-    if (err) {
-      if (err.name === 'MongoServerError' && err.code === 11000) {
-        // 11000 = Duplicate index
-        const error = new Error(errors.duplicateId);
-        return callback(error);
-      } else {
-        return callback(err);
-      }
-    } else {
-      return callback(null, collectionIndex);
+  async updateFull(id, data) {
+    if (!id) {
+      throw new MissingParameterError({ parameterName: 'collection_index.id' });
     }
-  });
-};
 
-exports.updateFull = function (id, data, callback) {
-  if (!id) {
-    const error = new Error(errors.missingParameter);
-    error.parameterName = 'id';
-    return callback(error);
-  }
+    const collectionIndex = await this.repository.retrieveById(id);
 
-  CollectionIndex.findOne({ 'collection_index.id': id }, function (err, collectionIndex) {
-    if (err) {
-      if (err.name === 'CastError') {
-        var error = new Error(errors.badlyFormattedParameter);
-        error.parameterName = 'id';
-        return callback(error);
-      } else {
-        return callback(err);
-      }
-    } else if (!collectionIndex) {
-      // Collection index not found
-      return callback(null);
+    if (!collectionIndex) return null;
+
+    const newCollectionIndex = await this.repository.updateAndSave(collectionIndex, data);
+
+    if (newCollectionIndex === collectionIndex) {
+      return newCollectionIndex;
     } else {
-      // Copy data to found document and save
-      Object.assign(collectionIndex, data);
-      collectionIndex.save(function (err, savedCollectionIndex) {
-        if (err) {
-          if (err.name === 'MongoServerError' && err.code === 11000) {
-            // 11000 = Duplicate index
-            var error = new Error(errors.duplicateId);
-            return callback(error);
-          } else {
-            return callback(err);
-          }
-        } else {
-          return callback(null, savedCollectionIndex);
-        }
+      throw new DatabaseError({
+        details: 'Document could not be saved',
+        collectionIndex, // Pass along the document that could not be saved
       });
     }
-  });
-};
-
-exports.delete = function (id, callback) {
-  if (!id) {
-    const error = new Error(errors.missingParameter);
-    error.parameterName = 'id';
-    return callback(error);
   }
 
-  CollectionIndex.findOneAndDelete({ 'collection_index.id': id }, function (err, collectionIndex) {
-    if (err) {
-      return callback(err);
-    } else {
-      //Note: collectionIndex is null if not found
-      return callback(null, collectionIndex);
+  async delete(id) {
+    if (!id) {
+      throw new MissingParameterError({ parameterName: 'collection_index.id' });
     }
-  });
-};
 
-/**
- * Retrieves a collection index from the provided URL.
- * This is expected to be a remote URL that does not require authentication.
- */
-exports.retrieveByUrl = function (url, callback) {
-  if (!url) {
-    const error = new Error(errors.missingParameter);
-    return callback(error);
+    return await this.repository.findOneAndDelete(id);
   }
-  superagent
-    .get(url)
-    .set('Accept', 'application/json')
-    .end((err, res) => {
-      if (err) {
-        if (err.response && err.response.notFound) {
-          const error = new Error(errors.notFound);
-          return callback(error);
-        } else if (err.response && err.response.badRequest) {
-          const error = new Error(errors.badRequest);
-          return callback(error);
-        } else if (err.code === 'ENOTFOUND') {
-          const error = new Error(errors.hostNotFound);
-          return callback(error);
-        } else if (err.code === 'ECONNREFUSED') {
-          const error = new Error(errors.connectionRefused);
-          return callback(error);
-        } else {
-          return callback(err);
-        }
-      } else {
-        try {
-          // Parsing res.text handles both the content-type text/plain and application/json use cases
-          const collectionIndex = JSON.parse(res.text);
-          return callback(null, collectionIndex);
-        } catch (err) {
-          return callback(err);
-        }
-      }
-    });
-};
 
-exports.refresh = function (id, callback) {
-  // Do nothing for now
-  process.nextTick(() => callback(null, {}));
-};
+  async refresh(_id) {
+    // Do nothing for now
+  }
+}
+
+module.exports = new CollectionIndexesService(null, CollectionIndexesRepository);
