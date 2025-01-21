@@ -66,7 +66,7 @@ convict.addFormat(arrayFormat('oidc-client'));
 convict.addFormat(arrayFormat('service-account'));
 
 /**
- * Validates a comma-separated string of domains or FQDNs.
+ * Validates an array of strings representing domains or FQDNs.
  * Allows the wildcard character `*` to indicate all origins.
  * Supports the value `disable` to explicitly disable CORS.
  *
@@ -75,45 +75,76 @@ convict.addFormat(arrayFormat('service-account'));
  * - Have at least one dot separating the domain levels.
  * - End with a valid top-level domain (e.g., `.com`, `.org`).
  *
- * @param {string} value - The input string to validate. Can be a single domain, a wildcard (`*`), `disable`, or a comma-separated list of domains.
+ * @param {string} values - An array of input string to validate. Can be a single domain, a wildcard (`*`), `disable`, or a comma-separated list of domains.
  * @throws {Error} If any domain in the list is invalid.
  * 
  * @example
  * // Valid examples:
- * validateDomains('*'); // No error
- * validateDomains('example.com'); // No error
- * validateDomains('example.com,api.example.com,sub.example.co.uk'); // No error
- * validateDomains('disable'); // No error
+ * validateDomains(['*']); // No error
+ * validateDomains(['example.com']); // No error
+ * validateDomains(['example.com,api.example.com,sub.example.co.uk']); // No error
+ * validateDomains(['disable']); // No error
  * 
  * // Invalid examples:
- * validateDomains('http://example.com'); // Throws error (protocol is not allowed)
- * validateDomains('example_com'); // Throws error (underscore is not allowed)
- * validateDomains('example'); // Throws error (missing top-level domain)
- * validateDomains(',example.com'); // Throws error (empty domain before the comma)
+ * validateDomains(['http://example.com']); // Throws error (protocol is not allowed)
+ * validateDomains(['example_com']); // Throws error (underscore is not allowed)
+ * validateDomains(['example']); // Throws error (missing top-level domain)
+ * validateDomains([',example.com']); // Throws error (empty domain before the comma)
  */
-function validateDomains(value) {
-    if (value === '*' || value === 'disable') {
-        return; // '*' allows all origins; 'disable' explicitly disables CORS.
+/**
+ * Validates an array of strings representing domains or FQDNs.
+ * Allows the wildcard character `*` to indicate all origins.
+ * Supports the value `disable` to explicitly disable CORS.
+ *
+ * A valid FQDN must:
+ * - Contain only alphanumeric characters, hyphens, and dots.
+ * - Have at least one dot separating the domain levels.
+ * - End with a valid top-level domain (e.g., `.com`, `.org`).
+ *
+ * @param {string[]} values - Array of domains to validate
+ * @throws {Error} If any domain in the list is invalid
+ */
+function validateDomains(values) {
+    if (!Array.isArray(values)) {
+        throw new Error('Expected array of domains');
     }
 
-    // Normalize value to an array of origins
-    const origins = Array.isArray(value)
-        ? value
-        : value.split(',').map(origin => origin.trim());
+    // Handle special cases
+    if (values.length === 1 && (values[0] === '*' || values[0] === 'disable')) {
+        return;
+    }
 
-    // Regex to validate FQDNs with or without protocols
-    const originRegex = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/;
+    // Regex for FQDN validation:
+    // - Starts with alphanumeric or hyphen
+    // - Contains at least one dot
+    // - Only allows alphanumeric and hyphen between dots
+    // - Ends with a letter-only TLD of 2 or more characters
+    const fqdnRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
 
-    origins.forEach(origin => {
-        if (!originRegex.test(origin)) {
-            throw new Error(`Invalid domain: ${origin}`);
+    for (const domain of values) {
+        if (!domain) {
+            throw new Error('Empty domain is not allowed');
         }
-    });
+
+        if (!fqdnRegex.test(domain)) {
+            // Provide more specific error messages
+            if (domain.includes('://')) {
+                throw new Error(`Protocol is not allowed in domain: ${domain}`);
+            }
+            if (domain.includes('_')) {
+                throw new Error(`Underscore is not allowed in domain: ${domain}`);
+            }
+            if (!domain.includes('.')) {
+                throw new Error(`Missing top-level domain: ${domain}`);
+            }
+            throw new Error(`Invalid domain format: ${domain}`);
+        }
+    }
 }
 
 convict.addFormat({
     name: 'domains',
-    validate: validateDomains,
+    validate: validateDomains, // Note: coercion occurs BEFORE validation
     coerce: value => {
         if (Array.isArray(value)) {
             return value.map(origin => origin.trim());
