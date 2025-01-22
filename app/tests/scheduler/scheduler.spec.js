@@ -534,8 +534,13 @@ describe('Scheduler', function () {
   });
 
   it('Scheduled job runs when initiated manually', async function () {
-    await scheduler.runCheckCollectionIndexes();
-    expect(collectionIndex1).toBeDefined();
+    const updatedCollections = await scheduler.runCheckCollectionIndexes();
+    expect(updatedCollections).toHaveLength(1);
+  });
+
+  it('Scheduled job is skipped when initiated manually again', async function () {
+    const updatedCollections = await scheduler.runCheckCollectionIndexes();
+    expect(updatedCollections).toHaveLength(0);
   });
 
   after(async function () {

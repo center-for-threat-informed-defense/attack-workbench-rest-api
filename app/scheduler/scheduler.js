@@ -57,6 +57,7 @@ async function retrieveByUrl(url) {
 }
 
 exports.runCheckCollectionIndexes = async function () {
+  const updatedCollections = new Array();
   logger.info('Scheduler running...');
   const options = {
     offset: 0,
@@ -113,12 +114,12 @@ exports.runCheckCollectionIndexes = async function () {
                     scheduledSubscriptions.delete(savedCollectionIndex.collection_index.id);
                   } catch (err) {
                     logger.error('Error checking subscriptions in collection index. ' + err);
-                    return;
+                    return updatedCollections;
                   }
                 }
               } catch (err) {
                 logger.error('Unable to update collection index in workbench. ' + err);
-                return;
+                return updatedCollections;
               }
             } else {
               logger.verbose('The retrieved collection index is not newer.');
@@ -140,15 +141,16 @@ exports.runCheckCollectionIndexes = async function () {
                   scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
                   try {
                     await subscriptionHandler(collectionIndex);
+                    updatedCollections.push(collectionIndex.collection_index.id);
                     scheduledSubscriptions.delete(collectionIndex.collection_index.id);
                   } catch (err) {
                     logger.error('Error checking subscriptions in collection index. ' + err);
-                    return;
+                    return updatedCollections;
                   }
                 }
               } catch (err) {
                 logger.error('Unable to update collection index in workbench. ' + err);
-                return;
+                return updatedCollections;
               }
             }
           } catch (err) {
@@ -160,6 +162,7 @@ exports.runCheckCollectionIndexes = async function () {
   } catch (err) {
     logger.error('Unable to get existing collection indexes: ' + err);
   }
+  return updatedCollections;
 };
 
 async function subscriptionHandler(collectionIndex) {
