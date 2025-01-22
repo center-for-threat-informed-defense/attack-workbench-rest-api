@@ -87,16 +87,19 @@ exports.runCheckCollectionIndexes = async function () {
             const remoteTimestamp = new Date(remoteCollectionIndex.modified);
             const existingTimestamp = new Date(collectionIndex.collection_index.modified);
             if (remoteTimestamp > existingTimestamp) {
-              logger.info('The retrieved collection index is newer. Updating collection index in workbench.');
+              logger.info(
+                'The retrieved collection index is newer. Updating collection index in workbench.',
+              );
               collectionIndex.collection_index = remoteCollectionIndex;
               collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
 
               try {
-                const savedCollectionIndex = await collectionIndexesService.updateFull(collectionIndex.collection_index.id, collectionIndex);
+                const savedCollectionIndex = await collectionIndexesService.updateFull(
+                  collectionIndex.collection_index.id,
+                  collectionIndex,
+                );
                 // Check subscribed collections
-                if (
-                  scheduledSubscriptions.has(savedCollectionIndex.collection_index.id)
-                ) {
+                if (scheduledSubscriptions.has(savedCollectionIndex.collection_index.id)) {
                   logger.info(
                     `Subscriptions for collection index ${savedCollectionIndex.collection_index.id} are already being checked`,
                   );
@@ -104,10 +107,7 @@ exports.runCheckCollectionIndexes = async function () {
                   logger.verbose(
                     `Checking Subscriptions for collection index ${savedCollectionIndex.collection_index.id}`,
                   );
-                  scheduledSubscriptions.set(
-                    savedCollectionIndex.collection_index.id,
-                    true,
-                  );
+                  scheduledSubscriptions.set(savedCollectionIndex.collection_index.id, true);
                   try {
                     await subscriptionHandler(savedCollectionIndex);
                     scheduledSubscriptions.delete(savedCollectionIndex.collection_index.id);
@@ -115,7 +115,7 @@ exports.runCheckCollectionIndexes = async function () {
                     logger.error('Error checking subscriptions in collection index. ' + err);
                     return;
                   }
-                }                
+                }
               } catch (err) {
                 logger.error('Unable to update collection index in workbench. ' + err);
                 return;
@@ -124,14 +124,19 @@ exports.runCheckCollectionIndexes = async function () {
               logger.verbose('The retrieved collection index is not newer.');
               collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
               try {
-                await collectionIndexesService.updateFull(collectionIndex.collection_index.id, collectionIndex);
+                await collectionIndexesService.updateFull(
+                  collectionIndex.collection_index.id,
+                  collectionIndex,
+                );
                 // Check subscribed collections
                 if (scheduledSubscriptions.has(collectionIndex.collection_index.id)) {
                   logger.info(
                     `Subscriptions for collection index ${collectionIndex.collection_index.id} are already being checked`,
                   );
                 } else {
-                  logger.info(`Checking Subscriptions for collection index ${collectionIndex.collection_index.id}`);
+                  logger.info(
+                    `Checking Subscriptions for collection index ${collectionIndex.collection_index.id}`,
+                  );
                   scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
                   try {
                     await subscriptionHandler(collectionIndex);
@@ -155,7 +160,7 @@ exports.runCheckCollectionIndexes = async function () {
   } catch (err) {
     logger.error('Unable to get existing collection indexes: ' + err);
   }
-}
+};
 
 async function subscriptionHandler(collectionIndex) {
   // Check each subscription in the collection index
@@ -181,9 +186,7 @@ async function subscriptionHandler(collectionIndex) {
     ) {
       // Latest version in collection index is later than latest version in the Workbench data store,
       // so we should import it
-      logger.info(
-        `Retrieving collection bundle from remote url ${collectionInfo.versions[0].url}`,
-      );
+      logger.info(`Retrieving collection bundle from remote url ${collectionInfo.versions[0].url}`);
       try {
         const collectionBundle = await retrieveByUrl(collectionInfo.versions[0].url);
         logger.info(`Downloaded updated collection bundle with id ${collectionBundle.id}`);
@@ -216,10 +219,14 @@ async function subscriptionHandler(collectionIndex) {
           forceImportParameters: [],
         };
         try {
-        const importedCollection = await collectionBundlesService.importBundle(collections[0], collectionBundle, importOptions);
-        logger.info(
-          `Imported collection bundle with x-mitre-collection id ${importedCollection.stix.id}`,
-        );
+          const importedCollection = await collectionBundlesService.importBundle(
+            collections[0],
+            collectionBundle,
+            importOptions,
+          );
+          logger.info(
+            `Imported collection bundle with x-mitre-collection id ${importedCollection.stix.id}`,
+          );
         } catch (err) {
           throw new Error(
             'Unable to import collection bundle into ATT&CK Workbench database. ' + err,
