@@ -56,7 +56,7 @@ async function retrieveByUrl(url) {
   }
 }
 
-exports.runCheckCollectionIndexes = async function () {
+const runCheckCollectionIndexes = async function () {
   const updatedCollections = new Array();
   logger.info('Scheduler running...');
 
@@ -170,6 +170,8 @@ exports.runCheckCollectionIndexes = async function () {
   }
   return updatedCollections;
 };
+
+exports.runCheckCollectionIndexes = runCheckCollectionIndexes;
 
 async function subscriptionHandler(collectionIndex) {
   // Check each subscription in the collection index
