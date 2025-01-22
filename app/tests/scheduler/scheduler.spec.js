@@ -505,7 +505,6 @@ const initialObjectData = {
 describe('Scheduler', function () {
   let app;
   let passportCookie;
-  let collectionIndex1;
 
   before(async function () {
     // Establish the database connection
@@ -525,12 +524,11 @@ describe('Scheduler', function () {
     initialObjectData.collection_index.created = timestamp;
     initialObjectData.collection_index.modified = timestamp;
     const body = initialObjectData;
-    const res = await request(app)
+    await request(app)
       .post('/api/collection-indexes')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`);
-    collectionIndex1 = res.body;
   });
 
   it('Scheduled job runs when initiated manually', async function () {

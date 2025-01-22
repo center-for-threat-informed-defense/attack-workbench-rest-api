@@ -57,12 +57,12 @@ async function retrieveByUrl(url) {
 }
 
 const runCheckCollectionIndexes = async function () {
-  const updatedCollections = new Array();
+  const updatedCollections = [];
   logger.info('Scheduler running...');
 
   let collectionIndexes;
   try {
-    collectionIndexes = await collectionIndexesService.retrieveAll({offset:0, limit:0});
+    collectionIndexes = await collectionIndexesService.retrieveAll({ offset: 0, limit: 0 });
   } catch (err) {
     logger.error('Unable to get existing collection indexes: ' + err);
   }
@@ -85,7 +85,7 @@ const runCheckCollectionIndexes = async function () {
         logger.verbose(
           'Retrieving collection index from remote url ' + collectionIndex.workspace.remote_url,
         );
-        
+
         let remoteCollectionIndex;
         try {
           remoteCollectionIndex = await retrieveByUrl(collectionIndex.workspace.remote_url);
@@ -198,7 +198,7 @@ async function subscriptionHandler(collectionIndex) {
       // Latest version in collection index is later than latest version in the Workbench data store,
       // so we should import it
       logger.info(`Retrieving collection bundle from remote url ${collectionInfo.versions[0].url}`);
-      
+
       let collectionBundle;
       try {
         collectionBundle = await retrieveByUrl(collectionInfo.versions[0].url);
