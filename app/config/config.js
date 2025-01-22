@@ -69,88 +69,75 @@ convict.addFormat(arrayFormat('service-account'));
  * Validates an array of strings representing domains or FQDNs.
  * Allows the wildcard character `*` to indicate all origins.
  * Supports the value `disable` to explicitly disable CORS.
+ * Allows localhost and local network IPs for development environments.
  *
- * A valid FQDN must:
- * - Contain only alphanumeric characters, hyphens, and dots.
- * - Have at least one dot separating the domain levels.
- * - End with a valid top-level domain (e.g., `.com`, `.org`).
+ * A valid origin must be one of:
+ * - Special values: '*' or 'disable'
+ * - localhost (with optional port)
+ * - Local network IP (with optional port)
+ * - Valid FQDN (with optional port) that:
+ *   - Contains only alphanumeric characters, hyphens, and dots
+ *   - Has at least one dot separating the domain levels
+ *   - Ends with a valid top-level domain (e.g., `.com`, `.org`)
  *
- * @param {string} values - An array of input string to validate. Can be a single domain, a wildcard (`*`), `disable`, or a comma-separated list of domains.
- * @throws {Error} If any domain in the list is invalid.
- * 
- * @example
- * // Valid examples:
- * validateDomains(['*']); // No error
- * validateDomains(['example.com']); // No error
- * validateDomains(['example.com,api.example.com,sub.example.co.uk']); // No error
- * validateDomains(['disable']); // No error
- * 
- * // Invalid examples:
- * validateDomains(['http://example.com']); // Throws error (protocol is not allowed)
- * validateDomains(['example_com']); // Throws error (underscore is not allowed)
- * validateDomains(['example']); // Throws error (missing top-level domain)
- * validateDomains([',example.com']); // Throws error (empty domain before the comma)
+ * @param {string[]} values - Array of origins to validate
+ * @throws {Error} If any origin in the list is invalid
  */
-/**
- * Validates an array of strings representing domains or FQDNs.
- * Allows the wildcard character `*` to indicate all origins.
- * Supports the value `disable` to explicitly disable CORS.
- *
- * A valid FQDN must:
- * - Contain only alphanumeric characters, hyphens, and dots.
- * - Have at least one dot separating the domain levels.
- * - End with a valid top-level domain (e.g., `.com`, `.org`).
- *
- * @param {string[]} values - Array of domains to validate
- * @throws {Error} If any domain in the list is invalid
- */
-function validateDomains(values) {
-    if (!Array.isArray(values)) {
-        throw new Error('Expected array of domains');
-    }
-
-    // Handle special cases
-    if (values.length === 1 && (values[0] === '*' || values[0] === 'disable')) {
-        return;
-    }
-
-    // Regex for FQDN validation:
-    // - Starts with alphanumeric or hyphen
-    // - Contains at least one dot
-    // - Only allows alphanumeric and hyphen between dots
-    // - Ends with a letter-only TLD of 2 or more characters
-    const fqdnRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
-
-    for (const domain of values) {
-        if (!domain) {
-            throw new Error('Empty domain is not allowed');
-        }
-
-        if (!fqdnRegex.test(domain)) {
-            // Provide more specific error messages
-            if (domain.includes('://')) {
-                throw new Error(`Protocol is not allowed in domain: ${domain}`);
-            }
-            if (domain.includes('_')) {
-                throw new Error(`Underscore is not allowed in domain: ${domain}`);
-            }
-            if (!domain.includes('.')) {
-                throw new Error(`Missing top-level domain: ${domain}`);
-            }
-            throw new Error(`Invalid domain format: ${domain}`);
-        }
-    }
-}
-
 convict.addFormat({
     name: 'domains',
-    validate: validateDomains, // Note: coercion occurs BEFORE validation
-    coerce: value => {
-        if (Array.isArray(value)) {
-            return value.map(origin => origin.trim());
+    validate: function (val) {
+        const values = Array.isArray(val) ? val : val.split(',').map(v => v.trim());
+
+        // Handle special cases
+        if (values.length === 1 && (values[0] === '*' || values[0] === 'disable')) {
+            return;
         }
-        return value.split(',').map(origin => origin.trim()); // Normalize strings to arrays
+
+        const patterns = {
+            // Matches standard hostnames per RFC 952/1123
+            hostname: /^(?:https?:\/\/)?([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}(?::\d{1,5})?$/,
+
+            // Matches 'localhost'  
+            localhost: /^(?:https?:\/\/)?localhost(?::\d{1,5})?$/,
+
+            // Matches private network IPv4 addresses
+            privateIPv4: /^(?:https?:\/\/)?((?:127\.|10\.|172\.(?:1[6-9]|2[0-9]|3[0-1])|192\.168\.)[0-9.]+)(?::\d{1,5})?$/,
+
+            // IPv6 localhost
+            ipv6: /^(?:https?:\/\/)?\[::1\](?::\d{1,5})?$/
+        };
+
+        for (const origin of values) {
+            if (!origin) {
+                throw new Error('Empty domain is not allowed');
+            }
+
+            // Check localhost and IPv6 first
+            if (patterns.localhost.test(origin) || patterns.ipv6.test(origin)) {
+                continue;
+            }
+
+            // Then check private network IPs
+            if (patterns.privateIPv4.test(origin)) {
+                const octets = origin.split('.').map(Number);
+                if (octets.some(octet => octet > 255)) {
+                    throw new Error('Invalid IP address format');
+                }
+                continue;
+            }
+
+            // Finally check hostname
+            if (!patterns.hostname.test(origin)) {
+                throw new Error('Invalid domain format');
+            }
+        }
     },
+    coerce: function (value) {
+        if (Array.isArray(value)) {
+            return value;
+        }
+        return value.split(',').map(v => v.trim());
+    }
 });
 
 function loadConfig() {

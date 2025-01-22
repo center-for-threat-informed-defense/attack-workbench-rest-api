@@ -47,35 +47,32 @@ function disableUpgradeInsecureRequests(app, helmet) {
  * setupCors(app, config, logger); // CORS middleware with specific origins
  */
 function setupCors(app, config, logger) {
-    const corsAllowedOrigins = config.server.corsAllowedOrigins;
-
-    if (corsAllowedOrigins === 'disable') {
-        logger.info('CORS is disabled');
-        return; // Skip setting up the CORS middleware
-    }
-
     const cors = require('cors');
 
-    // Normalize corsAllowedOrigins to an array of origins
-    let origins;
-    if (typeof corsAllowedOrigins === 'string') {
-        origins = corsAllowedOrigins === '*' ? true : corsAllowedOrigins.split(',').map(origin => origin.trim());
-    } else if (Array.isArray(corsAllowedOrigins)) {
-        origins = corsAllowedOrigins; // Already an array
-    } else {
-        throw new Error(
-            `Invalid value for server.corsAllowedOrigins: expected a string or array, but got ${typeof corsAllowedOrigins}`
-        );
+    const corsAllowedOrigins = config.server.corsAllowedOrigins;
+
+    logger.info(corsAllowedOrigins);
+
+    if (corsAllowedOrigins == 'disable') {
+        app.use(cors({ origin: false }));
+        logger.info('CORS is disabled');
+        return;
     }
-
-    const corsOptions = {
-        credentials: true,
-        origin: origins,
-    };
-
-    app.use(cors(corsOptions));
-
-    logger.info(`CORS is enabled for domains: ${origins}`)
+    else if (corsAllowedOrigins == '*') {
+        app.use(cors({
+            credentials: true,
+            origin: true
+        }));
+        logger.info('CORS is enabled for all domains');
+        return;
+    }
+    else {
+        app.use(cors({
+            credentials: true,
+            origin: corsAllowedOrigins,
+        }));
+        logger.info(`CORS is enabled for domains: ${corsAllowedOrigins}`)
+    }
 }
 
 /**
