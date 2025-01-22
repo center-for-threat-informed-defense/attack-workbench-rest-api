@@ -2,7 +2,7 @@
 
 const CollectionIndexesRepository = require('../repository/collection-indexes-repository');
 const BaseService = require('./_base.service');
-const { MissingParameterError } = require('../exceptions');
+const { MissingParameterError, DatabaseError } = require('../exceptions');
 const config = require('../config/config');
 
 class CollectionIndexesService extends BaseService {

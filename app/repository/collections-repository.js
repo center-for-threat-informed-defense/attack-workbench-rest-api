@@ -5,11 +5,7 @@ const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
 const regexValidator = require('../lib/regex');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
-const {
-  DatabaseError,
-  BadlyFormattedParameterError,
-  DuplicateIdError,
-} = require('../exceptions');
+const { DatabaseError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
 
 class CollectionRepository extends BaseRepository {
   constructor(model, attackObjectModel) {
