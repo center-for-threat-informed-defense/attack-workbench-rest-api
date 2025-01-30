@@ -14,6 +14,9 @@ const {
 } = require('../exceptions');
 
 class CollectionsService extends BaseService {
+
+  // TODO this linting bypass can be removed after we refactor - AttackObject model should be proxied through a service; attackObjectsService can potentially be moved to a class instance variable (e.g., this.attackObjectsService)
+  // eslint-disable-next-line class-methods-use-this
   async getContents(objectList) {
     const contents = [];
     for (const objectRef of objectList) {
@@ -88,6 +91,8 @@ class CollectionsService extends BaseService {
     return collection;
   }
 
+  // TODO this linting bypass can be removed after we refactor - AttackObject model should be proxied through a service; attackObjectsService can potentially be moved to a class instance variable (e.g., this.attackObjectsService)
+  // eslint-disable-next-line class-methods-use-this
   async addObjectsToCollection(objectList, collectionID, collectionModified) {
     const insertionErrors = [];
     for (const attackObject of objectList) {

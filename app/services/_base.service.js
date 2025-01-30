@@ -1,6 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
+const logger = require('../lib/logger');
 const config = require('../config/config');
 const {
   DatabaseError,
@@ -127,6 +128,7 @@ class BaseService extends AbstractService {
         this.identityCache.set(attackObject.stix.created_by_ref, identityObject);
       } catch (err) {
         // Ignore lookup errors
+        logger.warn(err.message);
       }
     }
   }
@@ -148,6 +150,7 @@ class BaseService extends AbstractService {
         this.identityCache.set(attackObject.stix.x_mitre_modified_by_ref, identityObject);
       } catch (err) {
         // Ignore lookup errors
+        logger.warn(err.message);
       }
     }
   }

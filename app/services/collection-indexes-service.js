@@ -54,10 +54,6 @@ class CollectionIndexesService extends BaseService {
 
     return await this.repository.findOneAndDelete(id);
   }
-
-  async refresh(_id) {
-    // Do nothing for now
-  }
 }
 
 module.exports = new CollectionIndexesService(null, CollectionIndexesRepository);

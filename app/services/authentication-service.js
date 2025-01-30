@@ -4,6 +4,7 @@ const request = require('superagent');
 const crypto = require('crypto');
 const jwtDecoder = require('jwt-decode');
 
+const logger = require('../lib/logger');
 const config = require('../config/config');
 
 const errors = {
@@ -76,6 +77,7 @@ async function getApikeyAccessTokenFromServer(challengeHash) {
     try {
       decodedToken = jwtDecoder(accessToken);
     } catch (err) {
+      logger.error(err.message);
       throw new Error(errors.invalidToken);
     }
 
@@ -136,6 +138,7 @@ async function getClientCredentialsAccessTokenFromServer() {
   try {
     decodedToken = jwtDecoder(accessToken);
   } catch (err) {
+    logger.error(err.message);
     throw new Error(errors.invalidToken);
   }
 

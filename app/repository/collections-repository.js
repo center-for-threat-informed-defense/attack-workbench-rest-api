@@ -44,6 +44,7 @@ class CollectionRepository extends BaseRepository {
 
   // A temporary fix for a query in CollectionService::deleteAllContentsOfCollection
   // TODO refactor the service to bring the query logic in here.
+  // eslint-disable-next-line class-methods-use-this
   async findWithContents(query, options = {}) {
     try {
       let dbQuery = Collection.find(query);
