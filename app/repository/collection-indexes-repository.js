@@ -2,12 +2,7 @@
 
 const BaseRepository = require('./_base.repository');
 const CollectionIndex = require('../models/collection-index-model');
-const {
-  DatabaseError,
-  DuplicateIdError,
-  MissingParameterError,
-  BadlyFormattedParameterError,
-} = require('../exceptions');
+const { DatabaseError, DuplicateIdError } = require('../exceptions');
 
 class CollectionIndexesRepository extends BaseRepository {
   async retrieveAll(options) {
