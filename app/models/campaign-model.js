@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const stixCoreDefinitions = require('./subschemas/stix-core');
 const { ModelName } = require('../lib/model-names');
 
 const stixCampaign = {
@@ -26,6 +27,8 @@ const stixCampaign = {
 // Create the definition
 const campaignDefinition = {
   stix: {
+    ...stixCoreDefinitions.commonRequiredSDO,
+    ...stixCoreDefinitions.commonOptionalSDO,
     ...stixCampaign,
   },
 };

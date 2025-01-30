@@ -3,11 +3,14 @@
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 const attackPatternDefinitions = require('./subschemas/attack-pattern');
+const stixCoreDefinitions = require('./subschemas/stix-core');
 const { ModelName } = require('../lib/model-names');
 
 // Create the definition
 const techniqueDefinition = {
   stix: {
+    ...stixCoreDefinitions.commonRequiredSDO,
+    ...stixCoreDefinitions.commonOptionalSDO,
     ...attackPatternDefinitions.attackPattern,
   },
 };

@@ -15,6 +15,7 @@ exports.ModelName = {
   Identity: 'IdentityModel',
   MarkingDefinition: 'MarkingDefinitionModel',
   Matrix: 'MatrixModel',
+  Mitigation: 'Course-of-Action',
   Note: 'NoteModel',
   Relationship: 'Relationship',
   Software: 'Software',

@@ -3,6 +3,7 @@
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 const workspaceDefinitions = require('./subschemas/workspace');
+const stixCoreDefinitions = require('./subschemas/stix-core');
 const { ModelName } = require('../lib/model-names');
 
 const xMitreContent = {
@@ -30,6 +31,8 @@ const collectionDefinition = {
     ...workspaceDefinitions.collection,
   },
   stix: {
+    ...stixCoreDefinitions.commonRequiredSDO,
+    ...stixCoreDefinitions.commonOptionalSDO,
     ...xMitreCollection,
   },
 };

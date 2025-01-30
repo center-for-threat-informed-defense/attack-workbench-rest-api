@@ -44,6 +44,7 @@ class CollectionRepository extends BaseRepository {
 
   // A temporary fix for a query in CollectionService::deleteAllContentsOfCollection
   // TODO refactor the service to bring the query logic in here.
+  // TODO resolve this linting issue at some point - it was less impactful to just bypass it at the time
   // eslint-disable-next-line class-methods-use-this
   async findWithContents(query, options = {}) {
     try {

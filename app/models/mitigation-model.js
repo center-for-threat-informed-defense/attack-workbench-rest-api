@@ -2,6 +2,8 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const stixCoreDefinitions = require('./subschemas/stix-core');
+const { ModelName } = require('../lib/model-names');
 
 const stixCourseOfAction = {
   // STIX course-of-action specific properties
@@ -21,6 +23,8 @@ const stixCourseOfAction = {
 // Create the definition
 const mitigationDefinition = {
   stix: {
+    ...stixCoreDefinitions.commonRequiredSDO,
+    ...stixCoreDefinitions.commonOptionalSDO,
     ...stixCourseOfAction,
   },
 };
@@ -29,6 +33,6 @@ const mitigationDefinition = {
 const mitigationSchema = new mongoose.Schema(mitigationDefinition);
 
 // Create the model
-const MitigationModel = AttackObject.discriminator('Course-of-Action', mitigationSchema);
+const MitigationModel = AttackObject.discriminator(ModelName.Mitigation, mitigationSchema);
 
 module.exports = MitigationModel;
