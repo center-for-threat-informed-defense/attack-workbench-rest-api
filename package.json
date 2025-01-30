@@ -30,7 +30,8 @@
     "test:import": "mocha  --timeout 10000 --recursive ./app/tests/import",
     "test:openapi": "mocha  --timeout 10000 ./app/tests/openapi",
     "test:authn": "./app/tests/run-mocha-separate-jobs.sh ./app/tests/authn",
-    "test:fuzz": "mocha --timeout 10000 --recursive ./app/tests/fuzz"
+    "test:fuzz": "mocha --timeout 10000 --recursive ./app/tests/fuzz",
+    "test:scheduler": "mocha --timeout 60000 --recursive ./app/tests/scheduler"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^11.7.3",

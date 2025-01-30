@@ -5,11 +5,7 @@ const Collection = require('../models/collection-model');
 const AttackObject = require('../models/attack-object-model');
 const regexValidator = require('../lib/regex');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
-const {
-  DatabaseError,
-  BadlyFormattedParameterError,
-  DuplicateIdError,
-} = require('../exceptions');
+const { DatabaseError, BadlyFormattedParameterError, DuplicateIdError } = require('../exceptions');
 
 class CollectionRepository extends BaseRepository {
   constructor(model, attackObjectModel) {
@@ -48,6 +44,7 @@ class CollectionRepository extends BaseRepository {
 
   // A temporary fix for a query in CollectionService::deleteAllContentsOfCollection
   // TODO refactor the service to bring the query logic in here.
+  // eslint-disable-next-line class-methods-use-this
   async findWithContents(query, options = {}) {
     try {
       let dbQuery = Collection.find(query);

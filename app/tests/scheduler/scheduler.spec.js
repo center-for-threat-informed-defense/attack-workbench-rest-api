@@ -1,0 +1,547 @@
+const request = require('supertest');
+const { expect } = require('expect');
+
+const logger = require('../../lib/logger');
+logger.level = 'debug';
+
+const database = require('../../lib/database-in-memory');
+const databaseConfiguration = require('../../lib/database-configuration');
+const login = require('../shared/login');
+const scheduler = require('../../scheduler/scheduler');
+
+// modified and created properties will be set before calling REST API
+const initialObjectData = {
+  collection_index: {
+    id: '10296991-439b-4202-90a3-e38812613ad4',
+    name: 'MITRE ATT&CK',
+    description:
+      'MITRE ATT&CK is a globally-accessible knowledge base of adversary tactics and techniques based on real-world observations. The ATT&CK knowledge base is used as a foundation for the development of specific threat models and methodologies in the private sector, in government, and in the cybersecurity product and service community.',
+    collections: [
+      {
+        id: 'x-mitre-collection--1f5f1533-f617-4ca8-9ab4-6a02367fa019',
+        created: '2018-01-17T12:56:55.080Z',
+        versions: [
+          {
+            version: '16.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-16.1.json',
+            modified: '2024-11-12T14:00:00.188Z',
+          },
+          {
+            version: '16.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-16.0.json',
+            modified: '2024-10-31T14:00:00.188Z',
+          },
+          {
+            version: '15.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-15.1.json',
+            modified: '2024-05-02T14:00:00.188Z',
+          },
+          {
+            version: '15.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-15.0.json',
+            modified: '2024-04-23T14:00:00.188Z',
+          },
+          {
+            version: '14.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-14.1.json',
+            modified: '2023-11-14T14:00:00.188Z',
+          },
+          {
+            version: '14.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-14.0.json',
+            modified: '2023-10-31T14:00:00.188Z',
+          },
+          {
+            version: '13.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-13.1.json',
+            modified: '2023-05-09T14:00:00.188Z',
+          },
+          {
+            version: '13.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-13.0.json',
+            modified: '2023-04-25T14:00:00.188Z',
+          },
+          {
+            version: '12.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-12.1.json',
+            modified: '2022-11-08T14:00:00.188Z',
+          },
+          {
+            version: '12.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-12.0.json',
+            modified: '2022-10-25T14:00:00.188Z',
+          },
+          {
+            version: '11.3',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-11.3.json',
+            modified: '2022-07-07T14:00:00.188Z',
+          },
+          {
+            version: '11.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-11.2.json',
+            modified: '2022-05-24T14:00:00.188Z',
+          },
+          {
+            version: '11.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-11.1.json',
+            modified: '2022-05-11T14:00:00.188Z',
+          },
+          {
+            version: '11.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-11.0.json',
+            modified: '2022-04-25T10:00:00.188Z',
+          },
+          {
+            version: '10.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-10.1.json',
+            modified: '2021-11-10T14:00:00.188Z',
+          },
+          {
+            version: '10.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-10.0.json',
+            modified: '2021-10-21T14:00:00.188Z',
+          },
+          {
+            version: '9.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-9.0.json',
+            modified: '2021-04-29T14:49:39.188Z',
+          },
+          {
+            version: '8.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-8.2.json',
+            modified: '2021-01-27T14:49:39.188Z',
+          },
+          {
+            version: '8.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-8.1.json',
+            modified: '2020-11-12T14:49:39.188Z',
+          },
+          {
+            version: '8.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-8.0.json',
+            modified: '2020-10-27T14:49:39.188Z',
+          },
+          {
+            version: '7.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-7.2.json',
+            modified: '2020-07-15T14:49:39.188Z',
+          },
+          {
+            version: '7.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-7.1.json',
+            modified: '2020-07-13T14:49:39.188Z',
+          },
+          {
+            version: '7.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-7.0.json',
+            modified: '2020-03-31T14:49:39.188Z',
+          },
+          {
+            version: '6.3',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-6.3.json',
+            modified: '2020-03-09T14:49:39.188Z',
+          },
+          {
+            version: '6.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-6.2.json',
+            modified: '2019-12-02T14:49:39.188Z',
+          },
+          {
+            version: '6.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-6.1.json',
+            modified: '2019-11-21T14:49:39.188Z',
+          },
+          {
+            version: '6.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-6.0.json',
+            modified: '2019-10-23T14:19:37.289Z',
+          },
+          {
+            version: '5.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-5.2.json',
+            modified: '2019-07-27T00:09:37.061Z',
+          },
+          {
+            version: '5.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-5.1.json',
+            modified: '2019-07-27T00:09:36.949Z',
+          },
+          {
+            version: '5.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-5.0.json',
+            modified: '2019-07-19T17:44:53.176Z',
+          },
+          {
+            version: '4.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-4.0.json',
+            modified: '2019-04-30T13:45:13.024Z',
+          },
+          {
+            version: '3.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-3.0.json',
+            modified: '2018-10-23T00:14:20.652Z',
+          },
+          {
+            version: '2.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-2.0.json',
+            modified: '2018-04-18T17:59:24.739Z',
+          },
+          {
+            version: '1.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-1.0.json',
+            modified: '2018-01-17T12:56:55.080Z',
+          },
+        ],
+        name: 'Enterprise ATT&CK',
+        description:
+          'ATT&CK for Enterprise provides a knowledge base of real-world adversary behavior targeting traditional enterprise networks. ATT&CK for Enterprise covers the following platforms: Windows, macOS, Linux, PRE, Office 365, Google Workspace, IaaS, Network, and Containers.',
+      },
+      {
+        id: 'x-mitre-collection--dac0d2d7-8653-445c-9bff-82f934c1e858',
+        created: '2018-01-17T12:56:55.080Z',
+        versions: [
+          {
+            version: '16.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-16.1.json',
+            modified: '2024-11-12T14:00:00.188Z',
+          },
+          {
+            version: '16.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-16.0.json',
+            modified: '2024-10-31T14:00:00.188Z',
+          },
+          {
+            version: '15.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-15.1.json',
+            modified: '2024-05-02T14:00:00.188Z',
+          },
+          {
+            version: '15.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-15.0.json',
+            modified: '2024-04-23T14:00:00.188Z',
+          },
+          {
+            version: '14.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-14.1.json',
+            modified: '2023-11-14T14:00:00.188Z',
+          },
+          {
+            version: '14.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-14.0.json',
+            modified: '2023-10-31T14:00:00.188Z',
+          },
+          {
+            version: '13.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-13.1.json',
+            modified: '2023-05-09T14:00:00.188Z',
+          },
+          {
+            version: '13.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-13.0.json',
+            modified: '2023-04-25T14:00:00.188Z',
+          },
+          {
+            version: '12.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-12.1.json',
+            modified: '2022-11-08T14:00:00.188Z',
+          },
+          {
+            version: '12.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-12.0.json',
+            modified: '2022-10-25T14:00:00.188Z',
+          },
+          {
+            version: '11.3',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-11.3.json',
+            modified: '2022-07-07T14:00:00.188Z',
+          },
+          {
+            version: '11.2-beta',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-11.2-beta.json',
+            modified: '2022-05-24T14:00:00.188Z',
+          },
+          {
+            version: '11.1-beta',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-11.1-beta.json',
+            modified: '2022-05-11T14:00:00.188Z',
+          },
+          {
+            version: '11.0-beta',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-11.0-beta.json',
+            modified: '2022-04-25T10:00:00.188Z',
+          },
+          {
+            version: '10.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-10.1.json',
+            modified: '2021-11-10T14:00:00.188Z',
+          },
+          {
+            version: '10.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-10.0.json',
+            modified: '2021-10-21T14:00:00.188Z',
+          },
+          {
+            version: '9.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-9.0.json',
+            modified: '2021-04-29T14:49:39.188Z',
+          },
+          {
+            version: '8.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-8.2.json',
+            modified: '2021-01-27T14:49:39.188Z',
+          },
+          {
+            version: '8.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-8.1.json',
+            modified: '2020-11-12T14:49:39.188Z',
+          },
+          {
+            version: '8.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-8.0.json',
+            modified: '2020-10-27T14:49:39.188Z',
+          },
+          {
+            version: '7.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-7.2.json',
+            modified: '2020-07-15T14:49:39.188Z',
+          },
+          {
+            version: '7.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-7.1.json',
+            modified: '2020-07-13T14:49:39.188Z',
+          },
+          {
+            version: '7.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-7.0.json',
+            modified: '2020-03-31T14:49:39.188Z',
+          },
+          {
+            version: '6.3',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-6.3.json',
+            modified: '2020-03-09T14:49:39.188Z',
+          },
+          {
+            version: '6.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-6.2.json',
+            modified: '2019-12-02T14:49:39.188Z',
+          },
+          {
+            version: '6.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-6.1.json',
+            modified: '2019-11-21T14:49:39.188Z',
+          },
+          {
+            version: '6.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-6.0.json',
+            modified: '2019-10-23T14:19:37.289Z',
+          },
+          {
+            version: '5.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-5.2.json',
+            modified: '2019-07-27T00:09:37.061Z',
+          },
+          {
+            version: '5.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-5.1.json',
+            modified: '2019-07-27T00:09:36.949Z',
+          },
+          {
+            version: '5.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-5.0.json',
+            modified: '2019-07-19T17:44:53.176Z',
+          },
+          {
+            version: '4.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-4.0.json',
+            modified: '2019-04-30T13:45:13.024Z',
+          },
+          {
+            version: '3.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-3.0.json',
+            modified: '2018-10-23T00:14:20.652Z',
+          },
+          {
+            version: '2.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-2.0.json',
+            modified: '2018-04-18T17:59:24.739Z',
+          },
+          {
+            version: '1.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack-1.0.json',
+            modified: '2018-01-17T12:56:55.080Z',
+          },
+        ],
+        name: 'Mobile ATT&CK',
+        description:
+          "ATT&CK for Mobile is a matrix of adversary behavior against mobile devices (smartphones and tablets running the Android or iOS/iPadOS operating systems). ATT&CK for Mobile builds upon NIST's Mobile Threat Catalogue and also contains a separate matrix of network-based effects, which are techniques that an adversary can employ without access to the mobile device itself.",
+      },
+      {
+        id: 'x-mitre-collection--90c00720-636b-4485-b342-8751d232bf09',
+        created: '2020-10-27T14:49:39.188Z',
+        versions: [
+          {
+            version: '16.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-16.1.json',
+            modified: '2024-11-12T14:00:00.188Z',
+          },
+          {
+            version: '16.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-16.0.json',
+            modified: '2024-10-31T14:00:00.188Z',
+          },
+          {
+            version: '15.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-15.1.json',
+            modified: '2024-05-02T14:00:00.188Z',
+          },
+          {
+            version: '15.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-15.0.json',
+            modified: '2024-04-23T14:00:00.188Z',
+          },
+          {
+            version: '14.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-14.1.json',
+            modified: '2023-11-14T14:00:00.188Z',
+          },
+          {
+            version: '14.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-14.0.json',
+            modified: '2023-10-31T14:00:00.188Z',
+          },
+          {
+            version: '13.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-13.1.json',
+            modified: '2023-05-09T14:00:00.188Z',
+          },
+          {
+            version: '13.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-13.0.json',
+            modified: '2023-04-25T14:00:00.188Z',
+          },
+          {
+            version: '12.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-12.1.json',
+            modified: '2022-11-08T14:00:00.188Z',
+          },
+          {
+            version: '12.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-12.0.json',
+            modified: '2022-10-25T14:00:00.188Z',
+          },
+          {
+            version: '11.3',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-11.3.json',
+            modified: '2022-07-07T14:00:00.188Z',
+          },
+          {
+            version: '11.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-11.2.json',
+            modified: '2022-05-24T14:00:00.188Z',
+          },
+          {
+            version: '11.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-11.1.json',
+            modified: '2022-05-11T14:00:00.188Z',
+          },
+          {
+            version: '11.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-11.0.json',
+            modified: '2022-04-25T10:00:00.188Z',
+          },
+          {
+            version: '10.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-10.1.json',
+            modified: '2021-11-10T14:00:00.188Z',
+          },
+          {
+            version: '10.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-10.0.json',
+            modified: '2021-10-21T14:00:00.188Z',
+          },
+          {
+            version: '9.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-9.0.json',
+            modified: '2021-04-29T14:49:39.188Z',
+          },
+          {
+            version: '8.2',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-8.2.json',
+            modified: '2021-01-27T14:49:39.188Z',
+          },
+          {
+            version: '8.1',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-8.1.json',
+            modified: '2020-11-12T14:49:39.188Z',
+          },
+          {
+            version: '8.0',
+            url: 'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack-8.0.json',
+            modified: '2020-10-27T14:49:39.188Z',
+          },
+        ],
+        name: 'ICS ATT&CK',
+        description:
+          'The ATT&CK for Industrial Control Systems (ICS) knowledge base categorizes the unique set of tactics, techniques, and procedures (TTPs) used by threat actors in the ICS technology domain. ATT&CK for ICS outlines the portions of an ICS attack that are out of scope of Enterprise and reflects the various phases of an adversary\u2019s attack life cycle and the assets and systems they are known to target.',
+      },
+    ],
+  },
+  workspace: {
+    remote_url:
+      'https://raw.githubusercontent.com/mitre-attack/attack-stix-data/refs/heads/master/index.json',
+    update_policy: {
+      automatic: true,
+      interval: 300,
+      last_retrieval: '2020-11-23T13:35:54.375623Z',
+      subscriptions: [
+        'x-mitre-collection--1f5f1533-f617-4ca8-9ab4-6a02367fa019',
+        'x-mitre-collection--dac0d2d7-8653-445c-9bff-82f934c1e858',
+        'x-mitre-collection--90c00720-636b-4485-b342-8751d232bf09',
+      ],
+    },
+  },
+};
+
+describe('Scheduler', function () {
+  let app;
+  let passportCookie;
+
+  before(async function () {
+    // Establish the database connection
+    // Use an in-memory database that we spin up for the test
+    await database.initializeConnection();
+
+    // Check for a valid database configuration
+    await databaseConfiguration.checkSystemConfiguration();
+
+    // Initialize the express app
+    app = await require('../../index').initializeApp();
+
+    // Log into the app
+    passportCookie = await login.loginAnonymous(app);
+
+    const timestamp = new Date().toISOString();
+    initialObjectData.collection_index.created = timestamp;
+    initialObjectData.collection_index.modified = timestamp;
+    const body = initialObjectData;
+    await request(app)
+      .post('/api/collection-indexes')
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`);
+  });
+
+  it('Scheduled job runs when initiated manually', async function () {
+    const updatedCollections = await scheduler.runCheckCollectionIndexes();
+    expect(updatedCollections).toHaveLength(1);
+  });
+
+  it('Scheduled job is skipped when initiated manually again', async function () {
+    const updatedCollections = await scheduler.runCheckCollectionIndexes();
+    expect(updatedCollections).toHaveLength(0);
+  });
+
+  after(async function () {
+    await database.closeConnection();
+  });
+});

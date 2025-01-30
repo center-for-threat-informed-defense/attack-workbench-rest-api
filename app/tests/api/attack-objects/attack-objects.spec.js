@@ -44,7 +44,6 @@ describe('ATT&CK Objects API', function () {
   let app;
   let passportCookie;
 
-  // const importBundle = util.promisify(collectionBundlesService.importBundle);
   before(async function () {
     // Establish the database connection
     // Use an in-memory database that we spin up for the test

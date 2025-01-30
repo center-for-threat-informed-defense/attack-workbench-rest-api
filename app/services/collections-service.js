@@ -1,7 +1,5 @@
 'use strict';
 
-const superagent = require('superagent');
-
 const BaseService = require('./_base.service');
 const collectionRepository = require('../repository/collections-repository');
 const { Collection: CollectionType } = require('../lib/types');
@@ -13,13 +11,12 @@ const {
   MissingParameterError,
   BadlyFormattedParameterError,
   InvalidQueryStringParameterError,
-  NotFoundError,
-  BadRequestError,
-  HostNotFoundError,
-  ConnectionRefusedError,
 } = require('../exceptions');
 
 class CollectionsService extends BaseService {
+
+  // TODO this linting bypass can be removed after we refactor - AttackObject model should be proxied through a service; attackObjectsService can potentially be moved to a class instance variable (e.g., this.attackObjectsService)
+  // eslint-disable-next-line class-methods-use-this
   async getContents(objectList) {
     const contents = [];
     for (const objectRef of objectList) {
@@ -94,6 +91,8 @@ class CollectionsService extends BaseService {
     return collection;
   }
 
+  // TODO this linting bypass can be removed after we refactor - AttackObject model should be proxied through a service; attackObjectsService can potentially be moved to a class instance variable (e.g., this.attackObjectsService)
+  // eslint-disable-next-line class-methods-use-this
   async addObjectsToCollection(objectList, collectionID, collectionModified) {
     const insertionErrors = [];
     for (const attackObject of objectList) {
@@ -221,28 +220,6 @@ class CollectionsService extends BaseService {
     }
 
     return await this.repository.insertExport(stixId, modified, exportData);
-  }
-
-  async retrieveByUrl(url) {
-    if (!url) {
-      throw new MissingParameterError();
-    }
-
-    try {
-      const response = await superagent.get(url);
-      return JSON.parse(response.text);
-    } catch (err) {
-      if (err.response?.notFound) {
-        throw new NotFoundError();
-      } else if (err.response?.badRequest) {
-        throw new BadRequestError();
-      } else if (err.code === 'ENOTFOUND') {
-        throw new HostNotFoundError();
-      } else if (err.code === 'ECONNREFUSED') {
-        throw new ConnectionRefusedError();
-      }
-      throw err;
-    }
   }
 }
 
