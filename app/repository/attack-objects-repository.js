@@ -108,6 +108,14 @@ class AttackObjectsRepository extends BaseRepository {
     }
   }
 
+  async findByIdAndDelete(documentId) {
+    try {
+      return await this.model.findByIdAndDelete(documentId).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async findByIdAndUpdate(documentId, update) {
     try {
       if (!update) {
