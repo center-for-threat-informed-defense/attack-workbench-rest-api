@@ -170,6 +170,12 @@ class InvalidTypeError extends CustomError {
   }
 }
 
+class MissingUpdateParameterError extends CustomError {
+  constructor(options) {
+    super('The update parameter is missing.', options);
+  }
+}
+
 module.exports = {
   //** General errors */
   NotImplementedError,
@@ -205,6 +211,7 @@ module.exports = {
   OrganizationIdentityNotFoundError,
   AnonymousUserAccountNotSetError,
   AnonymousUserAccountNotFoundError,
+  MissingUpdateParameterError,
 
   InvalidTypeError,
 };
