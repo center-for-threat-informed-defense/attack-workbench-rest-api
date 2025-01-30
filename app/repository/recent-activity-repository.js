@@ -2,6 +2,7 @@
 
 const AttackObject = require('../models/attack-object-model');
 const RelationshipModel = require('../models/relationship-model');
+const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 
 class RecentActivityRepository {
   constructor(attackObjectModel, relationshipModel) {
@@ -9,7 +10,7 @@ class RecentActivityRepository {
     this.relationshipModel = relationshipModel;
   }
 
-  async retrieveAll() {
+  async retrieveAll(options) {
     // Build the query
     const query = {};
     if (!options.includeRevoked) {

@@ -38,8 +38,8 @@ class RecentActivityService {
     // Apply pagination
     const offset = options.offset ?? 0;
     let paginatedDocuments;
-    if (limit > 0) {
-      paginatedDocuments = documents.slice(offset, offset + limit);
+    if (options.limit > 0) {
+      paginatedDocuments = documents.slice(offset, offset + options.limit);
     } else {
       paginatedDocuments = documents.slice(offset);
     }
