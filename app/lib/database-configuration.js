@@ -246,14 +246,14 @@ async function checkForStaticMarkingDefinitions() {
             logger.info(`Created static marking definition ${newMarkingDefinition.stix.name}`);
           } catch (err) {
             logger.error(
-              `Unable to create static marking definition ${staticMarkingDefinition.name} - ${err}`,
+              `Unable to create static marking definition ${staticMarkingDefinition.name}: ${err.message}`,
             );
           }
         }
       }
     }
   } catch (err) {
-    logger.error(`Unable to parse static marking definitions - ${err}`);
+    logger.error(`Unable to parse static marking definitions: ${err.message}`);
   }
 }
 

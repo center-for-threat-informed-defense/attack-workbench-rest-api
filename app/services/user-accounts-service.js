@@ -1,6 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
+const logger = require('../lib/logger');
 const TeamsRepository = require('../repository/teams-repository');
 const UserAccountsRepository = require('../repository/user-accounts-repository');
 const {
@@ -198,6 +199,7 @@ class UserAccountsService {
         );
       } catch {
         // Ignore lookup errors
+        logger.warn(err.message);
       }
     }
   }
