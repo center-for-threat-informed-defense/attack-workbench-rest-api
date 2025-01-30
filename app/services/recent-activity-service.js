@@ -4,7 +4,6 @@ const recentActivityRepository = require('../repository/recent-activity-reposito
 const identitiesService = require('./identities-service');
 
 class RecentActivityService {
-
   constructor(repository) {
     this.repository = repository;
   }
