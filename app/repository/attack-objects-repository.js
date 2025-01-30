@@ -3,7 +3,7 @@
 const BaseRepository = require('./_base.repository');
 const AttackObject = require('../models/attack-object-model');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
-
+const { MissingUpdateParameterError } = require('../exceptions');
 const regexValidator = require('../lib/regex');
 
 class AttackObjectsRepository extends BaseRepository {
@@ -88,6 +88,35 @@ class AttackObjectsRepository extends BaseRepository {
         documents: documents,
       },
     ];
+  }
+
+  // A lean variant of BaseService.retrieveOneByVersion
+  // TODO merge the two methods by supporting method argument 'lean=false' that toggles .lean() on/off
+  async retrieveOneByVersionLean(stixId, modified) {
+    try {
+      return await this.model
+        .findOne({ 'stix.id': stixId, 'stix.modified': modified })
+        .lean()
+        .exec();
+    } catch (err) {
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
+      } else if (err.name === 'MongoServerError' && err.code === 11000) {
+        throw new DuplicateIdError();
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
+  async findByIdAndUpdate(documentId, update) {
+    try {
+      if (!update) {
+        throw new MissingUpdateParameterError();
+      }
+      return await this.model.findByIdAndUpdate(documentId, update).exec();
+    } catch (error) {
+      throw new DatabaseError(err);
+    }
   }
 }
 
