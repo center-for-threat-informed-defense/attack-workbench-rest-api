@@ -4,7 +4,6 @@ const BaseService = require('./_base.service');
 const collectionRepository = require('../repository/collections-repository');
 const { Collection: CollectionType } = require('../lib/types');
 
-const AttackObject = require('../models/attack-object-model');
 const attackObjectsService = require('./attack-objects-service');
 
 const {
@@ -14,7 +13,6 @@ const {
 } = require('../exceptions');
 
 class CollectionsService extends BaseService {
-
   // TODO this linting bypass can be removed after we refactor - AttackObject model should be proxied through a service; attackObjectsService can potentially be moved to a class instance variable (e.g., this.attackObjectsService)
   // eslint-disable-next-line class-methods-use-this
   async getContents(objectList) {
@@ -129,10 +127,10 @@ class CollectionsService extends BaseService {
   // TODO move query logic into CollectionsRepository::findWithContents
   async deleteAllContentsOfCollection(collection, stixId, modified) {
     for (const reference of collection.stix.x_mitre_contents) {
-      const referenceObj = await AttackObject.findOne({
-        'stix.id': reference.object_ref,
-        'stix.modified': reference.object_modified,
-      }).lean();
+      const referenceObj = await attackObjectsService.retrieveOneByVersionLean(
+        reference.object_ref,
+        reference.object_modified,
+      );
 
       if (!referenceObj) {
         continue;
@@ -160,13 +158,13 @@ class CollectionsService extends BaseService {
 
       if (matches.length === 0) {
         // If this attack object is NOT in another collection, delete it
-        await AttackObject.findByIdAndDelete(referenceObj._id);
+        await attackObjectsService.findByIdAndDelete(referenceObj._id);
       } else if (referenceObj.workspace?.collections) {
         // If this object IS in another collection, update the workspace.collections array
         const newCollectionsArr = referenceObj.workspace.collections.filter(
           (collectionElem) => collectionElem.collection_ref !== stixId,
         );
-        await AttackObject.findByIdAndUpdate(referenceObj.id, {
+        await attackObjectsService.findByIdAndUpdate(referenceObj.id, {
           'workspace.collections': newCollectionsArr,
         });
       }
