@@ -4,7 +4,7 @@ const BaseRepository = require('./_base.repository');
 const AttackObject = require('../models/attack-object-model');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 const {
-  MissingUpdateParameterError,
+  MissingParameterError,
   BadlyFormattedParameterError,
   DuplicateIdError,
   DatabaseError,
@@ -124,7 +124,9 @@ class AttackObjectsRepository extends BaseRepository {
   async findByIdAndUpdate(documentId, update) {
     try {
       if (!update) {
-        throw new MissingUpdateParameterError();
+        throw new MissingParameterError(
+          'The "update" parameter is missing. Cannot find and update document without an "update" parameter.',
+        );
       }
       return await this.model.findByIdAndUpdate(documentId, update).exec();
     } catch (err) {
