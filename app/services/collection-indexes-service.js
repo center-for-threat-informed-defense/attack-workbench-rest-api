@@ -55,6 +55,8 @@ class CollectionIndexesService extends BaseService {
     return await this.repository.findOneAndDelete(id);
   }
 
+  // TODO resolve this linting issue at some point - it was less impactful to just bypass it at the time
+  // eslint-disable-next-line class-methods-use-this
   async refresh(_id) {
     // Do nothing for now
   }

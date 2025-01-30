@@ -76,7 +76,7 @@ async function getApikeyAccessTokenFromServer(challengeHash) {
     try {
       decodedToken = jwtDecoder(accessToken);
     } catch (err) {
-      throw new Error(errors.invalidToken);
+      throw new Error(`${errors.invalidToken} - ${err}`);
     }
 
     return {
@@ -136,7 +136,7 @@ async function getClientCredentialsAccessTokenFromServer() {
   try {
     decodedToken = jwtDecoder(accessToken);
   } catch (err) {
-    throw new Error(errors.invalidToken);
+    throw new Error(`${errors.invalidToken} - ${err}`);
   }
 
   return {

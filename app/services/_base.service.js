@@ -125,7 +125,7 @@ class BaseService extends AbstractService {
         );
         attackObject.created_by_identity = identityObject;
         this.identityCache.set(attackObject.stix.created_by_ref, identityObject);
-      } catch (err) {
+      } catch {
         // Ignore lookup errors
       }
     }
@@ -146,7 +146,7 @@ class BaseService extends AbstractService {
         );
         attackObject.modified_by_identity = identityObject;
         this.identityCache.set(attackObject.stix.x_mitre_modified_by_ref, identityObject);
-      } catch (err) {
+      } catch {
         // Ignore lookup errors
       }
     }

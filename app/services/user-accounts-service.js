@@ -196,7 +196,7 @@ class UserAccountsService {
         attackObject.created_by_user_account = await this.getLatest(
           attackObject.workspace.workflow.created_by_user_account,
         );
-      } catch (err) {
+      } catch {
         // Ignore lookup errors
       }
     }

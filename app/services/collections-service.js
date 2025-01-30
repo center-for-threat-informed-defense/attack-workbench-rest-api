@@ -14,6 +14,8 @@ const {
 } = require('../exceptions');
 
 class CollectionsService extends BaseService {
+  // TODO resolve this linting issue at some point - it was less impactful to just bypass it at the time
+  // eslint-disable-next-line class-methods-use-this
   async getContents(objectList) {
     const contents = [];
     for (const objectRef of objectList) {
@@ -88,6 +90,8 @@ class CollectionsService extends BaseService {
     return collection;
   }
 
+  // TODO resolve this linting issue at some point - it was less impactful to just bypass it at the time
+  // eslint-disable-next-line class-methods-use-this
   async addObjectsToCollection(objectList, collectionID, collectionModified) {
     const insertionErrors = [];
     for (const attackObject of objectList) {
