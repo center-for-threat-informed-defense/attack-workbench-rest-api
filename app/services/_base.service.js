@@ -533,6 +533,26 @@ class BaseService extends AbstractService {
       throw err;
     }
   }
+
+  async findByIdAndDelete(documentId, callback) {
+    if (BaseService.isCallback(arguments[arguments.length - 1])) {
+      callback = arguments[arguments.length - 1];
+    }
+    try {
+      const deletedDocument = await this.repository.findByIdAndDelete(documentId);
+      if (deletedDocument) {
+        logger.verbose('Document deleted:', deletedDocument);
+      } else {
+        logger.warn('Document not found');
+      }
+    } catch (err) {
+      logger.error(err.message);
+      if (callback) {
+        return callback(err);
+      }
+      throw err;
+    }
+  }
 }
 
 module.exports = BaseService;
