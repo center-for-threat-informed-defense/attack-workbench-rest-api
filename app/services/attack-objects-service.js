@@ -4,8 +4,8 @@ const attackObjectsRepository = require('../repository/attack-objects-repository
 const BaseService = require('./_base.service');
 const identitiesService = require('./identities-service');
 const relationshipsService = require('./relationships-service');
-
-const { NotImplementedError } = require('../exceptions');
+const logger = require('../lib/logger');
+const { NotImplementedError, DatabaseError } = require('../exceptions');
 
 class AttackObjectsService extends BaseService {
   /**
@@ -113,6 +113,36 @@ class AttackObjectsService extends BaseService {
    */
   create(data, options, callback) {
     throw new NotImplementedError(this.constructor.name, 'create');
+  }
+
+  async findByIdAndUpdate(documentId, update) {
+    try {
+      return await this.repository.findByIdAndUpdate(documentId, update);
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async findByIdAndDelete(documentId) {
+    try {
+      const deletedDocument = await this.repository.findByIdAndDelete(documentId);
+      if (deletedDocument) {
+        logger.verbose('Document deleted:', documentId);
+      } else {
+        logger.warn('Document not found');
+      }
+    } catch (err) {
+      logger.error(err.message);
+      throw DatabaseError(err);
+    }
+  }
+  
+  async retrieveOneByVersionLean(stixId, stixModified) {
+    try {
+      return await this.repository.retrieveOneByVersionLean(stixId, stixModified);
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
   }
 }
 
