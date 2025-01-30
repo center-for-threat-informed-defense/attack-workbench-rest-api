@@ -3,7 +3,12 @@
 const BaseRepository = require('./_base.repository');
 const AttackObject = require('../models/attack-object-model');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
-const { MissingUpdateParameterError } = require('../exceptions');
+const {
+  MissingUpdateParameterError,
+  BadlyFormattedParameterError,
+  DuplicateIdError,
+  DatabaseError,
+} = require('../exceptions');
 const regexValidator = require('../lib/regex');
 
 class AttackObjectsRepository extends BaseRepository {
@@ -122,7 +127,7 @@ class AttackObjectsRepository extends BaseRepository {
         throw new MissingUpdateParameterError();
       }
       return await this.model.findByIdAndUpdate(documentId, update).exec();
-    } catch (error) {
+    } catch (err) {
       throw new DatabaseError(err);
     }
   }

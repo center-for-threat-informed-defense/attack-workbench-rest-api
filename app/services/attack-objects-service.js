@@ -118,7 +118,7 @@ class AttackObjectsService extends BaseService {
   async findByIdAndUpdate(documentId, update) {
     try {
       return await this.repository.findByIdAndUpdate(documentId, update);
-    } catch (error) {
+    } catch (err) {
       throw new DatabaseError(err);
     }
   }
@@ -140,7 +140,7 @@ class AttackObjectsService extends BaseService {
   async retrieveOneByVersionLean(stixId, stixModified) {
     try {
       return await this.repository.retrieveOneByVersionLean(stixId, stixModified);
-    } catch (error) {
+    } catch (err) {
       throw new DatabaseError(err);
     }
   }
