@@ -16,11 +16,7 @@ class MatrixService extends BaseService {
 
   // Custom methods specific to MatrixService should be specified below
 
-  async retrieveTechniquesForMatrix(stixId, modified, callback) {
-    if (BaseService.isCallback(arguments[arguments.length - 1])) {
-      callback = arguments[arguments.length - 1];
-    }
-
+  async retrieveTechniquesForMatrix(stixId, modified) {
     // Lazy loading of services
     if (!this.retrieveTacticById || !this.retrieveTechniquesForTactic) {
       const tacticsService = require('./tactics-service');
@@ -29,35 +25,15 @@ class MatrixService extends BaseService {
     }
 
     if (!stixId) {
-      const err = new MissingParameterError({ parameterName: 'stixId' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+      throw new MissingParameterError({ parameterName: 'stixId' });
     }
 
     if (!modified) {
-      const err = new MissingParameterError({ parameterName: 'modified' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+      throw new MissingParameterError({ parameterName: 'modified' });
     }
 
-    let matrix;
-    try {
-      matrix = await matrixRepository.retrieveOneByVersion(stixId, modified);
-    } catch (err) {
-      if (callback) {
-        return callback(err);
-      }
-      throw err; // Let the DatabaseError bubble up
-    }
-
+    const matrix = await matrixRepository.retrieveOneByVersion(stixId, modified);
     if (!matrix) {
-      if (callback) {
-        return callback(null, null);
-      }
       return null;
     }
 
@@ -76,11 +52,7 @@ class MatrixService extends BaseService {
           );
         }
       } catch (err) {
-        const genericServiceError = new GenericServiceError(err); // TODO it's probably better to throw TechniquesServiceError or TacticsServiceError
-        if (callback) {
-          return callback(genericServiceError);
-        }
-        throw genericServiceError;
+        throw new GenericServiceError(err); // TODO it's probably better to throw TechniquesServiceError or TacticsServiceError
       }
 
       if (tactics && tactics.length) {
@@ -109,9 +81,6 @@ class MatrixService extends BaseService {
         tactic.techniques = parentTechniques;
         tacticsTechniques[tactic.stix.name] = tactic;
       }
-    }
-    if (callback) {
-      return callback(null, tacticsTechniques);
     }
     return tacticsTechniques;
   }

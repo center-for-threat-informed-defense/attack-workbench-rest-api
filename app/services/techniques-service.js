@@ -52,10 +52,7 @@ class TechniquesService extends BaseService {
     }
 
     try {
-      const technique = await this.repository.model.findOne({
-        'stix.id': stixId,
-        'stix.modified': modified,
-      });
+      const technique = await this.repository.retrieveOneByVersion(stixId, modified);
       if (!technique) {
         // Note: document is null if not found
         return null;

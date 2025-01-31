@@ -71,21 +71,16 @@ class MarkingDefinitionsService extends BaseService {
     }
   }
 
-  async updateFull(stixId, data, callback) {
+  async updateFull(stixId, data) {
     if (data?.workspace?.workflow?.state === 'static') {
-      const err = new CannotUpdateStaticObjectError();
-      if (callback) {
-        return callback(err);
-      }
-
       throw new CannotUpdateStaticObjectError();
     }
 
-    const newDoc = await super.updateFull(stixId, data, callback);
+    const newDoc = await super.updateFull(stixId, data);
     return newDoc;
   }
 
-  async retrieveById(stixId, options, callback) {
+  async retrieveById(stixId, options) {
     try {
       if (!stixId) {
         throw new MissingParameterError();
@@ -96,20 +91,11 @@ class MarkingDefinitionsService extends BaseService {
       // Note: document is null if not found
       if (markingDefinition) {
         await this.addCreatedByAndModifiedByIdentities(markingDefinition);
-        if (callback) {
-          return callback(null, [markingDefinition]);
-        }
         return [markingDefinition];
       } else {
-        if (callback) {
-          return callback(null, []);
-        }
         return [];
       }
     } catch (err) {
-      if (callback) {
-        return callback(err);
-      }
       if (err.name === 'CastError') {
         throw new BadlyFormattedParameterError();
       } else {
