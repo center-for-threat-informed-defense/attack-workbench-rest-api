@@ -136,7 +136,7 @@ class AttackObjectsService extends BaseService {
       throw DatabaseError(err);
     }
   }
-  
+
   async retrieveOneByVersionLean(stixId, stixModified) {
     try {
       return await this.repository.retrieveOneByVersionLean(stixId, stixModified);

@@ -20,12 +20,12 @@ const notesService = require('./notes-service');
 
 /**
  * Service for generating STIX bundles from the ATT&CK database.
- * 
+ *
  * CORE CONCEPTS:
- * 
+ *
  * This service makes an important distinction between "primary" and "secondary" objects
  * when generating STIX bundles:
- * 
+ *
  * PRIMARY OBJECTS:
  * - Objects that directly belong to the requested domain (e.g., enterprise-attack, mobile-attack)
  * - These are retrieved in the initial database query
@@ -34,7 +34,7 @@ const notesService = require('./notes-service');
  *   * Tactics like "Persistence"
  *   * Mitigations specific to enterprise
  *   * Software/Tools used in enterprise attacks
- * 
+ *
  * SECONDARY OBJECTS:
  * - Objects that are related to primary objects through relationships
  * - Not part of the initial domain query but may need to be included
@@ -42,21 +42,21 @@ const notesService = require('./notes-service');
  * - Examples:
  *   * A threat group that uses an enterprise technique
  *   * A campaign that deploys enterprise malware
- * 
+ *
  * EXAMPLE SCENARIO:
  * When requesting enterprise-attack domain bundle:
  * 1. Primary Objects (from initial query):
  *    - Technique T1055 "Process Injection"
  *    - Technique T1056 "Input Capture"
- * 
+ *
  * 2. Relationships discovered:
  *    - Group G0096 uses Technique T1055
  *    - Malware S0002 uses Technique T1056
- * 
+ *
  * 3. Secondary Objects (need validation):
- *    - Group G0096 
+ *    - Group G0096
  *    - Malware S0002
- * 
+ *
  * The complex relationship processing in this service handles:
  * 1. Primary → Primary relationships (simplest case)
  * 2. Primary → Secondary relationships (need to fetch/validate secondary)
@@ -64,7 +64,6 @@ const notesService = require('./notes-service');
  * 4. Special cases like 'detects' relationships
  */
 class StixBundlesService extends BaseService {
-
   /**
    * Initializes the STIX Bundles Service with necessary repositories and caches.
    * Sets up caching mechanisms for attack objects, identities, and marking definitions
@@ -291,22 +290,16 @@ class StixBundlesService extends BaseService {
     return (
       // Object must exist
       secondaryObject &&
-
       // Check if ATT&CK ID is required
       (options.includeMissingAttackId ||
         !StixBundlesService.requiresAttackId(secondaryObject) ||
         StixBundlesService.hasAttackId(secondaryObject)) &&
-
       // Check deprecation status
       (options.includeDeprecated || !secondaryObject.stix.x_mitre_deprecated) &&
-
       // Check revocation status
       (options.includeRevoked || !secondaryObject.stix.revoked) &&
-
       // Check workflow state if specified
-      (options.state === undefined ||
-        secondaryObject.workspace.workflow.state === options.state) &&
-
+      (options.state === undefined || secondaryObject.workspace.workflow.state === options.state) &&
       // Verify domain for certain object types
       StixBundlesService.isCorrectDomain(secondaryObject, options.domain)
     );
@@ -412,7 +405,7 @@ class StixBundlesService extends BaseService {
    * - Handling data components and data sources
    * - Processing notes if requested
    * - Conforming objects to specified STIX version
-   * 
+   *
    * @param {Object} options - Bundle generation options
    * @param {string} options.domain - The domain to generate bundle for (e.g., 'enterprise-attack')
    * @param {string} options.stixVersion - Target STIX version ('2.0' or '2.1')
@@ -505,9 +498,10 @@ class StixBundlesService extends BaseService {
     const relationshipOptions = {
       includeRevoked: options.includeRevoked,
       includeDeprecated: options.includeDeprecated,
-      state: options.state
+      state: options.state,
     };
-    const allRelationships = await relationshipsRepository.retrieveAllForBundle(relationshipOptions);
+    const allRelationships =
+      await relationshipsRepository.retrieveAllForBundle(relationshipOptions);
 
     // Iterate over the relationships, keeping any that have a source_ref or target_ref that points at a primary object
     const primaryObjectRelationships = allRelationships.filter(
@@ -560,17 +554,17 @@ class StixBundlesService extends BaseService {
     return bundle;
   }
 
-/**
+  /**
    * Main method for processing a single STIX relationship.
    * This is a critical part of the bundle generation process that handles three main cases:
-   * 
+   *
    * 1. Primary → Primary relationships (both objects already in bundle)
    * 2. Secondary → Primary relationships (source needs to be fetched)
    * 3. Primary → Secondary relationships (target needs to be fetched)
-   * 
+   *
    * Special handling is provided for 'detects' relationships to support
    * technique detection data processing.
-   * 
+   *
    * @param {Object} relationship - The relationship to process
    * @param {Map} objectsMap - Map of objects currently in the bundle
    * @param {Array} secondaryObjects - Array to collect secondary objects
@@ -585,7 +579,7 @@ class StixBundlesService extends BaseService {
     secondaryObjects,
     dataComponents,
     bundle,
-    options
+    options,
   ) {
     // Case 1: Both objects are primary (already in our bundle)
     if (this.isSourceTargetPrimary(relationship, objectsMap)) {
@@ -631,7 +625,6 @@ class StixBundlesService extends BaseService {
     }
   }
 
-
   /**
    * Determines if a relationship connects two primary objects (both already in our bundle)
    */
@@ -665,7 +658,7 @@ class StixBundlesService extends BaseService {
    * Builds a mapping of which techniques are detected by which data components.
    * Used to support the derivation of data sources for techniques in the bundle.
    * Only considers active 'detects' relationships.
-   * 
+   *
    * @param {Array<Object>} relationships - The relationships to process
    * @param {Map} techniqueDetectedBy - Map to populate with technique detection info
    * @param {Map} objectsMap - Map of objects in the bundle
@@ -689,12 +682,12 @@ class StixBundlesService extends BaseService {
   /**
    * Processes all data sources referenced by data components in the bundle.
    * Ensures that all necessary data sources are included and properly linked.
-   * 
+   *
    * Steps:
    * 1. Collects all data source references from components
    * 2. Retrieves and validates each data source
    * 3. Adds valid data sources to bundle and tracking structures
-   * 
+   *
    * @param {Object} bundle - The STIX bundle being built
    * @param {Map} dataComponents - Map of data component objects
    * @param {Map} dataSources - Map to populate with data source objects
@@ -725,14 +718,14 @@ class StixBundlesService extends BaseService {
   /**
    * Processes all identities and marking definitions referenced in the bundle.
    * This ensures that all necessary context objects are included.
-   * 
+   *
    * Steps:
    * 1. Collect all identity references (created_by_ref)
    * 2. Collect all marking definition references (object_marking_refs)
    * 3. Retrieve objects from cache or database
    * 4. Add valid objects to bundle
    * 5. Log warnings for missing references
-   * 
+   *
    * @param {Object} bundle - The STIX bundle being built
    * @returns {Promise<void>}
    */
@@ -788,7 +781,7 @@ class StixBundlesService extends BaseService {
    * Validates all relationships in the bundle for referential integrity.
    * Ensures that both source and target objects exist for each relationship.
    * Logs warnings for any orphaned references found.
-   * 
+   *
    * @param {Array<Object>} bundleObjects - Array of STIX objects in the bundle
    * @param {Map} objectsMap - Map of object IDs for validation
    */
@@ -816,13 +809,13 @@ class StixBundlesService extends BaseService {
   /**
    * Retrieves an attack object by its STIX ID, using cache when possible.
    * Implements a caching strategy to minimize database queries.
-   * 
+   *
    * Process:
    * 1. Check cache using STIX ID
    * 2. If not found, query database
    * 3. If found in database, cache for future use
    * 4. Handle errors gracefully
-   * 
+   *
    * @param {string} stixId - The STIX ID of the object to retrieve
    * @returns {Promise<Object|null>} The attack object or null if not found/error
    */
