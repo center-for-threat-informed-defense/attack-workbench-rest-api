@@ -80,6 +80,36 @@ class RelationshipsRepository extends BaseRepository {
       throw new DatabaseError(err);
     }
   }
+
+  async retrieveAllForBundle(options) {
+    try {
+      // Build query exactly as original - NO domain filter
+      const query = {};
+      if (!options.includeRevoked) {
+        query['stix.revoked'] = { $in: [null, false] };
+      }
+      if (!options.includeDeprecated) {
+        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
+      }
+      if (typeof options.state !== 'undefined') {
+        query['workspace.workflow.state'] = Array.isArray(options.state)
+          ? { $in: options.state }
+          : options.state;
+      }
+
+      // Use exact same aggregation as original
+      const aggregation = [
+        { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+        { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
+        { $replaceRoot: { newRoot: '$document' } },
+        { $match: query },
+      ];
+
+      return await this.model.aggregate(aggregation).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
 }
 
 module.exports = new RelationshipsRepository(Relationship);
