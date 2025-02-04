@@ -3,7 +3,12 @@
 const AbstractRepository = require('./_abstract.repository');
 const regexValidator = require('../lib/regex');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
-const { DatabaseError, DuplicateIdError, BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
+const {
+  DatabaseError,
+  DuplicateIdError,
+  BadlyFormattedParameterError,
+  MissingParameterError,
+} = require('../exceptions');
 
 class BaseRepository extends AbstractRepository {
   constructor(model) {

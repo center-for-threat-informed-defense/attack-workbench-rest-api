@@ -751,30 +751,34 @@ class StixBundlesService extends BaseService {
   }
 
   /**
-    * Processes relationships between secondary objects and handles special cases that need separate processing:
-    * - Groups referenced by campaigns through 'attributed-to' relationships
-    * - Revoked-by relationships between objects already in the bundle
-    * - Secondary objects that were revoked by other secondary objects
-    * - Campaign-to-group attributed-to relationships where both objects are in bundle
-    *
-    * @param {Object[]} allRelationships - All relationships to process
-    * @param {Object} bundle - The STIX bundle being built
-    * @param {Map} objectsMap - Map tracking objects currently in bundle
-    * @param {Object} options - Bundle generation options
-    * @param {string} options.domain - The domain being processed
-    * @returns {Promise<void>}
-    */
+   * Processes relationships between secondary objects and handles special cases that need separate processing:
+   * - Groups referenced by campaigns through 'attributed-to' relationships
+   * - Revoked-by relationships between objects already in the bundle
+   * - Secondary objects that were revoked by other secondary objects
+   * - Campaign-to-group attributed-to relationships where both objects are in bundle
+   *
+   * @param {Object[]} allRelationships - All relationships to process
+   * @param {Object} bundle - The STIX bundle being built
+   * @param {Map} objectsMap - Map tracking objects currently in bundle
+   * @param {Object} options - Bundle generation options
+   * @param {string} options.domain - The domain being processed
+   * @returns {Promise<void>}
+   */
   async processSecondaryRelationships(allRelationships, bundle, objectsMap, options) {
     const relationshipsMap = new Map();
 
     // Handle groups referenced by campaigns
     for (const relationship of allRelationships) {
       if (relationship.stix.relationship_type === 'attributed-to') {
-        if (objectsMap.has(relationship.stix.source_ref) &&
-          !objectsMap.has(relationship.stix.target_ref)) {
+        if (
+          objectsMap.has(relationship.stix.source_ref) &&
+          !objectsMap.has(relationship.stix.target_ref)
+        ) {
           const groupObject = await this.getAttackObject(relationship.stix.target_ref);
-          if (groupObject?.stix?.type === 'intrusion-set' &&
-            this.secondaryObjectIsValid(groupObject, options)) {
+          if (
+            groupObject?.stix?.type === 'intrusion-set' &&
+            this.secondaryObjectIsValid(groupObject, options)
+          ) {
             groupObject.stix.x_mitre_domains = [options.domain];
             bundle.objects.push(groupObject.stix);
             objectsMap.set(groupObject.stix.id, true);
@@ -783,12 +787,14 @@ class StixBundlesService extends BaseService {
       }
     }
 
-    // Handle revoked-by relationships 
+    // Handle revoked-by relationships
     for (const relationship of allRelationships) {
-      if (relationship.stix.relationship_type === 'revoked-by' &&
+      if (
+        relationship.stix.relationship_type === 'revoked-by' &&
         !relationshipsMap.has(relationship.stix.id) &&
         objectsMap.has(relationship.stix.source_ref) &&
-        objectsMap.has(relationship.stix.target_ref)) {
+        objectsMap.has(relationship.stix.target_ref)
+      ) {
         if (StixBundlesService.relationshipIsActive(relationship)) {
           bundle.objects.push(relationship.stix);
           relationshipsMap.set(relationship.stix.id, true);
@@ -799,12 +805,16 @@ class StixBundlesService extends BaseService {
     // Add secondary objects that were revoked by other secondary objects
     for (const relationship of allRelationships) {
       if (relationship.stix.relationship_type === 'revoked-by') {
-        if (!objectsMap.has(relationship.stix.source_ref) &&
-          objectsMap.has(relationship.stix.target_ref)) {
+        if (
+          !objectsMap.has(relationship.stix.source_ref) &&
+          objectsMap.has(relationship.stix.target_ref)
+        ) {
           const revokedObject = await this.getAttackObject(relationship.stix.source_ref);
           if (this.secondaryObjectIsValid(revokedObject, options)) {
-            if (revokedObject.stix.type === 'intrusion-set' ||
-              revokedObject.stix.type === 'campaign') {
+            if (
+              revokedObject.stix.type === 'intrusion-set' ||
+              revokedObject.stix.type === 'campaign'
+            ) {
               revokedObject.stix.x_mitre_domains = [options.domain];
             }
             bundle.objects.push(revokedObject.stix);
@@ -816,10 +826,12 @@ class StixBundlesService extends BaseService {
 
     // Add campaign-to-group attributed-to relationships
     for (const relationship of allRelationships) {
-      if (relationship.stix.relationship_type === 'attributed-to' &&
+      if (
+        relationship.stix.relationship_type === 'attributed-to' &&
         !relationshipsMap.has(relationship.stix.id) &&
         objectsMap.has(relationship.stix.source_ref) &&
-        objectsMap.has(relationship.stix.target_ref)) {
+        objectsMap.has(relationship.stix.target_ref)
+      ) {
         if (StixBundlesService.relationshipIsActive(relationship)) {
           bundle.objects.push(relationship.stix);
           relationshipsMap.set(relationship.stix.id, true);
