@@ -111,7 +111,7 @@ class AttackObjectsService extends BaseService {
    * Override of base class create() because:
    * 1. create() requires a STIX `type` -- this service does not define a type
    */
-  create(data, options, callback) {
+  create(data, options) {
     throw new NotImplementedError(this.constructor.name, 'create');
   }
 

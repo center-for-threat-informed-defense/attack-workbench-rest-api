@@ -17,11 +17,6 @@ class UserAccountsService {
     this.repository = repository;
   }
 
-  // Helper function to determine if the last argument is a callback
-  static isCallback(arg) {
-    return typeof arg === 'function';
-  }
-
   static addEffectiveRole(userAccount) {
     // Initially, this forces all pending and inactive accounts to have the role 'none'.
     // TBD: Make the role configurable

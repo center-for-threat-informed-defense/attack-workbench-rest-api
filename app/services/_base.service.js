@@ -52,10 +52,6 @@ class BaseService extends AbstractService {
     }
   }
 
-  static isCallback(arg) {
-    return typeof arg === 'function';
-  }
-
   // ============================
   // System Configuration Methods
   // ============================
@@ -174,364 +170,188 @@ class BaseService extends AbstractService {
   // CRUD Operations
   // ============================
 
-  async retrieveAll(options, callback) {
-    if (BaseService.isCallback(arguments[arguments.length - 1])) {
-      callback = arguments[arguments.length - 1];
-    }
-
+  async retrieveAll(options) {
     let results;
     try {
       results = await this.repository.retrieveAll(options);
     } catch (err) {
-      const databaseError = new DatabaseError(err);
-      if (callback) {
-        return callback(databaseError);
-      }
-      throw databaseError;
+      throw new DatabaseError(err);
     }
 
     try {
       await this.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents);
     } catch (err) {
-      const identityError = new IdentityServiceError({
+      throw new IdentityServiceError({
         details: err.message,
         cause: err,
       });
-      if (callback) {
-        return callback(identityError);
-      }
-      throw identityError;
     }
-
-    const paginatedResults = BaseService.paginate(options, results);
-    if (callback) {
-      return callback(null, paginatedResults);
-    }
-    return paginatedResults;
+    return BaseService.paginate(options, results);
   }
 
-  async retrieveById(stixId, options, callback) {
-    if (BaseService.isCallback(arguments[arguments.length - 1])) {
-      callback = arguments[arguments.length - 1];
-    }
-
+  async retrieveById(stixId, options) {
     if (!stixId) {
-      const err = new MissingParameterError({ parameterName: 'stixId' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+      throw new MissingParameterError({ parameterName: 'stixId' });
     }
 
-    try {
-      if (options.versions === 'all') {
-        const documents = await this.repository.retrieveAllById(stixId);
+    if (options.versions === 'all') {
+      const documents = await this.repository.retrieveAllById(stixId);
 
-        try {
-          await this.addCreatedByAndModifiedByIdentitiesToAll(documents);
-        } catch (err) {
-          const identityError = new IdentityServiceError({
-            details: err.message,
-            cause: err,
-          });
-          if (callback) {
-            return callback(identityError);
-          }
-          throw identityError;
-        }
-        if (callback) {
-          return callback(null, documents);
-        }
-        return documents;
-      } else if (options.versions === 'latest') {
-        const document = await this.repository.retrieveLatestByStixId(stixId);
-
-        if (document) {
-          try {
-            await this.addCreatedByAndModifiedByIdentities(document);
-          } catch (err) {
-            const identityError = new IdentityServiceError({
-              details: err.message,
-              cause: err,
-            });
-            if (callback) {
-              return callback(identityError);
-            }
-            throw identityError;
-          }
-          if (callback) {
-            return callback(null, [document]);
-          }
-          return [document];
-        } else {
-          if (callback) {
-            return callback(null, []);
-          }
-          return [];
-        }
-      } else {
-        const err = new InvalidQueryStringParameterError({ parameterName: 'versions' });
-        if (callback) {
-          return callback(err);
-        }
-        throw err;
+      try {
+        await this.addCreatedByAndModifiedByIdentitiesToAll(documents);
+      } catch (err) {
+        throw new IdentityServiceError({
+          details: err.message,
+          cause: err,
+        });
       }
-    } catch (err) {
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
-    }
-  }
+      return documents;
+    } else if (options.versions === 'latest') {
+      const document = await this.repository.retrieveLatestByStixId(stixId);
 
-  async retrieveVersionById(stixId, modified, callback) {
-    if (BaseService.isCallback(arguments[arguments.length - 1])) {
-      callback = arguments[arguments.length - 1];
-    }
-    if (!stixId) {
-      const err = new MissingParameterError({ parameterName: 'stixId' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
-    }
-
-    if (!modified) {
-      const err = new MissingParameterError({ parameterName: 'modified' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
-    }
-
-    try {
-      const document = await this.repository.retrieveOneByVersion(stixId, modified);
-
-      if (!document) {
-        if (callback) {
-          return callback(null, null);
-        }
-        return null;
-      } else {
+      if (document) {
         try {
           await this.addCreatedByAndModifiedByIdentities(document);
         } catch (err) {
-          const identityError = new IdentityServiceError({
+          throw new IdentityServiceError({
             details: err.message,
             cause: err,
           });
-          if (callback) {
-            return callback(identityError);
-          }
-          throw identityError;
         }
-        if (callback) {
-          return callback(null, document);
-        }
-        return document;
+        return [document];
+      } else {
+        return [];
       }
-    } catch (err) {
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+    } else {
+      throw new InvalidQueryStringParameterError({ parameterName: 'versions' });
     }
   }
 
-  async create(data, options, callback) {
-    if (BaseService.isCallback(arguments[arguments.length - 1])) {
-      callback = arguments[arguments.length - 1];
+  async retrieveVersionById(stixId, modified) {
+    if (!stixId) {
+      throw new MissingParameterError({ parameterName: 'stixId' });
     }
 
+    if (!modified) {
+      throw new MissingParameterError({ parameterName: 'modified' });
+    }
+
+    const document = await this.repository.retrieveOneByVersion(stixId, modified);
+
+    if (!document) {
+      return null;
+    } else {
+      try {
+        await this.addCreatedByAndModifiedByIdentities(document);
+      } catch (err) {
+        throw new IdentityServiceError({
+          details: err.message,
+          cause: err,
+        });
+      }
+      return document;
+    }
+  }
+
+  async create(data, options) {
     if (data?.stix?.type !== this.type) {
       throw new InvalidTypeError();
     }
 
-    try {
-      options = options || {};
-      if (!options.import) {
-        // Set the ATT&CK Spec Version
-        data.stix.x_mitre_attack_spec_version =
-          data.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+    options = options || {};
+    if (!options.import) {
+      // Set the ATT&CK Spec Version
+      data.stix.x_mitre_attack_spec_version =
+        data.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
-        // Record the user account that created the object
-        if (options.userAccountId) {
-          data.workspace.workflow.created_by_user_account = options.userAccountId;
+      // Record the user account that created the object
+      if (options.userAccountId) {
+        data.workspace.workflow.created_by_user_account = options.userAccountId;
+      }
+
+      // Set the default marking definitions
+      await this.setDefaultMarkingDefinitionsForObject(data);
+
+      // Get the organization identity
+      const organizationIdentityRef = await this.retrieveOrganizationIdentityRef();
+
+      // Check for an existing object
+      let existingObject;
+      if (data.stix.id) {
+        existingObject = await this.repository.retrieveOneById(data.stix.id);
+      }
+
+      if (existingObject) {
+        // New version of an existing object
+        // Only set the x_mitre_modified_by_ref property
+        data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+      } else {
+        // New object
+        // Assign a new STIX id if not already provided
+        if (!data.stix.id) {
+          data.stix.id = `${data.stix.type}--${uuid.v4()}`;
         }
 
-        // Set the default marking definitions
-        await this.setDefaultMarkingDefinitionsForObject(data);
-
-        // Get the organization identity
-        const organizationIdentityRef = await this.retrieveOrganizationIdentityRef();
-
-        // Check for an existing object
-        let existingObject;
-        if (data.stix.id) {
-          existingObject = await this.repository.retrieveOneById(data.stix.id);
-        }
-
-        if (existingObject) {
-          // New version of an existing object
-          // Only set the x_mitre_modified_by_ref property
-          data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
-        } else {
-          // New object
-          // Assign a new STIX id if not already provided
-          if (!data.stix.id) {
-            data.stix.id = `${data.stix.type}--${uuid.v4()}`;
-          }
-
-          // Set the created_by_ref and x_mitre_modified_by_ref properties
-          data.stix.created_by_ref = organizationIdentityRef;
-          data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
-        }
+        // Set the created_by_ref and x_mitre_modified_by_ref properties
+        data.stix.created_by_ref = organizationIdentityRef;
+        data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
       }
-      const res = await this.repository.save(data);
-      if (callback) {
-        return callback(null, res);
-      }
-      return res;
-    } catch (err) {
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
     }
+    return await this.repository.save(data);
   }
 
-  async updateFull(stixId, stixModified, data, callback) {
-    if (BaseService.isCallback(arguments[arguments.length - 1])) {
-      callback = arguments[arguments.length - 1];
-    }
+  async updateFull(stixId, stixModified, data) {
     if (!stixId) {
-      const err = new MissingParameterError({ parameterName: 'stixId' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+      throw new MissingParameterError({ parameterName: 'stixId' });
     }
 
     if (!stixModified) {
-      const err = new MissingParameterError({ parameterName: 'modified' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+      throw new MissingParameterError({ parameterName: 'modified' });
     }
 
-    let document;
-    try {
-      document = await this.repository.retrieveOneByVersion(stixId, stixModified);
-    } catch (err) {
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
-    }
-
+    const document = await this.repository.retrieveOneByVersion(stixId, stixModified);
     if (!document) {
-      if (callback) {
-        return callback(null, null);
-      }
       return null;
     }
 
-    try {
-      const newDocument = await this.repository.updateAndSave(document, data);
+    const newDocument = await this.repository.updateAndSave(document, data);
 
-      if (newDocument === document) {
-        // Document successfully saved
-        if (callback) {
-          return callback(null, newDocument);
-        }
-        return newDocument;
-      } else {
-        const err = new DatabaseError({
-          details: 'Document could not be saved',
-          document, // Pass along the document that could not be saved
-        });
-        if (callback) {
-          return callback(err);
-        }
-        throw err;
-      }
-    } catch (err) {
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+    if (newDocument === document) {
+      // Document successfully saved
+      return newDocument;
+    } else {
+      throw new DatabaseError({
+        details: 'Document could not be saved',
+        document, // Pass along the document that could not be saved
+      });
     }
   }
 
   // TODO rename to deleteVersionByStixId and repurpose the existing name for deleting by the document's unique _id
-  async deleteVersionById(stixId, stixModified, callback) {
-    if (BaseService.isCallback(arguments[arguments.length - 1])) {
-      callback = arguments[arguments.length - 1];
-    }
+  async deleteVersionById(stixId, stixModified) {
     if (!stixId) {
-      const err = new MissingParameterError({ parameterName: 'stixId' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+      throw new MissingParameterError({ parameterName: 'stixId' });
     }
 
     if (!stixModified) {
-      const err = new MissingParameterError({ parameterName: 'modified' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+      throw new MissingParameterError({ parameterName: 'modified' });
     }
 
-    try {
-      const document = await this.repository.findOneAndDelete(stixId, stixModified);
+    const document = await this.repository.findOneAndDelete(stixId, stixModified);
 
-      if (!document) {
-        //Note: document is null if not found
-        if (callback) {
-          return callback(null, null);
-        }
-        return null;
-      }
-      if (callback) {
-        return callback(null, document);
-      }
-      return document;
-    } catch (err) {
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+    if (!document) {
+      //Note: document is null if not found
+      return null;
     }
+    return document;
   }
 
   // TODO rename to deleteManyByStixId
-  async deleteById(stixId, callback) {
-    if (BaseService.isCallback(arguments[arguments.length - 1])) {
-      callback = arguments[arguments.length - 1];
-    }
+  async deleteById(stixId) {
     if (!stixId) {
-      const err = new MissingParameterError({ parameterName: 'stixId' });
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
+      throw new MissingParameterError({ parameterName: 'stixId' });
     }
-
-    try {
-      const res = await this.repository.deleteMany(stixId);
-      if (callback) {
-        return callback(null, res);
-      }
-      return res;
-    } catch (err) {
-      if (callback) {
-        return callback(err);
-      }
-      throw err;
-    }
+    return await this.repository.deleteMany(stixId);
   }
 }
 

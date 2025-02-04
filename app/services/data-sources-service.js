@@ -50,111 +50,66 @@ class DataSourcesService extends BaseService {
     );
   }
 
-  async retrieveById(stixId, options, callback) {
+  async retrieveById(stixId, options) {
     try {
       // versions=all    Retrieve all versions of the data source with the stixId
       // versions=latest Retrieve the data source with the latest modified date for this stixId
 
       if (!stixId) {
-        if (callback) {
-          return callback(new Error(this.errors.missingParameter));
-        }
         throw new MissingParameterError();
       }
 
       if (options.versions === 'all') {
-        const dataSources = await this.repository.model.find({ 'stix.id': stixId }).lean().exec();
+        const dataSources = await this.repository.retrieveAllById(stixId);
         await DataSourcesService.addExtraDataToAll(dataSources, options.retrieveDataComponents);
-        if (callback) {
-          return callback(null, dataSources);
-        }
         return dataSources;
       } else if (options.versions === 'latest') {
-        const dataSource = await this.repository.model
-          .findOne({ 'stix.id': stixId })
-          .sort('-stix.modified')
-          .lean()
-          .exec();
+        const dataSource = await this.repository.retrieveLatestByStixId(stixId);
 
         // Note: document is null if not found
         if (dataSource) {
           await DataSourcesService.addExtraData(dataSource, options.retrieveDataComponents);
-          if (callback) {
-            return callback(null, [dataSource]);
-          }
           return [dataSource];
         } else {
-          if (callback) {
-            return callback(null, []);
-          }
           return [];
         }
       } else {
-        if (callback) {
-          return callback(new Error(this.errors.invalidQueryStringParameter));
-        }
         throw new InvalidQueryStringParameterError();
       }
     } catch (err) {
       if (err.name === 'CastError') {
-        if (callback) {
-          return callback(new Error(this.errors.badlyFormattedParameter));
-        }
         throw new BadlyFormattedParameterError();
       } else {
-        if (callback) {
-          return callback(err);
-        }
         throw err;
       }
     }
   }
 
-  async retrieveVersionById(stixId, modified, options, callback) {
+  async retrieveVersionById(stixId, modified, options) {
     try {
       // Retrieve the version of the data source with the matching stixId and modified date
 
       if (!stixId) {
-        if (callback) {
-          return callback(new Error(this.errors.missingParameter));
-        }
         throw new MissingParameterError();
       }
 
       if (!modified) {
-        if (callback) {
-          return callback(new Error(this.errors.missingParameter));
-        }
         throw new MissingParameterError();
       }
 
-      const dataSource = await this.repository.model
-        .findOne({ 'stix.id': stixId, 'stix.modified': modified })
-        .exec();
+      const dataSource = await this.repository.retrieveOneByVersion(stixId, modified);
 
       // Note: document is null if not found
       if (dataSource) {
         await DataSourcesService.addExtraData(dataSource, options.retrieveDataComponents);
-        if (callback) {
-          return callback(null, dataSource);
-        }
         return dataSource;
       } else {
-        if (callback) {
-          return callback(null, null);
-        }
         return null;
       }
     } catch (err) {
       if (err.name === 'CastError') {
-        if (callback) {
-          return callback(new Error(this.errors.badlyFormattedParameter));
-        }
         throw new BadlyFormattedParameterError();
       } else {
-        if (callback) {
-          return callback(err);
-        }
         throw err;
       }
     }

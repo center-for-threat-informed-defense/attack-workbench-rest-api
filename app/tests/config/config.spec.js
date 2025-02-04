@@ -33,20 +33,13 @@ describe('App Configuration', function () {
     done();
   });
 
-  it('The static marking definitions should be created', function (done) {
+  it('The static marking definitions should be created', async function () {
     const options = {};
-    markingDefinitionsService.retrieveAll(options, function (err, markingDefinitions) {
-      if (err) {
-        done(err);
-      } else {
-        // We expect to get two marking definitions
-        expect(markingDefinitions).toBeDefined();
-        expect(Array.isArray(markingDefinitions)).toBe(true);
-        expect(markingDefinitions.length).toBe(2);
-
-        done();
-      }
-    });
+    const markingDefinitions = await markingDefinitionsService.retrieveAll(options);
+    // We expect to get two marking definitions
+    expect(markingDefinitions).toBeDefined();
+    expect(Array.isArray(markingDefinitions)).toBe(true);
+    expect(markingDefinitions.length).toBe(2);
   });
 
   after(async function () {
