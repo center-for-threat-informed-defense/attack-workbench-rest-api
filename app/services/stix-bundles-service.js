@@ -7,6 +7,7 @@ const linkById = require('../lib/linkById');
 const logger = require('../lib/logger');
 
 // Import repositories
+const attackObjectsRepository = require('../repository/attack-objects-repository');
 const matrixRepository = require('../repository/matrix-repository');
 const mitigationsRepository = require('../repository/mitigations-repository');
 const notesRepository = require('../repository/notes-repository');
@@ -72,6 +73,7 @@ class StixBundlesService extends BaseService {
   constructor() {
     super();
     this.repositories = {
+      attackObject: attackObjectsRepository,
       matrix: matrixRepository,
       mitigation: mitigationsRepository,
       note: notesRepository,
@@ -85,36 +87,6 @@ class StixBundlesService extends BaseService {
     this.attackObjectCache = new Map(); // Maps attack IDs to attack objects
     this.identityCache = new Map(); // Maps identity STIX IDs to identity objects
     this.markingDefinitionsCache = new Map(); // Maps marking definition STIX IDs to marking objects
-  }
-
-  // ============================
-  // Cache Management Methods
-  // ============================
-
-  /**
-   * Adds an attack object to the cache if it has a valid attack ID.
-   * @param {Object} attackObject - The attack object to cache
-   */
-  addToCache(attackObject) {
-    if (attackObject?.workspace?.attack_id) {
-      this.attackObjectCache.set(attackObject.workspace.attack_id, attackObject);
-    }
-  }
-
-  /**
-   * Retrieves an attack object from cache or database if not found in cache.
-   * @param {string} attackId - The ATT&CK ID to look up
-   * @returns {Promise<Object|null>} The attack object or null if not found
-   */
-  async getFromCache(attackId) {
-    let attackObject = this.attackObjectCache.get(attackId);
-    if (!attackObject) {
-      attackObject = await linkById.getAttackObjectFromDatabase(attackId);
-      if (attackObject) {
-        this.addToCache(attackObject);
-      }
-    }
-    return attackObject;
   }
 
   // ============================
@@ -276,7 +248,6 @@ class StixBundlesService extends BaseService {
     }
 
     objectsMap.set(secondaryObject.stix.id, true);
-    this.addToCache(secondaryObject);
     return true;
   }
 
@@ -490,7 +461,6 @@ class StixBundlesService extends BaseService {
     for (const primaryObject of primaryObjects) {
       bundle.objects.push(primaryObject.stix);
       objectsMap.set(primaryObject.stix.id, true);
-      this.addToCache(primaryObject);
     }
 
     // Get the relationships that point at primary objects (removing duplicates)
@@ -530,6 +500,8 @@ class StixBundlesService extends BaseService {
 
     const dataSources = new Map();
     await this.processDataSourcesAndComponents(bundle, dataComponents, dataSources, options);
+
+    await this.processSecondaryRelationships(allRelationships, bundle, objectsMap, options);
 
     // Process data components
     await this.processDataComponents(bundle, techniqueDetectedBy, dataComponents, dataSources);
@@ -596,6 +568,7 @@ class StixBundlesService extends BaseService {
       // Only process if the secondary object meets our inclusion criteria
       if (await this.processSecondaryObject(secondaryObject, options, objectsMap)) {
         secondaryObjects.push(secondaryObject);
+        bundle.objects.push(secondaryObject.stix);
 
         // Add the relationship if it's active
         if (StixBundlesService.relationshipIsActive(relationship)) {
@@ -616,6 +589,7 @@ class StixBundlesService extends BaseService {
       // Only process if the secondary object meets our inclusion criteria
       if (await this.processSecondaryObject(secondaryObject, options, objectsMap)) {
         secondaryObjects.push(secondaryObject);
+        bundle.objects.push(secondaryObject.stix);
 
         // Add the relationship if it's active
         if (StixBundlesService.relationshipIsActive(relationship)) {
@@ -710,7 +684,6 @@ class StixBundlesService extends BaseService {
       if (this.secondaryObjectIsValid(dataSource, options)) {
         bundle.objects.push(dataSource.stix);
         dataSources.set(dataSourceId, dataSource.stix);
-        this.addToCache(dataSource);
       }
     }
   }
@@ -778,6 +751,84 @@ class StixBundlesService extends BaseService {
   }
 
   /**
+    * Processes relationships between secondary objects and handles special cases that need separate processing:
+    * - Groups referenced by campaigns through 'attributed-to' relationships
+    * - Revoked-by relationships between objects already in the bundle
+    * - Secondary objects that were revoked by other secondary objects
+    * - Campaign-to-group attributed-to relationships where both objects are in bundle
+    *
+    * @param {Object[]} allRelationships - All relationships to process
+    * @param {Object} bundle - The STIX bundle being built
+    * @param {Map} objectsMap - Map tracking objects currently in bundle
+    * @param {Object} options - Bundle generation options
+    * @param {string} options.domain - The domain being processed
+    * @returns {Promise<void>}
+    */
+  async processSecondaryRelationships(allRelationships, bundle, objectsMap, options) {
+    const relationshipsMap = new Map();
+
+    // Handle groups referenced by campaigns
+    for (const relationship of allRelationships) {
+      if (relationship.stix.relationship_type === 'attributed-to') {
+        if (objectsMap.has(relationship.stix.source_ref) &&
+          !objectsMap.has(relationship.stix.target_ref)) {
+          const groupObject = await this.getAttackObject(relationship.stix.target_ref);
+          if (groupObject?.stix?.type === 'intrusion-set' &&
+            this.secondaryObjectIsValid(groupObject, options)) {
+            groupObject.stix.x_mitre_domains = [options.domain];
+            bundle.objects.push(groupObject.stix);
+            objectsMap.set(groupObject.stix.id, true);
+          }
+        }
+      }
+    }
+
+    // Handle revoked-by relationships 
+    for (const relationship of allRelationships) {
+      if (relationship.stix.relationship_type === 'revoked-by' &&
+        !relationshipsMap.has(relationship.stix.id) &&
+        objectsMap.has(relationship.stix.source_ref) &&
+        objectsMap.has(relationship.stix.target_ref)) {
+        if (StixBundlesService.relationshipIsActive(relationship)) {
+          bundle.objects.push(relationship.stix);
+          relationshipsMap.set(relationship.stix.id, true);
+        }
+      }
+    }
+
+    // Add secondary objects that were revoked by other secondary objects
+    for (const relationship of allRelationships) {
+      if (relationship.stix.relationship_type === 'revoked-by') {
+        if (!objectsMap.has(relationship.stix.source_ref) &&
+          objectsMap.has(relationship.stix.target_ref)) {
+          const revokedObject = await this.getAttackObject(relationship.stix.source_ref);
+          if (this.secondaryObjectIsValid(revokedObject, options)) {
+            if (revokedObject.stix.type === 'intrusion-set' ||
+              revokedObject.stix.type === 'campaign') {
+              revokedObject.stix.x_mitre_domains = [options.domain];
+            }
+            bundle.objects.push(revokedObject.stix);
+            objectsMap.set(revokedObject.stix.id, true);
+          }
+        }
+      }
+    }
+
+    // Add campaign-to-group attributed-to relationships
+    for (const relationship of allRelationships) {
+      if (relationship.stix.relationship_type === 'attributed-to' &&
+        !relationshipsMap.has(relationship.stix.id) &&
+        objectsMap.has(relationship.stix.source_ref) &&
+        objectsMap.has(relationship.stix.target_ref)) {
+        if (StixBundlesService.relationshipIsActive(relationship)) {
+          bundle.objects.push(relationship.stix);
+          relationshipsMap.set(relationship.stix.id, true);
+        }
+      }
+    }
+  }
+
+  /**
    * Validates all relationships in the bundle for referential integrity.
    * Ensures that both source and target objects exist for each relationship.
    * Logs warnings for any orphaned references found.
@@ -803,7 +854,7 @@ class StixBundlesService extends BaseService {
   }
 
   // ============================
-  // Repository Access Methods
+  // Repository Access Methods (+Cache Management)
   // ============================
 
   /**
@@ -822,7 +873,7 @@ class StixBundlesService extends BaseService {
   async getAttackObject(stixId) {
     try {
       // First check cache
-      const cacheKey = `stix-${stixId}`;
+      const cacheKey = stixId;
       if (this.attackObjectCache.has(cacheKey)) {
         return this.attackObjectCache.get(cacheKey);
       }
