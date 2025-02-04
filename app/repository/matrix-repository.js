@@ -2,6 +2,7 @@
 
 const BaseRepository = require('./_base.repository');
 const Matrix = require('../models/matrix-model');
+const { DatabaseError } = require('../exceptions');
 
 class MatrixRepository extends BaseRepository {
   /**
