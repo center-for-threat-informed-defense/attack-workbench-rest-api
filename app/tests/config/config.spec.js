@@ -64,10 +64,24 @@ describe('App Configuration', function () {
       delete process.env.CORS_ALLOWED_ORIGINS;
     });
 
-    it('should reject domains with protocol', function () {
-      process.env.CORS_ALLOWED_ORIGINS = 'http://example.com';
-      expect(() => config.reloadConfig()).toThrow('Invalid domain format');
-      delete process.env.CORS_ALLOWED_ORIGINS;
+    it('should accept domains with http or https protocol', function () {
+      for (const validOrigin of ['http://example.com', 'https://example.com']) {
+        process.env.CORS_ALLOWED_ORIGINS = validOrigin;
+        expect(() => config.reloadConfig()).not.toThrow();
+        delete process.env.CORS_ALLOWED_ORIGINS;
+      }
+    });
+
+    it('should reject domains with erroneous protocol', function () {
+      for (const invalidOrigin of [
+        'ftp://example.com',
+        'ssh://example.com',
+        'foobar://example.com',
+      ]) {
+        process.env.CORS_ALLOWED_ORIGINS = invalidOrigin;
+        expect(() => config.reloadConfig()).toThrow();
+        delete process.env.CORS_ALLOWED_ORIGINS;
+      }
     });
 
     it('should reject domains with underscores', function () {
