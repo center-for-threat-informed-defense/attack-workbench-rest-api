@@ -9,11 +9,13 @@ function disableUpgradeInsecureRequests(app, helmet) {
   const defaultDirectives = helmet.contentSecurityPolicy.getDefaultDirectives();
   delete defaultDirectives['upgrade-insecure-requests'];
 
-    app.use(helmet.contentSecurityPolicy({
-        directives: {
-            ...defaultDirectives,
-        },
-    }));
+  app.use(
+    helmet.contentSecurityPolicy({
+      directives: {
+        ...defaultDirectives,
+      },
+    }),
+  );
 }
 
 /**
@@ -47,32 +49,34 @@ function disableUpgradeInsecureRequests(app, helmet) {
  * setupCors(app, config, logger); // CORS middleware with specific origins
  */
 function setupCors(app, config, logger) {
-    const cors = require('cors');
+  const cors = require('cors');
 
-    const corsAllowedOrigins = config.server.corsAllowedOrigins;
+  const corsAllowedOrigins = config.server.corsAllowedOrigins;
 
-    logger.info(corsAllowedOrigins);
+  logger.info(corsAllowedOrigins);
 
-    if (corsAllowedOrigins == 'disable') {
-        app.use(cors({ origin: false }));
-        logger.info('CORS is disabled');
-        return;
-    }
-    else if (corsAllowedOrigins == '*') {
-        app.use(cors({
-            credentials: true,
-            origin: true
-        }));
-        logger.info('CORS is enabled for all domains');
-        return;
-    }
-    else {
-        app.use(cors({
-            credentials: true,
-            origin: corsAllowedOrigins,
-        }));
-        logger.info(`CORS is enabled for domains: ${corsAllowedOrigins}`)
-    }
+  if (corsAllowedOrigins == 'disable') {
+    app.use(cors({ origin: false }));
+    logger.info('CORS is disabled');
+    return;
+  } else if (corsAllowedOrigins == '*') {
+    app.use(
+      cors({
+        credentials: true,
+        origin: true,
+      }),
+    );
+    logger.info('CORS is enabled for all domains');
+    return;
+  } else {
+    app.use(
+      cors({
+        credentials: true,
+        origin: corsAllowedOrigins,
+      }),
+    );
+    logger.info(`CORS is enabled for domains: ${corsAllowedOrigins}`);
+  }
 }
 
 /**
@@ -96,7 +100,7 @@ exports.initializeApp = async function () {
   const requestId = require('./lib/requestId');
   app.use(requestId);
 
-    setupCors(app, config, logger);
+  setupCors(app, config, logger);
 
   // Compress response bodies
   const compression = require('compression');

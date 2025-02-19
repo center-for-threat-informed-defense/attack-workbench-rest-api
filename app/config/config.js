@@ -83,60 +83,62 @@ convict.addFormat(arrayFormat('service-account'));
  * @throws {Error} If any origin in the list is invalid
  */
 convict.addFormat({
-    name: 'domains',
-    validate: function (val) {
-        const values = Array.isArray(val) ? val : val.split(',').map(v => v.trim());
+  name: 'domains',
+  validate: function (val) {
+    const values = Array.isArray(val) ? val : val.split(',').map((v) => v.trim());
 
-        // Handle special cases
-        if (values.length === 1 && (values[0] === '*' || values[0] === 'disable')) {
-            return;
-        }
-
-        const patterns = {
-            // Matches standard hostnames per RFC 952/1123
-            hostname: /^(?:https?:\/\/)?([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}(?::\d{1,5})?$/,
-
-            // Matches 'localhost'  
-            localhost: /^(?:https?:\/\/)?localhost(?::\d{1,5})?$/,
-
-            // Matches private network IPv4 addresses
-            privateIPv4: /^(?:https?:\/\/)?((?:127\.|10\.|172\.(?:1[6-9]|2[0-9]|3[0-1])|192\.168\.)[0-9.]+)(?::\d{1,5})?$/,
-
-            // IPv6 localhost
-            ipv6: /^(?:https?:\/\/)?\[::1\](?::\d{1,5})?$/
-        };
-
-        for (const origin of values) {
-            if (!origin) {
-                throw new Error('Empty domain is not allowed');
-            }
-
-            // Check localhost and IPv6 first
-            if (patterns.localhost.test(origin) || patterns.ipv6.test(origin)) {
-                continue;
-            }
-
-            // Then check private network IPs
-            if (patterns.privateIPv4.test(origin)) {
-                const octets = origin.split('.').map(Number);
-                if (octets.some(octet => octet > 255)) {
-                    throw new Error('Invalid IP address format');
-                }
-                continue;
-            }
-
-            // Finally check hostname
-            if (!patterns.hostname.test(origin)) {
-                throw new Error('Invalid domain format');
-            }
-        }
-    },
-    coerce: function (value) {
-        if (Array.isArray(value)) {
-            return value;
-        }
-        return value.split(',').map(v => v.trim());
+    // Handle special cases
+    if (values.length === 1 && (values[0] === '*' || values[0] === 'disable')) {
+      return;
     }
+
+    const patterns = {
+      // Matches standard hostnames per RFC 952/1123
+      hostname:
+        /^(?:https?:\/\/)?([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}(?::\d{1,5})?$/,
+
+      // Matches 'localhost'
+      localhost: /^(?:https?:\/\/)?localhost(?::\d{1,5})?$/,
+
+      // Matches private network IPv4 addresses
+      privateIPv4:
+        /^(?:https?:\/\/)?((?:127\.|10\.|172\.(?:1[6-9]|2[0-9]|3[0-1])|192\.168\.)[0-9.]+)(?::\d{1,5})?$/,
+
+      // IPv6 localhost
+      ipv6: /^(?:https?:\/\/)?\[::1\](?::\d{1,5})?$/,
+    };
+
+    for (const origin of values) {
+      if (!origin) {
+        throw new Error('Empty domain is not allowed');
+      }
+
+      // Check localhost and IPv6 first
+      if (patterns.localhost.test(origin) || patterns.ipv6.test(origin)) {
+        continue;
+      }
+
+      // Then check private network IPs
+      if (patterns.privateIPv4.test(origin)) {
+        const octets = origin.split('.').map(Number);
+        if (octets.some((octet) => octet > 255)) {
+          throw new Error('Invalid IP address format');
+        }
+        continue;
+      }
+
+      // Finally check hostname
+      if (!patterns.hostname.test(origin)) {
+        throw new Error('Invalid domain format');
+      }
+    }
+  },
+  coerce: function (value) {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    return value.split(',').map((v) => v.trim());
+  },
 });
 
 function loadConfig() {

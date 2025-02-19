@@ -70,17 +70,17 @@ Note that any values set in a configuration file take precedence over values set
 
 ###### Using Environment Variables
 
-| name                                 | required | default       | description                                               |
-|--------------------------------------|----------|---------------|-----------------------------------------------------------|
-| **PORT**                             | no       | `3000`        | Port the HTTP server should listen on                     |
-| **CORS_ALLOWED_ORIGINS**             | no       | `*`           | Configures CORS policy. Accepts a comma-separated list of allowed domains. (`*` allows all domains; `disable` disables CORS entirely.) |
-| **NODE_ENV**                         | no       | `development` | Environment that the app is running in                    |
-| **DATABASE_URL**                     | yes      | none          | URL of the MongoDB server                                 |
-| **AUTHN_MECHANISM**                  | no       | `anonymous`   | Mechanism to use for authenticating users                 |
-| **DEFAULT_INTERVAL**                 | no       | `300`         | How often collection indexes should check for updates (in seconds) |
-| **JSON_CONFIG_PATH**                 | no       | ``            | Location of a JSON file containing configuration values   |
-| **LOG_LEVEL**                        | no       | `info`        | Level of messages to be written to the log (error, warn, http, info, verbose, debug) |
-| **WB_REST_STATIC_MARKING_DEFS_PATH** | no       | `./app/lib/default-static-marking-definitions/` | Path to a directory containing static marking definitions |
+| name                                 | required | default                                         | description                                                                                                                            |
+| ------------------------------------ | -------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **PORT**                             | no       | `3000`                                          | Port the HTTP server should listen on                                                                                                  |
+| **CORS_ALLOWED_ORIGINS**             | no       | `*`                                             | Configures CORS policy. Accepts a comma-separated list of allowed domains. (`*` allows all domains; `disable` disables CORS entirely.) |
+| **NODE_ENV**                         | no       | `development`                                   | Environment that the app is running in                                                                                                 |
+| **DATABASE_URL**                     | yes      | none                                            | URL of the MongoDB server                                                                                                              |
+| **AUTHN_MECHANISM**                  | no       | `anonymous`                                     | Mechanism to use for authenticating users                                                                                              |
+| **DEFAULT_INTERVAL**                 | no       | `300`                                           | How often collection indexes should check for updates (in seconds)                                                                     |
+| **JSON_CONFIG_PATH**                 | no       | ``                                              | Location of a JSON file containing configuration values                                                                                |
+| **LOG_LEVEL**                        | no       | `info`                                          | Level of messages to be written to the log (error, warn, http, info, verbose, debug)                                                   |
+| **WB_REST_STATIC_MARKING_DEFS_PATH** | no       | `./app/lib/default-static-marking-definitions/` | Path to a directory containing static marking definitions                                                                              |
 
 A typical value for DATABASE_URL when running on a development machine is `mongodb://localhost/attack-workspace`.
 This assumes that a MongoDB server is running on the same machine and is listening on the standard port of 27017.
@@ -90,14 +90,14 @@ The MongoDB server can be running natively or in a Docker container.
 
 If the `JSON_CONFIG_PATH` environment variable is set, the app will also read configuration settings from a JSON file at that location.
 
-| name                                | type     | corresponding environment variable |
-|-------------------------------------|----------|------------------------------------|
-| **server.port**                     | int      | PORT                               |
-| **server.corsAllowedOrigins**       | boolean  | CORS_ALLOWED_ORIGINS               |
-| **app.env**                         | string   | NODE_ENV                           |
-| **database.url**                    | string   | DATABASE_URL                       |
-| **collectionIndex.defaultInterval** | int      | DEFAULT_INTERVAL                   |
-| **logging.logLevel**                | string   | LOG_LEVEL                          |
+| name                                | type    | corresponding environment variable |
+| ----------------------------------- | ------- | ---------------------------------- |
+| **server.port**                     | int     | PORT                               |
+| **server.corsAllowedOrigins**       | boolean | CORS_ALLOWED_ORIGINS               |
+| **app.env**                         | string  | NODE_ENV                           |
+| **database.url**                    | string  | DATABASE_URL                       |
+| **collectionIndex.defaultInterval** | int     | DEFAULT_INTERVAL                   |
+| **logging.logLevel**                | string  | LOG_LEVEL                          |
 
 Sample configuration file setting the server port and database url:
 
