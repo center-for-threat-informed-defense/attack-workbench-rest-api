@@ -456,6 +456,7 @@ class StixBundlesService extends BaseService {
 
     // Put the primary objects in the bundle
     // Also create a map of the objects added to the bundle (use the id as the key, since relationships only reference the id)
+    // Also create a map of the objects added to the bundle (use the id as the key, since relationships only reference the id)
     const objectsMap = new Map();
     for (const primaryObject of primaryObjects) {
       bundle.objects.push(primaryObject.stix);
