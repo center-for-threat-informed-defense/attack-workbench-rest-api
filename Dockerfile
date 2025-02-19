@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:22
 
 # Set Docker labels
 LABEL org.opencontainers.image.title="ATT&CK Workbench REST API Service" \
