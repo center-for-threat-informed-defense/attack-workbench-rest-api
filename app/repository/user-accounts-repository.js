@@ -88,7 +88,6 @@ class UserAccountsRepository {
     return new this.model(data);
   }
 
-  // eslint-disable-next-line class-methods-use-this
   async saveDocument(document) {
     try {
       return await document.save();

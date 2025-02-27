@@ -56,8 +56,6 @@ class BaseService extends AbstractService {
   // System Configuration Methods
   // ============================
 
-  // TODO resolve this linting issue at some point - it was less impactful to just bypass it at the time
-  // eslint-disable-next-line class-methods-use-this
   async retrieveOrganizationIdentityRef() {
     const systemConfig = await systemConfigurationRepository.retrieveOne();
 
@@ -68,8 +66,6 @@ class BaseService extends AbstractService {
     }
   }
 
-  // TODO resolve this linting issue at some point - it was less impactful to just bypass it at the time
-  // eslint-disable-next-line class-methods-use-this
   async setDefaultMarkingDefinitionsForObject(attackObject) {
     const systemConfig = await systemConfigurationRepository.retrieveOne({ lean: true });
     if (!systemConfig) return;

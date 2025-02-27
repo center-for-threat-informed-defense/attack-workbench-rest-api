@@ -80,6 +80,7 @@ class MarkingDefinitionsService extends BaseService {
     return newDoc;
   }
 
+  // eslint-disable-next-line no-unused-vars
   async retrieveById(stixId, options) {
     try {
       if (!stixId) {
