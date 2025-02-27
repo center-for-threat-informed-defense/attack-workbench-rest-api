@@ -7,7 +7,7 @@ exports.sanitizeRegex = function (expression) {
   try {
     // Escapes all regex characters so they are treated like literal characters rather than special regex characters
     expression = expression.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // eslint-disable-next-line no-new
+
     new RegExp(expression);
     return expression;
   } catch (err) {

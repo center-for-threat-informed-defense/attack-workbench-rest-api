@@ -252,6 +252,7 @@ class SystemConfigurationService extends BaseService {
    * Override of base class create() because:
    * 1. create() requires a STIX `type` -- this service does not define a type
    */
+  // eslint-disable-next-line no-unused-vars
   create(data, options) {
     throw new NotImplementedError(this.constructor.name, 'create');
   }
