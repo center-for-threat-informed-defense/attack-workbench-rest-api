@@ -1,8 +1,35 @@
 {
+    "branches": [
+        "+([0-9])?(.{+([0-9]),x}).x",
+        "master",
+        "main",
+        "next",
+        "next-major",
+        {
+            "name": "beta",
+            "prerelease": true
+        },
+        {
+            "name": "alpha",
+            "prerelease": true
+        }
+    ],
     "plugins": [
-        "@semantic-release/commit-analyzer",
-        "@semantic-release/release-notes-generator",
-        "@semantic-release/npm",
-        "@semantic-release/github"
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+        "@semantic-release/exec",
+        {
+            "prepareCmd": "docker build -t ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:${nextRelease.version} -t ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:latest --build-arg VERSION=${nextRelease.version} --build-arg BUILDTIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ') --build-arg REVISION=${process.env.GITHUB_SHA} --platform linux/amd64,linux/arm64 ."
+        }
+    ],
+    [
+        "semantic-release-docker",
+        {
+            "registryUrl": "ghcr.io",
+            "name": "center-for-threat-informed-defense/attack-workbench-rest-api"
+        }
+    ],
+    "@semantic-release/github"
     ]
 }
