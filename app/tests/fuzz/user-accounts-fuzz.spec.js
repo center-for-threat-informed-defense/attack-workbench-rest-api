@@ -25,7 +25,7 @@ function escapeUnprintable(unsafe) {
   const box = String.fromCharCode(9618);
   // eslint-disable-next-line no-control-regex
   const charsRegex = /[\u0000-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u00FF]/g;
-  return unsafe.replace(charsRegex, (c) => box);
+  return unsafe.replace(charsRegex, () => box);
 }
 
 describe('User Accounts API Test Invalid Data', function () {
