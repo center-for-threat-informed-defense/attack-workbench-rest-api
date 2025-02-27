@@ -45,18 +45,8 @@ describe('Session API', function () {
   // Temporary change: /api/session returns 401 if the user is not logged in.
   //   This will be fixed with a general purpose solution for logging in when
   //   running tests, but is changed to expect the 401 for now.
-  it('GET /api/session', function (done) {
-    request(app)
-      .get('/api/session')
-      .set('Accept', 'application/json')
-      .expect(401)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+  it('GET /api/session', async function () {
+    await request(app).get('/api/session').set('Accept', 'application/json').expect(401);
   });
 
   after(async function () {

@@ -251,96 +251,61 @@ describe('OIDC User Account Registration', function () {
       });
   });
 
-  it('GET /api/session returns the user session', function (done) {
-    request(app)
+  it('GET /api/session returns the user session', async function () {
+    const res = await request(app)
       .get('/api/session')
       .set('Accept', 'application/json')
       .set('Cookie', Array.from(apiCookies.values()))
-      .expect(200)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the current session with a registered user
-          const session = res.body;
-          expect(session).toBeDefined();
-          expect(session.email).toBe(testUser.email);
-          expect(session.registered).toBe(true);
-          expect(session.name).toBe(testUser.username);
-          expect(session.displayName).toBe(`${testUser.firstName} ${testUser.lastName}`);
+      .expect(200);
 
-          done();
-        }
-      });
+    // We expect to get the current session with a registered user
+    const session = res.body;
+    expect(session).toBeDefined();
+    expect(session.email).toBe(testUser.email);
+    expect(session.registered).toBe(true);
+    expect(session.name).toBe(testUser.username);
+    expect(session.displayName).toBe(`${testUser.firstName} ${testUser.lastName}`);
   });
 
-  it('GET /api/authn/oidc/logout successfully logs the user out', function (done) {
-    request(app)
+  it('GET /api/authn/oidc/logout successfully logs the user out', async function () {
+    await request(app)
       .get('/api/authn/oidc/logout')
       .set('Accept', 'application/json')
       .set('Cookie', Array.from(apiCookies.values()))
-      .expect(200)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(200);
   });
 
-  it('GET /api/session returns not authorized (after logging out)', function (done) {
-    request(app)
+  it('GET /api/session returns not authorized (after logging out)', async function () {
+    await request(app)
       .get('/api/session')
       .set('Accept', 'application/json')
       .set('Cookie', Array.from(apiCookies.values()))
-      .expect(401)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(401);
   });
 
-  // it('GET /api/user-accounts/:id returns the added user account', function (done) {
-  //     request(app)
-  //         .get('/api/user-accounts/' + userAccount.id)
-  //         .set('Accept', 'application/json')
-  //         .expect(200)
-  //         .expect('Content-Type', /json/)
-  //         .end(function (err, res) {
-  //             if (err) {
-  //                 done(err);
-  //             } else {
-  //                 // We expect to get one user account in an array
-  //                 const retrievedUserAccount = res.body;
-  //                 expect(retrievedUserAccount).toBeDefined();
-  //                 expect(retrievedUserAccount.id).toBe(userAccount.id);
-  //                 expect(retrievedUserAccount.email).toBe(userAccount.email);
-  //                 expect(retrievedUserAccount.username).toBe(userAccount.username);
-  //                 expect(retrievedUserAccount.displayName).toBe(userAccount.displayName);
-  //                 expect(retrievedUserAccount.status).toBe(userAccount.status);
-  //                 expect(retrievedUserAccount.role).toBe(userAccount.role);
-  //
-  //                 done();
-  //             }
-  //         });
-  // });
+  it('GET /api/user-accounts/:id returns the added user account', async function () {
+    const res = await request(app)
+      .get('/api/user-accounts/' + userAccount.id)
+      .set('Accept', 'application/json')
+      .expect(200)
+      .expect('Content-Type', /json/);
 
-  it('POST /api/user-accounts/register does not register a user when logged out', function (done) {
-    request(app)
+    // We expect to get one user account in an array
+    const retrievedUserAccount = res.body;
+    expect(retrievedUserAccount).toBeDefined();
+    expect(retrievedUserAccount.id).toBe(userAccount.id);
+    expect(retrievedUserAccount.email).toBe(userAccount.email);
+    expect(retrievedUserAccount.username).toBe(userAccount.username);
+    expect(retrievedUserAccount.displayName).toBe(userAccount.displayName);
+    expect(retrievedUserAccount.status).toBe(userAccount.status);
+    expect(retrievedUserAccount.role).toBe(userAccount.role);
+  });
+
+  it('POST /api/user-accounts/register does not register a user when logged out', async function () {
+    await request(app)
       .post('/api/user-accounts/register')
       .set('Cookie', Array.from(apiCookies.values()))
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(400);
   });
 
   after(async function () {
