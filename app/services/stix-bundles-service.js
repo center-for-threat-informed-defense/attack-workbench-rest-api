@@ -496,11 +496,7 @@ class StixBundlesService extends BaseService {
 
     // Process data sources and components
     const techniqueDetectedBy = new Map();
-    StixBundlesService.buildTechniqueDetectionMap(
-      primaryObjectRelationships,
-      techniqueDetectedBy,
-      objectsMap,
-    );
+    StixBundlesService.buildTechniqueDetectionMap(primaryObjectRelationships, techniqueDetectedBy);
 
     const dataSources = new Map();
     await this.processDataSourcesAndComponents(bundle, dataComponents, dataSources, options);
@@ -646,7 +642,7 @@ class StixBundlesService extends BaseService {
    * @param {Map} techniqueDetectedBy - Map to populate with technique detection info
    * @param {Map} objectsMap - Map of objects in the bundle
    */
-  static buildTechniqueDetectionMap(relationships, techniqueDetectedBy, objectsMap) {
+  static buildTechniqueDetectionMap(relationships, techniqueDetectedBy) {
     for (const relationship of relationships) {
       if (
         relationship.stix.relationship_type === 'detects' &&
