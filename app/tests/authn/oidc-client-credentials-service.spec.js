@@ -73,53 +73,29 @@ describe('Client Credentials Service Authentication', function () {
     app = await require('../../index').initializeApp();
   });
 
-  it('GET /api/session returns not authorized when called without token', function (done) {
-    request(app)
-      .get('/api/session')
-      .set('Accept', 'application/json')
-      .expect(401)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+  it('GET /api/session returns not authorized when called without token', async function () {
+    await request(app).get('/api/session').set('Accept', 'application/json').expect(401);
   });
 
-  it('GET /api/session returns not authorized with an invalid token', function (done) {
-    request(app)
+  it('GET /api/session returns not authorized with an invalid token', async function () {
+    await request(app)
       .get('/api/session')
       .set('Accept', 'application/json')
       .set('Authorization', `Bearer abcd`)
-      .expect(401)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(401);
   });
 
-  it('GET /api/session returns the session when called with a valid token', function (done) {
-    request(app)
+  it('GET /api/session returns the session when called with a valid token', async function () {
+    const res = await request(app)
       .get('/api/session')
       .set('Accept', 'application/json')
       .set('Authorization', `Bearer ${accessToken}`)
-      .expect(200)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the current session
-          const session = res.body;
-          expect(session).toBeDefined();
-          expect(session.clientId).toBe(oidcServiceClientId);
+      .expect(200);
 
-          done();
-        }
-      });
+    // We expect to get the current session
+    const session = res.body;
+    expect(session).toBeDefined();
+    expect(session.clientId).toBe(oidcServiceClientId);
   });
 
   after(async function () {
