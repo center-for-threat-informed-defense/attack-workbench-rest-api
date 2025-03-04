@@ -208,7 +208,6 @@ class BaseRepository extends AbstractRepository {
     return new this.model(data);
   }
 
-  // eslint-disable-next-line class-methods-use-this
   async saveDocument(document) {
     try {
       return await document.save();
@@ -236,7 +235,6 @@ class BaseRepository extends AbstractRepository {
     }
   }
 
-  // eslint-disable-next-line class-methods-use-this
   async updateAndSave(document, data) {
     try {
       // TODO validate that document is valid mongoose object first

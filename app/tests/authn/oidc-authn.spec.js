@@ -103,198 +103,127 @@ describe('OIDC User Authentication', function () {
     startServer(app, localServerPort);
   });
 
-  it('GET /api/session returns not authorized (before logging in)', function (done) {
-    request(app)
-      .get('/api/session')
-      .set('Accept', 'application/json')
-      .expect(401)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+  it('GET /api/session returns not authorized (before logging in)', async function () {
+    await request(app).get('/api/session').set('Accept', 'application/json').expect(401);
   });
 
   const apiCookies = new Map();
   let redirectPath;
   const destination = `${localServerHost}:${localServerPort}/login-page`;
-  it('GET /api/authn/oidc/login successfully receives a redirect to the identity provider', function (done) {
+  it('GET /api/authn/oidc/login successfully receives a redirect to the identity provider', async function () {
     const encodedDestination = encodeURIComponent(destination);
-    request(app)
+    const res = await request(app)
       .get(`/api/authn/oidc/login?destination=${encodedDestination}`)
-      .expect(302)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // Save the cookies for later tests
-          const newCookies = setCookieParser(res);
-          updateCookies(newCookies, apiCookies);
+      .expect(302);
+    // Save the cookies for later tests
+    const newCookies = setCookieParser(res);
+    updateCookies(newCookies, apiCookies);
 
-          // Get the redirect location
-          redirectPath = res.headers.location;
-
-          done();
-        }
-      });
+    // Get the redirect location
+    redirectPath = res.headers.location;
   });
 
   let signInPath;
   const ipCookies = new Map();
-  it('redirect successfully receives a challenge from the identity provider', function (done) {
+  it('redirect successfully receives a challenge from the identity provider', async function () {
     const url = new URL(redirectPath);
     const server = `${url.protocol}//${url.host}`;
     const path = url.pathname;
     const search = url.search;
-    request(server)
+
+    const res = await request(server)
       .get(path + search)
-      .expect(200)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // Save the cookies for later tests
-          const newCookies = setCookieParser(res);
-          updateCookies(newCookies, ipCookies);
+      .expect(200);
 
-          const action = extractFormAction(res.text);
-          signInPath = action.value;
+    // Save the cookies for later tests
+    const newCookies = setCookieParser(res);
+    updateCookies(newCookies, ipCookies);
 
-          done();
-        }
-      });
+    const action = extractFormAction(res.text);
+    signInPath = action.value;
   });
 
-  it('POST formpath successfully signs into the identity provider', function (done) {
+  it('POST formpath successfully signs into the identity provider', async function () {
     const signinUrl = new URL(signInPath);
     const server = `${signinUrl.protocol}//${signinUrl.host}`;
     const path = signinUrl.pathname;
     const search = signinUrl.search;
-    request(server)
+
+    const res = await request(server)
       .post(path + search)
       .set('Cookie', Array.from(ipCookies.values()))
       .send(`username=${testUser.username}`)
       .send(`password=${testUser.password}`)
       .send('credentialId=')
-      .expect(302)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // Get the redirect location
-          redirectPath = res.headers.location;
+      .expect(302);
 
-          done();
-        }
-      });
+    // Get the redirect location
+    redirectPath = res.headers.location;
   });
 
-  it('redirect successfully completes the sign in process', function (done) {
+  it('redirect successfully completes the sign in process', async function () {
     const url = new URL(redirectPath);
     const server = `${url.protocol}//${url.host}`;
     const path = url.pathname;
     const search = url.search;
-    request(server)
+
+    const res = await request(server)
       .get(path + search)
       .set('Cookie', Array.from(apiCookies.values()))
-      .expect(302)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // Session ID is changed after login, save the cookie for later tests
-          const newCookies = setCookieParser(res);
-          updateCookies(newCookies, apiCookies);
+      .expect(302);
 
-          // Get the redirect location
-          redirectPath = res.headers.location;
+    // Session ID is changed after login, save the cookie for later tests
+    const newCookies = setCookieParser(res);
+    updateCookies(newCookies, apiCookies);
 
-          // This should be the destination provided at the start of the sign in process
-          expect(redirectPath).toBe(destination);
+    // Get the redirect location
+    redirectPath = res.headers.location;
 
-          done();
-        }
-      });
+    // This should be the destination provided at the start of the sign in process
+    expect(redirectPath).toBe(destination);
   });
 
-  it('GET /api/session returns the user session', function (done) {
-    request(app)
+  it('GET /api/session returns the user session', async function () {
+    const res = await request(app)
       .get('/api/session')
       .set('Accept', 'application/json')
       .set('Cookie', Array.from(apiCookies.values()))
-      .expect(200)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the current session
-          const session = res.body;
-          expect(session).toBeDefined();
-          expect(session.email).toBe('test@test.com');
+      .expect(200);
 
-          done();
-        }
-      });
+    // We expect to get the current session
+    const session = res.body;
+    expect(session).toBeDefined();
+    expect(session.email).toBe('test@test.com');
   });
 
-  it('GET /api/authn/oidc/logout successfully logs the user out', function (done) {
-    request(app)
+  it('GET /api/authn/oidc/logout successfully logs the user out', async function () {
+    await request(app)
       .get('/api/authn/oidc/logout')
       .set('Accept', 'application/json')
       .set('Cookie', Array.from(apiCookies.values()))
-      .expect(200)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(200);
   });
 
-  it('GET /api/session returns not authorized (after logging out)', function (done) {
-    request(app)
+  it('GET /api/session returns not authorized (after logging out)', async function () {
+    await request(app)
       .get('/api/session')
       .set('Accept', 'application/json')
       .set('Cookie', Array.from(apiCookies.values()))
-      .expect(401)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(401);
   });
 
-  it('GET /api/authn/anonymous/login cannot log in using incorrect authentication mechanism', function (done) {
-    request(app)
+  it('GET /api/authn/anonymous/login cannot log in using incorrect authentication mechanism', async function () {
+    await request(app)
       .get('/api/authn/anonymous/login')
       .set('Accept', 'application/json')
-      .expect(404)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(404);
   });
 
-  it('GET /api/authn/anonymous/logout cannot log out using incorrect authentication mechanism', function (done) {
-    request(app)
+  it('GET /api/authn/anonymous/logout cannot log out using incorrect authentication mechanism', async function () {
+    await request(app)
       .get('/api/authn/anonymous/logout')
       .set('Accept', 'application/json')
-      .expect(404)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(404);
   });
 
   after(async function () {
