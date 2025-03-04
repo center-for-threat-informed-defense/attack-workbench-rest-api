@@ -640,7 +640,6 @@ class StixBundlesService extends BaseService {
    *
    * @param {Array<Object>} relationships - The relationships to process
    * @param {Map} techniqueDetectedBy - Map to populate with technique detection info
-   * @param {Map} objectsMap - Map of objects in the bundle
    */
   static buildTechniqueDetectionMap(relationships, techniqueDetectedBy) {
     for (const relationship of relationships) {
