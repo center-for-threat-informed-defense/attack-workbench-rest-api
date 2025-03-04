@@ -360,6 +360,10 @@ exports.updateFull = async function(stixId, stixModified, data) {
             return null;
         }
         else {
+            // The front-end loses access to the x_mitre_modified_by_ref field in the serialize function and cannot add it back in.
+            // The rest API must take care of this before copying the data over to the document.
+            data.stix.x_mitre_modified_by_ref = asset.stix.x_mitre_modified_by_ref;
+
             // Copy data to found document and save
             Object.assign(asset, data);
             const savedAsset = await asset.save();
