@@ -315,7 +315,7 @@ class BaseService extends AbstractService {
     }
 
     const newDocument = await this.repository.updateAndSave(document, data);
-    
+
     if (newDocument === document) {
       // Document successfully saved
       return newDocument;

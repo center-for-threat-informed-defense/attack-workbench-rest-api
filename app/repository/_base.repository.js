@@ -241,7 +241,7 @@ class BaseRepository extends AbstractRepository {
   async updateAndSave(document, data) {
     try {
       // TODO validate that document is valid mongoose object first
-      _.merge(document, data)
+      _.merge(document, data);
       return await document.save();
     } catch (err) {
       throw new DatabaseError(err);
