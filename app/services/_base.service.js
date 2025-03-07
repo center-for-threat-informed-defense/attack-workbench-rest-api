@@ -314,12 +314,8 @@ class BaseService extends AbstractService {
       return null;
     }
 
-    // The front-end loses access to the x_mitre_modified_by_ref field in the serialize function and cannot add it back in.
-    // The rest API must take care of this before copying the data over to the document.
-    data.stix.x_mitre_modified_by_ref = document.stix.x_mitre_modified_by_ref;
-
     const newDocument = await this.repository.updateAndSave(document, data);
-
+    
     if (newDocument === document) {
       // Document successfully saved
       return newDocument;

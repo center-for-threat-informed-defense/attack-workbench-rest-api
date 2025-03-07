@@ -1,6 +1,7 @@
 'use strict';
 
 const AbstractRepository = require('./_abstract.repository');
+const _ = require('lodash');
 const regexValidator = require('../lib/regex');
 const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
 const {
@@ -240,7 +241,7 @@ class BaseRepository extends AbstractRepository {
   async updateAndSave(document, data) {
     try {
       // TODO validate that document is valid mongoose object first
-      Object.assign(document, data);
+      _.merge(document, data)
       return await document.save();
     } catch (err) {
       throw new DatabaseError(err);
