@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('lodash');
 const notesRepository = require('../repository/notes-repository');
 const BaseService = require('./_base.service');
 const { Note: NoteType } = require('../lib/types');
@@ -29,7 +30,7 @@ class NotesService extends BaseService {
       } else {
         // Copy data to found document and save
         try {
-          Object.assign(document, data);
+          _.merge(document, data);
           const savedDocument = await document.save();
           return savedDocument;
         } catch (err) {
