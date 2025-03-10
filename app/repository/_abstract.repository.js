@@ -1,4 +1,5 @@
-/* eslint-disable require-await */
+/* eslint-disable no-unused-vars */
+// Note there is a bug in eslint where single line comment will not work ^
 'use strict';
 
 const { NotImplementedError } = require('../exceptions');

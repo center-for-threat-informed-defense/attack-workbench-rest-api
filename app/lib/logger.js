@@ -39,7 +39,9 @@ const logger = winston.createLogger({
 });
 
 logger.stream = {
+  // eslint-disable-next-line no-unused-vars
   write: function (message, encoding) {
+    // TODO determine if 'encoding' argument can be omitted
     // Write to the log. Remove the last character to avoid double 'new line' characters.
     logger.http(message.slice(0, -1));
   },

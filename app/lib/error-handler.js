@@ -21,6 +21,7 @@ exports.requestValidation = function (err, req, res, next) {
   }
 };
 
+// eslint-disable-next-line no-unused-vars
 exports.catchAll = function (err, req, res, next) {
   logger.error('catch all: ' + err);
   res.status(500).send('Server error.');

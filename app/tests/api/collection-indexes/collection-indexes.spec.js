@@ -101,192 +101,132 @@ describe('Collection Indexes Basic API', function () {
       });
   });
 
-  it('POST /api/collection-indexes does not create an empty collection index', function (done) {
+  it('POST /api/collection-indexes does not create an empty collection index', async function () {
     const body = {};
-    request(app)
+    await request(app)
       .post('/api/collection-indexes')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(400);
   });
 
   let collectionIndex1;
-  it('POST /api/collection-indexes creates a collection index', function (done) {
+  it('POST /api/collection-indexes creates a collection index', async function () {
     const timestamp = new Date().toISOString();
     initialObjectData.collection_index.created = timestamp;
     initialObjectData.collection_index.modified = timestamp;
     const body = initialObjectData;
-    request(app)
+    const res = await request(app)
       .post('/api/collection-indexes')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created collection index
-          collectionIndex1 = res.body;
-          expect(collectionIndex1).toBeDefined();
-          expect(collectionIndex1.collection_index).toBeDefined();
-          expect(collectionIndex1.collection_index.id).toBeDefined();
-          expect(collectionIndex1.collection_index.created).toBeDefined();
-          expect(collectionIndex1.collection_index.modified).toBeDefined();
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get the created collection index
+    collectionIndex1 = res.body;
+    expect(collectionIndex1).toBeDefined();
+    expect(collectionIndex1.collection_index).toBeDefined();
+    expect(collectionIndex1.collection_index.id).toBeDefined();
+    expect(collectionIndex1.collection_index.created).toBeDefined();
+    expect(collectionIndex1.collection_index.modified).toBeDefined();
   });
 
-  it('GET /api/collection-indexes returns the added collection index', function (done) {
-    request(app)
+  it('GET /api/collection-indexes returns the added collection index', async function () {
+    const res = await request(app)
       .get('/api/collection-indexes')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection index in an array
-          const collectionIndexes = res.body;
-          expect(collectionIndexes).toBeDefined();
-          expect(Array.isArray(collectionIndexes)).toBe(true);
-          expect(collectionIndexes.length).toBe(1);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get one collection index in an array
+    const collectionIndexes = res.body;
+    expect(collectionIndexes).toBeDefined();
+    expect(Array.isArray(collectionIndexes)).toBe(true);
+    expect(collectionIndexes.length).toBe(1);
   });
 
-  it('GET /api/collection-indexes/:id should not return a collection index when the id cannot be found', function (done) {
-    request(app)
+  it('GET /api/collection-indexes/:id should not return a collection index when the id cannot be found', async function () {
+    await request(app)
       .get('/api/collection-indexes/not-an-id')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(404)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(404);
   });
 
-  it('GET /api/collection-indexes/:id returns the added collection index', function (done) {
-    request(app)
+  it('GET /api/collection-indexes/:id returns the added collection index', async function () {
+    const res = await request(app)
       .get('/api/collection-indexes/' + collectionIndex1.collection_index.id)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get one collection index
-          const collectionIndex = res.body;
-          expect(collectionIndex).toBeDefined();
-          expect(collectionIndex.collection_index.id).toBe(collectionIndex1.collection_index.id);
-          expect(collectionIndex.collection_index.name).toBe(
-            collectionIndex1.collection_index.name,
-          );
-          expect(collectionIndex.collection_index.description).toBe(
-            collectionIndex1.collection_index.description,
-          );
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get one collection index
+    const collectionIndex = res.body;
+    expect(collectionIndex).toBeDefined();
+    expect(collectionIndex.collection_index.id).toBe(collectionIndex1.collection_index.id);
+    expect(collectionIndex.collection_index.name).toBe(collectionIndex1.collection_index.name);
+    expect(collectionIndex.collection_index.description).toBe(
+      collectionIndex1.collection_index.description,
+    );
   });
 
-  it('PUT /api/collection-indexes updates a collection index', function (done) {
+  it('PUT /api/collection-indexes updates a collection index', async function () {
     const timestamp = new Date().toISOString();
     collectionIndex1.collection_index.modified = timestamp;
     collectionIndex1.collection_index.description = 'This is an updated collection index.';
     const body = collectionIndex1;
-    request(app)
+    const res = await request(app)
       .put('/api/collection-indexes/' + collectionIndex1.collection_index.id)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the updated collection index
-          const collectionIndex = res.body;
-          expect(collectionIndex).toBeDefined();
-          expect(collectionIndex.collection_index.id).toBe(collectionIndex1.collection_index.id);
-          expect(collectionIndex.collection_index.modified).toBe(
-            collectionIndex1.collection_index.modified,
-          );
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get the updated collection index
+    const collectionIndex = res.body;
+    expect(collectionIndex).toBeDefined();
+    expect(collectionIndex.collection_index.id).toBe(collectionIndex1.collection_index.id);
+    expect(collectionIndex.collection_index.modified).toBe(
+      collectionIndex1.collection_index.modified,
+    );
   });
 
-  it('POST /api/collection-indexes does not create a collection index with the same id', function (done) {
+  it('POST /api/collection-indexes does not create a collection index with the same id', async function () {
     const body = collectionIndex1;
-    request(app)
+    await request(app)
       .post('/api/collection-indexes')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(409)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(409);
   });
 
-  it('DELETE /api/collection-indexes deletes a collection index', function (done) {
-    request(app)
+  it('DELETE /api/collection-indexes deletes a collection index', async function () {
+    await request(app)
       .delete('/api/collection-indexes/' + collectionIndex1.collection_index.id)
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(204)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          done();
-        }
-      });
+      .expect(204);
   });
 
-  it('GET /api/collection-indexes returns an empty array of collection indexes', function (done) {
-    request(app)
+  it('GET /api/collection-indexes returns an empty array of collection indexes', async function () {
+    const res = await request(app)
       .get('/api/collection-indexes')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get an empty array
-          const collectionIndexes = res.body;
-          expect(collectionIndexes).toBeDefined();
-          expect(Array.isArray(collectionIndexes)).toBe(true);
-          expect(collectionIndexes.length).toBe(0);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    // We expect to get an empty array
+    const collectionIndexes = res.body;
+    expect(collectionIndexes).toBeDefined();
+    expect(Array.isArray(collectionIndexes)).toBe(true);
+    expect(collectionIndexes.length).toBe(0);
   });
 
   after(async function () {
