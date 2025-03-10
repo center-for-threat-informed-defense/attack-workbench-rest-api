@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('lodash');
 const Reference = require('../models/reference-model');
 const { BadlyFormattedParameterError, DuplicateIdError, DatabaseError } = require('../exceptions');
 
@@ -83,7 +84,7 @@ class ReferencesRepository {
         return null;
       } else {
         // Copy data to found document and save
-        Object.assign(document, data);
+        _.merge(document, data);
         const savedDocument = await document.save();
         return savedDocument;
       }
