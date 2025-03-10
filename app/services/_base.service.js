@@ -191,7 +191,7 @@ class BaseService extends AbstractService {
 
   async retrieveById(stixId, options) {
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
 
     if (options.versions === 'all') {
@@ -229,11 +229,11 @@ class BaseService extends AbstractService {
 
   async retrieveVersionById(stixId, modified) {
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
 
     if (!modified) {
-      throw new MissingParameterError({ parameterName: 'modified' });
+      throw new MissingParameterError('modified');
     }
 
     const document = await this.repository.retrieveOneByVersion(stixId, modified);
@@ -302,11 +302,11 @@ class BaseService extends AbstractService {
 
   async updateFull(stixId, stixModified, data) {
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
 
     if (!stixModified) {
-      throw new MissingParameterError({ parameterName: 'modified' });
+      throw new MissingParameterError('modified');
     }
 
     const document = await this.repository.retrieveOneByVersion(stixId, stixModified);
@@ -330,11 +330,11 @@ class BaseService extends AbstractService {
   // TODO rename to deleteVersionByStixId and repurpose the existing name for deleting by the document's unique _id
   async deleteVersionById(stixId, stixModified) {
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
 
     if (!stixModified) {
-      throw new MissingParameterError({ parameterName: 'modified' });
+      throw new MissingParameterError('modified');
     }
 
     const document = await this.repository.findOneAndDelete(stixId, stixModified);
@@ -349,7 +349,7 @@ class BaseService extends AbstractService {
   // TODO rename to deleteManyByStixId
   async deleteById(stixId) {
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
     return await this.repository.deleteMany(stixId);
   }

@@ -25,11 +25,11 @@ class MatrixService extends BaseService {
     }
 
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
 
     if (!modified) {
-      throw new MissingParameterError({ parameterName: 'modified' });
+      throw new MissingParameterError('modified');
     }
 
     const matrix = await matrixRepository.retrieveOneByVersion(stixId, modified);

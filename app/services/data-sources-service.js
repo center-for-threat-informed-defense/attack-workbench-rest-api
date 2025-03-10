@@ -56,7 +56,7 @@ class DataSourcesService extends BaseService {
       // versions=latest Retrieve the data source with the latest modified date for this stixId
 
       if (!stixId) {
-        throw new MissingParameterError();
+        throw new MissingParameterError('stixId');
       }
 
       if (options.versions === 'all') {
@@ -90,11 +90,11 @@ class DataSourcesService extends BaseService {
       // Retrieve the version of the data source with the matching stixId and modified date
 
       if (!stixId) {
-        throw new MissingParameterError();
+        throw new MissingParameterError('stixId');
       }
 
       if (!modified) {
-        throw new MissingParameterError();
+        throw new MissingParameterError('modified');
       }
 
       const dataSource = await this.repository.retrieveOneByVersion(stixId, modified);

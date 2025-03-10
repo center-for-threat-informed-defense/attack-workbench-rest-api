@@ -28,7 +28,7 @@ class CollectionIndexesService extends BaseService {
 
   async updateFull(id, data) {
     if (!id) {
-      throw new MissingParameterError({ parameterName: 'collection_index.id' });
+      throw new MissingParameterError('collection_index.id');
     }
 
     const collectionIndex = await this.repository.retrieveById(id);
@@ -49,7 +49,7 @@ class CollectionIndexesService extends BaseService {
 
   async delete(id) {
     if (!id) {
-      throw new MissingParameterError({ parameterName: 'collection_index.id' });
+      throw new MissingParameterError('collection_index.id');
     }
 
     return await this.repository.findOneAndDelete(id);

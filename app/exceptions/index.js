@@ -15,8 +15,8 @@ class CustomError extends Error {
 }
 
 class MissingParameterError extends CustomError {
-  constructor(options) {
-    super('Missing required parameter', options);
+  constructor(parameter, options) {
+    super(`Missing required parameter: ${parameter}`, options);
   }
 }
 

@@ -23,7 +23,7 @@ class ReferencesService {
   async update(data) {
     // Note: source_name is used as the key and cannot be updated
     if (!data.source_name) {
-      throw new MissingParameterError({ parameterName: 'source_name' });
+      throw new MissingParameterError('data.source_name');
     }
 
     return await this.repository.updateAndSave(data);
@@ -31,7 +31,7 @@ class ReferencesService {
 
   async deleteBySourceName(sourceName) {
     if (!sourceName) {
-      throw new MissingParameterError({ parameterName: 'source_name' });
+      throw new MissingParameterError('source_name');
     }
 
     return await this.repository.findOneAndDelete(sourceName);

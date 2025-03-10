@@ -88,7 +88,7 @@ class TeamsRepository {
   async retrieveById(teamId) {
     try {
       if (!teamId) {
-        throw new MissingParameterError();
+        throw new MissingParameterError('teamId');
       }
 
       const team = await this.model.findOne({ id: teamId }).lean().exec();
@@ -123,7 +123,7 @@ class TeamsRepository {
   async updateFull(teamId, data) {
     try {
       if (!teamId) {
-        throw new MissingParameterError();
+        throw new MissingParameterError('teamId');
       }
 
       const document = await this.model.findOne({ id: teamId });

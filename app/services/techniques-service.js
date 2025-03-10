@@ -44,11 +44,11 @@ class TechniquesService extends BaseService {
 
     // Retrieve the tactics associated with the technique (the technique identified by stixId and modified date)
     if (!stixId) {
-      throw new MissingParameterError();
+      throw new MissingParameterError('stixId');
     }
 
     if (!modified) {
-      throw new MissingParameterError();
+      throw new MissingParameterError('modified');
     }
 
     try {

@@ -35,7 +35,7 @@ const scheduledSubscriptions = new Map();
 
 async function retrieveByUrl(url) {
   if (!url) {
-    throw new MissingParameterError({ parameterName: 'url' });
+    throw new MissingParameterError('url');
   }
 
   try {
