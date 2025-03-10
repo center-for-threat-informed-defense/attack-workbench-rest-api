@@ -12,6 +12,10 @@
         {
             "name": "alpha",
             "prerelease": true
+        },
+        {
+            "name": "project-orion",
+            "prerelease": true
         }
     ],
     "plugins": [
