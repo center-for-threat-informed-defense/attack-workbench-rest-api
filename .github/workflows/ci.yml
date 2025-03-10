@@ -122,6 +122,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          install: true # Sets up docker build command as an alias to docker buildx
+          driver-opts: image=moby/buildkit:latest
+          platforms: linux/amd64,linux/arm64
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
