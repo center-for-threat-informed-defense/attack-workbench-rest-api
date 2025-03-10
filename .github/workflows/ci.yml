@@ -135,7 +135,7 @@ jobs:
         
       # Install semantic-release plugins
       - name: Install semantic-release plugins
-        run: npm install -D @semantic-release/exec semantic-release-docker
+        run: npm install -D @semantic-release/exec
 
       - name: Semantic Release
         id: semantic
