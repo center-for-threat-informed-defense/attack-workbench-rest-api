@@ -112,19 +112,16 @@ class BaseRepository extends AbstractRepository {
 
   // New specialized method for STIX bundle generation
   async retrieveAllByDomain(domain, options) {
-    try {
-      // DIFFERENCE 1: Domain is a required parameter
-      if (!domain) {
-        throw new MissingParameterError('domain is required for retrieveAllByDomain');
-      }
+    if (!domain) {
+      throw new MissingParameterError('domain');
+    }
 
-      // DIFFERENCE 2: Query construction matches exact logic from original stix-bundles-service
+    try {
       // This is critical because the bundle export functionality requires precise filtering
       const query = {
         'stix.x_mitre_domains': domain, // Domain filtering is mandatory here
       };
 
-      // DIFFERENCE 3: Revoked/deprecated handling is more strict
       // Bundle export requires these to be specifically filtered as null or false
       // while the generic method just applies the filter if the option is set
       if (!options.includeRevoked) {
@@ -134,14 +131,12 @@ class BaseRepository extends AbstractRepository {
         query['stix.x_mitre_deprecated'] = { $in: [null, false] };
       }
 
-      // DIFFERENCE 4: State handling matches original bundle export logic exactly
       if (typeof options.state !== 'undefined') {
         query['workspace.workflow.state'] = Array.isArray(options.state)
           ? { $in: options.state }
           : options.state;
       }
 
-      // DIFFERENCE 5: Aggregation pipeline exactly matches original stix-bundles-service
       // Order of operations is critical here for correct bundle generation
       const aggregation = [
         // Sort by STIX ID and modified date first
@@ -156,11 +151,9 @@ class BaseRepository extends AbstractRepository {
         { $match: query },
       ];
 
-      // DIFFERENCE 6: No pagination handling
       // Bundle export needs ALL matching documents, not a paginated subset
       const documents = await this.model.aggregate(aggregation).exec();
 
-      // DIFFERENCE 7: Return format matches original bundle export needs
       // No pagination metadata needed, just the raw documents
       return documents;
     } catch (err) {
