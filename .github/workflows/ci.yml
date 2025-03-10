@@ -3,6 +3,7 @@ name: CI and Release
 on:
   push:
     branches:
+      - project-orion # TODO remove after project completion
       - main
       - master
       - develop
