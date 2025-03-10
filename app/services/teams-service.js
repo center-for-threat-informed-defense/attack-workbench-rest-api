@@ -85,7 +85,7 @@ class TeamsService {
 
   async delete(teamId) {
     if (!teamId) {
-      throw new MissingParameterError();
+      throw new MissingParameterError('teamId');
     }
 
     const team = await this.repository.model.findOneAndDelete({ id: teamId });

@@ -36,7 +36,7 @@ class CollectionsService extends BaseService {
 
   async retrieveById(stixId, options) {
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
 
     let collections;
@@ -68,11 +68,11 @@ class CollectionsService extends BaseService {
 
   async retrieveVersionById(stixId, modified, options = {}) {
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
 
     if (!modified) {
-      throw new MissingParameterError({ parameterName: 'modified' });
+      throw new MissingParameterError('modified');
     }
 
     const collection = await this.repository.retrieveOneByVersionLean(stixId, modified);
@@ -173,12 +173,12 @@ class CollectionsService extends BaseService {
 
   async delete(stixId, deleteAllContents = false) {
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
 
     const collections = await this.repository.retrieveOneByIdLean(stixId);
     if (!collections) {
-      throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
+      throw new BadlyFormattedParameterError('stixId');
     }
 
     if (deleteAllContents) {
@@ -192,17 +192,17 @@ class CollectionsService extends BaseService {
 
   async deleteVersionById(stixId, modified, deleteAllContents = false) {
     if (!stixId) {
-      throw new MissingParameterError({ parameterName: 'stixId' });
+      throw new MissingParameterError('stixId');
     }
 
     if (!modified) {
-      throw new MissingParameterError({ parameterName: 'modified' });
+      throw new MissingParameterError('modified');
     }
 
     const collection = await this.repository.retrieveOneByVersionLean(stixId, modified);
 
     if (!collection) {
-      throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
+      throw new BadlyFormattedParameterError('stixId');
     }
 
     if (deleteAllContents) {
@@ -213,8 +213,13 @@ class CollectionsService extends BaseService {
   }
 
   async insertExport(stixId, modified, exportData) {
-    if (!stixId || !modified || !exportData) {
-      throw new MissingParameterError();
+    const missingParams = [];
+    if (!stixId) missingParams.push('stixId');
+    if (!modified) missingParams.push('modified');
+    if (!exportData) missingParams.push('exportData');
+
+    if (missingParams.length > 0) {
+      throw new MissingParameterError(missingParams.join(', '));
     }
 
     return await this.repository.insertExport(stixId, modified, exportData);

@@ -83,7 +83,7 @@ class MarkingDefinitionsService extends BaseService {
   async retrieveById(stixId, options) {
     try {
       if (!stixId) {
-        throw new MissingParameterError();
+        throw new MissingParameterError('stixId');
       }
 
       const markingDefinition = await this.repository.retrieveOneById(stixId);
@@ -106,7 +106,7 @@ class MarkingDefinitionsService extends BaseService {
 
   async delete(stixId) {
     if (!stixId) {
-      throw new MissingParameterError();
+      throw new MissingParameterError('stixId');
     }
 
     //Note: markingDefinition is null if not found

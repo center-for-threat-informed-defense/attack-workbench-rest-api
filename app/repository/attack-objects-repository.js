@@ -124,7 +124,7 @@ class AttackObjectsRepository extends BaseRepository {
   async findByIdAndUpdate(documentId, update) {
     try {
       if (!update) {
-        throw new MissingParameterError({ parameterName: 'update' });
+        throw new MissingParameterError('update');
       }
       return await this.model.findByIdAndUpdate(documentId, update).exec();
     } catch (err) {

@@ -13,11 +13,11 @@ const {
 class NotesService extends BaseService {
   async updateVersion(stixId, stixModified, data) {
     if (!stixId) {
-      throw new MissingParameterError();
+      throw new MissingParameterError('stixId');
     }
 
     if (!stixModified) {
-      throw new MissingParameterError();
+      throw new MissingParameterError('stixModified');
     }
 
     try {
