@@ -281,9 +281,9 @@ class StixBundlesService extends BaseService {
    * @returns {Promise<Array<string>>} Array of domain names
    */
   async getDomainsForSecondaryObject(attackObject) {
-    const relationships = await relationshipsRepository.retrieveAll({
-      sourceRef: attackObject.stix.id,
-    });
+    const relationships = this.allRelationships.filter(
+      (relationship) => relationship.stix.source_ref == attackObject.stix.id,
+    );
 
     const domainMap = new Map();
     for (const relationship of relationships) {
@@ -470,11 +470,11 @@ class StixBundlesService extends BaseService {
       includeDeprecated: options.includeDeprecated,
       state: options.state,
     };
-    const allRelationships =
-      await relationshipsRepository.retrieveAllForBundle(relationshipOptions);
+    // Since we're querying all relationships, save them for later to prevent future database queries.
+    this.allRelationships = await relationshipsRepository.retrieveAllForBundle(relationshipOptions);
 
     // Iterate over the relationships, keeping any that have a source_ref or target_ref that points at a primary object
-    const primaryObjectRelationships = allRelationships.filter(
+    const primaryObjectRelationships = this.allRelationships.filter(
       (relationship) =>
         objectsMap.has(relationship.stix.source_ref) ||
         objectsMap.has(relationship.stix.target_ref),
@@ -501,7 +501,7 @@ class StixBundlesService extends BaseService {
     const dataSources = new Map();
     await this.processDataSourcesAndComponents(bundle, dataComponents, dataSources, options);
 
-    await this.processSecondaryRelationships(allRelationships, bundle, objectsMap, options);
+    await this.processSecondaryRelationships(bundle, objectsMap, options);
 
     // Process data components
     StixBundlesService.processDataComponents(
@@ -761,18 +761,17 @@ class StixBundlesService extends BaseService {
    * - Secondary objects that were revoked by other secondary objects
    * - Campaign-to-group attributed-to relationships where both objects are in bundle
    *
-   * @param {Object[]} allRelationships - All relationships to process
    * @param {Object} bundle - The STIX bundle being built
    * @param {Map} objectsMap - Map tracking objects currently in bundle
    * @param {Object} options - Bundle generation options
    * @param {string} options.domain - The domain being processed
    * @returns {Promise<void>}
    */
-  async processSecondaryRelationships(allRelationships, bundle, objectsMap, options) {
+  async processSecondaryRelationships(bundle, objectsMap, options) {
     const relationshipsMap = new Map();
 
     // Handle groups referenced by campaigns
-    for (const relationship of allRelationships) {
+    for (const relationship of this.allRelationships) {
       if (relationship.stix.relationship_type === 'attributed-to') {
         if (
           objectsMap.has(relationship.stix.source_ref) &&
@@ -792,7 +791,7 @@ class StixBundlesService extends BaseService {
     }
 
     // Handle revoked-by relationships
-    for (const relationship of allRelationships) {
+    for (const relationship of this.allRelationships) {
       if (
         relationship.stix.relationship_type === 'revoked-by' &&
         !relationshipsMap.has(relationship.stix.id) &&
@@ -807,7 +806,7 @@ class StixBundlesService extends BaseService {
     }
 
     // Add secondary objects that were revoked by other secondary objects
-    for (const relationship of allRelationships) {
+    for (const relationship of this.allRelationships) {
       if (relationship.stix.relationship_type === 'revoked-by') {
         if (
           !objectsMap.has(relationship.stix.source_ref) &&
@@ -829,7 +828,7 @@ class StixBundlesService extends BaseService {
     }
 
     // Add campaign-to-group attributed-to relationships
-    for (const relationship of allRelationships) {
+    for (const relationship of this.allRelationships) {
       if (
         relationship.stix.relationship_type === 'attributed-to' &&
         !relationshipsMap.has(relationship.stix.id) &&
