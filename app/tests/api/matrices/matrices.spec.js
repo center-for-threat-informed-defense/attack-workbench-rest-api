@@ -158,7 +158,6 @@ describe('Matrices API', function () {
     expect(matrix.stix.x_mitre_attack_spec_version).toBe(matrix1.stix.x_mitre_attack_spec_version);
   });
 
-  // TODO Error: Timeout of 2000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves.
   it('PUT /api/matrices updates a matrix', async function () {
     const originalModified = matrix1.stix.modified;
     const timestamp = new Date().toISOString();
@@ -181,7 +180,6 @@ describe('Matrices API', function () {
     expect(matrix.stix.modified).toBe(matrix1.stix.modified);
   });
 
-  // TODO Error: Timeout of 2000ms exceeded. For async tests and hooks, ensure "done()" is called; if returning a Promise, ensure it resolves.
   it('POST /api/matrices does not create a matrix with the same id and modified date', async function () {
     const body = matrix1;
     await request(app)
@@ -190,7 +188,7 @@ describe('Matrices API', function () {
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(409);
-  }).timeout(10000);
+  });
 
   let matrix2;
   it('POST /api/matrices should create a new version of a matrix with a duplicate stix.id but different stix.modified date', async function () {
