@@ -3,8 +3,8 @@
 const config = require('../config/config');
 const BaseService = require('./_base.service');
 const tacticsRepository = require('../repository/tactics-repository');
-
 const { Tactic: TacticType } = require('../lib/types');
+const techniquesService = require('./techniques-service');
 const { BadlyFormattedParameterError, MissingParameterError } = require('../exceptions');
 
 class TacticsService extends BaseService {
@@ -36,11 +36,6 @@ class TacticsService extends BaseService {
   }
 
   async retrieveTechniquesForTactic(stixId, modified, options) {
-    // Late binding to avoid circular dependency between modules
-    if (!TacticsService.techniquesService) {
-      TacticsService.techniquesService = require('./techniques-service');
-    }
-
     // Retrieve the techniques associated with the tactic (the tactic identified by stixId and modified date)
     if (!stixId) {
       throw new MissingParameterError('stixId');
@@ -57,7 +52,7 @@ class TacticsService extends BaseService {
       if (!tactic) {
         return null;
       } else {
-        const allTechniques = await TacticsService.techniquesService.retrieveAll({});
+        const allTechniques = await techniquesService.retrieveAll({});
         const filteredTechniques = allTechniques.filter(
           TacticsService.techniqueMatchesTactic(tactic),
         );
