@@ -3,27 +3,18 @@
 const BaseService = require('./_base.service');
 const matrixRepository = require('../repository/matrix-repository');
 const { Matrix: MatrixType } = require('../lib/types');
-
-const { GenericServiceError, MissingParameterError } = require('../exceptions');
+const tacticsService = require('./tactics-service');
+const logger = require('../lib/logger');
+const { TacticsServiceError, MissingParameterError } = require('../exceptions');
 
 class MatrixService extends BaseService {
   constructor(type, repository) {
     super(type, repository);
-
-    this.retrieveTacticById = null;
-    this.retrieveTechniquesForTactic = null;
   }
 
   // Custom methods specific to MatrixService should be specified below
 
   async retrieveTechniquesForMatrix(stixId, modified) {
-    // Lazy loading of services
-    if (!this.retrieveTacticById || !this.retrieveTechniquesForTactic) {
-      const tacticsService = require('./tactics-service');
-      this.retrieveTacticById = tacticsService.retrieveById;
-      this.retrieveTechniquesForTactic = tacticsService.retrieveTechniquesForTactic;
-    }
-
     if (!stixId) {
       throw new MissingParameterError('stixId');
     }
@@ -43,16 +34,17 @@ class MatrixService extends BaseService {
     for (const tacticId of matrix.stix.tactic_refs) {
       let tactics, techniques;
       try {
-        tactics = await this.retrieveTacticById(tacticId, options);
+        tactics = await tacticsService.retrieveById(tacticId, options);
         if (tactics && tactics.length) {
-          techniques = await this.retrieveTechniquesForTactic(
+          techniques = await tacticsService.retrieveTechniquesForTactic(
             tacticId,
             tactics[0].stix.modified,
             options,
           );
         }
       } catch (err) {
-        throw new GenericServiceError(err); // TODO it's probably better to throw TechniquesServiceError or TacticsServiceError
+        logger.error(err);
+        throw new TacticsServiceError(err);
       }
 
       if (tactics && tactics.length) {
