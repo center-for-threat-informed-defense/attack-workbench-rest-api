@@ -1,3 +1,5 @@
+const fs = require('fs').promises;
+
 const request = require('supertest');
 const { expect } = require('expect');
 const _ = require('lodash');
@@ -10,6 +12,13 @@ const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
+
+const collectionBundlesService = require('../../../services/collection-bundles-service');
+
+async function readJson(path) {
+  const data = await fs.readFile(require.resolve(path));
+  return JSON.parse(data);
+}
 
 // modified and created properties will be set before calling REST API
 // stix.id property will be created by REST API
@@ -333,6 +342,33 @@ describe('Matrices API', function () {
     expect(matrices).toBeDefined();
     expect(Array.isArray(matrices)).toBe(true);
     expect(matrices.length).toBe(0);
+  });
+
+  it('GET /api/matrices/:id/modified/:modified/techniques returns its techniques', async function () {
+    const collectionBundle = await readJson('./matrices.techniques.tactics.json');
+    const collections = collectionBundle.objects.filter(
+      (object) => object.type === 'x-mitre-collection',
+    );
+
+    const importOptions = {};
+    await collectionBundlesService.importBundle(collections[0], collectionBundle, importOptions);
+
+    const res = await request(app)
+      .get(
+        '/api/matrices/x-mitre-matrix--2a4858a3-85c3-4418-9729-c3e79800acf7/modified/2020-01-01T00:00:00.000Z/techniques',
+      )
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    const techniques = res.body;
+    expect(techniques).toBeDefined();
+    expect(techniques['Nanna-Suen']).toBeDefined();
+    expect(techniques['Nanna-Suen'].techniques).toBeDefined();
+    expect(Array.isArray(techniques['Nanna-Suen'].techniques)).toBe(true);
+    expect(techniques['Nanna-Suen'].techniques.length).toBe(1);
+    expect(techniques['Nanna-Suen'].techniques[0].stix.name).toBe('Sample Technique 2');
   });
 
   after(async function () {
