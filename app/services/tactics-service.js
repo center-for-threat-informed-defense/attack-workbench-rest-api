@@ -36,7 +36,6 @@ class TacticsService extends BaseService {
   }
 
   async retrieveTechniquesForTactic(stixId, modified, options) {
-
     // Retrieve the techniques associated with the tactic (the tactic identified by stixId and modified date)
     if (!stixId) {
       throw new MissingParameterError('stixId');
