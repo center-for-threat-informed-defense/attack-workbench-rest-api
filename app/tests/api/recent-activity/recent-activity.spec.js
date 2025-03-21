@@ -2,7 +2,6 @@ const fs = require('fs').promises;
 
 const request = require('supertest');
 const { expect } = require('expect');
-const _ = require('lodash');
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
@@ -54,7 +53,6 @@ describe('Recent Activity API', function () {
   });
 
   it('GET /api/recent-activity returns more objects after loading test data', async function () {
-
     const collectionBundle = await readJson('./sample-collection.json');
     const collections = collectionBundle.objects.filter(
       (object) => object.type === 'x-mitre-collection',
@@ -67,7 +65,7 @@ describe('Recent Activity API', function () {
 
     await collectionBundlesService.importBundle(collections[0], collectionBundle, importOptions);
 
-  const res = await request(app)
+    const res = await request(app)
       .get('/api/recent-activity')
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
