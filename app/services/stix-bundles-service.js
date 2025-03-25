@@ -3,6 +3,7 @@
 const uuid = require('uuid');
 const config = require('../config/config');
 const BaseService = require('./_base.service');
+const linkById = require('../lib/linkById');
 const logger = require('../lib/logger');
 
 // Import repositories
@@ -517,6 +518,9 @@ class StixBundlesService extends BaseService {
       await notesService.addNotes(bundle.objects);
     }
 
+    // Convert LinkById tags to markdown citations
+    await this.convertLinkedById(bundle.objects);
+
     // Process identities and marking definitions
     await this.processIdentitiesAndMarkings(bundle);
 
@@ -904,6 +908,16 @@ class StixBundlesService extends BaseService {
     } catch (err) {
       logger.error(`Error retrieving attack object ${stixId}:`, err);
       return null;
+    }
+  }
+
+  /**
+   * Converts LinkById tags to markdown citations
+   * @param {Array<Object>} bundleObjects - Objects in the bundle
+   */
+  async convertLinkedById(bundleObjects) {
+    for (const bundleObject of bundleObjects) {
+      await linkById.convertLinkByIdTags(bundleObject, this.getAttackObject);
     }
   }
 }
