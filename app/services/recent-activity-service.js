@@ -9,10 +9,7 @@ class RecentActivityService {
   }
 
   async retrieveAll(options) {
-    const documents = this.repository.retrieveAll(options);
-
-    // Sort by most recent
-    documents.sort((a, b) => b.stix.modified - a.stix.modified);
+    const documents = await this.repository.retrieveAll(options);
 
     // Move latest source and target objects to a non-array property, then remove array of source and target objects
     for (const document of documents) {
