@@ -84,9 +84,10 @@ class StixBundlesService extends BaseService {
     };
 
     // Initialize caches for efficient object lookup
-    this.attackObjectCache = new Map(); // Maps attack IDs to attack objects
+    this.attackObjectCache = new Map(); // Maps STIX IDs to attack objects
     this.identityCache = new Map(); // Maps identity STIX IDs to identity objects
     this.markingDefinitionsCache = new Map(); // Maps marking definition STIX IDs to marking objects
+    this.attackObjectByAttackIdCache = new Map(); // Maps attack IDs to attack objects
   }
 
   // ============================
@@ -266,6 +267,10 @@ class StixBundlesService extends BaseService {
     }
 
     objectsMap.set(secondaryObject.stix.id, true);
+    const attackId = linkById.getAttackId(secondaryObject.stix);
+    if (attackId) {
+      this.attackObjectByAttackIdCache.set(attackId, secondaryObject);
+    }
     return true;
   }
 
@@ -475,11 +480,14 @@ class StixBundlesService extends BaseService {
 
     // Put the primary objects in the bundle
     // Also create a map of the objects added to the bundle (use the id as the key, since relationships only reference the id)
-    // Also create a map of the objects added to the bundle (use the id as the key, since relationships only reference the id)
     const objectsMap = new Map();
     for (const primaryObject of primaryObjects) {
       bundle.objects.push(primaryObject.stix);
       objectsMap.set(primaryObject.stix.id, true);
+      const attackId = linkById.getAttackId(primaryObject.stix);
+      if (attackId) {
+        this.attackObjectByAttackIdCache.set(attackId, primaryObject);
+      }
     }
 
     // Get the relationships that point at primary objects (removing duplicates)
@@ -538,7 +546,7 @@ class StixBundlesService extends BaseService {
 
     // Convert LinkById tags to markdown citations
     for (const bundleObject of bundle.objects) {
-      await linkById.convertLinkByIdTags(bundleObject);
+      await linkById.convertLinkByIdTags(bundleObject, this.getAttackObjectFromMap);
     }
 
     // Process identities and marking definitions
@@ -809,6 +817,10 @@ class StixBundlesService extends BaseService {
             groupObject.stix.x_mitre_domains = [options.domain];
             bundle.objects.push(groupObject.stix);
             objectsMap.set(groupObject.stix.id, true);
+            const attackId = linkById.getAttackId(groupObject.stix);
+            if (attackId) {
+              this.attackObjectByAttackIdCache.set(attackId, groupObject);
+            }
           }
         }
       }
@@ -846,6 +858,10 @@ class StixBundlesService extends BaseService {
             }
             bundle.objects.push(revokedObject.stix);
             objectsMap.set(revokedObject.stix.id, true);
+            const attackId = linkById.getAttackId(revokedObject.stix);
+            if (attackId) {
+              this.attackObjectByAttackIdCache.set(attackId, revokedObject);
+            }
           }
         }
       }
@@ -929,6 +945,13 @@ class StixBundlesService extends BaseService {
       logger.error(`Error retrieving attack object ${stixId}:`, err);
       return null;
     }
+  }
+
+  async getAttackObjectFromMap(attackId) {
+    return (
+      this.attackObjectByAttackIdCache.get(attackId) ||
+      (await linkById.getAttackObjectFromDatabase(attackId))
+    );
   }
 }
 
