@@ -545,9 +545,7 @@ class StixBundlesService extends BaseService {
     }
 
     // Convert LinkById tags to markdown citations
-    for (const bundleObject of bundle.objects) {
-      await linkById.convertLinkByIdTags(bundleObject, this.getAttackObjectFromMap);
-    }
+    await this.convertLinkByIdTags(bundle.objects, this.attackObjectByAttackIdCache);
 
     // Process identities and marking definitions
     await this.processIdentitiesAndMarkings(bundle);
@@ -947,11 +945,22 @@ class StixBundlesService extends BaseService {
     }
   }
 
-  async getAttackObjectFromMap(attackId) {
-    return (
-      this.attackObjectByAttackIdCache.get(attackId) ||
-      (await linkById.getAttackObjectFromDatabase(attackId))
-    );
+  /**
+   * Converts LinkById tags to markdown citations
+   * @param {Array<Object>} bundleObjects - Objects in the bundle
+   * @param {Map} attackObjectByAttackIdCache - Map of attack objects
+   */
+  async convertLinkByIdTags(bundleObjects, attackObjectByAttackIdCache) {
+    const getAttackObjectFromMap = async function (attackId) {
+      return (
+        attackObjectByAttackIdCache.get(attackId) ||
+        (await linkById.getAttackObjectFromDatabase(attackId))
+      );
+    };
+
+    for (const bundleObject of bundleObjects) {
+      await linkById.convertLinkByIdTags(bundleObject, getAttackObjectFromMap);
+    }
   }
 }
 
