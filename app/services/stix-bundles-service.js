@@ -537,7 +537,9 @@ class StixBundlesService extends BaseService {
     }
 
     // Convert LinkById tags to markdown citations
-    await this.convertLinkedById(bundle.objects);
+    for (const bundleObject of bundle.objects) {
+      await linkById.convertLinkByIdTags(bundleObject);
+    }
 
     // Process identities and marking definitions
     await this.processIdentitiesAndMarkings(bundle);
@@ -926,16 +928,6 @@ class StixBundlesService extends BaseService {
     } catch (err) {
       logger.error(`Error retrieving attack object ${stixId}:`, err);
       return null;
-    }
-  }
-
-  /**
-   * Converts LinkById tags to markdown citations
-   * @param {Array<Object>} bundleObjects - Objects in the bundle
-   */
-  async convertLinkedById(bundleObjects) {
-    for (const bundleObject of bundleObjects) {
-      await linkById.convertLinkByIdTags(bundleObject, this.getAttackObject);
     }
   }
 }
