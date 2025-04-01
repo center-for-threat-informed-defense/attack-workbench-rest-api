@@ -24,7 +24,7 @@
         [
             "@semantic-release/exec",
             {
-                "prepareCmd": "docker buildx build --push --platform linux/amd64,linux/arm64 -t ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:${nextRelease.version} -t ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:latest --build-arg VERSION=${nextRelease.version} --build-arg BUILDTIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ') --build-arg REVISION=${process.env.GITHUB_SHA} ."
+                "prepareCmd": "./scripts/docker-build.sh ${nextRelease.version} ${nextRelease.type} ${process.env.GITHUB_SHA}"
             }
         ],
         "@semantic-release/github"
