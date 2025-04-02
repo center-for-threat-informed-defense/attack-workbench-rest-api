@@ -434,33 +434,14 @@ class StixBundlesService extends BaseService {
     };
 
     // Retrieve primary objects
-    // Note: Matrix retrieval differs from other objects:
-    // 1. Other objects: Filtered by domain in database using stix.x_mitre_domains field
-    // 2. Matrices: Retrieved without domain filter, then filtered by external_references[0].external_id
-    const [
-      domainMitigations,
-      domainSoftware,
-      domainTactics,
-      domainTechniques,
-      allMatrices, // All matrices regardless of domain
-    ] = await Promise.all([
-      mitigationsRepository.retrieveAllByDomain(options.domain, queryOptions),
-      softwareRepository.retrieveAllByDomain(options.domain, queryOptions),
-      tacticsRepository.retrieveAllByDomain(options.domain, queryOptions),
-      techniquesRepository.retrieveAllByDomain(options.domain, queryOptions),
-      matrixRepository.retrieveAllForBundle(queryOptions), // Special matrix handling
-    ]);
-
-    // Filter matrices by domain
-    // Unlike other objects where domain filtering happened in the database query,
-    // we filter matrices here by checking their external_references.
-    // This preserves the original logic where matrices are associated with domains
-    // via external_references[0].external_id rather than the x_mitre_domains field.
-    const domainMatrices = allMatrices.filter(
-      (matrix) =>
-        matrix?.stix?.external_references?.length &&
-        matrix.stix.external_references[0].external_id === options.domain,
-    );
+    const [domainMitigations, domainSoftware, domainTactics, domainTechniques, domainMatrices] =
+      await Promise.all([
+        mitigationsRepository.retrieveAllByDomain(options.domain, queryOptions),
+        softwareRepository.retrieveAllByDomain(options.domain, queryOptions),
+        tacticsRepository.retrieveAllByDomain(options.domain, queryOptions),
+        techniquesRepository.retrieveAllByDomain(options.domain, queryOptions),
+        matrixRepository.retrieveAllByDomain(options.domain, queryOptions),
+      ]);
 
     let primaryObjects = [
       ...domainMatrices,

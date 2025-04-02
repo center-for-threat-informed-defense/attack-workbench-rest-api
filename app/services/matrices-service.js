@@ -76,6 +76,20 @@ class MatrixService extends BaseService {
     }
     return tacticsTechniques;
   }
+
+  // Filter matrices by domain
+  // Unlike other objects where domain filtering happened in the database query,
+  // we filter matrices here by checking their external_references.
+  // This preserves the original logic where matrices are associated with domains
+  // via external_references[0].external_id rather than the x_mitre_domains field.
+  async retrieveAllByDomain(domain, queryOptions) {
+    const matrices = this.retrieveAllForBundle(queryOptions);
+    return matrices.filter(
+      (matrix) =>
+        matrix?.stix?.external_references?.length &&
+        matrix.stix.external_references[0].external_id === domain,
+    );
+  }
 }
 
 module.exports = new MatrixService(MatrixType, matrixRepository);
