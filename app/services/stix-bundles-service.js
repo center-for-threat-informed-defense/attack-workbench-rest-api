@@ -273,11 +273,13 @@ class StixBundlesService extends BaseService {
 
    */
   addAttackObjectToBundle(attackObject, bundle, objectsMap) {
-    bundle.objects.push(attackObject.stix);
-    objectsMap.set(attackObject.stix.id, true);
-    const attackId = linkById.getAttackId(attackObject.stix);
-    if (attackId) {
-      this.attackObjectByAttackIdCache.set(attackId, attackObject);
+    if (!objectsMap.has(attackObject.stix.id)) {
+      bundle.objects.push(attackObject.stix);
+      objectsMap.set(attackObject.stix.id, true);
+      const attackId = linkById.getAttackId(attackObject.stix);
+      if (attackId) {
+        this.attackObjectByAttackIdCache.set(attackId, attackObject);
+      }
     }
   }
 
