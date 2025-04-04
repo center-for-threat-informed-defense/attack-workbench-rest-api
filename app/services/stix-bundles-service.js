@@ -452,22 +452,14 @@ class StixBundlesService extends BaseService {
       bundle.spec_version = '2.0';
     }
 
-    // Build query options
-    const queryOptions = {
-      includeRevoked: options.includeRevoked,
-      includeDeprecated: options.includeDeprecated,
-      state: options.state,
-      domain: options.domain,
-    };
-
     // Retrieve primary objects
     const [domainMitigations, domainSoftware, domainTactics, domainTechniques, domainMatrices] =
       await Promise.all([
-        mitigationsRepository.retrieveAllByDomain(options.domain, queryOptions),
-        softwareRepository.retrieveAllByDomain(options.domain, queryOptions),
-        tacticsRepository.retrieveAllByDomain(options.domain, queryOptions),
-        techniquesRepository.retrieveAllByDomain(options.domain, queryOptions),
-        matrixRepository.retrieveAllByDomain(options.domain, queryOptions),
+        mitigationsRepository.retrieveAllByDomain(options.domain, options),
+        softwareRepository.retrieveAllByDomain(options.domain, options),
+        tacticsRepository.retrieveAllByDomain(options.domain, options),
+        techniquesRepository.retrieveAllByDomain(options.domain, options),
+        matrixRepository.retrieveAllByDomain(options.domain, options),
       ]);
 
     let primaryObjects = [
@@ -493,16 +485,8 @@ class StixBundlesService extends BaseService {
       this.addAttackObjectToBundle(primaryObject, bundle, objectsMap);
     }
 
-    // Get the relationships that point at primary objects
-    // Remove domain from options for relationships
-    const relationshipOptions = {
-      includeRevoked: options.includeRevoked,
-      includeDeprecated: options.includeDeprecated,
-      state: options.state,
-    };
-
     // Since we're querying all relationships, save them for later to prevent future database queries.
-    this.allRelationships = await relationshipsRepository.retrieveAllForBundle(relationshipOptions);
+    this.allRelationships = await relationshipsRepository.retrieveAllForBundle(options);
 
     // Filter relationships that have a source_ref or target_ref that points at a primary object
     const primaryObjectRelationships = this.allRelationships.filter(
