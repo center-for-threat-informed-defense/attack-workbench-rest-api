@@ -291,6 +291,7 @@ class StixBundlesService extends BaseService {
 
     // Handle domains for groups and campaigns
     if (secondaryObject.stix.type === 'intrusion-set' || secondaryObject.stix.type === 'campaign') {
+      this.domainCache.set(secondaryObject.stix.id, secondaryObject.stix.x_mitre_domains);
       secondaryObject.stix.x_mitre_domains =
         await this.getDomainsForSecondaryObject(secondaryObject);
     }
@@ -335,9 +336,18 @@ class StixBundlesService extends BaseService {
     const domainMap = new Map();
     for (const relationship of relationships) {
       const targetObject = await this.getAttackObject(relationship.stix.target_ref);
-      if (targetObject?.stix.x_mitre_domains) {
-        for (const domain of targetObject.stix.x_mitre_domains) {
+      // domainCache is used to accurately reflect the STIX bundle post-refactoring in project Orion.
+      // The additional domains that would otherwise be added are likely correct, but that will
+      // be handled in a separate data cleanup effort not coinciding with the imminent v17 ATT&CK release.
+      if (this.domainCache.has(targetObject?.stix.id)) {
+        for (const domain of this.domainCache.get(targetObject.stix.id)) {
           domainMap.set(domain, true);
+        }
+      } else {
+        if (targetObject?.stix.x_mitre_domains) {
+          for (const domain of targetObject.stix.x_mitre_domains) {
+            domainMap.set(domain, true);
+          }
         }
       }
     }
@@ -439,7 +449,8 @@ class StixBundlesService extends BaseService {
     this.identityCache = new Map(); // Maps identity STIX IDs to identity objects
     this.markingDefinitionsCache = new Map(); // Maps marking definition STIX IDs to marking objects
     this.attackObjectByAttackIdCache = new Map(); // Maps attack IDs to attack objects
-    
+    this.domainCache = new Map(); // Stores original x-mitre-domains if we change them at runtime
+
     // Initialize bundle
     const bundle = {
       type: 'bundle',
@@ -734,6 +745,7 @@ class StixBundlesService extends BaseService {
           groupObject.stix.type === 'intrusion-set' &&
           StixBundlesService.secondaryObjectIsValid(groupObject, options)
         ) {
+          this.domainCache.set(groupObject.stix.id, groupObject.stix.x_mitre_domains);
           groupObject.stix.x_mitre_domains = [options.domain];
           this.addAttackObjectToBundle(groupObject, bundle, objectsMap);
         }
@@ -751,6 +763,7 @@ class StixBundlesService extends BaseService {
             revokedObject.stix.type === 'intrusion-set' ||
             revokedObject.stix.type === 'campaign'
           ) {
+            this.domainCache.set(revokedObject.stix.id, revokedObject.stix.x_mitre_domains);
             revokedObject.stix.x_mitre_domains = [options.domain];
           }
           this.addAttackObjectToBundle(revokedObject, bundle, objectsMap);
