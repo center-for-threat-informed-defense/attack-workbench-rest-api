@@ -68,10 +68,11 @@ class MatrixRepository extends BaseRepository {
         (matrix) =>
           matrix?.stix?.external_references?.length &&
           matrix.stix.external_references[0].external_id === domain,
-      );    } catch (err) {
+      );
+    } catch (err) {
       throw new DatabaseError(err);
     }
-  }  
+  }
 }
 
 module.exports = new MatrixRepository(Matrix);
