@@ -82,12 +82,6 @@ class StixBundlesService extends BaseService {
       tactic: tacticsRepository,
       technique: techniquesRepository,
     };
-
-    // Initialize caches for efficient object lookup
-    this.attackObjectCache = new Map(); // Maps STIX IDs to attack objects
-    this.identityCache = new Map(); // Maps identity STIX IDs to identity objects
-    this.markingDefinitionsCache = new Map(); // Maps marking definition STIX IDs to marking objects
-    this.attackObjectByAttackIdCache = new Map(); // Maps attack IDs to attack objects
   }
 
   // ============================
@@ -440,6 +434,12 @@ class StixBundlesService extends BaseService {
    * @returns {Promise<Object>} The generated STIX bundle
    */
   async exportBundle(options) {
+    // Initialize caches for efficient object lookup
+    this.attackObjectCache = new Map(); // Maps STIX IDs to attack objects
+    this.identityCache = new Map(); // Maps identity STIX IDs to identity objects
+    this.markingDefinitionsCache = new Map(); // Maps marking definition STIX IDs to marking objects
+    this.attackObjectByAttackIdCache = new Map(); // Maps attack IDs to attack objects
+    
     // Initialize bundle
     const bundle = {
       type: 'bundle',
