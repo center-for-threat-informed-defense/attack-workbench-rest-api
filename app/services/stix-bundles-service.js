@@ -654,8 +654,8 @@ class StixBundlesService extends BaseService {
         const dataSource = await this.getAttackObject(dataSourceId);
         if (StixBundlesService.secondaryObjectIsValid(dataSource, options)) {
           this.addAttackObjectToBundle(dataSource, bundle, objectsMap);
-          dataSources.set(dataSourceId, dataSource.stix);
         }
+        dataSources.set(dataSourceId, dataSource.stix);
       });
   }
 
