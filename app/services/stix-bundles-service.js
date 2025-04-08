@@ -484,17 +484,15 @@ class StixBundlesService extends BaseService {
 
     // Get the secondary objects (additional objects pointed to by a relationship)
     const dataComponents = new Map();
+    const techniqueDetectedBy = new Map();
     await this.addSecondaryObjects(
       primaryObjectRelationships,
       objectsMap,
       dataComponents,
+      techniqueDetectedBy,
       bundle,
       options,
     );
-
-    // Process data sources and components
-    const techniqueDetectedBy = new Map();
-    StixBundlesService.buildTechniqueDetectionMap(primaryObjectRelationships, techniqueDetectedBy);
 
     const dataSources = new Map();
     await this.processDataSourcesAndComponents(bundle, objectsMap, dataSources, options);
@@ -543,6 +541,7 @@ class StixBundlesService extends BaseService {
    * @param {Array} primaryObjectRelationships - The relationships to process
    * @param {Map} objectsMap - Map of objects currently in the bundle
    * @param {Map} dataComponents - Map to collect data components
+   * @param {Map} techniqueDetectedBy - Map to populate with technique detection info
    * @param {Object} bundle - The STIX bundle being built
    * @param {Object} options - Bundle generation options
    * @returns {Promise<void>}
@@ -551,6 +550,7 @@ class StixBundlesService extends BaseService {
     primaryObjectRelationships,
     objectsMap,
     dataComponents,
+    techniqueDetectedBy,
     bundle,
     options,
   ) {
@@ -576,23 +576,8 @@ class StixBundlesService extends BaseService {
           this.addAttackObjectToBundle(secondaryObject, bundle, objectsMap);
         }
       }
-    }
-  }
 
-  /**
-   * Builds a mapping of which techniques are detected by which data components.
-   * Used to support the derivation of data sources for techniques in the bundle.
-   * Only considers active 'detects' relationships.
-   *
-   * @param {Array<Object>} relationships - The relationships to process
-   * @param {Map} techniqueDetectedBy - Map to populate with technique detection info
-   */
-  static buildTechniqueDetectionMap(relationships, techniqueDetectedBy) {
-    for (const relationship of relationships) {
-      if (
-        relationship.stix.relationship_type === 'detects' &&
-        StixBundlesService.relationshipIsActive(relationship)
-      ) {
+      if (StixBundlesService.relationshipIsActive(relationship)) {
         const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
         if (techniqueDataComponents) {
           techniqueDataComponents.push(relationship.stix.source_ref);
