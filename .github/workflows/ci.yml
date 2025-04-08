@@ -3,7 +3,6 @@ name: CI and Release
 on:
   push:
     branches:
-      - project-orion # TODO remove after project completion
       - main
       - master
       - develop
@@ -41,6 +40,7 @@ jobs:
 
   # Job 2: Static Checks (Linting, Security Scanning)
   static-checks:
+    needs: [commitlint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
