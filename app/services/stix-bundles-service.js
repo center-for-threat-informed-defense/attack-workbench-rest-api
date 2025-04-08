@@ -155,10 +155,9 @@ class StixBundlesService extends BaseService {
   /**
    * Removes empty array properties from a STIX object.
    * @param {Object} stixObject - The STIX object to clean
-   * @param {Array<string>} propertyNames - Array of property names to check
    */
-  static removeEmptyArrays(stixObject, propertyNames) {
-    for (const propertyName of propertyNames) {
+  static removeEmptyArrays(stixObject) {
+    for (const propertyName of Object.keys(stixObject)) {
       if (Array.isArray(stixObject[propertyName]) && stixObject[propertyName].length === 0) {
         delete stixObject[propertyName];
       }
@@ -169,33 +168,8 @@ class StixBundlesService extends BaseService {
    * Modifies a STIX object to conform to the specified STIX version (2.0 or 2.1).
    * Handles version-specific requirements for various object types.
    * @param {Object} stixObject - The STIX object to modify
-   * @param {string} stixVersion - The target STIX version ('2.0' or '2.1')
    */
   static conformToStixVersion(stixObject, stixVersion) {
-    const stixOptionalArrayProperties = [
-      'x_mitre_aliases',
-      'x_mitre_contributors',
-      'x_mitre_data_sources',
-      'x_mitre_defense_bypassed',
-      'x_mitre_domains',
-      'x_mitre_effective_permissions',
-      'x_mitre_impact_type',
-      'x_mitre_related_assets',
-      'x_mitre_sectors',
-      'x_mitre_system_requirements',
-      'x_mitre_permissions_required',
-      'x_mitre_platforms',
-      'x_mitre_remote_support',
-      'x_mitre_tactic_type',
-      'external_references',
-      'kill_chain_phases',
-      'aliases',
-      'labels',
-      'object_marking_refs',
-      'roles',
-      'sectors',
-    ];
-
     if (stixVersion === '2.0') {
       // Remove STIX 2.1 specific properties
       if (Object.prototype.hasOwnProperty.call(stixObject, 'spec_version')) {
@@ -225,7 +199,7 @@ class StixBundlesService extends BaseService {
       }
     }
 
-    this.removeEmptyArrays(stixObject, stixOptionalArrayProperties);
+    this.removeEmptyArrays(stixObject);
   }
 
   // ============================
