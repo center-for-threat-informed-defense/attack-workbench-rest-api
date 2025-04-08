@@ -3,12 +3,16 @@
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
 const attackPatternDefinitions = require('./subschemas/attack-pattern');
+const stixCoreDefinitions = require('./subschemas/stix-core');
+const { ModelName } = require('../lib/model-names');
 
 // Create the definition
 const techniqueDefinition = {
-    stix: {
-        ...attackPatternDefinitions.attackPattern
-    }
+  stix: {
+    ...stixCoreDefinitions.commonRequiredSDO,
+    ...stixCoreDefinitions.commonOptionalSDO,
+    ...attackPatternDefinitions.attackPattern,
+  },
 };
 // Use Object.assign() to add properties in case there are duplicates
 Object.assign(techniqueDefinition.stix, attackPatternDefinitions.attackPatternEnterpriseDomain);
@@ -19,6 +23,6 @@ Object.assign(techniqueDefinition.stix, attackPatternDefinitions.attackPatternIC
 const techniqueSchema = new mongoose.Schema(techniqueDefinition);
 
 // Create the model
-const TechniqueModel = AttackObject.discriminator('Technique', techniqueSchema);
+const TechniqueModel = AttackObject.discriminator(ModelName.Technique, techniqueSchema);
 
 module.exports = TechniqueModel;

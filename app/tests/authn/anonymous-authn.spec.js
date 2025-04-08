@@ -11,138 +11,81 @@ logger.level = 'debug';
 const passportCookieName = 'connect.sid';
 
 describe('Anonymous User Authentication', function () {
-    let app;
+  let app;
+  let passportCookie;
 
-    before(async function() {
-        // Configure the test to use anonymous authentication
-        process.env.AUTHN_MECHANISM = 'anonymous';
+  before(async function () {
+    // Configure the test to use anonymous authentication
+    process.env.AUTHN_MECHANISM = 'anonymous';
 
-        // Establish the database connection
-        // Use an in-memory database that we spin up for the test
-        await database.initializeConnection();
+    // Establish the database connection
+    // Use an in-memory database that we spin up for the test
+    await database.initializeConnection();
 
-        // Check for a valid database configuration
-        await databaseConfiguration.checkSystemConfiguration();
+    // Check for a valid database configuration
+    await databaseConfiguration.checkSystemConfiguration();
 
-        // Initialize the express app
-        app = await require('../../index').initializeApp();
-    });
+    // Initialize the express app
+    app = await require('../../index').initializeApp();
+  });
 
-    it('GET /api/session returns not authorized (before logging in)', function (done) {
-        request(app)
-            .get('/api/session')
-            .set('Accept', 'application/json')
-            .expect(401)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
-    });
+  it('GET /api/session returns not authorized (before logging in)', async function () {
+    await request(app).get('/api/session').set('Accept', 'application/json').expect(401);
+  });
 
-    let passportCookie;
-    it('GET /api/authn/anonymous/login successfully logs the user in', function (done) {
-        request(app)
-            .get('/api/authn/anonymous/login')
-            .set('Accept', 'application/json')
-            .expect(200)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    // Save the cookie for later tests
-                    const cookies = setCookieParser(res);
-                    passportCookie = cookies.find(c => c.name === passportCookieName);
-                    expect(passportCookie).toBeDefined();
+  it('GET /api/authn/anonymous/login successfully logs the user in', async function () {
+    const response = await request(app)
+      .get('/api/authn/anonymous/login')
+      .set('Accept', 'application/json')
+      .expect(200);
 
-                    done();
-                }
-            });
-    });
+    // Save the cookie for later tests
+    const cookies = setCookieParser(response);
+    passportCookie = cookies.find((c) => c.name === passportCookieName);
+    expect(passportCookie).toBeDefined();
+  });
 
-    it('GET /api/session returns the user session', function (done) {
-        request(app)
-            .get('/api/session')
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .end(function(err, res) {
-                if (err) {
-                    done(err);
-                }
-                else {
-                    // We expect to get the current session
-                    const session = res.body;
-                    expect(session).toBeDefined();
+  it('GET /api/session returns the user session', async function () {
+    const response = await request(app)
+      .get('/api/session')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookieName}=${passportCookie.value}`)
+      .expect(200);
 
-                    done();
-                }
-            });
-    });
+    // We expect to get the current session
+    const session = response.body;
+    expect(session).toBeDefined();
+  });
 
-    it('GET /api/authn/anonymous/logout successfully logs the user out', function (done) {
-        request(app)
-            .get('/api/authn/anonymous/logout')
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ passportCookieName }=${ passportCookie.value }`)
-            .expect(200)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
-    });
+  it('GET /api/authn/anonymous/logout successfully logs the user out', async function () {
+    await request(app)
+      .get('/api/authn/anonymous/logout')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookieName}=${passportCookie.value}`)
+      .expect(200);
+  });
 
-    it('GET /api/session returns not authorized (after logging out)', function (done) {
-        request(app)
-            .get('/api/session')
-            .set('Accept', 'application/json')
-            .set('Cookie', `${ passportCookieName }=${ passportCookie.value }`)
-            .expect(401)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
-    });
+  it('GET /api/session returns not authorized (after logging out)', async function () {
+    await request(app)
+      .get('/api/session')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookieName}=${passportCookie.value}`)
+      .expect(401);
+  });
 
-    it('GET /api/authn/oidc/login cannot log in using incorrect authentication mechanism', function (done) {
-        const encodedDestination = encodeURIComponent('http://localhost/startPage');
-        request(app)
-            .get(`/api/authn/oidc/login?destination=${ encodedDestination }`)
-            .set('Accept', 'application/json')
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
-    });
+  it('GET /api/authn/oidc/login cannot log in using incorrect authentication mechanism', async function () {
+    const encodedDestination = encodeURIComponent('http://localhost/startPage');
+    await request(app)
+      .get(`/api/authn/oidc/login?destination=${encodedDestination}`)
+      .set('Accept', 'application/json')
+      .expect(404);
+  });
 
-    it('GET /api/authn/oidc/logout cannot log out using incorrect authentication mechanism', function (done) {
-        request(app)
-            .get('/api/authn/oidc/logout')
-            .set('Accept', 'application/json')
-            .expect(404)
-            .end(function (err, res) {
-                if (err) {
-                    done(err);
-                } else {
-                    done();
-                }
-            });
-    });
+  it('GET /api/authn/oidc/logout cannot log out using incorrect authentication mechanism', async function () {
+    await request(app).get('/api/authn/oidc/logout').set('Accept', 'application/json').expect(404);
+  });
 
-    after(async function() {
-        await database.closeConnection();
-    });
+  after(async function () {
+    await database.closeConnection();
+  });
 });
-

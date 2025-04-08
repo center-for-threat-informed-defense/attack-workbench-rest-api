@@ -1,272 +1,228 @@
 {
-	"info": {
-		"_postman_id": "e364a961-d0e0-41bd-9ca7-1619b7383dc2",
-		"name": "attack-workbench-rest-api",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "sessions",
-			"item": [
-				{
-					"name": "Retrieve Current Session",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									""
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/session",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"session"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "authn",
-			"item": [
-				{
-					"name": "anonymous",
-					"item": [
-						{
-							"name": "Log In",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/api/authn/anonymous/login",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"authn",
-										"anonymous",
-										"login"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Log Out",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/api/authn/anonymous/logout",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"authn",
-										"anonymous",
-										"logout"
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "apikey-bearer",
-					"item": [
-						{
-							"name": "Challenge",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"if (pm.response.code === 200) {",
-											"    var jsonData = JSON.parse(responseBody);",
-											"",
-											"    var challenge = jsonData.challenge;",
-											"    postman.setEnvironmentVariable(\"challenge\", challenge);",
-											"",
-											"    var apikey = pm.variables.get(\"apikey\");",
-											"    var challengeHash = CryptoJS.HmacSHA256(challenge, apikey).toString();",
-											"    postman.setEnvironmentVariable(\"challenge_hash\", challengeHash);",
-											"}",
-											"else {",
-											"    postman.setEnvironmentVariable(\"challenge\", null);",
-											"    postman.setEnvironmentVariable(\"challenge_hash\", null);",
-											"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"protocolProfileBehavior": {
-								"followRedirects": false
-							},
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/api/authn/service/apikey-challenge?serviceName={{apikey_service_name}}",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"authn",
-										"service",
-										"apikey-challenge"
-									],
-									"query": [
-										{
-											"key": "serviceName",
-											"value": "{{apikey_service_name}}"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Token",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"if (pm.response.code === 200) {",
-											"    var jsonData = JSON.parse(responseBody);",
-											"",
-											"    var accessToken = jsonData.access_token;",
-											"    postman.setEnvironmentVariable(\"access_token\", accessToken);",
-											"}",
-											"else {",
-											"    postman.setEnvironmentVariable(\"access_token\", null);",
-											"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"auth": {
-									"type": "apikey",
-									"apikey": [
-										{
-											"key": "value",
-											"value": "apikey {{challenge_hash}}",
-											"type": "string"
-										},
-										{
-											"key": "key",
-											"value": "Authorization",
-											"type": "string"
-										}
-									]
-								},
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/api/authn/service/apikey-token?serviceName={{apikey_service_name}}",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"authn",
-										"service",
-										"apikey-token"
-									],
-									"query": [
-										{
-											"key": "serviceName",
-											"value": "{{apikey_service_name}}"
-										}
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "Session",
-							"request": {
-								"auth": {
-									"type": "bearer",
-									"bearer": [
-										{
-											"key": "token",
-											"value": "{{access_token}}",
-											"type": "string"
-										}
-									]
-								},
-								"method": "GET",
-								"header": [
-									{
-										"key": "Authorization",
-										"value": "Bearer {{access_token}}",
-										"type": "default",
-										"disabled": true
-									}
-								],
-								"url": {
-									"raw": "{{base_url}}/api/session",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"api",
-										"session"
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				}
-			]
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:3000"
-		}
-	]
+  "info": {
+    "_postman_id": "e364a961-d0e0-41bd-9ca7-1619b7383dc2",
+    "name": "attack-workbench-rest-api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "sessions",
+      "item": [
+        {
+          "name": "Retrieve Current Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [""],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/session",
+              "host": ["{{base_url}}"],
+              "path": ["api", "session"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "authn",
+      "item": [
+        {
+          "name": "anonymous",
+          "item": [
+            {
+              "name": "Log In",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/authn/anonymous/login",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "authn", "anonymous", "login"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Log Out",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/authn/anonymous/logout",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "authn", "anonymous", "logout"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "apikey-bearer",
+          "item": [
+            {
+              "name": "Challenge",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var jsonData = JSON.parse(responseBody);",
+                      "",
+                      "    var challenge = jsonData.challenge;",
+                      "    postman.setEnvironmentVariable(\"challenge\", challenge);",
+                      "",
+                      "    var apikey = pm.variables.get(\"apikey\");",
+                      "    var challengeHash = CryptoJS.HmacSHA256(challenge, apikey).toString();",
+                      "    postman.setEnvironmentVariable(\"challenge_hash\", challengeHash);",
+                      "}",
+                      "else {",
+                      "    postman.setEnvironmentVariable(\"challenge\", null);",
+                      "    postman.setEnvironmentVariable(\"challenge_hash\", null);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "followRedirects": false
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/authn/service/apikey-challenge?serviceName={{apikey_service_name}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "authn", "service", "apikey-challenge"],
+                  "query": [
+                    {
+                      "key": "serviceName",
+                      "value": "{{apikey_service_name}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var jsonData = JSON.parse(responseBody);",
+                      "",
+                      "    var accessToken = jsonData.access_token;",
+                      "    postman.setEnvironmentVariable(\"access_token\", accessToken);",
+                      "}",
+                      "else {",
+                      "    postman.setEnvironmentVariable(\"access_token\", null);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "apikey",
+                  "apikey": [
+                    {
+                      "key": "value",
+                      "value": "apikey {{challenge_hash}}",
+                      "type": "string"
+                    },
+                    {
+                      "key": "key",
+                      "value": "Authorization",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/authn/service/apikey-token?serviceName={{apikey_service_name}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "authn", "service", "apikey-token"],
+                  "query": [
+                    {
+                      "key": "serviceName",
+                      "value": "{{apikey_service_name}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Session",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{access_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}",
+                    "type": "default",
+                    "disabled": true
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/session",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "session"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    }
+  ]
 }

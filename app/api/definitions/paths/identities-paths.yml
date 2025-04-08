@@ -153,7 +153,7 @@ paths:
       responses:
         '204':
           description: 'All the identity versions were successfully deleted.'
-          
+
   /api/identities/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a identity matching the STIX id and modified date'

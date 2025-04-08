@@ -14,9 +14,7 @@
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
       "created": "2022-08-17T10:10:10.000Z",
       "modified": "2022-08-18T10:10:10.000Z",
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "x_mitre_contents": [
         {
           "object_ref": "attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e",
@@ -33,15 +31,9 @@
       ]
     },
     {
-      "x_mitre_platforms": [
-        "Linux"
-      ],
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_platforms": ["Linux"],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "type": "attack-pattern",
       "id": "attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -73,9 +65,7 @@
       "spec_version": "2.1"
     },
     {
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "id": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
       "type": "identity",
       "identity_class": "organization",
@@ -97,9 +87,7 @@
       "definition_type": "statement",
       "x_mitre_attack_spec_version": "2.1.0",
       "spec_version": "2.1",
-      "x_mitre_domains": [
-        "ics-attack"
-      ]
+      "x_mitre_domains": ["ics-attack"]
     }
   ]
 }

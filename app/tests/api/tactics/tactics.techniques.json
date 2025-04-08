@@ -14,9 +14,7 @@
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
       "created": "2022-08-17T10:10:10.000Z",
       "modified": "2022-08-17T10:10:10.000Z",
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "x_mitre_contents": [
         {
           "object_ref": "attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e",
@@ -73,15 +71,9 @@
       ]
     },
     {
-      "x_mitre_platforms": [
-        "Linux"
-      ],
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_platforms": ["Linux"],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "type": "attack-pattern",
       "id": "attack-pattern--757471d4-d931-4109-82dd-cdd50c04744e",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -113,15 +105,9 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_platforms": [
-        "Linux"
-      ],
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_platforms": ["Linux"],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "type": "attack-pattern",
       "id": "attack-pattern--9ca3f5e5-697d-41cd-ade4-c846ec12a816",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -149,15 +135,9 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_platforms": [
-        "Linux"
-      ],
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_platforms": ["Linux"],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "type": "attack-pattern",
       "id": "attack-pattern--dcbb7acb-0817-4e4f-b170-198c27d2e178",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -185,15 +165,9 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_platforms": [
-        "Linux"
-      ],
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_platforms": ["Linux"],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "type": "attack-pattern",
       "id": "attack-pattern--bcdab08e-9332-47ce-87b5-0837ac1550fd",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -225,15 +199,9 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_platforms": [
-        "Linux"
-      ],
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_platforms": ["Linux"],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "type": "attack-pattern",
       "id": "attack-pattern--5f1d1b95-ca0e-4d6a-a4d0-fcb568641a74",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -265,12 +233,8 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "created": "2022-04-01T06:07:08.000Z",
       "description": "Enlil, ancient Mesopotamian god of wind, air, earth, and storms.",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -292,12 +256,8 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "created": "2022-04-01T06:07:08.000Z",
       "description": "Enki, ancient Mesopotamian god of water and crafts.",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -319,12 +279,8 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "created": "2022-03-01T06:07:08.000Z",
       "description": "Inanna, ancient Mesopotamian god of love, war, and fertility.",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -346,12 +302,8 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "created": "2022-02-01T06:07:08.000Z",
       "description": "Nabu, ancient Mesopotamian god of literacy and wisdom.",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -373,12 +325,8 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_domains": [
-        "enterprise-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_domains": ["enterprise-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "created": "2022-01-01T06:07:08.000Z",
       "description": "Nanna-Suen, ancient Mesopotamian god of cattle.",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -400,12 +348,8 @@
       "spec_version": "2.1"
     },
     {
-      "x_mitre_domains": [
-        "mobile-attack"
-      ],
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "x_mitre_domains": ["mobile-attack"],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "created": "2022-09-09T01:02:03.000Z",
       "description": "Nabu, ancient Mesopotamian god of mobile scribes. This tactic has the same x-mitre-shortname as another tactic, but a different domain.",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
@@ -427,9 +371,7 @@
       "spec_version": "2.1"
     },
     {
-      "object_marking_refs": [
-        "marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"
-      ],
+      "object_marking_refs": ["marking-definition--c2a0b8f8-51d4-4702-8e42-ce7a65235bce"],
       "id": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
       "type": "identity",
       "identity_class": "organization",
@@ -451,9 +393,7 @@
       "definition_type": "statement",
       "x_mitre_attack_spec_version": "2.1.0",
       "spec_version": "2.1",
-      "x_mitre_domains": [
-        "ics-attack"
-      ]
+      "x_mitre_domains": ["ics-attack"]
     }
   ]
 }

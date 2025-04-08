@@ -198,7 +198,7 @@ paths:
           description: 'All the tactic versions were successfully deleted.'
         '404':
           description: 'A tactic with the requested STIX id was not found.'
-          
+
   /api/software/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a software object matching the STIX id and modified date'

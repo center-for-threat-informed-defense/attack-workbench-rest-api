@@ -1,4 +1,9 @@
-FROM node:18
+FROM node:22
+
+# Define build arguments
+ARG VERSION=dev
+ARG BUILDTIME=unknown
+ARG REVISION=unknown
 
 # Set Docker labels
 LABEL org.opencontainers.image.title="ATT&CK Workbench REST API Service" \
@@ -9,6 +14,9 @@ LABEL org.opencontainers.image.title="ATT&CK Workbench REST API Service" \
     org.opencontainers.image.vendor="The MITRE Corporation" \
     org.opencontainers.image.licenses="Apache-2.0" \
     org.opencontainers.image.authors="MITRE ATT&CK<attack@mitre.org>" \
+    org.opencontainers.image.version="${VERSION}" \
+    org.opencontainers.image.created="${BUILDTIME}" \
+    org.opencontainers.image.revision="${REVISION}" \
     maintainer="MITRE ATT&CK<attack@mitre.org>"
 
 # Create app directory
@@ -23,5 +31,10 @@ RUN npm ci --only=production
 
 # Copy app source
 COPY . .
+
+# Set version as environment variable for runtime access
+ENV APP_VERSION=${VERSION} \
+    GIT_COMMIT=${REVISION} \
+    BUILD_DATE=${BUILDTIME}
 
 CMD [ "npm", "start" ]
