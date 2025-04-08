@@ -607,16 +607,16 @@ class StixBundlesService extends BaseService {
 
   async processDataSourcesAndComponents(bundle, objectsMap, dataSources, options) {
     // Get data source IDs from components
-    bundle.objects
-      .filter((obj) => obj.type === 'x-mitre-data-component')
-      .forEach(async (obj) => {
-        const dataSourceId = obj.x_mitre_data_source_ref;
-        const dataSource = await this.getAttackObject(dataSourceId);
-        if (StixBundlesService.secondaryObjectIsValid(dataSource, options)) {
-          this.addAttackObjectToBundle(dataSource, bundle, objectsMap);
-        }
-        dataSources.set(dataSourceId, dataSource.stix);
-      });
+    const allDataComponents = bundle.objects.filter((obj) => obj.type === 'x-mitre-data-component');
+
+    for (const dataComponent of allDataComponents) {
+      const dataSourceId = dataComponent.x_mitre_data_source_ref;
+      const dataSource = await this.getAttackObject(dataSourceId);
+      if (StixBundlesService.secondaryObjectIsValid(dataSource, options)) {
+        this.addAttackObjectToBundle(dataSource, bundle, objectsMap);
+      }
+      dataSources.set(dataSourceId, dataSource.stix);
+    }
   }
 
   /**
