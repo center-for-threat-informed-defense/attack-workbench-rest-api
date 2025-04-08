@@ -1,228 +1,153 @@
 'use strict';
 
-const util = require('util');
-
-const AttackObject = require('../models/attack-object-model');
-const Relationship = require('../models/relationship-model');
+const attackObjectsRepository = require('../repository/attack-objects-repository');
+const BaseService = require('./_base.service');
 const identitiesService = require('./identities-service');
-const systemConfigurationService = require('./system-configuration-service');
+const relationshipsService = require('./relationships-service');
+const logger = require('../lib/logger');
+const { NotImplementedError, DatabaseError } = require('../exceptions');
 
-const { lastUpdatedByQueryHelper } = require('../lib/request-parameter-helper');
+class AttackObjectsService extends BaseService {
+  /**
+   * Override of base class retrieveAll() because:
+   * 1. Adds special handling for relationships
+   * 2. Uses custom pagination logic
+   */
+  async retrieveAll(options) {
+    // Get attack objects from repository
+    const results = await this.repository.retrieveAll(options);
+    let documents = results[0].documents;
 
-const regexValidator = require('../lib/regex');
-
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter',
-    duplicateCollection: 'Duplicate collection'
-};
-exports.errors = errors;
-
-const relationshipPrefix = 'relationship';
-
-exports.retrieveAll = async function(options) {
-    // require here to avoid circular dependency
-    const relationshipsService = require('./relationships-service');
-
-    // Build the query
-    const query = {};
-    if (typeof options.attackId !== 'undefined') {
-        if (Array.isArray(options.attackId)) {
-            query['workspace.attack_id'] = { $in: options.attackId };
-        }
-        else {
-            query['workspace.attack_id'] = options.attackId;
-        }
-    }
-    if (!options.includeRevoked) {
-        query['stix.revoked'] = { $in: [null, false] };
-    }
-    if (!options.includeDeprecated) {
-        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
-    }
-    if (typeof options.state !== 'undefined') {
-        if (Array.isArray(options.state)) {
-            query['workspace.workflow.state'] = { $in: options.state };
-        }
-        else {
-            query['workspace.workflow.state'] = options.state;
-        }
-    }
-
-    if (typeof options.lastUpdatedBy !== 'undefined') {
-        query['workspace.workflow.created_by_user_account'] = lastUpdatedByQueryHelper(options.lastUpdatedBy);
-    }
-
-    // Build the aggregation
-    const aggregation = [];
-    if (options.versions === 'latest') {
-        // - Group the documents by stix.id, sorted by stix.modified
-        // - Use the last document in each group (according to the value of stix.modified)
-        aggregation.push({ $sort: { 'stix.id': 1, 'stix.modified': -1 } });
-        aggregation.push({ $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } });
-        aggregation.push({ $replaceRoot: { newRoot: '$document' } });
-    }
-
-    // - Then apply query, skip and limit options
-    aggregation.push({ $sort: { 'stix.id': 1 } });
-    aggregation.push({ $match: query });
-
-    if (typeof options.search !== 'undefined') {
-        options.search = regexValidator.sanitizeRegex(options.search);
-        const match = {
-            $match: {
-                $or: [
-                    { 'workspace.attack_id': { '$regex': options.search, '$options': 'i' }},
-                    { 'stix.name': { '$regex': options.search, '$options': 'i' } },
-                    { 'stix.description': { '$regex': options.search, '$options': 'i' } }
-                ]
-            }
-        };
-        aggregation.push(match);
-    }
-
-    // Retrieve the documents
-    let documents = await AttackObject.aggregate(aggregation);
-
-    // Add relationships from separate collection
+    // Add relationships from separate collection if not filtering by attackId or search
     if (!options.attackId && !options.search) {
-        const relationshipsOptions = {
-            includeRevoked: options.includeRevoked,
-            includeDeprecated: options.includeDeprecated,
-            state: options.state,
-            versions: options.versions,
-            lookupRefs: false,
-            includeIdentities: false,
-            lastUpdatedBy: options.lastUpdatedBy
-        };
-        const relationships = await relationshipsService.retrieveAll(relationshipsOptions);
-        documents = documents.concat(relationships);
-    }
-
-    // Apply pagination
-    const offset = options.offset ?? 0;
-    const limit = options.limit ?? 0;
-
-    let paginatedDocuments;
-    if (limit > 0) {
-        paginatedDocuments = documents.slice(offset, offset + limit);
-    }
-    else {
-        paginatedDocuments = documents.slice(offset);
+      const relationshipsOptions = {
+        includeRevoked: options.includeRevoked,
+        includeDeprecated: options.includeDeprecated,
+        state: options.state,
+        versions: options.versions,
+        lookupRefs: false,
+        includeIdentities: false,
+        lastUpdatedBy: options.lastUpdatedBy,
+      };
+      const relationships = await relationshipsService.retrieveAll(relationshipsOptions);
+      documents = documents.concat(relationships);
     }
 
     // Add identities
-    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(paginatedDocuments);
+    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll(documents);
 
-    // Prepare the return value
+    // Handle pagination
     if (options.includePagination) {
-        const returnValue = {
-            pagination: {
-                total: documents.length,
-                offset: options.offset,
-                limit: options.limit
-            },
-            data: paginatedDocuments
-        };
-        return returnValue;
+      return {
+        pagination: {
+          total: results[0].totalCount[0]?.totalCount || 0,
+          offset: options.offset,
+          limit: options.limit,
+        },
+        data: documents,
+      };
     }
-    else {
-        return paginatedDocuments;
-    }
-};
+    return documents;
+  }
 
-exports.retrieveVersionById = async function(stixId, modified) {
-    // Retrieve the version of the attack object with the matching stixId and modified date
-
-    // require here to avoid circular dependency
-    const relationshipsService = require('./relationships-service');
-    const retrieveRelationshipsVersionById = util.promisify(relationshipsService.retrieveVersionById);
-
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        throw error;
+  /**
+   * Override of base class retrieveVersionById() because:
+   * 1. Adds special handling for relationships
+   */
+  async retrieveVersionById(stixId, modified) {
+    // Handle relationships separately
+    if (stixId.startsWith('relationship')) {
+      const relationship = await relationshipsService.retrieveVersionById(stixId, modified);
+      await identitiesService.addCreatedByAndModifiedByIdentities(relationship);
+      return relationship;
     }
 
-    if (!modified) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'modified';
-        throw error;
+    // Otherwise use base class implementation
+    return super.retrieveVersionById(stixId, modified);
+  }
+
+  /**
+   * Record that this object is part of a collection
+   */
+  async insertCollection(stixId, modified, collectionId, collectionModified) {
+    // Validate inputs
+    if (!stixId || !modified || !collectionId || !collectionModified) {
+      throw new Error('Missing required parameter');
     }
 
-    let attackObject;
-    if (stixId.startsWith(relationshipPrefix)) {
-        attackObject = await retrieveRelationshipsVersionById(stixId, modified);
-    }
-    else {
-        try {
-            attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
-        }
-        catch(err) {
-            if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'stixId';
-                throw error;
-            } else {
-                throw err;
-            }
-        }
+    // Get the document
+    const document = await this.retrieveVersionById(stixId, modified);
+    if (!document) {
+      throw new Error('Document not found');
     }
 
-    // Note: attackObject is null if not found
-    await identitiesService.addCreatedByAndModifiedByIdentities(attackObject);
-    return attackObject;
-};
+    // Create the collection reference
+    const collection = {
+      collection_ref: collectionId,
+      collection_modified: collectionModified,
+    };
 
-// Record that this object is part of a collection
-exports.insertCollection = async function(stixId, modified, collectionId, collectionModified) {
-    let attackObject;
-    if (stixId.startsWith(relationshipPrefix)) {
-        attackObject = await Relationship.findOne({ 'stix.id': stixId, 'stix.modified': modified });
-    }
-    else {
-        attackObject = await AttackObject.findOne({ 'stix.id': stixId, 'stix.modified': modified });
+    // Initialize collections array if needed
+    if (!document.workspace.collections) {
+      document.workspace.collections = [];
     }
 
-    if (attackObject) {
-        // Create the collection reference
-        const collection = {
-            collection_ref: collectionId,
-            collection_modified: collectionModified
-        };
-
-        // Make sure the exports array exists and add the collection reference
-        if (!attackObject.workspace.collections) {
-            attackObject.workspace.collections = [];
-        }
-
-        // Check to see if the collection is already added
-        // (collection with same id and version should only be created--and therefore objects added--one time)
-        const duplicateCollection = attackObject.workspace.collections.find(
-            item => item.collection_ref === collection.collection_ref && item.collection_modified === collection.collection_modified);
-        if (duplicateCollection) {
-            throw new Error(errors.duplicateCollection);
-        }
-
-        attackObject.workspace.collections.push(collection);
-
-        await attackObject.save();
+    // Check for duplicate collection
+    const isDuplicate = document.workspace.collections.some(
+      (item) =>
+        item.collection_ref === collection.collection_ref &&
+        item.collection_modified === collection.collection_modified,
+    );
+    if (isDuplicate) {
+      throw new Error('Duplicate collection');
     }
-    else {
-        throw new Error(errors.notFound);
-    }
-};
 
-exports.setDefaultMarkingDefinitions = async function(attackObject) {
-    // Add any default marking definitions that are not in the current list for this object
-    const defaultMarkingDefinitions = await systemConfigurationService.retrieveDefaultMarkingDefinitions({ refOnly: true });
-    if (attackObject.stix.object_marking_refs) {
-        attackObject.stix.object_marking_refs = attackObject.stix.object_marking_refs.concat(defaultMarkingDefinitions.filter(e => !attackObject.stix.object_marking_refs.includes(e)));
+    // Add collection and save
+    document.workspace.collections.push(collection);
+    return this.repository.saveDocument(document);
+  }
+
+  /**
+   * Override of base class create() because:
+   * 1. create() requires a STIX `type` -- this service does not define a type
+   */
+  // eslint-disable-next-line no-unused-vars
+  create(data, options) {
+    throw new NotImplementedError(this.constructor.name, 'create');
+  }
+
+  async findByIdAndUpdate(documentId, update) {
+    try {
+      return await this.repository.findByIdAndUpdate(documentId, update);
+    } catch (err) {
+      throw new DatabaseError(err);
     }
-    else {
-        attackObject.stix.object_marking_refs = defaultMarkingDefinitions;
+  }
+
+  async findByIdAndDelete(documentId) {
+    try {
+      const deletedDocument = await this.repository.findByIdAndDelete(documentId);
+      if (deletedDocument) {
+        logger.verbose('Document deleted:', documentId);
+      } else {
+        logger.warn('Document not found');
+      }
+    } catch (err) {
+      logger.error(err.message);
+      throw DatabaseError(err);
     }
+  }
+
+  async retrieveOneByVersionLean(stixId, stixModified) {
+    try {
+      return await this.repository.retrieveOneByVersionLean(stixId, stixModified);
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
 }
+
+module.exports.AttackObjectsService = AttackObjectsService;
+
+// Export an instance of the service
+module.exports = new AttackObjectsService(null, attackObjectsRepository);

@@ -1,127 +1,22 @@
 'use strict';
 
 const uuid = require('uuid');
-const MarkingDefinition = require('../models/marking-definition-model');
-const systemConfigurationService = require('./system-configuration-service');
-const identitiesService = require('./identities-service');
 const config = require('../config/config');
+const BaseService = require('./_base.service');
+const markingDefinitionsRepository = require('../repository/marking-definitions-repository');
+const { MarkingDefinition: MarkingDefinitionType } = require('../lib/types');
 
-const errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter',
-    cannotUpdateStaticObject: ' Cannot update static object'
-};
-exports.errors = errors;
+const {
+  MissingParameterError,
+  BadlyFormattedParameterError,
+  CannotUpdateStaticObjectError,
+  DuplicateIdError,
+} = require('../exceptions');
 
 // NOTE: A marking definition does not support the modified or revoked properties!!
 
-exports.retrieveAll = function(options, callback) {
-    // Build the query
-    const query = {};
-    if (!options.includeDeprecated) {
-        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
-    }
-    if (typeof options.state !== 'undefined') {
-        if (Array.isArray(options.state)) {
-            query['workspace.workflow.state'] = { $in: options.state };
-        }
-        else {
-            query['workspace.workflow.state'] = options.state;
-        }
-    }
-
-    // Build the aggregation
-    // - Then apply query, skip and limit options
-    const aggregation = [
-        { $match: query }
-    ];
-
-    const facet = {
-        $facet: {
-            totalCount: [ { $count: 'totalCount' }],
-            documents: [ ]
-        }
-    };
-    if (options.offset) {
-        facet.$facet.documents.push({ $skip: options.offset });
-    }
-    else {
-        facet.$facet.documents.push({ $skip: 0 });
-    }
-    if (options.limit) {
-        facet.$facet.documents.push({ $limit: options.limit });
-    }
-    aggregation.push(facet);
-
-    // Retrieve the documents
-    MarkingDefinition.aggregate(aggregation, function(err, results) {
-        if (err) {
-            return callback(err);
-        }
-        else {
-            identitiesService.addCreatedByAndModifiedByIdentitiesToAll(results[0].documents)
-                .then(function() {
-                    if (options.includePagination) {
-                        let derivedTotalCount = 0;
-                        if (results[0].totalCount.length > 0) {
-                            derivedTotalCount = results[0].totalCount[0].totalCount;
-                        }
-                        const returnValue = {
-                            pagination: {
-                                total: derivedTotalCount,
-                                offset: options.offset,
-                                limit: options.limit
-                            },
-                            data: results[0].documents
-                        };
-                        return callback(null, returnValue);
-                    }
-                    else {
-                        return callback(null, results[0].documents);
-                    }
-                });
-        }
-    });
-};
-
-exports.retrieveById = function(stixId, options, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
-    MarkingDefinition.findOne({ 'stix.id': stixId })
-        .lean()
-        .exec(function(err, markingDefinition) {
-            if (err) {
-                if (err.name === 'CastError') {
-                    const error = new Error(errors.badlyFormattedParameter);
-                    error.parameterName = 'stixId';
-                    return callback(error);
-                }
-                else {
-                    return callback(err);
-                }
-            }
-            else {
-                // Note: document is null if not found
-                if (markingDefinition) {
-                    identitiesService.addCreatedByAndModifiedByIdentities(markingDefinition)
-                        .then(() => callback(null, [ markingDefinition ]));
-                }
-                else {
-                    return callback(null, []);
-                }
-            }
-        });
-};
-
-exports.createIsAsync = true;
-exports.create = async function(data, options) {
+class MarkingDefinitionsService extends BaseService {
+  async create(data, options) {
     // This function handles two use cases:
     //   1. This is a completely new object. Create a new object and generate the stix.id if not already
     //      provided. Set stix.created_by_ref to the organization identity.
@@ -129,123 +24,95 @@ exports.create = async function(data, options) {
     //      using the specified stix.id and stix.created_by_ref.
     // TBD: Overwrite existing object when importing??
 
-    // Create the document
-    const markingDefinition = new MarkingDefinition(data);
+    const markingDefinition = this.repository.createNewDocument(data);
 
     options = options || {};
     if (!options.import) {
-        // Set the ATT&CK Spec Version
-        markingDefinition.stix.x_mitre_attack_spec_version = markingDefinition.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+      // Set the ATT&CK Spec Version
+      markingDefinition.stix.x_mitre_attack_spec_version =
+        markingDefinition.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
 
-        // Record the user account that created the object
-        if (options.userAccountId) {
-            markingDefinition.workspace.workflow.created_by_user_account = options.userAccountId;
-        }
+      // Record the user account that created the object
+      if (options.userAccountId) {
+        markingDefinition.workspace.workflow.created_by_user_account = options.userAccountId;
+      }
 
-        // Get the organization identity
-        const organizationIdentityRef = await systemConfigurationService.retrieveOrganizationIdentityRef();
+      // Get the organization identity
+      const organizationIdentityRef = await this.retrieveOrganizationIdentityRef();
 
-        // Check for an existing object
-        let existingObject;
-        if (markingDefinition.stix.id) {
-            existingObject = await MarkingDefinition.findOne({ 'stix.id': markingDefinition.stix.id });
-        }
+      // Check for an existing object
+      let existingObject;
+      if (markingDefinition.stix.id) {
+        existingObject = await this.repository.retrieveOneById(markingDefinition.stix.id);
+      }
 
-        if (existingObject) {
-            // Cannot create a new version of an existing object
-            const error = new Error(errors.badlyFormattedParameter);
-            error.parameterName = 'stixId';
-            throw error;
-        }
-        else {
-            // New object
-            // Assign a new STIX id if not already provided
-            markingDefinition.stix.id = markingDefinition.stix.id || `marking-definition--${uuid.v4()}`;
+      if (existingObject) {
+        // Cannot create a new version of an existing object
+        throw new BadlyFormattedParameterError();
+      } else {
+        // New object
+        // Assign a new STIX id if not already provided
+        markingDefinition.stix.id = markingDefinition.stix.id || `marking-definition--${uuid.v4()}`;
 
-            // Set the created_by_ref property
-            markingDefinition.stix.created_by_ref = organizationIdentityRef;
-        }
+        // Set the created_by_ref property
+        markingDefinition.stix.created_by_ref = organizationIdentityRef;
+      }
     }
 
     // Save the document in the database
     try {
-        const savedMarkingDefinition = await markingDefinition.save();
-        return savedMarkingDefinition;
+      return await this.repository.saveDocument(markingDefinition);
+    } catch (err) {
+      if (err.name === 'MongoServerError' && err.code === 11000) {
+        throw new DuplicateIdError();
+      } else {
+        throw err;
+      }
     }
-    catch(err) {
-        if (err.name === 'MongoServerError' && err.code === 11000) {
-            // 11000 = Duplicate index
-            const error = new Error(errors.duplicateId);
-            throw error;
-        }
-        else {
-            throw err;
-        }
-    }
-};
+  }
 
-exports.updateFull = function(stixId, data, callback) {
-    if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
-    }
-
+  async updateFull(stixId, data) {
     if (data?.workspace?.workflow?.state === 'static') {
-        return callback(new Error(errors.cannotUpdateStaticObject));
+      throw new CannotUpdateStaticObjectError();
     }
 
-    MarkingDefinition.findOne({ 'stix.id': stixId }, function(err, document) {
-        if (err) {
-            if (err.name === 'CastError') {
-                const error = new Error(errors.badlyFormattedParameter);
-                error.parameterName = 'stixId';
-                return callback(error);
-            }
-            else {
-                return callback(err);
-            }
-        }
-        else if (!document) {
-            // document not found
-            return callback(null);
-        }
-        else {
-            // Copy data to found document and save
-            Object.assign(document, data);
-            document.save(function(err, savedDocument) {
-                if (err) {
-                    if (err.name === 'MongoServerError' && err.code === 11000) {
-                        // 11000 = Duplicate index
-                        const error = new Error(errors.duplicateId);
-                        return callback(error);
-                    }
-                    else {
-                        return callback(err);
-                    }
-                }
-                else {
-                    return callback(null, savedDocument);
-                }
-            });
-        }
-    });
-};
+    const newDoc = await super.updateFull(stixId, data);
+    return newDoc;
+  }
 
-exports.delete = function (stixId, callback) {
+  // eslint-disable-next-line no-unused-vars
+  async retrieveById(stixId, options) {
+    try {
+      if (!stixId) {
+        throw new MissingParameterError('stixId');
+      }
+
+      const markingDefinition = await this.repository.retrieveOneById(stixId);
+
+      // Note: document is null if not found
+      if (markingDefinition) {
+        await this.addCreatedByAndModifiedByIdentities(markingDefinition);
+        return [markingDefinition];
+      } else {
+        return [];
+      }
+    } catch (err) {
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError();
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  async delete(stixId) {
     if (!stixId) {
-        const error = new Error(errors.missingParameter);
-        error.parameterName = 'stixId';
-        return callback(error);
+      throw new MissingParameterError('stixId');
     }
 
-    MarkingDefinition.findOneAndRemove({ 'stix.id': stixId }, function (err, markingDefinition) {
-        if (err) {
-            return callback(err);
-        } else {
-            //Note: markingDefinition is null if not found
-            return callback(null, markingDefinition);
-        }
-    });
-};
+    //Note: markingDefinition is null if not found
+    return await this.repository.deleteOneById(stixId);
+  }
+}
 
+module.exports = new MarkingDefinitionsService(MarkingDefinitionType, markingDefinitionsRepository);

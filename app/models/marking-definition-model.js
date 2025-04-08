@@ -2,36 +2,43 @@
 
 const mongoose = require('mongoose');
 const AttackObject = require('./attack-object-model');
+const stixCoreDefinitions = require('./subschemas/stix-core');
+const { ModelName } = require('../lib/model-names');
 
 const markingObject = {
-    statement: String,
-    tlp: String
+  statement: String,
+  tlp: String,
 };
 
 // TBD: Marking Definition should not have modified or revoked properties.
 
 const markingDefinitionProperties = {
-    // marking definition specific properties
-    name: String,
-    definition_type: String,
-    definition: markingObject,
+  // marking definition specific properties
+  name: String,
+  definition_type: String,
+  definition: markingObject,
 
-    // ATT&CK custom stix properties
-    x_mitre_deprecated: Boolean,
-    x_mitre_attack_spec_version: String
+  // ATT&CK custom stix properties
+  x_mitre_deprecated: Boolean,
+  x_mitre_attack_spec_version: String,
 };
 
 // Create the definition
 const markingDefinitionDefinition = {
-    stix: {
-        ...markingDefinitionProperties
-    }
+  stix: {
+    ...stixCoreDefinitions.commonRequiredSDO,
+    ...stixCoreDefinitions.commonOptionalSDO,
+    ...markingDefinitionProperties,
+  },
 };
 
 // Create the schema
 const markingDefinitionSchema = new mongoose.Schema(markingDefinitionDefinition);
 
 // Create the model
-const MarkingDefinitionModel = AttackObject.discriminator('MarkingDefinitionModel', markingDefinitionSchema);
+const MarkingDefinitionModel = AttackObject.discriminator(
+  ModelName.MarkingDefinition,
+  markingDefinitionSchema,
+);
 
 module.exports = MarkingDefinitionModel;

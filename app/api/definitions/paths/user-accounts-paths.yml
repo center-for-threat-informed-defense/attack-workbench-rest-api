@@ -210,7 +210,7 @@ paths:
                 $ref: '../components/user-accounts.yml#/components/schemas/user-account'
         '400':
           description: 'Missing or invalid parameters were provided. The user account was not created.'
-  
+
   /api/user-accounts/{id}/teams:
     get:
       summary: 'Get a list of teams the user account is associated with'
@@ -255,7 +255,7 @@ paths:
           description: 'A list of teams which the user is associated with.'
           content:
             application/json:
-              schema: 
+              schema:
                 type: array
                 items:
                   $ref: '../components/teams.yml#/components/schemas/team'

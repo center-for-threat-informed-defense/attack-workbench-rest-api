@@ -1,206 +1,63 @@
 # ATT&CK Workbench REST API
 
-The ATT&CK Workbench is an application allowing users to **explore**, **create**, **annotate**, and **share** extensions of the MITRE ATT&CK® knowledge base. 
+The ATT&CK Workbench is an application allowing users to **explore**, **create**, **annotate**, and **share** extensions of the MITRE ATT&CK® knowledge base.
 
-This repository contains the REST API service for storing, querying, and editing ATT&CK objects. It is a Node.js application that uses a MongoDB database for persisting data. 
+This repository contains the REST API service for storing, querying, and editing ATT&CK objects. It is a Node.js application that uses a MongoDB database for persisting data.
 
-The ATT&CK Workbench application requires additional components for full operation. The [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) repository contains the full documentation of the scope and function of the project. See the [install and run](#install-and-run) instructions for more details about setting up the entire project.
+## Quick Start
 
-## REST API Documentation
+### Using Docker (Recommended)
 
-When running with the NODE_ENV environment variable set to `development`, the app hosts a description of the REST API using the Swagger UI module.
-The REST API documentation can be viewed using a browser at the path `/api-docs`. 
+```bash
+# Create network
+docker network create attack-workbench-network
 
-For a basic installation on the local machine this documentation can be accessed at `http://localhost:3000/api-docs`.
+# Run MongoDB
+docker run --name attack-workbench-mongodb -d --network attack-workbench-network mongo:latest
 
-The [docs](/docs/README.md) folder contains additional documentation about using the REST API:
-- [changelog](/docs/changelog.md): records of updates to the REST API.
-- [workbench data model](/docs/data-model.md): additional information about data model of objects stored via the REST API.
-- [standalone docker installation](/docs/docker.md): instructions for setting up the REST API via docker. Note that this is not the same as the full [ATT&CK Workbench Docker Installation](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md).
-- [contributing](/docs/contributing.md): information about how to contribute to this project.
-
-## Install and run
-
-The ATT&CK Workbench application is made up of several repositories. For the full application to operate each needs to be running at the same time. The [docker install instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) will install all components and is recommended for most deployments.
-- [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend) 
-  
-  The front-end user interface for the ATT&CK Workbench tool, and the primary interface through which the knowledge base is accessed.
-- [ATT&CK Workbench REST API](https://github.com/center-for-threat-informed-defense/attack-workbench-rest-api) (this repository)
-
-  REST API service for storing, querying and editing ATT&CK objects.
-
-The manual install instructions in each repository describe how each component to be deployed to a separate machine or with customized settings. 
-
-### Installing using Docker
-Please refer to our [Docker install instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) for information on installing and deploying the app using Docker. The docker setup is the easiest way to deploy the application.
-
-### Manual Installation
-
-#### Requirements
-
-- [Node.js](https://nodejs.org) version `18.12.1` or greater
-- An instance of [MongoDB](https://www.mongodb.com/) version `4.4.x` or greater
- 
-#### Installation
-
-##### Step 1. Clone the git repository
-
-```
-git clone git@github.com:center-for-threat-informed-defense/attack-workbench-rest-api.git
-cd attack-workbench-rest-api
+# Run REST API
+docker run -p 3000:3000 -d \
+  --name attack-workbench-rest-api \
+  --env DATABASE_URL=mongodb://attack-workbench-mongodb/attack-workspace \
+  --network attack-workbench-network \
+  ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:latest
 ```
 
-##### Step 2. Install the dependencies
+The REST API will be accessible at `http://localhost:3000`, with API documentation available at `http://localhost:3000/api-docs`.
 
-The ATT&CK Workbench REST API installs all dependencies within the project.
-It doesn't depend on the global installation of any modules.
+### Full Application Deployment
 
-```
-npm install
-```
+For a full ATT&CK Workbench deployment, including the frontend application, see the [Docker Compose instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) in the frontend repository.
 
-##### Step 3. Configure the system
+## Documentation
 
-The app can be configured using environment variables, a configuration file, or a combination of these methods.
-Note that any values set in a configuration file take precedence over values set using environment variables.
+- [Usage Guide](USAGE.md): Comprehensive instructions for installing, configuring, and administering the REST API
+- [Contributing Guide](CONTRIBUTING.md): Information for developers about contributing to the project
+- [Data Model](docs/data-model.md): Technical details about the data models used in the application
 
-###### Using Environment Variables
+## Technical Information
 
-| name                                 | required | default       | description                                               |
-|--------------------------------------|----------|---------------|-----------------------------------------------------------|
-| **PORT**                             | no       | `3000`        | Port the HTTP server should listen on                     |
-| **CORS_ALLOWED_ORIGINS**             | no       | `*`           | Configures CORS policy. Accepts a comma-separated list of allowed domains. (`*` allows all domains; `disable` disables CORS entirely.) |
-| **NODE_ENV**                         | no       | `development` | Environment that the app is running in                    |
-| **DATABASE_URL**                     | yes      | none          | URL of the MongoDB server                                 |
-| **AUTHN_MECHANISM**                  | no       | `anonymous`   | Mechanism to use for authenticating users                 |
-| **DEFAULT_INTERVAL**                 | no       | `300`         | How often collection indexes should check for updates (in seconds) |
-| **JSON_CONFIG_PATH**                 | no       | ``            | Location of a JSON file containing configuration values   |
-| **LOG_LEVEL**                        | no       | `info`        | Level of messages to be written to the log (error, warn, http, info, verbose, debug) |
-| **WB_REST_STATIC_MARKING_DEFS_PATH** | no       | `./app/lib/default-static-marking-definitions/` | Path to a directory containing static marking definitions |
+The REST API provides:
 
-A typical value for DATABASE_URL when running on a development machine is `mongodb://localhost/attack-workspace`.
-This assumes that a MongoDB server is running on the same machine and is listening on the standard port of 27017.
-The MongoDB server can be running natively or in a Docker container.
+- STIX 2.1 compliant object storage
+- CRUD operations for ATT&CK objects (techniques, tactics, groups, software, etc.)
+- Collection and versioning management
+- User authentication and authorization
+- API for programmatic access
 
-###### Using a Configuration File
+## Related Repositories
 
-If the `JSON_CONFIG_PATH` environment variable is set, the app will also read configuration settings from a JSON file at that location.
+- [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend): The user interface for the ATT&CK Workbench
 
-| name                                | type     | corresponding environment variable |
-|-------------------------------------|----------|------------------------------------|
-| **server.port**                     | int      | PORT                               |
-| **server.corsAllowedOrigins**       | boolean  | CORS_ALLOWED_ORIGINS               |
-| **app.env**                         | string   | NODE_ENV                           |
-| **database.url**                    | string   | DATABASE_URL                       |
-| **collectionIndex.defaultInterval** | int      | DEFAULT_INTERVAL                   |
-| **logging.logLevel**                | string   | LOG_LEVEL                          |
-
-Sample configuration file setting the server port and database url:
-
-```json
-{
-  "server": {
-    "port": 4000
-  },
-  "database": {
-    "url": "mongodb://localhost/attack-workspace"
-  }
-}
-```
-
-##### Step 4. Run the app
-
-```
-node ./bin/www
-```
-
-### Configuring Workbench to Enable OIDC Authentication for Users
-
-Workbench supports OIDC authentication for users, allowing you to integrate Workbench with your organization's authentication system.
-
-#### Registering with the OIDC Server
-
-In order to use OIDC authentication, your Workbench instance must be registered with your organization's OIDC authentication server.
-The details depend on your authentication server, but the following values should cover most of what you need:
-
-* Workbench uses the *Authorization Code Flow* for authenticating users
-* Claims:
-
-| claim                  | required | description                                                                                                                                     |
-|------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| **email**              | yes      | Identifies the user account associated with an authenticated user                                                                               |
-| **preferred_username** | no       | If present, the `preferred_username` claim is used to set the `name` property of the user account when the user initially registers with Workbench |
-| **name**               | no       | If present, the `name` claim is used to set the `displayName` property of the user account when the user initially registers with Workbench      |
-
-* Grant Types: *Client Credentials*, *Authorization Code* and *Refresh Token*
-* Redirect URL: `<host_url>/api/authn/oidc/callback`
-
-After registering with the OIDC authentication system, you will need the `client_id` and `client_secret` assigned as part of that process.
-You will also need the Issuer URL for the OIDC Identity Server.
-
-#### Workbench Configuration
-
-Configuring Workbench to use OIDC can be done using environment variables or the corresponding properties in a configuration file.
-
-| environment variable           | required | description                                                                                           | configuration file property name |
-|--------------------------------|----------|-------------------------------------------------------------------------------------------------------|----------------------------------|
-| **AUTHN_MECHANISM**            | yes      | Must be set to `oidc`                                                                                 | userAuthn.mechanism              |
-| **AUTHN_OIDC_CLIENT_ID**       | yes      | Client ID assigned to the Workbench instance when registering with the OIDC authentication system     | userAuthn.oidc.clientId          |
-| **AUTHN_OIDC_CLIENT_SECRET**   | yes      | Client secret assigned to the Workbench instance when registering with the OIDC authentication system | userAuthn.oidc.clientSecret      |
-| **AUTHN_OIDC_ISSUER_URL**      | yes      | Issuer URL for the Identity Server                                                                    | userAuthn.oidc.issuerUrl         |
-| **AUTHN_OIDC_REDIRECT_ORIGIN** | yes      | URL for the Workbench host                                                                            | userAuthn.oidc.redirectOrigin    |
-
-## Scripts
-
-`package.json` contains a number of scripts that can be used to perform recurring tasks.
-
-### Regression Tests
-
-There is a set of regression tests that can be run to validate the operation of the REST API.
-These use the Mocha framework to send a series of HTTP requests to the app.
-The tests automatically run both the app and the required MongoDB instance, no special setup is required.
-To facilitate testing, the tests are configured to use an in-memory version of MongoDB and data is loaded into the database as-needed for the test cases.
-
-Use the command:
-
-`npm run test`
-
-to run the regression tests.
-
-### JavaScript Linter
-
-Use the command:
-
-`npm run lint`
-
-to run ESLint on the codebase.
-
-### Validate Module Versions
-
-Use the command
-
-`npm run snyk`
-
-to run the Snyk validator on the currently installed modules.
-This will check the modules for known security flaws.
-
-Note that this requires the `SNYK_TOKEN` environment variable to be set to a valid Snyk token to run.
-
-## Github Workflow
-
-This project is configured to run a Github workflow when one or more commits are pushed to the Github repo.
-
-The workflow is defined in `.github/workflows/ci-workflow.yml`
-
-## Notice 
+## Notice
 
 Copyright 2020-2025 MITRE Engenuity. Approved for public release. Document number CT0020
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at 
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0 
+http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License. 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
 This project makes use of ATT&CK®
 

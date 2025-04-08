@@ -8,16 +8,17 @@ const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
-router.route('/collection-bundles')
-    .get(
-        authn.authenticate,
-        authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-        collectionBundlesController.exportBundle
-    )
-    .post(
-        authn.authenticate,
-        authz.requireRole(authz.editorOrHigher,  [ authz.serviceRoles.collectionManager ]),
-        collectionBundlesController.importBundle
-    );
+router
+  .route('/collection-bundles')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    collectionBundlesController.exportBundle,
+  )
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher, [authz.serviceRoles.collectionManager]),
+    collectionBundlesController.importBundle,
+  );
 
 module.exports = router;

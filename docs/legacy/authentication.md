@@ -5,6 +5,7 @@ Please refer to [doc ref goes here] for instructions on configuring authenticati
 
 The ATT&CK Workbench REST API can be configured to use one of the implemented user authentication mechanisms.
 The currently implemented user authentication mechanisms are:
+
 - Anonymous
 - OpenID Connect (OIDC)
 
@@ -23,6 +24,7 @@ The REST API uses the passport module for authentication which will facilitate t
 #### General Endpoints
 
 ##### Get Config
+
 ```
 GET /api/config/authn
 ```
@@ -32,14 +34,15 @@ This is intended to be used by the client to determine which authentication mech
 
 Authentication Config Object:
 
-| Property       | Type       | Description                                                                    |    
-|----------------|------------|--------------------------------------------------------------------------------|
+| Property       | Type       | Description                                                                     |
+| -------------- | ---------- | ------------------------------------------------------------------------------- |
 | **mechanisms** | [ string ] | Configured user authentication mechanisms (allowed values: `oidc`, `anonymous`) |
 
 Note: The current release of the ATT&CK Workbench REST API only allows one user authentication mechanism to be configured at a time.
 Multiple simultaneous mechanisms may be supported in a future release.
 
 ##### Get Session
+
 ```
 GET /api/session
 ```
@@ -48,8 +51,8 @@ Retrieves the current user session object for a logged in user. If the user is n
 
 User Session Object:
 
-| Property          | Type    | Description                                     |    
-|-------------------|---------|-------------------------------------------------|
+| Property          | Type    | Description                                     |
+| ----------------- | ------- | ----------------------------------------------- |
 | **strategy**      | string  | authentication strategy used                    |
 | **userAccountId** | string  | STIX identity assigned to this user             |
 | **email**         | string  | email address                                   |
@@ -61,13 +64,13 @@ User Session Object:
 
 A user who is in the process of registering and has logged in but has not been added to the database
 
-
 #### Anonymous Endpoints
 
 Anonymous authentication is primarily intended to be used when the ATT&CK Workbench is deployed on a machine for local use by a single user.
 It does not provide any authentication or authorization of access to the system, and does not provide attribution of changes to individual users.
 
 ##### Log In
+
 ```
 GET /api/authn/anonymous/login
 ```
@@ -75,6 +78,7 @@ GET /api/authn/anonymous/login
 Logs the user into the REST API. Does not require credentials.
 
 ##### Log Out
+
 ```
 GET /api/authn/anonymous/logout
 ```
@@ -86,6 +90,7 @@ Logs the user out of the REST API.
 OIDC authentication is intended for use in an organizational setting and can be tied into the organization's single-sign on configuration.
 
 ##### Log In
+
 ```
 GET /api/authn/oidc/login?destination=<url>
 ```
@@ -98,6 +103,7 @@ Therefore, the call to this endpoint must be a standard HTTP request (not an XHR
 The `destination` query string parameter provides a URL that the client will be redirected to after a successful login.
 
 ##### OIDC Callback
+
 ```
 GET /api/authn/oidc/callback
 ```
@@ -109,6 +115,7 @@ This endpoint will respond with a redirect to the `destination` provided in the 
 In most cases this will be the start page of the client application which should verify the login by requesting the current user session object.
 
 ##### Log Out
+
 ```
 GET /api/authn/oidc/logout
 ```
@@ -119,14 +126,16 @@ It does not log the user out of the OIDC Identity Provider.
 ### User Authentication Workflow
 
 1. The client starts by calling `GET /api/session`
-   * If logged in, will receive the user session object
-   * If not logged in, will receive 401 Not Authorized
+
+   - If logged in, will receive the user session object
+   - If not logged in, will receive 401 Not Authorized
 
 2. To log in, the client will first call `GET /api/config/authn` to get the authentication config object
 
 3. After getting the authentication config object
-   * If the supported authentication is anonymous, call `GET /api/authn/anonymous/login`
-   * If the supported authentication is oidc, navigate to `GET /api/authn/oidc/login`
+
+   - If the supported authentication is anonymous, call `GET /api/authn/anonymous/login`
+   - If the supported authentication is oidc, navigate to `GET /api/authn/oidc/login`
 
 4. After logging in, call `GET /api/session` to get the user session object
 
@@ -157,12 +166,14 @@ The JWT must then be provided in subsequent requests.
 The use of a JWT allows for a login session to expire, forcing the service to periodically obtain a new token.
 
 The service obtains the access token through a challenge-response protocol:
+
 1. The service starts by sending a request to the REST API challenge endpoint. It will receive a nonce (a base-64 encoded string generated using the Node crypto module) in the response.
 2. The service must then create a SHA256 hash of the nonce using its configured API key.
 3. The service then sends the hash to the REST API token endpoint. It will receive a JWT in the response.
 4. The service must include the JWT in requests when accessing resource endpoints.
 
 #### Request Challenge Endpoint
+
 ```
 GET /api/authn/service/apikey-challenge?serviceName=MyServiceName
 ```
@@ -171,13 +182,15 @@ Requests a challenge string from the REST API. The request must include the serv
 The response will include the challenge that can be used when requesting an access token.
 
 Sample response:
+
 ```json
 {
-   "challenge": "PH2ev0gz+DEUVMbB9d8jT8uowru5Qp495yAHqASi1axVxywVZ4/GxTnuPlpfayJ+"
+  "challenge": "PH2ev0gz+DEUVMbB9d8jT8uowru5Qp495yAHqASi1axVxywVZ4/GxTnuPlpfayJ+"
 }
 ```
 
 #### Request Token endpoint
+
 ```
 GET /api/authn/service/apikey-token?serviceName=MyServiceName
 Authorization: Apikey 1092d306081afd94d405b15887312373066bc96c222b04a03cfef436a0b0ecaa
@@ -189,9 +202,10 @@ The hash must be a SHA256 hash of the challenge using the shared api key value.
 The response will include the JWT.
 
 Sample response:
+
 ```json
 {
-   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXJ2aWNlTmFtZSI6ImFwaWtleS10ZXN0LXNlcnZpY2UiLCJleHAiOjE2Mzk2MDQ5NDEsImlhdCI6MTYzOTYwNDY0MX0.QHPTHMzceeONvMdPpr2h6tCBwrpkpGydOV6i0DUhNMw"
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXJ2aWNlTmFtZSI6ImFwaWtleS10ZXN0LXNlcnZpY2UiLCJleHAiOjE2Mzk2MDQ5NDEsImlhdCI6MTYzOTYwNDY0MX0.QHPTHMzceeONvMdPpr2h6tCBwrpkpGydOV6i0DUhNMw"
 }
 ```
 
@@ -203,8 +217,8 @@ The service name and API key are used as the userid and password.
 
 This method is more vulnerable than other methods but is simpler to implement in a client service. If this method is used, the following configuration steps are recommended:
 
-  * Because the API key is passed in each request, the server should be configured with HTTPS.
-  * Services that are configured to use this method should be configured with a role that allows access to a limited set of endpoints.
+- Because the API key is passed in each request, the server should be configured with HTTPS.
+- Services that are configured to use this method should be configured with a role that allows access to a limited set of endpoints.
 
 ### OIDC Client Credentials Flow Authentication
 
@@ -228,16 +242,19 @@ When using the API Key Challenge or OIDC Client Credentials Flow authentication 
 The JWT must be provided using the `Authorization` header with the `Bearer` authentication scheme:
 
 Sample request
+
 ```
 GET /api/techniques
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXJ2aWNlTmFtZSI6ImFwaWtleS10ZXN0LXNlcnZpY2UiLCJleHAiOjE2Mzk2MDQ5NDEsImlhdCI6MTYzOTYwNDY0MX0.QHPTHMzceeONvMdPpr2h6tCBwrpkpGydOV6i0DUhNMw
 ```
 
 #### API Key Basic Authentication
+
 When using the API Key Basic authentication method, the API Key must be provided on all REST API calls in order to authenticate the service.
 The API Key must be provided using the `Authorization` header with the `Basic` authentication scheme. The service name and API key must be base-64 encoded.
 
 Sample request
+
 ```
 GET /api/stix-bundles?domain=mobile-attack
 Authorization: Basic YXBpa2V5LXRlc3Qtc2VydmljZTp4eXp6eQ==
