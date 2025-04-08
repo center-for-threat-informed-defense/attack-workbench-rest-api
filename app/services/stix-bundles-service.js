@@ -188,7 +188,6 @@ class StixBundlesService extends BaseService {
       if (stixObject.type != 'course-of-action') {
         delete stixObject.labels;
       }
-
     }
 
     this.removeEmptyArrays(stixObject);
