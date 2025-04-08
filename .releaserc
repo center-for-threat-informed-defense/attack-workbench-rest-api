@@ -12,10 +12,6 @@
         {
             "name": "alpha",
             "prerelease": true
-        },
-        {
-            "name": "project-orion",
-            "prerelease": true
         }
     ],
     "plugins": [
@@ -24,7 +20,7 @@
         [
             "@semantic-release/exec",
             {
-                "prepareCmd": "./scripts/docker-build.sh ${nextRelease.version} ${nextRelease.type} ${process.env.GITHUB_SHA}"
+                "prepareCmd": "./scripts/build-Dockerfile.sh ${nextRelease.version} ${nextRelease.type} ${process.env.GITHUB_SHA}"
             }
         ],
         "@semantic-release/github"
