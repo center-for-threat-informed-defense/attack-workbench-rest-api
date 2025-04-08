@@ -172,31 +172,23 @@ class StixBundlesService extends BaseService {
   static conformToStixVersion(stixObject, stixVersion) {
     if (stixVersion === '2.0') {
       // Remove STIX 2.1 specific properties
-      if (Object.prototype.hasOwnProperty.call(stixObject, 'spec_version')) {
-        stixObject.spec_version = undefined;
-      }
+      delete stixObject.spec_version;
 
       // Handle malware and tool specific requirements
       if (stixObject.type === 'malware') {
-        if (Object.prototype.hasOwnProperty.call(stixObject, 'is_family')) {
-          stixObject.is_family = undefined;
-        }
+        delete stixObject.is_family;
         stixObject.labels = ['malware'];
       }
 
       if (stixObject.type === 'tool') {
-        if (Object.prototype.hasOwnProperty.call(stixObject, 'is_family')) {
-          stixObject.is_family = undefined;
-        }
         stixObject.labels = ['tool'];
       }
     } else if (stixVersion === '2.1') {
       stixObject.spec_version = '2.1';
-
-      // Handle STIX 2.1 specific requirements
-      if (stixObject.type === 'malware') {
-        stixObject.is_family = stixObject.is_family ?? true;
+      if (stixObject.type != 'course-of-action') {
+        delete stixObject.labels;
       }
+
     }
 
     this.removeEmptyArrays(stixObject);
