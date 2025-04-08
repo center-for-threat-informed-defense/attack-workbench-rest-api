@@ -82,12 +82,6 @@ class StixBundlesService extends BaseService {
       tactic: tacticsRepository,
       technique: techniquesRepository,
     };
-
-    // Initialize caches for efficient object lookup
-    this.attackObjectCache = new Map(); // Maps STIX IDs to attack objects
-    this.identityCache = new Map(); // Maps identity STIX IDs to identity objects
-    this.markingDefinitionsCache = new Map(); // Maps marking definition STIX IDs to marking objects
-    this.attackObjectByAttackIdCache = new Map(); // Maps attack IDs to attack objects
   }
 
   // ============================
@@ -161,10 +155,9 @@ class StixBundlesService extends BaseService {
   /**
    * Removes empty array properties from a STIX object.
    * @param {Object} stixObject - The STIX object to clean
-   * @param {Array<string>} propertyNames - Array of property names to check
    */
-  static removeEmptyArrays(stixObject, propertyNames) {
-    for (const propertyName of propertyNames) {
+  static removeEmptyArrays(stixObject) {
+    for (const propertyName of Object.keys(stixObject)) {
       if (Array.isArray(stixObject[propertyName]) && stixObject[propertyName].length === 0) {
         delete stixObject[propertyName];
       }
@@ -175,63 +168,29 @@ class StixBundlesService extends BaseService {
    * Modifies a STIX object to conform to the specified STIX version (2.0 or 2.1).
    * Handles version-specific requirements for various object types.
    * @param {Object} stixObject - The STIX object to modify
-   * @param {string} stixVersion - The target STIX version ('2.0' or '2.1')
    */
   static conformToStixVersion(stixObject, stixVersion) {
-    const stixOptionalArrayProperties = [
-      'x_mitre_aliases',
-      'x_mitre_contributors',
-      'x_mitre_data_sources',
-      'x_mitre_defense_bypassed',
-      'x_mitre_domains',
-      'x_mitre_effective_permissions',
-      'x_mitre_impact_type',
-      'x_mitre_related_assets',
-      'x_mitre_sectors',
-      'x_mitre_system_requirements',
-      'x_mitre_permissions_required',
-      'x_mitre_platforms',
-      'x_mitre_remote_support',
-      'x_mitre_tactic_type',
-      'external_references',
-      'kill_chain_phases',
-      'aliases',
-      'labels',
-      'object_marking_refs',
-      'roles',
-      'sectors',
-    ];
-
     if (stixVersion === '2.0') {
       // Remove STIX 2.1 specific properties
-      if (Object.prototype.hasOwnProperty.call(stixObject, 'spec_version')) {
-        stixObject.spec_version = undefined;
-      }
+      delete stixObject.spec_version;
 
       // Handle malware and tool specific requirements
       if (stixObject.type === 'malware') {
-        if (Object.prototype.hasOwnProperty.call(stixObject, 'is_family')) {
-          stixObject.is_family = undefined;
-        }
+        delete stixObject.is_family;
         stixObject.labels = ['malware'];
       }
 
       if (stixObject.type === 'tool') {
-        if (Object.prototype.hasOwnProperty.call(stixObject, 'is_family')) {
-          stixObject.is_family = undefined;
-        }
         stixObject.labels = ['tool'];
       }
     } else if (stixVersion === '2.1') {
       stixObject.spec_version = '2.1';
-
-      // Handle STIX 2.1 specific requirements
-      if (stixObject.type === 'malware') {
-        stixObject.is_family = stixObject.is_family ?? true;
+      if (stixObject.type != 'course-of-action') {
+        delete stixObject.labels;
       }
     }
 
-    this.removeEmptyArrays(stixObject, stixOptionalArrayProperties);
+    this.removeEmptyArrays(stixObject);
   }
 
   // ============================
@@ -248,28 +207,58 @@ class StixBundlesService extends BaseService {
   }
 
   /**
+   * Adds a relationship to the STIX bundle, if:
+   * - It is active, as per relationshipIsActive()
+   * - Its source_ref and target_ref exist in objectsMap
+   * @param {Object} relationship - The relationship object to add
+   * @param {Object} bundle - The STIX bundle being built
+   * @param {Map} objectsMap - Map tracking objects in the bundle
+   */
+  static addRelationshipToBundle(relationship, bundle, objectsMap) {
+    if (
+      StixBundlesService.relationshipIsActive(relationship) &&
+      objectsMap.has(relationship.stix.source_ref) &&
+      objectsMap.has(relationship.stix.target_ref)
+    ) {
+      bundle.objects.push(relationship.stix);
+    }
+  }
+
+  /**
+   * Adds an ATT&CK object to the STIX bundle
+   * @param {Object} attackObject - The ATT&CK object to add
+   * @param {Object} bundle - The STIX bundle being built
+   * @param {Map} objectsMap - Map tracking objects in the bundle
+
+   */
+  addAttackObjectToBundle(attackObject, bundle, objectsMap) {
+    if (!objectsMap.has(attackObject.stix.id)) {
+      bundle.objects.push(attackObject.stix);
+      objectsMap.set(attackObject.stix.id, true);
+      const attackId = linkById.getAttackId(attackObject.stix);
+      if (attackId) {
+        this.attackObjectByAttackIdCache.set(attackId, attackObject);
+      }
+    }
+  }
+
+  /**
    * Processes a secondary object for inclusion in the bundle.
    * Validates the object and updates necessary data structures.
    * @param {Object} secondaryObject - The secondary object to process
    * @param {Object} options - Bundle generation options
-   * @param {Map} objectsMap - Map tracking objects in the bundle
    * @returns {Promise<boolean>} True if object was successfully processed
    */
-  async processSecondaryObject(secondaryObject, options, objectsMap) {
+  async processSecondaryObject(secondaryObject, options) {
     if (!StixBundlesService.secondaryObjectIsValid(secondaryObject, options)) {
       return false;
     }
 
     // Handle domains for groups and campaigns
     if (secondaryObject.stix.type === 'intrusion-set' || secondaryObject.stix.type === 'campaign') {
+      this.domainCache.set(secondaryObject.stix.id, secondaryObject.stix.x_mitre_domains);
       secondaryObject.stix.x_mitre_domains =
         await this.getDomainsForSecondaryObject(secondaryObject);
-    }
-
-    objectsMap.set(secondaryObject.stix.id, true);
-    const attackId = linkById.getAttackId(secondaryObject.stix);
-    if (attackId) {
-      this.attackObjectByAttackIdCache.set(attackId, secondaryObject);
     }
     return true;
   }
@@ -312,9 +301,18 @@ class StixBundlesService extends BaseService {
     const domainMap = new Map();
     for (const relationship of relationships) {
       const targetObject = await this.getAttackObject(relationship.stix.target_ref);
-      if (targetObject?.stix.x_mitre_domains) {
-        for (const domain of targetObject.stix.x_mitre_domains) {
+      // domainCache is used to accurately reflect the STIX bundle post-refactoring in project Orion.
+      // The additional domains that would otherwise be added are likely correct, but that will
+      // be handled in a separate data cleanup effort not coinciding with the imminent v17 ATT&CK release.
+      if (this.domainCache.has(targetObject?.stix.id)) {
+        for (const domain of this.domainCache.get(targetObject.stix.id)) {
           domainMap.set(domain, true);
+        }
+      } else {
+        if (targetObject?.stix.x_mitre_domains) {
+          for (const domain of targetObject.stix.x_mitre_domains) {
+            domainMap.set(domain, true);
+          }
         }
       }
     }
@@ -411,6 +409,13 @@ class StixBundlesService extends BaseService {
    * @returns {Promise<Object>} The generated STIX bundle
    */
   async exportBundle(options) {
+    // Initialize caches for efficient object lookup
+    this.attackObjectCache = new Map(); // Maps STIX IDs to attack objects
+    this.identityCache = new Map(); // Maps identity STIX IDs to identity objects
+    this.markingDefinitionsCache = new Map(); // Maps marking definition STIX IDs to marking objects
+    this.attackObjectByAttackIdCache = new Map(); // Maps attack IDs to attack objects
+    this.domainCache = new Map(); // Stores original x-mitre-domains if we change them at runtime
+
     // Initialize bundle
     const bundle = {
       type: 'bundle',
@@ -425,42 +430,15 @@ class StixBundlesService extends BaseService {
       bundle.spec_version = '2.0';
     }
 
-    // Build query options
-    const queryOptions = {
-      includeRevoked: options.includeRevoked,
-      includeDeprecated: options.includeDeprecated,
-      state: options.state,
-      domain: options.domain,
-    };
-
     // Retrieve primary objects
-    // Note: Matrix retrieval differs from other objects:
-    // 1. Other objects: Filtered by domain in database using stix.x_mitre_domains field
-    // 2. Matrices: Retrieved without domain filter, then filtered by external_references[0].external_id
-    const [
-      domainMitigations,
-      domainSoftware,
-      domainTactics,
-      domainTechniques,
-      allMatrices, // All matrices regardless of domain
-    ] = await Promise.all([
-      mitigationsRepository.retrieveAllByDomain(options.domain, queryOptions),
-      softwareRepository.retrieveAllByDomain(options.domain, queryOptions),
-      tacticsRepository.retrieveAllByDomain(options.domain, queryOptions),
-      techniquesRepository.retrieveAllByDomain(options.domain, queryOptions),
-      matrixRepository.retrieveAllForBundle(queryOptions), // Special matrix handling
-    ]);
-
-    // Filter matrices by domain
-    // Unlike other objects where domain filtering happened in the database query,
-    // we filter matrices here by checking their external_references.
-    // This preserves the original logic where matrices are associated with domains
-    // via external_references[0].external_id rather than the x_mitre_domains field.
-    const domainMatrices = allMatrices.filter(
-      (matrix) =>
-        matrix?.stix?.external_references?.length &&
-        matrix.stix.external_references[0].external_id === options.domain,
-    );
+    const [domainMitigations, domainSoftware, domainTactics, domainTechniques, domainMatrices] =
+      await Promise.all([
+        mitigationsRepository.retrieveAllByDomain(options.domain, options),
+        softwareRepository.retrieveAllByDomain(options.domain, options),
+        tacticsRepository.retrieveAllByDomain(options.domain, options),
+        techniquesRepository.retrieveAllByDomain(options.domain, options),
+        matrixRepository.retrieveAllByDomain(options.domain, options),
+      ]);
 
     let primaryObjects = [
       ...domainMatrices,
@@ -482,25 +460,13 @@ class StixBundlesService extends BaseService {
     // Also create a map of the objects added to the bundle (use the id as the key, since relationships only reference the id)
     const objectsMap = new Map();
     for (const primaryObject of primaryObjects) {
-      bundle.objects.push(primaryObject.stix);
-      objectsMap.set(primaryObject.stix.id, true);
-      const attackId = linkById.getAttackId(primaryObject.stix);
-      if (attackId) {
-        this.attackObjectByAttackIdCache.set(attackId, primaryObject);
-      }
+      this.addAttackObjectToBundle(primaryObject, bundle, objectsMap);
     }
 
-    // Get the relationships that point at primary objects (removing duplicates)
-    // Remove domain from options for relationships
-    const relationshipOptions = {
-      includeRevoked: options.includeRevoked,
-      includeDeprecated: options.includeDeprecated,
-      state: options.state,
-    };
     // Since we're querying all relationships, save them for later to prevent future database queries.
-    this.allRelationships = await relationshipsRepository.retrieveAllForBundle(relationshipOptions);
+    this.allRelationships = await relationshipsRepository.retrieveAllForBundle(options);
 
-    // Iterate over the relationships, keeping any that have a source_ref or target_ref that points at a primary object
+    // Filter relationships that have a source_ref or target_ref that points at a primary object
     const primaryObjectRelationships = this.allRelationships.filter(
       (relationship) =>
         objectsMap.has(relationship.stix.source_ref) ||
@@ -508,27 +474,26 @@ class StixBundlesService extends BaseService {
     );
 
     // Get the secondary objects (additional objects pointed to by a relationship)
-    const secondaryObjects = [];
     const dataComponents = new Map();
-    for (const relationship of primaryObjectRelationships) {
-      await this.processRelationship(
-        relationship,
-        objectsMap,
-        secondaryObjects,
-        dataComponents,
-        bundle,
-        options,
-      );
-    }
-
-    // Process data sources and components
     const techniqueDetectedBy = new Map();
-    StixBundlesService.buildTechniqueDetectionMap(primaryObjectRelationships, techniqueDetectedBy);
+    await this.addSecondaryObjects(
+      primaryObjectRelationships,
+      objectsMap,
+      dataComponents,
+      techniqueDetectedBy,
+      bundle,
+      options,
+    );
 
     const dataSources = new Map();
-    await this.processDataSourcesAndComponents(bundle, dataComponents, dataSources, options);
+    await this.processDataSourcesAndComponents(bundle, objectsMap, dataSources, options);
 
     await this.processSecondaryRelationships(bundle, objectsMap, options);
+
+    // Add all valid relationships to the bundle
+    for (const relationship of this.allRelationships) {
+      StixBundlesService.addRelationshipToBundle(relationship, bundle, objectsMap);
+    }
 
     // Process data components
     StixBundlesService.processDataComponents(
@@ -540,7 +505,6 @@ class StixBundlesService extends BaseService {
 
     // Add notes if requested
     if (options.includeNotes) {
-      // Get any note that references an object in the bundle
       await notesService.addNotes(bundle.objects);
     }
 
@@ -555,128 +519,57 @@ class StixBundlesService extends BaseService {
       StixBundlesService.conformToStixVersion(stixObject, options.stixVersion);
     }
 
-    // Validate relationships
-    StixBundlesService.validateRelationships(bundle.objects, objectsMap);
-
     return bundle;
   }
 
   /**
-   * Main method for processing a single STIX relationship.
-   * This is a critical part of the bundle generation process that handles three main cases:
-   *
-   * 1. Primary → Primary relationships (both objects already in bundle)
-   * 2. Secondary → Primary relationships (source needs to be fetched)
-   * 3. Primary → Secondary relationships (target needs to be fetched)
+   * Add secondary objects to the bundle - those objects which have a relationship
+   * to a primary object but did not have the proper domain in the database.
    *
    * Special handling is provided for 'detects' relationships to support
    * technique detection data processing.
    *
-   * @param {Object} relationship - The relationship to process
+   * @param {Array} primaryObjectRelationships - The relationships to process
    * @param {Map} objectsMap - Map of objects currently in the bundle
-   * @param {Array} secondaryObjects - Array to collect secondary objects
    * @param {Map} dataComponents - Map to collect data components
+   * @param {Map} techniqueDetectedBy - Map to populate with technique detection info
    * @param {Object} bundle - The STIX bundle being built
    * @param {Object} options - Bundle generation options
    * @returns {Promise<void>}
    */
-  async processRelationship(
-    relationship,
+  async addSecondaryObjects(
+    primaryObjectRelationships,
     objectsMap,
-    secondaryObjects,
     dataComponents,
+    techniqueDetectedBy,
     bundle,
     options,
   ) {
-    // Case 1: Both objects are primary (already in our bundle)
-    if (StixBundlesService.isSourceTargetPrimary(relationship, objectsMap)) {
-      // For primary-to-primary relationships, we only need to add the
-      // relationship itself if it's active
-      if (StixBundlesService.relationshipIsActive(relationship)) {
-        bundle.objects.push(relationship.stix);
-      }
-    }
-    // Case 2: Source is secondary (needs to be fetched), target is primary
-    else if (StixBundlesService.isSourceSecondaryTargetPrimary(relationship, objectsMap)) {
-      const secondaryObject = await this.getAttackObject(relationship.stix.source_ref);
+    for (const relationship of primaryObjectRelationships) {
+      if (!objectsMap.has(relationship.stix.source_ref)) {
+        const secondaryObject = await this.getAttackObject(relationship.stix.source_ref);
 
-      // Only process if the secondary object meets our inclusion criteria
-      if (await this.processSecondaryObject(secondaryObject, options, objectsMap)) {
-        secondaryObjects.push(secondaryObject);
-        bundle.objects.push(secondaryObject.stix);
+        // Only process if the secondary object meets our inclusion criteria
+        if (await this.processSecondaryObject(secondaryObject, options)) {
+          this.addAttackObjectToBundle(secondaryObject, bundle, objectsMap);
+        }
+      } else if (!objectsMap.has(relationship.stix.target_ref)) {
+        const secondaryObject = await this.getAttackObject(relationship.stix.target_ref);
 
-        // Add the relationship if it's active
-        if (StixBundlesService.relationshipIsActive(relationship)) {
-          bundle.objects.push(relationship.stix);
+        // Only process if the secondary object meets our inclusion criteria
+        if (await this.processSecondaryObject(secondaryObject, options)) {
+          this.addAttackObjectToBundle(secondaryObject, bundle, objectsMap);
         }
       }
 
       // Special handling for 'detects' relationships:
       // Track data components for later processing of technique detection data
-      if (relationship.stix.relationship_type === 'detects') {
-        dataComponents.set(secondaryObject.stix.id, secondaryObject.stix);
-      }
-    }
-    // Case 3: Source is primary, target is secondary (needs to be fetched)
-    else if (StixBundlesService.isSourcePrimaryTargetSecondary(relationship, objectsMap)) {
-      const secondaryObject = await this.getAttackObject(relationship.stix.target_ref);
-
-      // Only process if the secondary object meets our inclusion criteria
-      if (await this.processSecondaryObject(secondaryObject, options, objectsMap)) {
-        secondaryObjects.push(secondaryObject);
-        bundle.objects.push(secondaryObject.stix);
-
-        // Add the relationship if it's active
-        if (StixBundlesService.relationshipIsActive(relationship)) {
-          bundle.objects.push(relationship.stix);
-        }
-      }
-    }
-  }
-
-  /**
-   * Determines if a relationship connects two primary objects (both already in our bundle)
-   */
-  static isSourceTargetPrimary(relationship, objectsMap) {
-    return (
-      objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)
-    );
-  }
-
-  /**
-   * Determines if a relationship connects a secondary source to a primary target
-   * This means we have the target object but need to fetch and validate the source
-   */
-  static isSourceSecondaryTargetPrimary(relationship, objectsMap) {
-    return (
-      !objectsMap.has(relationship.stix.source_ref) && objectsMap.has(relationship.stix.target_ref)
-    );
-  }
-
-  /**
-   * Determines if a relationship connects a primary source to a secondary target
-   * This means we have the source object but need to fetch and validate the target
-   */
-  static isSourcePrimaryTargetSecondary(relationship, objectsMap) {
-    return (
-      objectsMap.has(relationship.stix.source_ref) && !objectsMap.has(relationship.stix.target_ref)
-    );
-  }
-
-  /**
-   * Builds a mapping of which techniques are detected by which data components.
-   * Used to support the derivation of data sources for techniques in the bundle.
-   * Only considers active 'detects' relationships.
-   *
-   * @param {Array<Object>} relationships - The relationships to process
-   * @param {Map} techniqueDetectedBy - Map to populate with technique detection info
-   */
-  static buildTechniqueDetectionMap(relationships, techniqueDetectedBy) {
-    for (const relationship of relationships) {
       if (
         relationship.stix.relationship_type === 'detects' &&
         StixBundlesService.relationshipIsActive(relationship)
       ) {
+        const dataComponent = await this.getAttackObject(relationship.stix.source_ref);
+        dataComponents.set(dataComponent.stix.id, dataComponent.stix);
         const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
         if (techniqueDataComponents) {
           techniqueDataComponents.push(relationship.stix.source_ref);
@@ -697,28 +590,23 @@ class StixBundlesService extends BaseService {
    * 3. Adds valid data sources to bundle and tracking structures
    *
    * @param {Object} bundle - The STIX bundle being built
-   * @param {Map} dataComponents - Map of data component objects
+   * @param {Map} objectsMap - Map of objects currently in the bundle
    * @param {Map} dataSources - Map to populate with data source objects
    * @param {Object} options - Bundle generation options
    * @returns {Promise<void>}
    */
 
-  async processDataSourcesAndComponents(bundle, dataComponents, dataSources, options) {
+  async processDataSourcesAndComponents(bundle, objectsMap, dataSources, options) {
     // Get data source IDs from components
-    const dataSourceIds = new Map();
-    for (const bundleObject of bundle.objects) {
-      if (bundleObject.type === 'x-mitre-data-component') {
-        dataSourceIds.set(bundleObject.x_mitre_data_source_ref, true);
-      }
-    }
+    const allDataComponents = bundle.objects.filter((obj) => obj.type === 'x-mitre-data-component');
 
-    // Retrieve and process data sources
-    for (const dataSourceId of dataSourceIds.keys()) {
+    for (const dataComponent of allDataComponents) {
+      const dataSourceId = dataComponent.x_mitre_data_source_ref;
       const dataSource = await this.getAttackObject(dataSourceId);
       if (StixBundlesService.secondaryObjectIsValid(dataSource, options)) {
-        bundle.objects.push(dataSource.stix);
-        dataSources.set(dataSourceId, dataSource.stix);
+        this.addAttackObjectToBundle(dataSource, bundle, objectsMap);
       }
+      dataSources.set(dataSourceId, dataSource.stix);
     }
   }
 
@@ -787,9 +675,7 @@ class StixBundlesService extends BaseService {
   /**
    * Processes relationships between secondary objects and handles special cases that need separate processing:
    * - Groups referenced by campaigns through 'attributed-to' relationships
-   * - Revoked-by relationships between objects already in the bundle
    * - Secondary objects that were revoked by other secondary objects
-   * - Campaign-to-group attributed-to relationships where both objects are in bundle
    *
    * @param {Object} bundle - The STIX bundle being built
    * @param {Map} objectsMap - Map tracking objects currently in bundle
@@ -798,109 +684,40 @@ class StixBundlesService extends BaseService {
    * @returns {Promise<void>}
    */
   async processSecondaryRelationships(bundle, objectsMap, options) {
-    const relationshipsMap = new Map();
-
-    // Handle groups referenced by campaigns
     for (const relationship of this.allRelationships) {
-      if (relationship.stix.relationship_type === 'attributed-to') {
-        if (
-          objectsMap.has(relationship.stix.source_ref) &&
-          !objectsMap.has(relationship.stix.target_ref)
-        ) {
-          const groupObject = await this.getAttackObject(relationship.stix.target_ref);
-          if (
-            groupObject?.stix?.type === 'intrusion-set' &&
-            StixBundlesService.secondaryObjectIsValid(groupObject, options)
-          ) {
-            groupObject.stix.x_mitre_domains = [options.domain];
-            bundle.objects.push(groupObject.stix);
-            objectsMap.set(groupObject.stix.id, true);
-            const attackId = linkById.getAttackId(groupObject.stix);
-            if (attackId) {
-              this.attackObjectByAttackIdCache.set(attackId, groupObject);
-            }
-          }
-        }
-      }
-    }
-
-    // Handle revoked-by relationships
-    for (const relationship of this.allRelationships) {
-      if (
-        relationship.stix.relationship_type === 'revoked-by' &&
-        !relationshipsMap.has(relationship.stix.id) &&
-        objectsMap.has(relationship.stix.source_ref) &&
-        objectsMap.has(relationship.stix.target_ref)
-      ) {
-        if (StixBundlesService.relationshipIsActive(relationship)) {
-          bundle.objects.push(relationship.stix);
-          relationshipsMap.set(relationship.stix.id, true);
-        }
-      }
-    }
-
-    // Add secondary objects that were revoked by other secondary objects
-    for (const relationship of this.allRelationships) {
-      if (relationship.stix.relationship_type === 'revoked-by') {
-        if (
-          !objectsMap.has(relationship.stix.source_ref) &&
-          objectsMap.has(relationship.stix.target_ref)
-        ) {
-          const revokedObject = await this.getAttackObject(relationship.stix.source_ref);
-          if (StixBundlesService.secondaryObjectIsValid(revokedObject, options)) {
-            if (
-              revokedObject.stix.type === 'intrusion-set' ||
-              revokedObject.stix.type === 'campaign'
-            ) {
-              revokedObject.stix.x_mitre_domains = [options.domain];
-            }
-            bundle.objects.push(revokedObject.stix);
-            objectsMap.set(revokedObject.stix.id, true);
-            const attackId = linkById.getAttackId(revokedObject.stix);
-            if (attackId) {
-              this.attackObjectByAttackIdCache.set(attackId, revokedObject);
-            }
-          }
-        }
-      }
-    }
-
-    // Add campaign-to-group attributed-to relationships
-    for (const relationship of this.allRelationships) {
+      // Add groups referenced by campaigns through 'attributed-to' relationships
       if (
         relationship.stix.relationship_type === 'attributed-to' &&
-        !relationshipsMap.has(relationship.stix.id) &&
         objectsMap.has(relationship.stix.source_ref) &&
-        objectsMap.has(relationship.stix.target_ref)
+        !objectsMap.has(relationship.stix.target_ref)
       ) {
-        if (StixBundlesService.relationshipIsActive(relationship)) {
-          bundle.objects.push(relationship.stix);
-          relationshipsMap.set(relationship.stix.id, true);
+        const groupObject = await this.getAttackObject(relationship.stix.target_ref);
+        if (
+          groupObject.stix.type === 'intrusion-set' &&
+          StixBundlesService.secondaryObjectIsValid(groupObject, options)
+        ) {
+          this.domainCache.set(groupObject.stix.id, groupObject.stix.x_mitre_domains);
+          groupObject.stix.x_mitre_domains = [options.domain];
+          this.addAttackObjectToBundle(groupObject, bundle, objectsMap);
         }
       }
-    }
-  }
 
-  /**
-   * Validates all relationships in the bundle for referential integrity.
-   * Ensures that both source and target objects exist for each relationship.
-   * Logs warnings for any orphaned references found.
-   *
-   * @param {Array<Object>} bundleObjects - Array of STIX objects in the bundle
-   * @param {Map} objectsMap - Map of object IDs for validation
-   */
-  static validateRelationships(bundleObjects, objectsMap) {
-    for (const stixObject of bundleObjects) {
-      if (stixObject.type === 'relationship') {
-        if (!objectsMap.has(stixObject.source_ref)) {
-          logger.warn(
-            `source_ref not found ${stixObject.source_ref} ${stixObject.relationship_type} ${stixObject.target_ref}`,
-          );
-        }
-        if (!objectsMap.has(stixObject.target_ref)) {
-          logger.warn(
-            `target_ref not found ${stixObject.source_ref} ${stixObject.relationship_type} ${stixObject.target_ref}`,
-          );
+      // Add secondary objects that were revoked by other secondary objects
+      if (
+        relationship.stix.relationship_type === 'revoked-by' &&
+        !objectsMap.has(relationship.stix.source_ref) &&
+        objectsMap.has(relationship.stix.target_ref)
+      ) {
+        const revokedObject = await this.getAttackObject(relationship.stix.source_ref);
+        if (StixBundlesService.secondaryObjectIsValid(revokedObject, options)) {
+          if (
+            revokedObject.stix.type === 'intrusion-set' ||
+            revokedObject.stix.type === 'campaign'
+          ) {
+            this.domainCache.set(revokedObject.stix.id, revokedObject.stix.x_mitre_domains);
+            revokedObject.stix.x_mitre_domains = [options.domain];
+          }
+          this.addAttackObjectToBundle(revokedObject, bundle, objectsMap);
         }
       }
     }

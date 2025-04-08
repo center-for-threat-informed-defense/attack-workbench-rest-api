@@ -14,6 +14,7 @@ class MatrixRepository extends BaseRepository {
    * 1. Matrices are queried with basic filters (revoked, deprecated, state)
    * 2. Domain matching happens in memory by checking external_references[0].external_id
    *
+   * @param {string} domain Domain to search for
    * @param {Object} options Query options
    * @param {boolean} [options.includeRevoked=false] Include revoked matrices
    * @param {boolean} [options.includeDeprecated=false] Include deprecated matrices
@@ -21,7 +22,7 @@ class MatrixRepository extends BaseRepository {
    * @returns {Promise<Array>} Matrices matching the query criteria
    * @throws {DatabaseError} If database query fails
    */
-  async retrieveAllForBundle(options) {
+  async retrieveAllByDomain(domain, options) {
     try {
       // Build query without domain filter
       const query = {};
@@ -63,7 +64,11 @@ class MatrixRepository extends BaseRepository {
       ];
 
       const results = await this.model.aggregate(aggregation).exec();
-      return results;
+      return results.filter(
+        (matrix) =>
+          matrix?.stix?.external_references?.length &&
+          matrix.stix.external_references[0].external_id === domain,
+      );
     } catch (err) {
       throw new DatabaseError(err);
     }
