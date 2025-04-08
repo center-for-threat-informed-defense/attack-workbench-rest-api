@@ -64,7 +64,8 @@ class MatrixService extends BaseService {
           parentTechnique.subtechniques = [];
           for (const subtechnique of subtechniques) {
             if (
-              subtechnique.workspace.attack_id.split('.')[0] === parentTechnique.workspace.attack_id
+              subtechnique.workspace.attack_id?.split('.')[0] ===
+              parentTechnique.workspace.attack_id
             ) {
               parentTechnique.subtechniques.push(subtechnique);
             }
