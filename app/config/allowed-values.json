@@ -12,12 +12,13 @@
               "Linux",
               "macOS",
               "Windows",
-              "Network",
+              "Network Devices",
               "SaaS",
               "IaaS",
               "Containers",
               "Identity Provider",
-              "Office Suite"
+              "Office Suite",
+              "ESXi"
             ]
           },
           {
@@ -139,12 +140,13 @@
               "Linux",
               "macOS",
               "Windows",
-              "Network",
+              "Network Devices",
               "IaaS",
               "SaaS",
               "Containers",
               "Identity Provider",
-              "Office Suite"
+              "Office Suite",
+              "ESXi"
             ]
           },
           {
@@ -200,9 +202,10 @@
               "macOS",
               "IaaS",
               "SaaS",
-              "Network",
+              "Network Devices",
               "Identity Provider",
-              "Office Suite"
+              "Office Suite",
+              "ESXi"
             ]
           },
           {
