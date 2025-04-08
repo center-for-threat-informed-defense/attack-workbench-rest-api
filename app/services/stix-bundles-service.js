@@ -562,12 +562,6 @@ class StixBundlesService extends BaseService {
         if (await this.processSecondaryObject(secondaryObject, options)) {
           this.addAttackObjectToBundle(secondaryObject, bundle, objectsMap);
         }
-
-        // Special handling for 'detects' relationships:
-        // Track data components for later processing of technique detection data
-        if (relationship.stix.relationship_type === 'detects') {
-          dataComponents.set(secondaryObject.stix.id, secondaryObject.stix);
-        }
       } else if (!objectsMap.has(relationship.stix.target_ref)) {
         const secondaryObject = await this.getAttackObject(relationship.stix.target_ref);
 
@@ -577,7 +571,14 @@ class StixBundlesService extends BaseService {
         }
       }
 
-      if (StixBundlesService.relationshipIsActive(relationship)) {
+      // Special handling for 'detects' relationships:
+      // Track data components for later processing of technique detection data
+      if (
+        relationship.stix.relationship_type === 'detects' &&
+        StixBundlesService.relationshipIsActive(relationship)
+      ) {
+        const dataComponent = await this.getAttackObject(relationship.stix.source_ref);
+        dataComponents.set(dataComponent.stix.id, dataComponent.stix);
         const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
         if (techniqueDataComponents) {
           techniqueDataComponents.push(relationship.stix.source_ref);
