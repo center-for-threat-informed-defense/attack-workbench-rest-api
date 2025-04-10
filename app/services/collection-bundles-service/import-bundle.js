@@ -287,29 +287,32 @@ async function processObjects(
       importedCollection.workspace.import_categories.errors.push(importError);
     }
 
-    // Check ATT&CK Spec Version compatibility
-    const objectAttackSpecVersion =
-      importObject.x_mitre_attack_spec_version ?? defaultAttackSpecVersion;
-    if (semver.gt(objectAttackSpecVersion, config.app.attackSpecVersion)) {
-      const importError = {
-        object_ref: importObject.id,
-        object_modified: importObject.modified,
-        error_type: importErrors.attackSpecVersionViolation,
-        error_message: 'Error: Object x_mitre_attack_spec_version later than system.',
-      };
-      logger.verbose(
-        `Import Bundle Error: Object's x_mitre_attack_spec_version later than system. id=${importObject.id}, modified=${importObject.modified}`,
-      );
-      importedCollection.workspace.import_categories.errors.push(importError);
+    if (importObject.type != 'marking-definition') {
+      // Check ATT&CK Spec Version compatibility
+      const objectAttackSpecVersion =
+        importObject.x_mitre_attack_spec_version ?? defaultAttackSpecVersion;
+      if (semver.gt(objectAttackSpecVersion, config.app.attackSpecVersion)) {
+        const importError = {
+          object_ref: importObject.id,
+          object_modified: importObject.modified,
+          error_type: importErrors.attackSpecVersionViolation,
+          error_message: 'Error: Object x_mitre_attack_spec_version later than system.',
+        };
+        logger.verbose(
+          `Import Bundle Error: Object's x_mitre_attack_spec_version later than system. id=${importObject.id}, modified=${importObject.modified}`,
+        );
+        importedCollection.workspace.import_categories.errors.push(importError);
 
-      if (
-        !options.forceImportParameters?.includes(forceImportParameters.attackSpecVersionViolations)
-      ) {
-        throw new Error(errors.attackSpecVersionViolation);
+        if (
+          !options.forceImportParameters?.includes(
+            forceImportParameters.attackSpecVersionViolations,
+          )
+        ) {
+          throw new Error(errors.attackSpecVersionViolation);
+        }
+        continue;
       }
-      continue;
     }
-
     await processStixObject(
       importObject,
       options,

@@ -1,7 +1,6 @@
 'use strict';
 
 const uuid = require('uuid');
-const config = require('../config/config');
 const BaseService = require('./_base.service');
 const markingDefinitionsRepository = require('../repository/marking-definitions-repository');
 const { MarkingDefinition: MarkingDefinitionType } = require('../lib/types');
@@ -28,10 +27,6 @@ class MarkingDefinitionsService extends BaseService {
 
     options = options || {};
     if (!options.import) {
-      // Set the ATT&CK Spec Version
-      markingDefinition.stix.x_mitre_attack_spec_version =
-        markingDefinition.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
-
       // Record the user account that created the object
       if (options.userAccountId) {
         markingDefinition.workspace.workflow.created_by_user_account = options.userAccountId;

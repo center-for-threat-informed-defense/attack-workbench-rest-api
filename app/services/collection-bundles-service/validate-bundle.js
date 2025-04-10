@@ -42,24 +42,25 @@ module.exports = function validateBundle(bundle) {
         objectMap.set(key, stixObject);
       }
 
-      // Validate ATT&CK spec version compatibility
-      const objectAttackSpecVersion =
-        stixObject.x_mitre_attack_spec_version ?? defaultAttackSpecVersion;
+      if (stixObject.type != 'marking-definition') {
+        // Validate ATT&CK spec version compatibility
+        const objectAttackSpecVersion =
+          stixObject.x_mitre_attack_spec_version ?? defaultAttackSpecVersion;
 
-      // Check if version is valid semver and compatible with system version
-      if (
-        !semver.valid(objectAttackSpecVersion) ||
-        semver.gt(objectAttackSpecVersion, config.app.attackSpecVersion)
-      ) {
-        validationResult.errors.push({
-          type: validationErrors.invalidAttackSpecVersion,
-          id: stixObject.id,
-          modified: stixObject.modified,
-        });
-        validationResult.invalidAttackSpecVersionCount += 1;
+        // Check if version is valid semver and compatible with system version
+        if (
+          !semver.valid(objectAttackSpecVersion) ||
+          semver.gt(objectAttackSpecVersion, config.app.attackSpecVersion)
+        ) {
+          validationResult.errors.push({
+            type: validationErrors.invalidAttackSpecVersion,
+            id: stixObject.id,
+            modified: stixObject.modified,
+          });
+          validationResult.invalidAttackSpecVersionCount += 1;
+        }
       }
     }
-
     return validationResult;
   } catch (error) {
     throw new Error(`Bundle validation failed: ${error.message}`);

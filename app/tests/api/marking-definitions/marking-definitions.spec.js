@@ -4,7 +4,6 @@ const { expect } = require('expect');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
-const config = require('../../../config/config');
 const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
@@ -90,8 +89,6 @@ describe('Marking Definitions API', function () {
     expect(markingDefinition1.stix).toBeDefined();
     expect(markingDefinition1.stix.id).toBeDefined();
     expect(markingDefinition1.stix.created).toBeDefined();
-    // stix.modified does not exist for marking definitions
-    expect(markingDefinition1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
   });
 
   it('GET /api/marking-definitions returns the added marking definition', async function () {
@@ -147,9 +144,6 @@ describe('Marking Definitions API', function () {
       expect.arrayContaining(markingDefinition1.stix.object_marking_refs),
     );
     expect(markingDefinition.stix.created_by_ref).toBe(markingDefinition1.stix.created_by_ref);
-    expect(markingDefinition.stix.x_mitre_attack_spec_version).toBe(
-      markingDefinition1.stix.x_mitre_attack_spec_version,
-    );
   });
 
   it('PUT /api/marking-definitions updates a marking definition', async function () {

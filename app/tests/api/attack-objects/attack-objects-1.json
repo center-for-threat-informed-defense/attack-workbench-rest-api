@@ -471,8 +471,7 @@
       "modified": "2017-06-01T00:00:00.000Z",
       "name": "The Corporate Entity",
       "spec_version": "2.1",
-      "x_mitre_attack_spec_version": "2.1.0",
-      "x_mitre_version": "1.0"
+      "x_mitre_attack_spec_version": "2.1.0"
     },
     {
       "definition": {
@@ -483,7 +482,6 @@
       "created": "2020-01-01T00:00:00.000Z",
       "created_by_ref": "identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5",
       "definition_type": "statement",
-      "x_mitre_attack_spec_version": "2.1.0",
       "spec_version": "2.1",
       "x_mitre_domains": ["ics-attack"]
     }

@@ -28,9 +28,6 @@ components:
             x_mitre_deprecated:
               type: boolean
               example: false
-            x_mitre_attack_spec_version:
-              type: string
-              example: '2.1.0'
 
     marking-object-definition:
       type: object
