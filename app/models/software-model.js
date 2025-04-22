@@ -11,7 +11,6 @@ const stixMalware = {
   name: { type: String, required: true },
   description: String,
   is_family: Boolean,
-  labels: [String],
 
   // ATT&CK custom stix properties
   x_mitre_modified_by_ref: String,
