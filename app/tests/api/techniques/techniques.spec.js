@@ -185,7 +185,7 @@ describe('Techniques Basic API', function () {
 
     expect(technique.workspace.attack_id).toEqual(technique1.workspace.attack_id);
 
-    expect(technique.stix.x_mitre_deprecated).not.toBeDefined();
+    expect(technique.stix.x_mitre_deprecated).toBe(false);
     expect(technique.stix.x_mitre_defense_bypassed).not.toBeDefined();
     expect(technique.stix.x_mitre_permissions_required).not.toBeDefined();
     expect(technique.stix.x_mitre_system_requirements).not.toBeDefined();
