@@ -23,7 +23,7 @@ const stixAsset = {
   x_mitre_related_assets: [relatedAssetSchema],
   x_mitre_modified_by_ref: String,
   x_mitre_platforms: [String],
-  x_mitre_deprecated: Boolean,
+  x_mitre_deprecated: { type: Boolean, required: true, default: false },
   x_mitre_domains: [String],
   x_mitre_version: String,
   x_mitre_attack_spec_version: String,

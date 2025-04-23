@@ -12,7 +12,7 @@ module.exports.attackPattern = {
   // ATT&CK custom STIX properties
   x_mitre_attack_spec_version: String,
   x_mitre_contributors: [String],
-  x_mitre_deprecated: Boolean,
+  x_mitre_deprecated: { type: Boolean, required: true, default: false },
   x_mitre_detection: String,
   x_mitre_domains: [String],
   x_mitre_is_subtechnique: Boolean,
