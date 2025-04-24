@@ -17,10 +17,6 @@ const markingDefinitionProperties = {
   name: String,
   definition_type: String,
   definition: markingObject,
-
-  // ATT&CK custom stix properties
-  x_mitre_deprecated: Boolean,
-  x_mitre_attack_spec_version: String,
 };
 
 // Create the definition

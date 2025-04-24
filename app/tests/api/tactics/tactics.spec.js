@@ -152,7 +152,7 @@ describe('Tactics API', function () {
     expect(tactic.stix.x_mitre_modified_by_ref).toBe(tactic1.stix.x_mitre_modified_by_ref);
     expect(tactic.stix.x_mitre_attack_spec_version).toBe(tactic1.stix.x_mitre_attack_spec_version);
 
-    expect(tactic.stix.x_mitre_deprecated).not.toBeDefined();
+    expect(tactic.stix.x_mitre_deprecated).toBe(false);
   });
 
   it('PUT /api/tactics updates a tactic', async function () {

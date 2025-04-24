@@ -256,7 +256,9 @@ class StixBundlesService extends BaseService {
 
     // Handle domains for groups and campaigns
     if (secondaryObject.stix.type === 'intrusion-set' || secondaryObject.stix.type === 'campaign') {
-      this.domainCache.set(secondaryObject.stix.id, secondaryObject.stix.x_mitre_domains);
+      if (secondaryObject.stix.x_mitre_domains) {
+        this.domainCache.set(secondaryObject.stix.id, secondaryObject.stix.x_mitre_domains);
+      }
       secondaryObject.stix.x_mitre_domains =
         await this.getDomainsForSecondaryObject(secondaryObject);
     }
@@ -334,10 +336,11 @@ class StixBundlesService extends BaseService {
   static processDataComponents(bundle, techniqueDetectedBy, dataComponents, dataSources) {
     for (const bundleObject of bundle.objects) {
       if (bundleObject.type === 'attack-pattern') {
+        // TODO remove this line once all techniques are confirmed to have x_mitre_is_subtechnique
         bundleObject.x_mitre_is_subtechnique = bundleObject.x_mitre_is_subtechnique ?? false;
 
-        const enterpriseDomain = bundleObject.x_mitre_domains.includes('enterprise-attack');
-        const icsDomain = bundleObject.x_mitre_domains.includes('ics-attack');
+        const enterpriseDomain = bundleObject.x_mitre_domains?.includes('enterprise-attack');
+        const icsDomain = bundleObject.x_mitre_domains?.includes('ics-attack');
 
         if (enterpriseDomain || icsDomain) {
           StixBundlesService.addDerivedDataSources(
@@ -696,7 +699,9 @@ class StixBundlesService extends BaseService {
           groupObject.stix.type === 'intrusion-set' &&
           StixBundlesService.secondaryObjectIsValid(groupObject, options)
         ) {
-          this.domainCache.set(groupObject.stix.id, groupObject.stix.x_mitre_domains);
+          if (groupObject.stix.x_mitre_domains) {
+            this.domainCache.set(groupObject.stix.id, groupObject.stix.x_mitre_domains);
+          }
           groupObject.stix.x_mitre_domains = [options.domain];
           this.addAttackObjectToBundle(groupObject, bundle, objectsMap);
         }
@@ -714,7 +719,9 @@ class StixBundlesService extends BaseService {
             revokedObject.stix.type === 'intrusion-set' ||
             revokedObject.stix.type === 'campaign'
           ) {
-            this.domainCache.set(revokedObject.stix.id, revokedObject.stix.x_mitre_domains);
+            if (revokedObject.stix.x_mitre_domains) {
+              this.domainCache.set(revokedObject.stix.id, revokedObject.stix.x_mitre_domains);
+            }
             revokedObject.stix.x_mitre_domains = [options.domain];
           }
           this.addAttackObjectToBundle(revokedObject, bundle, objectsMap);

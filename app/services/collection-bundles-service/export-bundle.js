@@ -99,8 +99,8 @@ async function addDerivedDataSources(bundleObjects) {
   // Process techniques
   for (const bundleObject of bundleObjects) {
     if (bundleObject.type === 'attack-pattern') {
-      const enterpriseDomain = bundleObject.x_mitre_domains.includes('enterprise-attack');
-      const icsDomain = bundleObject.x_mitre_domains.includes('ics-attack');
+      const enterpriseDomain = bundleObject.x_mitre_domains?.includes('enterprise-attack');
+      const icsDomain = bundleObject.x_mitre_domains?.includes('ics-attack');
 
       processTechniqueDataSources(
         bundleObject,
