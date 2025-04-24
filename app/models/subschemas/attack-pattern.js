@@ -15,7 +15,7 @@ module.exports.attackPattern = {
   x_mitre_deprecated: { type: Boolean, required: true, default: false },
   x_mitre_detection: String,
   x_mitre_domains: { type: [String], default: undefined },
-  x_mitre_is_subtechnique: Boolean,
+  x_mitre_is_subtechnique: { type: Boolean, required: true, default: false },
   x_mitre_modified_by_ref: String,
   x_mitre_platforms: [String],
   x_mitre_version: String,

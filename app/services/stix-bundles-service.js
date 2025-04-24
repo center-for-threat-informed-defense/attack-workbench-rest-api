@@ -336,6 +336,7 @@ class StixBundlesService extends BaseService {
   static processDataComponents(bundle, techniqueDetectedBy, dataComponents, dataSources) {
     for (const bundleObject of bundle.objects) {
       if (bundleObject.type === 'attack-pattern') {
+        // TODO remove this line once all techniques are confirmed to have x_mitre_is_subtechnique
         bundleObject.x_mitre_is_subtechnique = bundleObject.x_mitre_is_subtechnique ?? false;
 
         const enterpriseDomain = bundleObject.x_mitre_domains?.includes('enterprise-attack');
