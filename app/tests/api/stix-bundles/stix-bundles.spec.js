@@ -16,6 +16,7 @@ const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
 const collectionTimestamp = new Date().toISOString();
 
 const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
+const mitreIdentityId = 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5';
 
 const initialObjectData = {
   type: 'bundle',
@@ -32,7 +33,7 @@ const initialObjectData = {
       description: 'This is a collection.',
       external_references: [],
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       x_mitre_contents: [
         {
           object_ref: 'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a',
@@ -87,7 +88,7 @@ const initialObjectData = {
           object_modified: '2020-07-03T20:22:40.401Z',
         },
         {
-          object_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+          object_ref: mitreIdentityId,
           object_modified: '2017-06-01T00:00:00.000Z',
         },
         {
@@ -149,7 +150,7 @@ const initialObjectData = {
       ],
     },
     {
-      id: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      id: mitreIdentityId,
       name: 'The MITRE Corporation',
       identity_class: 'organization',
       object_marking_refs: [markingDefinitionId],
@@ -161,7 +162,7 @@ const initialObjectData = {
     {
       type: 'marking-definition',
       id: markingDefinitionId,
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       created: '2017-06-01T00:00:00Z',
       definition_type: 'statement',
       definition: {
@@ -187,7 +188,7 @@ const initialObjectData = {
         },
       ],
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       kill_chain_phases: [{ kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }],
       x_mitre_data_sources: ['Command: Command Execution', 'Network Traffic: Network Traffic Flow'],
       x_mitre_detection: 'detection text',
@@ -213,7 +214,7 @@ const initialObjectData = {
         },
       ],
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       kill_chain_phases: [{ kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }],
       x_mitre_detection: 'detection text',
       x_mitre_is_subtechnique: false,
@@ -238,7 +239,7 @@ const initialObjectData = {
         },
       ],
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       kill_chain_phases: [{ kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }],
       x_mitre_data_sources: [
         'Operational Databases: Device Alarm',
@@ -267,7 +268,7 @@ const initialObjectData = {
         },
       ],
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       kill_chain_phases: [{ kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }],
       x_mitre_data_sources: [
         'Command: Command Execution',
@@ -283,7 +284,7 @@ const initialObjectData = {
     {
       id: 'course-of-action--25dc1ce8-eb55-4333-ae30-a7cb4f5894a1',
       type: 'course-of-action',
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       name: 'mitigation-1',
       description: 'This is a mitigation',
       external_references: [{ source_name: 'mitre-attack', external_id: 'M1' }],
@@ -297,7 +298,7 @@ const initialObjectData = {
     {
       id: 'course-of-action--e944670c-d03a-4e93-a21c-b3d4c53ec4c9',
       type: 'course-of-action',
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       name: 'mitigation-2',
       description: "This is a mitigation that isn't in the contents",
       external_references: [{ source_name: 'mitre-attack', external_id: 'M1' }],
@@ -312,7 +313,7 @@ const initialObjectData = {
     {
       id: 'malware--04227b24-7817-4de1-9050-b7b1b57f5866',
       type: 'malware',
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       name: 'software-1',
       description: 'This is a software with an alias',
       external_references: [
@@ -331,7 +332,7 @@ const initialObjectData = {
     {
       type: 'intrusion-set',
       id: 'intrusion-set--8a831aaa-f3e0-47a3-bed8-a9ced744dd12',
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       name: 'Dark Caracal',
       description:
         '[Dark Caracal](https://attack.mitre.org/groups/G0070) is threat group that has been attributed to the Lebanese General Directorate of General Security (GDGS) and has operated since at least 2012. (Citation: Lookout Dark Caracal Jan 2018)',
@@ -362,7 +363,7 @@ const initialObjectData = {
     {
       type: 'intrusion-set',
       id: 'intrusion-set--ed0222fb-b970-4337-b9a2-62aeb02860e5',
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       name: 'Another group',
       description:
         "This is another group. It isn't referenced by a technique, but is associated with a campaign",
@@ -383,7 +384,7 @@ const initialObjectData = {
     {
       type: 'campaign',
       id: 'campaign--a3038910-f8ca-4ba8-b116-21d0f333f231',
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       name: 'campaign-1',
       description: 'This is a campaign',
       first_seen: '2016-04-06T00:00:00.000Z',
@@ -407,7 +408,7 @@ const initialObjectData = {
     {
       type: 'campaign',
       id: 'campaign--649b389e-1f7a-4696-8a95-04d0851bd551',
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       name: 'campaign-2',
       description: 'This is another campaign',
       first_seen: '2016-04-06T00:00:00.000Z',
@@ -429,7 +430,7 @@ const initialObjectData = {
       x_mitre_version: '1.2',
     },
     {
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       object_marking_refs: [markingDefinitionId],
       source_ref: 'intrusion-set--8a831aaa-f3e0-47a3-bed8-a9ced744dd12',
       target_ref: 'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a',
@@ -447,7 +448,7 @@ const initialObjectData = {
       object_marking_refs: [markingDefinitionId],
       description: "This is a group that isn't in the domain",
       name: 'Dark Hydra',
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       id: 'intrusion-set--6b9ebeb5-20bf-48b0-afb7-988d769a2f01',
       type: 'intrusion-set',
       aliases: ['Hydra'],
@@ -464,7 +465,7 @@ const initialObjectData = {
       content: 'This is the content for a note.',
       authors: ['Author 1', 'Author 2'],
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       object_refs: ['malware--04227b24-7817-4de1-9050-b7b1b57f5866'],
       modified: '2020-04-12T15:44:47.629Z',
       created: '2019-10-22T00:14:20.652Z',
@@ -475,7 +476,7 @@ const initialObjectData = {
       name: 'Command',
       spec_version: '2.1',
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       modified: '2020-04-12T15:44:47.629Z',
       created: '2019-10-22T00:14:20.652Z',
       external_references: [{ source_name: 'mitre-attack', external_id: 'DS1' }],
@@ -486,7 +487,7 @@ const initialObjectData = {
       name: 'Network Traffic',
       spec_version: '2.1',
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       modified: '2020-04-12T15:44:47.629Z',
       created: '2019-10-22T00:14:20.652Z',
       external_references: [{ source_name: 'mitre-attack', external_id: 'DS1' }],
@@ -498,7 +499,7 @@ const initialObjectData = {
       spec_version: '2.1',
       x_mitre_data_source_ref: 'x-mitre-data-source--880b771b-17a8-4a6c-a259-9027c395010c',
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       modified: '2020-04-12T15:44:47.629Z',
       created: '2019-10-22T00:14:20.652Z',
     },
@@ -509,12 +510,12 @@ const initialObjectData = {
       spec_version: '2.1',
       x_mitre_data_source_ref: 'x-mitre-data-source--3e396a50-dd74-45cf-b8a3-974ab80c9a3e',
       object_marking_refs: [markingDefinitionId],
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       modified: '2020-04-12T15:44:47.629Z',
       created: '2019-10-22T00:14:20.652Z',
     },
     {
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       object_marking_refs: [markingDefinitionId],
       source_ref: 'x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d',
       target_ref: 'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a',
@@ -528,7 +529,7 @@ const initialObjectData = {
       spec_version: '2.1',
     },
     {
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       object_marking_refs: [markingDefinitionId],
       source_ref: 'x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d',
       target_ref: 'attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f',
@@ -542,7 +543,7 @@ const initialObjectData = {
       spec_version: '2.1',
     },
     {
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       object_marking_refs: [markingDefinitionId],
       source_ref: 'x-mitre-data-component--f8b4833e-a6d4-4a05-ba6e-1936d4109d0a',
       target_ref: 'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a',
@@ -556,7 +557,7 @@ const initialObjectData = {
       spec_version: '2.1',
     },
     {
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       object_marking_refs: [markingDefinitionId],
       source_ref: 'campaign--a3038910-f8ca-4ba8-b116-21d0f333f231',
       target_ref: 'attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f',
@@ -570,7 +571,7 @@ const initialObjectData = {
       spec_version: '2.1',
     },
     {
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       object_marking_refs: [markingDefinitionId],
       source_ref: 'campaign--649b389e-1f7a-4696-8a95-04d0851bd551',
       target_ref: 'attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483',
@@ -584,7 +585,7 @@ const initialObjectData = {
       spec_version: '2.1',
     },
     {
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       object_marking_refs: [markingDefinitionId],
       source_ref: 'campaign--a3038910-f8ca-4ba8-b116-21d0f333f231',
       target_ref: 'malware--04227b24-7817-4de1-9050-b7b1b57f5866',
@@ -598,7 +599,7 @@ const initialObjectData = {
       spec_version: '2.1',
     },
     {
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+      created_by_ref: mitreIdentityId,
       object_marking_refs: [markingDefinitionId],
       source_ref: 'campaign--a3038910-f8ca-4ba8-b116-21d0f333f231',
       target_ref: 'intrusion-set--8a831aaa-f3e0-47a3-bed8-a9ced744dd12',
@@ -787,6 +788,7 @@ describe('STIX Bundles Basic API', function () {
           expect(coll.object_marking_refs.length).toBe(1);
           expect(coll.object_marking_refs[0]).toBe(markingDefinitionId);
           expect(coll.x_mitre_attack_spec_version).toBe(attackSpecVersion);
+          expect(coll.created_by_ref).toBe(mitreIdentityId);
           done();
         }
       });
