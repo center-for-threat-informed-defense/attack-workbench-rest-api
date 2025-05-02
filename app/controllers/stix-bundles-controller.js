@@ -22,6 +22,10 @@ exports.exportBundle = async function (req, res) {
     stixVersion: req.query.stixVersion,
     includeMissingAttackId: req.query.includeMissingAttackId,
     includeNotes: req.query.includeNotes,
+    includeCollectionObject: req.query.includeCollectionObject,
+    collectionObjectVersion: req.query.collectionObjectVersion,
+    collectionObjectModified: req.query.collectionObjectModified,
+    collectionAttackSpecVersion: req.query.collectionAttackSpecVersion,
   };
 
   try {
