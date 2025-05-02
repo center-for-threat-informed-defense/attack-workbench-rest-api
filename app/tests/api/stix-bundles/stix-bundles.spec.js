@@ -748,15 +748,15 @@ describe('STIX Bundles Basic API', function () {
       });
   });
 
-  it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain with a collection object', function (done) {
+  it('GET /api/stix-bundles exports the STIX 2.1 bundle for the enterprise domain with a collection object', function (done) {
     const bundleVersion = '17.1';
     const bundleModified = '2025-05-06T14:00:00.188Z';
     const encodedBundleModified = encodeURIComponent(bundleModified);
-    const attackSpecVersion = '2.1.0';
+    const attackSpecVersion = '3.2.0';
 
     request(app)
       .get(
-        `/api/stix-bundles?domain=${enterpriseDomain}&includeNotes=true&includeCollectionObject=true&collectionObjectVersion=${bundleVersion}&collectionObjectModified=${encodedBundleModified}&collectionAttackSpecVersion=${attackSpecVersion}`,
+        `/api/stix-bundles?domain=${enterpriseDomain}&includeNotes=true&stixVersion=2.1&includeCollectionObject=true&collectionObjectVersion=${bundleVersion}&collectionObjectModified=${encodedBundleModified}&collectionAttackSpecVersion=${attackSpecVersion}`,
       )
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
@@ -769,6 +769,7 @@ describe('STIX Bundles Basic API', function () {
           // We expect to get the exported STIX bundle
           const stixBundle = res.body;
           expect(stixBundle).toBeDefined();
+          expect(stixBundle.spec_version).toBeUndefined();
           expect(Array.isArray(stixBundle.objects)).toBe(true);
 
           // 4 primary objects, 7 relationship objects, 6 secondary objects,
@@ -787,6 +788,7 @@ describe('STIX Bundles Basic API', function () {
           expect(collectionObject.object_marking_refs[0]).toBe(markingDefinitionId);
           expect(collectionObject.x_mitre_attack_spec_version).toBe(attackSpecVersion);
           expect(collectionObject.created_by_ref).toBe(mitreIdentityId);
+          expect(collectionObject.spec_version).toBe('2.1');
           done();
         }
       });
