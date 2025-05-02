@@ -447,6 +447,10 @@ class StixBundlesService extends BaseService {
       }
     }
 
+    if (options.stixVersion == '2.1') {
+      collectionObject.spec_version = '2.1';
+    }
+
     // Sort x_mitre_contents by id
     collectionObject.x_mitre_contents.sort((x, y) => x.object_ref.localeCompare(y.object_ref));
 
