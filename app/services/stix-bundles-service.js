@@ -440,6 +440,7 @@ class StixBundlesService extends BaseService {
           object_ref: bundleObject.id,
           object_modified: bundleObject.modified,
         });
+        // TODO: Make this not specific to MITRE
         if (bundleObject.type === 'identity' && bundleObject.name === 'The MITRE Corporation') {
           collectionObject.created_by_ref = bundleObject.id;
         }
@@ -449,7 +450,7 @@ class StixBundlesService extends BaseService {
     // Sort x_mitre_contents by id
     collectionObject.x_mitre_contents.sort((x, y) => x.object_ref.localeCompare(y.object_ref));
 
-    bundle.objects.push(collectionObject);
+    bundle.objects.unshift(collectionObject);
   }
 
   // ============================

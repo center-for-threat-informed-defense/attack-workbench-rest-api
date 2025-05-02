@@ -775,20 +775,18 @@ describe('STIX Bundles Basic API', function () {
           // 1 note, 1 identity, 1 marking definition, 1 collection object
           expect(stixBundle.objects.length).toBe(21);
 
-          const collectionObjects = stixBundle.objects.filter(
-            (obj) => obj.type === 'x-mitre-collection',
+          const collectionObject = stixBundle.objects[0];
+          expect(collectionObject.id).toBe(
+            'x-mitre-collection--1f5f1533-f617-4ca8-9ab4-6a02367fa019',
           );
-          expect(collectionObjects.length).toBe(1);
-          const coll = collectionObjects[0];
-          expect(coll.id).toBe('x-mitre-collection--1f5f1533-f617-4ca8-9ab4-6a02367fa019');
-          expect(coll.name).toBe('Enterprise ATT&CK');
-          expect(coll.x_mitre_version).toBe(bundleVersion);
-          expect(coll.modified).toBe(bundleModified);
-          expect(coll.x_mitre_contents.length).toBe(19); // 21 - 2: marking-definition and x-mitre-collection are not included
-          expect(coll.object_marking_refs.length).toBe(1);
-          expect(coll.object_marking_refs[0]).toBe(markingDefinitionId);
-          expect(coll.x_mitre_attack_spec_version).toBe(attackSpecVersion);
-          expect(coll.created_by_ref).toBe(mitreIdentityId);
+          expect(collectionObject.name).toBe('Enterprise ATT&CK');
+          expect(collectionObject.x_mitre_version).toBe(bundleVersion);
+          expect(collectionObject.modified).toBe(bundleModified);
+          expect(collectionObject.x_mitre_contents.length).toBe(19); // 21 - 2: marking-definition and x-mitre-collection are not included
+          expect(collectionObject.object_marking_refs.length).toBe(1);
+          expect(collectionObject.object_marking_refs[0]).toBe(markingDefinitionId);
+          expect(collectionObject.x_mitre_attack_spec_version).toBe(attackSpecVersion);
+          expect(collectionObject.created_by_ref).toBe(mitreIdentityId);
           done();
         }
       });
