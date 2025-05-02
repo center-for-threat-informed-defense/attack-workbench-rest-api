@@ -65,6 +65,34 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: includeCollectionObject
+          in: query
+          description: |
+            Whether to create an object of type `x-mitre-collection` for objects in the bundle.
+          schema:
+            type: boolean
+            default: false
+        - name: collectionObjectVersion
+          in: query
+          description: |
+            The version of the collection object to create.
+          schema:
+            type: string
+          example: '17.1'
+        - name: collectionObjectModified
+          in: query
+          description: |
+            The modified timestamp for the collection object.
+          schema:
+            type: string
+          example: '2025-05-06T14:00:00.188Z'
+        - name: collectionAttackSpecVersion
+          in: query
+          description: |
+            The ATT&CK spec version of the collection object to create.
+          schema:
+            type: string
+          example: '2.1.0'
 
       responses:
         '200':

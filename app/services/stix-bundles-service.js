@@ -387,6 +387,71 @@ class StixBundlesService extends BaseService {
     }
   }
 
+  /**
+   * Add an x-mitre-collection object to the bundle, based on the objects inside.
+   * @param {Object} bundle - The bundle to update
+   * @param {Object} options - Bundle generation options
+   */
+  static addCollectionObject(bundle, options) {
+    const domain_info = {
+      'enterprise-attack': {
+        name: 'Enterprise ATT&CK',
+        creation_date: '2018-01-17T12:56:55.080Z',
+        description:
+          'ATT&CK for Enterprise provides a knowledge base of real-world adversary behavior targeting traditional enterprise networks. ATT&CK for Enterprise covers the following platforms: Windows, macOS, Linux, PRE, Office 365, Google Workspace, IaaS, Network, and Containers.',
+        collection_id: 'x-mitre-collection--1f5f1533-f617-4ca8-9ab4-6a02367fa019',
+      },
+      'mobile-attack': {
+        name: 'Mobile ATT&CK',
+        creation_date: '2018-01-17T12:56:55.080Z',
+        description:
+          "ATT&CK for Mobile is a matrix of adversary behavior against mobile devices (smartphones and tablets running the Android or iOS/iPadOS operating systems). ATT&CK for Mobile builds upon NIST's Mobile Threat Catalogue and also contains a separate matrix of network-based effects, which are techniques that an adversary can employ without access to the mobile device itself.",
+        collection_id: 'x-mitre-collection--dac0d2d7-8653-445c-9bff-82f934c1e858',
+      },
+      'ics-attack': {
+        name: 'ICS ATT&CK',
+        creation_date: '2020-10-27T14:49:39.188Z',
+        description:
+          'The ATT&CK for Industrial Control Systems (ICS) knowledge base categorizes the unique set of tactics, techniques, and procedures (TTPs) used by threat actors in the ICS technology domain. ATT&CK for ICS outlines the portions of an ICS attack that are out of scope of Enterprise and reflects the various phases of an adversary’s attack life cycle and the assets and systems they are known to target.',
+        collection_id: 'x-mitre-collection--90c00720-636b-4485-b342-8751d232bf09',
+      },
+    };
+
+    const collectionObject = {
+      type: 'x-mitre-collection',
+      id: domain_info[options.domain].collection_id,
+      spec_version: options.spec_version,
+      x_mitre_attack_spec_version: options.collectionAttackSpecVersion,
+      name: domain_info[options.domain].name,
+      x_mitre_version: options.collectionObjectVersion,
+      description: domain_info[options.domain].description,
+      created_by_ref: '',
+      created: domain_info[options.domain].creation_date,
+      modified: options.collectionObjectModified,
+      x_mitre_contents: [],
+      object_marking_refs: [],
+    };
+
+    for (const bundleObject of bundle.objects) {
+      if (bundleObject.type === 'marking-definition') {
+        collectionObject.object_marking_refs.push(bundleObject.id);
+      } else {
+        collectionObject.x_mitre_contents.push({
+          object_ref: bundleObject.id,
+          object_modified: bundleObject.modified,
+        });
+        if (bundleObject.type === 'identity' && bundleObject.name === 'The MITRE Corporation') {
+          collectionObject.created_by_ref = bundleObject.id;
+        }
+      }
+    }
+
+    // Sort x_mitre_contents by id
+    collectionObject.x_mitre_contents.sort((x, y) => x.object_ref.localeCompare(y.object_ref));
+
+    bundle.objects.push(collectionObject);
+  }
+
   // ============================
   // Main Export Method
   // ============================
@@ -400,6 +465,7 @@ class StixBundlesService extends BaseService {
    * - Handling data components and data sources
    * - Processing notes if requested
    * - Conforming objects to specified STIX version
+   * - Adding an x-mitre-collection object, if requested
    *
    * @param {Object} options - Bundle generation options
    * @param {string} options.domain - The domain to generate bundle for (e.g., 'enterprise-attack')
@@ -408,6 +474,10 @@ class StixBundlesService extends BaseService {
    * @param {boolean} options.includeDeprecated - Whether to include deprecated objects
    * @param {boolean} options.includeMissingAttackId - Whether to include objects without ATT&CK IDs
    * @param {boolean} options.includeNotes - Whether to include associated notes
+   * @param {boolean} options.includeCollectionObject - Whether to create an x-mitre-collection object
+   * @param {boolean} options.collectionObjectVersion - x_mitre_version of the collection object
+   * @param {boolean} options.collectionAttackSpecVersion - x_mitre_attack_spec_version of the collection object
+   * @param {boolean} options.collectionObjectModified - Modified timestamp of the collection object
    * @param {string} [options.state] - Workflow state filter
    * @returns {Promise<Object>} The generated STIX bundle
    */
@@ -522,6 +592,9 @@ class StixBundlesService extends BaseService {
       StixBundlesService.conformToStixVersion(stixObject, options.stixVersion);
     }
 
+    if (options.includeCollectionObject) {
+      StixBundlesService.addCollectionObject(bundle, options);
+    }
     return bundle;
   }
 
