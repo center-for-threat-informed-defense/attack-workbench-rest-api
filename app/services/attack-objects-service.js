@@ -67,6 +67,31 @@ class AttackObjectsService extends BaseService {
   }
 
   /**
+   * Retrieve multiple attack objects by their version identifiers, handling relationships separately
+   * @param {Array<{object_ref: string, modified: string}>} xMitreContents - Array of x_mitre_contents elements
+   * @returns {Promise<Array<Object>>} Array of attack objects and relationships with identities populated
+   */
+  async getBulkByIdAndModified(xMitreContents) {
+    const relationshipIdAndModified = xMitreContents.filter((content) =>
+      content.object_ref.startsWith('relationship'),
+    );
+    const nonRelationshipIdAndModified = xMitreContents.filter(
+      (content) => !content.object_ref.startsWith('relationship'),
+    );
+
+    const [relationships, nonRelationships] = await Promise.all([
+      relationshipIdAndModified.length > 0
+        ? relationshipsService.getBulkByIdAndModified(relationshipIdAndModified)
+        : [],
+      nonRelationshipIdAndModified.length > 0
+        ? super.getBulkByIdAndModified(nonRelationshipIdAndModified)
+        : [],
+    ]);
+
+    return [...relationships, ...nonRelationships];
+  }
+
+  /**
    * Record that this object is part of a collection
    */
   async insertCollection(stixId, modified, collectionId, collectionModified) {
