@@ -249,6 +249,23 @@ class BaseService extends AbstractService {
     }
   }
 
+  /**
+   * Retrieve multiple attack objects by their version identifiers
+   * @param {Array<{object_ref: string, object_modified: string}>} xMitreContents - Array of x_mitre_contents elements
+   * @returns {Promise<Array<Object>>} Array of attack objects with identities populated
+   */
+  async getBulkByIdAndModified(xMitreContents) {
+    if (!xMitreContents || !Array.isArray(xMitreContents) || xMitreContents.length === 0) {
+      return [];
+    }
+    const documents = await this.repository.findManyByIdAndModified(xMitreContents);
+
+    // Process identities in parallel
+    await Promise.all(documents.map((doc) => this.addCreatedByAndModifiedByIdentities(doc)));
+
+    return documents;
+  }
+
   async create(data, options) {
     if (data?.stix?.type !== this.type) {
       throw new InvalidTypeError();

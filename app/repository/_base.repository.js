@@ -11,6 +11,8 @@ const {
   MissingParameterError,
 } = require('../exceptions');
 
+const logger = require('../lib/logger');
+
 class BaseRepository extends AbstractRepository {
   constructor(model) {
     super();
@@ -193,6 +195,73 @@ class BaseRepository extends AbstractRepository {
         throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
       } else if (err.name === 'MongoServerError' && err.code === 11000) {
         throw new DuplicateIdError();
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
+   * Retrieve multiple documents by their STIX ID and modified timestamp pairs
+   * @param {Array<{stixId: string, object_modified: string}>} xMitreContents - Array of STIX ID and modified timestamp pairs
+   * @returns {Promise<Array<Object>>} Array of matching documents
+   * @throws {BadlyFormattedParameterError} If stixId format is invalid
+   * @throws {DatabaseError} For other database errors
+   */
+  async findManyByIdAndModified(xMitreContents) {
+    const BATCH_SIZE = 1000; // Tune based on testing
+
+    // 1000 --> 5.71s
+    // 2000 --> 5.43s
+    // 5000 --> 5.84s
+
+    if (xMitreContents.length <= BATCH_SIZE) {
+      // Use original logic for small queries
+      return this._retrieveBatch(xMitreContents);
+    }
+
+    // Process in batches for large queries
+    const batches = [];
+    for (let i = 0; i < xMitreContents.length; i += BATCH_SIZE) {
+      batches.push(xMitreContents.slice(i, i + BATCH_SIZE));
+    }
+
+    logger.debug(
+      `[PROFILE] Processing ${xMitreContents.length} items in ${batches.length} batches`,
+    );
+
+    // Execute batches in parallel (limit concurrency to avoid overwhelming DB)
+    const batchPromises = batches.map((batch, index) =>
+      this._retrieveBatch(batch).then((results) => {
+        logger.debug(`[PROFILE] Batch ${index + 1}/${batches.length} completed`);
+        return results;
+      }),
+    );
+
+    const batchResults = await Promise.all(batchPromises);
+    return batchResults.flat();
+  }
+
+  async _retrieveBatch(xMitreContents) {
+    const startTime = Date.now();
+
+    try {
+      const conditions = xMitreContents.map(({ object_ref, object_modified }) => ({
+        'stix.id': object_ref,
+        'stix.modified': object_modified,
+      }));
+
+      const documents = await this.model.find({ $or: conditions }).exec();
+
+      const queryTime = Date.now() - startTime;
+      logger.debug(
+        `[PROFILE] Batch query completed in ${queryTime}ms for ${xMitreContents.length} items, returned ${documents.length} documents`,
+      );
+
+      return documents;
+    } catch (err) {
+      logger.error(err);
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
       }
       throw new DatabaseError(err);
     }

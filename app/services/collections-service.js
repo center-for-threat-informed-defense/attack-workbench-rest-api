@@ -13,25 +13,21 @@ const {
 } = require('../exceptions');
 
 class CollectionsService extends BaseService {
-  // TODO this linting bypass can be removed after we refactor - AttackObject model should be proxied through a service; attackObjectsService can potentially be moved to a class instance variable (e.g., this.attackObjectsService)
+  /**
+   * Get the full attack objects for a collection's x_mitre_contents
+   * @param {Array<{object_ref: string, object_modified: string}>} xMitreContents - The x_mitre_contents array from a collection
+   * @returns {Promise<Array<Object>>} Array of attack objects in the same order as objectList
+   */
+  async getContents(xMitreContents) {
+    const objects = await attackObjectsService.getBulkByIdAndModified(xMitreContents);
 
-  async getContents(objectList) {
-    const contents = [];
-    for (const objectRef of objectList) {
-      try {
-        const attackObject = await attackObjectsService.retrieveVersionById(
-          objectRef.object_ref,
-          objectRef.object_modified,
-        );
-        if (attackObject) {
-          contents.push(attackObject);
-        }
-      } catch (err) {
-        // Ignore lookup errors for individual objects
-        console.error(`Error retrieving object ${objectRef.object_ref}:`, err);
-      }
-    }
-    return contents;
+    // Create lookup map for ordering
+    const objectMap = new Map(objects.map((obj) => [`${obj.stix.id}:${obj.stix.modified}`, obj]));
+
+    // Return in original order, filtering out missing objects
+    return xMitreContents
+      .map((ref) => objectMap.get(`${ref.object_ref}:${ref.object_modified}`))
+      .filter(Boolean);
   }
 
   async retrieveById(stixId, options) {
