@@ -12,6 +12,14 @@
         {
             "name": "alpha",
             "prerelease": true
+        },
+        {
+            "name": "detections",
+            "prerelease": true
+        },
+        {
+            "name": "adm",
+            "prerelease": true
         }
     ],
     "plugins": [
