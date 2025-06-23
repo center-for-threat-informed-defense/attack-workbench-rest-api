@@ -266,30 +266,30 @@ class BaseRepository extends AbstractRepository {
     // 5000 --> 5.84s
 
     if (xMitreContents.length <= BATCH_SIZE) {
-      // Use original logic for small queries
       return this._retrieveBatch(xMitreContents);
     }
 
-    // Process in batches for large queries
-    const batches = [];
+    // Process in batches SEQUENTIALLY to control memory usage
+    const results = [];
+    const totalBatches = Math.ceil(xMitreContents.length / BATCH_SIZE);
+
+    logger.debug(`[PROFILE] Processing ${xMitreContents.length} items in ${totalBatches} batches`);
+
     for (let i = 0; i < xMitreContents.length; i += BATCH_SIZE) {
-      batches.push(xMitreContents.slice(i, i + BATCH_SIZE));
+      const batch = xMitreContents.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+
+      logger.debug(`[PROFILE] Processing batch ${batchNum}/${totalBatches}`);
+      const batchResults = await this._retrieveBatch(batch);
+      results.push(...batchResults);
+
+      // Force garbage collection hint between batches
+      if (global.gc) {
+        global.gc();
+      }
     }
 
-    logger.debug(
-      `[PROFILE] Processing ${xMitreContents.length} items in ${batches.length} batches`,
-    );
-
-    // Execute batches in parallel (limit concurrency to avoid overwhelming DB)
-    const batchPromises = batches.map((batch, index) =>
-      this._retrieveBatch(batch).then((results) => {
-        logger.debug(`[PROFILE] Batch ${index + 1}/${batches.length} completed`);
-        return results;
-      }),
-    );
-
-    const batchResults = await Promise.all(batchPromises);
-    return batchResults.flat();
+    return results;
   }
 
   async _retrieveBatch(xMitreContents) {
@@ -301,7 +301,7 @@ class BaseRepository extends AbstractRepository {
         'stix.modified': object_modified,
       }));
 
-      const documents = await this.model.find({ $or: conditions }).exec();
+      const documents = await this.model.find({ $or: conditions }).lean().exec();
 
       const queryTime = Date.now() - startTime;
       logger.debug(
