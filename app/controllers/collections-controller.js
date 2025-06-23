@@ -74,7 +74,7 @@ exports.retrieveVersionById = async function (req, res, next) {
     console.log('[CONTROLLER] retrieveContents param:', retrieveContents, typeof retrieveContents);
 
     const options = {
-      retrieveContents: retrieveContents === true || retrieveContents === 'true'
+      retrieveContents: retrieveContents === true || retrieveContents === 'true',
     };
 
     // Use streaming if requested and contents are being retrieved
@@ -105,7 +105,7 @@ exports.retrieveVersionById = async function (req, res, next) {
  */
 exports.streamVersionById = async function (req, res) {
   let heartbeatInterval;
-  
+
   try {
     const { stixId, modified } = req.params;
     const { retrieveContents } = req.query;
@@ -136,10 +136,10 @@ exports.streamVersionById = async function (req, res) {
 
     // Stream the data
     const stream = collectionsService.streamVersionById(stixId, modified, options);
-    
+
     for await (const chunk of stream) {
       if (res.destroyed) break; // Check if client disconnected
-      
+
       const event = `data: ${JSON.stringify(chunk)}\n\n`;
       res.write(event);
     }
@@ -151,9 +151,9 @@ exports.streamVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Stream error:', err);
-    
+
     if (heartbeatInterval) clearInterval(heartbeatInterval);
-    
+
     if (!res.headersSent) {
       res.status(500).json({ error: 'Stream initialization failed' });
     } else if (!res.destroyed) {
