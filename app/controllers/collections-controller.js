@@ -59,29 +59,106 @@ exports.retrieveById = async function (req, res) {
   }
 };
 
-exports.retrieveVersionById = async function (req, res) {
-  const options = {
-    retrieveContents: req.query.retrieveContents,
-  };
+/**
+ * Stream a collection version with contents
+ * Supports both streaming (?stream=true) and regular responses
+ */
+exports.retrieveVersionById = async function (req, res, next) {
   try {
-    const collection = await collectionsService.retrieveVersionById(
-      req.params.stixId,
-      req.params.modified,
-      options,
-    );
+    const { stixId, modified } = req.params;
+    const { retrieveContents, stream } = req.query;
+
+    // Debug logging
+    console.log('[CONTROLLER] retrieveVersionById called');
+    console.log('[CONTROLLER] stream param:', stream, typeof stream);
+    console.log('[CONTROLLER] retrieveContents param:', retrieveContents, typeof retrieveContents);
+
+    const options = {
+      retrieveContents: retrieveContents === true || retrieveContents === 'true'
+    };
+
+    // Use streaming if requested and contents are being retrieved
+    // Fix: Check for string 'true' since query params are strings
+    if ((stream === true || stream === 'true') && options.retrieveContents) {
+      console.log('[CONTROLLER] Delegating to streamVersionById');
+      return exports.streamVersionById(req, res, next);
+    }
+
+    // Otherwise use regular response
+    console.log('[CONTROLLER] Using regular response');
+    const collection = await collectionsService.retrieveVersionById(stixId, modified, options);
+
     if (!collection) {
-      return res.status(404).send('Collection not found.');
-    } else {
-      logger.debug(`Success: Retrieved collection with id ${collection.id}`);
-      return res.status(200).send(collection);
+      return res.status(404).json({
+        error: 'Collection version not found',
+      });
+    }
+
+    res.json(collection);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Stream collection data using Server-Sent Events (SSE)
+ */
+exports.streamVersionById = async function (req, res) {
+  let heartbeatInterval;
+  
+  try {
+    const { stixId, modified } = req.params;
+    const { retrieveContents } = req.query;
+
+    const options = {
+      retrieveContents: retrieveContents === true || retrieveContents === 'true',
+    };
+
+    // Set up SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    // Heartbeat to prevent connection timeout
+    heartbeatInterval = setInterval(() => {
+      if (!res.destroyed) {
+        res.write(': heartbeat\n\n');
+      }
+    }, 30000);
+
+    // Handle client disconnect
+    req.on('close', () => {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    });
+
+    // Stream the data
+    const stream = collectionsService.streamVersionById(stixId, modified, options);
+    
+    for await (const chunk of stream) {
+      if (res.destroyed) break; // Check if client disconnected
+      
+      const event = `data: ${JSON.stringify(chunk)}\n\n`;
+      res.write(event);
+    }
+
+    // Send completion event
+    if (!res.destroyed) {
+      res.write('event: complete\ndata: {}\n\n');
+      res.end();
     }
   } catch (err) {
-    if (err instanceof BadlyFormattedParameterError) {
-      logger.warn('Badly formatted stix id: ' + req.params.stixId);
-      return res.status(400).send('Stix id is badly formatted.');
-    } else {
-      logger.error('Failed with error: ' + err);
-      return res.status(500).send('Unable to get collections. Server error.');
+    logger.error('Stream error:', err);
+    
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Stream initialization failed' });
+    } else if (!res.destroyed) {
+      res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.end();
     }
   }
 };
