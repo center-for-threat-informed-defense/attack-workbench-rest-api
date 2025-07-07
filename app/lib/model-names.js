@@ -13,6 +13,7 @@ exports.ModelName = {
   DataSource: 'Data-Source',
   Group: 'Intrusion-Set',
   Identity: 'IdentityModel',
+  LogSource: 'Log-Source',
   MarkingDefinition: 'MarkingDefinitionModel',
   Matrix: 'MatrixModel',
   Mitigation: 'Course-of-Action',

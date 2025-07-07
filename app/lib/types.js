@@ -17,4 +17,5 @@ module.exports = {
   DataSource: 'x-mitre-data-source',
   DataComponent: 'x-mitre-data-component',
   Technique: 'attack-pattern',
+  LogSource: 'x-mitre-log-source',
 };

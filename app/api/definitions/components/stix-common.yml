@@ -28,6 +28,7 @@ components:
               'relationship',
               'note',
               'x-mitre-collection',
+              'x-mitre-log-source',
             ]
         spec_version:
           type: string

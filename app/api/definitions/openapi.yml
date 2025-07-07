@@ -34,6 +34,8 @@ tags:
     description: 'Operations on marking definitions'
   - name: 'Data Sources'
     description: 'Operations on data sources'
+  - name: 'Log Sources'
+    description: 'Operations on log sources'
   - name: 'Data Components'
     description: 'Operations on data components'
   - name: 'Assets'
@@ -173,6 +175,16 @@ paths:
 
   /api/data-sources/{stixId}/modified/{modified}:
     $ref: 'paths/data-sources-paths.yml#/paths/~1api~1data-sources~1{stixId}~1modified~1{modified}'
+
+  # Log Sources
+  /api/log-sources:
+    $ref: 'paths/log-sources-paths.yml#/paths/~1api~1log-sources'
+
+  /api/log-sources/{stixId}:
+    $ref: 'paths/log-sources-paths.yml#/paths/~1api~1log-sources~1{stixId}'
+
+  /api/log-sources/{stixId}/modified/{modified}:
+    $ref: 'paths/log-sources-paths.yml#/paths/~1api~1log-sources~1{stixId}~1modified~1{modified}'
 
   # Data Components
   /api/data-components:
