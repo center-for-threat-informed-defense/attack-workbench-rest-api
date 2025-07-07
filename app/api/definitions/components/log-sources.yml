@@ -19,10 +19,10 @@ components:
       properties:
         name:
           type: string
-          example: "sysmon"
+          example: 'sysmon'
         channel:
           type: string
-          example: "EventCode=10"
+          example: 'EventCode=10'
 
     x-mitre-log-source:
       allOf:
@@ -52,4 +52,3 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/x-mitre-log-source-permutation'
-

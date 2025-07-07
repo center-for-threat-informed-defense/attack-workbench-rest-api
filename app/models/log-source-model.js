@@ -20,8 +20,7 @@ const stixDataSource = {
   x_mitre_deprecated: { type: Boolean, required: true, default: false },
   x_mitre_version: String,
   x_mitre_attack_spec_version: String,
-  x_mitre_log_source_permutations: [logSourcePermutationSchema]
-
+  x_mitre_log_source_permutations: [logSourcePermutationSchema],
 };
 
 // Create the definition

@@ -33,11 +33,7 @@ router
     authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
     logSourcesController.retrieveVersionById,
   )
-  .put(
-    authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    logSourcesController.updateFull,
-  )
+  .put(authn.authenticate, authz.requireRole(authz.editorOrHigher), logSourcesController.updateFull)
   .delete(
     authn.authenticate,
     authz.requireRole(authz.admin),
