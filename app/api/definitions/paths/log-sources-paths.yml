@@ -7,7 +7,7 @@ paths:
         This endpoint gets a list of log sources from the workspace.
         The list of log sources may include multiple versions of each log source.
       tags:
-        - 'Mitigations'
+        - 'Log Sources'
       parameters:
         - name: limit
           in: query
@@ -110,7 +110,7 @@ paths:
         If the `stix.id` property is set, it creates a new version of an existing log source.
         If the `stix.id` property is not set, it creates a new log source, generating a STIX id for it.
       tags:
-        - 'Mitigations'
+        - 'Log Sources'
       requestBody:
         required: true
         content:
@@ -136,7 +136,7 @@ paths:
       description: |
         This endpoint gets a list of one or more versions of a log source from the workspace, identified by their STIX id.
       tags:
-        - 'Mitigations'
+        - 'Log Sources'
       parameters:
         - name: stixId
           in: path
@@ -173,7 +173,7 @@ paths:
         This endpoint deletes all versions of a log source from the workspace.
         The log source is identified by its STIX id.
       tags:
-        - 'Mitigations'
+        - 'Log Sources'
       parameters:
         - name: stixId
           in: path
@@ -194,7 +194,7 @@ paths:
       description: |
         This endpoint gets a single version of a log source from the workspace, identified by its STIX id and modified date.
       tags:
-        - 'Mitigations'
+        - 'Log Sources'
       parameters:
         - name: stixId
           in: path
@@ -223,7 +223,7 @@ paths:
       description: |
         This endpoint updates a single version of a log source in the workspace, identified by its STIX id and modified date.
       tags:
-        - 'Mitigations'
+        - 'Log Sources'
       parameters:
         - name: stixId
           in: path
@@ -261,7 +261,7 @@ paths:
         This endpoint deletes a single version of a log source from the workspace.
         The log source is identified by its STIX id and modified date.
       tags:
-        - 'Mitigations'
+        - 'Log Sources'
       parameters:
         - name: stixId
           in: path
