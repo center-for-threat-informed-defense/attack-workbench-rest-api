@@ -11,7 +11,7 @@ components:
         stix:
           $ref: '#/components/schemas/x-mitre-analytic'
 
-    x-mitre-anayltic-log-source-ref:
+    x-mitre-analytic-log-source-ref:
       type: object
       required:
         - ref
@@ -67,7 +67,7 @@ components:
             x_mitre_log_sources:
               type: array
               items:
-                $ref: '#/components/schemas/x-mitre-anayltic-log-source-ref'
+                $ref: '#/components/schemas/x-mitre-analytic-log-source-ref'
             x_mitre_mutable_elements:
               type: array
               items:
