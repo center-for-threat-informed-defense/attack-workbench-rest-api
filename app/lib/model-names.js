@@ -12,6 +12,7 @@ exports.ModelName = {
   Collection: 'Collection',
   DataComponent: 'Data-Component',
   DataSource: 'Data-Source',
+  DetectionStrategy: 'Detection-Strategy',
   Group: 'Intrusion-Set',
   Identity: 'IdentityModel',
   LogSource: 'Log-Source',

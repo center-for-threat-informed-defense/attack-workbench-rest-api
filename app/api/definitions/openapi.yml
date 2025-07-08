@@ -38,6 +38,8 @@ tags:
     description: 'Operations on log sources'
   - name: 'Analytics'
     description: 'Operations on analytics'
+  - name: 'Detection Strategies'
+    description: 'Operations on detection strategies'
   - name: 'Data Components'
     description: 'Operations on data components'
   - name: 'Assets'
@@ -197,6 +199,16 @@ paths:
 
   /api/analytics/{stixId}/modified/{modified}:
     $ref: 'paths/analytics-paths.yml#/paths/~1api~1analytics~1{stixId}~1modified~1{modified}'
+
+  # Detection Strategies
+  /api/detection-strategies:
+    $ref: 'paths/detection-strategies-paths.yml#/paths/~1api~1detection-strategies'
+
+  /api/detection-strategies/{stixId}:
+    $ref: 'paths/detection-strategies-paths.yml#/paths/~1api~1detection-strategies~1{stixId}'
+
+  /api/detection-strategies/{stixId}/modified/{modified}:
+    $ref: 'paths/detection-strategies-paths.yml#/paths/~1api~1detection-strategies~1{stixId}~1modified~1{modified}'
 
   # Data Components
   /api/data-components:

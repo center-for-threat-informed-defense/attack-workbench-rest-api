@@ -1,0 +1,282 @@
+paths:
+  /api/detection-strategies:
+    get:
+      summary: 'Get a list of detection strategies'
+      operationId: 'detection-strategy-get-all'
+      description: |
+        This endpoint gets a list of detection strategies from the workspace.
+        The list of detection strategies may include multiple versions of each detection strategy.
+      tags:
+        - 'Detection Strategies'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of detection strategies to retrieve.
+            The default (0) will retrieve all detection strategies.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of detection strategies to skip.
+            The default (0) will start with the first detection strategy.
+          schema:
+            type: number
+            default: 0
+        - name: domain
+          in: query
+          description: |
+            Only retrieve objects that contain the specified domain in their `x_mitre_domains` array.
+            This parameter may be set multiple times to retrieve objects with any of the provided domains.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'mobile-attack'
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, objects will be retrieved regardless of state.
+            This parameter may be set multiple times to retrieve objects with any of the provided states.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: search
+          in: query
+          description: |
+            Only return objects where the provided search text occurs in the `attack_id`, `name`, or `description`.
+            The search is case-insensitive.
+          schema:
+            type: string
+          allowReserved: true
+          example: 'windows'
+        - name: lastUpdatedBy
+          in: query
+          description: |
+            The STIX ID of the user who last modified the object
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'identity--f568ad89-69bc-48e7-877b-43755f1d376d'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of detection strategies.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy'
+
+    post:
+      summary: 'Create a detection strategy'
+      operationId: 'detection-strategy-create'
+      description: |
+        This endpoint creates a new detection strategy in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing detection strategy.
+        If the `stix.id` property is not set, it creates a new detection strategy, generating a STIX id for it.
+      tags:
+        - 'Detection Strategies'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy'
+      responses:
+        '201':
+          description: 'The detection strategy has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy'
+        '400':
+          description: 'Missing or invalid parameters were provided. The detection strategy was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The detection strategy was not created.'
+
+  /api/detection-strategies/{stixId}:
+    get:
+      summary: 'Get one or more versions of a detection strategy'
+      operationId: 'detection-strategy-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a detection strategy from the workspace, identified by their STIX id.
+      tags:
+        - 'Detection Strategies'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the detection strategy to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the detection strategy to retrieve.
+            `all` gets all versions of the detection strategy, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of detection strategies matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy'
+        '404':
+          description: 'A detection strategy with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a detection strategy'
+      operationId: 'detection-strategy-delete-all'
+      description: |
+        This endpoint deletes all versions of a detection strategy from the workspace.
+        The detection strategy is identified by its STIX id.
+      tags:
+        - 'Detection Strategies'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the detection strategy to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the detection strategy versions were successfully deleted.'
+        '404':
+          description: 'A detection strategy with the requested STIX id was not found.'
+
+  /api/detection-strategies/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a detection strategy matching the STIX id and modified date'
+      operationId: 'detection-strategy-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a detection strategy from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Detection Strategies'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the detection strategy to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the detection strategy to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a detection strategy matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy'
+        '404':
+          description: 'A detection strategy with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a detection strategy'
+      operationId: 'detection-strategy-update'
+      description: |
+        This endpoint updates a single version of a detection strategy in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Detection Strategies'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the detection strategy to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the detection strategy to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy'
+      responses:
+        '200':
+          description: 'The detection strategy was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy'
+        '400':
+          description: 'Missing or invalid parameters were provided. The detection strategy was not updated.'
+        '404':
+          description: 'A detection strategy with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a detection strategy'
+      operationId: 'detection-strategy-delete'
+      description: |
+        This endpoint deletes a single version of a detection strategy from the workspace.
+        The detection strategy is identified by its STIX id and modified date.
+      tags:
+        - 'Detection Strategies'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the detection strategy to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the detection strategy to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The detection strategy was successfully deleted.'
+        '404':
+          description: 'A detection strategy with the requested STIX id and modified date was not found.'

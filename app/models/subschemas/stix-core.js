@@ -38,6 +38,7 @@ module.exports.commonRequiredSDO = {
       'x-mitre-log-source',
       'x-mitre-matrix',
       'x-mitre-tactic',
+      'x-mitre-detection-strategy',
     ],
   },
   spec_version: { type: String, required: true },

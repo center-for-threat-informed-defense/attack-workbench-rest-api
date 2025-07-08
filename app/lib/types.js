@@ -19,4 +19,5 @@ module.exports = {
   Technique: 'attack-pattern',
   LogSource: 'x-mitre-log-source',
   Analytic: 'x-mitre-analytic',
+  DetectionStrategy: 'x-mitre-detection-strategy',
 };

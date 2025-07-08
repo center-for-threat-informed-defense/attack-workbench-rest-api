@@ -30,6 +30,7 @@ components:
               'x-mitre-collection',
               'x-mitre-log-source',
               'x-mitre-analytic',
+              'x-mitre-detection-strategy',
             ]
         spec_version:
           type: string
