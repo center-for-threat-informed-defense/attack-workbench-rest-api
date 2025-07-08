@@ -18,4 +18,5 @@ module.exports = {
   DataComponent: 'x-mitre-data-component',
   Technique: 'attack-pattern',
   LogSource: 'x-mitre-log-source',
+  Analytic: 'x-mitre-analytic',
 };

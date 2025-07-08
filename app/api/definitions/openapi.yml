@@ -36,6 +36,8 @@ tags:
     description: 'Operations on data sources'
   - name: 'Log Sources'
     description: 'Operations on log sources'
+  - name: 'Analytics'
+    description: 'Operations on analytics'
   - name: 'Data Components'
     description: 'Operations on data components'
   - name: 'Assets'
@@ -185,6 +187,16 @@ paths:
 
   /api/log-sources/{stixId}/modified/{modified}:
     $ref: 'paths/log-sources-paths.yml#/paths/~1api~1log-sources~1{stixId}~1modified~1{modified}'
+
+  # Analytics
+  /api/analytics:
+    $ref: 'paths/analytics-paths.yml#/paths/~1api~1analytics'
+
+  /api/analytics/{stixId}:
+    $ref: 'paths/analytics-paths.yml#/paths/~1api~1analytics~1{stixId}'
+
+  /api/analytics/{stixId}/modified/{modified}:
+    $ref: 'paths/analytics-paths.yml#/paths/~1api~1analytics~1{stixId}~1modified~1{modified}'
 
   # Data Components
   /api/data-components:

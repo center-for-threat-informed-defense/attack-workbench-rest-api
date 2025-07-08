@@ -30,6 +30,7 @@ module.exports.commonRequiredSDO = {
       'note',
       'relationship',
       'tool',
+      'x-mitre-analytic',
       'x-mitre-asset',
       'x-mitre-collection',
       'x-mitre-data-source',

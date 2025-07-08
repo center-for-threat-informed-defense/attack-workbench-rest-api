@@ -1,0 +1,74 @@
+components:
+  schemas:
+    analytic:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/x-mitre-analytic'
+
+    x-mitre-anayltic-log-source-ref:
+      type: object
+      required:
+        - ref
+        - key
+      properties:
+        ref:
+          type: string
+          example: 'x-mitre-log-source--12345678-1234-1234-1234-123456789012'
+        key:
+          type: string
+          example: 'sysmon'
+
+    x-mitre-analytic-mutable-element:
+      type: object
+      required:
+        - field
+        - description
+      properties:
+        field:
+          type: string
+          example: 'SampleField'
+        description:
+          type: string
+          example: 'Description of SampleField'
+
+    x-mitre-analytic:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - platform
+          properties:
+            # analytic-specific properties
+            platform:
+              type: string
+              example: 'windows'
+            description:
+              type: string
+              example: 'Description of an analytic'
+            # ATT&CK custom properties
+            x_mitre_modified_by_ref:
+              type: string
+              example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
+            x_mitre_deprecated:
+              type: boolean
+              example: false
+            x_mitre_version:
+              type: string
+              example: '1.0'
+            x_mitre_attack_spec_version:
+              type: string
+              example: '2.1.0'
+            x_mitre_log_sources:
+              type: array
+              items:
+                $ref: '#/components/schemas/x-mitre-anayltic-log-source-ref'
+            x_mitre_mutable_elements:
+              type: array
+              items:
+                $ref: '#/components/schemas/x-mitre-analytic-mutable-element'

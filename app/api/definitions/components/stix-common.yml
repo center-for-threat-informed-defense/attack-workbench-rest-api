@@ -29,6 +29,7 @@ components:
               'note',
               'x-mitre-collection',
               'x-mitre-log-source',
+              'x-mitre-analytic',
             ]
         spec_version:
           type: string

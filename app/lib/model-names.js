@@ -6,6 +6,7 @@
  * @enum {string}
  */
 exports.ModelName = {
+  Analytic: 'Analytic',
   Asset: 'Asset',
   Campaign: 'Campaign',
   Collection: 'Collection',
