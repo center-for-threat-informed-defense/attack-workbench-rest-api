@@ -12,7 +12,7 @@ const logSourcePermutation = {
 
 const logSourcePermutationSchema = new mongoose.Schema(logSourcePermutation, { _id: false });
 
-const stixDataSource = {
+const stixLogSource = {
   modified: { type: Date, required: true },
   name: { type: String, required: true },
 
@@ -28,7 +28,7 @@ const logSourceDefinition = {
   stix: {
     ...stixCoreDefinitions.commonRequiredSDO,
     ...stixCoreDefinitions.commonOptionalSDO,
-    ...stixDataSource,
+    ...stixLogSource,
   },
 };
 

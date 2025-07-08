@@ -281,7 +281,7 @@ describe('Log Sources API', function () {
       .expect(200)
       .expect('Content-Type', /json/);
 
-    // We expect to get two log surces in an array
+    // We expect to get two log sources in an array
     const logSources = res.body;
     expect(logSources).toBeDefined();
     expect(Array.isArray(logSources)).toBe(true);
