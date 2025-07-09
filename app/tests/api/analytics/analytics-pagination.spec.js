@@ -28,11 +28,11 @@ const initialObjectData = {
     x_mitre_log_sources: [
       {
         ref: 'log-source-1',
-        key: 'perm-1',
+        keys: ['perm-1'],
       },
       {
         ref: 'log-source-2',
-        key: 'perm-2',
+        keys: ['perm-2'],
       },
     ],
     x_mitre_mutable_elements: [

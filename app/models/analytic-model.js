@@ -7,7 +7,7 @@ const { ModelName } = require('../lib/model-names');
 
 const logSourceReference = {
   ref: { type: String, required: true },
-  key: { type: String, required: true },
+  keys: [{ type: String, required: true }],
 };
 
 const logSourceReferenceSchema = new mongoose.Schema(logSourceReference, { _id: false });
