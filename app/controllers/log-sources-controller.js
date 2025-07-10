@@ -66,6 +66,31 @@ exports.retrieveById = async function (req, res) {
   }
 };
 
+exports.retrievePermutationsById = async function (req, res) {
+  try {
+    const logSources = await logSourcesService.retrieveById(req.params.stixId, {
+      versions: 'latest',
+    });
+    if (logSources.length === 0) {
+      return res.status(404).send('Log source not found.');
+    } else {
+      logger.debug(`Success: Retrieved log source with id ${req.params.stixId}`);
+      return res.status(200).send(logSources[0].stix.x_mitre_log_source_permutations);
+    }
+  } catch (err) {
+    if (err instanceof BadlyFormattedParameterError) {
+      logger.warn('Badly formatted stix id: ' + req.params.stixId);
+      return res.status(400).send('Stix id is badly formatted.');
+    } else if (err instanceof InvalidQueryStringParameterError) {
+      logger.warn('Invalid query string: versions=' + req.query.versions);
+      return res.status(400).send('Query string parameter versions is invalid.');
+    } else {
+      logger.error('Failed with error: ' + err);
+      return res.status(500).send('Unable to get log sources. Server error.');
+    }
+  }
+};
+
 exports.retrieveVersionById = async function (req, res) {
   try {
     const logSource = await logSourcesService.retrieveVersionById(

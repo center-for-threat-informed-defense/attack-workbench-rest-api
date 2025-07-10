@@ -134,6 +134,25 @@ describe('Log Sources API', function () {
     expect(logSources.length).toBe(1);
   });
 
+  it('GET /api/log-sources/:id/permutations returns the permutations of the added log source', async function () {
+    const res = await request(app)
+      .get('/api/log-sources/' + logSource1.stix.id + '/permutations')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    // We expect to get two log source permutations in an array
+    const logSourcePermutations = res.body;
+    expect(logSourcePermutations).toBeDefined();
+    expect(Array.isArray(logSourcePermutations)).toBe(true);
+    expect(logSourcePermutations.length).toBe(2);
+    expect(logSourcePermutations[0].name).toBeDefined();
+    expect(logSourcePermutations[0].channel).toBeDefined();
+    expect(logSourcePermutations[1].name).toBeDefined();
+    expect(logSourcePermutations[1].channel).toBeDefined();
+  });
+
   it('GET /api/log-sources/:id should not return a log source when the id cannot be found', async function () {
     await request(app)
       .get('/api/log-sources/not-an-id')

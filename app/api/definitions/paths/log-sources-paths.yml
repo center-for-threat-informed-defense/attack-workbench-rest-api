@@ -187,6 +187,33 @@ paths:
         '404':
           description: 'A log source with the requested STIX id was not found.'
 
+  /api/log-sources/{stixId}/permutations:
+    get:
+      summary: 'Gets the permutations associated with the latest version of a log source'
+      operationId: 'log-source-get-one-id-permutations'
+      description: |
+        This endpoint gets a list of permutations associated with the latest version of a log source, identified by its STIX id.
+      tags:
+        - 'Log Sources'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the log source to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A list of permutations from the latest version of the log source matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/log-sources.yml#/components/schemas/x-mitre-log-source-permutation'
+        '404':
+          description: 'A log source with the requested STIX id was not found.'
+
   /api/log-sources/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a log source matching the STIX id and modified date'

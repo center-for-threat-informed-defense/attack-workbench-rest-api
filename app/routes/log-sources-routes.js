@@ -27,6 +27,14 @@ router
   .delete(authn.authenticate, authz.requireRole(authz.admin), logSourcesController.deleteById);
 
 router
+  .route('/log-sources/:stixId/permutations')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    logSourcesController.retrievePermutationsById,
+  );
+
+router
   .route('/log-sources/:stixId/modified/:modified')
   .get(
     authn.authenticate,

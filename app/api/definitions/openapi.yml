@@ -187,6 +187,9 @@ paths:
   /api/log-sources/{stixId}:
     $ref: 'paths/log-sources-paths.yml#/paths/~1api~1log-sources~1{stixId}'
 
+  /api/log-sources/{stixId}/permutations:
+    $ref: 'paths/log-sources-paths.yml#/paths/~1api~1log-sources~1{stixId}~1permutations'
+
   /api/log-sources/{stixId}/modified/{modified}:
     $ref: 'paths/log-sources-paths.yml#/paths/~1api~1log-sources~1{stixId}~1modified~1{modified}'
 
