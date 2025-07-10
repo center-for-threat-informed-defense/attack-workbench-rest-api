@@ -134,6 +134,27 @@ describe('Log Sources API', function () {
     expect(logSources.length).toBe(1);
   });
 
+  it('GET /api/log-sources/:id/channels returns the permutation channels of the added log source', async function () {
+    const res = await request(app)
+      .get('/api/log-sources/' + logSource1.stix.id + '/channels')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    // We expect to get two log source permutation channels in an array
+    const logSourceChannels = res.body;
+    expect(logSourceChannels).toBeDefined();
+    expect(Array.isArray(logSourceChannels)).toBe(true);
+    expect(logSourceChannels.length).toBe(2);
+    expect(logSourceChannels[0]).toBe(
+      initialObjectData.stix.x_mitre_log_source_permutations[0].channel,
+    );
+    expect(logSourceChannels[1]).toBe(
+      initialObjectData.stix.x_mitre_log_source_permutations[1].channel,
+    );
+  });
+
   it('GET /api/log-sources/:id/permutations returns the permutations of the added log source', async function () {
     const res = await request(app)
       .get('/api/log-sources/' + logSource1.stix.id + '/permutations')
