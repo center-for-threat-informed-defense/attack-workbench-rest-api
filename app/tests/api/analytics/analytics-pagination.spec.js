@@ -24,7 +24,7 @@ const initialObjectData = {
     created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
     x_mitre_version: '1.0',
     x_mitre_attack_spec_version: '4.0.0',
-    platform: 'windows',
+    x_mitre_platforms: ['windows'],
     x_mitre_log_sources: [
       {
         ref: 'log-source-1',

@@ -22,7 +22,7 @@ const mutableElementSchema = new mongoose.Schema(mutableElement, { _id: false })
 const stixAnalytic = {
   modified: { type: Date, required: true },
   description: String,
-  platform: { type: String, required: true },
+  x_mitre_platforms: [String],
 
   x_mitre_modified_by_ref: String,
   x_mitre_deprecated: { type: Boolean, required: true, default: false },
