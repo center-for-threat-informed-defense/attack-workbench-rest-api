@@ -5,6 +5,7 @@ const express = require('express');
 const tacticsController = require('../controllers/tactics-controller');
 const authn = require('../lib/authn-middleware');
 const authz = require('../lib/authz-middleware');
+const validateTacticForSpecCompliance = require('../middleware/tactic-validation-middleware');
 
 const router = express.Router();
 
@@ -15,7 +16,12 @@ router
     authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
     tacticsController.retrieveAll,
   )
-  .post(authn.authenticate, authz.requireRole(authz.editorOrHigher), tacticsController.create);
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    validateTacticForSpecCompliance,
+    tacticsController.create,
+  );
 
 router
   .route('/tactics/:stixId')
