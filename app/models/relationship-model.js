@@ -20,6 +20,7 @@ const relationshipProperties = {
   x_mitre_modified_by_ref: String,
   x_mitre_deprecated: Boolean,
   x_mitre_attack_spec_version: String,
+  x_mitre_log_source_channel: String,
 };
 
 // Create the definition
