@@ -7,7 +7,7 @@ const userRoles = {
   admin: 'admin',
   editor: 'editor',
   visitor: 'visitor',
-  teamLead: 'team lead',
+  teamLead: 'teamlead',
 };
 exports.userRoles = userRoles;
 exports.admin = [userRoles.admin];
