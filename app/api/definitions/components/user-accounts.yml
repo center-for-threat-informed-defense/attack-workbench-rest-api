@@ -20,7 +20,7 @@ components:
           example: 'active'
         role:
           type: string
-          enum: ['visitor', 'editor', 'admin', 'team lead']
+          enum: ['visitor', 'editor', 'admin', 'teamlead']
           example: 'editor'
         created:
           type: string
