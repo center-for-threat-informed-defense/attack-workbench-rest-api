@@ -16,6 +16,7 @@ const AbstractService = require('./_abstract.service');
 // Import required repositories
 const systemConfigurationRepository = require('../repository/system-configurations-repository');
 const identitiesRepository = require('../repository/identities-repository');
+const userAccountsRepository = require('../repository/user-accounts-repository');
 const userAccountsService = require('./user-accounts-service');
 
 class BaseService extends AbstractService {
@@ -246,6 +247,114 @@ class BaseService extends AbstractService {
         });
       }
       return document;
+    }
+  }
+
+  /**
+   * Stream multiple attack objects by their version identifiers
+   * @param {Array<{object_ref: string, object_modified: string}>} xMitreContents - Array of x_mitre_contents elements
+   * @yields {Object} Attack objects with identities populated
+   */
+  // async *streamBulkByIdAndModified(xMitreContents) {
+  //   if (!xMitreContents || !Array.isArray(xMitreContents) || xMitreContents.length === 0) {
+  //     return;
+  //   }
+
+  //   // Process identities in small batches as we stream
+  //   const identityBatch = [];
+  //   const IDENTITY_BATCH_SIZE = 50;
+
+  //   for await (const doc of this.repository.streamManyByIdAndModified(xMitreContents)) {
+  //     identityBatch.push(doc);
+
+  //     // Process identities when batch is full
+  //     if (identityBatch.length >= IDENTITY_BATCH_SIZE) {
+  //       await Promise.all(identityBatch.map((d) => this.addCreatedByAndModifiedByIdentities(d)));
+
+  //       // Yield processed documents
+  //       for (const processedDoc of identityBatch) {
+  //         yield processedDoc;
+  //       }
+
+  //       // Clear the batch
+  //       identityBatch.length = 0;
+  //     }
+  //   }
+
+  //   // Process remaining documents
+  //   if (identityBatch.length > 0) {
+  //     await Promise.all(identityBatch.map((d) => this.addCreatedByAndModifiedByIdentities(d)));
+
+  //     for (const processedDoc of identityBatch) {
+  //       yield processedDoc;
+  //     }
+  //   }
+  // }
+
+  async preloadIdentitiesForDocuments(xMitreContents) {
+    // Extract all unique identity references
+    const { identityRefs, userAccountRefs } =
+      await this.repository.extractIdentityRefs(xMitreContents);
+
+    logger.debug(
+      `Preloading ${identityRefs.length} identities and ${userAccountRefs.length} user accounts`,
+    );
+
+    // Bulk load all identities and user accounts using proper repository methods
+    const [identities, userAccounts] = await Promise.all([
+      identityRefs.length > 0 ? identitiesRepository.retrieveManyByStixIds(identityRefs) : [],
+      userAccountRefs.length > 0 ? userAccountsRepository.retrieveManyByIds(userAccountRefs) : [],
+    ]);
+
+    // Build lookup maps
+    const identityMap = new Map();
+    identities.forEach((identity) => {
+      identityMap.set(identity.stix.id, identity);
+    });
+
+    const userAccountMap = new Map();
+    userAccounts.forEach((account) => {
+      userAccountMap.set(account._id.toString(), account);
+    });
+
+    return { identityMap, userAccountMap };
+  }
+
+  // Add a cached version of identity resolution
+  addIdentitiesFromCache(document, identityMap, userAccountMap) {
+    if (document?.stix?.created_by_ref && identityMap.has(document.stix.created_by_ref)) {
+      document.created_by_identity = identityMap.get(document.stix.created_by_ref);
+    }
+
+    if (
+      document?.stix?.x_mitre_modified_by_ref &&
+      identityMap.has(document.stix.x_mitre_modified_by_ref)
+    ) {
+      document.modified_by_identity = identityMap.get(document.stix.x_mitre_modified_by_ref);
+    }
+
+    const userAccountRef = document?.workspace?.workflow?.created_by_user_account;
+    if (userAccountRef && userAccountMap.has(userAccountRef)) {
+      document.created_by_user_account = userAccountMap.get(userAccountRef);
+    }
+
+    return document;
+  }
+
+  /**
+   * Stream multiple attack objects by their version identifiers
+   * @param {Array<{object_ref: string, object_modified: string}>} xMitreContents - Array of x_mitre_contents elements
+   * @yields {Object} Attack objects with identities populated
+   */
+  async *streamBulkByIdAndModified(xMitreContents, identityMap, userAccountMap) {
+    if (!xMitreContents || !Array.isArray(xMitreContents) || xMitreContents.length === 0) {
+      return;
+    }
+
+    // Stream documents and apply cached identities
+    for await (const doc of this.repository.streamManyByIdAndModified(xMitreContents)) {
+      this.addIdentitiesFromCache(doc, identityMap, userAccountMap);
+      yield doc;
     }
   }
 

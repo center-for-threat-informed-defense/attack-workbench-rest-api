@@ -9,6 +9,7 @@ const {
   BadlyFormattedParameterError,
   DuplicateIdError,
   DuplicateEmailError,
+  DatabaseError,
 } = require('../exceptions');
 
 class UserAccountsService {
@@ -232,6 +233,14 @@ class UserAccountsService {
       return returnValue;
     } else {
       return teams;
+    }
+  }
+
+  async findManyByIds(ids) {
+    try {
+      return await this.repository.retrieveManyByIds(ids);
+    } catch (err) {
+      throw new DatabaseError(err);
     }
   }
 }

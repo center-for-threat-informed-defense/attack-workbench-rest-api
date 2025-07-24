@@ -67,6 +67,30 @@ class AttackObjectsService extends BaseService {
   }
 
   /**
+   * Stream multiple attack objects by their version identifiers, handling relationships separately
+   * @param {Array<{object_ref: string, object_modified: string}>} xMitreContents - Array of x_mitre_contents elements
+   * @yields {Object} Attack objects and relationships with identities populated
+   */
+  async *streamBulkByIdAndModified(xMitreContents) {
+    const relationshipIdAndModified = xMitreContents.filter((content) =>
+      content.object_ref.startsWith('relationship'),
+    );
+    const nonRelationshipIdAndModified = xMitreContents.filter(
+      (content) => !content.object_ref.startsWith('relationship'),
+    );
+
+    // Stream relationships first
+    if (relationshipIdAndModified.length > 0) {
+      yield* relationshipsService.streamBulkByIdAndModified(relationshipIdAndModified);
+    }
+
+    // Then stream non-relationships
+    if (nonRelationshipIdAndModified.length > 0) {
+      yield* super.streamBulkByIdAndModified(nonRelationshipIdAndModified);
+    }
+  }
+
+  /**
    * Retrieve multiple attack objects by their version identifiers, handling relationships separately
    * @param {Array<{object_ref: string, modified: string}>} xMitreContents - Array of x_mitre_contents elements
    * @returns {Promise<Array<Object>>} Array of attack objects and relationships with identities populated
@@ -168,6 +192,65 @@ class AttackObjectsService extends BaseService {
       return await this.repository.retrieveOneByVersionLean(stixId, stixModified);
     } catch (err) {
       throw new DatabaseError(err);
+    }
+  }
+
+  async preloadIdentitiesForDocuments(xMitreContents) {
+    // Split by type
+    const relationshipIdAndModified = xMitreContents.filter((content) =>
+      content.object_ref.startsWith('relationship'),
+    );
+    const nonRelationshipIdAndModified = xMitreContents.filter(
+      (content) => !content.object_ref.startsWith('relationship'),
+    );
+
+    // Preload for both types
+    const [relationshipIdentities, nonRelationshipIdentities] = await Promise.all([
+      relationshipIdAndModified.length > 0
+        ? relationshipsService.preloadIdentitiesForDocuments(relationshipIdAndModified)
+        : { identityMap: new Map(), userAccountMap: new Map() },
+      nonRelationshipIdAndModified.length > 0
+        ? super.preloadIdentitiesForDocuments(nonRelationshipIdAndModified)
+        : { identityMap: new Map(), userAccountMap: new Map() },
+    ]);
+
+    // Merge the maps
+    const identityMap = new Map([
+      ...relationshipIdentities.identityMap,
+      ...nonRelationshipIdentities.identityMap,
+    ]);
+    const userAccountMap = new Map([
+      ...relationshipIdentities.userAccountMap,
+      ...nonRelationshipIdentities.userAccountMap,
+    ]);
+
+    return { identityMap, userAccountMap };
+  }
+
+  async *streamBulkByIdAndModifiedWithCache(xMitreContents, identityMap, userAccountMap) {
+    const relationshipIdAndModified = xMitreContents.filter((content) =>
+      content.object_ref.startsWith('relationship'),
+    );
+    const nonRelationshipIdAndModified = xMitreContents.filter(
+      (content) => !content.object_ref.startsWith('relationship'),
+    );
+
+    // Stream relationships first
+    if (relationshipIdAndModified.length > 0) {
+      yield* relationshipsService.streamBulkByIdAndModified(
+        relationshipIdAndModified,
+        identityMap,
+        userAccountMap,
+      );
+    }
+
+    // Then stream non-relationships
+    if (nonRelationshipIdAndModified.length > 0) {
+      yield* super.streamBulkByIdAndModified(
+        nonRelationshipIdAndModified,
+        identityMap,
+        userAccountMap,
+      );
     }
   }
 }
