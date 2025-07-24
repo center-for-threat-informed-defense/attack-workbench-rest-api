@@ -194,6 +194,65 @@ class AttackObjectsService extends BaseService {
       throw new DatabaseError(err);
     }
   }
+
+  async preloadIdentitiesForDocuments(xMitreContents) {
+    // Split by type
+    const relationshipIdAndModified = xMitreContents.filter((content) =>
+      content.object_ref.startsWith('relationship'),
+    );
+    const nonRelationshipIdAndModified = xMitreContents.filter(
+      (content) => !content.object_ref.startsWith('relationship'),
+    );
+
+    // Preload for both types
+    const [relationshipIdentities, nonRelationshipIdentities] = await Promise.all([
+      relationshipIdAndModified.length > 0
+        ? relationshipsService.preloadIdentitiesForDocuments(relationshipIdAndModified)
+        : { identityMap: new Map(), userAccountMap: new Map() },
+      nonRelationshipIdAndModified.length > 0
+        ? super.preloadIdentitiesForDocuments(nonRelationshipIdAndModified)
+        : { identityMap: new Map(), userAccountMap: new Map() },
+    ]);
+
+    // Merge the maps
+    const identityMap = new Map([
+      ...relationshipIdentities.identityMap,
+      ...nonRelationshipIdentities.identityMap,
+    ]);
+    const userAccountMap = new Map([
+      ...relationshipIdentities.userAccountMap,
+      ...nonRelationshipIdentities.userAccountMap,
+    ]);
+
+    return { identityMap, userAccountMap };
+  }
+
+  async *streamBulkByIdAndModifiedWithCache(xMitreContents, identityMap, userAccountMap) {
+    const relationshipIdAndModified = xMitreContents.filter((content) =>
+      content.object_ref.startsWith('relationship'),
+    );
+    const nonRelationshipIdAndModified = xMitreContents.filter(
+      (content) => !content.object_ref.startsWith('relationship'),
+    );
+
+    // Stream relationships first
+    if (relationshipIdAndModified.length > 0) {
+      yield* relationshipsService.streamBulkByIdAndModified(
+        relationshipIdAndModified,
+        identityMap,
+        userAccountMap,
+      );
+    }
+
+    // Then stream non-relationships
+    if (nonRelationshipIdAndModified.length > 0) {
+      yield* super.streamBulkByIdAndModified(
+        nonRelationshipIdAndModified,
+        identityMap,
+        userAccountMap,
+      );
+    }
+  }
 }
 
 module.exports.AttackObjectsService = AttackObjectsService;

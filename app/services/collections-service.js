@@ -119,6 +119,48 @@ class CollectionsService extends BaseService {
    * @param {Object} options - Options including retrieveContents
    * @returns {AsyncGenerator} Stream of collection data
    */
+  // async *streamVersionById(stixId, modified, options = {}) {
+  //   console.log('[SERVICE DEBUG] streamVersionById called with:');
+  //   console.log('[SERVICE DEBUG] stixId:', stixId);
+  //   console.log('[SERVICE DEBUG] modified:', modified);
+  //   console.log('[SERVICE DEBUG] options:', options);
+
+  //   if (!stixId) {
+  //     throw new MissingParameterError('stixId');
+  //   }
+
+  //   if (!modified) {
+  //     throw new MissingParameterError('modified');
+  //   }
+
+  //   console.log('[SERVICE DEBUG] Calling repository.retrieveOneByVersionLean...');
+  //   const collection = await this.repository.retrieveOneByVersionLean(stixId, modified);
+  //   console.log('[SERVICE DEBUG] Repository returned:', collection ? 'collection found' : 'null');
+
+  //   if (!collection) {
+  //     return;
+  //   }
+
+  //   await this.addCreatedByAndModifiedByIdentities(collection);
+
+  //   if (!options.retrieveContents) {
+  //     yield { type: 'collection', data: collection };
+  //     return;
+  //   }
+
+  //   // First yield the collection metadata
+  //   yield { type: 'collection', data: collection };
+
+  //   // Then stream the contents
+  //   const contentCount = collection.stix.x_mitre_contents?.length || 0;
+  //   yield { type: 'contentCount', count: contentCount };
+
+  //   // Stream contents with position info
+  //   for await (const item of this.streamContents(collection.stix.x_mitre_contents)) {
+  //     yield { type: 'content', ...item };
+  //   }
+  // }
+
   async *streamVersionById(stixId, modified, options = {}) {
     console.log('[SERVICE DEBUG] streamVersionById called with:');
     console.log('[SERVICE DEBUG] stixId:', stixId);
@@ -133,9 +175,7 @@ class CollectionsService extends BaseService {
       throw new MissingParameterError('modified');
     }
 
-    console.log('[SERVICE DEBUG] Calling repository.retrieveOneByVersionLean...');
     const collection = await this.repository.retrieveOneByVersionLean(stixId, modified);
-    console.log('[SERVICE DEBUG] Repository returned:', collection ? 'collection found' : 'null');
 
     if (!collection) {
       return;
@@ -155,9 +195,45 @@ class CollectionsService extends BaseService {
     const contentCount = collection.stix.x_mitre_contents?.length || 0;
     yield { type: 'contentCount', count: contentCount };
 
-    // Stream contents with position info
-    for await (const item of this.streamContents(collection.stix.x_mitre_contents)) {
+    // PRELOAD ALL IDENTITIES BEFORE STREAMING
+    const startTime = Date.now();
+    const { identityMap, userAccountMap } =
+      await attackObjectsService.preloadIdentitiesForDocuments(collection.stix.x_mitre_contents);
+    console.log(`[PERFORMANCE] Identity preloading took ${Date.now() - startTime}ms`);
+
+    // Stream contents with cached identities
+    for await (const item of this.streamContentsWithCache(
+      collection.stix.x_mitre_contents,
+      identityMap,
+      userAccountMap,
+    )) {
       yield { type: 'content', ...item };
+    }
+  }
+
+  // Add new method to stream with cached identities
+  async *streamContentsWithCache(xMitreContents, identityMap, userAccountMap) {
+    const positionMap = new Map();
+    xMitreContents.forEach((ref, index) => {
+      const key = `${ref.object_ref}:${ref.object_modified}`;
+      positionMap.set(key, index);
+    });
+
+    // Stream objects with cached identity resolution
+    for await (const obj of attackObjectsService.streamBulkByIdAndModifiedWithCache(
+      xMitreContents,
+      identityMap,
+      userAccountMap,
+    )) {
+      const key = `${obj.stix.id}:${obj.stix.modified}`;
+      const position = positionMap.get(key);
+
+      if (position !== undefined) {
+        yield {
+          position,
+          object: obj,
+        };
+      }
     }
   }
 

@@ -318,6 +318,52 @@ class BaseRepository extends AbstractRepository {
     }
   }
 
+  async extractIdentityRefs(xMitreContents) {
+    if (!xMitreContents || xMitreContents.length === 0) {
+      return { identityRefs: [], userAccountRefs: [] };
+    }
+
+    try {
+      const pipeline = [
+        {
+          $match: {
+            $or: xMitreContents.map(({ object_ref, object_modified }) => ({
+              'stix.id': object_ref,
+              'stix.modified': object_modified,
+            })),
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            createdByRefs: { $addToSet: '$stix.created_by_ref' },
+            modifiedByRefs: { $addToSet: '$stix.x_mitre_modified_by_ref' },
+            userAccountRefs: { $addToSet: '$workspace.workflow.created_by_user_account' },
+          },
+        },
+      ];
+
+      const result = await this.model.aggregate(pipeline).exec();
+
+      if (!result || result.length === 0) {
+        return { identityRefs: [], userAccountRefs: [] };
+      }
+
+      return {
+        identityRefs: [
+          ...new Set([
+            ...(result[0].createdByRefs || []).filter(Boolean),
+            ...(result[0].modifiedByRefs || []).filter(Boolean),
+          ]),
+        ],
+        userAccountRefs: (result[0].userAccountRefs || []).filter(Boolean),
+      };
+    } catch (err) {
+      logger.error('Failed to extract identity refs:', err);
+      throw new DatabaseError(err);
+    }
+  }
+
   createNewDocument(data) {
     return new this.model(data);
   }
