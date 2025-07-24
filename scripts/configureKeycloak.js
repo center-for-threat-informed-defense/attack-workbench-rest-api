@@ -58,6 +58,13 @@ async function configureKeycloak() {
     firstName: 'Editor',
     lastName: 'User',
   };
+  const teamLeadUser = {
+    email: 'teamlead@test.com',
+    username: 'teamlead@test.com',
+    password: 'testuser',
+    firstName: 'Team Lead',
+    lastName: 'User',
+  };
   const visitorUser = {
     email: 'visitor@test.com',
     username: 'visitor@test.com',
@@ -65,7 +72,7 @@ async function configureKeycloak() {
     firstName: 'Visitor',
     lastName: 'User',
   };
-  const keycloakUsers = [adminUser, editorUser, visitorUser];
+  const keycloakUsers = [adminUser, editorUser, teamLeadUser, visitorUser];
   await keycloak.addUsersToKeycloak(options, keycloakUsers);
 
   // Establish the database connection
@@ -87,6 +94,13 @@ async function configureKeycloak() {
     status: 'active',
     role: 'editor',
   };
+  const teamLeadWBUser = {
+    email: teamLeadUser.email,
+    username: teamLeadUser.username,
+    displayName: `${teamLeadUser.firstName} ${teamLeadUser.lastName}`,
+    status: 'active',
+    role: 'team_lead',
+  };
   const visitorWBUser = {
     email: visitorUser.email,
     username: visitorUser.username,
@@ -94,7 +108,7 @@ async function configureKeycloak() {
     status: 'active',
     role: 'visitor',
   };
-  const workbenchUsers = [adminWBUser, editorWBUser, visitorWBUser];
+  const workbenchUsers = [adminWBUser, editorWBUser, teamLeadWBUser, visitorWBUser];
   for (const user of workbenchUsers) {
     try {
       await userAccountService.create(user);
