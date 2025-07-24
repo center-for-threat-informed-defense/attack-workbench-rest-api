@@ -177,6 +177,21 @@ class UserAccountsRepository {
       }
     }
   }
+
+  async retrieveManyByIds(ids) {
+    try {
+      if (!ids || ids.length === 0) {
+        return [];
+      }
+
+      return await this.model
+        .find({ _id: { $in: ids } })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
 }
 
 module.exports = new UserAccountsRepository(UserAccount);

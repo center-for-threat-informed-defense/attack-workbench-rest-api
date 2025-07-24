@@ -16,6 +16,7 @@ const AbstractService = require('./_abstract.service');
 // Import required repositories
 const systemConfigurationRepository = require('../repository/system-configurations-repository');
 const identitiesRepository = require('../repository/identities-repository');
+const userAccountsRepository = require('../repository/user-accounts-repository');
 const userAccountsService = require('./user-accounts-service');
 
 class BaseService extends AbstractService {
@@ -299,24 +300,16 @@ class BaseService extends AbstractService {
       `Preloading ${identityRefs.length} identities and ${userAccountRefs.length} user accounts`,
     );
 
-    // Bulk load all identities and user accounts
+    // Bulk load all identities and user accounts using proper repository methods
     const [identities, userAccounts] = await Promise.all([
-      identityRefs.length > 0
-        ? identitiesRepository
-            .find({ 'stix.id': { $in: identityRefs } })
-            .lean()
-            .exec()
-        : [],
-      userAccountRefs.length > 0 ? userAccountsService.findManyByIds(userAccountRefs) : [],
+      identityRefs.length > 0 ? identitiesRepository.retrieveManyByStixIds(identityRefs) : [],
+      userAccountRefs.length > 0 ? userAccountsRepository.retrieveManyByIds(userAccountRefs) : [],
     ]);
 
-    // Build lookup maps with latest versions
+    // Build lookup maps
     const identityMap = new Map();
     identities.forEach((identity) => {
-      const existing = identityMap.get(identity.stix.id);
-      if (!existing || identity.stix.modified > existing.stix.modified) {
-        identityMap.set(identity.stix.id, identity);
-      }
+      identityMap.set(identity.stix.id, identity);
     });
 
     const userAccountMap = new Map();

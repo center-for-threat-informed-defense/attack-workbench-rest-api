@@ -238,10 +238,7 @@ class UserAccountsService {
 
   async findManyByIds(ids) {
     try {
-      return await this.repository
-        .find({ _id: { $in: ids } })
-        .lean()
-        .exec();
+      return await this.repository.retrieveManyByIds(ids);
     } catch (err) {
       throw new DatabaseError(err);
     }
