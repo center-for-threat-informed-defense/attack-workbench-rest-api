@@ -91,6 +91,7 @@ paths:
               - mitigation
               - software
               - technique
+              - detection-strategy
         - name: targetType
           in: query
           description: |
@@ -103,6 +104,7 @@ paths:
               - software
               - technique
               - asset
+              - log-source
         - name: versions
           in: query
           description: |
