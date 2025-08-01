@@ -85,7 +85,81 @@ class CollectionsService extends BaseService {
     return collection;
   }
 
-  // TODO this linting bypass can be removed after we refactor - AttackObject model should be proxied through a service; attackObjectsService can potentially be moved to a class instance variable (e.g., this.attackObjectsService)
+  /**
+   * Stream the full attack objects for a collection's x_mitre_contents
+   * @param {Array<{object_ref: string, object_modified: string}>} xMitreContents - The x_mitre_contents array
+   * @yields {Object} Attack objects in order with position metadata
+   */
+  async *streamContents(xMitreContents) {
+    // Create a map to track original positions
+    const positionMap = new Map();
+    xMitreContents.forEach((ref, index) => {
+      const key = `${ref.object_ref}:${ref.object_modified}`;
+      positionMap.set(key, index);
+    });
+
+    // Stream objects with their original position
+    for await (const obj of attackObjectsService.streamBulkByIdAndModified(xMitreContents)) {
+      const key = `${obj.stix.id}:${obj.stix.modified}`;
+      const position = positionMap.get(key);
+
+      if (position !== undefined) {
+        yield {
+          position,
+          object: obj,
+        };
+      }
+    }
+  }
+
+  /**
+   * Stream a collection version with its contents
+   * @param {string} stixId - The STIX ID
+   * @param {string} modified - The modified timestamp
+   * @param {Object} options - Options including retrieveContents
+   * @returns {AsyncGenerator} Stream of collection data
+   */
+  async *streamVersionById(stixId, modified, options = {}) {
+    console.log('[SERVICE DEBUG] streamVersionById called with:');
+    console.log('[SERVICE DEBUG] stixId:', stixId);
+    console.log('[SERVICE DEBUG] modified:', modified);
+    console.log('[SERVICE DEBUG] options:', options);
+
+    if (!stixId) {
+      throw new MissingParameterError('stixId');
+    }
+
+    if (!modified) {
+      throw new MissingParameterError('modified');
+    }
+
+    console.log('[SERVICE DEBUG] Calling repository.retrieveOneByVersionLean...');
+    const collection = await this.repository.retrieveOneByVersionLean(stixId, modified);
+    console.log('[SERVICE DEBUG] Repository returned:', collection ? 'collection found' : 'null');
+
+    if (!collection) {
+      return;
+    }
+
+    await this.addCreatedByAndModifiedByIdentities(collection);
+
+    if (!options.retrieveContents) {
+      yield { type: 'collection', data: collection };
+      return;
+    }
+
+    // First yield the collection metadata
+    yield { type: 'collection', data: collection };
+
+    // Then stream the contents
+    const contentCount = collection.stix.x_mitre_contents?.length || 0;
+    yield { type: 'contentCount', count: contentCount };
+
+    // Stream contents with position info
+    for await (const item of this.streamContents(collection.stix.x_mitre_contents)) {
+      yield { type: 'content', ...item };
+    }
+  }
 
   async addObjectsToCollection(objectList, collectionID, collectionModified) {
     const insertionErrors = [];
