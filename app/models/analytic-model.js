@@ -20,15 +20,14 @@ const mutableElement = {
 const mutableElementSchema = new mongoose.Schema(mutableElement, { _id: false });
 
 const stixAnalytic = {
-  name: String,
-  x_mitre_domains: { type: [String], default: undefined },
   modified: { type: Date, required: true },
-  description: String,
+  name: { type: String, required: true },
 
   x_mitre_modified_by_ref: String,
   x_mitre_deprecated: { type: Boolean, required: true, default: false },
   x_mitre_version: String,
   x_mitre_attack_spec_version: String,
+  x_mitre_domains: { type: [String], default: undefined },
   x_mitre_detects: String,
   x_mitre_platforms: { type: [String], default: undefined },
   x_mitre_log_sources: [logSourceReferenceSchema],
