@@ -125,6 +125,9 @@ describe('Analytics API', function () {
     expect(analytic1.stix.created).toBeDefined();
     expect(analytic1.stix.modified).toBeDefined();
     expect(analytic1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+    expect(analytic1.stix.x_mitre_domains).toBeDefined();
+    expect(Array.isArray(analytic1.stix.x_mitre_domains)).toBe(true);
+    expect(analytic1.stix.x_mitre_domains.length).toBe(1);
 
     expect(analytic1.stix.x_mitre_log_sources).toBeDefined();
     expect(Array.isArray(analytic1.stix.x_mitre_log_sources)).toBe(true);
@@ -176,7 +179,7 @@ describe('Analytics API', function () {
     expect(analytic.stix).toBeDefined();
     expect(analytic.stix.id).toBe(analytic1.stix.id);
     expect(analytic.stix.type).toBe(analytic1.stix.type);
-    expect(analytic.stix.description).toBe(analytic1.stix.description);
+    expect(analytic.stix.name).toBe(analytic1.stix.name);
     expect(analytic.stix.spec_version).toBe(analytic1.stix.spec_version);
     expect(analytic.stix.object_marking_refs).toEqual(
       expect.arrayContaining(analytic1.stix.object_marking_refs),

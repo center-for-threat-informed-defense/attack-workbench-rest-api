@@ -10,7 +10,7 @@ const initialObjectData = {
     },
   },
   stix: {
-    description: 'analytic-1',
+    name: 'analytic-1',
     spec_version: '2.1',
     type: 'x-mitre-analytic',
     external_references: [
@@ -25,6 +25,7 @@ const initialObjectData = {
     x_mitre_version: '1.0',
     x_mitre_attack_spec_version: '4.0.0',
     x_mitre_platforms: ['windows'],
+    x_mitre_domains: ['enterprise-attack'],
     x_mitre_log_sources: [
       {
         ref: 'log-source-1',

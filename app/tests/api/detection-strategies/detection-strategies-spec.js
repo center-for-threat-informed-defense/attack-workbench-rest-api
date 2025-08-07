@@ -108,7 +108,6 @@ describe('Detection Strategies API', function () {
     expect(detectionStrategy1.stix.created).toBeDefined();
     expect(detectionStrategy1.stix.modified).toBeDefined();
     expect(detectionStrategy1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
-    expect(detectionStrategy1.stix.x_mitre_technique_of).toBeDefined();
     expect(detectionStrategy1.stix.x_mitre_analytics).toBeDefined();
     expect(Array.isArray(detectionStrategy1.stix.x_mitre_analytics)).toBe(true);
     expect(detectionStrategy1.stix.x_mitre_analytics.length).toBe(2);
@@ -160,9 +159,6 @@ describe('Detection Strategies API', function () {
     expect(detectionStrategy.stix.spec_version).toBe(detectionStrategy1.stix.spec_version);
     expect(detectionStrategy.stix.object_marking_refs).toEqual(
       expect.arrayContaining(detectionStrategy1.stix.object_marking_refs),
-    );
-    expect(detectionStrategy.stix.x_mitre_technique_of).toBe(
-      detectionStrategy1.stix.x_mitre_technique_of,
     );
 
     expect(detectionStrategy.stix.created_by_ref).toBe(detectionStrategy1.stix.created_by_ref);

@@ -44,9 +44,9 @@ components:
         - type: object
           properties:
             # analytic-specific properties
-            description:
+            name:
               type: string
-              example: 'Description of an analytic'
+              example: 'Analytic 0001'
             # ATT&CK custom properties
             x_mitre_modified_by_ref:
               type: string

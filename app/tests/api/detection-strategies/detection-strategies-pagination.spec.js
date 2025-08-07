@@ -25,7 +25,6 @@ const initialObjectData = {
     x_mitre_version: '1.0',
     x_mitre_attack_spec_version: '4.0.0',
     x_mitre_domains: ['enterprise-attack'],
-    x_mitre_technique_of: 'attack-pattern--12345678-1234-1234-1234-123456789012',
     x_mitre_analytics: [
       'x-mitre-analytic--12345678-1234-1234-1234-123456789000',
       'x-mitre-analytic--12345678-1234-1234-1234-123456789012',
