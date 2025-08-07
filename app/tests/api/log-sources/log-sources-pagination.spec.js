@@ -28,10 +28,12 @@ const initialObjectData = {
       {
         name: 'perm-1',
         channel: 'channel-1',
+        data_component_name: 'component-1',
       },
       {
         name: 'perm-2',
         channel: 'channel-2',
+        data_component_name: 'component-2',
       },
     ],
   },

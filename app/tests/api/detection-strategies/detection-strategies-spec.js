@@ -33,7 +33,7 @@ const initialObjectData = {
     object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
     created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
     x_mitre_version: '1.0',
-    x_mitre_attack_spec_version: '4.0.0',
+    x_mitre_attack_spec_version: '3.3.0',
     x_mitre_domains: ['enterprise-attack'],
     x_mitre_technique_of: 'attack-pattern--12345678-1234-1234-1234-123456789012',
     x_mitre_analytics: [

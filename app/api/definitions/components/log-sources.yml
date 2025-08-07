@@ -16,6 +16,7 @@ components:
       required:
         - name
         - channel
+        - data_component_name
       properties:
         name:
           type: string
@@ -23,6 +24,9 @@ components:
         channel:
           type: string
           example: 'EventCode=10'
+        data_component_name:
+          type: string
+          example: 'Data Component Name'
 
     x-mitre-log-source:
       allOf:

@@ -8,6 +8,7 @@ const { ModelName } = require('../lib/model-names');
 const logSourcePermutation = {
   name: { type: String, required: true },
   channel: { type: String, required: true },
+  data_component_name: { type: String, required: true },
 };
 
 const logSourcePermutationSchema = new mongoose.Schema(logSourcePermutation, { _id: false });
