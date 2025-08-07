@@ -35,7 +35,7 @@ const initialObjectData = {
     x_mitre_version: '1.0',
     x_mitre_attack_spec_version: '3.3.0',
     x_mitre_platforms: ['windows'],
-    x_mitre_domains: [ 'enterprise-attack' ],
+    x_mitre_domains: ['enterprise-attack'],
     x_mitre_log_sources: [
       {
         ref: 'log-source-1',
