@@ -13,7 +13,7 @@ class ValidationService {
     // Map STIX types to schemas
     this.stixSchemas = {
       'attack-pattern': techniqueSchema,
-      'campaign': campaignSchema,
+      campaign: campaignSchema,
     };
   }
 
@@ -28,11 +28,13 @@ class ValidationService {
     if (!schema) {
       logger.warn(`Unknown STIX type: ${type}`);
       return {
-        errors: [{
-          code: 'unknown_type',
-          path: ['type'],
-          message: `Unknown STIX type: ${type}`
-        }]
+        errors: [
+          {
+            code: 'unknown_type',
+            path: ['type'],
+            message: `Unknown STIX type: ${type}`,
+          },
+        ],
       };
     }
 
@@ -43,11 +45,11 @@ class ValidationService {
     } else {
       // Map Zod errors to your error format
       return {
-        errors: result.error.issues.map(err => ({
+        errors: result.error.issues.map((err) => ({
           code: err.code,
           path: err.path,
-          message: err.message
-        }))
+          message: err.message,
+        })),
       };
     }
   }

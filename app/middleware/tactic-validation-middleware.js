@@ -19,9 +19,7 @@ function hasValue(field) {
 }
 
 function filterObject(obj) {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([key, value]) => hasValue(value))
-  );
+  Object.fromEntries(Object.entries(obj).filter((entry) => hasValue(entry[1])));
 }
 
 module.exports = async function validateTacticForSpecCompliance(req, res, next) {
@@ -47,7 +45,9 @@ module.exports = async function validateTacticForSpecCompliance(req, res, next) 
         }));
 
         logger.warn(
-          logger.warn(`Tactic validation failed for ${tacticData.stix.id}: ${JSON.stringify(errors)}`)
+          logger.warn(
+            `Tactic validation failed for ${tacticData.stix.id}: ${JSON.stringify(errors)}`,
+          ),
         );
 
         return res.status(400).json({

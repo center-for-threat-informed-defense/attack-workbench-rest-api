@@ -9,14 +9,21 @@ exports.validate = async function (req, res) {
     const { type, stix } = req.body || {};
 
     // Basic request validation
-    if (typeof type !== 'string' || typeof stix !== 'object' || stix === null || Array.isArray(stix)) {
+    if (
+      typeof type !== 'string' ||
+      typeof stix !== 'object' ||
+      stix === null ||
+      Array.isArray(stix)
+    ) {
       logger.warn('Invalid request body for /api/validate');
       return res.status(400).json({
-        errors: [{
-          code: 'invalid_request',
-          path: [],
-          message: 'Request body must have a string "type" and an object "stix".'
-        }]
+        errors: [
+          {
+            code: 'invalid_request',
+            path: [],
+            message: 'Request body must have a string "type" and an object "stix".',
+          },
+        ],
       });
     }
 
@@ -30,7 +37,6 @@ exports.validate = async function (req, res) {
 
     logger.debug(`Validation completed for type: ${type}`);
     return res.status(200).json(result);
-
   } catch (err) {
     logger.error('Failed to validate STIX object: ' + err);
     return res.status(500).send('Unable to validate STIX object. Server error.');

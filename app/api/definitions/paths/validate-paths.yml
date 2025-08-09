@@ -1,50 +1,50 @@
 paths:
   /api/validate:
-      post:
-        summary: 'Validate a STIX object'
-        operationId: 'validate-stix-object'
-        description: |
-          Validates a STIX object against the schema specified in the request body `type` field.
-          Returns detailed error information as ZodError objects.
-        tags:
-          - 'Validation'
-        requestBody:
-          required: true
+    post:
+      summary: 'Validate a STIX object'
+      operationId: 'validate-stix-object'
+      description: |
+        Validates a STIX object against the schema specified in the request body `type` field.
+        Returns detailed error information as ZodError objects.
+      tags:
+        - 'Validation'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - stix
+              properties:
+                type:
+                  type: string
+                  description: Valid STIX type (e.g., "attack-pattern", "intrustion-set", etc.)
+                stix:
+                  type: object
+                  description: The STIX object to validate
+      responses:
+        '200':
+          description: 'Validation result'
           content:
             application/json:
               schema:
                 type: object
-                required:
-                  - type
-                  - stix
                 properties:
-                  type:
-                    type: string
-                    description: Valid STIX type (e.g., "attack-pattern", "intrustion-set", etc.)
-                  stix:
-                    type: object
-                    description: The STIX object to validate
-        responses:
-          '200':
-            description: 'Validation result'
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    errors:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          code:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        code:
+                          type: string
+                          example: custom
+                        path:
+                          type: array
+                          items:
                             type: string
-                            example: custom
-                          path:
-                            type: array
-                            items:
-                              type: string
-                          message:
-                            type: string
-          '400':
-            description: 'Invalid request'
+                        message:
+                          type: string
+        '400':
+          description: 'Invalid request'
