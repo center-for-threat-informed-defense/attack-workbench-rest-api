@@ -1,7 +1,6 @@
 'use strict';
 
 const { tacticSchema } = require('@mitre-attack/attack-data-model');
-const fieldSchemas = require('./field-schemas');
 const logger = require('../lib/logger');
 const tacticsService = require('../services/tactics-service');
 const { workflowStates } = require('../dtos');
@@ -19,6 +18,12 @@ function hasValue(field) {
   );
 }
 
+function filterObject(obj) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([key, value]) => hasValue(value))
+  );
+}
+
 module.exports = async function validateTacticForSpecCompliance(req, res, next) {
   const tacticData = req.body;
 
@@ -31,34 +36,25 @@ module.exports = async function validateTacticForSpecCompliance(req, res, next) 
     try {
       // Validate the tactic object using the ATT&CK Data Model
       logger.debug(`Validating tactic ${tacticData.stix.id} against ATT&CK Data Model`);
+      const tacticDataFiltered = filterObject(tacticData.stix);
+      const validationResult = tacticSchema.partial().safeParse(tacticDataFiltered);
+      if (!validationResult.success) {
+        // Format Zod errors into a more readable structure
+        const errors = validationResult.error.issues.map((err) => ({
+          path: err.path.join('.'),
+          message: err.message,
+          code: err.code,
+        }));
 
-      for (const [key, value] of Object.entries(tacticData.stix)) {
-        if (fieldSchemas[key] && hasValue(value) && key != 'x_mitre_shortname') {
-          console.log(`Key: ${key}, Value: ${value}`);
+        logger.warn(
+          logger.warn(`Tactic validation failed for ${tacticData.stix.id}: ${JSON.stringify(errors)}`)
+        );
 
-          // Dynamically validate the field using its schema
-          const schema = fieldSchemas[key];
-          const validationResult = schema.safeParse(value);
-
-          if (!validationResult.success) {
-            // Format Zod errors into a more readable structure
-            const errors = validationResult.error.errors.map((err) => ({
-              path: err.path.join('.'),
-              message: err.message,
-              code: err.code,
-            }));
-
-            logger.warn(
-              `Validation failed for field "${key}" in tactic ${tacticData.stix.id}: ${JSON.stringify(errors)}`,
-            );
-
-            return res.status(400).json({
-              error: 'Validation Error',
-              message: `Field "${key}" does not meet ATT&CK Data Model requirements`,
-              details: errors,
-            });
-          }
-        }
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Tactic does not meet ATT&CK Data Model requirements',
+          details: errors,
+        });
       }
       return next();
     } catch (err) {
@@ -95,7 +91,7 @@ module.exports = async function validateTacticForSpecCompliance(req, res, next) 
 
     if (!validationResult.success) {
       // Format Zod errors into a more readable structure
-      const errors = validationResult.error.errors.map((err) => ({
+      const errors = validationResult.error.issues.map((err) => ({
         path: err.path.join('.'),
         message: err.message,
         code: err.code,
