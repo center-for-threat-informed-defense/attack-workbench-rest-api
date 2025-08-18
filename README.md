@@ -27,7 +27,7 @@ The REST API will be accessible at `http://localhost:3000`, with API documentati
 
 ### Full Application Deployment
 
-For a full ATT&CK Workbench deployment, including the frontend application, see the [Docker Compose instructions](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md) in the frontend repository.
+For a full ATT&CK Workbench deployment, including the frontend application, see the official [Workbench Deployment Guide](https://github.com/mitre-attack/attack-workbench-deployment).
 
 ## Documentation
 
@@ -48,6 +48,8 @@ The REST API provides:
 ## Related Repositories
 
 - [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend): The user interface for the ATT&CK Workbench
+- [ATT&CK Workbench TAXII 2.1 Server](https://github.com/mitre-attack/attack-workbench-taxii-server): An *optional* Workbench service for sharing STIX content through a TAXII 2.1-compliant interface
+- [ATT&CK Workbench Deployment Guide](https://github.com/mitre-attack/attack-workbench-deployment): The official instructions and configuration templates for deploying Workbench in Docker
 
 ## Notice
 

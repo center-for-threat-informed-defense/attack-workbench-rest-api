@@ -7,11 +7,18 @@ const userRoles = {
   admin: 'admin',
   editor: 'editor',
   visitor: 'visitor',
+  teamLead: 'team_lead',
 };
 exports.userRoles = userRoles;
 exports.admin = [userRoles.admin];
-exports.editorOrHigher = [userRoles.admin, userRoles.editor];
-exports.visitorOrHigher = [userRoles.admin, userRoles.editor, userRoles.visitor];
+exports.teamLeadOrHigher = [userRoles.admin, userRoles.teamLead];
+exports.editorOrHigher = [userRoles.admin, userRoles.editor, userRoles.teamLead];
+exports.visitorOrHigher = [
+  userRoles.admin,
+  userRoles.editor,
+  userRoles.visitor,
+  userRoles.teamLead,
+];
 
 const serviceRoles = {
   readOnly: 'read-only',
