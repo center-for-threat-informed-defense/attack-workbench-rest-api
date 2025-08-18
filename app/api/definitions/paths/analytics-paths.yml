@@ -1,0 +1,282 @@
+paths:
+  /api/analytics:
+    get:
+      summary: 'Get a list of analytics'
+      operationId: 'analytic-get-all'
+      description: |
+        This endpoint gets a list of analytics from the workspace.
+        The list of analytics may include multiple versions of each analytic.
+      tags:
+        - 'Analytics'
+      parameters:
+        - name: limit
+          in: query
+          description: |
+            The number of analytics to retrieve.
+            The default (0) will retrieve all analytics.
+          schema:
+            type: number
+            default: 0
+        - name: offset
+          in: query
+          description: |
+            The number of analytics to skip.
+            The default (0) will start with the first analytic.
+          schema:
+            type: number
+            default: 0
+        - name: domain
+          in: query
+          description: |
+            Only retrieve objects that contain the specified domain in their `x_mitre_domains` array.
+            This parameter may be set multiple times to retrieve objects with any of the provided domains.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'mobile-attack'
+        - name: state
+          in: query
+          description: |
+            State of the object in the editing workflow.
+            If this parameter is not set, objects will be retrieved regardless of state.
+            This parameter may be set multiple times to retrieve objects with any of the provided states.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'work-in-progress'
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true.
+          schema:
+            type: boolean
+            default: false
+        - name: search
+          in: query
+          description: |
+            Only return objects where the provided search text occurs in the `attack_id`, `name`, or `description`.
+            The search is case-insensitive.
+          schema:
+            type: string
+          allowReserved: true
+          example: 'windows'
+        - name: lastUpdatedBy
+          in: query
+          description: |
+            The STIX ID of the user who last modified the object
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: 'identity--f568ad89-69bc-48e7-877b-43755f1d376d'
+        - name: includePagination
+          in: query
+          description: |
+            Whether to include pagination data in the returned value.
+            Wraps returned objects in a larger object.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 'A list of analytics.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/analytics.yml#/components/schemas/analytic'
+
+    post:
+      summary: 'Create a analytic'
+      operationId: 'analytic-create'
+      description: |
+        This endpoint creates a new analytic in the workspace.
+        If the `stix.id` property is set, it creates a new version of an existing analytic.
+        If the `stix.id` property is not set, it creates a new analytic, generating a STIX id for it.
+      tags:
+        - 'Analytics'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/analytics.yml#/components/schemas/analytic'
+      responses:
+        '201':
+          description: 'The analytic has been successfully created.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/analytics.yml#/components/schemas/analytic'
+        '400':
+          description: 'Missing or invalid parameters were provided. The analytic was not created.'
+        '409':
+          description: 'Duplicate `stix.id` and `stix.modified` properties. The analytic was not created.'
+
+  /api/analytics/{stixId}:
+    get:
+      summary: 'Get one or more versions of a analytic'
+      operationId: 'analytic-get-one-id'
+      description: |
+        This endpoint gets a list of one or more versions of a analytic from the workspace, identified by their STIX id.
+      tags:
+        - 'Analytics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the analytic to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: versions
+          in: query
+          description: |
+            The versions of the analytic to retrieve.
+            `all` gets all versions of the analytic, `latest` gets only the latest version.
+          schema:
+            type: string
+            enum:
+              - all
+              - latest
+            default: latest
+      responses:
+        '200':
+          description: 'A list of analytics matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/analytics.yml#/components/schemas/analytic'
+        '404':
+          description: 'A analytic with the requested STIX id was not found.'
+    delete:
+      summary: 'Delete a analytic'
+      operationId: 'analytic-delete-all'
+      description: |
+        This endpoint deletes all versions of a analytic from the workspace.
+        The analytic is identified by its STIX id.
+      tags:
+        - 'Analytics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the analytic to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'All the analytic versions were successfully deleted.'
+        '404':
+          description: 'A analytic with the requested STIX id was not found.'
+
+  /api/analytics/{stixId}/modified/{modified}:
+    get:
+      summary: 'Gets the version of a analytic matching the STIX id and modified date'
+      operationId: 'analytic-get-by-id-and-modified'
+      description: |
+        This endpoint gets a single version of a analytic from the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Analytics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the analytic to retrieve'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the analytic to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The version of a analytic matching the STIX id and modified date.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/analytics.yml#/components/schemas/analytic'
+        '404':
+          description: 'A analytic with the requested STIX id and modified date was not found.'
+    put:
+      summary: 'Update a analytic'
+      operationId: 'analytic-update'
+      description: |
+        This endpoint updates a single version of a analytic in the workspace, identified by its STIX id and modified date.
+      tags:
+        - 'Analytics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the analytic to update'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the analytic to update'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/analytics.yml#/components/schemas/analytic'
+      responses:
+        '200':
+          description: 'The analytic was updated.'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/analytics.yml#/components/schemas/analytic'
+        '400':
+          description: 'Missing or invalid parameters were provided. The analytic was not updated.'
+        '404':
+          description: 'A analytic with the requested STIX id and modified date was not found.'
+    delete:
+      summary: 'Delete a analytic'
+      operationId: 'analytic-delete'
+      description: |
+        This endpoint deletes a single version of a analytic from the workspace.
+        The analytic is identified by its STIX id and modified date.
+      tags:
+        - 'Analytics'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the analytic to delete'
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          description: 'modified date of the analytic to delete'
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'The analytic was successfully deleted.'
+        '404':
+          description: 'A analytic with the requested STIX id and modified date was not found.'

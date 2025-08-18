@@ -1,0 +1,58 @@
+components:
+  schemas:
+    log-source:
+      type: object
+      required:
+        - workspace
+        - stix
+      properties:
+        workspace:
+          $ref: 'workspace.yml#/components/schemas/workspace'
+        stix:
+          $ref: '#/components/schemas/x-mitre-log-source'
+
+    x-mitre-log-source-permutation:
+      type: object
+      required:
+        - name
+        - channel
+        - data_component_name
+      properties:
+        name:
+          type: string
+          example: 'sysmon'
+        channel:
+          type: string
+          example: 'EventCode=10'
+        data_component_name:
+          type: string
+          example: 'Data Component Name'
+
+    x-mitre-log-source:
+      allOf:
+        - $ref: 'stix-common.yml#/components/schemas/stix-common'
+        - type: object
+          required:
+            - name
+          properties:
+            # log source-specific properties
+            name:
+              type: string
+              example: 'Process Access'
+            # ATT&CK custom properties
+            x_mitre_modified_by_ref:
+              type: string
+              example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
+            x_mitre_deprecated:
+              type: boolean
+              example: false
+            x_mitre_version:
+              type: string
+              example: '1.0'
+            x_mitre_attack_spec_version:
+              type: string
+              example: '2.1.0'
+            x_mitre_log_source_permutations:
+              type: array
+              items:
+                $ref: '#/components/schemas/x-mitre-log-source-permutation'

@@ -6,13 +6,16 @@
  * @enum {string}
  */
 exports.ModelName = {
+  Analytic: 'Analytic',
   Asset: 'Asset',
   Campaign: 'Campaign',
   Collection: 'Collection',
   DataComponent: 'Data-Component',
   DataSource: 'Data-Source',
+  DetectionStrategy: 'Detection-Strategy',
   Group: 'Intrusion-Set',
   Identity: 'IdentityModel',
+  LogSource: 'Log-Source',
   MarkingDefinition: 'MarkingDefinitionModel',
   Matrix: 'MatrixModel',
   Mitigation: 'Course-of-Action',
