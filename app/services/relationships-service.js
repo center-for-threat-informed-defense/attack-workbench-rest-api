@@ -16,6 +16,7 @@ const objectTypeMap = new Map([
   ['x-mitre-tactic', 'tactic'],
   ['x-mitre-matrix', 'matrix'],
   ['x-mitre-data-component', 'data-component'],
+  ['x-mitre-detection-strategy', 'detection-strategy'],
 ]);
 
 class RelationshipsService extends BaseService {
