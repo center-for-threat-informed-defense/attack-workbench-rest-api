@@ -250,6 +250,47 @@ class BaseService extends AbstractService {
   }
 
   /**
+   * Stream multiple attack objects by their version identifiers
+   * @param {Array<{object_ref: string, object_modified: string}>} xMitreContents - Array of x_mitre_contents elements
+   * @yields {Object} Attack objects with identities populated
+   */
+  async *streamBulkByIdAndModified(xMitreContents) {
+    if (!xMitreContents || !Array.isArray(xMitreContents) || xMitreContents.length === 0) {
+      return;
+    }
+
+    // Process identities in small batches as we stream
+    const identityBatch = [];
+    const IDENTITY_BATCH_SIZE = 50;
+
+    for await (const doc of this.repository.streamManyByIdAndModified(xMitreContents)) {
+      identityBatch.push(doc);
+
+      // Process identities when batch is full
+      if (identityBatch.length >= IDENTITY_BATCH_SIZE) {
+        await Promise.all(identityBatch.map((d) => this.addCreatedByAndModifiedByIdentities(d)));
+
+        // Yield processed documents
+        for (const processedDoc of identityBatch) {
+          yield processedDoc;
+        }
+
+        // Clear the batch
+        identityBatch.length = 0;
+      }
+    }
+
+    // Process remaining documents
+    if (identityBatch.length > 0) {
+      await Promise.all(identityBatch.map((d) => this.addCreatedByAndModifiedByIdentities(d)));
+
+      for (const processedDoc of identityBatch) {
+        yield processedDoc;
+      }
+    }
+  }
+
+  /**
    * Retrieve multiple attack objects by their version identifiers
    * @param {Array<{object_ref: string, object_modified: string}>} xMitreContents - Array of x_mitre_contents elements
    * @returns {Promise<Array<Object>>} Array of attack objects with identities populated
