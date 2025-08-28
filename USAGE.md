@@ -48,7 +48,7 @@ The recommended deployment method is using Docker. The REST API is published as 
 
 #### Using Docker Compose (Recommended)
 
-The simplest way to deploy the entire ATT&CK Workbench application is using Docker Compose. Instructions are available in the [ATT&CK Workbench Frontend repository](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend/blob/master/docs/docker-compose.md).
+The simplest way to deploy the entire ATT&CK Workbench application is using Docker Compose. Instructions are available in the [Workbench Deployment Guide](https://github.com/mitre-attack/attack-workbench-deployment).
 
 #### Standalone Docker Deployment
 

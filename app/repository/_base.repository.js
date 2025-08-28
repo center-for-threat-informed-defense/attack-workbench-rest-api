@@ -201,6 +201,57 @@ class BaseRepository extends AbstractRepository {
   }
 
   /**
+   * Stream documents by their STIX ID and modified timestamp pairs
+   * @param {Array<{object_ref: string, object_modified: string}>} xMitreContents - Array of x_mitre_contents elements
+   * @yields {Object} Individual documents as they're retrieved
+   * @throws {BadlyFormattedParameterError} If stixId format is invalid
+   * @throws {DatabaseError} For other database errors
+   */
+  async *streamManyByIdAndModified(xMitreContents) {
+    const BATCH_SIZE = 500; // Smaller batches for streaming
+
+    for (let i = 0; i < xMitreContents.length; i += BATCH_SIZE) {
+      const batch = xMitreContents.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(xMitreContents.length / BATCH_SIZE);
+
+      logger.debug(`[STREAM] Processing batch ${batchNum}/${totalBatches}`);
+
+      // Stream documents from this batch
+      yield* this._streamBatch(batch);
+    }
+  }
+
+  async *_streamBatch(xMitreContents) {
+    const startTime = Date.now();
+
+    try {
+      const conditions = xMitreContents.map(({ object_ref, object_modified }) => ({
+        'stix.id': object_ref,
+        'stix.modified': object_modified,
+      }));
+
+      // Use cursor for true streaming
+      const cursor = this.model.find({ $or: conditions }).lean().cursor();
+
+      let count = 0;
+      for (let doc = await cursor.next(); doc != null; doc = await cursor.next()) {
+        yield doc;
+        count++;
+      }
+
+      const queryTime = Date.now() - startTime;
+      logger.debug(`[STREAM] Batch streamed ${count} documents in ${queryTime}ms`);
+    } catch (err) {
+      logger.error(err);
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
    * Retrieve multiple documents by their STIX ID and modified timestamp pairs
    * @param {Array<{stixId: string, object_modified: string}>} xMitreContents - Array of STIX ID and modified timestamp pairs
    * @returns {Promise<Array<Object>>} Array of matching documents
@@ -215,30 +266,30 @@ class BaseRepository extends AbstractRepository {
     // 5000 --> 5.84s
 
     if (xMitreContents.length <= BATCH_SIZE) {
-      // Use original logic for small queries
       return this._retrieveBatch(xMitreContents);
     }
 
-    // Process in batches for large queries
-    const batches = [];
+    // Process in batches SEQUENTIALLY to control memory usage
+    const results = [];
+    const totalBatches = Math.ceil(xMitreContents.length / BATCH_SIZE);
+
+    logger.debug(`[PROFILE] Processing ${xMitreContents.length} items in ${totalBatches} batches`);
+
     for (let i = 0; i < xMitreContents.length; i += BATCH_SIZE) {
-      batches.push(xMitreContents.slice(i, i + BATCH_SIZE));
+      const batch = xMitreContents.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+
+      logger.debug(`[PROFILE] Processing batch ${batchNum}/${totalBatches}`);
+      const batchResults = await this._retrieveBatch(batch);
+      results.push(...batchResults);
+
+      // Force garbage collection hint between batches
+      if (global.gc) {
+        global.gc();
+      }
     }
 
-    logger.debug(
-      `[PROFILE] Processing ${xMitreContents.length} items in ${batches.length} batches`,
-    );
-
-    // Execute batches in parallel (limit concurrency to avoid overwhelming DB)
-    const batchPromises = batches.map((batch, index) =>
-      this._retrieveBatch(batch).then((results) => {
-        logger.debug(`[PROFILE] Batch ${index + 1}/${batches.length} completed`);
-        return results;
-      }),
-    );
-
-    const batchResults = await Promise.all(batchPromises);
-    return batchResults.flat();
+    return results;
   }
 
   async _retrieveBatch(xMitreContents) {
@@ -250,7 +301,7 @@ class BaseRepository extends AbstractRepository {
         'stix.modified': object_modified,
       }));
 
-      const documents = await this.model.find({ $or: conditions }).exec();
+      const documents = await this.model.find({ $or: conditions }).lean().exec();
 
       const queryTime = Date.now() - startTime;
       logger.debug(
