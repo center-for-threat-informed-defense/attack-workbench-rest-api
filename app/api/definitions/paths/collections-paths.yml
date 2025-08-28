@@ -153,6 +153,14 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: stream
+          in: query
+          description: |
+            When used with retrieveContents=true, stream the collection contents using Server-Sent Events (SSE) instead of returning the full response.
+            This is useful for large collections to avoid memory issues and provide progress updates.
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'A list of collections matching the requested STIX id.'
@@ -216,6 +224,14 @@ paths:
           in: query
           description: |
             Retrieve the objects that are referenced by the collection
+          schema:
+            type: boolean
+            default: false
+        - name: stream
+          in: query
+          description: |
+            When used with retrieveContents=true, stream the collection contents using Server-Sent Events (SSE) instead of returning the full response.
+            This is useful for large collections to avoid memory issues and provide progress updates.
           schema:
             type: boolean
             default: false
