@@ -21,6 +21,9 @@ paths:
                 type:
                   type: string
                   description: Valid STIX type (e.g., "attack-pattern", "intrustion-set", etc.)
+                status:
+                  type: string
+                  description: Workflow status - "work-in-progress", "awaiting-reviewed", "reviewed"
                 stix:
                   type: object
                   description: The STIX object to validate

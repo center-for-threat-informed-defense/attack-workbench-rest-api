@@ -6,11 +6,12 @@ const validateService = new ValidationService();
 
 exports.validate = async function (req, res) {
   try {
-    const { type, stix } = req.body || {};
+    const { type, status, stix } = req.body || {};
 
     // Basic request validation
     if (
       typeof type !== 'string' ||
+      typeof status !== 'string' ||
       typeof stix !== 'object' ||
       stix === null ||
       Array.isArray(stix)
@@ -21,14 +22,15 @@ exports.validate = async function (req, res) {
           {
             code: 'invalid_request',
             path: [],
-            message: 'Request body must have a string "type" and an object "stix".',
+            message:
+              'Request body must have a string "type", string "status" and an object "stix".',
           },
         ],
       });
     }
 
     // Validate the STIX object using the instance method
-    const result = validateService.validate(type, stix);
+    const result = validateService.validate(type, status, stix);
 
     if (result.errors.length && result.errors[0].code === 'unknown_type') {
       logger.warn(`Unknown STIX type: ${type}`);

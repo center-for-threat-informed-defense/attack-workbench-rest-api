@@ -19,7 +19,7 @@ function hasValue(field) {
 }
 
 function filterObject(obj) {
-  Object.fromEntries(Object.entries(obj).filter((entry) => hasValue(entry[1])));
+  return Object.fromEntries(Object.entries(obj).filter((entry) => hasValue(entry[1])));
 }
 
 module.exports = async function validateTacticForSpecCompliance(req, res, next) {
