@@ -1,31 +1,52 @@
 'use strict';
+const yaml = require('js-yaml');
+const fs = require('fs');
 
 const {
   techniqueSchema,
   campaignSchema,
+  tacticSchema,
   // Add more schemas as needed
 } = require('@mitre-attack/attack-data-model');
 
 const logger = require('../lib/logger');
 
-// function hasValue(field) {
-//   return (
-//     field !== undefined &&
-//     field !== null &&
-//     field !== '' &&
-//     !(Array.isArray(field) && field.length === 0)
-//   );
-// }
+function listToDict(list) {
+  return Object.fromEntries(list.map(prop => [prop, true]));
+}
 
-// function filterObject(obj) {
-//   return Object.fromEntries(Object.entries(obj).filter((entry) => hasValue(entry[1])));
-// }
+// Utility: Extract required fields for a schema from YAML (handles allOf)
+function getRequiredFields(doc, schemaName) {
+  const schema = doc.components.schemas[schemaName];
+  if (!schema) throw new Error(`Schema "${schemaName}" not found`);
+  let required = [];
+
+  if (schema.required) {
+    required = schema.required;
+  }
+  // Handle allOf
+  if (schema.allOf) {
+    for (const item of schema.allOf) {
+      if (item.required) {
+        required = required.concat(item.required);
+      }
+    }
+  }
+  return required;
+}
 class ValidationService {
   constructor() {
     // Map STIX types to schemas
     this.stixSchemas = {
       'attack-pattern': techniqueSchema,
-      campaign: campaignSchema,
+      'campaign': campaignSchema,
+      'x-mitre-tactic': tacticSchema
+    };
+
+    this.stixToAttack = {
+      'attack-pattern': 'techniques',
+      'campaign': 'campaigns',
+      'x-mitre-tactic': 'tactics',
     };
   }
 
@@ -37,6 +58,15 @@ class ValidationService {
    * @returns {object} { errors: Array }
    */
   validate(type, status, stix) {
+    const attackType = this.stixToAttack[type];
+    if (!attackType) {
+      return { errors: [`Unknown STIX type: ${type}`] };
+    }
+    const file = fs.readFileSync(`app/api/definitions/components/${attackType}.yml`, 'utf8');
+    const doc = yaml.load(file);
+    const req = getRequiredFields(doc,stix.type + '-stix-object');
+    const props = req;
+    const dict = listToDict(props);
     const schema = this.stixSchemas[type];
     if (!schema) {
       logger.warn(`Unknown STIX type: ${type}`);
@@ -59,7 +89,7 @@ class ValidationService {
     let result;
 
     if (status == 'work-in-progress') {
-      result = schema.partial().safeParse(stix);
+      result = schema.partial().required(dict).safeParse(stix);
     } else {
       result = schema.omit(omit_dict).safeParse(stix);
     }
