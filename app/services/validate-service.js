@@ -12,7 +12,7 @@ const {
 const logger = require('../lib/logger');
 
 function listToDict(list) {
-  return Object.fromEntries(list.map(prop => [prop, true]));
+  return Object.fromEntries(list.map((prop) => [prop, true]));
 }
 
 // Utility: Extract required fields for a schema from YAML (handles allOf)
@@ -39,13 +39,13 @@ class ValidationService {
     // Map STIX types to schemas
     this.stixSchemas = {
       'attack-pattern': techniqueSchema,
-      'campaign': campaignSchema,
-      'x-mitre-tactic': tacticSchema
+      campaign: campaignSchema,
+      'x-mitre-tactic': tacticSchema,
     };
 
     this.stixToAttack = {
       'attack-pattern': 'techniques',
-      'campaign': 'campaigns',
+      campaign: 'campaigns',
       'x-mitre-tactic': 'tactics',
     };
   }
@@ -64,7 +64,7 @@ class ValidationService {
     }
     const file = fs.readFileSync(`app/api/definitions/components/${attackType}.yml`, 'utf8');
     const doc = yaml.load(file);
-    const req = getRequiredFields(doc,stix.type + '-stix-object');
+    const req = getRequiredFields(doc, stix.type + '-stix-object');
     const props = req;
     const dict = listToDict(props);
     const schema = this.stixSchemas[type];
