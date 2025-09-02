@@ -35,7 +35,7 @@ const initialObjectData = {
     x_mitre_version: '1.0',
     x_mitre_attack_spec_version: '3.3.0',
     x_mitre_domains: ['enterprise-attack'],
-    x_mitre_analytics: [
+    x_mitre_analytic_refs: [
       'x-mitre-analytic--12345678-1234-1234-1234-123456789000',
       'x-mitre-analytic--12345678-1234-1234-1234-123456789012',
     ],
@@ -108,9 +108,9 @@ describe('Detection Strategies API', function () {
     expect(detectionStrategy1.stix.created).toBeDefined();
     expect(detectionStrategy1.stix.modified).toBeDefined();
     expect(detectionStrategy1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
-    expect(detectionStrategy1.stix.x_mitre_analytics).toBeDefined();
-    expect(Array.isArray(detectionStrategy1.stix.x_mitre_analytics)).toBe(true);
-    expect(detectionStrategy1.stix.x_mitre_analytics.length).toBe(2);
+    expect(detectionStrategy1.stix.x_mitre_analytic_refs).toBeDefined();
+    expect(Array.isArray(detectionStrategy1.stix.x_mitre_analytic_refs)).toBe(true);
+    expect(detectionStrategy1.stix.x_mitre_analytic_refs.length).toBe(2);
   });
 
   it('GET /api/detection-strategies returns the added detection strategy', async function () {
@@ -167,10 +167,10 @@ describe('Detection Strategies API', function () {
       detectionStrategy1.stix.x_mitre_attack_spec_version,
     );
 
-    expect(detectionStrategy.stix.x_mitre_analytics).toBeDefined();
-    expect(Array.isArray(detectionStrategy.stix.x_mitre_analytics)).toBe(true);
-    expect(detectionStrategy.stix.x_mitre_analytics.length).toBe(
-      detectionStrategy1.stix.x_mitre_analytics.length,
+    expect(detectionStrategy.stix.x_mitre_analytic_refs).toBeDefined();
+    expect(Array.isArray(detectionStrategy.stix.x_mitre_analytic_refs)).toBe(true);
+    expect(detectionStrategy.stix.x_mitre_analytic_refs.length).toBe(
+      detectionStrategy1.stix.x_mitre_analytic_refs.length,
     );
   });
 
