@@ -11,11 +11,11 @@ components:
         stix:
           $ref: '#/components/schemas/x-mitre-analytic'
 
-    x-mitre-analytic-log-source-ref:
+    x-mitre-analytic-log-source-reference:
       type: object
       required:
-        - ref
-        - keys
+        - x_mitre_log_source_ref
+        - permutation_names
       properties:
         x_mitre_log_source_ref:
           type: string
@@ -70,7 +70,7 @@ components:
             x_mitre_log_source_references:
               type: array
               items:
-                $ref: '#/components/schemas/x-mitre-analytic-log-source-ref'
+                $ref: '#/components/schemas/x-mitre-analytic-log-source-reference'
             x_mitre_mutable_elements:
               type: array
               items:

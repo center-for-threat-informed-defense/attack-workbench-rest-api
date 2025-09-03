@@ -22,13 +22,13 @@ const mutableElementSchema = new mongoose.Schema(mutableElement, { _id: false })
 const stixAnalytic = {
   modified: { type: Date, required: true },
   name: { type: String, required: true },
+  description: String,
 
   x_mitre_modified_by_ref: String,
   x_mitre_deprecated: { type: Boolean, required: true, default: false },
   x_mitre_version: String,
   x_mitre_attack_spec_version: String,
   x_mitre_domains: { type: [String], default: undefined },
-  description: String,
   x_mitre_platforms: { type: [String], default: undefined },
   x_mitre_log_source_references: [logSourceReferenceSchema],
   x_mitre_mutable_elements: [mutableElementSchema],

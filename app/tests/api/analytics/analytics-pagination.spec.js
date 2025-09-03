@@ -26,14 +26,14 @@ const initialObjectData = {
     x_mitre_attack_spec_version: '4.0.0',
     x_mitre_platforms: ['windows'],
     x_mitre_domains: ['enterprise-attack'],
-    x_mitre_log_sources: [
+    x_mitre_log_source_references: [
       {
-        ref: 'log-source-1',
-        keys: ['perm-1'],
+        x_mitre_log_source_ref: 'log-source-1',
+        permutation_names: ['perm-1'],
       },
       {
-        ref: 'log-source-2',
-        keys: ['perm-2'],
+        x_mitre_log_source_ref: 'log-source-2',
+        permutation_names: ['perm-2'],
       },
     ],
     x_mitre_mutable_elements: [
