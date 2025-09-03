@@ -498,7 +498,7 @@ describe('Analytics API', function () {
           .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
           .expect(204);
       }
-      
+
       if (searchTestAnalytic) {
         await request(app)
           .delete('/api/analytics/' + searchTestAnalytic.stix.id)
