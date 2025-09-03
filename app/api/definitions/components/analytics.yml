@@ -47,6 +47,9 @@ components:
             name:
               type: string
               example: 'Analytic 0001'
+            description:
+              type: string
+              example: 'Execution of ping, traceroute, or network utility tools to external destinations; may include scutil or system_profiler.'
             # ATT&CK custom properties
             x_mitre_modified_by_ref:
               type: string

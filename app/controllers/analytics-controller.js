@@ -19,6 +19,7 @@ exports.retrieveAll = async function (req, res) {
     search: req.query.search,
     lastUpdatedBy: req.query.lastUpdatedBy,
     includePagination: req.query.includePagination,
+    includeRefs: req.query.includeRefs === 'true' || req.query.includeRefs === true,
   };
 
   try {
@@ -40,6 +41,7 @@ exports.retrieveAll = async function (req, res) {
 exports.retrieveById = async function (req, res) {
   const options = {
     versions: req.query.versions || 'latest',
+    includeRefs: req.query.includeRefs === 'true' || req.query.includeRefs === true,
   };
 
   try {
