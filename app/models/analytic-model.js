@@ -6,8 +6,8 @@ const stixCoreDefinitions = require('./subschemas/stix-core');
 const { ModelName } = require('../lib/model-names');
 
 const logSourceReference = {
-  ref: { type: String, required: true },
-  keys: [{ type: String, required: true }],
+  x_mitre_log_source_ref: { type: String, required: true },
+  permutation_names: [{ type: String, required: true }],
 };
 
 const logSourceReferenceSchema = new mongoose.Schema(logSourceReference, { _id: false });
@@ -28,9 +28,9 @@ const stixAnalytic = {
   x_mitre_version: String,
   x_mitre_attack_spec_version: String,
   x_mitre_domains: { type: [String], default: undefined },
-  x_mitre_detects: String,
+  description: String,
   x_mitre_platforms: { type: [String], default: undefined },
-  x_mitre_log_sources: [logSourceReferenceSchema],
+  x_mitre_log_source_references: [logSourceReferenceSchema],
   x_mitre_mutable_elements: [mutableElementSchema],
 };
 

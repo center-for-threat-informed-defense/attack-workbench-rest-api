@@ -81,7 +81,8 @@ class AnalyticsService extends BaseService {
 
       return allStrategies.filter(
         (strategy) =>
-          strategy.stix.x_mitre_analytics && strategy.stix.x_mitre_analytics.includes(analyticId),
+          strategy.stix.x_mitre_analytic_refs &&
+          strategy.stix.x_mitre_analytic_refs.includes(analyticId),
       );
     } catch (err) {
       console.warn('Error finding detection strategies:', err.message);
@@ -91,11 +92,16 @@ class AnalyticsService extends BaseService {
 
   async findLogSourcesReferencedByAnalytic(analytic) {
     try {
-      if (!analytic.stix.x_mitre_log_sources || analytic.stix.x_mitre_log_sources.length === 0) {
+      if (
+        !analytic.stix.x_mitre_log_source_references ||
+        analytic.stix.x_mitre_log_source_references.length === 0
+      ) {
         return [];
       }
 
-      const logSourceIds = analytic.stix.x_mitre_log_sources.map((ref) => ref.ref);
+      const logSourceIds = analytic.stix.x_mitre_log_source_references.map(
+        (ref) => ref.x_mitre_log_source_ref,
+      );
       const logSources = [];
 
       // Fetch each log source by ID
