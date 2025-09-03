@@ -33,10 +33,10 @@ const analyticData = {
     x_mitre_attack_spec_version: '3.3.0',
     x_mitre_platforms: ['windows'],
     x_mitre_domains: ['enterprise-attack'],
-    x_mitre_log_sources: [
+    x_mitre_log_source_references: [
       {
-        ref: 'x-mitre-log-source--test-log-source-1',
-        keys: ['perm-1'],
+        x_mitre_log_source_ref: 'x-mitre-log-source--test-log-source-1',
+        permutation_names: ['perm-1'],
       },
     ],
   },
@@ -65,7 +65,7 @@ const detectionStrategyData = {
     x_mitre_version: '1.0',
     x_mitre_attack_spec_version: '3.3.0',
     x_mitre_domains: ['enterprise-attack'],
-    x_mitre_analytics: [], // Will be populated with analytic ID after creation
+    x_mitre_analytic_refs: [], // Will be populated with analytic ID after creation
   },
 };
 
@@ -156,7 +156,7 @@ describe('Analytics API - includeRefs Parameter', function () {
     const timestamp = new Date().toISOString();
     detectionStrategyData.stix.created = timestamp;
     detectionStrategyData.stix.modified = timestamp;
-    detectionStrategyData.stix.x_mitre_analytics = [createdAnalytic.stix.id];
+    detectionStrategyData.stix.x_mitre_analytic_refs = [createdAnalytic.stix.id];
 
     const res = await request(app)
       .post('/api/detection-strategies')
@@ -169,7 +169,7 @@ describe('Analytics API - includeRefs Parameter', function () {
     createdDetectionStrategy = res.body;
     expect(createdDetectionStrategy).toBeDefined();
     expect(createdDetectionStrategy.stix.id).toBeDefined();
-    expect(createdDetectionStrategy.stix.x_mitre_analytics).toContain(createdAnalytic.stix.id);
+    expect(createdDetectionStrategy.stix.x_mitre_analytic_refs).toContain(createdAnalytic.stix.id);
   });
 
   describe('GET /api/analytics with includeRefs=false (default)', function () {
@@ -331,7 +331,7 @@ describe('Analytics API - includeRefs Parameter', function () {
         stix: {
           ...analyticData.stix,
           name: 'analytic-without-refs',
-          x_mitre_log_sources: [],
+          x_mitre_log_source_references: [],
           created: new Date().toISOString(),
           modified: new Date().toISOString(),
         },
@@ -368,10 +368,10 @@ describe('Analytics API - includeRefs Parameter', function () {
         stix: {
           ...analyticData.stix,
           name: 'analytic-with-bad-ref',
-          x_mitre_log_sources: [
+          x_mitre_log_source_references: [
             {
-              ref: 'x-mitre-log-source--non-existent',
-              keys: ['perm-1'],
+              x_mitre_log_source_ref: 'x-mitre-log-source--non-existent',
+              permutation_names: ['perm-1'],
             },
           ],
           created: new Date().toISOString(),
@@ -429,10 +429,10 @@ describe('Analytics API - includeRefs Parameter', function () {
         stix: {
           ...analyticData.stix,
           name: 'analytic-with-no-ext-ref-log-source',
-          x_mitre_log_sources: [
+          x_mitre_log_source_references: [
             {
-              ref: 'x-mitre-log-source--no-ext-refs',
-              keys: ['perm-1'],
+              x_mitre_log_source_ref: 'x-mitre-log-source--no-ext-refs',
+              permutation_names: ['perm-1'],
             },
           ],
           created: new Date().toISOString(),
