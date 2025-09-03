@@ -30,7 +30,7 @@ const initialObjectData = {
         url: 'https://attack.mitre.org/analytics/AN9999',
       },
     ],
-    description: "Description of an analytic",
+    description: 'Description of an analytic',
     object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
     created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
     x_mitre_version: '1.0',
