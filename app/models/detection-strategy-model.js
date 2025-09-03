@@ -14,7 +14,7 @@ const stixDetectionStrategy = {
   x_mitre_version: String,
   x_mitre_attack_spec_version: String,
   x_mitre_domains: [String],
-  x_mitre_analytics: [String],
+  x_mitre_analytic_refs: [String],
   x_mitre_contributors: { type: [String], default: undefined },
 };
 
