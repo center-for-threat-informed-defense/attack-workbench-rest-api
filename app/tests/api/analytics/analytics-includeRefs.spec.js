@@ -9,7 +9,7 @@ const login = require('../../shared/login');
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
 
-// Test data for analytics with log source references
+// Test data for analytics with data component references
 const analyticData = {
   workspace: {
     workflow: {
@@ -35,8 +35,9 @@ const analyticData = {
     x_mitre_domains: ['enterprise-attack'],
     x_mitre_log_source_references: [
       {
-        x_mitre_log_source_ref: 'x-mitre-log-source--test-log-source-1',
-        permutation_names: ['perm-1'],
+        x_mitre_data_component_ref: 'x-mitre-data-component--test-data-component-1',
+        name: 'perm-1',
+        channel: 'perm-1',
       },
     ],
   },
@@ -69,25 +70,18 @@ const detectionStrategyData = {
   },
 };
 
-// Test data for log source
-const logSourceData = {
+// Test data for data component
+const dataComponentData = {
   workspace: {
     workflow: {
       state: 'work-in-progress',
     },
   },
   stix: {
-    id: 'x-mitre-log-source--test-log-source-1',
-    name: 'test-log-source',
+    id: 'x-mitre-data-component--test-data-component-1',
+    name: 'test-data-component',
     spec_version: '2.1',
-    type: 'x-mitre-log-source',
-    external_references: [
-      {
-        source_name: 'mitre-attack',
-        external_id: 'LS0001',
-        url: 'https://attack.mitre.org/logsources/LS0001',
-      },
-    ],
+    type: 'x-mitre-data-component',
     object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
     created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
     x_mitre_version: '1.0',
@@ -100,7 +94,7 @@ describe('Analytics API - includeRefs Parameter', function () {
   let passportCookie;
   let createdAnalytic;
   let createdDetectionStrategy;
-  let createdLogSource;
+  let createdDataComponent;
 
   before(async function () {
     // Establish the database connection
@@ -116,22 +110,22 @@ describe('Analytics API - includeRefs Parameter', function () {
     passportCookie = await login.loginAnonymous(app);
   });
 
-  it('Setup: Create log source for testing', async function () {
+  it('Setup: Create data component for testing', async function () {
     const timestamp = new Date().toISOString();
-    logSourceData.stix.created = timestamp;
-    logSourceData.stix.modified = timestamp;
+    dataComponentData.stix.created = timestamp;
+    dataComponentData.stix.modified = timestamp;
 
     const res = await request(app)
-      .post('/api/log-sources')
-      .send(logSourceData)
+      .post('/api/data-components')
+      .send(dataComponentData)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
-    createdLogSource = res.body;
-    expect(createdLogSource).toBeDefined();
-    expect(createdLogSource.stix.id).toBe('x-mitre-log-source--test-log-source-1');
+    createdDataComponent = res.body;
+    expect(createdDataComponent).toBeDefined();
+    expect(createdDataComponent.stix.id).toBe('x-mitre-data-component--test-data-component-1');
   });
 
   it('Setup: Create analytic for testing', async function () {
@@ -193,7 +187,7 @@ describe('Analytics API - includeRefs Parameter', function () {
   });
 
   describe('GET /api/analytics with includeRefs=true', function () {
-    it('should return analytics with related_to field containing detection strategies and log sources', async function () {
+    it('should return analytics with related_to field containing detection strategies and data components', async function () {
       const res = await request(app)
         .get('/api/analytics?includeRefs=true')
         .set('Accept', 'application/json')
@@ -220,13 +214,14 @@ describe('Analytics API - includeRefs Parameter', function () {
       expect(detectionStrategyRef.attack_id).toBe('DS0001');
       expect(detectionStrategyRef.type).toBe('x-mitre-detection-strategy');
 
-      // Should contain the log source
-      const logSourceRef = testAnalytic.related_to.find((ref) => ref.type === 'x-mitre-log-source');
-      expect(logSourceRef).toBeDefined();
-      expect(logSourceRef.id).toBe(createdLogSource.stix.id);
-      expect(logSourceRef.name).toBe(createdLogSource.stix.name);
-      expect(logSourceRef.attack_id).toBe('LS0001');
-      expect(logSourceRef.type).toBe('x-mitre-log-source');
+      // Should contain the data component
+      const dataComponentRef = testAnalytic.related_to.find(
+        (ref) => ref.type === 'x-mitre-data-component',
+      );
+      expect(dataComponentRef).toBeDefined();
+      expect(dataComponentRef.id).toBe(createdDataComponent.stix.id);
+      expect(dataComponentRef.name).toBe(createdDataComponent.stix.name);
+      expect(dataComponentRef.type).toBe('x-mitre-data-component');
     });
 
     it('should work with pagination', async function () {
@@ -285,7 +280,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const analytic = analytics[0];
       expect(analytic.related_to).toBeDefined();
       expect(Array.isArray(analytic.related_to)).toBe(true);
-      expect(analytic.related_to.length).toBe(2); // detection strategy + log source
+      expect(analytic.related_to.length).toBe(2); // detection strategy + data component
 
       // Verify detection strategy reference
       const detectionStrategyRef = analytic.related_to.find(
@@ -295,11 +290,13 @@ describe('Analytics API - includeRefs Parameter', function () {
       expect(detectionStrategyRef.id).toBe(createdDetectionStrategy.stix.id);
       expect(detectionStrategyRef.name).toBe(createdDetectionStrategy.stix.name);
 
-      // Verify log source reference
-      const logSourceRef = analytic.related_to.find((ref) => ref.type === 'x-mitre-log-source');
-      expect(logSourceRef).toBeDefined();
-      expect(logSourceRef.id).toBe(createdLogSource.stix.id);
-      expect(logSourceRef.name).toBe(createdLogSource.stix.name);
+      // Verify data component reference
+      const dataComponentRef = analytic.related_to.find(
+        (ref) => ref.type === 'x-mitre-data-component',
+      );
+      expect(dataComponentRef).toBeDefined();
+      expect(dataComponentRef.id).toBe(createdDataComponent.stix.id);
+      expect(dataComponentRef.name).toBe(createdDataComponent.stix.name);
     });
 
     it('should work with versions=all parameter', async function () {
@@ -324,8 +321,8 @@ describe('Analytics API - includeRefs Parameter', function () {
   });
 
   describe('Edge cases and error handling', function () {
-    it('should handle analytics with no log source references', async function () {
-      // Create an analytic without log source references
+    it('should handle analytics with no data component references', async function () {
+      // Create an analytic without data component references
       const analyticWithoutRefs = {
         ...analyticData,
         stix: {
@@ -356,13 +353,15 @@ describe('Analytics API - includeRefs Parameter', function () {
       const analytic = analytics[0];
       expect(analytic.related_to).toBeDefined();
       expect(Array.isArray(analytic.related_to)).toBe(true);
-      // Should only contain detection strategies that reference it, no log sources
-      const logSourceRefs = analytic.related_to.filter((ref) => ref.type === 'x-mitre-log-source');
-      expect(logSourceRefs.length).toBe(0);
+      // Should only contain detection strategies that reference it, no data components
+      const dataComponentRefs = analytic.related_to.filter(
+        (ref) => ref.type === 'x-mitre-data-component',
+      );
+      expect(dataComponentRefs.length).toBe(0);
     });
 
-    it('should handle non-existent log source references gracefully', async function () {
-      // Create an analytic with a non-existent log source reference
+    it('should handle non-existent data component references gracefully', async function () {
+      // Create an analytic with a non-existent data component reference
       const analyticWithBadRef = {
         ...analyticData,
         stix: {
@@ -370,8 +369,9 @@ describe('Analytics API - includeRefs Parameter', function () {
           name: 'analytic-with-bad-ref',
           x_mitre_log_source_references: [
             {
-              x_mitre_log_source_ref: 'x-mitre-log-source--non-existent',
-              permutation_names: ['perm-1'],
+              x_mitre_data_component_ref: 'x-mitre-data-component--non-existent',
+              name: 'perm-1',
+              channel: 'perm-1',
             },
           ],
           created: new Date().toISOString(),
@@ -398,19 +398,21 @@ describe('Analytics API - includeRefs Parameter', function () {
       const analytic = analytics[0];
       expect(analytic.related_to).toBeDefined();
       expect(Array.isArray(analytic.related_to)).toBe(true);
-      // Should not contain the non-existent log source
-      const logSourceRefs = analytic.related_to.filter((ref) => ref.type === 'x-mitre-log-source');
-      expect(logSourceRefs.length).toBe(0);
+      // Should not contain the non-existent data component
+      const dataComponentRefs = analytic.related_to.filter(
+        (ref) => ref.type === 'x-mitre-data-component',
+      );
+      expect(dataComponentRefs.length).toBe(0);
     });
 
     it('should handle analytics with missing external references', async function () {
       // Create objects without external references
-      const logSourceWithoutExtRefs = {
-        ...logSourceData,
+      const dataComponentWithoutExtRefs = {
+        ...dataComponentData,
         stix: {
-          ...logSourceData.stix,
-          id: 'x-mitre-log-source--no-ext-refs',
-          name: 'log-source-no-ext-refs',
+          ...dataComponentData.stix,
+          id: 'x-mitre-data-component--no-ext-refs',
+          name: 'data-component-no-ext-refs',
           external_references: [],
           created: new Date().toISOString(),
           modified: new Date().toISOString(),
@@ -418,21 +420,22 @@ describe('Analytics API - includeRefs Parameter', function () {
       };
 
       await request(app)
-        .post('/api/log-sources')
-        .send(logSourceWithoutExtRefs)
+        .post('/api/data-components')
+        .send(dataComponentWithoutExtRefs)
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(201);
 
-      const analyticWithNoExtRefLogSource = {
+      const analyticWithNoExtRefDataComponent = {
         ...analyticData,
         stix: {
           ...analyticData.stix,
-          name: 'analytic-with-no-ext-ref-log-source',
+          name: 'analytic-with-no-ext-ref-data-component',
           x_mitre_log_source_references: [
             {
-              x_mitre_log_source_ref: 'x-mitre-log-source--no-ext-refs',
-              permutation_names: ['perm-1'],
+              x_mitre_data_component_ref: 'x-mitre-data-component--no-ext-refs',
+              name: 'perm-1',
+              channel: 'perm-1',
             },
           ],
           created: new Date().toISOString(),
@@ -442,24 +445,26 @@ describe('Analytics API - includeRefs Parameter', function () {
 
       const createRes = await request(app)
         .post('/api/analytics')
-        .send(analyticWithNoExtRefLogSource)
+        .send(analyticWithNoExtRefDataComponent)
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(201);
 
-      const createdAnalyticWithNoExtRefLogSource = createRes.body;
+      const createdAnalyticWithNoExtRefDataComponent = createRes.body;
 
       const res = await request(app)
-        .get(`/api/analytics/${createdAnalyticWithNoExtRefLogSource.stix.id}?includeRefs=true`)
+        .get(`/api/analytics/${createdAnalyticWithNoExtRefDataComponent.stix.id}?includeRefs=true`)
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(200);
 
       const analytics = res.body;
       const analytic = analytics[0];
-      const logSourceRef = analytic.related_to.find((ref) => ref.type === 'x-mitre-log-source');
-      expect(logSourceRef).toBeDefined();
-      expect(logSourceRef.attack_id).toBeNull();
+      const dataComponentRef = analytic.related_to.find(
+        (ref) => ref.type === 'x-mitre-data-component',
+      );
+      expect(dataComponentRef).toBeDefined();
+      expect(dataComponentRef.attack_id).toBeNull();
     });
   });
 

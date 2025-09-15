@@ -4,7 +4,7 @@ const analyticsRepository = require('../repository/analytics-repository');
 const BaseService = require('./_base.service');
 const { Analytic: AnalyticType } = require('../lib/types');
 const detectionStrategiesService = require('./detection-strategies-service');
-const logSourcesService = require('./log-sources-service');
+const dataComponentsService = require('./data-components-service');
 
 class AnalyticsService extends BaseService {
   async retrieveAll(options) {
@@ -51,10 +51,10 @@ class AnalyticsService extends BaseService {
         );
       }
 
-      // Find log sources referenced by this analytic
-      const logSources = await this.findLogSourcesReferencedByAnalytic(analytic);
-      for (const logSource of logSources) {
-        relatedObjects.push(this.formatRelatedObject(logSource, 'x-mitre-log-source'));
+      // Find data components referenced by this analytic
+      const dataComponents = await this.findDataComponentsReferencedByAnalytic(analytic);
+      for (const dataComponent of dataComponents) {
+        relatedObjects.push(this.formatRelatedObject(dataComponent, 'x-mitre-data-component'));
       }
     } catch (err) {
       // Log error but don't fail the main request
@@ -90,7 +90,7 @@ class AnalyticsService extends BaseService {
     }
   }
 
-  async findLogSourcesReferencedByAnalytic(analytic) {
+  async findDataComponentsReferencedByAnalytic(analytic) {
     try {
       if (
         !analytic.stix.x_mitre_log_source_references ||
@@ -99,28 +99,28 @@ class AnalyticsService extends BaseService {
         return [];
       }
 
-      const logSourceIds = analytic.stix.x_mitre_log_source_references.map(
-        (ref) => ref.x_mitre_log_source_ref,
+      const dataComponentIds = analytic.stix.x_mitre_log_source_references.map(
+        (ref) => ref.x_mitre_data_component_ref,
       );
-      const logSources = [];
+      const dataComponents = [];
 
-      // Fetch each log source by ID
-      for (const logSourceId of logSourceIds) {
+      // Fetch each data component by ID
+      for (const dataComponentId of dataComponentIds) {
         try {
-          const logSourceResults = await logSourcesService.retrieveById(logSourceId, {
+          const dataComponentResults = await dataComponentsService.retrieveById(dataComponentId, {
             versions: 'latest',
           });
-          if (logSourceResults.length > 0) {
-            logSources.push(logSourceResults[0]);
+          if (dataComponentResults.length > 0) {
+            dataComponents.push(dataComponentResults[0]);
           }
         } catch (err) {
-          console.warn(`Error fetching log source ${logSourceId}:`, err.message);
+          console.warn(`Error fetching data component ${dataComponentId}:`, err.message);
         }
       }
 
-      return logSources;
+      return dataComponents;
     } catch (err) {
-      console.warn('Error finding log sources:', err.message);
+      console.warn('Error finding data components:', err.message);
       return [];
     }
   }

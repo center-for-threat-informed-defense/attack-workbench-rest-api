@@ -11,6 +11,19 @@ components:
         stix:
           $ref: '#/components/schemas/x-mitre-data-component'
 
+    x-mitre-data-component-log-source:
+      type: object
+      required:
+        - name
+        - channel
+      properties:
+        name:
+          type: string
+          example: 'sysmon'
+        channel:
+          type: string
+          example: 'EventCode=10'
+
     x-mitre-data-component:
       allOf:
         - $ref: 'stix-common.yml#/components/schemas/stix-common'
@@ -45,3 +58,7 @@ components:
             x_mitre_attack_spec_version:
               type: string
               example: '2.1.0'
+            x_mitre_log_sources:
+              type: array
+              items:
+                $ref: '#/components/schemas/x-mitre-data-component-log-source'

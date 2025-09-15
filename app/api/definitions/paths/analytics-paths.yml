@@ -95,7 +95,7 @@ paths:
         - name: includeRefs
           in: query
           description: |
-            Whether to include related detection strategies and log sources.
+            Whether to include related detection strategies and data components.
             Adds a `related_to` array containing related objects.
           schema:
             type: boolean
@@ -166,7 +166,7 @@ paths:
         - name: includeRefs
           in: query
           description: |
-            Whether to include related detection strategies and log sources.
+            Whether to include related detection strategies and data components.
             Adds a `related_to` array containing related objects.
           schema:
             type: boolean

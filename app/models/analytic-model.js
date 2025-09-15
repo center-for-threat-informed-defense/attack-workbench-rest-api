@@ -6,8 +6,9 @@ const stixCoreDefinitions = require('./subschemas/stix-core');
 const { ModelName } = require('../lib/model-names');
 
 const logSourceReference = {
-  x_mitre_log_source_ref: { type: String, required: true },
-  permutation_names: [{ type: String, required: true }],
+  x_mitre_data_component_ref: { type: String, required: true },
+  name: { type: String, required: true },
+  channel: { type: String, required: true },
 };
 
 const logSourceReferenceSchema = new mongoose.Schema(logSourceReference, { _id: false });
