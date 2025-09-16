@@ -147,6 +147,22 @@ describe('Data Components API', function () {
     expect(logSourceChannels[1]).toBe(initialObjectData.stix.x_mitre_log_sources[1].channel);
   });
 
+  it('GET /api/data-components/:id/channels returns a 404 when asking for the log source channels of a non-existent data component', async function () {
+    await request(app)
+      .get('/api/data-components/not-a-real-dc-id/channels')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(404);
+  });
+
+  it('GET /api/data-components/:id/channels returns a 400 when given badly formatted inputs', async function () {
+    await request(app)
+      .get('/api/data-components/' + dataComponent1.stix.id + '/channels?versions=00000')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(400);
+  });
+
   it('GET /api/data-components/:id/log-sources returns the log sources of the added data component', async function () {
     const res = await request(app)
       .get('/api/data-components/' + dataComponent1.stix.id + '/log-sources')
@@ -164,6 +180,22 @@ describe('Data Components API', function () {
     expect(logSources[0].channel).toBeDefined();
     expect(logSources[1].name).toBeDefined();
     expect(logSources[1].channel).toBeDefined();
+  });
+
+  it('GET /api/data-components/:id/log-sources returns a 404 when asking for the log sources of a non-existent data component', async function () {
+    await request(app)
+      .get('/api/data-components/not-a-real-dc-id/log-sources')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(404);
+  });
+
+  it('GET /api/data-components/:id/log-sources returns a 400 when given badly formatted inputs', async function () {
+    await request(app)
+      .get('/api/data-components/' + dataComponent1.stix.id + '/log-sources?versions=00000')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(400);
   });
 
   it('GET /api/data-components/:id should not return a data component when the id cannot be found', async function () {
