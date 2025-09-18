@@ -30,6 +30,16 @@ const initialObjectData = {
     x_mitre_version: '1.1',
     x_mitre_domains: ['enterprise-attack'],
     x_mitre_modified_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+    x_mitre_log_sources: [
+      {
+        name: 'perm-1',
+        channel: 'channel-1',
+      },
+      {
+        name: 'perm-2',
+        channel: 'channel-2',
+      },
+    ],
   },
 };
 
@@ -99,6 +109,10 @@ describe('Data Components API', function () {
     expect(dataComponent1.stix.created).toBeDefined();
     expect(dataComponent1.stix.modified).toBeDefined();
     expect(dataComponent1.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+
+    expect(dataComponent1.stix.x_mitre_log_sources).toBeDefined();
+    expect(Array.isArray(dataComponent1.stix.x_mitre_log_sources)).toBe(true);
+    expect(dataComponent1.stix.x_mitre_log_sources.length).toBe(2);
   });
 
   it('GET /api/data-components returns the added data component', async function () {
@@ -114,6 +128,58 @@ describe('Data Components API', function () {
     expect(dataComponent).toBeDefined();
     expect(Array.isArray(dataComponent)).toBe(true);
     expect(dataComponent.length).toBe(1);
+  });
+
+  it('GET /api/data-components/:id/channels returns the log source channels of the added data component', async function () {
+    const res = await request(app)
+      .get('/api/data-components/' + dataComponent1.stix.id + '/channels')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    // We expect to get two log source channels in an array
+    const logSourceChannels = res.body;
+    expect(logSourceChannels).toBeDefined();
+    expect(Array.isArray(logSourceChannels)).toBe(true);
+    expect(logSourceChannels.length).toBe(2);
+    expect(logSourceChannels[0]).toBe(initialObjectData.stix.x_mitre_log_sources[0].channel);
+    expect(logSourceChannels[1]).toBe(initialObjectData.stix.x_mitre_log_sources[1].channel);
+  });
+
+  it('GET /api/data-components/:id/channels returns a 404 when asking for the log source channels of a non-existent data component', async function () {
+    await request(app)
+      .get('/api/data-components/not-a-real-dc-id/channels')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(404);
+  });
+
+  it('GET /api/data-components/:id/log-sources returns the log sources of the added data component', async function () {
+    const res = await request(app)
+      .get('/api/data-components/' + dataComponent1.stix.id + '/log-sources')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    // We expect to get two log source log sources in an array
+    const logSources = res.body;
+    expect(logSources).toBeDefined();
+    expect(Array.isArray(logSources)).toBe(true);
+    expect(logSources.length).toBe(2);
+    expect(logSources[0].name).toBeDefined();
+    expect(logSources[0].channel).toBeDefined();
+    expect(logSources[1].name).toBeDefined();
+    expect(logSources[1].channel).toBeDefined();
+  });
+
+  it('GET /api/data-components/:id/log-sources returns a 404 when asking for the log sources of a non-existent data component', async function () {
+    await request(app)
+      .get('/api/data-components/not-a-real-dc-id/log-sources')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(404);
   });
 
   it('GET /api/data-components/:id should not return a data component when the id cannot be found', async function () {
@@ -153,6 +219,12 @@ describe('Data Components API', function () {
     expect(dataComponent.stix.x_mitre_version).toBe(dataComponent1.stix.x_mitre_version);
     expect(dataComponent.stix.x_mitre_attack_spec_version).toBe(
       dataComponent1.stix.x_mitre_attack_spec_version,
+    );
+
+    expect(dataComponent.stix.x_mitre_log_sources).toBeDefined();
+    expect(Array.isArray(dataComponent.stix.x_mitre_log_sources)).toBe(true);
+    expect(dataComponent.stix.x_mitre_log_sources.length).toBe(
+      dataComponent1.stix.x_mitre_log_sources.length,
     );
   });
 

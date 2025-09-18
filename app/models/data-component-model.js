@@ -5,6 +5,13 @@ const AttackObject = require('./attack-object-model');
 const stixCoreDefinitions = require('./subschemas/stix-core');
 const { ModelName } = require('../lib/model-names');
 
+const logSource = {
+  name: { type: String, required: true },
+  channel: { type: String, required: true },
+};
+
+const logSourceSchema = new mongoose.Schema(logSource, { _id: false });
+
 const stixDataComponent = {
   // STIX x-mitre-data-component specific properties
   modified: { type: Date, required: true },
@@ -18,6 +25,7 @@ const stixDataComponent = {
   x_mitre_domains: { type: [String], default: undefined },
   x_mitre_version: String,
   x_mitre_attack_spec_version: String,
+  x_mitre_log_sources: { type: [logSourceSchema], default: undefined },
 };
 
 // Create the definition

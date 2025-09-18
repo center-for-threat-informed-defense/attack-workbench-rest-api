@@ -15,7 +15,6 @@ exports.ModelName = {
   DetectionStrategy: 'Detection-Strategy',
   Group: 'Intrusion-Set',
   Identity: 'IdentityModel',
-  LogSource: 'Log-Source',
   MarkingDefinition: 'MarkingDefinitionModel',
   Matrix: 'MatrixModel',
   Mitigation: 'Course-of-Action',

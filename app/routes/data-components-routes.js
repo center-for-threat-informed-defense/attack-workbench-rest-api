@@ -31,6 +31,22 @@ router
   .delete(authn.authenticate, authz.requireRole(authz.admin), dataComponentsController.deleteById);
 
 router
+  .route('/data-components/:stixId/channels')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    dataComponentsController.retrieveChannelsById,
+  );
+
+router
+  .route('/data-components/:stixId/log-sources')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    dataComponentsController.retrieveLogSourcesById,
+  );
+
+router
   .route('/data-components/:stixId/modified/:modified')
   .get(
     authn.authenticate,

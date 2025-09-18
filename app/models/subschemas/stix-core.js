@@ -35,7 +35,6 @@ module.exports.commonRequiredSDO = {
       'x-mitre-collection',
       'x-mitre-data-source',
       'x-mitre-data-component',
-      'x-mitre-log-source',
       'x-mitre-matrix',
       'x-mitre-tactic',
       'x-mitre-detection-strategy',
