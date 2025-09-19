@@ -9,9 +9,9 @@ components:
         workspace:
           $ref: 'workspace.yml#/components/schemas/workspace'
         stix:
-          $ref: '#/components/schemas/x-mitre-tactic-stix-object'
+          $ref: '#/components/schemas/x-mitre-tactic'
 
-    x-mitre-tactic-stix-object:
+    x-mitre-tactic:
       allOf:
         - $ref: 'stix-common.yml#/components/schemas/stix-common'
         - type: object
