@@ -2,10 +2,12 @@
 
 const express = require('express');
 
+const { tacticSchema } = require('@mitre-attack/attack-data-model');
+
 const tacticsController = require('../controllers/tactics-controller');
 const authn = require('../lib/authn-middleware');
 const authz = require('../lib/authz-middleware');
-const validateTacticForSpecCompliance = require('../middleware/tactic-validation-middleware');
+const { validateWorkspaceStixData } = require('../lib/validation-middleware');
 
 const router = express.Router();
 
@@ -19,7 +21,7 @@ router
   .post(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
-    validateTacticForSpecCompliance,
+    validateWorkspaceStixData(tacticSchema),
     tacticsController.create,
   );
 
@@ -39,7 +41,12 @@ router
     authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
     tacticsController.retrieveVersionById,
   )
-  .put(authn.authenticate, authz.requireRole(authz.editorOrHigher), tacticsController.updateFull)
+  .put(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    validateWorkspaceStixData(tacticSchema),
+    tacticsController.updateFull,
+  )
   .delete(authn.authenticate, authz.requireRole(authz.admin), tacticsController.deleteVersionById);
 
 router
