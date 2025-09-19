@@ -175,7 +175,8 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../components/relationships.yml#/components/schemas/relationship'
+              # type: object
+              $ref: '../components/relationships.yml#/components/schemas/relationship' # TODO delete after ADM integration complete
       responses:
         '201':
           description: 'The relationship has been successfully created.'
@@ -301,7 +302,8 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '../components/relationships.yml#/components/schemas/relationship'
+              # type: object
+              $ref: '../components/relationships.yml#/components/schemas/relationship' # TODO delete after ADM integration complete
       responses:
         '200':
           description: 'The relationship was updated.'
