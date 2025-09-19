@@ -44,7 +44,7 @@ router
   .put(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
-    // validateWorkspaceStixData(relationshipSchema),
+    validateWorkspaceStixData(relationshipSchema),
     relationshipsController.updateFull,
   )
   .delete(
