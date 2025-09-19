@@ -104,7 +104,6 @@ paths:
               - software
               - technique
               - asset
-              - log-source
         - name: versions
           in: query
           description: |

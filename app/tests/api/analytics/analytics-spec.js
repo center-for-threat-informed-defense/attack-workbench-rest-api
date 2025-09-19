@@ -39,12 +39,14 @@ const initialObjectData = {
     x_mitre_domains: ['enterprise-attack'],
     x_mitre_log_source_references: [
       {
-        x_mitre_log_source_ref: 'log-source-1',
-        permutation_names: ['perm-1'],
+        x_mitre_data_component_ref: 'data-component-1',
+        name: 'perm-1',
+        channel: 'perm-1',
       },
       {
-        x_mitre_log_source_ref: 'log-source-2',
-        permutation_names: ['perm-2'],
+        x_mitre_data_component_ref: 'data-component-2',
+        name: 'perm-2',
+        channel: 'perm-2',
       },
     ],
     x_mitre_mutable_elements: [
@@ -362,6 +364,150 @@ describe('Analytics API', function () {
       .delete('/api/analytics/' + analytic2.stix.id)
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(204);
+  });
+
+  describe('Search functionality with detection strategies', function () {
+    // Test data for detection strategy search functionality
+    const detectionStrategyData = {
+      workspace: {
+        workflow: {
+          state: 'work-in-progress',
+        },
+      },
+      stix: {
+        name: 'Network Connection Creation Detection Strategy',
+        spec_version: '2.1',
+        type: 'x-mitre-detection-strategy',
+        description: 'Strategy for detecting network connections',
+        object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
+        created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
+        x_mitre_version: '1.0',
+        x_mitre_attack_spec_version: '3.3.0',
+        x_mitre_domains: ['enterprise-attack'],
+        x_mitre_analytic_refs: [],
+      },
+    };
+
+    let searchTestAnalytic;
+    let searchTestDetectionStrategy;
+
+    it('POST /api/analytics creates a search test analytic', async function () {
+      const timestamp = new Date().toISOString();
+      const searchAnalyticData = _.cloneDeep(initialObjectData);
+      searchAnalyticData.stix.name = 'Search Test Analytic';
+      searchAnalyticData.stix.created = timestamp;
+      searchAnalyticData.stix.modified = timestamp;
+
+      const res = await request(app)
+        .post('/api/analytics')
+        .send(searchAnalyticData)
+        .set('Accept', 'application/json')
+        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .expect(201)
+        .expect('Content-Type', /json/);
+
+      searchTestAnalytic = res.body;
+      expect(searchTestAnalytic).toBeDefined();
+      expect(searchTestAnalytic.stix.id).toBeDefined();
+    });
+
+    it('POST /api/detection-strategies creates a detection strategy that references the analytic', async function () {
+      const timestamp = new Date().toISOString();
+      detectionStrategyData.stix.created = timestamp;
+      detectionStrategyData.stix.modified = timestamp;
+      detectionStrategyData.stix.x_mitre_analytic_refs = [searchTestAnalytic.stix.id];
+
+      const res = await request(app)
+        .post('/api/detection-strategies')
+        .send(detectionStrategyData)
+        .set('Accept', 'application/json')
+        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .expect(201)
+        .expect('Content-Type', /json/);
+
+      searchTestDetectionStrategy = res.body;
+      expect(searchTestDetectionStrategy).toBeDefined();
+      expect(searchTestDetectionStrategy.stix.id).toBeDefined();
+      expect(searchTestDetectionStrategy.stix.x_mitre_analytic_refs).toContain(
+        searchTestAnalytic.stix.id,
+      );
+    });
+
+    it('GET /api/analytics?search should find analytic by its own name', async function () {
+      const res = await request(app)
+        .get('/api/analytics?search=Search Test')
+        .set('Accept', 'application/json')
+        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .expect(200)
+        .expect('Content-Type', /json/);
+
+      const analytics = res.body;
+      expect(analytics).toBeDefined();
+      expect(Array.isArray(analytics)).toBe(true);
+      expect(analytics.length).toBe(1);
+      expect(analytics[0].stix.id).toBe(searchTestAnalytic.stix.id);
+    });
+
+    it('GET /api/analytics?search should find analytic by detection strategy name', async function () {
+      const res = await request(app)
+        .get('/api/analytics?search=Network Connection Creation')
+        .set('Accept', 'application/json')
+        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .expect(200)
+        .expect('Content-Type', /json/);
+
+      const analytics = res.body;
+      expect(analytics).toBeDefined();
+      expect(Array.isArray(analytics)).toBe(true);
+      expect(analytics.length).toBe(1);
+      expect(analytics[0].stix.id).toBe(searchTestAnalytic.stix.id);
+    });
+
+    it('GET /api/analytics?search should find analytic by partial detection strategy name', async function () {
+      const res = await request(app)
+        .get('/api/analytics?search=Network Connection')
+        .set('Accept', 'application/json')
+        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .expect(200)
+        .expect('Content-Type', /json/);
+
+      const analytics = res.body;
+      expect(analytics).toBeDefined();
+      expect(Array.isArray(analytics)).toBe(true);
+      expect(analytics.length).toBe(1);
+      expect(analytics[0].stix.id).toBe(searchTestAnalytic.stix.id);
+    });
+
+    it('GET /api/analytics?search should not find analytic with non-existent search term', async function () {
+      const res = await request(app)
+        .get('/api/analytics?search=NonExistentTerm')
+        .set('Accept', 'application/json')
+        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .expect(200)
+        .expect('Content-Type', /json/);
+
+      const analytics = res.body;
+      expect(analytics).toBeDefined();
+      expect(Array.isArray(analytics)).toBe(true);
+      expect(analytics.length).toBe(0);
+    });
+
+    after(async function () {
+      // Clean up test data
+      if (searchTestDetectionStrategy) {
+        await request(app)
+          .delete('/api/detection-strategies/' + searchTestDetectionStrategy.stix.id)
+          .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+          .expect(204);
+      }
+
+      if (searchTestAnalytic) {
+        await request(app)
+          .delete('/api/analytics/' + searchTestAnalytic.stix.id)
+          .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+          .expect(204);
+      }
+    });
   });
 
   it('GET /api/analytics returns an empty array of analytics', async function () {
