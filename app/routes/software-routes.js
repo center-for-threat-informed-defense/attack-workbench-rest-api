@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { softwareSchema } = require('@mitre-attack/attack-data-model');
+const { toolSchema, malwareSchema } = require('@mitre-attack/attack-data-model');
 
 const softwareController = require('../controllers/software-controller');
 const authn = require('../lib/authn-middleware');
@@ -20,7 +20,7 @@ router
   .post(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
-    validateWorkspaceStixData(softwareSchema),
+    validateWorkspaceStixData([toolSchema, malwareSchema]),
     softwareController.create,
   );
 
@@ -43,7 +43,7 @@ router
   .put(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
-    validateWorkspaceStixData(softwareSchema),
+    validateWorkspaceStixData([toolSchema, malwareSchema]),
     softwareController.updateFull,
   )
   .delete(authn.authenticate, authz.requireRole(authz.admin), softwareController.deleteVersionById);

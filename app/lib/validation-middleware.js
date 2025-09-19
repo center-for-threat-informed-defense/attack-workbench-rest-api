@@ -8,7 +8,6 @@ const {
   createAttackIdSchema,
   stixTypeToAttackIdMapping,
 } = require('@mitre-attack/attack-data-model/dist/schemas/common/attack-id');
-const { toolSchema, malwareSchema } = require('@mitre-attack/attack-data-model');
 
 /**
  * Basic workspace schema (without rigid attack ID validation)
@@ -157,10 +156,10 @@ function createWorkspaceStixSchema(
 /**
  * Middleware for parsing the request body using a specified STIX schema from the ATT&CK Data Model.
  * Both the `workspace` and `stix` keys are checked.
- * @param {*} stixSchema
- * @returns
+ * @param {z.ZodObject|z.ZodObject[]} stixSchemaOrSchemas - Single schema or array of schemas to validate against
+ * @returns {Function} Express middleware function
  */
-function validateWorkspaceStixData(stixSchema) {
+function validateWorkspaceStixData(stixSchemaOrSchemas) {
   return (req, res, next) => {
     logger.debug('Starting workspace+STIX validation middleware');
 
@@ -179,41 +178,48 @@ function validateWorkspaceStixData(stixSchema) {
         isDefault: !req.body?.workspace?.workflow?.state,
       });
 
-      // Override softwareSchema --> toolSchema OR malwareSchema IF stixSchema is softwareSchema
-      // Basically, we want to validate with the more specific schema if possible
-      const stixTypeStringLiteral = extractStringLiteralFromStixTypeZodSchema(stixSchema);
-      logger.debug('Extracted STIX type string literal for schema override:', {
-        stixTypeStringLiteral,
-      });
+      // Determine which schema to use based on request STIX type
+      const requestStixType = req.body?.stix?.type;
+      logger.debug('Request STIX type:', { requestStixType });
 
-      let finalSchema = stixSchema;
+      let finalSchema;
 
-      // Edge case handling
-      // We can't infer which schema to use from the software endpoint alone
-      // In this case we also need to check the type field of the request body itself
-      if (
-        Array.isArray(stixTypeStringLiteral) &&
-        stixTypeStringLiteral.length === 2 &&
-        stixTypeStringLiteral.includes('tool') &&
-        stixTypeStringLiteral.includes('malware')
-      ) {
-        const requestStixType = req.body.stix.type;
-        logger.debug('Software schema detected, checking for specific type override:', {
-          requestStixType,
-          availableTypes: ['tool', 'malware'],
-        });
+      // Handle array of schemas - find the one that matches the request type
+      if (Array.isArray(stixSchemaOrSchemas)) {
+        logger.debug('Multiple schemas provided, finding matching schema for request type');
 
-        if (requestStixType === 'tool') {
-          logger.debug('Overriding softwareSchema with toolSchema');
-          finalSchema = toolSchema;
-        } else if (requestStixType === 'malware') {
-          logger.debug('Overriding softwareSchema with malwareSchema');
-          finalSchema = malwareSchema;
-        } else {
+        for (const schema of stixSchemaOrSchemas) {
+          try {
+            const schemaStixType = extractStringLiteralFromStixTypeZodSchema(schema);
+            logger.debug('Checking schema with type:', { schemaStixType });
+
+            // Check if this schema matches the request type
+            if (
+              (typeof schemaStixType === 'string' && schemaStixType === requestStixType) ||
+              (Array.isArray(schemaStixType) && schemaStixType.includes(requestStixType))
+            ) {
+              logger.debug('Found matching schema for request type:', {
+                requestStixType,
+                schemaStixType,
+              });
+              finalSchema = schema;
+              break;
+            }
+          } catch (error) {
+            logger.debug('Could not extract type from schema, skipping:', { error: error.message });
+            continue;
+          }
+        }
+
+        if (!finalSchema) {
           throw new Error(
-            `Schema override logic encountered unexpected condition. STIX type: ${requestStixType}, Available types: [tool, malware]. This error indicates a logic flow issue in schema selection.`,
+            `No matching schema found for STIX type: ${requestStixType}. Available schemas: ${stixSchemaOrSchemas.length}`,
           );
         }
+      } else {
+        // Single schema - use it directly
+        logger.debug('Single schema provided, using directly');
+        finalSchema = stixSchemaOrSchemas;
       }
 
       // Create schema with conditional validation based on workflow state
