@@ -8,6 +8,7 @@ const {
   createAttackIdSchema,
   stixTypeToAttackIdMapping,
 } = require('@mitre-attack/attack-data-model/dist/schemas/common/attack-id');
+const { toolSchema, malwareSchema } = require('@mitre-attack/attack-data-model');
 
 /**
  * Basic workspace schema (without rigid attack ID validation)
@@ -57,6 +58,27 @@ function createWorkspaceSchema(stixType) {
   return workspaceSchema;
 }
 
+function extractStringLiteralFromStixTypeZodSchema(zodSchema) {
+  // Method 1: Direct shape access (works for most schemas)
+  if (zodSchema.shape?.type?.def?.values?.[0]) {
+    return zodSchema.shape.type.def.values[0];
+  }
+  // Method 2: Through _zod.def.in.def (works for schemas with .transform())
+  else if (zodSchema._zod?.def?.in?.def?.shape?.type?.def?.values?.[0]) {
+    return zodSchema._zod.def.in.def.shape.type.def.values[0];
+  }
+  // Method 3: Works for schemas that support multiple types, i.e., softwareSchema -> [tool, malware]
+  else if (zodSchema.shape?.type.def.options) {
+    const stixTypes = [];
+    for (const opt of zodSchema.shape.type.def.options) {
+      stixTypes.push(opt.def.values[0]);
+    }
+    return stixTypes;
+  } else {
+    throw new Error('Could not extract STIX type from schema');
+  }
+}
+
 /**
  * Factory function that creates a combined workspace+STIX schema with conditional partial validation
  * @param {z.ZodObject} stixSchema - The STIX object schema to validate against
@@ -80,18 +102,7 @@ function createWorkspaceStixSchema(
 
   try {
     // Extract the STIX type from the schema with fallback for transformed schemas
-    let stixTypeStringLiteral;
-
-    // Method 1: Direct shape access (works for most schemas)
-    if (stixSchema.shape?.type?.def?.values?.[0]) {
-      stixTypeStringLiteral = stixSchema.shape.type.def.values[0];
-    }
-    // Method 2: Through _zod.def.in.def (works for relationshipSchema with .transform())
-    else if (stixSchema._zod?.def?.in?.def?.shape?.type?.def?.values?.[0]) {
-      stixTypeStringLiteral = stixSchema._zod.def.in.def.shape.type.def.values[0];
-    } else {
-      throw new Error('Could not extract STIX type from schema');
-    }
+    const stixTypeStringLiteral = extractStringLiteralFromStixTypeZodSchema(stixSchema);
 
     logger.debug('Extracted STIX type from schema:', { stixTypeStringLiteral });
 
@@ -152,6 +163,7 @@ function createWorkspaceStixSchema(
 function validateWorkspaceStixData(stixSchema) {
   return (req, res, next) => {
     logger.debug('Starting workspace+STIX validation middleware');
+
     logger.debug('Request body structure:', {
       hasWorkspace: !!req.body?.workspace,
       hasStix: !!req.body?.stix,
@@ -167,8 +179,45 @@ function validateWorkspaceStixData(stixSchema) {
         isDefault: !req.body?.workspace?.workflow?.state,
       });
 
+      // Override softwareSchema --> toolSchema OR malwareSchema IF stixSchema is softwareSchema
+      // Basically, we want to validate with the more specific schema if possible
+      const stixTypeStringLiteral = extractStringLiteralFromStixTypeZodSchema(stixSchema);
+      logger.debug('Extracted STIX type string literal for schema override:', {
+        stixTypeStringLiteral,
+      });
+
+      let finalSchema = stixSchema;
+
+      // Edge case handling
+      // We can't infer which schema to use from the software endpoint alone
+      // In this case we also need to check the type field of the request body itself
+      if (
+        Array.isArray(stixTypeStringLiteral) &&
+        stixTypeStringLiteral.length === 2 &&
+        stixTypeStringLiteral.includes('tool') &&
+        stixTypeStringLiteral.includes('malware')
+      ) {
+        const requestStixType = req.body.stix.type;
+        logger.debug('Software schema detected, checking for specific type override:', {
+          requestStixType,
+          availableTypes: ['tool', 'malware'],
+        });
+
+        if (requestStixType === 'tool') {
+          logger.debug('Overriding softwareSchema with toolSchema');
+          finalSchema = toolSchema;
+        } else if (requestStixType === 'malware') {
+          logger.debug('Overriding softwareSchema with malwareSchema');
+          finalSchema = malwareSchema;
+        } else {
+          throw new Error(
+            `Schema override logic encountered unexpected condition. STIX type: ${requestStixType}, Available types: [tool, malware]. This error indicates a logic flow issue in schema selection.`,
+          );
+        }
+      }
+
       // Create schema with conditional validation based on workflow state
-      const combinedSchema = createWorkspaceStixSchema(stixSchema, workflowState);
+      const combinedSchema = createWorkspaceStixSchema(finalSchema, workflowState);
 
       logger.debug('Attempting to parse request body with combined schema');
       combinedSchema.parse(req.body);
