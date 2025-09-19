@@ -14,6 +14,9 @@ const {
   detectionStrategySchema,
   analyticSchema,
   matrixSchema,
+  relationshipSchema,
+  collectionSchema,
+  markingDefinitionSchema,
 } = require('@mitre-attack/attack-data-model');
 
 const STIX_SCHEMAS = {
@@ -23,13 +26,16 @@ const STIX_SCHEMAS = {
   malware: malwareSchema,
   tool: toolSchema,
   campaign: campaignSchema,
+  relationship: relationshipSchema,
   'course-of-action': mitigationSchema,
+  'marking-definition': markingDefinitionSchema,
   'x-mitre-asset': assetSchema,
   'x-mitre-data-source': dataSourceSchema,
   'x-mitre-data-component': dataComponentSchema,
   'x-mitre-detection-strategy': detectionStrategySchema,
   'x-mitre-analytic': analyticSchema,
   'x-mitre-matrix': matrixSchema,
+  'x-mitre-collection': collectionSchema,
 };
 
 /**
@@ -61,7 +67,7 @@ const ERROR_TRANSFORMATION_RULES = [
   {
     fieldPath: ['stix', 'x_mitre_domains'],
     errorCode: 'invalid_type',
-    stixType: ['intrusion-set', 'campaign', 'x-mitre-matrix'],
+    stixType: ['intrusion-set', 'campaign', 'x-mitre-matrix', 'x-mitre-detection-strategy'],
     suppressError: true,
   },
   // Users cannot set x_mitre_attack_spec_version - this is handled by the backend
