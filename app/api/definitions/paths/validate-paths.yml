@@ -34,20 +34,5 @@ paths:
             application/json:
               schema:
                 type: object
-                properties:
-                  errors:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        code:
-                          type: string
-                          example: custom
-                        path:
-                          type: array
-                          items:
-                            type: string
-                        message:
-                          type: string
         '400':
           description: 'Invalid request'
