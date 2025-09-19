@@ -11,19 +11,22 @@ components:
         stix:
           $ref: '#/components/schemas/x-mitre-analytic'
 
-    x-mitre-analytic-log-source-ref:
+    x-mitre-analytic-log-source-reference:
       type: object
       required:
-        - ref
-        - keys
+        - x_mitre_data_component_ref
+        - name
+        - channel
       properties:
-        ref:
+        x_mitre_data_component_ref:
           type: string
-          example: 'x-mitre-log-source--12345678-1234-1234-1234-123456789012'
-        keys:
-          type: array
-          items:
-            type: string
+          example: 'x-mitre-data-component--12345678-1234-1234-1234-123456789012'
+        name:
+          type: string
+          example: 'sysmon'
+        channel:
+          type: string
+          example: 'EventCode=10'
 
     x-mitre-analytic-mutable-element:
       type: object
@@ -47,6 +50,9 @@ components:
             name:
               type: string
               example: 'Analytic 0001'
+            description:
+              type: string
+              example: 'Execution of ping, traceroute, or network utility tools to external destinations; may include scutil or system_profiler.'
             # ATT&CK custom properties
             x_mitre_modified_by_ref:
               type: string
@@ -64,10 +70,10 @@ components:
               type: array
               items:
                 type: string
-            x_mitre_log_sources:
+            x_mitre_log_source_references:
               type: array
               items:
-                $ref: '#/components/schemas/x-mitre-analytic-log-source-ref'
+                $ref: '#/components/schemas/x-mitre-analytic-log-source-reference'
             x_mitre_mutable_elements:
               type: array
               items:

@@ -37,7 +37,7 @@ components:
               type: array
               items:
                 type: string
-            x_mitre_analytics:
+            x_mitre_analytic_refs:
               type: array
               items:
                 type: string

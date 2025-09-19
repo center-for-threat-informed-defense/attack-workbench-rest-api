@@ -176,6 +176,60 @@ paths:
         '404':
           description: 'A data component with the requested STIX id was not found.'
 
+  /api/data-components/{stixId}/channels:
+    get:
+      summary: 'Gets the log source channels associated with the latest version of a data component'
+      operationId: 'data-component-get-one-id-channels'
+      description: |
+        This endpoint gets a list of log source channels associated with the latest version of a data component, identified by its STIX id.
+      tags:
+        - 'Data Components'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data component to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A list of log source channels from the latest version of the data component matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+        '404':
+          description: 'A data component with the requested STIX id was not found.'
+
+  /api/data-components/{stixId}/log-sources:
+    get:
+      summary: 'Gets the log sources associated with the latest version of a data component'
+      operationId: 'data-component-get-one-id-log-sources'
+      description: |
+        This endpoint gets a list of log sources associated with the latest version of a data component, identified by its STIX id.
+      tags:
+        - 'Data Components'
+      parameters:
+        - name: stixId
+          in: path
+          description: 'STIX id of the data component to retrieve'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'A list of log sources from the latest version of the data component matching the requested STIX id.'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '../components/data-components.yml#/components/schemas/x-mitre-data-component-log-source'
+        '404':
+          description: 'A data component with the requested STIX id was not found.'
+
   /api/data-components/{stixId}/modified/{modified}:
     get:
       summary: 'Gets the version of a data component matching the STIX id and modified date'
