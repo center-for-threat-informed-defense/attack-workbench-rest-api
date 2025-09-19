@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^13.0.1",
-    "@mitre-attack/attack-data-model": "^4.0.1",
+    "@mitre-attack/attack-data-model": "^4.4.0",
     "async": "^3.2.6",
     "async-await-retry": "^2.1.0",
     "body-parser": "^2.2.0",
@@ -49,6 +49,7 @@
     "express-openapi-validator": "^5.5.4",
     "express-session": "^1.18.2",
     "helmet": "^8.1.0",
+    "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "jwt-decode": "^4.0.0",
@@ -67,7 +68,8 @@
     "superagent": "^10.2.2",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.1.0",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "zod": "^4.1.8"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
