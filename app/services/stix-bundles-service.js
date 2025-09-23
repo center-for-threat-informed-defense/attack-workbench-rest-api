@@ -7,7 +7,9 @@ const linkById = require('../lib/linkById');
 const logger = require('../lib/logger');
 
 // Import repositories
+const analyticsRepository = require('../repository/analytics-repository');
 const attackObjectsRepository = require('../repository/attack-objects-repository');
+const detectionStrategiesRepository = require('../repository/detection-strategies-repository');
 const matrixRepository = require('../repository/matrix-repository');
 const mitigationsRepository = require('../repository/mitigations-repository');
 const notesRepository = require('../repository/notes-repository');
@@ -73,7 +75,9 @@ class StixBundlesService extends BaseService {
   constructor() {
     super();
     this.repositories = {
+      analytic: analyticsRepository,
       attackObject: attackObjectsRepository,
+      detectionStrategy: detectionStrategiesRepository,
       matrix: matrixRepository,
       mitigation: mitigationsRepository,
       note: notesRepository,
@@ -102,6 +106,7 @@ class StixBundlesService extends BaseService {
       'malware',
       'tool',
       'x-mitre-tactic',
+      'x-mitre-detection-strategy',
     ];
 
     return (
@@ -254,13 +259,19 @@ class StixBundlesService extends BaseService {
       return false;
     }
 
-    // Handle domains for groups and campaigns
+    // Handle domains for groups, campaigns, and detection strategies
     if (secondaryObject.stix.type === 'intrusion-set' || secondaryObject.stix.type === 'campaign') {
       if (secondaryObject.stix.x_mitre_domains) {
         this.domainCache.set(secondaryObject.stix.id, secondaryObject.stix.x_mitre_domains);
       }
       secondaryObject.stix.x_mitre_domains =
         await this.getDomainsForSecondaryObject(secondaryObject);
+    } else if (secondaryObject.stix.type === 'x-mitre-detection-strategy') {
+      // Detection strategies are secondary objects whose domain membership is determined dynamically
+      if (secondaryObject.stix.x_mitre_domains) {
+        this.domainCache.set(secondaryObject.stix.id, secondaryObject.stix.x_mitre_domains);
+      }
+      secondaryObject.stix.x_mitre_domains = [options.domain];
     }
     return true;
   }
@@ -333,7 +344,12 @@ class StixBundlesService extends BaseService {
    * @param {Map} dataComponents - Map of data component IDs to objects
    * @param {Map} dataSources - Map of data source IDs to objects
    */
-  static processDataComponents(bundle, techniqueDetectedBy, dataComponents, dataSources) {
+  static updateTechniquesWithDataComponentInfo(
+    bundle,
+    techniqueDetectedBy,
+    dataComponents,
+    dataSources,
+  ) {
     for (const bundleObject of bundle.objects) {
       if (bundleObject.type === 'attack-pattern') {
         // TODO remove this line once all techniques are confirmed to have x_mitre_is_subtechnique
@@ -378,7 +394,9 @@ class StixBundlesService extends BaseService {
 
       const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
       if (!dataSource) {
-        logger.warn(`Referenced data source not found: ${dataComponent.x_mitre_data_source_ref}`);
+        logger.warn(
+          `Referenced data source not found: ${dataComponent.x_mitre_data_source_ref || 'undefined "x_mitre_data_source_ref" key'}`,
+        );
         continue;
       }
 
@@ -483,6 +501,7 @@ class StixBundlesService extends BaseService {
    * @param {boolean} options.collectionObjectVersion - x_mitre_version of the collection object
    * @param {boolean} options.collectionAttackSpecVersion - x_mitre_attack_spec_version of the collection object
    * @param {boolean} options.collectionObjectModified - Modified timestamp of the collection object
+   * @param {boolean} [options.includeDataSources=false] - Whether to include deprecated data sources
    * @param {string} [options.state] - Workflow state filter
    * @returns {Promise<Object>} The generated STIX bundle
    */
@@ -508,17 +527,25 @@ class StixBundlesService extends BaseService {
       bundle.spec_version = '2.0';
     }
 
-    // Retrieve primary objects
-    const [domainMitigations, domainSoftware, domainTactics, domainTechniques, domainMatrices] =
-      await Promise.all([
-        mitigationsRepository.retrieveAllByDomain(options.domain, options),
-        softwareRepository.retrieveAllByDomain(options.domain, options),
-        tacticsRepository.retrieveAllByDomain(options.domain, options),
-        techniquesRepository.retrieveAllByDomain(options.domain, options),
-        matrixRepository.retrieveAllByDomain(options.domain, options),
-      ]);
+    // Retrieve primary objects - analytics are primary objects with explicit domain membership
+    const [
+      domainAnalytics,
+      domainMitigations,
+      domainSoftware,
+      domainTactics,
+      domainTechniques,
+      domainMatrices,
+    ] = await Promise.all([
+      analyticsRepository.retrieveAllByDomain(options.domain, options),
+      mitigationsRepository.retrieveAllByDomain(options.domain, options),
+      softwareRepository.retrieveAllByDomain(options.domain, options),
+      tacticsRepository.retrieveAllByDomain(options.domain, options),
+      techniquesRepository.retrieveAllByDomain(options.domain, options),
+      matrixRepository.retrieveAllByDomain(options.domain, options),
+    ]);
 
     let primaryObjects = [
+      ...domainAnalytics,
       ...domainMatrices,
       ...domainMitigations,
       ...domainSoftware,
@@ -564,7 +591,12 @@ class StixBundlesService extends BaseService {
     );
 
     const dataSources = new Map();
-    await this.processDataSourcesAndComponents(bundle, objectsMap, dataSources, options);
+    if (options.includeDataSources === true) {
+      // TODO stop processing data sources in next major release
+      await this.processDataSources(bundle, objectsMap, dataSources, options);
+    }
+
+    // Detection strategies are handled by the existing secondary object logic
 
     await this.processSecondaryRelationships(bundle, objectsMap, options);
 
@@ -573,13 +605,25 @@ class StixBundlesService extends BaseService {
       StixBundlesService.addRelationshipToBundle(relationship, bundle, objectsMap);
     }
 
-    // Process data components
-    StixBundlesService.processDataComponents(
-      bundle,
-      techniqueDetectedBy,
-      dataComponents,
-      dataSources,
-    );
+    // Process data components (only if data sources are included)
+    if (options.includeDataSources === true) {
+      // TODO stop processing data sources in next major release
+      // This adds derived data sources to techniques (x_mitre_data_sources) based on its detecting components
+      // However, most data components don't detect techniques anymore
+      StixBundlesService.updateTechniquesWithDataComponentInfo(
+        bundle,
+        techniqueDetectedBy,
+        dataComponents,
+        dataSources,
+      );
+    } else {
+      // Clear x_mitre_data_sources for all techniques when data sources are not included
+      for (const bundleObject of bundle.objects) {
+        if (bundleObject.type === 'attack-pattern') {
+          bundleObject.x_mitre_data_sources = [];
+        }
+      }
+    }
 
     // Add notes if requested
     if (options.includeNotes) {
@@ -644,18 +688,22 @@ class StixBundlesService extends BaseService {
       }
 
       // Special handling for 'detects' relationships:
-      // Track data components for later processing of technique detection data
+      // Track data components for later processing of technique detection data (only when including data sources)
       if (
         relationship.stix.relationship_type === 'detects' &&
-        StixBundlesService.relationshipIsActive(relationship)
+        StixBundlesService.relationshipIsActive(relationship) &&
+        options.includeDataSources === true
       ) {
-        const dataComponent = await this.getAttackObject(relationship.stix.source_ref);
-        dataComponents.set(dataComponent.stix.id, dataComponent.stix);
-        const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
-        if (techniqueDataComponents) {
-          techniqueDataComponents.push(relationship.stix.source_ref);
-        } else {
-          techniqueDetectedBy.set(relationship.stix.target_ref, [relationship.stix.source_ref]);
+        const sourceObject = await this.getAttackObject(relationship.stix.source_ref);
+        // Only track data components, not detection strategies
+        if (sourceObject && sourceObject.stix.type === 'x-mitre-data-component') {
+          dataComponents.set(sourceObject.stix.id, sourceObject.stix);
+          const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
+          if (techniqueDataComponents) {
+            techniqueDataComponents.push(relationship.stix.source_ref);
+          } else {
+            techniqueDetectedBy.set(relationship.stix.target_ref, [relationship.stix.source_ref]);
+          }
         }
       }
     }
@@ -677,17 +725,21 @@ class StixBundlesService extends BaseService {
    * @returns {Promise<void>}
    */
 
-  async processDataSourcesAndComponents(bundle, objectsMap, dataSources, options) {
+  async processDataSources(bundle, objectsMap, dataSources, options) {
     // Get data source IDs from components
     const allDataComponents = bundle.objects.filter((obj) => obj.type === 'x-mitre-data-component');
 
     for (const dataComponent of allDataComponents) {
       const dataSourceId = dataComponent.x_mitre_data_source_ref;
-      const dataSource = await this.getAttackObject(dataSourceId);
-      if (StixBundlesService.secondaryObjectIsValid(dataSource, options)) {
-        this.addAttackObjectToBundle(dataSource, bundle, objectsMap);
+      if (dataSourceId) {
+        const dataSource = await this.getAttackObject(dataSourceId);
+        if (dataSource) {
+          if (StixBundlesService.secondaryObjectIsValid(dataSource, options)) {
+            this.addAttackObjectToBundle(dataSource, bundle, objectsMap);
+          }
+          dataSources.set(dataSourceId, dataSource.stix);
+        }
       }
-      dataSources.set(dataSourceId, dataSource.stix);
     }
   }
 

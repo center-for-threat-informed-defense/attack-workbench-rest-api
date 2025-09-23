@@ -44,6 +44,13 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: includeDataSources
+          in: query
+          description: |
+            Whether to include objects of type `x-mitre-data-source`.
+          schema:
+            type: boolean
+            default: false
         - name: stixVersion
           in: query
           description: |
