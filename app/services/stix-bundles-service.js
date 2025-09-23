@@ -106,7 +106,7 @@ class StixBundlesService extends BaseService {
       'malware',
       'tool',
       'x-mitre-tactic',
-      'x-mitre-detection-strategy',
+      // 'x-mitre-detection-strategy',
     ];
 
     return (
@@ -706,6 +706,26 @@ class StixBundlesService extends BaseService {
           }
         }
       }
+
+      // // Special handling for Detection Stategy 'detects' Techniques:
+      // // Track DETs
+      // else if (
+      //   relationship.stix.relationship_type === 'detects' &&
+      //   StixBundlesService.relationshipIsActive(relationship) &&
+      //   options.includeDataSources === false
+      // ) {
+      //   const targetRefObject = await this.getAttackObject(relationship.stix.target_ref);
+      //   // Only track data components, not detection strategies
+      //   if (targetRefObject && targetRefObject.stix.type === 'x-mitre-detection-strategy') {
+      //     // Get the technique
+      //     const detectionStrategy = await this.getAttackObject(relationship.stix.target_ref);
+      //     // Check if technique in target domain
+      //     if (detectionStrategy.stix.x_mitre_domains.contains(options.domain)) {
+      //       // If so, add the technique to the bundle
+      //       bundle.objects.push();
+      //     }
+      //   }
+      // }
     }
   }
 
