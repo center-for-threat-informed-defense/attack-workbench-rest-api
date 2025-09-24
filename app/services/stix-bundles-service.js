@@ -336,40 +336,6 @@ class StixBundlesService extends BaseService {
   // ============================
 
   /**
-   * @deprecated // TODO remove this method!
-   * Adds derived data sources to a technique based on its detecting components.
-   * @param {Object} bundleObject - The technique object to update
-   * @param {Map} techniqueDetectedBy - Map of techniques to their detecting components
-   * @param {Map} dataComponents - Map of data component IDs to objects
-   * @param {Map} dataSources - Map of data source IDs to objects
-   */
-  static addDerivedDataSources(bundleObject, techniqueDetectedBy, dataComponents, dataSources) {
-    bundleObject.x_mitre_data_sources = [];
-
-    const dataComponentIds = techniqueDetectedBy.get(bundleObject.id);
-    if (!dataComponentIds) return;
-
-    for (const dataComponentId of dataComponentIds) {
-      const dataComponent = dataComponents.get(dataComponentId);
-      if (!dataComponent) {
-        logger.warn(`Referenced data component not found: ${dataComponentId}`);
-        continue;
-      }
-
-      const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
-      if (!dataSource) {
-        logger.warn(
-          `Referenced data source not found: ${dataComponent.x_mitre_data_source_ref || 'undefined "x_mitre_data_source_ref" key'}`,
-        );
-        continue;
-      }
-
-      const derivedDataSource = `${dataSource.name}: ${dataComponent.name}`;
-      bundleObject.x_mitre_data_sources.push(derivedDataSource);
-    }
-  }
-
-  /**
    * Add an x-mitre-collection object to the bundle, based on the objects inside.
    * @param {Object} bundle - The bundle to update
    * @param {Object} options - Bundle generation options
@@ -608,62 +574,6 @@ class StixBundlesService extends BaseService {
         // Only process if the secondary object meets our inclusion criteria
         if (await this.processSecondaryObject(secondaryObject, options)) {
           this.addAttackObjectToBundle(secondaryObject, bundle, objectsMap);
-        }
-      }
-
-      // // Special handling for 'detects' relationships:
-      // // Track data components for later processing of technique detection data
-      // if (
-      //   relationship.stix.relationship_type === 'detects' &&
-      //   StixBundlesService.relationshipIsActive(relationship) &&
-      //   options.includeDataSources === true
-      // ) {
-      //   const sourceObject = await this.getAttackObject(relationship.stix.source_ref);
-      //   // Only track data components, not detection strategies
-      //   if (sourceObject && sourceObject.stix.type === 'x-mitre-data-component') {
-      //     dataComponents.set(sourceObject.stix.id, sourceObject.stix);
-      //     const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
-      //     if (techniqueDataComponents) {
-      //       techniqueDataComponents.push(relationship.stix.source_ref);
-      //     } else {
-      //       techniqueDetectedBy.set(relationship.stix.target_ref, [relationship.stix.source_ref]);
-      //     }
-      //   }
-      // }
-    }
-  }
-
-  /**
-   * @deprecated // TODO remove this method!
-   *
-   * Processes all data sources referenced by data components in the bundle.
-   * Ensures that all necessary data sources are included and properly linked.
-   *
-   * Steps:
-   * 1. Collects all data source references from components
-   * 2. Retrieves and validates each data source
-   * 3. Adds valid data sources to bundle and tracking structures
-   *
-   * @param {Object} bundle - The STIX bundle being built
-   * @param {Map} objectsMap - Map of objects currently in the bundle
-   * @param {Map} dataSources - Map to populate with data source objects
-   * @param {Object} options - Bundle generation options
-   * @returns {Promise<void>}
-   */
-
-  async processDataSources(bundle, objectsMap, dataSources, options) {
-    // Get data source IDs from components
-    const allDataComponents = bundle.objects.filter((obj) => obj.type === 'x-mitre-data-component');
-
-    for (const dataComponent of allDataComponents) {
-      const dataSourceId = dataComponent.x_mitre_data_source_ref;
-      if (dataSourceId) {
-        const dataSource = await this.getAttackObject(dataSourceId);
-        if (dataSource) {
-          if (StixBundlesService.secondaryObjectIsValid(dataSource, options)) {
-            this.addAttackObjectToBundle(dataSource, bundle, objectsMap);
-          }
-          dataSources.set(dataSourceId, dataSource.stix);
         }
       }
     }
