@@ -19,6 +19,7 @@ exports.exportBundle = async function (req, res) {
     state: req.query.state,
     includeRevoked: req.query.includeRevoked,
     includeDeprecated: req.query.includeDeprecated,
+    includeDataSources: req.query.includeDataSources,
     stixVersion: req.query.stixVersion,
     includeMissingAttackId: req.query.includeMissingAttackId,
     includeNotes: req.query.includeNotes,
