@@ -1,6 +1,7 @@
 'use strict';
 
 const stixBundlesService = require('../services/stix-bundles-service');
+const stixBundlesServiceOld = require('../services/stix-bundles-service-old');
 const logger = require('../lib/logger');
 
 const validStixVersions = ['2.0', '2.1'];
@@ -20,6 +21,7 @@ exports.exportBundle = async function (req, res) {
     includeRevoked: req.query.includeRevoked,
     includeDeprecated: req.query.includeDeprecated,
     includeDataSources: req.query.includeDataSources,
+    useLegacyMethod: req.query.useLegacyMethod,
     stixVersion: req.query.stixVersion,
     includeMissingAttackId: req.query.includeMissingAttackId,
     includeNotes: req.query.includeNotes,
@@ -30,7 +32,12 @@ exports.exportBundle = async function (req, res) {
   };
 
   try {
-    const stixBundle = await stixBundlesService.exportBundle(options);
+    let stixBundle;
+    if (options.useLegacyMethod) {
+      stixBundle = await stixBundlesServiceOld.exportBundle(options);
+    } else {
+      stixBundle = await stixBundlesService.exportBundle(options);
+    }
 
     return res.status(200).send(stixBundle);
   } catch (err) {

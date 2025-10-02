@@ -47,7 +47,15 @@ paths:
         - name: includeDataSources
           in: query
           description: |
-            Whether to include objects of type `x-mitre-data-source`.
+            Whether to include deprecated data sources (x-mitre-data-source) in the bundle.
+            Data sources are deprecated in the current ATT&CK specification but can be included for backward compatibility.
+          schema:
+            type: boolean
+            default: false
+        - name: useLegacyMethod
+          in: query
+          description: |
+            Whether to process STIX bundles using legacy business logic (pre ATT&CK v17, pre defense overhaul). If enabled, `x-mitre-detection-strategy` and `x-mitre-analytic` objects will NOT be included.
           schema:
             type: boolean
             default: false
