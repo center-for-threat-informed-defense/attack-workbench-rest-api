@@ -18,6 +18,7 @@ const tacticsRepository = require('../repository/tactics-repository');
 const techniquesRepository = require('../repository/techniques-repository');
 const dataComponentsRepository = require('../repository/data-components-repository');
 const dataSourcesRepository = require('../repository/data-sources-repository');
+const detectionStrategiesRepository = require('../repository/detection-strategies-repository');
 
 // Import services
 const notesService = require('./notes-service');
@@ -25,47 +26,61 @@ const notesService = require('./notes-service');
 /**
  * Service for generating STIX bundles from the ATT&CK database.
  *
- * CORE CONCEPTS:
+ * CORE CONCEPTS (New ATT&CK Specification):
  *
  * This service makes an important distinction between "primary" and "secondary" objects
  * when generating STIX bundles:
  *
  * PRIMARY OBJECTS:
  * - Objects that directly belong to the requested domain (e.g., enterprise-attack, mobile-attack)
- * - These are retrieved in the initial database query
+ * - Users can explicitly set/modify the x_mitre_domains field for these objects
+ * - These are retrieved in the initial database query by domain
  * - Examples for enterprise-attack domain:
- *   * Techniques like "Process Injection"
- *   * Tactics like "Persistence"
- *   * Mitigations specific to enterprise
- *   * Software/Tools used in enterprise attacks
+ *   * Techniques (attack-pattern) like "Process Injection"
+ *   * Tactics (x-mitre-tactic) like "Persistence"
+ *   * Mitigations (course-of-action) specific to enterprise
+ *   * Software/Tools (malware/tool) used in enterprise attacks
+ *   * Data Components (x-mitre-data-component) - NEW in current spec
+ *   * Data Sources (x-mitre-data-source) - deprecated but still primary
+ *   * Analytics (x-mitre-analytic) - NEW in current spec
  *
  * SECONDARY OBJECTS:
- * - Objects that are related to primary objects through relationships
- * - Not part of the initial domain query but may need to be included
+ * - Objects that are related to primary objects through relationships or references
+ * - Cannot be directly assigned to domains by users
+ * - Their domain membership is inferred from relationships to primary objects
  * - Need to be validated before inclusion in the bundle
  * - Examples:
- *   * A threat group that uses an enterprise technique
- *   * A campaign that deploys enterprise malware
+ *   * Threat Groups (intrusion-set) that use techniques in the domain
+ *   * Campaigns that deploy malware in the domain
+ *   * Detection Strategies (x-mitre-detection-strategy) - NEW in current spec
+ *     - Included if they detect a technique in the bundle, OR
+ *     - Included if they reference an analytic (via x_mitre_analytic_refs) in the bundle
  *
  * EXAMPLE SCENARIO:
  * When requesting enterprise-attack domain bundle:
  * 1. Primary Objects (from initial query):
  *    - Technique T1055 "Process Injection"
- *    - Technique T1056 "Input Capture"
+ *    - Analytic ANA-001 "Process Injection Detection"
+ *    - Data Component DC-001 "Process Creation"
  *
- * 2. Relationships discovered:
- *    - Group G0096 uses Technique T1055
- *    - Malware S0002 uses Technique T1056
+ * 2. Relationships and references discovered:
+ *    - Group G0096 uses Technique T1055 (relationship)
+ *    - Detection Strategy DS-001 detects Technique T1055 (relationship)
+ *    - Detection Strategy DS-002 references Analytic ANA-001 (via x_mitre_analytic_refs)
  *
- * 3. Secondary Objects (need validation):
+ * 3. Secondary Objects (need validation and domain inference):
  *    - Group G0096
- *    - Malware S0002
+ *    - Detection Strategy DS-001
+ *    - Detection Strategy DS-002
  *
  * The complex relationship processing in this service handles:
  * 1. Primary → Primary relationships (simplest case)
  * 2. Primary → Secondary relationships (need to fetch/validate secondary)
  * 3. Secondary → Primary relationships (need to fetch/validate secondary)
- * 4. Special cases like 'detects' relationships
+ * 4. Special cases:
+ *    - 'detects' relationships (for detection strategies)
+ *    - 'attributed-to' relationships (for groups/campaigns)
+ *    - x_mitre_analytic_refs (for detection strategies referencing analytics)
  */
 class StixBundlesService extends BaseService {
   /**
@@ -87,6 +102,7 @@ class StixBundlesService extends BaseService {
       technique: techniquesRepository,
       dataComponent: dataComponentsRepository,
       dataSource: dataSourcesRepository,
+      detectionStrategy: detectionStrategiesRepository,
     };
   }
 
@@ -332,7 +348,7 @@ class StixBundlesService extends BaseService {
   }
 
   // ============================
-  // Data Component Management
+  // Collection Object Management
   // ============================
 
   /**
@@ -550,8 +566,9 @@ class StixBundlesService extends BaseService {
    * Add secondary objects to the bundle - those objects which have a relationship
    * to a primary object but did not have the proper domain in the database.
    *
-   * Special handling is provided for 'detects' relationships to support
-   * technique detection data processing.
+   * Note: 'detects' relationships are skipped here and handled separately in
+   * processSecondaryRelationships() to support the new ATT&CK spec where only
+   * detection strategies (not data components) can detect techniques.
    *
    * @param {Array} primaryObjectRelationships - The relationships to process
    * @param {Map} objectsMap - Map of objects currently in the bundle
@@ -561,6 +578,28 @@ class StixBundlesService extends BaseService {
    */
   async addSecondaryObjects(primaryObjectRelationships, objectsMap, bundle, options) {
     for (const relationship of primaryObjectRelationships) {
+      // Skip 'detects' relationships - they require special handling
+      //
+      // CONTEXT: The ATT&CK specification changed how detection works:
+      // - OLD (pre-v17): Data components could detect techniques via 'detects' relationships
+      // - NEW (v17+): Only detection strategies can detect techniques via 'detects' relationships
+      //
+      // WHY WE SKIP HERE:
+      // 1. Data components are now PRIMARY objects (retrieved by domain), not secondary
+      // 2. If we processed 'detects' relationships here, we would incorrectly add data
+      //    components as secondary objects based on deprecated relationships
+      // 3. Detection strategies ARE secondary objects, but they need special domain
+      //    inference logic (they get the domain of the technique they detect)
+      //
+      // WHERE THEY'RE HANDLED:
+      // 'detects' relationships are processed in processSecondaryRelationships() where:
+      // - We verify the source is a detection strategy (not a data component)
+      // - We set the detection strategy's x_mitre_domains to match the target technique
+      // - Deprecated 'detects' from data components are silently ignored
+      if (relationship.stix.relationship_type === 'detects') {
+        continue;
+      }
+
       if (!objectsMap.has(relationship.stix.source_ref)) {
         const secondaryObject = await this.getAttackObject(relationship.stix.source_ref);
 
@@ -644,6 +683,8 @@ class StixBundlesService extends BaseService {
   /**
    * Processes relationships between secondary objects and handles special cases that need separate processing:
    * - Groups referenced by campaigns through 'attributed-to' relationships
+   * - Detection strategies that detect techniques in the bundle
+   * - Detection strategies referenced by analytics in the bundle
    * - Secondary objects that were revoked by other secondary objects
    *
    * @param {Object} bundle - The STIX bundle being built
@@ -673,6 +714,7 @@ class StixBundlesService extends BaseService {
         }
       }
 
+      // Add detection strategies that detect techniques in the bundle
       if (
         relationship.stix.relationship_type === 'detects' &&
         objectsMap.has(relationship.stix.target_ref) &&
@@ -710,6 +752,36 @@ class StixBundlesService extends BaseService {
             revokedObject.stix.x_mitre_domains = [options.domain];
           }
           this.addAttackObjectToBundle(revokedObject, bundle, objectsMap);
+        }
+      }
+    }
+
+    // Add detection strategies referenced by analytics in the bundle
+    // This is a key requirement of the new ATT&CK spec: detection strategies should be
+    // included if they reference an analytic that is in the domain
+    const analyticsInBundle = bundle.objects.filter((obj) => obj.type === 'x-mitre-analytic');
+
+    for (const analytic of analyticsInBundle) {
+      // Find all detection strategies that reference this analytic
+      const detectionStrategyDocs = await this.repositories.detectionStrategy.findByAnalyticRef(
+        analytic.id,
+        options,
+      );
+
+      for (const detectionStrategyDoc of detectionStrategyDocs) {
+        if (
+          !objectsMap.has(detectionStrategyDoc.stix.id) &&
+          StixBundlesService.secondaryObjectIsValid(detectionStrategyDoc, options)
+        ) {
+          if (detectionStrategyDoc.stix.x_mitre_domains) {
+            this.domainCache.set(
+              detectionStrategyDoc.stix.id,
+              detectionStrategyDoc.stix.x_mitre_domains,
+            );
+          }
+          // Set x_mitre_domains on each exported detection strategy
+          detectionStrategyDoc.stix.x_mitre_domains = [options.domain];
+          this.addAttackObjectToBundle(detectionStrategyDoc, bundle, objectsMap);
         }
       }
     }
