@@ -1,5 +1,100 @@
+/**
+ * STIX Bundles Export - Backwards Compatibility Tests
+ * =====================================================
+ *
+ * PURPOSE:
+ * This test suite validates that the NEW ATT&CK specification export workflow
+ * produces identical results to the OLD workflow when given appropriately
+ * structured test data. This ensures backwards compatibility for existing
+ * ATT&CK data that may still contain deprecated structures.
+ *
+ * CONTEXT:
+ * The ATT&CK specification underwent significant changes regarding how data
+ * components, data sources, and detection strategies are handled:
+ *
+ * OLD SPECIFICATION (Pre-v17):
+ * - Data components: Secondary objects (domain inferred from relationships)
+ * - Data sources: Secondary objects (domain inferred from relationships)
+ * - Detects relationships: Data components → Techniques
+ * - Detection strategies: Did not exist
+ * - Analytics: Did not exist
+ *
+ * NEW SPECIFICATION (v17+):
+ * - Data components: PRIMARY objects (explicit domain assignment via x_mitre_domains)
+ * - Data sources: PRIMARY objects (deprecated but still primary)
+ * - Analytics: PRIMARY objects (new SDO type)
+ * - Detection strategies: SECONDARY objects (new SDO type)
+ * - Detects relationships: Detection strategies → Techniques (NOT data components!)
+ *
+ * TEST DATA REQUIREMENTS FOR BACKWARDS COMPATIBILITY:
+ * To ensure the new workflow produces identical output to the old workflow,
+ * the test data has been modified with these key changes:
+ *
+ * 1. ADDED: external_references with ATT&CK IDs to data components
+ *    - Data components now require ATT&CK IDs (e.g., DC0001, DC0002)
+ *    - Without these, they're filtered out during export
+ *
+ * 2. ADDED: x_mitre_domains to data components
+ *    - Data components must explicitly declare their domain membership
+ *    - Example: x_mitre_domains: [enterpriseDomain, icsDomain]
+ *    - This allows them to be retrieved as primary objects
+ *
+ * 3. PRESERVED: Deprecated 'detects' relationships (data component → technique)
+ *    - These relationships still exist in the test data for import
+ *    - However, they are IGNORED during export (not processed or included)
+ *    - Only 'detects' relationships from detection strategies are processed
+ *
+ * 4. BEHAVIORAL CHANGE: Data components in multi-domain scenarios
+ *    - If a data component should appear in multiple domain exports, it must
+ *      have ALL those domains in its x_mitre_domains array
+ *    - Example: For ICS export to include a data component, the component must
+ *      have icsDomain in its x_mitre_domains, even if it has a deprecated
+ *      'detects' relationship to an ICS technique
+ *
+ * WHAT THIS TEST SUITE VALIDATES:
+ * ✓ New export workflow correctly handles data components as primary objects
+ * ✓ Deprecated 'detects' relationships are properly ignored
+ * ✓ Data sources are included when includeDataSources=true
+ * ✓ Bundle counts match expected values for each domain
+ * ✓ Secondary objects (campaigns, groups) are still properly included
+ * ✓ Collection objects can be optionally included
+ * ✓ Notes are properly attached when includeNotes=true
+ *
+ * IMPORTANT NOTES:
+ * - This suite does NOT test the new detection strategy and analytics functionality
+ * - For tests of the NEW workflow features, see stix-bundles-new.spec.js
+ * - The old workflow is preserved in stix-bundles-service-old.js and tested
+ *   separately in stix-bundles-old.spec.js
+ *
+ * STIX Bundle Test Data Composition:
+ * ===================================
+ * Total Objects in Bundle: 27
+ *
+ * Objects by Type:
+ *   - attack-pattern: 4
+ *   - course-of-action: 2
+ *   - malware: 1
+ *   - intrusion-set: 3
+ *   - campaign: 2
+ *   - x-mitre-data-source: 2
+ *   - x-mitre-data-component: 2
+ *   - relationship: 7
+ *   - x-mitre-collection: 1
+ *   - identity: 1
+ *   - marking-definition: 1
+ *   - note: 1
+ *
+ * Objects by Domain:
+ *   - enterprise-attack: 2 attack-patterns, 2 mitigations, 1 malware, 2 data components
+ *   - mobile-attack: 1 attack-pattern
+ *   - ics-attack: 2 attack-patterns, 1 data component
+ *   Note: attack-pattern--2bb2861b exists in both enterprise and ICS domains
+ *   Note: x-mitre-data-component--47667153 exists in both enterprise and ICS domains
+ */
+
 const request = require('supertest');
 const { expect } = require('expect');
+const fs = require('fs');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -17,7 +112,6 @@ const collectionTimestamp = new Date().toISOString();
 
 const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 const mitreIdentityId = 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5';
-
 const initialObjectData = {
   type: 'bundle',
   id: 'bundle--0cde353c-ea5b-4668-9f68-971946609282',
@@ -115,6 +209,7 @@ const initialObjectData = {
           object_ref: 'x-mitre-data-component--f8b4833e-a6d4-4a05-ba6e-1936d4109d0a',
           object_modified: '2020-04-12T15:44:47.629Z',
         },
+        // TODO start: the following three relationships are deprecated
         {
           object_ref: 'relationship--caa8928b-0bf6-45cd-8504-6c27b9cd96a8',
           object_modified: '2019-09-04T14:32:13.000Z',
@@ -127,6 +222,7 @@ const initialObjectData = {
           object_ref: 'relationship--e7f994c6-3e08-4aea-a30e-97cc6fe610c6',
           object_modified: '2019-09-04T14:32:13.000Z',
         },
+        // TODO end: the previous three relationships are deprecated
         {
           object_ref: 'relationship--89586929-ca62-423f-94bf-cc03ec8161bb',
           object_modified: '2021-06-06T14:00:00.000Z',
@@ -480,6 +576,7 @@ const initialObjectData = {
       modified: '2020-04-12T15:44:47.629Z',
       created: '2019-10-22T00:14:20.652Z',
       external_references: [{ source_name: 'mitre-attack', external_id: 'DS1' }],
+      x_mitre_domains: [enterpriseDomain, icsDomain, mobileDomain],
     },
     {
       type: 'x-mitre-data-source',
@@ -490,7 +587,8 @@ const initialObjectData = {
       created_by_ref: mitreIdentityId,
       modified: '2020-04-12T15:44:47.629Z',
       created: '2019-10-22T00:14:20.652Z',
-      external_references: [{ source_name: 'mitre-attack', external_id: 'DS1' }],
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DS2' }],
+      x_mitre_domains: [enterpriseDomain, icsDomain, mobileDomain],
     },
     {
       type: 'x-mitre-data-component',
@@ -502,6 +600,8 @@ const initialObjectData = {
       created_by_ref: mitreIdentityId,
       modified: '2020-04-12T15:44:47.629Z',
       created: '2019-10-22T00:14:20.652Z',
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DC0001' }],
+      x_mitre_domains: [enterpriseDomain],
     },
     {
       type: 'x-mitre-data-component',
@@ -513,6 +613,8 @@ const initialObjectData = {
       created_by_ref: mitreIdentityId,
       modified: '2020-04-12T15:44:47.629Z',
       created: '2019-10-22T00:14:20.652Z',
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DC0002' }],
+      x_mitre_domains: [enterpriseDomain, icsDomain],
     },
     {
       created_by_ref: mitreIdentityId,
@@ -722,42 +824,59 @@ describe('STIX Bundles Basic API', function () {
       });
   });
 
-  it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain', function (done) {
-    request(app)
-      .get(`/api/stix-bundles?domain=${enterpriseDomain}&includeNotes=true`)
+  it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ includeNotes: true })
+      .query({ includeDataSources: true })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported STIX bundle
-          const stixBundle = res.body;
-          expect(stixBundle).toBeDefined();
-          expect(Array.isArray(stixBundle.objects)).toBe(true);
+      .expect('Content-Type', /json/);
 
-          // 4 primary objects, 7 relationship objects, 6 secondary objects,
-          // 1 note, 1 identity, 1 marking definition
-          //printBundleCount(stixBundle);
-          expect(stixBundle.objects.length).toBe(20);
+    // We expect to get the exported STIX bundle
+    const stixBundle = res.body;
+    expect(stixBundle).toBeDefined();
+    expect(Array.isArray(stixBundle.objects)).toBe(true);
 
-          done();
-        }
-      });
+    // DEBUG: Write bundle to file for inspection
+    fs.writeFileSync('./debug-enterprise-bundle.json', JSON.stringify(stixBundle, null, 2));
+    console.log('Enterprise bundle written to debug-enterprise-bundle.json');
+    console.log(`Actual object count: ${stixBundle.objects.length}`);
+
+    // Count objects by type for debugging
+    const typeCounts = {};
+    stixBundle.objects.forEach((obj) => {
+      typeCounts[obj.type] = (typeCounts[obj.type] || 0) + 1;
+    });
+    console.log('Object type counts:', typeCounts);
+
+    // 4 primary objects, 7 relationship objects, 6 secondary objects,
+    // 1 note, 1 identity, 1 marking definition
+    //printBundleCount(stixBundle);
+    expect(stixBundle.objects.length).toBe(20);
   });
 
   it('GET /api/stix-bundles exports the STIX 2.1 bundle for the enterprise domain with a collection object', function (done) {
     const bundleVersion = '17.1';
     const bundleModified = '2025-05-06T14:00:00.188Z';
-    const encodedBundleModified = encodeURIComponent(bundleModified);
+    // const encodedBundleModified = encodeURIComponent(bundleModified);
     const attackSpecVersion = '3.2.0';
 
     request(app)
-      .get(
-        `/api/stix-bundles?domain=${enterpriseDomain}&includeNotes=true&stixVersion=2.1&includeCollectionObject=true&collectionObjectVersion=${bundleVersion}&collectionObjectModified=${encodedBundleModified}&collectionAttackSpecVersion=${attackSpecVersion}`,
-      )
+      // .get(
+      //   `/api/stix-bundles?domain=${enterpriseDomain}&includeNotes=true&stixVersion=2.1&includeCollectionObject=true&collectionObjectVersion=${bundleVersion}&collectionObjectModified=${encodedBundleModified}&collectionAttackSpecVersion=${attackSpecVersion}`,
+      // )
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ includeNotes: true })
+      .query({ stixVersion: '2.1' })
+      .query({ includeCollectionObject: true })
+      .query({ collectionObjectVersion: bundleVersion })
+      .query({ collectionObjectModified: bundleModified })
+      .query({ collectionAttackSpecVersion: attackSpecVersion })
+      .query({ includeDataSources: true })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
@@ -796,7 +915,12 @@ describe('STIX Bundles Basic API', function () {
 
   it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain including deprecated objects', function (done) {
     request(app)
-      .get(`/api/stix-bundles?domain=${enterpriseDomain}&includeDeprecated=true&includeNotes=true`)
+      // .get(`/api/stix-bundles?domain=${enterpriseDomain}&includeDeprecated=true&includeNotes=true`)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ includeDeprecated: true })
+      .query({ includeNotes: true })
+      .query({ includeDataSources: true })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
@@ -820,7 +944,9 @@ describe('STIX Bundles Basic API', function () {
 
   it('GET /api/stix-bundles exports the STIX bundle for the mobile domain', function (done) {
     request(app)
-      .get(`/api/stix-bundles?domain=${mobileDomain}`)
+      // .get(`/api/stix-bundles?domain=${mobileDomain}`)
+      .get('/api/stix-bundles')
+      .query({ domain: mobileDomain })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
@@ -843,7 +969,10 @@ describe('STIX Bundles Basic API', function () {
 
   it('GET /api/stix-bundles exports the STIX bundle for the ics domain', function (done) {
     request(app)
-      .get(`/api/stix-bundles?domain=${icsDomain}`)
+      // .get(`/api/stix-bundles?domain=${icsDomain}`)
+      .get('/api/stix-bundles')
+      .query({ domain: icsDomain })
+      .query({ includeDataSources: true })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
@@ -856,8 +985,24 @@ describe('STIX Bundles Basic API', function () {
           const stixBundle = res.body;
           expect(stixBundle).toBeDefined();
           expect(Array.isArray(stixBundle.objects)).toBe(true);
-          // 3 primary objects, 5 relationship objects, 5 secondary objects,
-          // 1 identity, 1 marking definition
+
+          // DEBUG: Write bundle to file for inspection
+          fs.writeFileSync('./debug-ics-bundle.json', JSON.stringify(stixBundle, null, 2));
+          console.log('ICS bundle written to debug-ics-bundle.json');
+          console.log(`Actual object count: ${stixBundle.objects.length}`);
+
+          // Count objects by type for debugging
+          const typeCounts = {};
+          stixBundle.objects.forEach((obj) => {
+            typeCounts[obj.type] = (typeCounts[obj.type] || 0) + 1;
+          });
+          console.log('Object type counts:', typeCounts);
+
+          // 2 techniques, 2 data sources, 2 campaigns, 2 intrusion-sets,
+          // 5 relationships, 1 identity, 1 marking definition = 15 total
+          // (with includeDataSources: true, the 2 data sources are now included as primary objects)
+          // Note: Data components are NOT included because deprecated 'detects' relationships
+          // from data components are now ignored (only detection strategies can detect)
           expect(stixBundle.objects.length).toBe(15);
 
           const groupObjects = stixBundle.objects.filter((o) => o.type === 'intrusion-set');
