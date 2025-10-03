@@ -482,7 +482,27 @@ describe('STIX Bundles New Specification API', function () {
     expect(collection.workspace.import_categories.errors.length).toBe(0);
   });
 
-  it('GET /api/stix-bundles exports enterprise bundle with analytics and detection strategies', async function () {
+  it('GET /api/stix-bundles exports an empty STIX bundle', function (done) {
+    request(app)
+      .get('/api/stix-bundles?domain=not-a-domain')
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .end(function (err, res) {
+        if (err) {
+          done(err);
+        } else {
+          // We expect to get the exported STIX bundle
+          const stixBundle = res.body;
+          expect(stixBundle).toBeDefined();
+          expect(Array.isArray(stixBundle.objects)).toBe(true);
+          expect(stixBundle.objects.length).toBe(0);
+          done();
+        }
+      });
+  });
+
+  it('GET /api/stix-bundles exports enterprise bundle with new specification objects', async function () {
     const res = await request(app)
       .get('/api/stix-bundles')
       .query({ domain: enterpriseDomain })
@@ -520,21 +540,19 @@ describe('STIX Bundles New Specification API', function () {
 
     const dataComponents = stixBundle.objects.filter((o) => o.type === 'x-mitre-data-component');
     expect(dataComponents.length).toBe(1); // Only new-dc-001 (enterprise)
+  });
 
-    // Verify detection strategies are included as secondary objects
-    const detectionStrategies = stixBundle.objects.filter(
-      (o) => o.type === 'x-mitre-detection-strategy',
-    );
-    expect(detectionStrategies.length).toBe(2); // DS-001 (detects technique) and DS-002 (refs analytic)
+  it('Filters out deprecated detects relationships from data components', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
 
-    // Verify DS-003 is NOT included (orphaned - no technique or analytic)
-    const ds003 = stixBundle.objects.find((o) => o.id === 'x-mitre-detection-strategy--new-ds-003');
-    expect(ds003).toBeUndefined();
-
-    // Verify detection strategies have correct domain
-    detectionStrategies.forEach((ds) => {
-      expect(ds.x_mitre_domains).toEqual([enterpriseDomain]);
-    });
+    const stixBundle = res.body;
 
     // Verify deprecated detects relationships are FILTERED OUT
     // The new spec maintains a clean separation: deprecated patterns are excluded
@@ -548,10 +566,79 @@ describe('STIX Bundles New Specification API', function () {
     const validDetectsRels = stixBundle.objects.filter(
       (o) => o.type === 'relationship' && o.relationship_type === 'detects',
     );
-    expect(validDetectsRels.length).toBe(2); // DS-001 detects two techniques
+    expect(validDetectsRels.length).toBe(2); // Only DS-001 detects relationships
     validDetectsRels.forEach((rel) => {
       expect(rel.source_ref).toMatch(/^x-mitre-detection-strategy--/);
     });
+  });
+
+  it('Includes detection strategy when it detects an in-scope technique via relationship', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    const stixBundle = res.body;
+
+    // Verify DS-001 is included because it has 'detects' relationships to in-scope techniques
+    const ds001 = stixBundle.objects.find((o) => o.id === 'x-mitre-detection-strategy--new-ds-001');
+    expect(ds001).toBeDefined();
+    expect(ds001.name).toBe('Detection Strategy 1 - Detects Technique via Relationship');
+    expect(ds001.x_mitre_domains).toEqual([enterpriseDomain]);
+
+    // Verify the 'detects' relationships are included
+    const ds001DetectsRels = stixBundle.objects.filter(
+      (o) =>
+        o.type === 'relationship' &&
+        o.relationship_type === 'detects' &&
+        o.source_ref === 'x-mitre-detection-strategy--new-ds-001',
+    );
+    expect(ds001DetectsRels.length).toBe(2); // Detects two techniques
+  });
+
+  it('Includes detection strategy when it references an in-scope analytic', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    const stixBundle = res.body;
+
+    // Verify DS-002 is included because it references an in-scope analytic via x_mitre_analytic_refs
+    const ds002 = stixBundle.objects.find((o) => o.id === 'x-mitre-detection-strategy--new-ds-002');
+    expect(ds002).toBeDefined();
+    expect(ds002.name).toBe('Detection Strategy 2 - References Analytic');
+    expect(ds002.x_mitre_analytic_refs).toContain('x-mitre-analytic--new-ana-001');
+    expect(ds002.x_mitre_domains).toEqual([enterpriseDomain]);
+
+    // Verify the referenced analytic is in the bundle
+    const analytic = stixBundle.objects.find((o) => o.id === 'x-mitre-analytic--new-ana-001');
+    expect(analytic).toBeDefined();
+  });
+
+  it('Excludes detection strategy when neither condition is met', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    const stixBundle = res.body;
+
+    // Verify DS-003 is NOT included (orphaned - no technique or analytic reference)
+    const ds003 = stixBundle.objects.find((o) => o.id === 'x-mitre-detection-strategy--new-ds-003');
+    expect(ds003).toBeUndefined();
   });
 
   it('GET /api/stix-bundles with includeDataSources=true includes data sources', async function () {
@@ -628,34 +715,6 @@ describe('STIX Bundles New Specification API', function () {
       (o) => o.type === 'x-mitre-detection-strategy',
     );
     expect(detectionStrategies.length).toBe(0);
-  });
-
-  it('Verifies detection strategy DS-002 is included via analytic reference', async function () {
-    const res = await request(app)
-      .get('/api/stix-bundles')
-      .query({ domain: enterpriseDomain })
-      .query({ stixVersion: '2.1' })
-      .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(200)
-      .expect('Content-Type', /json/);
-
-    const stixBundle = res.body;
-
-    // Find DS-002
-    const ds002 = stixBundle.objects.find((o) => o.id === 'x-mitre-detection-strategy--new-ds-002');
-    expect(ds002).toBeDefined();
-    expect(ds002.name).toBe('Detection Strategy 2 - References Analytic');
-
-    // Verify it has the enterprise domain
-    expect(ds002.x_mitre_domains).toEqual([enterpriseDomain]);
-
-    // Verify the analytic it references is in the bundle
-    const ana001 = stixBundle.objects.find((o) => o.id === 'x-mitre-analytic--new-ana-001');
-    expect(ana001).toBeDefined();
-
-    // Verify DS-002 has the analytic ref
-    expect(ds002.x_mitre_analytic_refs).toContain('x-mitre-analytic--new-ana-001');
   });
 
   after(async function () {
