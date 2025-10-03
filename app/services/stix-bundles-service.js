@@ -107,6 +107,67 @@ class StixBundlesService extends BaseService {
   }
 
   // ============================
+  // Deprecated Pattern Filtering
+  // ============================
+
+  /**
+   * Defines deprecated patterns that should be excluded from new spec bundles.
+   * This centralized list makes it easy to manage which deprecated patterns
+   * are filtered out of exports when using the new ATT&CK specification.
+   *
+   * Each entry defines criteria for filtering:
+   * - type: The STIX object type (e.g., 'relationship')
+   * - conditions: Object with properties that must match for exclusion
+   *
+   * DEPRECATED PATTERNS (ATT&CK v17+):
+   * - SRO<x-mitre-data-component, detects, attack-pattern>
+   *   Reason: Data components no longer detect techniques; detection strategies do
+   */
+  static DEPRECATED_PATTERNS = [
+    {
+      type: 'relationship',
+      conditions: {
+        relationship_type: 'detects',
+        sourceTypePrefix: 'x-mitre-data-component--',
+      },
+      reason: 'Data components cannot detect techniques in v17+ (only detection strategies can)',
+    },
+  ];
+
+  /**
+   * Checks if a STIX object matches any deprecated pattern and should be excluded.
+   * @param {Object} stixObject - The STIX object to check
+   * @returns {boolean} True if the object matches a deprecated pattern
+   */
+  static isDeprecatedPattern(stixObject) {
+    for (const pattern of StixBundlesService.DEPRECATED_PATTERNS) {
+      if (stixObject.type !== pattern.type) {
+        continue;
+      }
+
+      // Check all conditions for this pattern
+      let matchesAllConditions = true;
+      for (const [key, value] of Object.entries(pattern.conditions)) {
+        if (key === 'sourceTypePrefix') {
+          // Special handling for source_ref prefix matching
+          if (!stixObject.source_ref?.startsWith(value)) {
+            matchesAllConditions = false;
+            break;
+          }
+        } else if (stixObject[key] !== value) {
+          matchesAllConditions = false;
+          break;
+        }
+      }
+
+      if (matchesAllConditions) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ============================
   // Domain and Type Validation
   // ============================
 
@@ -235,11 +296,18 @@ class StixBundlesService extends BaseService {
    * Adds a relationship to the STIX bundle, if:
    * - It is active, as per relationshipIsActive()
    * - Its source_ref and target_ref exist in objectsMap
+   * - It does not match any deprecated patterns
+   *
    * @param {Object} relationship - The relationship object to add
    * @param {Object} bundle - The STIX bundle being built
    * @param {Map} objectsMap - Map tracking objects in the bundle
    */
   static addRelationshipToBundle(relationship, bundle, objectsMap) {
+    // Filter out deprecated patterns (e.g., data component detects relationships)
+    if (StixBundlesService.isDeprecatedPattern(relationship.stix)) {
+      return;
+    }
+
     if (
       StixBundlesService.relationshipIsActive(relationship) &&
       objectsMap.has(relationship.stix.source_ref) &&
