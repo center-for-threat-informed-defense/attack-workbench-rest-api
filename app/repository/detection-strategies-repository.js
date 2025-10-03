@@ -103,6 +103,45 @@ class DetectionStrategiesRepository extends BaseRepository {
       throw new DatabaseError(err);
     }
   }
+
+  /**
+   * Find detection strategies that reference any of the specified analytics (batch query)
+   * @param {string[]} analyticIds - Array of analytic STIX IDs
+   * @param {Object} options - Query options (includeRevoked, includeDeprecated)
+   * @returns {Promise<Array>} Array of detection strategy documents
+   */
+  async findByAnalyticRefs(analyticIds, options = {}) {
+    try {
+      if (!analyticIds || analyticIds.length === 0) {
+        return [];
+      }
+
+      const query = {
+        'stix.x_mitre_analytic_refs': { $in: analyticIds },
+      };
+
+      if (!options.includeRevoked) {
+        query['stix.revoked'] = { $in: [null, false] };
+      }
+      if (!options.includeDeprecated) {
+        query['stix.x_mitre_deprecated'] = { $in: [null, false] };
+      }
+
+      // Get all matching detection strategies and return only the latest version of each
+      const aggregation = [
+        { $match: query },
+        { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+        { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
+        { $replaceRoot: { newRoot: '$document' } },
+        { $sort: { 'stix.id': 1 } },
+      ];
+
+      const documents = await this.model.aggregate(aggregation).exec();
+      return documents;
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
 }
 
 module.exports = new DetectionStrategiesRepository(DetectionStrategy);
