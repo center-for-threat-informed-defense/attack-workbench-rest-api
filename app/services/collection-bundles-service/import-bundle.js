@@ -38,6 +38,8 @@ const serviceMap = {
   [types.DataSource]: require('../../services/data-sources-service'),
   [types.DataComponent]: require('../../services/data-components-service'),
   [types.Asset]: require('../../services/assets-service'),
+  [types.Analytic]: require('../../services/analytics-service'),
+  [types.DetectionStrategy]: require('../../services/detection-strategies-service'),
 };
 
 // Handle special cases that share a service
