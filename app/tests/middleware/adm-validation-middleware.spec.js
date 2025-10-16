@@ -1,12 +1,12 @@
 const request = require('supertest');
 const { expect } = require('expect');
 
-const database = require('../../../lib/database-in-memory');
-const databaseConfiguration = require('../../../lib/database-configuration');
-const config = require('../../../config/config');
-const login = require('../../shared/login');
+const database = require('../../lib/database-in-memory');
+const databaseConfiguration = require('../../lib/database-configuration');
+const config = require('../../config/config');
+const login = require('../shared/login');
 
-const logger = require('../../../lib/logger');
+const logger = require('../../lib/logger');
 logger.level = 'debug';
 
 const uuid = require('uuid');
@@ -29,7 +29,7 @@ const { createSyntheticStixObject } = require('@mitre-attack/attack-data-model/d
  *
  * NOTE: Tests focus on techniques initially. Once validated, can be generalized to other types.
  */
-describe('ADM Validation Middleware (Smoke Tests)', function () {
+describe('ADM Validation Middleware', function () {
   let app;
   let passportCookie;
 
@@ -144,7 +144,7 @@ describe('ADM Validation Middleware (Smoke Tests)', function () {
     await databaseConfiguration.checkSystemConfiguration();
 
     // Initialize the express app
-    app = await require('../../../index').initializeApp();
+    app = await require('../../index').initializeApp();
 
     // Log into the app
     passportCookie = await login.loginAnonymous(app);
