@@ -15,13 +15,23 @@ const config = require('../config/config');
 //     }
 // }
 
-const consoleFormat = winston.format.combine(
-  winston.format.timestamp(),
-  winston.format.printf(
-    (info) => `${info.timestamp} [${info.level.toUpperCase()}] ${info.message}`,
-  ),
-  // winston.format.printf(info => `${ info.timestamp } [${ info.level.toUpperCase() }] ${ formatId(info) }${ info.message }`)
-);
+let consoleFormat;
+if (config.logging.logLevel === 'info') {
+  consoleFormat = winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(
+      (info) => `${info.timestamp} [${info.level.toUpperCase()}] ${info.message}`,
+    ),
+    // winston.format.printf(info => `${ info.timestamp } [${ info.level.toUpperCase() }] ${ formatId(info) }${ info.message }`)
+  );
+} else {
+  consoleFormat = winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.prettyPrint(),
+    // winston.format.simple(),
+  );
+}
 
 const logLevels = {
   error: 0,
