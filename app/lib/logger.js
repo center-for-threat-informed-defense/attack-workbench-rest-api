@@ -15,12 +15,19 @@ const config = require('../config/config');
 //     }
 // }
 
+// NOTE if you want to enable one-liner logs, use this instead:
+// const consoleFormat = winston.format.combine(
+//   winston.format.timestamp(),
+//   winston.format.printf(
+//     (info) => `${info.timestamp} [${info.level.toUpperCase()}] ${info.message}`,
+//   ),
+//   // winston.format.printf(info => `${ info.timestamp } [${ info.level.toUpperCase() }] ${ formatId(info) }${ info.message }`)
+// );
+
 const consoleFormat = winston.format.combine(
   winston.format.timestamp(),
-  winston.format.printf(
-    (info) => `${info.timestamp} [${info.level.toUpperCase()}] ${info.message}`,
-  ),
-  // winston.format.printf(info => `${ info.timestamp } [${ info.level.toUpperCase() }] ${ formatId(info) }${ info.message }`)
+  winston.format.errors({ stack: true }),
+  winston.format.prettyPrint(),
 );
 
 const logLevels = {
