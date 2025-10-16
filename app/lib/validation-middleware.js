@@ -156,11 +156,21 @@ function createWorkspaceStixSchema(
 /**
  * Middleware for parsing the request body using a specified STIX schema from the ATT&CK Data Model.
  * Both the `workspace` and `stix` keys are checked.
- * @param {z.ZodObject|z.ZodObject[]} stixSchemaOrSchemas - Single schema or array of schemas to validate against
+ * @param {z.ZodObject|z.ZodObject[]} oneOrMoreZodSchemas - Single schema or array of schemas to validate against
+ * @param {Object} options - Configuration options
+ * @param {boolean} options.enabled - Whether validation is enabled (defaults to true)
  * @returns {Function} Express middleware function
  */
-function validateWorkspaceStixData(stixSchemaOrSchemas) {
+function middleware(oneOrMoreZodSchemas, options = {}) {
+  const { enabled = true } = options;
+
   return (req, res, next) => {
+    // Skip validation if disabled
+    if (!enabled) {
+      logger.debug('Workspace STIX validation is disabled, skipping');
+      return next();
+    }
+
     logger.debug('Starting workspace+STIX validation middleware');
 
     logger.debug('Request body structure:', {
@@ -185,10 +195,10 @@ function validateWorkspaceStixData(stixSchemaOrSchemas) {
       let finalSchema;
 
       // Handle array of schemas - find the one that matches the request type
-      if (Array.isArray(stixSchemaOrSchemas)) {
+      if (Array.isArray(oneOrMoreZodSchemas)) {
         logger.debug('Multiple schemas provided, finding matching schema for request type');
 
-        for (const schema of stixSchemaOrSchemas) {
+        for (const schema of oneOrMoreZodSchemas) {
           try {
             const schemaStixType = extractStringLiteralFromStixTypeZodSchema(schema);
             logger.debug('Checking schema with type:', { schemaStixType });
@@ -213,13 +223,13 @@ function validateWorkspaceStixData(stixSchemaOrSchemas) {
 
         if (!finalSchema) {
           throw new Error(
-            `No matching schema found for STIX type: ${requestStixType}. Available schemas: ${stixSchemaOrSchemas.length}`,
+            `No matching schema found for STIX type: ${requestStixType}. Available schemas: ${oneOrMoreZodSchemas.length}`,
           );
         }
       } else {
         // Single schema - use it directly
         logger.debug('Single schema provided, using directly');
-        finalSchema = stixSchemaOrSchemas;
+        finalSchema = oneOrMoreZodSchemas;
       }
 
       // Create schema with conditional validation based on workflow state
@@ -287,6 +297,20 @@ function validateWorkspaceStixData(stixSchemaOrSchemas) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: 'Internal Server Error' });
       }
     }
+  };
+}
+
+/**
+ * Pre-configured validation middleware factory that uses runtime configuration.
+ * The middleware reads the config value at request time to support dynamic config changes (e.g., during tests).
+ */
+function validateWorkspaceStixData(oneOrMoreZodSchemas) {
+  return (req, res, next) => {
+    // Read config at request time to allow dynamic changes
+    const config = require('../config/config');
+    const enabled = config.validateRequests.withAttackDataModel;
+    const middlewareFn = middleware(oneOrMoreZodSchemas, { enabled });
+    return middlewareFn(req, res, next);
   };
 }
 
