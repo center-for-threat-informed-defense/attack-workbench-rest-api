@@ -32,7 +32,7 @@
     "test:config": "mocha  --timeout 20000 --recursive ./app/tests/config",
     "test:import": "mocha  --timeout 20000 --recursive ./app/tests/import",
     "test:openapi": "mocha  --timeout 20000 ./app/tests/openapi",
-    "test:middleware": "mocha  --timeout 20000 ./app/tests/middleware",
+    "test:middleware": "mocha  --timeout 20000 ./app/tests/middleware --exit",
     "test:authn": "./app/tests/run-mocha-separate-jobs.sh ./app/tests/authn",
     "test:fuzz": "mocha --timeout 20000 --recursive ./app/tests/fuzz",
     "test:scheduler": "mocha --timeout 60000 --recursive ./app/tests/scheduler"
