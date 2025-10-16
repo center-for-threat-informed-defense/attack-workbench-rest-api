@@ -12,6 +12,7 @@ on:
       - alpha
       - '*.*.x'   # Matches branches like '1.2.x', '2.3.x'
       - '*.x'     # Matches branches like '1.x', '2.x'
+      - adm       # TODO temporary project branch, remove when done
   pull_request: # Run on all PRs regardless of target branch
   workflow_dispatch:
 
