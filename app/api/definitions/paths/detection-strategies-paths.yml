@@ -116,8 +116,8 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              # $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy' # TODO delete after ADM integration complete
+              # type: object
+              $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy' # TODO delete after ADM integration complete
       responses:
         '201':
           description: 'The detection strategy has been successfully created.'
@@ -243,8 +243,8 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              # $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy' # TODO delete after ADM integration complete
+              # type: object
+              $ref: '../components/detection-strategies.yml#/components/schemas/detection-strategy' # TODO delete after ADM integration complete
       responses:
         '200':
           description: 'The detection strategy was updated.'

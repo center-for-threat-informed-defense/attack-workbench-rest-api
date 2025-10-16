@@ -124,8 +124,8 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              # $ref: '../components/analytics.yml#/components/schemas/analytic' # TODO delete after ADM integration complete
+              # type: object
+              $ref: '../components/analytics.yml#/components/schemas/analytic' # TODO delete after ADM integration complete
       responses:
         '201':
           description: 'The analytic has been successfully created.'
@@ -259,8 +259,8 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              # $ref: '../components/analytics.yml#/components/schemas/analytic' # TODO delete after ADM integration complete
+              # type: object
+              $ref: '../components/analytics.yml#/components/schemas/analytic' # TODO delete after ADM integration complete
       responses:
         '200':
           description: 'The analytic was updated.'
