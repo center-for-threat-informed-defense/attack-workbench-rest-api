@@ -829,10 +829,14 @@ class StixBundlesService extends BaseService {
     // included if they reference an analytic that is in the domain
     const analyticsInBundle = bundle.objects.filter((obj) => obj.type === 'x-mitre-analytic');
 
-    for (const analytic of analyticsInBundle) {
-      // Find all detection strategies that reference this analytic
-      const detectionStrategyDocs = await this.repositories.detectionStrategy.findByAnalyticRef(
-        analytic.id,
+    if (analyticsInBundle.length > 0) {
+      // Collect all analytic IDs in the bundle
+      const analyticIds = analyticsInBundle.map((analytic) => analytic.id);
+
+      // Single batch query to find all detection strategies that reference any of these analytics
+      // This replaces the N+1 query pattern that was causing timeouts
+      const detectionStrategyDocs = await this.repositories.detectionStrategy.findByAnalyticRefs(
+        analyticIds,
         options,
       );
 
