@@ -562,13 +562,23 @@ class StixBundlesService extends BaseService {
       this.repositories.dataSource.retrieveAllByDomain(options.domain, options),
     ]);
 
+    // Filter out analytics that don't have a URL, since they're not yet linked to a detection strategy
+    const filteredDomainAnalytics = domainAnalytics.filter((a) => {
+      const externalReferences = a?.stix?.external_references;
+      return (
+        Array.isArray(externalReferences) &&
+        externalReferences.length > 0 &&
+        externalReferences[0].url
+      );
+    });
+
     let primaryObjects = [
       ...domainMatrices,
       ...domainMitigations,
       ...domainSoftware,
       ...domainTactics,
       ...domainTechniques,
-      ...domainAnalytics,
+      ...filteredDomainAnalytics,
       ...domainDataComponents,
       ...(options.includeDataSources === true ? domainDataSources : []),
     ];
