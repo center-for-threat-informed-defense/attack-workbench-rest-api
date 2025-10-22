@@ -235,7 +235,13 @@ const newSpecBundleData = {
       spec_version: '2.1',
       object_marking_refs: [markingDefinitionId],
       created_by_ref: mitreIdentityId,
-      external_references: [{ source_name: 'mitre-attack', external_id: 'ANA-001' }],
+      external_references: [
+        {
+          source_name: 'mitre-attack',
+          external_id: 'ANA-001',
+          url: 'https://attack.mitre.org/detectionstrategies/DS-002#ANA-001',
+        },
+      ],
       x_mitre_domains: [enterpriseDomain],
       x_mitre_version: '1.0',
     },
@@ -250,6 +256,7 @@ const newSpecBundleData = {
       object_marking_refs: [markingDefinitionId],
       created_by_ref: mitreIdentityId,
       external_references: [{ source_name: 'mitre-attack', external_id: 'ANA-002' }],
+      // Note: No URL, meaning it's not attached to a detection strategy, meaning we don't want it in the bundle
       x_mitre_domains: [enterpriseDomain],
       x_mitre_version: '1.0',
     },
@@ -536,7 +543,7 @@ describe('STIX Bundles New Specification API', function () {
     expect(techniques.length).toBe(3); // new-ent-001, new-ent-002, new-ics-001
 
     const analytics = stixBundle.objects.filter((o) => o.type === 'x-mitre-analytic');
-    expect(analytics.length).toBe(2); // new-ana-001, new-ana-002
+    expect(analytics.length).toBe(1); // new-ana-002
 
     const dataComponents = stixBundle.objects.filter((o) => o.type === 'x-mitre-data-component');
     expect(dataComponents.length).toBe(1); // Only new-dc-001 (enterprise)
