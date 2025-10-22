@@ -543,7 +543,7 @@ describe('STIX Bundles New Specification API', function () {
     expect(techniques.length).toBe(3); // new-ent-001, new-ent-002, new-ics-001
 
     const analytics = stixBundle.objects.filter((o) => o.type === 'x-mitre-analytic');
-    expect(analytics.length).toBe(1); // new-ana-002
+    expect(analytics.length).toBe(1); // new-ana-001
 
     const dataComponents = stixBundle.objects.filter((o) => o.type === 'x-mitre-data-component');
     expect(dataComponents.length).toBe(1); // Only new-dc-001 (enterprise)
