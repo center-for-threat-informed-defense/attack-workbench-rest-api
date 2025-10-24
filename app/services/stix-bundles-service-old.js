@@ -7,7 +7,6 @@ const linkById = require('../lib/linkById');
 const logger = require('../lib/logger');
 
 // Import repositories
-const analyticsRepository = require('../repository/analytics-repository');
 const attackObjectsRepository = require('../repository/attack-objects-repository');
 const matrixRepository = require('../repository/matrix-repository');
 const mitigationsRepository = require('../repository/mitigations-repository');
@@ -16,9 +15,6 @@ const relationshipsRepository = require('../repository/relationships-repository'
 const softwareRepository = require('../repository/software-repository');
 const tacticsRepository = require('../repository/tactics-repository');
 const techniquesRepository = require('../repository/techniques-repository');
-const dataComponentsRepository = require('../repository/data-components-repository');
-const dataSourcesRepository = require('../repository/data-sources-repository');
-const detectionStrategiesRepository = require('../repository/detection-strategies-repository');
 
 // Import services
 const notesService = require('./notes-service');
@@ -26,61 +22,47 @@ const notesService = require('./notes-service');
 /**
  * Service for generating STIX bundles from the ATT&CK database.
  *
- * CORE CONCEPTS (New ATT&CK Specification):
+ * CORE CONCEPTS:
  *
  * This service makes an important distinction between "primary" and "secondary" objects
  * when generating STIX bundles:
  *
  * PRIMARY OBJECTS:
  * - Objects that directly belong to the requested domain (e.g., enterprise-attack, mobile-attack)
- * - Users can explicitly set/modify the x_mitre_domains field for these objects
- * - These are retrieved in the initial database query by domain
+ * - These are retrieved in the initial database query
  * - Examples for enterprise-attack domain:
- *   * Techniques (attack-pattern) like "Process Injection"
- *   * Tactics (x-mitre-tactic) like "Persistence"
- *   * Mitigations (course-of-action) specific to enterprise
- *   * Software/Tools (malware/tool) used in enterprise attacks
- *   * Data Components (x-mitre-data-component) - NEW in current spec
- *   * Data Sources (x-mitre-data-source) - deprecated but still primary
- *   * Analytics (x-mitre-analytic) - NEW in current spec
+ *   * Techniques like "Process Injection"
+ *   * Tactics like "Persistence"
+ *   * Mitigations specific to enterprise
+ *   * Software/Tools used in enterprise attacks
  *
  * SECONDARY OBJECTS:
- * - Objects that are related to primary objects through relationships or references
- * - Cannot be directly assigned to domains by users
- * - Their domain membership is inferred from relationships to primary objects
+ * - Objects that are related to primary objects through relationships
+ * - Not part of the initial domain query but may need to be included
  * - Need to be validated before inclusion in the bundle
  * - Examples:
- *   * Threat Groups (intrusion-set) that use techniques in the domain
- *   * Campaigns that deploy malware in the domain
- *   * Detection Strategies (x-mitre-detection-strategy) - NEW in current spec
- *     - Included if they detect a technique in the bundle, OR
- *     - Included if they reference an analytic (via x_mitre_analytic_refs) in the bundle
+ *   * A threat group that uses an enterprise technique
+ *   * A campaign that deploys enterprise malware
  *
  * EXAMPLE SCENARIO:
  * When requesting enterprise-attack domain bundle:
  * 1. Primary Objects (from initial query):
  *    - Technique T1055 "Process Injection"
- *    - Analytic ANA-001 "Process Injection Detection"
- *    - Data Component DC-001 "Process Creation"
+ *    - Technique T1056 "Input Capture"
  *
- * 2. Relationships and references discovered:
- *    - Group G0096 uses Technique T1055 (relationship)
- *    - Detection Strategy DS-001 detects Technique T1055 (relationship)
- *    - Detection Strategy DS-002 references Analytic ANA-001 (via x_mitre_analytic_refs)
+ * 2. Relationships discovered:
+ *    - Group G0096 uses Technique T1055
+ *    - Malware S0002 uses Technique T1056
  *
- * 3. Secondary Objects (need validation and domain inference):
+ * 3. Secondary Objects (need validation):
  *    - Group G0096
- *    - Detection Strategy DS-001
- *    - Detection Strategy DS-002
+ *    - Malware S0002
  *
  * The complex relationship processing in this service handles:
  * 1. Primary → Primary relationships (simplest case)
  * 2. Primary → Secondary relationships (need to fetch/validate secondary)
  * 3. Secondary → Primary relationships (need to fetch/validate secondary)
- * 4. Special cases:
- *    - 'detects' relationships (for detection strategies)
- *    - 'attributed-to' relationships (for groups/campaigns)
- *    - x_mitre_analytic_refs (for detection strategies referencing analytics)
+ * 4. Special cases like 'detects' relationships
  */
 class StixBundlesService extends BaseService {
   /**
@@ -91,7 +73,6 @@ class StixBundlesService extends BaseService {
   constructor() {
     super();
     this.repositories = {
-      analytic: analyticsRepository,
       attackObject: attackObjectsRepository,
       matrix: matrixRepository,
       mitigation: mitigationsRepository,
@@ -100,71 +81,7 @@ class StixBundlesService extends BaseService {
       software: softwareRepository,
       tactic: tacticsRepository,
       technique: techniquesRepository,
-      dataComponent: dataComponentsRepository,
-      dataSource: dataSourcesRepository,
-      detectionStrategy: detectionStrategiesRepository,
     };
-  }
-
-  // ============================
-  // Deprecated Pattern Filtering
-  // ============================
-
-  /**
-   * Defines deprecated patterns that should be excluded from new spec bundles.
-   * This centralized list makes it easy to manage which deprecated patterns
-   * are filtered out of exports when using the new ATT&CK specification.
-   *
-   * Each entry defines criteria for filtering:
-   * - type: The STIX object type (e.g., 'relationship')
-   * - conditions: Object with properties that must match for exclusion
-   *
-   * DEPRECATED PATTERNS (ATT&CK v17+):
-   * - SRO<x-mitre-data-component, detects, attack-pattern>
-   *   Reason: Data components no longer detect techniques; detection strategies do
-   */
-  static DEPRECATED_PATTERNS = [
-    {
-      type: 'relationship',
-      conditions: {
-        relationship_type: 'detects',
-        sourceTypePrefix: 'x-mitre-data-component--',
-      },
-      reason: 'Data components cannot detect techniques in v17+ (only detection strategies can)',
-    },
-  ];
-
-  /**
-   * Checks if a STIX object matches any deprecated pattern and should be excluded.
-   * @param {Object} stixObject - The STIX object to check
-   * @returns {boolean} True if the object matches a deprecated pattern
-   */
-  static isDeprecatedPattern(stixObject) {
-    for (const pattern of StixBundlesService.DEPRECATED_PATTERNS) {
-      if (stixObject.type !== pattern.type) {
-        continue;
-      }
-
-      // Check all conditions for this pattern
-      let matchesAllConditions = true;
-      for (const [key, value] of Object.entries(pattern.conditions)) {
-        if (key === 'sourceTypePrefix') {
-          // Special handling for source_ref prefix matching
-          if (!stixObject.source_ref?.startsWith(value)) {
-            matchesAllConditions = false;
-            break;
-          }
-        } else if (stixObject[key] !== value) {
-          matchesAllConditions = false;
-          break;
-        }
-      }
-
-      if (matchesAllConditions) {
-        return true;
-      }
-    }
-    return false;
   }
 
   // ============================
@@ -226,10 +143,7 @@ class StixBundlesService extends BaseService {
       'tool',
       'attack-pattern',
       'course-of-action',
-      'x-mitre-data-source',
-      'x-mitre-data-component',
-      'x-mitre-detection-strategy',
-      'x-mitre-analytic',
+      'x-mitre-data_source',
     ];
     return attackIdObjectTypes.includes(attackObject?.stix?.type);
   }
@@ -296,18 +210,11 @@ class StixBundlesService extends BaseService {
    * Adds a relationship to the STIX bundle, if:
    * - It is active, as per relationshipIsActive()
    * - Its source_ref and target_ref exist in objectsMap
-   * - It does not match any deprecated patterns
-   *
    * @param {Object} relationship - The relationship object to add
    * @param {Object} bundle - The STIX bundle being built
    * @param {Map} objectsMap - Map tracking objects in the bundle
    */
   static addRelationshipToBundle(relationship, bundle, objectsMap) {
-    // Filter out deprecated patterns (e.g., data component detects relationships)
-    if (StixBundlesService.isDeprecatedPattern(relationship.stix)) {
-      return;
-    }
-
     if (
       StixBundlesService.relationshipIsActive(relationship) &&
       objectsMap.has(relationship.stix.source_ref) &&
@@ -416,8 +323,69 @@ class StixBundlesService extends BaseService {
   }
 
   // ============================
-  // Collection Object Management
+  // Data Component Management
   // ============================
+
+  /**
+   * Updates technique objects with data component detection information.
+   * @param {Object} bundle - The STIX bundle being built
+   * @param {Map} techniqueDetectedBy - Map of techniques to their detecting components
+   * @param {Map} dataComponents - Map of data component IDs to objects
+   * @param {Map} dataSources - Map of data source IDs to objects
+   */
+  static processDataComponents(bundle, techniqueDetectedBy, dataComponents, dataSources) {
+    for (const bundleObject of bundle.objects) {
+      if (bundleObject.type === 'attack-pattern') {
+        // TODO remove this line once all techniques are confirmed to have x_mitre_is_subtechnique
+        bundleObject.x_mitre_is_subtechnique = bundleObject.x_mitre_is_subtechnique ?? false;
+
+        const enterpriseDomain = bundleObject.x_mitre_domains?.includes('enterprise-attack');
+        const icsDomain = bundleObject.x_mitre_domains?.includes('ics-attack');
+
+        if (enterpriseDomain || icsDomain) {
+          StixBundlesService.addDerivedDataSources(
+            bundleObject,
+            techniqueDetectedBy,
+            dataComponents,
+            dataSources,
+          );
+        } else {
+          bundleObject.x_mitre_data_sources = [];
+        }
+      }
+    }
+  }
+
+  /**
+   * Adds derived data sources to a technique based on its detecting components.
+   * @param {Object} bundleObject - The technique object to update
+   * @param {Map} techniqueDetectedBy - Map of techniques to their detecting components
+   * @param {Map} dataComponents - Map of data component IDs to objects
+   * @param {Map} dataSources - Map of data source IDs to objects
+   */
+  static addDerivedDataSources(bundleObject, techniqueDetectedBy, dataComponents, dataSources) {
+    bundleObject.x_mitre_data_sources = [];
+
+    const dataComponentIds = techniqueDetectedBy.get(bundleObject.id);
+    if (!dataComponentIds) return;
+
+    for (const dataComponentId of dataComponentIds) {
+      const dataComponent = dataComponents.get(dataComponentId);
+      if (!dataComponent) {
+        logger.warn(`Referenced data component not found: ${dataComponentId}`);
+        continue;
+      }
+
+      const dataSource = dataSources.get(dataComponent.x_mitre_data_source_ref);
+      if (!dataSource) {
+        logger.warn(`Referenced data source not found: ${dataComponent.x_mitre_data_source_ref}`);
+        continue;
+      }
+
+      const derivedDataSource = `${dataSource.name}: ${dataComponent.name}`;
+      bundleObject.x_mitre_data_sources.push(derivedDataSource);
+    }
+  }
 
   /**
    * Add an x-mitre-collection object to the bundle, based on the objects inside.
@@ -515,7 +483,6 @@ class StixBundlesService extends BaseService {
    * @param {boolean} options.collectionObjectVersion - x_mitre_version of the collection object
    * @param {boolean} options.collectionAttackSpecVersion - x_mitre_attack_spec_version of the collection object
    * @param {boolean} options.collectionObjectModified - Modified timestamp of the collection object
-   * @param {boolean} [options.includeDataSources=false] - Whether to include deprecated data sources
    * @param {string} [options.state] - Workflow state filter
    * @returns {Promise<Object>} The generated STIX bundle
    */
@@ -542,35 +509,14 @@ class StixBundlesService extends BaseService {
     }
 
     // Retrieve primary objects
-    const [
-      domainMitigations,
-      domainSoftware,
-      domainTactics,
-      domainTechniques,
-      domainMatrices,
-      domainAnalytics,
-      domainDataComponents,
-      domainDataSources,
-    ] = await Promise.all([
-      this.repositories.mitigation.retrieveAllByDomain(options.domain, options),
-      this.repositories.software.retrieveAllByDomain(options.domain, options),
-      this.repositories.tactic.retrieveAllByDomain(options.domain, options),
-      this.repositories.technique.retrieveAllByDomain(options.domain, options),
-      this.repositories.matrix.retrieveAllByDomain(options.domain, options),
-      this.repositories.analytic.retrieveAllByDomain(options.domain, options),
-      this.repositories.dataComponent.retrieveAllByDomain(options.domain, options),
-      this.repositories.dataSource.retrieveAllByDomain(options.domain, options),
-    ]);
-
-    // Filter out analytics that don't have a URL, since they're not yet linked to a detection strategy
-    const filteredDomainAnalytics = domainAnalytics.filter((a) => {
-      const externalReferences = a?.stix?.external_references;
-      return (
-        Array.isArray(externalReferences) &&
-        externalReferences.length > 0 &&
-        externalReferences[0].url
-      );
-    });
+    const [domainMitigations, domainSoftware, domainTactics, domainTechniques, domainMatrices] =
+      await Promise.all([
+        mitigationsRepository.retrieveAllByDomain(options.domain, options),
+        softwareRepository.retrieveAllByDomain(options.domain, options),
+        tacticsRepository.retrieveAllByDomain(options.domain, options),
+        techniquesRepository.retrieveAllByDomain(options.domain, options),
+        matrixRepository.retrieveAllByDomain(options.domain, options),
+      ]);
 
     let primaryObjects = [
       ...domainMatrices,
@@ -578,9 +524,6 @@ class StixBundlesService extends BaseService {
       ...domainSoftware,
       ...domainTactics,
       ...domainTechniques,
-      ...filteredDomainAnalytics,
-      ...domainDataComponents,
-      ...(options.includeDataSources === true ? domainDataSources : []),
     ];
 
     if (primaryObjects.length === 0) {
@@ -599,7 +542,7 @@ class StixBundlesService extends BaseService {
     }
 
     // Since we're querying all relationships, save them for later to prevent future database queries.
-    this.allRelationships = await this.repositories.relationship.retrieveAllForBundle(options);
+    this.allRelationships = await relationshipsRepository.retrieveAllForBundle(options);
 
     // Filter relationships that have a source_ref or target_ref that points at a primary object
     const primaryObjectRelationships = this.allRelationships.filter(
@@ -609,7 +552,19 @@ class StixBundlesService extends BaseService {
     );
 
     // Get the secondary objects (additional objects pointed to by a relationship)
-    await this.addSecondaryObjects(primaryObjectRelationships, objectsMap, bundle, options);
+    const dataComponents = new Map();
+    const techniqueDetectedBy = new Map();
+    await this.addSecondaryObjects(
+      primaryObjectRelationships,
+      objectsMap,
+      dataComponents,
+      techniqueDetectedBy,
+      bundle,
+      options,
+    );
+
+    const dataSources = new Map();
+    await this.processDataSourcesAndComponents(bundle, objectsMap, dataSources, options);
 
     await this.processSecondaryRelationships(bundle, objectsMap, options);
 
@@ -617,6 +572,14 @@ class StixBundlesService extends BaseService {
     for (const relationship of this.allRelationships) {
       StixBundlesService.addRelationshipToBundle(relationship, bundle, objectsMap);
     }
+
+    // Process data components
+    StixBundlesService.processDataComponents(
+      bundle,
+      techniqueDetectedBy,
+      dataComponents,
+      dataSources,
+    );
 
     // Add notes if requested
     if (options.includeNotes) {
@@ -644,40 +607,26 @@ class StixBundlesService extends BaseService {
    * Add secondary objects to the bundle - those objects which have a relationship
    * to a primary object but did not have the proper domain in the database.
    *
-   * Note: 'detects' relationships are skipped here and handled separately in
-   * processSecondaryRelationships() to support the new ATT&CK spec where only
-   * detection strategies (not data components) can detect techniques.
+   * Special handling is provided for 'detects' relationships to support
+   * technique detection data processing.
    *
    * @param {Array} primaryObjectRelationships - The relationships to process
    * @param {Map} objectsMap - Map of objects currently in the bundle
+   * @param {Map} dataComponents - Map to collect data components
+   * @param {Map} techniqueDetectedBy - Map to populate with technique detection info
    * @param {Object} bundle - The STIX bundle being built
    * @param {Object} options - Bundle generation options
    * @returns {Promise<void>}
    */
-  async addSecondaryObjects(primaryObjectRelationships, objectsMap, bundle, options) {
+  async addSecondaryObjects(
+    primaryObjectRelationships,
+    objectsMap,
+    dataComponents,
+    techniqueDetectedBy,
+    bundle,
+    options,
+  ) {
     for (const relationship of primaryObjectRelationships) {
-      // Skip 'detects' relationships - they require special handling
-      //
-      // CONTEXT: The ATT&CK specification changed how detection works:
-      // - OLD (pre-v17): Data components could detect techniques via 'detects' relationships
-      // - NEW (v17+): Only detection strategies can detect techniques via 'detects' relationships
-      //
-      // WHY WE SKIP HERE:
-      // 1. Data components are now PRIMARY objects (retrieved by domain), not secondary
-      // 2. If we processed 'detects' relationships here, we would incorrectly add data
-      //    components as secondary objects based on deprecated relationships
-      // 3. Detection strategies ARE secondary objects, but they need special domain
-      //    inference logic (they get the domain of the technique they detect)
-      //
-      // WHERE THEY'RE HANDLED:
-      // 'detects' relationships are processed in processSecondaryRelationships() where:
-      // - We verify the source is a detection strategy (not a data component)
-      // - We set the detection strategy's x_mitre_domains to match the target technique
-      // - Deprecated 'detects' from data components are silently ignored
-      if (relationship.stix.relationship_type === 'detects') {
-        continue;
-      }
-
       if (!objectsMap.has(relationship.stix.source_ref)) {
         const secondaryObject = await this.getAttackObject(relationship.stix.source_ref);
 
@@ -693,6 +642,52 @@ class StixBundlesService extends BaseService {
           this.addAttackObjectToBundle(secondaryObject, bundle, objectsMap);
         }
       }
+
+      // Special handling for 'detects' relationships:
+      // Track data components for later processing of technique detection data
+      if (
+        relationship.stix.relationship_type === 'detects' &&
+        StixBundlesService.relationshipIsActive(relationship)
+      ) {
+        const dataComponent = await this.getAttackObject(relationship.stix.source_ref);
+        dataComponents.set(dataComponent.stix.id, dataComponent.stix);
+        const techniqueDataComponents = techniqueDetectedBy.get(relationship.stix.target_ref);
+        if (techniqueDataComponents) {
+          techniqueDataComponents.push(relationship.stix.source_ref);
+        } else {
+          techniqueDetectedBy.set(relationship.stix.target_ref, [relationship.stix.source_ref]);
+        }
+      }
+    }
+  }
+
+  /**
+   * Processes all data sources referenced by data components in the bundle.
+   * Ensures that all necessary data sources are included and properly linked.
+   *
+   * Steps:
+   * 1. Collects all data source references from components
+   * 2. Retrieves and validates each data source
+   * 3. Adds valid data sources to bundle and tracking structures
+   *
+   * @param {Object} bundle - The STIX bundle being built
+   * @param {Map} objectsMap - Map of objects currently in the bundle
+   * @param {Map} dataSources - Map to populate with data source objects
+   * @param {Object} options - Bundle generation options
+   * @returns {Promise<void>}
+   */
+
+  async processDataSourcesAndComponents(bundle, objectsMap, dataSources, options) {
+    // Get data source IDs from components
+    const allDataComponents = bundle.objects.filter((obj) => obj.type === 'x-mitre-data-component');
+
+    for (const dataComponent of allDataComponents) {
+      const dataSourceId = dataComponent.x_mitre_data_source_ref;
+      const dataSource = await this.getAttackObject(dataSourceId);
+      if (StixBundlesService.secondaryObjectIsValid(dataSource, options)) {
+        this.addAttackObjectToBundle(dataSource, bundle, objectsMap);
+      }
+      dataSources.set(dataSourceId, dataSource.stix);
     }
   }
 
@@ -761,8 +756,6 @@ class StixBundlesService extends BaseService {
   /**
    * Processes relationships between secondary objects and handles special cases that need separate processing:
    * - Groups referenced by campaigns through 'attributed-to' relationships
-   * - Detection strategies that detect techniques in the bundle
-   * - Detection strategies referenced by analytics in the bundle
    * - Secondary objects that were revoked by other secondary objects
    *
    * @param {Object} bundle - The STIX bundle being built
@@ -792,26 +785,6 @@ class StixBundlesService extends BaseService {
         }
       }
 
-      // Add detection strategies that detect techniques in the bundle
-      if (
-        relationship.stix.relationship_type === 'detects' &&
-        objectsMap.has(relationship.stix.target_ref) &&
-        !objectsMap.has(relationship.stix.source_ref)
-      ) {
-        const detectionStrategy = await this.getAttackObject(relationship.stix.source_ref);
-        if (
-          detectionStrategy.stix.type === 'x-mitre-detection-strategy' &&
-          StixBundlesService.secondaryObjectIsValid(detectionStrategy, options)
-        ) {
-          if (detectionStrategy.stix.x_mitre_domains) {
-            this.domainCache.set(detectionStrategy.stix.id, detectionStrategy.stix.x_mitre_domains);
-          }
-          // Set x_mitre_domains on each exported detection strategy
-          detectionStrategy.stix.x_mitre_domains = [options.domain];
-          this.addAttackObjectToBundle(detectionStrategy, bundle, objectsMap);
-        }
-      }
-
       // Add secondary objects that were revoked by other secondary objects
       if (
         relationship.stix.relationship_type === 'revoked-by' &&
@@ -830,40 +803,6 @@ class StixBundlesService extends BaseService {
             revokedObject.stix.x_mitre_domains = [options.domain];
           }
           this.addAttackObjectToBundle(revokedObject, bundle, objectsMap);
-        }
-      }
-    }
-
-    // Add detection strategies referenced by analytics in the bundle
-    // This is a key requirement of the new ATT&CK spec: detection strategies should be
-    // included if they reference an analytic that is in the domain
-    const analyticsInBundle = bundle.objects.filter((obj) => obj.type === 'x-mitre-analytic');
-
-    if (analyticsInBundle.length > 0) {
-      // Collect all analytic IDs in the bundle
-      const analyticIds = analyticsInBundle.map((analytic) => analytic.id);
-
-      // Single batch query to find all detection strategies that reference any of these analytics
-      // This replaces the N+1 query pattern that was causing timeouts
-      const detectionStrategyDocs = await this.repositories.detectionStrategy.findByAnalyticRefs(
-        analyticIds,
-        options,
-      );
-
-      for (const detectionStrategyDoc of detectionStrategyDocs) {
-        if (
-          !objectsMap.has(detectionStrategyDoc.stix.id) &&
-          StixBundlesService.secondaryObjectIsValid(detectionStrategyDoc, options)
-        ) {
-          if (detectionStrategyDoc.stix.x_mitre_domains) {
-            this.domainCache.set(
-              detectionStrategyDoc.stix.id,
-              detectionStrategyDoc.stix.x_mitre_domains,
-            );
-          }
-          // Set x_mitre_domains on each exported detection strategy
-          detectionStrategyDoc.stix.x_mitre_domains = [options.domain];
-          this.addAttackObjectToBundle(detectionStrategyDoc, bundle, objectsMap);
         }
       }
     }

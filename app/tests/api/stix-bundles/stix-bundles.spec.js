@@ -1,5 +1,62 @@
+/**
+ * STIX Bundles Export - New ATT&CK Specification Tests (v17+)
+ * ============================================================
+ *
+ * PURPOSE:
+ * This test suite validates the NEW ATT&CK v17+ specification workflow,
+ * specifically testing the new SDO types (Analytics and Detection Strategies)
+ * and their associated behaviors. This suite ensures the new features work
+ * correctly and that deprecated behaviors are properly ignored.
+ *
+ * NEW ATT&CK v17+ SPECIFICATION FEATURES TESTED:
+ *
+ * 1. ANALYTICS (x-mitre-analytic) - Primary Objects
+ *    - Explicitly assigned to domains via x_mitre_domains
+ *    - Retrieved as primary objects by domain
+ *    - Require ATT&CK IDs
+ *
+ * 2. DETECTION STRATEGIES (x-mitre-detection-strategy) - Secondary Objects
+ *    - NOT explicitly assigned to domains (domain is inferred)
+ *    - Included in bundle under TWO conditions:
+ *      a) They detect a technique in the bundle (via 'detects' relationship)
+ *      b) They reference an analytic in the bundle (via x_mitre_analytic_refs)
+ *    - Their x_mitre_domains is set to the domain being exported
+ *
+ * 3. DATA COMPONENTS & DATA SOURCES - Now Primary Objects
+ *    - Both are now PRIMARY objects with explicit domain assignment
+ *    - Retrieved by domain (not via relationships)
+ *    - Data sources are deprecated but still supported via includeDataSources param
+ *    - IMPORTANT: Deprecated 'detects' relationships from data components are IGNORED
+ *
+ * DEPRECATED BEHAVIORS THAT MUST BE IGNORED:
+ * - SRO<x-mitre-data-component, detects, attack-pattern> - Data components can no longer detect
+ * - Data components/sources as secondary objects - They're now primary objects
+ * - Domain inference for data components - They must have explicit x_mitre_domains
+ *
+ * TEST SCENARIOS:
+ * ✓ Analytics are retrieved as primary objects by domain
+ * ✓ Detection strategies are included when they detect techniques in bundle
+ * ✓ Detection strategies are included when they reference analytics in bundle
+ * ✓ Detection strategies get their x_mitre_domains set to the export domain
+ * ✓ Data components are retrieved as primary objects (not via detects relationships)
+ * ✓ Data sources are optionally included via includeDataSources parameter
+ * ✓ Deprecated detects relationships from data components are ignored
+ * ✓ Data components without x_mitre_domains for a domain are NOT included in that domain's export
+ *
+ * TEST DATA STRUCTURE:
+ * - 3 Techniques (attack-patterns) across enterprise and ICS domains
+ * - 2 Analytics in enterprise domain
+ * - 3 Detection Strategies (secondary objects with no domain assignment)
+ * - 2 Data Components with explicit domain assignments
+ * - 2 Data Sources with explicit domain assignments
+ * - Deprecated detects relationships from data components (to prove they're ignored)
+ * - Valid detects relationships from detection strategies
+ * - Analytics references in detection strategies (x_mitre_analytic_refs)
+ */
+
 const request = require('supertest');
 const { expect } = require('expect');
+// const fs = require('fs');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -9,656 +66,393 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 
 const enterpriseDomain = 'enterprise-attack';
-const mobileDomain = 'mobile-attack';
 const icsDomain = 'ics-attack';
 
-const collectionId = 'x-mitre-collection--30ee11cf-0a05-4d9e-ab54-9b8563669647';
+const collectionId = 'x-mitre-collection--b0b12345-aaaa-bbbb-cccc-dddddddddddd';
 const collectionTimestamp = new Date().toISOString();
 
 const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 const mitreIdentityId = 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5';
 
-const initialObjectData = {
+/**
+ * Test Data: New ATT&CK v17+ Specification Bundle
+ *
+ * This bundle includes:
+ * - 3 techniques (2 enterprise, 1 ICS, with 1 shared)
+ * - 2 analytics (both enterprise)
+ * - 3 detection strategies (no domain - inferred)
+ * - 2 data components (1 enterprise, 1 ICS)
+ * - 2 data sources (1 enterprise, 1 ICS)
+ * - Valid detects relationships: detection-strategy → technique
+ * - Deprecated detects relationships: data-component → technique (should be ignored)
+ * - Analytics references: detection-strategy → analytic
+ */
+const newSpecBundleData = {
   type: 'bundle',
-  id: 'bundle--0cde353c-ea5b-4668-9f68-971946609282',
+  id: 'bundle--new-spec-test-bundle',
   spec_version: '2.1',
   objects: [
+    // ========================================
+    // COLLECTION OBJECT
+    // ========================================
     {
       id: collectionId,
       created: collectionTimestamp,
       modified: collectionTimestamp,
-      name: 'collection-1',
+      name: 'New Spec Test Collection',
       spec_version: '2.1',
       type: 'x-mitre-collection',
-      description: 'This is a collection.',
+      description: 'Test collection for new ATT&CK specification features',
       external_references: [],
       object_marking_refs: [markingDefinitionId],
       created_by_ref: mitreIdentityId,
       x_mitre_contents: [
+        // Techniques
+        { object_ref: 'attack-pattern--new-ent-001', object_modified: '2024-01-15T10:00:00.000Z' },
+        { object_ref: 'attack-pattern--new-ent-002', object_modified: '2024-01-15T10:00:00.000Z' },
+        { object_ref: 'attack-pattern--new-ics-001', object_modified: '2024-01-15T10:00:00.000Z' },
+        // Analytics
         {
-          object_ref: 'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a',
-          object_modified: '2020-03-30T14:03:43.761Z',
+          object_ref: 'x-mitre-analytic--new-ana-001',
+          object_modified: '2024-01-15T10:00:00.000Z',
         },
         {
-          object_ref: 'attack-pattern--1eaebf46-e361-4437-bc23-d5d65a3b92e3',
-          object_modified: '2020-02-17T13:14:31.140Z',
+          object_ref: 'x-mitre-analytic--new-ana-002',
+          object_modified: '2024-01-15T10:00:00.000Z',
+        },
+        // Detection Strategies
+        {
+          object_ref: 'x-mitre-detection-strategy--new-ds-001',
+          object_modified: '2024-01-15T10:00:00.000Z',
         },
         {
-          object_ref: 'attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483',
-          object_modified: '2019-02-03T16:56:41.200Z',
+          object_ref: 'x-mitre-detection-strategy--new-ds-002',
+          object_modified: '2024-01-15T10:00:00.000Z',
         },
         {
-          object_ref: 'attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f',
-          object_modified: '2019-02-03T16:56:41.200Z',
+          object_ref: 'x-mitre-detection-strategy--new-ds-003',
+          object_modified: '2024-01-15T10:00:00.000Z',
+        },
+        // Data Components
+        {
+          object_ref: 'x-mitre-data-component--new-dc-001',
+          object_modified: '2024-01-15T10:00:00.000Z',
         },
         {
-          object_ref: 'course-of-action--25dc1ce8-eb55-4333-ae30-a7cb4f5894a1',
-          object_modified: '2018-10-17T00:14:20.652Z',
+          object_ref: 'x-mitre-data-component--new-dc-002',
+          object_modified: '2024-01-15T10:00:00.000Z',
+        },
+        // Data Sources
+        {
+          object_ref: 'x-mitre-data-source--new-ds-src-001',
+          object_modified: '2024-01-15T10:00:00.000Z',
         },
         {
-          object_ref: 'course-of-action--e944670c-d03a-4e93-a21c-b3d4c53ec4c9',
-          object_modified: '2018-10-17T00:14:20.652Z',
+          object_ref: 'x-mitre-data-source--new-ds-src-002',
+          object_modified: '2024-01-15T10:00:00.000Z',
+        },
+        // Relationships
+        {
+          object_ref: 'relationship--new-ds-detects-tech-001',
+          object_modified: '2024-01-15T10:00:00.000Z',
         },
         {
-          object_ref: 'malware--04227b24-7817-4de1-9050-b7b1b57f5866',
-          object_modified: '2020-03-30T18:17:52.697Z',
+          object_ref: 'relationship--new-ds-detects-tech-002',
+          object_modified: '2024-01-15T10:00:00.000Z',
         },
         {
-          object_ref: 'intrusion-set--8a831aaa-f3e0-47a3-bed8-a9ced744dd12',
-          object_modified: '2020-06-03T20:22:40.401Z',
+          object_ref: 'relationship--new-dc-detects-tech-dep',
+          object_modified: '2024-01-15T10:00:00.000Z',
         },
-        {
-          object_ref: 'intrusion-set--ed0222fb-b970-4337-b9a2-62aeb02860e5',
-          object_modified: '2023-05-02T20:19:40.401Z',
-        },
-        {
-          object_ref: 'relationship--12098dee-27b3-4d0b-a15a-6b5955ba8879',
-          object_modified: '2019-09-04T14:32:13.000Z',
-        },
-        {
-          object_ref: 'intrusion-set--6b9ebeb5-20bf-48b0-afb7-988d769a2f01',
-          object_modified: '2020-05-15T15:44:47.629Z',
-        },
-        {
-          object_ref: 'campaign--a3038910-f8ca-4ba8-b116-21d0f333f231',
-          object_modified: '2020-07-03T20:22:40.401Z',
-        },
-        {
-          object_ref: 'campaign--649b389e-1f7a-4696-8a95-04d0851bd551',
-          object_modified: '2020-07-03T20:22:40.401Z',
-        },
-        {
-          object_ref: mitreIdentityId,
-          object_modified: '2017-06-01T00:00:00.000Z',
-        },
-        {
-          object_ref: markingDefinitionId,
-          object_modified: '2017-06-01T00:00:00Z',
-        },
-        {
-          object_ref: 'note--6b9456275-20bf-48b0-afb7-988d769a2f99',
-          object_modified: '2020-04-12T15:44:47.629Z',
-        },
-        {
-          object_ref: 'x-mitre-data-source--880b771b-17a8-4a6c-a259-9027c395010c',
-          object_modified: '2020-04-12T15:44:47.629Z',
-        },
-        {
-          object_ref: 'x-mitre-data-source--3e396a50-dd74-45cf-b8a3-974ab80c9a3e',
-          object_modified: '2020-04-12T15:44:47.629Z',
-        },
-        {
-          object_ref: 'x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d',
-          object_modified: '2020-04-12T15:44:47.629Z',
-        },
-        {
-          object_ref: 'x-mitre-data-component--f8b4833e-a6d4-4a05-ba6e-1936d4109d0a',
-          object_modified: '2020-04-12T15:44:47.629Z',
-        },
-        {
-          object_ref: 'relationship--caa8928b-0bf6-45cd-8504-6c27b9cd96a8',
-          object_modified: '2019-09-04T14:32:13.000Z',
-        },
-        {
-          object_ref: 'relationship--b0c6c76c-7699-447f-9f3f-573aec51431c',
-          object_modified: '2019-09-04T14:32:13.000Z',
-        },
-        {
-          object_ref: 'relationship--e7f994c6-3e08-4aea-a30e-97cc6fe610c6',
-          object_modified: '2019-09-04T14:32:13.000Z',
-        },
-        {
-          object_ref: 'relationship--89586929-ca62-423f-94bf-cc03ec8161bb',
-          object_modified: '2021-06-06T14:00:00.000Z',
-        },
-        {
-          object_ref: 'relationship--21d3572e-398d-4473-93eb-eb9a2a069d53',
-          object_modified: '2021-06-07T14:00:00.000Z',
-        },
-        {
-          object_ref: 'relationship--a5a80c31-0dde-4fd7-a520-a7593d21c954',
-          object_modified: '2021-06-08T14:00:00.000Z',
-        },
-        {
-          object_ref: 'relationship--1e1c5e5a-2a3e-423f-b1d0-67b7dc5b90cc',
-          object_modified: '2023-06-08T14:00:00.000Z',
-        },
-        {
-          object_ref: 'relationship--d5426745-9530-485e-a757-d8c540f600f8',
-          object_modified: '2021-06-06T14:00:00.000Z',
-        },
+        // Supporting objects (identity and marking-definition should also be in x_mitre_contents)
+        { object_ref: mitreIdentityId, object_modified: '2017-06-01T00:00:00.000Z' },
+        { object_ref: markingDefinitionId, object_modified: '2017-06-01T00:00:00.000Z' },
       ],
     },
+
+    // ========================================
+    // TECHNIQUES (attack-pattern)
+    // ========================================
     {
+      type: 'attack-pattern',
+      id: 'attack-pattern--new-ent-001',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'Enterprise Technique 1',
+      description: 'A technique in the enterprise domain',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'T9001' }],
+      kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'execution' }],
+      x_mitre_domains: [enterpriseDomain],
+      x_mitre_version: '1.0',
+      x_mitre_is_subtechnique: false,
+    },
+    {
+      type: 'attack-pattern',
+      id: 'attack-pattern--new-ent-002',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'Enterprise Technique 2',
+      description: 'Another technique in the enterprise domain',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'T9002' }],
+      kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'persistence' }],
+      x_mitre_domains: [enterpriseDomain],
+      x_mitre_version: '1.0',
+      x_mitre_is_subtechnique: false,
+    },
+    {
+      type: 'attack-pattern',
+      id: 'attack-pattern--new-ics-001',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'ICS Technique 1',
+      description: 'A technique in both enterprise and ICS domains',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'T9003' }],
+      kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'execution' }],
+      x_mitre_domains: [enterpriseDomain, icsDomain],
+      x_mitre_version: '1.0',
+      x_mitre_is_subtechnique: false,
+    },
+
+    // ========================================
+    // ANALYTICS (x-mitre-analytic) - PRIMARY OBJECTS
+    // ========================================
+    {
+      type: 'x-mitre-analytic',
+      id: 'x-mitre-analytic--new-ana-001',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'Process Execution Analytic',
+      description: 'Detects suspicious process execution patterns',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [
+        {
+          source_name: 'mitre-attack',
+          external_id: 'ANA-001',
+          url: 'https://attack.mitre.org/detectionstrategies/DS-002#ANA-001',
+        },
+      ],
+      x_mitre_domains: [enterpriseDomain],
+      x_mitre_version: '1.0',
+    },
+    {
+      type: 'x-mitre-analytic',
+      id: 'x-mitre-analytic--new-ana-002',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'Persistence Mechanism Analytic',
+      description: 'Detects persistence mechanism installations',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'ANA-002' }],
+      // Note: No URL, meaning it's not attached to a detection strategy, meaning we don't want it in the bundle
+      x_mitre_domains: [enterpriseDomain],
+      x_mitre_version: '1.0',
+    },
+
+    // ========================================
+    // DETECTION STRATEGIES (x-mitre-detection-strategy) - SECONDARY OBJECTS
+    // ========================================
+    {
+      type: 'x-mitre-detection-strategy',
+      id: 'x-mitre-detection-strategy--new-ds-001',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'Detection Strategy 1 - Detects Technique via Relationship',
+      description: 'This detection strategy detects attack-pattern--new-ent-001',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DS-001' }],
+      x_mitre_version: '1.0',
+      // Note: No x_mitre_domains - this is inferred from relationships
+    },
+    {
+      type: 'x-mitre-detection-strategy',
+      id: 'x-mitre-detection-strategy--new-ds-002',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'Detection Strategy 2 - References Analytic',
+      description: 'This detection strategy references x-mitre-analytic--new-ana-001',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DS-002' }],
+      x_mitre_version: '1.0',
+      x_mitre_analytic_refs: ['x-mitre-analytic--new-ana-001'],
+      // Note: No x_mitre_domains - this is inferred from analytic refs
+    },
+    {
+      type: 'x-mitre-detection-strategy',
+      id: 'x-mitre-detection-strategy--new-ds-003',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'Detection Strategy 3 - Not Included (orphaned)',
+      description: 'This detection strategy should NOT be included - no technique or analytic',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DS-003' }],
+      x_mitre_version: '1.0',
+      // Note: No detects relationship, no analytic refs, so this should NOT appear in bundle
+    },
+
+    // ========================================
+    // DATA COMPONENTS (x-mitre-data-component) - PRIMARY OBJECTS
+    // ========================================
+    {
+      type: 'x-mitre-data-component',
+      id: 'x-mitre-data-component--new-dc-001',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'Enterprise Data Component',
+      description: 'A data component in the enterprise domain',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DC9001' }],
+      x_mitre_domains: [enterpriseDomain],
+      x_mitre_version: '1.0',
+      x_mitre_data_source_ref: 'x-mitre-data-source--new-ds-src-001',
+    },
+    {
+      type: 'x-mitre-data-component',
+      id: 'x-mitre-data-component--new-dc-002',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'ICS Data Component',
+      description: 'A data component in the ICS domain',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DC9002' }],
+      x_mitre_domains: [icsDomain],
+      x_mitre_version: '1.0',
+      x_mitre_data_source_ref: 'x-mitre-data-source--new-ds-src-002',
+    },
+
+    // ========================================
+    // DATA SOURCES (x-mitre-data-source) - PRIMARY OBJECTS (DEPRECATED)
+    // ========================================
+    {
+      type: 'x-mitre-data-source',
+      id: 'x-mitre-data-source--new-ds-src-001',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'Enterprise Data Source',
+      description: 'A deprecated data source in the enterprise domain',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DS9001' }],
+      x_mitre_domains: [enterpriseDomain],
+      x_mitre_version: '1.0',
+    },
+    {
+      type: 'x-mitre-data-source',
+      id: 'x-mitre-data-source--new-ds-src-002',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      name: 'ICS Data Source',
+      description: 'A deprecated data source in the ICS domain',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [{ source_name: 'mitre-attack', external_id: 'DS9002' }],
+      x_mitre_domains: [icsDomain],
+      x_mitre_version: '1.0',
+    },
+
+    // ========================================
+    // RELATIONSHIPS
+    // ========================================
+
+    // Valid 'detects' relationship: Detection Strategy → Technique
+    {
+      type: 'relationship',
+      id: 'relationship--new-ds-detects-tech-001',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      relationship_type: 'detects',
+      source_ref: 'x-mitre-detection-strategy--new-ds-001',
+      target_ref: 'attack-pattern--new-ent-001',
+      description: 'Detection strategy detects enterprise technique 1',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [],
+    },
+
+    // Valid 'detects' relationship: Detection Strategy → Technique (different technique)
+    {
+      type: 'relationship',
+      id: 'relationship--new-ds-detects-tech-002',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      relationship_type: 'detects',
+      source_ref: 'x-mitre-detection-strategy--new-ds-001',
+      target_ref: 'attack-pattern--new-ent-002',
+      description: 'Detection strategy detects enterprise technique 2',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [],
+    },
+
+    // DEPRECATED 'detects' relationship: Data Component → Technique (should be IGNORED)
+    {
+      type: 'relationship',
+      id: 'relationship--new-dc-detects-tech-dep',
+      created: '2024-01-15T10:00:00.000Z',
+      modified: '2024-01-15T10:00:00.000Z',
+      relationship_type: 'detects',
+      source_ref: 'x-mitre-data-component--new-dc-001',
+      target_ref: 'attack-pattern--new-ent-001',
+      description: 'DEPRECATED: Data component detects technique (should be ignored)',
+      spec_version: '2.1',
+      object_marking_refs: [markingDefinitionId],
+      created_by_ref: mitreIdentityId,
+      external_references: [],
+    },
+
+    // ========================================
+    // SUPPORTING OBJECTS (Identity, Marking Definition)
+    // ========================================
+    {
+      type: 'identity',
       id: mitreIdentityId,
+      created: '2017-06-01T00:00:00.000Z',
+      modified: '2017-06-01T00:00:00.000Z',
       name: 'The MITRE Corporation',
       identity_class: 'organization',
-      object_marking_refs: [markingDefinitionId],
-      type: 'identity',
-      modified: '2017-06-01T00:00:00.000Z',
-      created: '2017-06-01T00:00:00.000Z',
       spec_version: '2.1',
     },
     {
       type: 'marking-definition',
       id: markingDefinitionId,
-      created_by_ref: mitreIdentityId,
-      created: '2017-06-01T00:00:00Z',
+      created: '2017-06-01T00:00:00.000Z',
       definition_type: 'statement',
       definition: {
         statement:
-          'Copyright 2015-2021, The MITRE Corporation. MITRE ATT&CK and ATT&CK are registered trademarks of The MITRE Corporation.',
+          'Copyright 2015-2024, The MITRE Corporation. MITRE ATT&CK and ATT&CK are registered trademarks of The MITRE Corporation.',
       },
-      spec_version: '2.1',
-    },
-    {
-      id: 'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a',
-      created: '2020-03-30T14:03:43.761Z',
-      modified: '2020-03-30T14:03:43.761Z',
-      name: 'attack-pattern-1',
-      x_mitre_version: '1.0',
-      spec_version: '2.1',
-      type: 'attack-pattern',
-      description: 'This is a technique.',
-      external_references: [
-        { source_name: 'mitre-attack', external_id: 'T1' },
-        {
-          source_name: 'attack-pattern-1 source',
-          description: 'this is a source description',
-        },
-      ],
-      object_marking_refs: [markingDefinitionId],
-      created_by_ref: mitreIdentityId,
-      kill_chain_phases: [{ kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }],
-      x_mitre_data_sources: ['Command: Command Execution', 'Network Traffic: Network Traffic Flow'],
-      x_mitre_detection: 'detection text',
-      x_mitre_is_subtechnique: false,
-      x_mitre_impact_type: ['impact-1'],
-      x_mitre_platforms: ['platform-1', 'platform-2'],
-      x_mitre_domains: [enterpriseDomain],
-    },
-    {
-      id: 'attack-pattern--1eaebf46-e361-4437-bc23-d5d65a3b92e3',
-      created: '2020-02-12T18:55:24.728Z',
-      modified: '2020-02-17T13:14:31.140Z',
-      name: 'attack-pattern-2',
-      x_mitre_version: '1.0',
-      spec_version: '2.1',
-      type: 'attack-pattern',
-      description: 'This is a technique.',
-      external_references: [
-        { source_name: 'mitre-attack', external_id: 'T1' },
-        {
-          source_name: 'attack-pattern-1 source',
-          description: 'this is a source description',
-        },
-      ],
-      object_marking_refs: [markingDefinitionId],
-      created_by_ref: mitreIdentityId,
-      kill_chain_phases: [{ kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }],
-      x_mitre_detection: 'detection text',
-      x_mitre_is_subtechnique: false,
-      x_mitre_impact_type: ['impact-1'],
-      x_mitre_platforms: ['platform-1', 'platform-2'],
-      x_mitre_domains: [mobileDomain],
-    },
-    {
-      id: 'attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483',
-      created: '2019-02-03T16:56:41.200Z',
-      modified: '2019-02-03T16:56:41.200Z',
-      name: 'attack-pattern-3',
-      x_mitre_version: '1.0',
-      spec_version: '2.1',
-      type: 'attack-pattern',
-      description: 'This is another technique.',
-      external_references: [
-        { source_name: 'mitre-attack', external_id: 'T1' },
-        {
-          source_name: 'attack-pattern-2 source',
-          description: 'this is a source description 2',
-        },
-      ],
-      object_marking_refs: [markingDefinitionId],
-      created_by_ref: mitreIdentityId,
-      kill_chain_phases: [{ kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }],
-      x_mitre_data_sources: [
-        'Operational Databases: Device Alarm',
-        'Network Traffic: Network Traffic Flow',
-      ],
-      x_mitre_detection: 'detection text',
-      x_mitre_is_subtechnique: false,
-      x_mitre_impact_type: ['impact-1'],
-      x_mitre_platforms: ['platform-1', 'platform-2'],
-      x_mitre_domains: [icsDomain],
-    },
-    {
-      id: 'attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f',
-      created: '2019-02-03T16:56:41.200Z',
-      modified: '2019-02-03T16:56:41.200Z',
-      name: 'attack-pattern-4',
-      x_mitre_version: '1.0',
-      spec_version: '2.1',
-      type: 'attack-pattern',
-      description: 'This is another technique.',
-      external_references: [
-        { source_name: 'mitre-attack', external_id: 'T1' },
-        {
-          source_name: 'attack-pattern-2 source',
-          description: 'this is a source description 2',
-        },
-      ],
-      object_marking_refs: [markingDefinitionId],
-      created_by_ref: mitreIdentityId,
-      kill_chain_phases: [{ kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }],
-      x_mitre_data_sources: [
-        'Command: Command Execution',
-        'Operational Databases: Device Alarm',
-        'Network Traffic: Network Traffic Flow',
-      ],
-      x_mitre_detection: 'detection text',
-      x_mitre_is_subtechnique: false,
-      x_mitre_impact_type: ['impact-1'],
-      x_mitre_platforms: ['platform-1', 'platform-2'],
-      x_mitre_domains: [enterpriseDomain, icsDomain],
-    },
-    {
-      id: 'course-of-action--25dc1ce8-eb55-4333-ae30-a7cb4f5894a1',
-      type: 'course-of-action',
-      created_by_ref: mitreIdentityId,
-      name: 'mitigation-1',
-      description: 'This is a mitigation',
-      external_references: [{ source_name: 'mitre-attack', external_id: 'M1' }],
-      object_marking_refs: [markingDefinitionId],
-      x_mitre_version: '1.0',
-      modified: '2018-10-17T00:14:20.652Z',
-      created: '2017-10-25T14:48:53.732Z',
-      spec_version: '2.1',
-      x_mitre_domains: [enterpriseDomain],
-    },
-    {
-      id: 'course-of-action--e944670c-d03a-4e93-a21c-b3d4c53ec4c9',
-      type: 'course-of-action',
-      created_by_ref: mitreIdentityId,
-      name: 'mitigation-2',
-      description: "This is a mitigation that isn't in the contents",
-      external_references: [{ source_name: 'mitre-attack', external_id: 'M1' }],
-      object_marking_refs: [markingDefinitionId],
-      x_mitre_version: '1.0',
-      modified: '2018-10-17T00:14:20.652Z',
-      created: '2017-10-25T14:48:53.732Z',
-      spec_version: '2.1',
-      x_mitre_domains: [enterpriseDomain],
-      x_mitre_deprecated: true,
-    },
-    {
-      id: 'malware--04227b24-7817-4de1-9050-b7b1b57f5866',
-      type: 'malware',
-      created_by_ref: mitreIdentityId,
-      name: 'software-1',
-      description: 'This is a software with an alias',
-      external_references: [
-        { source_name: 'mitre-attack', external_id: 'S1' },
-        { source_name: 'malware-1 source', description: 'this is a source description' },
-        { source_name: 'xyzzy', description: '(Citation: Adventure 1975)' },
-      ],
-      object_marking_refs: [markingDefinitionId],
-      x_mitre_version: '1.0',
-      modified: '2020-03-30T18:17:52.697Z',
-      created: '2017-10-25T14:48:53.732Z',
-      spec_version: '2.1',
-      x_mitre_domains: [enterpriseDomain],
-      x_mitre_aliases: ['xyzzy'],
-    },
-    {
-      type: 'intrusion-set',
-      id: 'intrusion-set--8a831aaa-f3e0-47a3-bed8-a9ced744dd12',
-      created_by_ref: mitreIdentityId,
-      name: 'Dark Caracal',
-      description:
-        '[Dark Caracal](https://attack.mitre.org/groups/G0070) is threat group that has been attributed to the Lebanese General Directorate of General Security (GDGS) and has operated since at least 2012. (Citation: Lookout Dark Caracal Jan 2018)',
-      object_marking_refs: [markingDefinitionId],
-      external_references: [
-        {
-          source_name: 'mitre-attack',
-          url: 'https://attack.mitre.org/groups/G0070',
-          external_id: 'G0070',
-        },
-        {
-          source_name: 'Dark Caracal',
-          description: '(Citation: Lookout Dark Caracal Jan 2018)',
-        },
-        {
-          url: 'https://info.lookout.com/rs/051-ESQ-475/images/Lookout_Dark-Caracal_srr_20180118_us_v.1.0.pdf',
-          description:
-            'Blaich, A., et al. (2018, January 18). Dark Caracal: Cyber-espionage at a Global Scale. Retrieved April 11, 2018.',
-          source_name: 'Lookout Dark Caracal Jan 2018',
-        },
-      ],
-      aliases: ['Dark Caracal'],
-      modified: '2020-06-03T20:22:40.401Z',
-      created: '2018-10-17T00:14:20.652Z',
-      spec_version: '2.1',
-      x_mitre_version: '1.2',
-    },
-    {
-      type: 'intrusion-set',
-      id: 'intrusion-set--ed0222fb-b970-4337-b9a2-62aeb02860e5',
-      created_by_ref: mitreIdentityId,
-      name: 'Another group',
-      description:
-        "This is another group. It isn't referenced by a technique, but is associated with a campaign",
-      object_marking_refs: [markingDefinitionId],
-      external_references: [
-        {
-          source_name: 'mitre-attack',
-          url: 'https://attack.mitre.org/groups/G0999',
-          external_id: 'G0999',
-        },
-      ],
-      aliases: ['Some group alias'],
-      modified: '2023-05-02T20:19:40.401Z',
-      created: '2018-10-17T00:19:20.652Z',
-      spec_version: '2.1',
-      x_mitre_version: '1.2',
-    },
-    {
-      type: 'campaign',
-      id: 'campaign--a3038910-f8ca-4ba8-b116-21d0f333f231',
-      created_by_ref: mitreIdentityId,
-      name: 'campaign-1',
-      description: 'This is a campaign',
-      first_seen: '2016-04-06T00:00:00.000Z',
-      last_seen: '2016-07-12T00:00:00.000Z',
-      x_mitre_first_seen_citation: '(Citation: Article 1)',
-      x_mitre_last_seen_citation: '(Citation: Article 2)',
-      object_marking_refs: [markingDefinitionId],
-      external_references: [
-        {
-          source_name: 'mitre-attack',
-          url: 'https://attack.mitre.org/campaigns/C0001',
-          external_id: 'C0001',
-        },
-      ],
-      aliases: ['Another campaign name'],
-      modified: '2020-07-03T20:22:40.401Z',
-      created: '2018-11-17T00:14:20.652Z',
-      spec_version: '2.1',
-      x_mitre_version: '1.2',
-    },
-    {
-      type: 'campaign',
-      id: 'campaign--649b389e-1f7a-4696-8a95-04d0851bd551',
-      created_by_ref: mitreIdentityId,
-      name: 'campaign-2',
-      description: 'This is another campaign',
-      first_seen: '2016-04-06T00:00:00.000Z',
-      last_seen: '2016-07-12T00:00:00.000Z',
-      x_mitre_first_seen_citation: '(Citation: Article 1)',
-      x_mitre_last_seen_citation: '(Citation: Article 2)',
-      object_marking_refs: [markingDefinitionId],
-      external_references: [
-        {
-          source_name: 'mitre-attack',
-          url: 'https://attack.mitre.org/campaigns/C0002',
-          external_id: 'C0002',
-        },
-      ],
-      aliases: ['Another campaign name'],
-      modified: '2020-07-03T20:22:40.401Z',
-      created: '2018-11-17T00:14:20.652Z',
-      spec_version: '2.1',
-      x_mitre_version: '1.2',
-    },
-    {
-      created_by_ref: mitreIdentityId,
-      object_marking_refs: [markingDefinitionId],
-      source_ref: 'intrusion-set--8a831aaa-f3e0-47a3-bed8-a9ced744dd12',
-      target_ref: 'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a',
-      external_references: [],
-      description: 'Test relationship',
-      relationship_type: 'uses',
-      id: 'relationship--12098dee-27b3-4d0b-a15a-6b5955ba8879',
-      type: 'relationship',
-      modified: '2019-09-04T14:32:13.000Z',
-      created: '2019-09-04T14:28:16.426Z',
-      spec_version: '2.1',
-    },
-    {
-      external_references: [],
-      object_marking_refs: [markingDefinitionId],
-      description: "This is a group that isn't in the domain",
-      name: 'Dark Hydra',
-      created_by_ref: mitreIdentityId,
-      id: 'intrusion-set--6b9ebeb5-20bf-48b0-afb7-988d769a2f01',
-      type: 'intrusion-set',
-      aliases: ['Hydra'],
-      modified: '2020-05-15T15:44:47.629Z',
-      created: '2018-10-17T00:14:20.652Z',
-      x_mitre_version: '1.2',
-      spec_version: '2.1',
-    },
-    {
-      type: 'note',
-      id: 'note--6b9456275-20bf-48b0-afb7-988d769a2f99',
-      spec_version: '2.1',
-      abstract: 'This is the abstract for a note.',
-      content: 'This is the content for a note.',
-      authors: ['Author 1', 'Author 2'],
-      object_marking_refs: [markingDefinitionId],
-      created_by_ref: mitreIdentityId,
-      object_refs: ['malware--04227b24-7817-4de1-9050-b7b1b57f5866'],
-      modified: '2020-04-12T15:44:47.629Z',
-      created: '2019-10-22T00:14:20.652Z',
-    },
-    {
-      type: 'x-mitre-data-source',
-      id: 'x-mitre-data-source--880b771b-17a8-4a6c-a259-9027c395010c',
-      name: 'Command',
-      spec_version: '2.1',
-      object_marking_refs: [markingDefinitionId],
-      created_by_ref: mitreIdentityId,
-      modified: '2020-04-12T15:44:47.629Z',
-      created: '2019-10-22T00:14:20.652Z',
-      external_references: [{ source_name: 'mitre-attack', external_id: 'DS1' }],
-    },
-    {
-      type: 'x-mitre-data-source',
-      id: 'x-mitre-data-source--3e396a50-dd74-45cf-b8a3-974ab80c9a3e',
-      name: 'Network Traffic',
-      spec_version: '2.1',
-      object_marking_refs: [markingDefinitionId],
-      created_by_ref: mitreIdentityId,
-      modified: '2020-04-12T15:44:47.629Z',
-      created: '2019-10-22T00:14:20.652Z',
-      external_references: [{ source_name: 'mitre-attack', external_id: 'DS1' }],
-    },
-    {
-      type: 'x-mitre-data-component',
-      id: 'x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d',
-      name: 'Command Execution',
-      spec_version: '2.1',
-      x_mitre_data_source_ref: 'x-mitre-data-source--880b771b-17a8-4a6c-a259-9027c395010c',
-      object_marking_refs: [markingDefinitionId],
-      created_by_ref: mitreIdentityId,
-      modified: '2020-04-12T15:44:47.629Z',
-      created: '2019-10-22T00:14:20.652Z',
-    },
-    {
-      type: 'x-mitre-data-component',
-      id: 'x-mitre-data-component--f8b4833e-a6d4-4a05-ba6e-1936d4109d0a',
-      name: 'Network Traffic Flow',
-      spec_version: '2.1',
-      x_mitre_data_source_ref: 'x-mitre-data-source--3e396a50-dd74-45cf-b8a3-974ab80c9a3e',
-      object_marking_refs: [markingDefinitionId],
-      created_by_ref: mitreIdentityId,
-      modified: '2020-04-12T15:44:47.629Z',
-      created: '2019-10-22T00:14:20.652Z',
-    },
-    {
-      created_by_ref: mitreIdentityId,
-      object_marking_refs: [markingDefinitionId],
-      source_ref: 'x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d',
-      target_ref: 'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a',
-      external_references: [],
-      description: 'Detects relationship',
-      relationship_type: 'detects',
-      id: 'relationship--caa8928b-0bf6-45cd-8504-6c27b9cd96a8',
-      type: 'relationship',
-      modified: '2019-09-04T14:32:13.000Z',
-      created: '2019-09-04T14:28:16.426Z',
-      spec_version: '2.1',
-    },
-    {
-      created_by_ref: mitreIdentityId,
-      object_marking_refs: [markingDefinitionId],
-      source_ref: 'x-mitre-data-component--47667153-e24d-4514-bdf4-5720312d9e7d',
-      target_ref: 'attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f',
-      external_references: [],
-      description: 'Detects relationship',
-      relationship_type: 'detects',
-      id: 'relationship--e7f994c6-3e08-4aea-a30e-97cc6fe610c6',
-      type: 'relationship',
-      modified: '2019-09-04T14:32:13.000Z',
-      created: '2019-09-04T14:28:16.426Z',
-      spec_version: '2.1',
-    },
-    {
-      created_by_ref: mitreIdentityId,
-      object_marking_refs: [markingDefinitionId],
-      source_ref: 'x-mitre-data-component--f8b4833e-a6d4-4a05-ba6e-1936d4109d0a',
-      target_ref: 'attack-pattern--2204c371-6100-4ae0-82f3-25c07c29772a',
-      external_references: [],
-      description: 'Test relationship',
-      relationship_type: 'detects',
-      id: 'relationship--b0c6c76c-7699-447f-9f3f-573aec51431c',
-      type: 'relationship',
-      modified: '2019-09-04T14:32:13.000Z',
-      created: '2019-09-04T14:28:16.426Z',
-      spec_version: '2.1',
-    },
-    {
-      created_by_ref: mitreIdentityId,
-      object_marking_refs: [markingDefinitionId],
-      source_ref: 'campaign--a3038910-f8ca-4ba8-b116-21d0f333f231',
-      target_ref: 'attack-pattern--2bb2861b-fb40-42dc-b15f-1a6b64b6a39f',
-      external_references: [],
-      description: 'Campaign uses technique',
-      relationship_type: 'uses',
-      id: 'relationship--89586929-ca62-423f-94bf-cc03ec8161bb',
-      type: 'relationship',
-      modified: '2021-06-06T14:00:00.000Z',
-      created: '2021-06-06T14:00:00.000Z',
-      spec_version: '2.1',
-    },
-    {
-      created_by_ref: mitreIdentityId,
-      object_marking_refs: [markingDefinitionId],
-      source_ref: 'campaign--649b389e-1f7a-4696-8a95-04d0851bd551',
-      target_ref: 'attack-pattern--82f04b1e-5371-4a6f-be06-411f0f43b483',
-      external_references: [],
-      description: 'Campaign uses technique',
-      relationship_type: 'uses',
-      id: 'relationship--d5426745-9530-485e-a757-d8c540f600f8',
-      type: 'relationship',
-      modified: '2021-06-06T14:00:00.000Z',
-      created: '2021-06-06T14:00:00.000Z',
-      spec_version: '2.1',
-    },
-    {
-      created_by_ref: mitreIdentityId,
-      object_marking_refs: [markingDefinitionId],
-      source_ref: 'campaign--a3038910-f8ca-4ba8-b116-21d0f333f231',
-      target_ref: 'malware--04227b24-7817-4de1-9050-b7b1b57f5866',
-      external_references: [],
-      description: 'Campaign uses software',
-      relationship_type: 'uses',
-      id: 'relationship--21d3572e-398d-4473-93eb-eb9a2a069d53',
-      type: 'relationship',
-      modified: '2021-06-07T14:00:00.000Z',
-      created: '2021-06-07T14:00:00.000Z',
-      spec_version: '2.1',
-    },
-    {
-      created_by_ref: mitreIdentityId,
-      object_marking_refs: [markingDefinitionId],
-      source_ref: 'campaign--a3038910-f8ca-4ba8-b116-21d0f333f231',
-      target_ref: 'intrusion-set--8a831aaa-f3e0-47a3-bed8-a9ced744dd12',
-      external_references: [],
-      description: 'Campaign attributed to group',
-      relationship_type: 'attributed-to',
-      id: 'relationship--a5a80c31-0dde-4fd7-a520-a7593d21c954',
-      type: 'relationship',
-      modified: '2021-06-08T14:00:00.000Z',
-      created: '2021-06-08T14:00:00.000Z',
-      spec_version: '2.1',
-    },
-    {
-      created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
-      object_marking_refs: [markingDefinitionId],
-      source_ref: 'campaign--649b389e-1f7a-4696-8a95-04d0851bd551',
-      target_ref: 'intrusion-set--ed0222fb-b970-4337-b9a2-62aeb02860e5',
-      external_references: [],
-      description: 'Campaign attributed to group and is the only reference to the group',
-      relationship_type: 'attributed-to',
-      id: 'relationship--1e1c5e5a-2a3e-423f-b1d0-67b7dc5b90cc',
-      type: 'relationship',
-      modified: '2023-06-08T14:00:00.000Z',
-      created: '2023-06-08T14:00:00.000Z',
       spec_version: '2.1',
     },
   ],
 };
 
-// function printBundleCount(bundle) {
-//     const count = {
-//         techniques: 0,
-//         groups: 0,
-//         campaigns: 0,
-//         relationships: 0
-//     };
-//
-//     for (const stixObject of bundle.objects) {
-//         if (stixObject.type === 'attack-pattern') {
-//             count.techniques++;
-//         }
-//         else if (stixObject.type === 'intrusion-set') {
-//             count.groups++;
-//         }
-//         else if (stixObject.type === 'campaign') {
-//             count.campaigns++;
-//         }
-//         else if (stixObject.type === 'relationship') {
-//             count.relationships++;
-//         }
-//     }
-//
-//     console.log(`Technique count = ${ count.techniques }`);
-//     console.log(`Group count = ${ count.groups }`);
-//     console.log(`Campaign count = ${ count.campaigns }`);
-//     console.log(`Relationship count = ${ count.relationships }`);
-// }
-
-describe('STIX Bundles Basic API', function () {
+describe('STIX Bundles New Specification API', function () {
   let app;
   let passportCookie;
 
@@ -677,29 +471,22 @@ describe('STIX Bundles Basic API', function () {
     passportCookie = await login.loginAnonymous(app);
   });
 
-  it('POST /api/collection-bundles imports a collection bundle', function (done) {
-    const body = initialObjectData;
-    request(app)
+  it('POST /api/collection-bundles imports the new spec bundle', async function () {
+    const body = newSpecBundleData;
+    const res = await request(app)
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(201)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the created collection object
-          const collection = res.body;
-          expect(collection).toBeDefined();
-          expect(collection.workspace.import_categories.additions.length).toBe(
-            initialObjectData.objects[0].x_mitre_contents.length,
-          );
-          expect(collection.workspace.import_categories.errors.length).toBe(0);
-          done();
-        }
-      });
+      .expect('Content-Type', /json/);
+
+    const collection = res.body;
+    expect(collection).toBeDefined();
+    expect(collection.workspace.import_categories.additions.length).toBe(
+      newSpecBundleData.objects[0].x_mitre_contents.length,
+    );
+    expect(collection.workspace.import_categories.errors.length).toBe(0);
   });
 
   it('GET /api/stix-bundles exports an empty STIX bundle', function (done) {
@@ -722,150 +509,219 @@ describe('STIX Bundles Basic API', function () {
       });
   });
 
-  it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain', function (done) {
-    request(app)
-      .get(`/api/stix-bundles?domain=${enterpriseDomain}&includeNotes=true`)
+  it('GET /api/stix-bundles exports enterprise bundle with new specification objects', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported STIX bundle
-          const stixBundle = res.body;
-          expect(stixBundle).toBeDefined();
-          expect(Array.isArray(stixBundle.objects)).toBe(true);
+      .expect('Content-Type', /json/);
 
-          // 4 primary objects, 7 relationship objects, 6 secondary objects,
-          // 1 note, 1 identity, 1 marking definition
-          //printBundleCount(stixBundle);
-          expect(stixBundle.objects.length).toBe(20);
+    const stixBundle = res.body;
+    expect(stixBundle).toBeDefined();
+    expect(Array.isArray(stixBundle.objects)).toBe(true);
 
-          done();
-        }
-      });
+    // Write bundle to file for debugging
+    // fs.writeFileSync(
+    //   './debug-new-spec-enterprise-bundle.json',
+    //   JSON.stringify(stixBundle, null, 2),
+    // );
+    console.log('\n=== New Spec Enterprise Bundle ===');
+    console.log(`Total objects: ${stixBundle.objects.length}`);
+
+    // Count objects by type
+    const typeCounts = {};
+    stixBundle.objects.forEach((obj) => {
+      typeCounts[obj.type] = (typeCounts[obj.type] || 0) + 1;
+    });
+    console.log('Object type counts:', typeCounts);
+
+    // Verify primary objects are included
+    const techniques = stixBundle.objects.filter((o) => o.type === 'attack-pattern');
+    expect(techniques.length).toBe(3); // new-ent-001, new-ent-002, new-ics-001
+
+    const analytics = stixBundle.objects.filter((o) => o.type === 'x-mitre-analytic');
+    expect(analytics.length).toBe(1); // new-ana-001
+
+    const dataComponents = stixBundle.objects.filter((o) => o.type === 'x-mitre-data-component');
+    expect(dataComponents.length).toBe(1); // Only new-dc-001 (enterprise)
   });
 
-  it('GET /api/stix-bundles exports the STIX 2.1 bundle for the enterprise domain with a collection object', function (done) {
-    const bundleVersion = '17.1';
-    const bundleModified = '2025-05-06T14:00:00.188Z';
-    const encodedBundleModified = encodeURIComponent(bundleModified);
-    const attackSpecVersion = '3.2.0';
-
-    request(app)
-      .get(
-        `/api/stix-bundles?domain=${enterpriseDomain}&includeNotes=true&stixVersion=2.1&includeCollectionObject=true&collectionObjectVersion=${bundleVersion}&collectionObjectModified=${encodedBundleModified}&collectionAttackSpecVersion=${attackSpecVersion}`,
-      )
+  it('Filters out deprecated detects relationships from data components', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported STIX bundle
-          const stixBundle = res.body;
-          expect(stixBundle).toBeDefined();
-          expect(stixBundle.spec_version).toBeUndefined();
-          expect(Array.isArray(stixBundle.objects)).toBe(true);
+      .expect('Content-Type', /json/);
 
-          // 4 primary objects, 7 relationship objects, 6 secondary objects,
-          // 1 note, 1 identity, 1 marking definition, 1 collection object
-          expect(stixBundle.objects.length).toBe(21);
+    const stixBundle = res.body;
 
-          const collectionObject = stixBundle.objects[0];
-          expect(collectionObject.id).toBe(
-            'x-mitre-collection--1f5f1533-f617-4ca8-9ab4-6a02367fa019',
-          );
-          expect(collectionObject.name).toBe('Enterprise ATT&CK');
-          expect(collectionObject.x_mitre_version).toBe(bundleVersion);
-          expect(collectionObject.modified).toBe(bundleModified);
-          expect(collectionObject.x_mitre_contents.length).toBe(19); // 21 - 2: marking-definition and x-mitre-collection are not included
-          expect(collectionObject.object_marking_refs.length).toBe(1);
-          expect(collectionObject.object_marking_refs[0]).toBe(markingDefinitionId);
-          expect(collectionObject.x_mitre_attack_spec_version).toBe(attackSpecVersion);
-          expect(collectionObject.created_by_ref).toBe(mitreIdentityId);
-          expect(collectionObject.spec_version).toBe('2.1');
-          done();
-        }
-      });
+    // Verify deprecated detects relationships are FILTERED OUT
+    // The new spec maintains a clean separation: deprecated patterns are excluded
+    // even if both endpoints exist in the bundle as primary objects
+    const deprecatedRelationship = stixBundle.objects.find(
+      (o) => o.id === 'relationship--new-dc-detects-tech-dep',
+    );
+    expect(deprecatedRelationship).toBeUndefined();
+
+    // Verify only valid detects relationships from detection strategies are included
+    const validDetectsRels = stixBundle.objects.filter(
+      (o) => o.type === 'relationship' && o.relationship_type === 'detects',
+    );
+    expect(validDetectsRels.length).toBe(2); // Only DS-001 detects relationships
+    validDetectsRels.forEach((rel) => {
+      expect(rel.source_ref).toMatch(/^x-mitre-detection-strategy--/);
+    });
   });
 
-  it('GET /api/stix-bundles exports the STIX bundle for the enterprise domain including deprecated objects', function (done) {
-    request(app)
-      .get(`/api/stix-bundles?domain=${enterpriseDomain}&includeDeprecated=true&includeNotes=true`)
+  it('Includes detection strategy when it detects an in-scope technique via relationship', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported STIX bundle
-          const stixBundle = res.body;
-          expect(stixBundle).toBeDefined();
-          expect(Array.isArray(stixBundle.objects)).toBe(true);
-          // 5 primary objects, 7 relationship objects, 6 secondary objects,
-          // 1 note, 1 identity, 1 marking definition
-          expect(stixBundle.objects.length).toBe(21);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    const stixBundle = res.body;
+
+    // Verify DS-001 is included because it has 'detects' relationships to in-scope techniques
+    const ds001 = stixBundle.objects.find((o) => o.id === 'x-mitre-detection-strategy--new-ds-001');
+    expect(ds001).toBeDefined();
+    expect(ds001.name).toBe('Detection Strategy 1 - Detects Technique via Relationship');
+    expect(ds001.x_mitre_domains).toEqual([enterpriseDomain]);
+
+    // Verify the 'detects' relationships are included
+    const ds001DetectsRels = stixBundle.objects.filter(
+      (o) =>
+        o.type === 'relationship' &&
+        o.relationship_type === 'detects' &&
+        o.source_ref === 'x-mitre-detection-strategy--new-ds-001',
+    );
+    expect(ds001DetectsRels.length).toBe(2); // Detects two techniques
   });
 
-  it('GET /api/stix-bundles exports the STIX bundle for the mobile domain', function (done) {
-    request(app)
-      .get(`/api/stix-bundles?domain=${mobileDomain}`)
+  it('Includes detection strategy when it references an in-scope analytic', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported STIX bundle
-          const stixBundle = res.body;
-          expect(stixBundle).toBeDefined();
-          expect(Array.isArray(stixBundle.objects)).toBe(true);
-          // 1 primary objects, 1 identity, 1 marking definition
-          expect(stixBundle.objects.length).toBe(3);
+      .expect('Content-Type', /json/);
 
-          done();
-        }
-      });
+    const stixBundle = res.body;
+
+    // Verify DS-002 is included because it references an in-scope analytic via x_mitre_analytic_refs
+    const ds002 = stixBundle.objects.find((o) => o.id === 'x-mitre-detection-strategy--new-ds-002');
+    expect(ds002).toBeDefined();
+    expect(ds002.name).toBe('Detection Strategy 2 - References Analytic');
+    expect(ds002.x_mitre_analytic_refs).toContain('x-mitre-analytic--new-ana-001');
+    expect(ds002.x_mitre_domains).toEqual([enterpriseDomain]);
+
+    // Verify the referenced analytic is in the bundle
+    const analytic = stixBundle.objects.find((o) => o.id === 'x-mitre-analytic--new-ana-001');
+    expect(analytic).toBeDefined();
   });
 
-  it('GET /api/stix-bundles exports the STIX bundle for the ics domain', function (done) {
-    request(app)
-      .get(`/api/stix-bundles?domain=${icsDomain}`)
+  it('Excludes detection strategy when neither condition is met', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
       .expect(200)
-      .expect('Content-Type', /json/)
-      .end(function (err, res) {
-        if (err) {
-          done(err);
-        } else {
-          // We expect to get the exported STIX bundle
-          const stixBundle = res.body;
-          expect(stixBundle).toBeDefined();
-          expect(Array.isArray(stixBundle.objects)).toBe(true);
-          // 3 primary objects, 5 relationship objects, 5 secondary objects,
-          // 1 identity, 1 marking definition
-          expect(stixBundle.objects.length).toBe(15);
+      .expect('Content-Type', /json/);
 
-          const groupObjects = stixBundle.objects.filter((o) => o.type === 'intrusion-set');
-          expect(groupObjects.length).toBe(2);
+    const stixBundle = res.body;
 
-          done();
-        }
-      });
+    // Verify DS-003 is NOT included (orphaned - no technique or analytic reference)
+    const ds003 = stixBundle.objects.find((o) => o.id === 'x-mitre-detection-strategy--new-ds-003');
+    expect(ds003).toBeUndefined();
+  });
+
+  it('GET /api/stix-bundles with includeDataSources=true includes data sources', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ includeDataSources: true })
+      .query({ stixVersion: '2.1' })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    const stixBundle = res.body;
+
+    const dataSources = stixBundle.objects.filter((o) => o.type === 'x-mitre-data-source');
+    expect(dataSources.length).toBe(1); // Only new-ds-src-001 (enterprise)
+    expect(dataSources[0].id).toBe('x-mitre-data-source--new-ds-src-001');
+  });
+
+  it('GET /api/stix-bundles without includeDataSources excludes data sources', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: enterpriseDomain })
+      .query({ stixVersion: '2.1' })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    const stixBundle = res.body;
+
+    const dataSources = stixBundle.objects.filter((o) => o.type === 'x-mitre-data-source');
+    expect(dataSources.length).toBe(0); // Data sources excluded by default
+  });
+
+  it('GET /api/stix-bundles for ICS domain excludes enterprise-only objects', async function () {
+    const res = await request(app)
+      .get('/api/stix-bundles')
+      .query({ domain: icsDomain })
+      .query({ stixVersion: '2.1' })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    const stixBundle = res.body;
+
+    console.log('\n=== New Spec ICS Bundle ===');
+    console.log(`Total objects: ${stixBundle.objects.length}`);
+
+    const typeCounts = {};
+    stixBundle.objects.forEach((obj) => {
+      typeCounts[obj.type] = (typeCounts[obj.type] || 0) + 1;
+    });
+    console.log('Object type counts:', typeCounts);
+
+    // Only 1 technique should be in ICS (new-ics-001)
+    const techniques = stixBundle.objects.filter((o) => o.type === 'attack-pattern');
+    expect(techniques.length).toBe(1);
+    expect(techniques[0].id).toBe('attack-pattern--new-ics-001');
+
+    // No analytics in ICS domain
+    const analytics = stixBundle.objects.filter((o) => o.type === 'x-mitre-analytic');
+    expect(analytics.length).toBe(0);
+
+    // Only ICS data component (new-dc-002)
+    const dataComponents = stixBundle.objects.filter((o) => o.type === 'x-mitre-data-component');
+    expect(dataComponents.length).toBe(1);
+    expect(dataComponents[0].id).toBe('x-mitre-data-component--new-dc-002');
+
+    // No detection strategies (none detect ICS techniques or reference ICS analytics)
+    const detectionStrategies = stixBundle.objects.filter(
+      (o) => o.type === 'x-mitre-detection-strategy',
+    );
+    expect(detectionStrategies.length).toBe(0);
   });
 
   after(async function () {

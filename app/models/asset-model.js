@@ -7,7 +7,7 @@ const { ModelName } = require('../lib/model-names');
 
 const relatedAsset = {
   name: { type: String, required: true },
-  related_asset_sectors: [String],
+  related_asset_sectors: { type: [String], default: undefined },
   description: String,
 };
 const relatedAssetSchema = new mongoose.Schema(relatedAsset, { _id: false });
@@ -19,15 +19,15 @@ const stixAsset = {
   description: String,
 
   // ATT&CK custom stix properties
-  x_mitre_sectors: [String],
-  x_mitre_related_assets: [relatedAssetSchema],
+  x_mitre_sectors: { type: [String], default: undefined },
+  x_mitre_related_assets: { type: [relatedAssetSchema], default: undefined },
   x_mitre_modified_by_ref: String,
-  x_mitre_platforms: [String],
+  x_mitre_platforms: { type: [String], default: undefined },
   x_mitre_deprecated: { type: Boolean, required: true, default: false },
   x_mitre_domains: { type: [String], default: undefined },
   x_mitre_version: String,
   x_mitre_attack_spec_version: String,
-  x_mitre_contributors: [String],
+  x_mitre_contributors: { type: [String], default: undefined },
 };
 
 // Create the definition
