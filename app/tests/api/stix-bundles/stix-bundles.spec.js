@@ -424,6 +424,7 @@ const newSpecBundleData = {
       object_marking_refs: [markingDefinitionId],
       created_by_ref: mitreIdentityId,
       external_references: [],
+      x_mitre_deprecated: true,
     },
 
     // ========================================
