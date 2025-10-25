@@ -25,6 +25,174 @@ function extractForceImportParameters(req) {
   return params;
 }
 
+/**
+ * Stream import progress using Server-Sent Events (SSE)
+ */
+exports.streamImportBundle = async function (req, res) {
+  let heartbeatInterval;
+
+  try {
+    const collectionBundleData = req.body;
+    const forceImportParameters = extractForceImportParameters(req);
+
+    // Set up SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+
+    // Heartbeat to prevent connection timeout
+    heartbeatInterval = setInterval(() => {
+      if (!res.destroyed) {
+        res.write(': heartbeat\n\n');
+      }
+    }, 30000);
+
+    // Handle client disconnect
+    req.on('close', () => {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    });
+
+    // Validate bundle (same validation as regular import)
+    const errorResult = {
+      bundleErrors: {
+        noCollection: false,
+        moreThanOneCollection: false,
+        duplicateCollection: false,
+        badlyFormattedCollection: false,
+      },
+      objectErrors: {
+        summary: {
+          duplicateObjectInBundleCount: 0,
+          invalidAttackSpecVersionCount: 0,
+        },
+        errors: [],
+      },
+    };
+    let errorFound = false;
+
+    const collections = collectionBundleData.objects.filter(
+      (object) => object.type === 'x-mitre-collection',
+    );
+
+    if (collections.length === 0) {
+      logger.warn('Collection bundle is missing x-mitre-collection object.');
+      errorResult.bundleErrors.noCollection = true;
+      errorFound = true;
+    } else if (collections.length > 1) {
+      logger.warn('Collection bundle has more than one x-mitre-collection object.');
+      errorResult.bundleErrors.moreThanOneCollection = true;
+      errorFound = true;
+    }
+
+    if (collections.length > 0 && !collections[0].id) {
+      logger.warn('Badly formatted collection in bundle, x-mitre-collection missing id.');
+      errorResult.bundleErrors.badlyFormattedCollection = true;
+      errorFound = true;
+    }
+
+    const validationResult = collectionBundlesService.validateBundle(collectionBundleData);
+    if (validationResult.errors.length > 0) {
+      errorFound = true;
+      if (validationResult.duplicateObjectInBundleCount > 0) {
+        logger.warn(
+          `Collection bundle has ${validationResult.duplicateObjectInBundleCount} duplicate objects.`,
+        );
+        errorResult.objectErrors.summary.duplicateObjectInBundleCount =
+          validationResult.duplicateObjectInBundleCount;
+      }
+      if (validationResult.invalidAttackSpecVersionCount > 0) {
+        logger.warn(
+          `Collection bundle has ${validationResult.invalidAttackSpecVersionCount} objects with invalid ATT&CK Spec version.`,
+        );
+        errorResult.objectErrors.summary.invalidAttackSpecVersionCount =
+          validationResult.invalidAttackSpecVersionCount;
+      }
+      errorResult.objectErrors.errors = validationResult.errors;
+    }
+
+    if (errorFound) {
+      if (
+        errorResult.bundleErrors.noCollection ||
+        errorResult.bundleErrors.moreThanOneCollection ||
+        errorResult.bundleErrors.badlyFormattedCollection ||
+        errorResult.objectErrors.summary.duplicateObjectInBundleCount > 0
+      ) {
+        logger.error('Unable to import collection bundle due to an error in the bundle.');
+        const event = `event: error\ndata: ${JSON.stringify(errorResult)}\n\n`;
+        res.write(event);
+        res.end();
+        return;
+      }
+
+      if (
+        errorResult.objectErrors.summary.invalidAttackSpecVersionCount > 0 &&
+        !forceImportParameters.find(
+          (e) => e === collectionBundlesService.forceImportParameters.attackSpecVersionViolations,
+        )
+      ) {
+        logger.error('Unable to import collection bundle due to an error in the bundle.');
+        const event = `event: error\ndata: ${JSON.stringify(errorResult)}\n\n`;
+        res.write(event);
+        res.end();
+        return;
+      }
+    }
+
+    // Progress callback to send SSE events
+    const onProgress = (progress) => {
+      if (!res.destroyed) {
+        const event = `event: progress\ndata: ${JSON.stringify(progress)}\n\n`;
+        res.write(event);
+        // Flush immediately to ensure event is sent to client
+        if (res.flush && typeof res.flush === 'function') {
+          res.flush();
+        }
+      }
+    };
+
+    const options = {
+      previewOnly: req.query.previewOnly || req.query.checkOnly,
+      forceImportParameters,
+      onProgress,
+    };
+
+    // Import the collection bundle
+    const importedCollection = await collectionBundlesService.importBundle(
+      collections[0],
+      collectionBundleData,
+      options,
+    );
+
+    // Send final result
+    if (!res.destroyed) {
+      const event = `event: complete\ndata: ${JSON.stringify(importedCollection)}\n\n`;
+      res.write(event);
+      res.end();
+    }
+
+    logger.debug('Success: Imported collection with id ' + importedCollection.stix.id);
+  } catch (err) {
+    logger.error('Import failed with error: ' + err);
+
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+
+    if (!res.destroyed) {
+      const errorData = {
+        message: err.message || 'Unknown error',
+        error: err.toString(),
+      };
+      const event = `event: error\ndata: ${JSON.stringify(errorData)}\n\n`;
+      res.write(event);
+      res.end();
+    }
+  } finally {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+  }
+};
+
 exports.importBundle = async function (req, res) {
   // Get the data from the request
   const collectionBundleData = req.body;
