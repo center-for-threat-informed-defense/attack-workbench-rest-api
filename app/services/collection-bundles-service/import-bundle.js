@@ -270,7 +270,11 @@ async function processObjects(
   importReferences,
   referenceImportResults,
 ) {
+  const totalObjects = objects.length;
+  let processedObjects = 0;
+
   for (const importObject of objects) {
+    processedObjects++;
     // Check if object is in x_mitre_contents
     if (
       !contentsMap.delete(makeKeyFromObject(importObject)) &&
@@ -323,6 +327,18 @@ async function processObjects(
       importReferences,
       referenceImportResults,
     );
+
+    // Report progress if callback provided
+    // Throttle progress updates: report every 10 objects, at milestones, or on last object
+    const phasePercentage = Math.round((processedObjects / totalObjects) * 100);
+    const shouldReport =
+      processedObjects % 10 === 0 || // Every 10 objects
+      processedObjects === totalObjects || // Last object
+      phasePercentage % 5 === 0; // Every 5% milestone
+
+    if (shouldReport) {
+      reportProgress(options, 'processing', processedObjects, totalObjects);
+    }
   }
 
   // Check for objects in x_mitre_contents but not in bundle
@@ -341,16 +357,64 @@ async function processObjects(
 }
 
 /**
+ * Calculate overall progress percentage across all phases
+ * Phase allocation: processing=85%, references=10%, saving=5%
+ */
+function calculateOverallProgress(phase, phaseProgress) {
+  const phaseRanges = {
+    processing: { start: 0, end: 85 },
+    references: { start: 85, end: 95 },
+    saving: { start: 95, end: 100 },
+    complete: { start: 100, end: 100 },
+  };
+
+  const range = phaseRanges[phase];
+  if (!range) return 0;
+
+  const rangeSize = range.end - range.start;
+  return Math.round(range.start + (phaseProgress / 100) * rangeSize);
+}
+
+/**
+ * Report progress via callback if provided
+ * @param {Object} options - Import options containing onProgress callback
+ * @param {string} phase - Current phase name
+ * @param {number} processed - Number of items processed
+ * @param {number} total - Total number of items
+ */
+function reportProgress(options, phase, processed, total) {
+  if (options.onProgress && typeof options.onProgress === 'function') {
+    const phasePercentage = total > 0 ? Math.round((processed / total) * 100) : 100;
+    const overallPercentage = calculateOverallProgress(phase, phasePercentage);
+    options.onProgress({
+      phase,
+      processed,
+      total,
+      percentage: overallPercentage,
+      phasePercentage,
+    });
+  }
+}
+
+/**
  * Import references found in the bundle
  * @param {Map} importReferences - Map of references to import
  * @param {Object} options - Import options
  * @param {Object} importedCollection - Collection being imported
  */
 async function importReferences(importReferences, options, importedCollection) {
+  const totalReferences = importReferences.size;
+
+  // Report initial progress
+  reportProgress(options, 'references', 0, totalReferences);
+
   const references = await referencesService.retrieveAll({});
   const existingReferences = new Map(references.map((item) => [item.source_name, item]));
 
+  let processedReferences = 0;
+
   for (const importReference of importReferences.values()) {
+    processedReferences++;
     if (existingReferences.has(importReference.source_name)) {
       // Update existing reference
       importedCollection.workspace.import_references.changes.push(importReference.source_name);
@@ -364,6 +428,9 @@ async function importReferences(importReferences, options, importedCollection) {
         await referencesService.create(importReference);
       }
     }
+
+    // Report progress
+    reportProgress(options, 'references', processedReferences, totalReferences);
   }
 }
 
@@ -375,6 +442,10 @@ async function importReferences(importReferences, options, importedCollection) {
  * @returns {Promise<Object>} Saved collection
  */
 async function saveCollection(importedCollection, duplicateCollection, options) {
+  // Report saving phase start
+  reportProgress(options, 'saving', 0, 1);
+
+  let result;
   if (duplicateCollection) {
     // Add reimport results to existing collection
     const reimport = {
@@ -389,30 +460,37 @@ async function saveCollection(importedCollection, duplicateCollection, options) 
     duplicateCollection.workspace.reimports.push(reimport);
 
     if (!options.previewOnly) {
-      return Collection.findByIdAndUpdate(duplicateCollection._id, duplicateCollection, {
+      result = await Collection.findByIdAndUpdate(duplicateCollection._id, duplicateCollection, {
         new: true,
         lean: true,
       });
+    } else {
+      result = importedCollection;
     }
-    return importedCollection;
+  } else {
+    // Create new collection
+    if (!options.previewOnly) {
+      try {
+        const createResult = await collectionsService.create(importedCollection, {
+          addObjectsToCollection: false,
+          import: true,
+        });
+        result = createResult.savedCollection;
+      } catch (err) {
+        if (err.name === 'MongoServerError' && err.code === 11000) {
+          throw new Error(errors.duplicateCollection);
+        }
+        throw err;
+      }
+    } else {
+      result = importedCollection;
+    }
   }
 
-  // Create new collection
-  if (!options.previewOnly) {
-    try {
-      const result = await collectionsService.create(importedCollection, {
-        addObjectsToCollection: false,
-        import: true,
-      });
-      return result.savedCollection;
-    } catch (err) {
-      if (err.name === 'MongoServerError' && err.code === 11000) {
-        throw new Error(errors.duplicateCollection);
-      }
-      throw err;
-    }
-  }
-  return importedCollection;
+  // Report completion
+  reportProgress(options, 'complete', 1, 1);
+
+  return result;
 }
 
 /**

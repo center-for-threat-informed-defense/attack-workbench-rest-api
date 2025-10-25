@@ -808,3 +808,114 @@ describe('Collection Bundles Basic API', function () {
     await database.closeConnection();
   });
 });
+
+describe('Collection Bundles Streaming API', function () {
+  let app;
+  let passportCookie;
+
+  before(async function () {
+    // Establish the database connection
+    await database.initializeConnection();
+
+    // Check for a valid database configuration
+    await databaseConfiguration.checkSystemConfiguration();
+
+    // Initialize the express app
+    app = await require('../../../index').initializeApp();
+
+    // Log into the app
+    passportCookie = await login.loginAnonymous(app);
+  });
+
+  it('POST /api/collection-bundles?stream=true returns SSE headers', async function () {
+    const body = collectionBundleData;
+
+    // Just verify we get SSE headers back - don't try to parse the full stream
+    const response = await request(app)
+      .post('/api/collection-bundles?stream=true')
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`);
+
+    // Verify SSE headers
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toBe('text/event-stream');
+    expect(response.headers['cache-control']).toBe('no-cache');
+    expect(response.headers.connection).toBe('keep-alive');
+  });
+
+  it('POST /api/collection-bundles?stream=true returns SSE headers for errors', async function () {
+    const body = collectionBundleData3; // Empty bundle with no collection
+
+    const response = await request(app)
+      .post('/api/collection-bundles?stream=true')
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`);
+
+    // Should still return SSE headers even for errors
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toBe('text/event-stream');
+  });
+
+  it('POST /api/collection-bundles?stream=true&previewOnly=true returns SSE headers', async function () {
+    const body = collectionBundleData;
+
+    const response = await request(app)
+      .post('/api/collection-bundles?stream=true&previewOnly=true')
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toBe('text/event-stream');
+  });
+
+  it('POST /api/collection-bundles without stream parameter uses regular import (no SSE)', async function () {
+    // Delete the previously imported collection so we can reimport it
+    const timestamp = new Date().toISOString();
+    const updatedBundle = _.cloneDeep(collectionBundleData);
+    updatedBundle.objects[0].modified = timestamp;
+    updatedBundle.objects[0].id = 'x-mitre-collection--aaaaaaaa-0a05-4d9e-ab54-9b8563669647';
+
+    const body = updatedBundle;
+    const response = await request(app)
+      .post('/api/collection-bundles')
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .expect(201)
+      .expect('Content-Type', /json/);
+
+    // Verify standard JSON response, not SSE
+    expect(response.headers['content-type']).toMatch(/json/);
+    expect(response.headers['content-type']).not.toBe('text/event-stream');
+
+    // Verify we got a collection object directly
+    const collection = response.body;
+    expect(collection).toBeDefined();
+    expect(collection.workspace).toBeDefined();
+    expect(collection.stix).toBeDefined();
+  });
+
+  it('POST /api/collection-bundles?stream=true with forceImport returns SSE headers', async function () {
+    const timestamp = new Date().toISOString();
+    const uniqueBundle = _.cloneDeep(collectionBundleData);
+    uniqueBundle.objects[0].modified = timestamp;
+    uniqueBundle.objects[0].id = 'x-mitre-collection--bbbbbbbb-0a05-4d9e-ab54-9b8563669647';
+
+    const body = uniqueBundle;
+    const response = await request(app)
+      .post('/api/collection-bundles?stream=true&forceImport=duplicate-collection')
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toBe('text/event-stream');
+  });
+
+  after(async function () {
+    await database.closeConnection();
+  });
+});
