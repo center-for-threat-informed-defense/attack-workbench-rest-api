@@ -165,9 +165,7 @@ exports.streamImportBundle = async function (req, res) {
     });
 
     // Validate bundle using shared validation logic
-    const { errorResult, errorFound, collections } = validateCollectionBundle(
-      collectionBundleData
-    );
+    const { errorResult, errorFound, collections } = validateCollectionBundle(collectionBundleData);
 
     // Check if import should be blocked
     if (shouldBlockImport(errorResult, errorFound, forceImportParameters)) {
@@ -236,9 +234,7 @@ exports.importBundle = async function (req, res) {
   const forceImportParameters = extractForceImportParameters(req);
 
   // Validate bundle using shared validation logic
-  const { errorResult, errorFound, collections } = validateCollectionBundle(
-    collectionBundleData
-  );
+  const { errorResult, errorFound, collections } = validateCollectionBundle(collectionBundleData);
 
   // Check if import should be blocked
   if (shouldBlockImport(errorResult, errorFound, forceImportParameters)) {
