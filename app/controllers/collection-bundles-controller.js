@@ -25,6 +25,115 @@ function extractForceImportParameters(req) {
   return params;
 }
 
+function createErrorResult() {
+  return {
+    bundleErrors: {
+      noCollection: false,
+      moreThanOneCollection: false,
+      duplicateCollection: false,
+      badlyFormattedCollection: false,
+    },
+    objectErrors: {
+      summary: {
+        duplicateObjectInBundleCount: 0,
+        invalidAttackSpecVersionCount: 0,
+      },
+      errors: [],
+    },
+  };
+}
+
+/**
+ * Validates the structure of a collection bundle
+ * @param {Object} collectionBundleData - The bundle data to validate
+ * @returns {Object} Validation result with { errorResult, errorFound, collections }
+ */
+function validateCollectionBundle(collectionBundleData) {
+  const errorResult = createErrorResult();
+  let errorFound = false;
+
+  // Find the x-mitre-collection objects
+  const collections = collectionBundleData.objects.filter(
+    (object) => object.type === 'x-mitre-collection',
+  );
+
+  // The bundle must have an x-mitre-collection object
+  if (collections.length === 0) {
+    logger.warn('Collection bundle is missing x-mitre-collection object.');
+    errorResult.bundleErrors.noCollection = true;
+    errorFound = true;
+  } else if (collections.length > 1) {
+    logger.warn('Collection bundle has more than one x-mitre-collection object.');
+    errorResult.bundleErrors.moreThanOneCollection = true;
+    errorFound = true;
+  }
+
+  // The collection must have an id
+  if (collections.length > 0 && !collections[0].id) {
+    logger.warn('Badly formatted collection in bundle, x-mitre-collection missing id.');
+    errorResult.bundleErrors.badlyFormattedCollection = true;
+    errorFound = true;
+  }
+
+  // Validate bundle content
+  const validationResult = collectionBundlesService.validateBundle(collectionBundleData);
+  if (validationResult.errors.length > 0) {
+    errorFound = true;
+    if (validationResult.duplicateObjectInBundleCount > 0) {
+      logger.warn(
+        `Collection bundle has ${validationResult.duplicateObjectInBundleCount} duplicate objects.`,
+      );
+      errorResult.objectErrors.summary.duplicateObjectInBundleCount =
+        validationResult.duplicateObjectInBundleCount;
+    }
+    if (validationResult.invalidAttackSpecVersionCount > 0) {
+      logger.warn(
+        `Collection bundle has ${validationResult.invalidAttackSpecVersionCount} objects with invalid ATT&CK Spec version.`,
+      );
+      errorResult.objectErrors.summary.invalidAttackSpecVersionCount =
+        validationResult.invalidAttackSpecVersionCount;
+    }
+    errorResult.objectErrors.errors.push(...validationResult.errors);
+  }
+
+  return { errorResult, errorFound, collections };
+}
+
+/**
+ * Checks if validation errors should prevent import
+ * @param {Object} errorResult - The error result from validation
+ * @param {boolean} errorFound - Whether any errors were found
+ * @param {Array} forceImportParameters - Parameters to override validation errors
+ * @returns {boolean} True if import should be blocked
+ */
+function shouldBlockImport(errorResult, errorFound, forceImportParameters) {
+  if (!errorFound) {
+    return false;
+  }
+
+  // These errors do not have forceImport flags yet
+  if (
+    errorResult.bundleErrors.noCollection ||
+    errorResult.bundleErrors.moreThanOneCollection ||
+    errorResult.bundleErrors.badlyFormattedCollection ||
+    errorResult.objectErrors.summary.duplicateObjectInBundleCount > 0
+  ) {
+    return true;
+  }
+
+  // Check the forceImport flag for overriding ATT&CK Spec version violations
+  if (
+    errorResult.objectErrors.summary.invalidAttackSpecVersionCount > 0 &&
+    !forceImportParameters.find(
+      (e) => e === collectionBundlesService.forceImportParameters.attackSpecVersionViolations,
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Stream import progress using Server-Sent Events (SSE)
  */
@@ -55,90 +164,18 @@ exports.streamImportBundle = async function (req, res) {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     });
 
-    // Validate bundle (same validation as regular import)
-    const errorResult = {
-      bundleErrors: {
-        noCollection: false,
-        moreThanOneCollection: false,
-        duplicateCollection: false,
-        badlyFormattedCollection: false,
-      },
-      objectErrors: {
-        summary: {
-          duplicateObjectInBundleCount: 0,
-          invalidAttackSpecVersionCount: 0,
-        },
-        errors: [],
-      },
-    };
-    let errorFound = false;
-
-    const collections = collectionBundleData.objects.filter(
-      (object) => object.type === 'x-mitre-collection',
+    // Validate bundle using shared validation logic
+    const { errorResult, errorFound, collections } = validateCollectionBundle(
+      collectionBundleData
     );
 
-    if (collections.length === 0) {
-      logger.warn('Collection bundle is missing x-mitre-collection object.');
-      errorResult.bundleErrors.noCollection = true;
-      errorFound = true;
-    } else if (collections.length > 1) {
-      logger.warn('Collection bundle has more than one x-mitre-collection object.');
-      errorResult.bundleErrors.moreThanOneCollection = true;
-      errorFound = true;
-    }
-
-    if (collections.length > 0 && !collections[0].id) {
-      logger.warn('Badly formatted collection in bundle, x-mitre-collection missing id.');
-      errorResult.bundleErrors.badlyFormattedCollection = true;
-      errorFound = true;
-    }
-
-    const validationResult = collectionBundlesService.validateBundle(collectionBundleData);
-    if (validationResult.errors.length > 0) {
-      errorFound = true;
-      if (validationResult.duplicateObjectInBundleCount > 0) {
-        logger.warn(
-          `Collection bundle has ${validationResult.duplicateObjectInBundleCount} duplicate objects.`,
-        );
-        errorResult.objectErrors.summary.duplicateObjectInBundleCount =
-          validationResult.duplicateObjectInBundleCount;
-      }
-      if (validationResult.invalidAttackSpecVersionCount > 0) {
-        logger.warn(
-          `Collection bundle has ${validationResult.invalidAttackSpecVersionCount} objects with invalid ATT&CK Spec version.`,
-        );
-        errorResult.objectErrors.summary.invalidAttackSpecVersionCount =
-          validationResult.invalidAttackSpecVersionCount;
-      }
-      errorResult.objectErrors.errors = validationResult.errors;
-    }
-
-    if (errorFound) {
-      if (
-        errorResult.bundleErrors.noCollection ||
-        errorResult.bundleErrors.moreThanOneCollection ||
-        errorResult.bundleErrors.badlyFormattedCollection ||
-        errorResult.objectErrors.summary.duplicateObjectInBundleCount > 0
-      ) {
-        logger.error('Unable to import collection bundle due to an error in the bundle.');
-        const event = `event: error\ndata: ${JSON.stringify(errorResult)}\n\n`;
-        res.write(event);
-        res.end();
-        return;
-      }
-
-      if (
-        errorResult.objectErrors.summary.invalidAttackSpecVersionCount > 0 &&
-        !forceImportParameters.find(
-          (e) => e === collectionBundlesService.forceImportParameters.attackSpecVersionViolations,
-        )
-      ) {
-        logger.error('Unable to import collection bundle due to an error in the bundle.');
-        const event = `event: error\ndata: ${JSON.stringify(errorResult)}\n\n`;
-        res.write(event);
-        res.end();
-        return;
-      }
+    // Check if import should be blocked
+    if (shouldBlockImport(errorResult, errorFound, forceImportParameters)) {
+      logger.error('Unable to import collection bundle due to an error in the bundle.');
+      const event = `event: error\ndata: ${JSON.stringify(errorResult)}\n\n`;
+      res.write(event);
+      res.end();
+      return;
     }
 
     // Progress callback to send SSE events
@@ -196,95 +233,17 @@ exports.streamImportBundle = async function (req, res) {
 exports.importBundle = async function (req, res) {
   // Get the data from the request
   const collectionBundleData = req.body;
-
   const forceImportParameters = extractForceImportParameters(req);
 
-  const errorResult = {
-    bundleErrors: {
-      noCollection: false,
-      moreThanOneCollection: false,
-      duplicateCollection: false,
-      badlyFormattedCollection: false,
-    },
-    objectErrors: {
-      summary: {
-        duplicateObjectInBundleCount: 0,
-        invalidAttackSpecVersionCount: 0,
-      },
-      errors: [],
-    },
-  };
-  let errorFound = false;
-
-  // Find the x-mitre-collection objects
-  const collections = collectionBundleData.objects.filter(
-    (object) => object.type === 'x-mitre-collection',
+  // Validate bundle using shared validation logic
+  const { errorResult, errorFound, collections } = validateCollectionBundle(
+    collectionBundleData
   );
 
-  // The bundle must have an x-mitre-collection object
-  if (collections.length === 0) {
-    logger.warn('Collection bundle is missing x-mitre-collection object.');
-    errorResult.bundleErrors.noCollection = true;
-    errorFound = true;
-  } else if (collections.length > 1) {
-    logger.warn('Collection bundle has more than one x-mitre-collection object.');
-    errorResult.bundleErrors.moreThanOneCollection = true;
-    errorFound = true;
-  }
-
-  // The collection must have an id.
-  if (collections.length > 0 && !collections[0].id) {
-    logger.warn('Badly formatted collection in bundle, x-mitre-collection missing id.');
-    errorResult.bundleErrors.badlyFormattedCollection = true;
-    errorFound = true;
-  }
-
-  const validationResult = collectionBundlesService.validateBundle(collectionBundleData);
-  if (validationResult.errors.length > 0) {
-    errorFound = true;
-    if (validationResult.duplicateObjectInBundleCount > 0) {
-      logger.warn(
-        `Collection bundle has ${validationResult.duplicateObjectInBundleCount} duplicate objects.`,
-      );
-      errorResult.objectErrors.summary.duplicateObjectInBundleCount =
-        validationResult.duplicateObjectInBundleCount;
-    }
-
-    if (validationResult.invalidAttackSpecVersionCount > 0) {
-      logger.warn(
-        `Collection bundle has ${validationResult.invalidAttackSpecVersionCount} objects with invalid ATT&CK Spec Versions.`,
-      );
-      errorResult.objectErrors.summary.invalidAttackSpecVersionCount =
-        validationResult.invalidAttackSpecVersionCount;
-    }
-
-    errorResult.objectErrors.errors.push(...validationResult.errors);
-  }
-
-  if (errorFound) {
-    // Determine if any of the errors are overridden by the forceImport flag
-
-    // These errors do not have forceImport flags yet
-    if (
-      errorResult.bundleErrors.noCollection ||
-      errorResult.bundleErrors.moreThanOneCollection ||
-      errorResult.bundleErrors.badlyFormattedCollection ||
-      errorResult.objectErrors.summary.duplicateObjectInBundleCount > 0
-    ) {
-      logger.error('Unable to import collection bundle due to an error in the bundle.');
-      return res.status(400).send(errorResult);
-    }
-
-    // Check the forceImport flag for overriding ATT&CK Spec version violations
-    if (
-      errorResult.objectErrors.summary.invalidAttackSpecVersionCount > 0 &&
-      !forceImportParameters.find(
-        (e) => e === collectionBundlesService.forceImportParameters.attackSpecVersionViolations,
-      )
-    ) {
-      logger.error('Unable to import collection bundle due to an error in the bundle.');
-      return res.status(400).send(errorResult);
-    }
+  // Check if import should be blocked
+  if (shouldBlockImport(errorResult, errorFound, forceImportParameters)) {
+    logger.error('Unable to import collection bundle due to an error in the bundle.');
+    return res.status(400).send(errorResult);
   }
 
   const options = {
