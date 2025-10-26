@@ -138,8 +138,8 @@ exports.initializeApp = async function () {
     store: MongoStore.create({
       client: require('mongoose').connection.getClient(),
       dbName: config.database.dbName,
-      collectionName: 'sessions'
-    })
+      collectionName: 'sessions',
+    }),
   };
   app.use(session(sessionOptions));
 
