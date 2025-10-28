@@ -129,12 +129,17 @@ exports.initializeApp = async function () {
   }
 
   // Configure server-side sessions
-  // TBD: Replace default MemoryStore with production quality session storage
   const session = require('express-session');
+  const MongoStore = require('connect-mongo');
   const sessionOptions = {
     secret: config.session.secret,
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+      client: require('mongoose').connection.getClient(),
+      dbName: config.database.dbName,
+      collectionName: 'sessions',
+    }),
   };
   app.use(session(sessionOptions));
 
