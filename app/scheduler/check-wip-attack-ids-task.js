@@ -1,5 +1,6 @@
 'use strict';
 
+const schedule = require('node-schedule');
 const logger = require('../lib/logger');
 const config = require('../config/config');
 
@@ -117,52 +118,30 @@ async function checkWipAttackIds() {
 }
 
 /**
- * Schedule this task using node-schedule
- *
- * @param {object} schedule - The node-schedule module
+ * Initialize and schedule this task
  */
-async function scheduleMe(schedule) {
-  // Get interval from config (defaults to 1 hour if not specified)
-  const intervalSeconds = config.scheduler.checkWipAttackIdsInterval || 3600; // 1 hour default
+function initializeTask() {
+  const cronPattern = config.scheduler.checkWipAttackIdsCron;
 
-  logger.info(
-    `[check-wip-attack-ids] Scheduling task to run every ${intervalSeconds} seconds (${Math.floor(intervalSeconds / 60)} minutes)`,
-  );
+  logger.info(`[check-wip-attack-ids] Scheduling task with cron pattern: ${cronPattern}`);
 
-  // Schedule the job to run at the specified interval
-  // If interval is >= 60 seconds, use minute-based scheduling
-  if (intervalSeconds >= 60) {
-    const intervalMinutes = Math.floor(intervalSeconds / 60);
-    const minuteRule = new schedule.RecurrenceRule();
-    minuteRule.minute = new schedule.Range(0, 59, intervalMinutes);
-    minuteRule.second = 0;
-
-    schedule.scheduleJob(minuteRule, async () => {
-      try {
-        await checkWipAttackIds();
-      } catch (err) {
-        logger.error(`[check-wip-attack-ids] Task execution failed: ${err.message}`);
-      }
-    });
-  } else {
-    // For intervals < 60 seconds, use a simpler cron pattern
-    const rule = new schedule.RecurrenceRule();
-    rule.second = new schedule.Range(0, 59, Math.max(10, intervalSeconds));
-
-    schedule.scheduleJob(rule, async () => {
-      try {
-        await checkWipAttackIds();
-      } catch (err) {
-        logger.error(`[check-wip-attack-ids] Task execution failed: ${err.message}`);
-      }
-    });
-  }
+  schedule.scheduleJob(cronPattern, async () => {
+    try {
+      await checkWipAttackIds();
+    } catch (err) {
+      logger.error(`[check-wip-attack-ids] Task execution failed: ${err.message}`);
+    }
+  });
 
   logger.info('[check-wip-attack-ids] Task scheduled successfully');
 }
 
-// Export the scheduleMe function (required by the scheduler)
+// Initialize the task when this module is loaded
+if (config.scheduler.enableScheduler) {
+  initializeTask();
+}
+
+// Export for testing
 module.exports = {
-  scheduleMe,
-  checkWipAttackIds, // Export for testing
+  checkWipAttackIds,
 };

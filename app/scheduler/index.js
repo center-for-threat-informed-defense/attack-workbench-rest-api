@@ -1,21 +1,21 @@
 'use strict';
 
-const schedule = require('node-schedule');
 const logger = require('../lib/logger');
 const config = require('../config/config');
 const fs = require('fs');
 const path = require('path');
 
 /**
- * Initialize the scheduler by loading all task modules and scheduling them
+ * Initialize the scheduler by loading all task modules
+ * Task modules self-initialize when required
  */
-async function initializeScheduler() {
+function initializeScheduler() {
   if (!config.scheduler.enableScheduler) {
     logger.info('Scheduler is disabled by configuration');
     return;
   }
 
-  logger.info('Initializing node-schedule based scheduler');
+  logger.info('Loading scheduled tasks');
 
   // Find all *-task.js files in the scheduler directory
   const schedulerDir = __dirname;
@@ -23,25 +23,14 @@ async function initializeScheduler() {
 
   logger.info(`Found ${taskFiles.length} task file(s) to load`);
 
-  // Load and schedule each task
+  // Require each task file (they self-initialize)
   for (const taskFile of taskFiles) {
     const taskPath = path.join(schedulerDir, taskFile);
-    logger.info(`Loading task from ${taskFile}`);
-
     try {
-      const taskModule = require(taskPath);
-
-      // Validate that the module exports a scheduleMe function
-      if (typeof taskModule.scheduleMe !== 'function') {
-        logger.error(`Task file ${taskFile} does not export a 'scheduleMe' function. Skipping.`);
-        continue;
-      }
-
-      // Call scheduleMe to schedule the task
-      await taskModule.scheduleMe(schedule);
-      logger.info(`Successfully scheduled task from ${taskFile}`);
+      require(taskPath);
+      logger.info(`Loaded task from ${taskFile}`);
     } catch (err) {
-      logger.error(`Failed to load or schedule task from ${taskFile}: ${err.message}`);
+      logger.error(`Failed to load task from ${taskFile}: ${err.message}`);
       logger.error(err.stack);
     }
   }

@@ -51,16 +51,13 @@ async function runServer() {
   const app = await require('../app').initializeApp();
 
   // Create the scheduler
-  // TODO migrate to new task scheduling paradigm
+  // TODO migrate to taskScheduler
   const collectionManager = require('../app/scheduler/scheduler');
   collectionManager.initializeScheduler();
-  
-  // NEW scheduler (uses the Node Schedule library to schedule tasks)
-  // To schedule jobs:
-  // 1. Create a new JS file in `../app/scheduler` and set "-task" suffix in the filename, e.g, foo-task.js
-  // 2. In the new JS file, export a function called `scheduleMe` -- this function is what gets scheduled!
-  const scheduler = require('../app/scheduler');
-  await scheduler.initializeScheduler();
+
+  // Load node-schedule based tasks (task files ending in -task.js)
+  const taskScheduler = require('../app/scheduler');
+  taskScheduler.initializeScheduler();
 
   // Start the server
   logger.info('Starting the HTTP server...');
@@ -84,13 +81,15 @@ async function runServer() {
   // Listen for a ctrl-c
   process.on('SIGINT', () => {
     logger.info('SIGINT received, stopping HTTP server');
-    server.close();
+    collectionManager.gracefulShutdown()
+      .then(() => server.close());
   });
 
   // Docker terminates a container with a SIGTERM
   process.on('SIGTERM', () => {
     logger.info('SIGTERM received, stopping HTTP server');
-    server.close();
+    collectionManager.gracefulShutdown()
+      .then(() => server.close());
   });
 
   process.on('uncaughtException', (err, origin) => {
@@ -99,8 +98,8 @@ async function runServer() {
     logger.error(err.stack);
 
     logger.error('Terminating app after uncaught exception');
-
-    process.exit(1);
+    collectionManager.gracefulShutdown()
+      .then(() => process.exit(1));
   });
 
   // Wait for the server to close
