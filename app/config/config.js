@@ -229,6 +229,11 @@ function loadConfig() {
         default: 10,
         env: 'CHECK_WORKBENCH_INTERVAL',
       },
+      checkWipAttackIdsInterval: {
+        doc: 'Sets the interval in seconds for checking WIP objects with ATT&CK IDs.',
+        default: 3600,
+        env: 'CHECK_WIP_ATTACK_IDS_INTERVAL',
+      },
       enableScheduler: {
         format: Boolean,
         default: true,

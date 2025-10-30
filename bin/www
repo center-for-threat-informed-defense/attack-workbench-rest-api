@@ -51,8 +51,16 @@ async function runServer() {
   const app = await require('../app').initializeApp();
 
   // Create the scheduler
-  const scheduler = require('../app/scheduler/scheduler');
-  scheduler.initializeScheduler();
+  // TODO migrate to new task scheduling paradigm
+  const collectionManager = require('../app/scheduler/scheduler');
+  collectionManager.initializeScheduler();
+  
+  // NEW scheduler (uses the Node Schedule library to schedule tasks)
+  // To schedule jobs:
+  // 1. Create a new JS file in `../app/scheduler` and set "-task" suffix in the filename, e.g, foo-task.js
+  // 2. In the new JS file, export a function called `scheduleMe` -- this function is what gets scheduled!
+  const scheduler = require('../app/scheduler');
+  await scheduler.initializeScheduler();
 
   // Start the server
   logger.info('Starting the HTTP server...');
