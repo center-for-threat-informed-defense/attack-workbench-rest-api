@@ -315,28 +315,34 @@ class BaseService extends AbstractService {
 
     options = options || {};
     if (!options.import) {
-      // Generate or validate ATT&CK ID
-      const hasValidId = await attackIdGenerator.hasValidAttackId(data, this.type, this.repository);
-
-      if (!hasValidId) {
-        // No ID present, generate one
-        // Note: Only supports regular ID generation, not subtechniques
-        // For subtechniques, the client must provide the ATT&CK ID explicitly
-        const isSubtechnique = data.stix?.x_mitre_is_subtechnique === true;
-        if (isSubtechnique) {
-          throw new Error(
-            'Subtechniques require an explicit ATT&CK ID in workspace.attack_id. Use the /api/attack-objects/attack-id/next endpoint with parentRef to preview the ID.',
-          );
-        }
-
-        const attackId = await attackIdGenerator.generateAttackId(
+      if (attackIdGenerator.requiresAttackId(this.type)) {
+        // Generate or validate ATT&CK ID
+        const hasValidId = await attackIdGenerator.hasValidAttackId(
+          data,
           this.type,
           this.repository,
-          false,
-          null,
         );
-        data.workspace = data.workspace || {};
-        data.workspace.attack_id = attackId;
+
+        if (!hasValidId) {
+          // No ID present, generate one
+          // Note: Only supports regular ID generation, not subtechniques
+          // For subtechniques, the client must provide the ATT&CK ID explicitly
+          const isSubtechnique = data.stix?.x_mitre_is_subtechnique === true;
+          if (isSubtechnique) {
+            throw new Error(
+              'Subtechniques require an explicit ATT&CK ID in workspace.attack_id. Use the /api/attack-objects/attack-id/next endpoint with parentRef to preview the ID.',
+            );
+          }
+
+          const attackId = await attackIdGenerator.generateAttackId(
+            this.type,
+            this.repository,
+            false,
+            null,
+          );
+          data.workspace = data.workspace || {};
+          data.workspace.attack_id = attackId;
+        }
       }
       // Set the ATT&CK Spec Version
       data.stix.x_mitre_attack_spec_version =
