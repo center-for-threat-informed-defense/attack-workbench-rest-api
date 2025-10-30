@@ -4,9 +4,19 @@ const {
   stixTypeToAttackIdMapping,
   attackIdExamples,
   createAttackIdSchema,
-} = require('@mitre-attack/attack-data-model/dist/schemas/common/attack-id');
+} = require('@mitre-attack/attack-data-model/dist/schemas/common/property-schemas/attack-id');
 const { InvalidTypeError, DuplicateIdError } = require('../exceptions');
 const logger = require('./logger');
+
+/**
+ * Determines if a given ATT&CK object type requires an ATT&CK ID.
+ * @param {string} objectType - The ATT&CK object type to check
+ * @returns {boolean} True if the object type requires an ATT&CK ID
+ */
+function requiresAttackId(objectType) {
+  return objectType in Object.keys(stixTypeToAttackIdMapping);
+}
+exports.requiresAttackId = requiresAttackId;
 
 /**
  * Get the type prefix for an ATT&CK ID type
