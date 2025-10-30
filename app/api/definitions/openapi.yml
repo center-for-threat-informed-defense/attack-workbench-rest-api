@@ -71,7 +71,7 @@ paths:
   # ATT&CK Objects
   /api/attack-objects:
     $ref: 'paths/attack-objects-paths.yml#/paths/~1api~1attack-objects'
-  
+
   # Generate next available ATT&CK ID
   /api/attack-objects/attack-id/next:
     $ref: 'paths/attack-objects-paths.yml#/paths/~1api~1attack-objects~1attack-id~1next'
