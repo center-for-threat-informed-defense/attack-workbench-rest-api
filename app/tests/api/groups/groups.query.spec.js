@@ -283,7 +283,6 @@ describe('Groups API Queries', function () {
     // We expect to get the latest group with the correct ATT&CK ID
     const groups = res.body;
     logger.info(`Received groups: ${groups}`);
-    console.log(`Received groups: ${JSON.stringify(groups)}`);
     expect(groups).toBeDefined();
     expect(Array.isArray(groups)).toBe(true);
     expect(groups.length).toBe(1);
