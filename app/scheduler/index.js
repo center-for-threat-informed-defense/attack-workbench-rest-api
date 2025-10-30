@@ -1,5 +1,6 @@
 'use strict';
 
+const schedule = require('node-schedule');
 const logger = require('../lib/logger');
 const config = require('../config/config');
 const fs = require('fs');
@@ -38,6 +39,17 @@ function initializeScheduler() {
   logger.info('Scheduler initialization complete');
 }
 
+/**
+ * Gracefully shutdown all scheduled jobs
+ * @returns {Promise<void>} Promise that resolves when all jobs are terminated
+ */
+async function gracefulShutdown() {
+  logger.info('Gracefully shutting down scheduled tasks');
+  await schedule.gracefulShutdown();
+  logger.info('All scheduled tasks have been shut down');
+}
+
 module.exports = {
   initializeScheduler,
+  gracefulShutdown,
 };

@@ -81,14 +81,14 @@ async function runServer() {
   // Listen for a ctrl-c
   process.on('SIGINT', () => {
     logger.info('SIGINT received, stopping HTTP server');
-    collectionManager.gracefulShutdown()
+    taskScheduler.gracefulShutdown()
       .then(() => server.close());
   });
 
   // Docker terminates a container with a SIGTERM
   process.on('SIGTERM', () => {
     logger.info('SIGTERM received, stopping HTTP server');
-    collectionManager.gracefulShutdown()
+    taskScheduler.gracefulShutdown()
       .then(() => server.close());
   });
 
@@ -98,7 +98,7 @@ async function runServer() {
     logger.error(err.stack);
 
     logger.error('Terminating app after uncaught exception');
-    collectionManager.gracefulShutdown()
+    taskScheduler.gracefulShutdown()
       .then(() => process.exit(1));
   });
 
