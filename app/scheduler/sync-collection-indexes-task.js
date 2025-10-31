@@ -121,7 +121,8 @@ const runCheckCollectionIndexes = async function () {
               scheduledSubscriptions.delete(savedCollectionIndex.collection_index.id);
             } catch (err) {
               logger.error(
-                '[sync-collection-indexes] Error checking subscriptions in collection index. ' + err,
+                '[sync-collection-indexes] Error checking subscriptions in collection index. ' +
+                  err,
               );
               return updatedCollections;
             }
