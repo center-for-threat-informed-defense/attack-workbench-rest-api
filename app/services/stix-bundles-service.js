@@ -5,6 +5,7 @@ const config = require('../config/config');
 const BaseService = require('./_base.service');
 const linkById = require('../lib/linkById');
 const logger = require('../lib/logger');
+const { requiresAttackId } = require('../lib/attack-id-generator');
 
 // Import repositories
 const analyticsRepository = require('../repository/analytics-repository');
@@ -213,27 +214,6 @@ class StixBundlesService extends BaseService {
     return false;
   }
 
-  /**
-   * Determines if a given attack object type requires an ATT&CK ID.
-   * @param {Object} attackObject - The attack object to check
-   * @returns {boolean} True if the object type requires an ATT&CK ID
-   */
-  static requiresAttackId(attackObject) {
-    const attackIdObjectTypes = [
-      'intrusion-set',
-      'campaign',
-      'malware',
-      'tool',
-      'attack-pattern',
-      'course-of-action',
-      'x-mitre-data-source',
-      'x-mitre-data-component',
-      'x-mitre-detection-strategy',
-      'x-mitre-analytic',
-    ];
-    return attackIdObjectTypes.includes(attackObject?.stix?.type);
-  }
-
   // ============================
   // STIX Version Management
   // ============================
@@ -370,7 +350,7 @@ class StixBundlesService extends BaseService {
       secondaryObject &&
       // Check if ATT&CK ID is required
       (options.includeMissingAttackId ||
-        !StixBundlesService.requiresAttackId(secondaryObject) ||
+        !requiresAttackId(secondaryObject?.stix?.type) ||
         StixBundlesService.hasAttackId(secondaryObject)) &&
       // Check deprecation status
       (options.includeDeprecated || !secondaryObject.stix.x_mitre_deprecated) &&
