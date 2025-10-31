@@ -51,11 +51,6 @@ async function runServer() {
   const app = await require('../app').initializeApp();
 
   // Create the scheduler
-  // TODO migrate to taskScheduler
-  const collectionManager = require('../app/scheduler/scheduler');
-  collectionManager.initializeScheduler();
-
-  // Load node-schedule based tasks (task files ending in -task.js)
   const taskScheduler = require('../app/scheduler');
   taskScheduler.initializeScheduler();
 

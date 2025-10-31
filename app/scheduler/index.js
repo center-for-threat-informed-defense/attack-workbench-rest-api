@@ -28,6 +28,7 @@ function initializeScheduler() {
   for (const taskFile of taskFiles) {
     const taskPath = path.join(schedulerDir, taskFile);
     try {
+      // Loading the module will trigger its `initializeTask` method which schedules the task
       require(taskPath);
       logger.info(`Loaded task from ${taskFile}`);
     } catch (err) {

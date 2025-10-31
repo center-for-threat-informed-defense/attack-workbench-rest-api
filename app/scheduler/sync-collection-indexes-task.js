@@ -1,5 +1,6 @@
 'use strict';
 
+const schedule = require('node-schedule');
 const collectionIndexesService = require('../services/collection-indexes-service');
 const collectionsService = require('../services/collections-service');
 const collectionBundlesService = require('../services/collection-bundles-service');
@@ -16,20 +17,6 @@ const logger = require('../lib/logger');
 const config = require('../config/config');
 
 const superagent = require('superagent');
-
-let timer;
-exports.initializeScheduler = function () {
-  logger.info('Starting the scheduler');
-
-  const intervalMilliseconds = config.scheduler.checkWorkbenchInterval * 1000;
-  timer = setInterval(runCheckCollectionIndexes, intervalMilliseconds);
-};
-
-exports.stopScheduler = function () {
-  if (timer) {
-    clearInterval(timer);
-  }
-};
 
 const scheduledSubscriptions = new Map();
 
@@ -58,13 +45,13 @@ async function retrieveByUrl(url) {
 
 const runCheckCollectionIndexes = async function () {
   const updatedCollections = [];
-  logger.info('Scheduler running...');
+  logger.info('[sync-collection-indexes] Scheduler running...');
 
   let collectionIndexes;
   try {
     collectionIndexes = await collectionIndexesService.retrieveAll({ offset: 0, limit: 0 });
   } catch (err) {
-    logger.error('Unable to get existing collection indexes: ' + err);
+    logger.error('[sync-collection-indexes] Unable to get existing collection indexes: ' + err);
   }
 
   for (const collectionIndex of collectionIndexes) {
@@ -80,24 +67,27 @@ const runCheckCollectionIndexes = async function () {
         now - lastRetrieval > 1000 * collectionIndex.workspace.update_policy.interval
       ) {
         logger.info(
-          `Checking collection index: ${collectionIndex.collection_index.name} (${collectionIndex.collection_index.id})`,
+          `[sync-collection-indexes] Checking collection index: ${collectionIndex.collection_index.name} (${collectionIndex.collection_index.id})`,
         );
         logger.verbose(
-          'Retrieving collection index from remote url ' + collectionIndex.workspace.remote_url,
+          '[sync-collection-indexes] Retrieving collection index from remote url ' +
+            collectionIndex.workspace.remote_url,
         );
 
         let remoteCollectionIndex;
         try {
           remoteCollectionIndex = await retrieveByUrl(collectionIndex.workspace.remote_url);
         } catch (err) {
-          logger.error('Unable to retrieve collection index from remote url. ' + err);
+          logger.error(
+            '[sync-collection-indexes] Unable to retrieve collection index from remote url. ' + err,
+          );
         }
 
         const remoteTimestamp = new Date(remoteCollectionIndex.modified);
         const existingTimestamp = new Date(collectionIndex.collection_index.modified);
         if (remoteTimestamp > existingTimestamp) {
           logger.info(
-            'The retrieved collection index is newer. Updating collection index in workbench.',
+            '[sync-collection-indexes] The retrieved collection index is newer. Updating collection index in workbench.',
           );
           collectionIndex.collection_index = remoteCollectionIndex;
           collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
@@ -109,18 +99,20 @@ const runCheckCollectionIndexes = async function () {
               collectionIndex,
             );
           } catch (err) {
-            logger.error('Unable to update collection index in workbench. ' + err);
+            logger.error(
+              '[sync-collection-indexes] Unable to update collection index in workbench. ' + err,
+            );
             return updatedCollections;
           }
 
           // Check subscribed collections
           if (scheduledSubscriptions.has(savedCollectionIndex.collection_index.id)) {
             logger.info(
-              `Subscriptions for collection index ${savedCollectionIndex.collection_index.id} are already being checked`,
+              `[sync-collection-indexes] Subscriptions for collection index ${savedCollectionIndex.collection_index.id} are already being checked`,
             );
           } else {
             logger.verbose(
-              `Checking Subscriptions for collection index ${savedCollectionIndex.collection_index.id}`,
+              `[sync-collection-indexes] Checking Subscriptions for collection index ${savedCollectionIndex.collection_index.id}`,
             );
             scheduledSubscriptions.set(savedCollectionIndex.collection_index.id, true);
             try {
@@ -128,12 +120,14 @@ const runCheckCollectionIndexes = async function () {
               updatedCollections.push(collectionIndex.collection_index.id);
               scheduledSubscriptions.delete(savedCollectionIndex.collection_index.id);
             } catch (err) {
-              logger.error('Error checking subscriptions in collection index. ' + err);
+              logger.error(
+                '[sync-collection-indexes] Error checking subscriptions in collection index. ' + err,
+              );
               return updatedCollections;
             }
           }
         } else {
-          logger.verbose('The retrieved collection index is not newer.');
+          logger.verbose('[sync-collection-indexes] The retrieved collection index is not newer.');
           collectionIndex.workspace.update_policy.last_retrieval = new Date(now).toISOString();
           try {
             await collectionIndexesService.updateFull(
@@ -141,18 +135,20 @@ const runCheckCollectionIndexes = async function () {
               collectionIndex,
             );
           } catch (err) {
-            logger.error('Unable to update collection index in workbench. ' + err);
+            logger.error(
+              '[sync-collection-indexes] Unable to update collection index in workbench. ' + err,
+            );
             return updatedCollections;
           }
 
           // Check subscribed collections
           if (scheduledSubscriptions.has(collectionIndex.collection_index.id)) {
             logger.info(
-              `Subscriptions for collection index ${collectionIndex.collection_index.id} are already being checked`,
+              `[sync-collection-indexes] Subscriptions for collection index ${collectionIndex.collection_index.id} are already being checked`,
             );
           } else {
             logger.info(
-              `Checking Subscriptions for collection index ${collectionIndex.collection_index.id}`,
+              `[sync-collection-indexes] Checking Subscriptions for collection index ${collectionIndex.collection_index.id}`,
             );
             scheduledSubscriptions.set(collectionIndex.collection_index.id, true);
             try {
@@ -160,7 +156,10 @@ const runCheckCollectionIndexes = async function () {
               updatedCollections.push(collectionIndex.collection_index.id);
               scheduledSubscriptions.delete(collectionIndex.collection_index.id);
             } catch (err) {
-              logger.error('Error checking subscriptions in collection index. ' + err);
+              logger.error(
+                '[sync-collection-indexes] Error checking subscriptions in collection index. ' +
+                  err,
+              );
               return updatedCollections;
             }
           }
@@ -197,7 +196,9 @@ async function subscriptionHandler(collectionIndex) {
     ) {
       // Latest version in collection index is later than latest version in the Workbench data store,
       // so we should import it
-      logger.info(`Retrieving collection bundle from remote url ${collectionInfo.versions[0].url}`);
+      logger.info(
+        `[sync-collection-indexes] Retrieving collection bundle from remote url ${collectionInfo.versions[0].url}`,
+      );
 
       let collectionBundle;
       try {
@@ -205,7 +206,9 @@ async function subscriptionHandler(collectionIndex) {
       } catch (err) {
         throw new Error('Unable to retrieve updated collection bundle. ' + err);
       }
-      logger.info(`Downloaded updated collection bundle with id ${collectionBundle.id}`);
+      logger.info(
+        `[sync-collection-indexes] Downloaded updated collection bundle with id ${collectionBundle.id}`,
+      );
 
       // Find the x-mitre-collection objects
       const collections = collectionBundle.objects.filter(
@@ -241,7 +244,7 @@ async function subscriptionHandler(collectionIndex) {
           importOptions,
         );
         logger.info(
-          `Imported collection bundle with x-mitre-collection id ${importedCollection.stix.id}`,
+          `[sync-collection-indexes] Imported collection bundle with x-mitre-collection id ${importedCollection.stix.id}`,
         );
       } catch (err) {
         throw new Error(
@@ -250,4 +253,27 @@ async function subscriptionHandler(collectionIndex) {
       }
     }
   }
+}
+
+/**
+ * Initialize and schedule this task
+ */
+function initializeTask() {
+  const cronPattern = config.scheduler.syncCollectionIndexesCron;
+
+  logger.info(`[sync-collection-indexes] Scheduling task with cron pattern: ${cronPattern}`);
+
+  schedule.scheduleJob(cronPattern, async () => {
+    try {
+      await runCheckCollectionIndexes();
+    } catch (err) {
+      logger.error(`[sync-collection-indexes] Task execution failed: ${err.message}`);
+    }
+  });
+
+  logger.info(`[sync-collection-indexes] Task scheduled successfully`);
+}
+
+if (config.scheduler.enableScheduler) {
+  initializeTask();
 }
