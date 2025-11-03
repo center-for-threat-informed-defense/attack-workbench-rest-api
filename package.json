@@ -69,6 +69,7 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@codedependant/semantic-release-docker": "^5.1.1",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
     "c8": "^10.1.3",
