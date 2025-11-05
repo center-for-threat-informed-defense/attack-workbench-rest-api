@@ -37,6 +37,7 @@ This guide provides comprehensive instructions for installing, configuring, and 
 The ATT&CK Workbench REST API provides services for storing, querying, and editing ATT&CK objects. It is built on Node.js and Express.js, and uses MongoDB for data persistence.
 
 This component is part of the larger ATT&CK Workbench application, which includes:
+
 - [ATT&CK Workbench Frontend](https://github.com/center-for-threat-informed-defense/attack-workbench-frontend)
 - [ATT&CK Workbench REST API](https://github.com/center-for-threat-informed-defense/attack-workbench-rest-api) (this component)
 
@@ -55,11 +56,13 @@ The simplest way to deploy the entire ATT&CK Workbench application is using Dock
 To run only the REST API in a Docker container:
 
 1. **Create a Docker network** (if not already created):
+
    ```shell
    docker network create attack-workbench-network
    ```
 
 2. **Run MongoDB container**:
+
    ```shell
    docker run --name attack-workbench-mongodb -d \
      --network attack-workbench-network \
@@ -67,6 +70,7 @@ To run only the REST API in a Docker container:
    ```
 
 3. **Run REST API container**:
+
    ```shell
    docker run -p 3000:3000 -d \
      --name attack-workbench-rest-api \
@@ -96,12 +100,14 @@ docker run -p 3000:3000 -d \
 #### Installation Steps
 
 1. **Clone the repository**:
+
    ```shell
    git clone https://github.com/center-for-threat-informed-defense/attack-workbench-rest-api.git
    cd attack-workbench-rest-api
    ```
 
 2. **Install dependencies**:
+
    ```shell
    npm install
    ```
@@ -109,6 +115,7 @@ docker run -p 3000:3000 -d \
 3. **Configure the application** using environment variables or a configuration file (see [Configuration](#configuration)).
 
 4. **Start the application**:
+
    ```shell
    node ./bin/www
    ```
@@ -119,17 +126,17 @@ The REST API can be configured using environment variables, a configuration file
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| **PORT** | No | `3000` | Port the HTTP server should listen on |
-| **CORS_ALLOWED_ORIGINS** | No | `*` | Configures CORS policy. Accepts a comma-separated list of allowed domains. (`*` allows all domains; `disable` disables CORS entirely.) |
-| **NODE_ENV** | No | `development` | Environment that the app is running in |
-| **DATABASE_URL** | Yes | none | URL of the MongoDB server |
-| **AUTHN_MECHANISM** | No | `anonymous` | Mechanism to use for authenticating users |
-| **DEFAULT_INTERVAL** | No | `300` | How often collection indexes should check for updates (in seconds) |
-| **JSON_CONFIG_PATH** | No | `` | Location of a JSON file containing configuration values |
-| **LOG_LEVEL** | No | `info` | Level of messages to be written to the log (error, warn, http, info, verbose, debug) |
-| **WB_REST_STATIC_MARKING_DEFS_PATH** | No | `./app/lib/default-static-marking-definitions/` | Path to a directory containing static marking definitions |
+| Variable                             | Required | Default                                         | Description                                                                                                                            |
+|--------------------------------------|----------|-------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| **PORT**                             | No       | `3000`                                          | Port the HTTP server should listen on                                                                                                  |
+| **CORS_ALLOWED_ORIGINS**             | No       | `*`                                             | Configures CORS policy. Accepts a comma-separated list of allowed domains. (`*` allows all domains; `disable` disables CORS entirely.) |
+| **NODE_ENV**                         | No       | `development`                                   | Environment that the app is running in                                                                                                 |
+| **DATABASE_URL**                     | Yes      | none                                            | URL of the MongoDB server                                                                                                              |
+| **AUTHN_MECHANISM**                  | No       | `anonymous`                                     | Mechanism to use for authenticating users                                                                                              |
+| **DEFAULT_INTERVAL**                 | No       | `300`                                           | How often collection indexes should check for updates (in seconds)                                                                     |
+| **JSON_CONFIG_PATH**                 | No       | ``                                              | Location of a JSON file containing configuration values                                                                                |
+| **LOG_LEVEL**                        | No       | `info`                                          | Level of messages to be written to the log (error, warn, http, info, verbose, debug)                                                   |
+| **WB_REST_STATIC_MARKING_DEFS_PATH** | No       | `./app/lib/default-static-marking-definitions/` | Path to a directory containing static marking definitions                                                                              |
 
 A typical value for DATABASE_URL when running locally is `mongodb://localhost/attack-workspace`.
 
@@ -137,14 +144,14 @@ A typical value for DATABASE_URL when running locally is `mongodb://localhost/at
 
 If the `JSON_CONFIG_PATH` environment variable is set, the app will read configuration settings from a JSON file at that location.
 
-| Property | Type | Corresponding Environment Variable |
-|----------|------|-----------------------------------|
-| **server.port** | int | PORT |
-| **server.corsAllowedOrigins** | string/array | CORS_ALLOWED_ORIGINS |
-| **app.env** | string | NODE_ENV |
-| **database.url** | string | DATABASE_URL |
-| **collectionIndex.defaultInterval** | int | DEFAULT_INTERVAL |
-| **logging.logLevel** | string | LOG_LEVEL |
+| Property                            | Type         | Corresponding Environment Variable |
+|-------------------------------------|--------------|------------------------------------|
+| **server.port**                     | int          | PORT                               |
+| **server.corsAllowedOrigins**       | string/array | CORS_ALLOWED_ORIGINS               |
+| **app.env**                         | string       | NODE_ENV                           |
+| **database.url**                    | string       | DATABASE_URL                       |
+| **collectionIndex.defaultInterval** | int          | DEFAULT_INTERVAL                   |
+| **logging.logLevel**                | string       | LOG_LEVEL                          |
 
 Example configuration file:
 
@@ -186,13 +193,13 @@ To enable OIDC authentication:
 
 2. **Configure the REST API** with these environment variables:
 
-| Environment Variable | Required | Description | Configuration Property |
-|---------------------|----------|-------------|------------------------|
-| **AUTHN_MECHANISM** | Yes | Must be set to `oidc` | userAuthn.mechanism |
-| **AUTHN_OIDC_CLIENT_ID** | Yes | Client ID from your OIDC provider | userAuthn.oidc.clientId |
-| **AUTHN_OIDC_CLIENT_SECRET** | Yes | Client secret from your OIDC provider | userAuthn.oidc.clientSecret |
-| **AUTHN_OIDC_ISSUER_URL** | Yes | Issuer URL for the Identity Server | userAuthn.oidc.issuerUrl |
-| **AUTHN_OIDC_REDIRECT_ORIGIN** | Yes | URL for the Workbench host | userAuthn.oidc.redirectOrigin |
+| Environment Variable           | Required | Description                           | Configuration Property        |
+|--------------------------------|----------|---------------------------------------|-------------------------------|
+| **AUTHN_MECHANISM**            | Yes      | Must be set to `oidc`                 | userAuthn.mechanism           |
+| **AUTHN_OIDC_CLIENT_ID**       | Yes      | Client ID from your OIDC provider     | userAuthn.oidc.clientId       |
+| **AUTHN_OIDC_CLIENT_SECRET**   | Yes      | Client secret from your OIDC provider | userAuthn.oidc.clientSecret   |
+| **AUTHN_OIDC_ISSUER_URL**      | Yes      | Issuer URL for the Identity Server    | userAuthn.oidc.issuerUrl      |
+| **AUTHN_OIDC_REDIRECT_ORIGIN** | Yes      | URL for the Workbench host            | userAuthn.oidc.redirectOrigin |
 
 ### Service Authentication
 
@@ -210,29 +217,29 @@ The REST API includes a user management system when using OIDC authentication.
 
 The system supports these roles:
 
-| Role | Description |
-|------|-------------|
-| `none` | No access to the system (for pending/inactive users) |
-| `visitor` | Read-only access to ATT&CK objects |
-| `editor` | Read and write access to ATT&CK objects |
-| `admin` | Full access to all system capabilities, including user management |
+| Role      | Description                                                       |
+|-----------|-------------------------------------------------------------------|
+| `none`    | No access to the system (for pending/inactive users)              |
+| `visitor` | Read-only access to ATT&CK objects                                |
+| `editor`  | Read and write access to ATT&CK objects                           |
+| `admin`   | Full access to all system capabilities, including user management |
 
 ### User Account Status
 
-| Status | Description |
-|--------|-------------|
-| `pending` | User has registered but awaits approval |
-| `active` | User is registered and approved |
-| `inactive` | User is no longer active |
+| Status     | Description                             |
+|------------|-----------------------------------------|
+| `pending`  | User has registered but awaits approval |
+| `active`   | User is registered and approved         |
+| `inactive` | User is no longer active                |
 
 ### User Management Endpoints
 
-| Endpoint | Method | Description | Authorization |
-|----------|--------|-------------|--------------|
-| `/api/user-accounts` | GET | List all users | Admin only |
-| `/api/user-accounts/:id` | GET | Get user by ID | Admin or self |
-| `/api/user-accounts/register` | POST | Register new user | Logged in, unregistered users |
-| `/api/user-accounts/:id` | PUT | Update user | Admin only |
+| Endpoint                      | Method | Description       | Authorization                 |
+|-------------------------------|--------|-------------------|-------------------------------|
+| `/api/user-accounts`          | GET    | List all users    | Admin only                    |
+| `/api/user-accounts/:id`      | GET    | Get user by ID    | Admin or self                 |
+| `/api/user-accounts/register` | POST   | Register new user | Logged in, unregistered users |
+| `/api/user-accounts/:id`      | PUT    | Update user       | Admin only                    |
 
 ## API Documentation
 
