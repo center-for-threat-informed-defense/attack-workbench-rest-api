@@ -131,14 +131,28 @@ exports.initializeApp = async function () {
   // Configure server-side sessions
   const session = require('express-session');
   const MongoStore = require('connect-mongo');
+  const mongoose = require('mongoose');
+
+  // Generate unique session cookie name based on container hostname
+  // This ensures multiple instances on the same domain don't conflict
+  // which is important for local development environments with multiple instances
+  const os = require('os');
+  const crypto = require('crypto');
+  const hostname = os.hostname();
+  const cookieName = (hostname && hostname !== 'localhost')
+    ? `connect.${crypto.createHash('sha256').update(hostname).digest('hex').substring(0, 8)}.sid`
+    : 'connect.sid';
+
   const sessionOptions = {
+    name: cookieName,
     secret: config.session.secret,
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({
-      client: require('mongoose').connection.getClient(),
-      dbName: config.database.dbName,
-      collectionName: 'sessions',
+      client: mongoose.connection.getClient(),
+      crypto: {
+        secret: config.session.mongoStoreCryptoSecret
+      }
     }),
   };
   app.use(session(sessionOptions));
