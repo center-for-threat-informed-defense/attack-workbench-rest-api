@@ -139,9 +139,10 @@ exports.initializeApp = async function () {
   const os = require('os');
   const crypto = require('crypto');
   const hostname = os.hostname();
-  const cookieName = (hostname && hostname !== 'localhost')
-    ? `connect.${crypto.createHash('sha256').update(hostname).digest('hex').substring(0, 8)}.sid`
-    : 'connect.sid';
+  const cookieName =
+    hostname && hostname !== 'localhost'
+      ? `connect.${crypto.createHash('sha256').update(hostname).digest('hex').substring(0, 8)}.sid`
+      : 'connect.sid';
 
   const sessionOptions = {
     name: cookieName,
@@ -151,8 +152,8 @@ exports.initializeApp = async function () {
     store: MongoStore.create({
       client: mongoose.connection.getClient(),
       crypto: {
-        secret: config.session.mongoStoreCryptoSecret
-      }
+        secret: config.session.mongoStoreCryptoSecret,
+      },
     }),
   };
   app.use(session(sessionOptions));
