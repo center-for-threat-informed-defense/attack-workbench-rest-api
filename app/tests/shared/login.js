@@ -3,9 +3,6 @@
 const request = require('supertest');
 const setCookieParser = require('set-cookie-parser');
 
-const passportCookieName = 'connect.sid';
-exports.passportCookieName = passportCookieName;
-
 exports.loginAnonymous = async function (app) {
   const res = await request(app)
     .get('/api/authn/anonymous/login')
