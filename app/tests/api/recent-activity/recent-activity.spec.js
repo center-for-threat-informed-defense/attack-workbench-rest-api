@@ -41,7 +41,7 @@ describe('Recent Activity API', function () {
     const res = await request(app)
       .get('/api/recent-activity')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -68,7 +68,7 @@ describe('Recent Activity API', function () {
     const res = await request(app)
       .get('/api/recent-activity')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

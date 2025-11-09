@@ -153,7 +153,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -168,7 +168,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?includeDeprecated=false')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -183,7 +183,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?includeDeprecated=true')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -198,7 +198,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?includeRevoked=false')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -213,7 +213,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?includeRevoked=true')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -228,7 +228,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?state=work-in-progress')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -243,7 +243,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?state=work-in-progress&state=reviewed')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -258,7 +258,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?domain=mobile-attack')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -273,7 +273,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?domain=not-a-domain')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -287,7 +287,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?platform=platform-3')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -302,7 +302,7 @@ describe('Techniques Query API', function () {
     const res = await request(app)
       .get('/api/techniques?platform=not-a-platform')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

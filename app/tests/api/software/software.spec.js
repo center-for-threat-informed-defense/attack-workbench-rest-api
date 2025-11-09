@@ -71,7 +71,7 @@ describe('Software API', function () {
     const res = await request(app)
       .get('/api/software')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -88,7 +88,7 @@ describe('Software API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -101,7 +101,7 @@ describe('Software API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -114,7 +114,7 @@ describe('Software API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -128,7 +128,7 @@ describe('Software API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -146,7 +146,7 @@ describe('Software API', function () {
     const res = await request(app)
       .get('/api/software')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -161,7 +161,7 @@ describe('Software API', function () {
     await request(app)
       .get('/api/software/not-an-id')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -169,7 +169,7 @@ describe('Software API', function () {
     const res = await request(app)
       .get('/api/software/' + software1.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -217,7 +217,7 @@ describe('Software API', function () {
       .put('/api/software/' + software1.stix.id + '/modified/' + originalModified)
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -234,7 +234,7 @@ describe('Software API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(409);
   });
 
@@ -251,7 +251,7 @@ describe('Software API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -264,7 +264,7 @@ describe('Software API', function () {
     const res = await request(app)
       .get('/api/software/' + software2.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -282,7 +282,7 @@ describe('Software API', function () {
     const res = await request(app)
       .get('/api/software/' + software1.stix.id + '?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -297,7 +297,7 @@ describe('Software API', function () {
     const res = await request(app)
       .get('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -313,7 +313,7 @@ describe('Software API', function () {
     const res = await request(app)
       .get('/api/software/' + software2.stix.id + '/modified/' + software2.stix.modified)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -338,7 +338,7 @@ describe('Software API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -350,21 +350,21 @@ describe('Software API', function () {
   it('DELETE /api/software/:id should not delete a software when the id cannot be found', async function () {
     await request(app)
       .delete('/api/software/not-an-id')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
   it('DELETE /api/software/:id/modified/:modified deletes a software', async function () {
     await request(app)
       .delete('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
   it('DELETE /api/software/:id should delete all the software with the same stix id', async function () {
     await request(app)
       .delete('/api/software/' + software2.stix.id)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
@@ -372,7 +372,7 @@ describe('Software API', function () {
     const res = await request(app)
       .get('/api/software')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -392,7 +392,7 @@ describe('Software API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 

@@ -114,7 +114,7 @@ describe('Data Sources API', function () {
     const res = await request(app)
       .get('/api/data-sources')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
     // We expect to get an empty array
@@ -130,7 +130,7 @@ describe('Data Sources API', function () {
       .post('/api/data-sources')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -144,7 +144,7 @@ describe('Data Sources API', function () {
       .post('/api/data-sources')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -162,7 +162,7 @@ describe('Data Sources API', function () {
     const res = await request(app)
       .get('/api/data-sources')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -177,7 +177,7 @@ describe('Data Sources API', function () {
     await request(app)
       .get('/api/data-sources/not-an-id')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -185,7 +185,7 @@ describe('Data Sources API', function () {
     const res = await request(app)
       .get('/api/data-sources/' + dataSource1.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -220,7 +220,7 @@ describe('Data Sources API', function () {
     const res = await request(app)
       .get(`/api/data-sources/${dataSource1.stix.id}?retrieveDataComponents=true`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -247,7 +247,7 @@ describe('Data Sources API', function () {
       .put('/api/data-sources/' + dataSource1.stix.id + '/modified/' + originalModified)
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -264,7 +264,7 @@ describe('Data Sources API', function () {
       .post('/api/data-sources')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(409);
   });
 
@@ -281,7 +281,7 @@ describe('Data Sources API', function () {
       .post('/api/data-sources')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -294,7 +294,7 @@ describe('Data Sources API', function () {
     const res = await request(app)
       .get('/api/data-sources/' + dataSource2.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -312,7 +312,7 @@ describe('Data Sources API', function () {
     const res = await request(app)
       .get('/api/data-sources/' + dataSource1.stix.id + '?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -327,7 +327,7 @@ describe('Data Sources API', function () {
     const res = await request(app)
       .get('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -343,7 +343,7 @@ describe('Data Sources API', function () {
     const res = await request(app)
       .get('/api/data-sources/' + dataSource2.stix.id + '/modified/' + dataSource2.stix.modified)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -368,7 +368,7 @@ describe('Data Sources API', function () {
       .post('/api/data-sources')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -380,21 +380,21 @@ describe('Data Sources API', function () {
   it('DELETE /api/data-sources/:id should not delete a data source when the id cannot be found', async function () {
     await request(app)
       .delete('/api/data-sources/not-an-id')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
   it('DELETE /api/data-sources/:id/modified/:modified deletes a data source', async function () {
     await request(app)
       .delete('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
   it('DELETE /api/data-sources/:id should delete all the data sources with the same stix id', async function () {
     await request(app)
       .delete('/api/data-sources/' + dataSource2.stix.id)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
@@ -402,7 +402,7 @@ describe('Data Sources API', function () {
     const res = await request(app)
       .get('/api/data-sources')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

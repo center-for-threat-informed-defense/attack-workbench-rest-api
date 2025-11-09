@@ -66,7 +66,7 @@ describe('Data Components API', function () {
     const res = await request(app)
       .get('/api/data-components')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -83,7 +83,7 @@ describe('Data Components API', function () {
       .post('/api/data-components')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -97,7 +97,7 @@ describe('Data Components API', function () {
       .post('/api/data-components')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -119,7 +119,7 @@ describe('Data Components API', function () {
     const res = await request(app)
       .get('/api/data-components')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -134,7 +134,7 @@ describe('Data Components API', function () {
     const res = await request(app)
       .get('/api/data-components/' + dataComponent1.stix.id + '/channels')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -151,7 +151,7 @@ describe('Data Components API', function () {
     await request(app)
       .get('/api/data-components/not-a-real-dc-id/channels')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -159,7 +159,7 @@ describe('Data Components API', function () {
     const res = await request(app)
       .get('/api/data-components/' + dataComponent1.stix.id + '/log-sources')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -178,7 +178,7 @@ describe('Data Components API', function () {
     await request(app)
       .get('/api/data-components/not-a-real-dc-id/log-sources')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -186,7 +186,7 @@ describe('Data Components API', function () {
     await request(app)
       .get('/api/data-components/not-an-id')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -194,7 +194,7 @@ describe('Data Components API', function () {
     const res = await request(app)
       .get('/api/data-components/' + dataComponent1.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -238,7 +238,7 @@ describe('Data Components API', function () {
       .put('/api/data-components/' + dataComponent1.stix.id + '/modified/' + originalModified)
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -255,7 +255,7 @@ describe('Data Components API', function () {
       .post('/api/data-components')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(409);
   });
 
@@ -272,7 +272,7 @@ describe('Data Components API', function () {
       .post('/api/data-components')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -285,7 +285,7 @@ describe('Data Components API', function () {
     const res = await request(app)
       .get('/api/data-components/' + dataComponent2.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -303,7 +303,7 @@ describe('Data Components API', function () {
     const res = await request(app)
       .get('/api/data-components/' + dataComponent1.stix.id + '?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -323,7 +323,7 @@ describe('Data Components API', function () {
           dataComponent1.stix.modified,
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -344,7 +344,7 @@ describe('Data Components API', function () {
           dataComponent2.stix.modified,
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -369,7 +369,7 @@ describe('Data Components API', function () {
       .post('/api/data-components')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -381,7 +381,7 @@ describe('Data Components API', function () {
   it('DELETE /api/data-components/:id should not delete a data component when the id cannot be found', async function () {
     await request(app)
       .delete('/api/data-components/not-an-id')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -393,14 +393,14 @@ describe('Data Components API', function () {
           '/modified/' +
           dataComponent1.stix.modified,
       )
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
   it('DELETE /api/data-components/:id should delete all the data components with the same stix id', async function () {
     await request(app)
       .delete('/api/data-components/' + dataComponent2.stix.id)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
@@ -408,7 +408,7 @@ describe('Data Components API', function () {
     const res = await request(app)
       .get('/api/data-components')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

@@ -183,7 +183,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get('/api/groups')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -198,7 +198,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get('/api/groups?includeDeprecated=false')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -213,7 +213,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get('/api/groups?includeDeprecated=true')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -228,7 +228,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get('/api/groups?includeRevoked=false')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -243,7 +243,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get('/api/groups?includeRevoked=true')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -258,7 +258,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get('/api/groups?state=work-in-progress')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -276,7 +276,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get('/api/groups?search=G0001')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -297,7 +297,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get(`/api/groups?lastUpdatedBy=${userAccount1.id}`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -315,7 +315,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get(`/api/groups?lastUpdatedBy=${userAccount2.id}`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -332,7 +332,7 @@ describe('Groups API Queries', function () {
     const res = await request(app)
       .get(`/api/groups?lastUpdatedBy=${userAccount1.id}&lastUpdatedBy=${userAccount2.id}`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

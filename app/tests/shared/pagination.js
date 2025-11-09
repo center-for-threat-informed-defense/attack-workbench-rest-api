@@ -69,7 +69,7 @@ PaginationTests.prototype.executeTests = function () {
       const res = await request(app)
         .get(`${self.options.baseUrl}?offset=0&limit=10${self.options.stateQuery}`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -84,7 +84,7 @@ PaginationTests.prototype.executeTests = function () {
       const res = await request(app)
         .get(`${self.options.baseUrl}?offset=10&limit=10${self.options.stateQuery}`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -101,7 +101,7 @@ PaginationTests.prototype.executeTests = function () {
           `${self.options.baseUrl}?offset=0&limit=10&includePagination=true${self.options.stateQuery}`,
         )
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -125,7 +125,7 @@ PaginationTests.prototype.executeTests = function () {
           `${self.options.baseUrl}?offset=10&limit=10&includePagination=true${self.options.stateQuery}`,
         )
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -148,7 +148,7 @@ PaginationTests.prototype.executeTests = function () {
       const res = await request(app)
         .get(`${self.options.baseUrl}?offset=0${self.options.stateQuery}`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/)
         .send();
@@ -169,7 +169,7 @@ PaginationTests.prototype.executeTests = function () {
             `${self.options.baseUrl}?offset=${offset}&limit=${pageSize}${self.options.stateQuery}`,
           )
           .set('Accept', 'application/json')
-          .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+          .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
           .expect(200)
           .expect('Content-Type', /json/);
 
@@ -186,7 +186,7 @@ PaginationTests.prototype.executeTests = function () {
             `${self.options.baseUrl}?offset=${offset}&limit=${pageSize}&includePagination=true${self.options.stateQuery}`,
           )
           .set('Accept', 'application/json')
-          .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+          .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
           .expect(200)
           .expect('Content-Type', /json/);
 
@@ -209,7 +209,7 @@ PaginationTests.prototype.executeTests = function () {
       const res = await request(app)
         .get(`${self.options.baseUrl}?offset=40&limit=20${self.options.stateQuery}`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -226,7 +226,7 @@ PaginationTests.prototype.executeTests = function () {
           `${self.options.baseUrl}?offset=40&limit=20&includePagination=true${self.options.stateQuery}`,
         )
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 

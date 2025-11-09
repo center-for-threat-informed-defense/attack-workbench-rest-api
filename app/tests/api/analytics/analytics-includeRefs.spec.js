@@ -119,7 +119,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       .post('/api/data-components')
       .send(dataComponentData)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -137,7 +137,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       .post('/api/analytics')
       .send(analyticData)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -156,7 +156,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       .post('/api/detection-strategies')
       .send(detectionStrategyData)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -171,7 +171,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const res = await request(app)
         .get('/api/analytics')
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -191,7 +191,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const res = await request(app)
         .get('/api/analytics?includeRefs=true')
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -228,7 +228,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const res = await request(app)
         .get('/api/analytics?includeRefs=true&includePagination=true&limit=10')
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -251,7 +251,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const res = await request(app)
         .get(`/api/analytics/${createdAnalytic.stix.id}?includeRefs=false`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -268,7 +268,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const res = await request(app)
         .get(`/api/analytics/${createdAnalytic.stix.id}?includeRefs=true`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -303,7 +303,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const res = await request(app)
         .get(`/api/analytics/${createdAnalytic.stix.id}?versions=all&includeRefs=true`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200)
         .expect('Content-Type', /json/);
 
@@ -338,7 +338,7 @@ describe('Analytics API - includeRefs Parameter', function () {
         .post('/api/analytics')
         .send(analyticWithoutRefs)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(201);
 
       const createdAnalyticWithoutRefs = createRes.body;
@@ -346,7 +346,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const res = await request(app)
         .get(`/api/analytics/${createdAnalyticWithoutRefs.stix.id}?includeRefs=true`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200);
 
       const analytics = res.body;
@@ -383,7 +383,7 @@ describe('Analytics API - includeRefs Parameter', function () {
         .post('/api/analytics')
         .send(analyticWithBadRef)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(201);
 
       const createdAnalyticWithBadRef = createRes.body;
@@ -391,7 +391,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const res = await request(app)
         .get(`/api/analytics/${createdAnalyticWithBadRef.stix.id}?includeRefs=true`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200);
 
       const analytics = res.body;
@@ -423,7 +423,7 @@ describe('Analytics API - includeRefs Parameter', function () {
         .post('/api/data-components')
         .send(dataComponentWithoutExtRefs)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(201);
 
       const analyticWithNoExtRefDataComponent = {
@@ -447,7 +447,7 @@ describe('Analytics API - includeRefs Parameter', function () {
         .post('/api/analytics')
         .send(analyticWithNoExtRefDataComponent)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(201);
 
       const createdAnalyticWithNoExtRefDataComponent = createRes.body;
@@ -455,7 +455,7 @@ describe('Analytics API - includeRefs Parameter', function () {
       const res = await request(app)
         .get(`/api/analytics/${createdAnalyticWithNoExtRefDataComponent.stix.id}?includeRefs=true`)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200);
 
       const analytics = res.body;

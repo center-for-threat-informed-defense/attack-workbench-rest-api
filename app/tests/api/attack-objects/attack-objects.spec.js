@@ -89,7 +89,7 @@ describe('ATT&CK Objects API', function () {
     const res = await request(app)
       .get('/api/attack-objects')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -114,7 +114,7 @@ describe('ATT&CK Objects API', function () {
     const res = await request(app)
       .get('/api/attack-objects?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -139,7 +139,7 @@ describe('ATT&CK Objects API', function () {
     const res = await request(app)
       .get('/api/attack-objects?attackId=T1234')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -154,7 +154,7 @@ describe('ATT&CK Objects API', function () {
     const res = await request(app)
       .get('/api/attack-objects?attackId=GX1111')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -169,7 +169,7 @@ describe('ATT&CK Objects API', function () {
     const res = await request(app)
       .get('/api/attack-objects?attackId=SX3333')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -184,7 +184,7 @@ describe('ATT&CK Objects API', function () {
     const res = await request(app)
       .get('/api/attack-objects?attackId=TX0001')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -199,7 +199,7 @@ describe('ATT&CK Objects API', function () {
     const res = await request(app)
       .get('/api/attack-objects?attackId=GX1111&attackId=SX3333&attackId=TX0001')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -214,7 +214,7 @@ describe('ATT&CK Objects API', function () {
     const res = await request(app)
       .get('/api/attack-objects?search=nabu')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -235,7 +235,7 @@ describe('ATT&CK Objects API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -253,7 +253,7 @@ describe('ATT&CK Objects API', function () {
         `/api/attack-objects?lastUpdatedBy=${software1.workspace.workflow.created_by_user_account}`,
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

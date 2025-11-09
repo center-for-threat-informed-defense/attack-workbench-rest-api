@@ -68,7 +68,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -85,7 +85,7 @@ describe('Techniques Basic API', function () {
       .post('/api/techniques')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -99,7 +99,7 @@ describe('Techniques Basic API', function () {
       .post('/api/techniques')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -119,7 +119,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -134,7 +134,7 @@ describe('Techniques Basic API', function () {
     await request(app)
       .get('/api/techniques/not-an-id')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -142,7 +142,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques/' + technique1.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -206,7 +206,7 @@ describe('Techniques Basic API', function () {
       .put('/api/techniques/' + technique1.stix.id + '/modified/' + originalModified)
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -223,7 +223,7 @@ describe('Techniques Basic API', function () {
       .post('/api/techniques')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(409);
   });
 
@@ -241,7 +241,7 @@ describe('Techniques Basic API', function () {
       .post('/api/techniques')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -264,7 +264,7 @@ describe('Techniques Basic API', function () {
       .post('/api/techniques')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -277,7 +277,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques/' + technique3.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -295,7 +295,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques/' + technique1.stix.id + '?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -310,7 +310,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -326,7 +326,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques/' + technique2.stix.id + '/modified/' + technique2.stix.modified)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -342,7 +342,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques?search=blue')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -364,7 +364,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques?search=T9999')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -387,7 +387,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques?search=orange')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -401,21 +401,21 @@ describe('Techniques Basic API', function () {
   it('DELETE /api/techniques/:id should not delete a technique when the id cannot be found', async function () {
     await request(app)
       .delete('/api/techniques/not-an-id')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
   it('DELETE /api/techniques/:id/modified/:modified deletes a technique', async function () {
     await request(app)
       .delete('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
   it('DELETE /api/techniques/:id should delete all the techniques with the same stix id', async function () {
     await request(app)
       .delete('/api/techniques/' + technique2.stix.id)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
@@ -423,7 +423,7 @@ describe('Techniques Basic API', function () {
     const res = await request(app)
       .get('/api/techniques')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

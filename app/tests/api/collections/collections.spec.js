@@ -150,7 +150,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
       .post('/api/mitigations')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -178,7 +178,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
       .post('/api/mitigations')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -195,7 +195,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
       .post('/api/software')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -217,7 +217,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     const res = await request(app)
       .get('/api/collections')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -234,7 +234,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
       .post('/api/collections')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -248,7 +248,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
       .post('/api/collections')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -266,7 +266,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     const res = await request(app)
       .get('/api/collections')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -281,7 +281,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     await request(app)
       .get('/api/collections/not-an-id')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -289,7 +289,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     const res = await request(app)
       .get('/api/collections/' + collection1.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -322,7 +322,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     const res = await request(app)
       .get('/api/collections/' + collection1.stix.id + '?retrieveContents=true')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -356,7 +356,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
       .post('/api/collections')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(409);
   });
 
@@ -382,7 +382,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
       .post('/api/collections')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -395,7 +395,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     const res = await request(app)
       .get('/api/collections/' + collection2.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -413,7 +413,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     const res = await request(app)
       .get('/api/collections/' + collection1.stix.id + '/modified/' + collection1.stix.modified)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -435,7 +435,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
           '?retrieveContents=true',
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -461,7 +461,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
           '?retrieveContents=true',
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -481,7 +481,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     const res = await request(app)
       .get('/api/collections?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -496,7 +496,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     const res = await request(app)
       .get('/api/collections/' + collection1.stix.id + '?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -510,7 +510,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
   it('DELETE /api/collections/:id should not delete a collection when the id cannot be found', async function () {
     await request(app)
       .delete('/api/collections/not-an-id')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -523,7 +523,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
           collection2.stix.modified +
           '?deleteAllContents=true',
       )
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
@@ -531,7 +531,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     await request(app)
       .get(`/api/mitigations/${mitigation2.stix.id}`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -541,7 +541,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
     const res = await request(app)
       .get('/api/collections/' + collection1.stix.id + '?retrieveContents=true')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -564,7 +564,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
   it('DELETE /api/collections/:id should delete all of the collections with the stix id', async function () {
     await request(app)
       .delete('/api/collections/' + collection1.stix.id)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
