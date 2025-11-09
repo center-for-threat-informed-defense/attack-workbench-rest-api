@@ -16,7 +16,9 @@ exports.loginAnonymous = async function (app) {
   const cookies = setCookieParser(res);
   // The cookie name may be 'connect.sid' or 'connect.XXXXXXXX.sid' depending on hostname
   // Look for any cookie that matches the pattern connect*.sid
-  const passportCookie = cookies.find((c) => c.name.startsWith('connect.') && c.name.endsWith('.sid'));
+  const passportCookie = cookies.find(
+    (c) => c.name.startsWith('connect.') && c.name.endsWith('.sid'),
+  );
 
   return passportCookie;
 };
