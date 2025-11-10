@@ -6,6 +6,7 @@ const {
   DuplicateIdError,
   BadlyFormattedParameterError,
   InvalidQueryStringParameterError,
+  ImmutablePropertyError,
 } = require('../exceptions');
 
 exports.retrieveAll = async function (req, res) {
@@ -105,6 +106,9 @@ exports.create = async function (req, res) {
     logger.debug('Success: Created analytic with id ' + analytic.stix.id);
     return res.status(201).send(analytic);
   } catch (err) {
+    if (err instanceof ImmutablePropertyError) {
+      return res.status(400).send(err.message);
+    }
     if (err instanceof DuplicateIdError) {
       logger.warn('Duplicate stix.id and stix.modified');
       return res
