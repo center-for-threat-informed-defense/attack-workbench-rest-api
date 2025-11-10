@@ -171,6 +171,14 @@ class BaseRepository extends AbstractRepository {
     }
   }
 
+  async retrieveLatestByStixId(stixId) {
+    try {
+      return await this.model.findOne({ 'stix.id': stixId }).sort('-stix.modified').exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async retrieveAllById(stixId) {
     try {
       return await this.model.find({ 'stix.id': stixId }).sort('-stix.modified').lean().exec();
@@ -179,7 +187,7 @@ class BaseRepository extends AbstractRepository {
     }
   }
 
-  async retrieveLatestByStixId(stixId) {
+  async retrieveLatestByStixIdLean(stixId) {
     try {
       return await this.model.findOne({ 'stix.id': stixId }).sort('-stix.modified').lean().exec();
     } catch (err) {
