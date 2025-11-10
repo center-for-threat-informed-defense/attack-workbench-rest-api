@@ -11,6 +11,15 @@ The following documents provide detailed technical information about specific as
 
 - [Data Model](data-model.md): Detailed explanation of the database schema and STIX object structure
 
+## Authentication Configuration
+
+Comprehensive guides for configuring user authentication with various identity providers:
+
+- [Authentication Overview](authentication/README.md): Introduction and quick start guide
+- [Authentik Setup](authentication/authentik.md): Step-by-step guide for Authentik configuration
+- [Keycloak Setup](authentication/keycloak.md): Step-by-step guide for Keycloak configuration
+- [Okta Setup](authentication/okta.md): Step-by-step guide for Okta configuration
+
 ## Legacy Documentation
 
 The following documents contain additional information that may be useful for specific scenarios but are not part of the primary documentation:
