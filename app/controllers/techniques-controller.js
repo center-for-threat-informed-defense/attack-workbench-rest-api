@@ -95,6 +95,7 @@ exports.create = async function (req, res) {
   const options = {
     import: false,
     userAccountId: req.user?.userAccountId,
+    parentTechniqueId: req.query.parentTechniqueId, // NOTE this is new!
   };
 
   // Create the technique
@@ -134,8 +135,13 @@ exports.updateFull = async function (req, res) {
       return res.status(200).send(technique);
     }
   } catch (err) {
-    logger.error('Failed with error: ' + err);
-    return res.status(500).send('Unable to update technique. Server error.');
+    if (err.name === 'ImmutablePropertyError') {
+      logger.warn(`Attempt to modify immutable property: ${err.message}`);
+      return res.status(400).send(err.message);
+    } else {
+      logger.error('Failed with error: ' + err);
+      return res.status(500).send('Unable to update technique. Server error.');
+    }
   }
 };
 
