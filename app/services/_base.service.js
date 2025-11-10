@@ -5,12 +5,19 @@ const logger = require('../lib/logger');
 const config = require('../config/config');
 const attackIdGenerator = require('../lib/attack-id-generator');
 const {
+  createAttackExternalReference,
+  findAttackExternalReference,
+  validateAttackExternalReference,
+} = require('../lib/external-reference-builder');
+const {
   DatabaseError,
   IdentityServiceError,
   MissingParameterError,
   InvalidQueryStringParameterError,
   InvalidTypeError,
   OrganizationIdentityNotSetError,
+  ImmutablePropertyError,
+  InvalidPostOperationError,
 } = require('../exceptions');
 const AbstractService = require('./_abstract.service');
 
@@ -114,7 +121,7 @@ class BaseService extends AbstractService {
 
     if (!attackObject.created_by_identity) {
       try {
-        const identityObject = await identitiesRepository.retrieveLatestByStixId(
+        const identityObject = await identitiesRepository.retrieveLatestByStixIdLean(
           attackObject.stix.created_by_ref,
         );
         attackObject.created_by_identity = identityObject;
@@ -136,7 +143,7 @@ class BaseService extends AbstractService {
 
     if (!attackObject.modified_by_identity) {
       try {
-        const identityObject = await identitiesRepository.retrieveLatestByStixId(
+        const identityObject = await identitiesRepository.retrieveLatestByStixIdLean(
           attackObject.stix.x_mitre_modified_by_ref,
         );
         attackObject.modified_by_identity = identityObject;
@@ -315,42 +322,89 @@ class BaseService extends AbstractService {
 
     options = options || {};
     if (!options.import) {
+      const attackIdInExternalReferences = attackIdGenerator.extractAttackIdFromExternalReferences(
+        data.stix,
+      );
+      const attackIdInWorkspace = data.workspace.attack_id;
+      const isSubtechnique = data.stix?.x_mitre_is_subtechnique === true;
+      const parentTechniqueId = options?.parentTechniqueId;
+
+      // Throw (reject request) if user attempts to manually define the ATT&CK ID -- this field is controlled exclusively by the backend
+      if (attackIdInExternalReferences) {
+        logger.warn(
+          'Immutable property: user attempted to set backend-controlled property, external_references.0.external_id',
+        );
+        throw new ImmutablePropertyError('external_references.0.external_id');
+      } else if (attackIdInWorkspace) {
+        logger.warn(
+          'Immutable property: user attempted to set backend-controlled property, workspace.attack_id',
+        );
+        throw new ImmutablePropertyError('workspace.attack_id');
+      }
+
+      // Generate ATT&CK ID
       if (attackIdGenerator.requiresAttackId(this.type)) {
-        // Generate or validate ATT&CK ID
-        const hasValidId = await attackIdGenerator.hasValidAttackId(
-          data,
+        // Validate subtechnique requirements
+        if (isSubtechnique && !parentTechniqueId) {
+          const errorMessage =
+            'Subtechniques require a parentTechniqueId query parameter. Provide the parent technique ATT&CK ID (e.g., T1234).';
+          logger.error(errorMessage);
+          throw new InvalidPostOperationError(errorMessage);
+        }
+        if (!isSubtechnique && parentTechniqueId) {
+          const errorMessage =
+            'parentTechniqueId query parameter is only valid for subtechniques (x_mitre_is_subtechnique: true).';
+          logger.error(errorMessage);
+          throw new InvalidPostOperationError(errorMessage);
+        }
+
+        // Set the ATT&CK ID!
+        const attackId = await attackIdGenerator.generateAttackId(
           this.type,
           this.repository,
+          isSubtechnique,
+          parentTechniqueId,
         );
 
-        if (!hasValidId) {
-          // No ID present, generate one
-          // Note: Only supports regular ID generation, not subtechniques
-          // For subtechniques, the client must provide the ATT&CK ID explicitly
-          const isSubtechnique = data.stix?.x_mitre_is_subtechnique === true;
-          if (isSubtechnique) {
-            throw new Error(
-              'Subtechniques require an explicit ATT&CK ID in workspace.attack_id. Use the /api/attack-objects/attack-id/next endpoint with parentRef to preview the ID.',
-            );
-          }
-
-          const attackId = await attackIdGenerator.generateAttackId(
-            this.type,
-            this.repository,
-            false,
-            null,
-          );
-          data.workspace = data.workspace || {};
-          data.workspace.attack_id = attackId;
-        }
+        data.workspace = data.workspace || {};
+        data.workspace.attack_id = attackId;
+        logger.debug('Generated and set ATT&CK ID:', attackId);
       }
+
+      // Handle ATT&CK external reference for CREATE operations
+      if (data.stix?.external_references) {
+        // On create, clients MUST NOT provide ATT&CK external references - the backend controls this
+        // Throw (reject request) if user attempts to manually set the MITRE citation in the external_references array
+        const mitreAttackRefInExternalReferences =
+          attackIdGenerator.extractAttackIdFromExternalReferences(data.stix);
+        if (mitreAttackRefInExternalReferences) {
+          logger.error(
+            'User manually attempted to set the MITRE ATT&CK citation at external_references.0',
+          );
+          throw new ImmutablePropertyError('external_references.0', {
+            input: mitreAttackRefInExternalReferences,
+          });
+        }
+      } else {
+        data.stix.external_references = [];
+      }
+
+      // Generate and add the ATT&CK external reference
+      const attackRef = createAttackExternalReference(data);
+      if (attackRef) {
+        data.stix.external_references.unshift(attackRef);
+      }
+      console.debug('Generated and set the MITRE ATT&CK external reference:', attackRef);
+
       // Set the ATT&CK Spec Version
       data.stix.x_mitre_attack_spec_version =
         data.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
+      console.debug('Set the ATT&CK specification version:', data.stix.x_mitre_attack_spec_version);
 
       // Record the user account that created the object
       if (options.userAccountId) {
         data.workspace.workflow.created_by_user_account = options.userAccountId;
+        console.debug('Recorded the user account that created the object:', options.userAccountId);
       }
 
       // Set the default marking definitions
@@ -396,6 +450,41 @@ class BaseService extends AbstractService {
     const document = await this.repository.retrieveOneByVersion(stixId, stixModified);
     if (!document) {
       return null;
+    }
+
+    // Handle ATT&CK external reference for UPDATE operations
+    // On update, clients CAN provide ATT&CK external references, but they must match the existing data
+    // and cannot be modified
+    if (data.workspace?.attack_id) {
+      // Validate that workspace.attack_id hasn't changed
+      if (data.workspace.attack_id !== document.workspace.attack_id) {
+        throw new ImmutablePropertyError('workspace.attack_id', {
+          details: `Expected '${document.workspace.attack_id}' but received '${data.workspace.attack_id}'`,
+        });
+      }
+    }
+
+    if (data.stix?.external_references && attackIdGenerator.requiresAttackId(this.type)) {
+      const clientAttackRef = findAttackExternalReference(data.stix.external_references);
+      const expectedAttackRef = createAttackExternalReference(document);
+
+      if (clientAttackRef && expectedAttackRef) {
+        // Validate that the client-provided ATT&CK reference matches expectations
+        const validation = validateAttackExternalReference(clientAttackRef, expectedAttackRef);
+        if (!validation.isValid) {
+          throw new ImmutablePropertyError('stix.external_references[0] (ATT&CK reference)', {
+            details: validation.error,
+          });
+        }
+
+        // If client didn't provide URL but should have, add it
+        if (expectedAttackRef.url && !clientAttackRef.url) {
+          clientAttackRef.url = expectedAttackRef.url;
+        }
+      } else if (!clientAttackRef && expectedAttackRef) {
+        // Client didn't provide ATT&CK reference - add it
+        data.stix.external_references.unshift(expectedAttackRef);
+      }
     }
 
     const newDocument = await this.repository.updateAndSave(document, data);
