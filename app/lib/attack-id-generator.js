@@ -14,7 +14,7 @@ const logger = require('./logger');
  * @returns {boolean} True if the object type requires an ATT&CK ID
  */
 function requiresAttackId(objectType) {
-  return objectType in Object.keys(stixTypeToAttackIdMapping);
+  return objectType in stixTypeToAttackIdMapping;
 }
 exports.requiresAttackId = requiresAttackId;
 
