@@ -5,8 +5,59 @@ const BaseService = require('./_base.service');
 const { Analytic: AnalyticType } = require('../lib/types');
 const detectionStrategiesService = require('./detection-strategies-service');
 const dataComponentsService = require('./data-components-service');
+const {
+  createAttackExternalReference,
+  removeAttackExternalReferences,
+} = require('../lib/external-reference-builder');
 
 class AnalyticsService extends BaseService {
+  /**
+   * Override updateFull to ensure external_references URL is updated if parent detection strategy changes
+   * This can happen if the analytic's embedded_relationships are modified
+   */
+  async updateFull(stixId, stixModified, data) {
+    // Get the existing document
+    const existingAnalytic = await this.repository.retrieveOneByVersion(stixId, stixModified);
+    if (!existingAnalytic) {
+      return null;
+    }
+
+    // Check if embedded_relationships changed (specifically inbound detection strategy relationships)
+    const oldEmbeddedRels = existingAnalytic.workspace?.embedded_relationships || [];
+    const newEmbeddedRels = data.workspace?.embedded_relationships || [];
+
+    const oldParentStrategy = oldEmbeddedRels.find(
+      (rel) =>
+        rel.direction === 'inbound' && rel.stix_id?.startsWith('x-mitre-detection-strategy--'),
+    );
+    const newParentStrategy = newEmbeddedRels.find(
+      (rel) =>
+        rel.direction === 'inbound' && rel.stix_id?.startsWith('x-mitre-detection-strategy--'),
+    );
+
+    const parentStrategyChanged =
+      oldParentStrategy?.stix_id !== newParentStrategy?.stix_id ||
+      oldParentStrategy?.attack_id !== newParentStrategy?.attack_id;
+
+    // If parent detection strategy changed, rebuild the ATT&CK external reference
+    if (parentStrategyChanged && data.stix?.external_references) {
+      // Remove existing ATT&CK external references
+      data.stix.external_references = removeAttackExternalReferences(data.stix.external_references);
+
+      // Create new ATT&CK external reference with updated URL
+      const attackRef = createAttackExternalReference({
+        workspace: data.workspace,
+        stix: data.stix,
+      });
+
+      if (attackRef) {
+        data.stix.external_references.unshift(attackRef);
+      }
+    }
+
+    // Call parent updateFull to handle all standard update logic
+    return await super.updateFull(stixId, stixModified, data);
+  }
   async retrieveAll(options) {
     const results = await super.retrieveAll(options);
 
