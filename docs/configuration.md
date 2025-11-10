@@ -243,9 +243,10 @@ LOG_LEVEL=debug
 
 Session management for user authentication.
 
-| Option | Environment Variable | JSON Path        | Type   | Default                  | Description                         |
-|--------|----------------------|------------------|--------|--------------------------|-------------------------------------|
-| Secret | `SESSION_SECRET`     | `session.secret` | string | *(generated at startup)* | Secret used to sign session cookies |
+| Option               | Environment Variable           | JSON Path                        | Type   | Default                  | Description                               |
+|----------------------|--------------------------------|----------------------------------|--------|--------------------------|-------------------------------------------|
+| Secret               | `SESSION_SECRET`               | `session.secret`                 | string | *(generated at startup)* | Secret used to sign session cookies       |
+| Mongo Session Secret | `MONGOSTORE_CRYPTO_SECRET`     | `session.mongoStoreCryptoSecret` | string | *(generated at startup)* | Secret to encrypt session data in MongoDB |
 
 **Important Notes:**
 
@@ -264,6 +265,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
 
 ```bash
 SESSION_SECRET=your-secure-secret-here
+MONGOSTORE_CRYPTO_SECRET=your-secure-secret-here
 ```
 
 ### User Authentication
