@@ -15,12 +15,7 @@ This guide provides comprehensive instructions for installing, configuring, and 
       - [Requirements](#requirements)
       - [Installation Steps](#installation-steps)
   - [Configuration](#configuration)
-    - [Environment Variables](#environment-variables)
-    - [Configuration File](#configuration-file)
   - [Authentication](#authentication)
-    - [Authentication Mechanisms](#authentication-mechanisms)
-    - [OpenID Connect (OIDC) Configuration](#openid-connect-oidc-configuration)
-    - [Service Authentication](#service-authentication)
   - [User Management](#user-management)
     - [User Roles and Permissions](#user-roles-and-permissions)
     - [User Account Status](#user-account-status)
@@ -125,92 +120,13 @@ More infomation about configuration options is in the [configuration file docume
 
 ## Configuration
 
-The REST API can be configured using environment variables, a configuration file, or a combination of both. Configuration file values take precedence over environment variables.
-
-### Environment Variables
-
-| Variable                             | Required | Default                                         | Description                                                                                                                            |
-|--------------------------------------|----------|-------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| **PORT**                             | No       | `3000`                                          | Port the HTTP server should listen on                                                                                                  |
-| **CORS_ALLOWED_ORIGINS**             | No       | `*`                                             | Configures CORS policy. Accepts a comma-separated list of allowed domains. (`*` allows all domains; `disable` disables CORS entirely.) |
-| **NODE_ENV**                         | No       | `development`                                   | Environment that the app is running in                                                                                                 |
-| **DATABASE_URL**                     | Yes      | none                                            | URL of the MongoDB server                                                                                                              |
-| **AUTHN_MECHANISM**                  | No       | `anonymous`                                     | Mechanism to use for authenticating users                                                                                              |
-| **DEFAULT_INTERVAL**                 | No       | `300`                                           | How often collection indexes should check for updates (in seconds)                                                                     |
-| **JSON_CONFIG_PATH**                 | No       | ``                                              | Location of a JSON file containing configuration values                                                                                |
-| **LOG_LEVEL**                        | No       | `info`                                          | Level of messages to be written to the log (error, warn, http, info, verbose, debug)                                                   |
-| **WB_REST_STATIC_MARKING_DEFS_PATH** | No       | `./app/lib/default-static-marking-definitions/` | Path to a directory containing static marking definitions                                                                              |
-
-A typical value for DATABASE_URL when running locally is `mongodb://localhost/attack-workspace`.
-
-### Configuration File
-
-If the `JSON_CONFIG_PATH` environment variable is set, the app will read configuration settings from a JSON file at that location.
-
-| Property                            | Type         | Corresponding Environment Variable |
-|-------------------------------------|--------------|------------------------------------|
-| **server.port**                     | int          | PORT                               |
-| **server.corsAllowedOrigins**       | string/array | CORS_ALLOWED_ORIGINS               |
-| **app.env**                         | string       | NODE_ENV                           |
-| **database.url**                    | string       | DATABASE_URL                       |
-| **collectionIndex.defaultInterval** | int          | DEFAULT_INTERVAL                   |
-| **logging.logLevel**                | string       | LOG_LEVEL                          |
-
-Example configuration file:
-
-```json
-{
-  "server": {
-    "port": 4000,
-    "corsAllowedOrigins": ["https://example.com", "https://workbench.example.com"]
-  },
-  "database": {
-    "url": "mongodb://localhost/attack-workspace"
-  },
-  "logging": {
-    "logLevel": "debug"
-  }
-}
-```
+The REST API can be configured using environment variables, a configuration file, or a combination of both.
+Read all about it in the [configuration docs](./docs/configuration.md).
 
 ## Authentication
 
-The REST API supports different authentication mechanisms for both user and service authentication.
-
-### Authentication Mechanisms
-
-The application supports these user authentication mechanisms:
-
-- **Anonymous**: Default mechanism with no actual authentication (primarily for local development)
-- **OpenID Connect (OIDC)**: Integration with organizational identity providers
-
-### OpenID Connect (OIDC) Configuration
-
-To enable OIDC authentication:
-
-1. **Register with your OIDC Identity Provider** with these details:
-   - Authentication flow: Authorization Code Flow
-   - Required claims: `email` (required), `preferred_username` (optional), `name` (optional)
-   - Grant Types: Client Credentials, Authorization Code, and Refresh Token
-   - Redirect URL: `<host_url>/api/authn/oidc/callback`
-
-2. **Configure the REST API** with these environment variables:
-
-| Environment Variable           | Required | Description                           | Configuration Property        |
-|--------------------------------|----------|---------------------------------------|-------------------------------|
-| **AUTHN_MECHANISM**            | Yes      | Must be set to `oidc`                 | userAuthn.mechanism           |
-| **AUTHN_OIDC_CLIENT_ID**       | Yes      | Client ID from your OIDC provider     | userAuthn.oidc.clientId       |
-| **AUTHN_OIDC_CLIENT_SECRET**   | Yes      | Client secret from your OIDC provider | userAuthn.oidc.clientSecret   |
-| **AUTHN_OIDC_ISSUER_URL**      | Yes      | Issuer URL for the Identity Server    | userAuthn.oidc.issuerUrl      |
-| **AUTHN_OIDC_REDIRECT_ORIGIN** | Yes      | URL for the Workbench host            | userAuthn.oidc.redirectOrigin |
-
-### Service Authentication
-
-For service-to-service communication, the REST API supports three methods:
-
-1. **API Key Challenge Authentication**: Services obtain a JWT using a challenge-response protocol
-2. **API Key Basic Authentication**: Services authenticate using HTTP Basic Authentication
-3. **OIDC Client Credentials Flow**: Services obtain a JWT from an OIDC provider
+The REST API has several authentication options.
+Read all about them in the [authentication docs](./docs/authentication/README.md).
 
 ## User Management
 

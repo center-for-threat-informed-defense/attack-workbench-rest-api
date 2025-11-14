@@ -66,6 +66,14 @@ In your OIDC provider, configure **all** redirect URIs:
 - `http://localhost:3000/api/authn/oidc/callback`
 - `https://workbench.example.com/api/authn/oidc/callback`
 
+## Service Authentication
+
+For service-to-service communication, the REST API supports three methods:
+
+1. **API Key Challenge Authentication**: Services obtain a JWT using a challenge-response protocol
+2. **API Key Basic Authentication**: Services authenticate using HTTP Basic Authentication
+3. **OIDC Client Credentials Flow**: Services obtain a JWT from an OIDC provider
+
 ## User Management
 
 After configuring OIDC, users who log in will be authenticated but will not have any permissions until you create a user account for them in the Workbench.
