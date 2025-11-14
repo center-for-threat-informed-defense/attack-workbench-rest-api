@@ -9,8 +9,181 @@ const {
   createAttackExternalReference,
   removeAttackExternalReferences,
 } = require('../lib/external-reference-builder');
+const EventBus = require('../lib/event-bus');
+const logger = require('../lib/logger');
 
+/**
+ * Service for managing analytics
+ *
+ * Event listeners:
+ * - x-mitre-detection-strategy::analytics-referenced - Add inbound relationships when detection strategy references analytics
+ * - x-mitre-detection-strategy::analytics-removed - Remove inbound relationships when detection strategy removes analytics
+ */
 class AnalyticsService extends BaseService {
+  /**
+   * Initialize event listeners
+   * Called once on app startup
+   */
+  static initializeEventListeners() {
+    EventBus.on(
+      'x-mitre-detection-strategy::analytics-referenced',
+      this.handleAnalyticsReferenced.bind(this),
+    );
+
+    EventBus.on(
+      'x-mitre-detection-strategy::analytics-removed',
+      this.handleAnalyticsRemoved.bind(this),
+    );
+
+    logger.info('AnalyticsService: Event listeners initialized');
+  }
+
+  /**
+   * Handle analytics being referenced by a detection strategy
+   * Add inbound embedded_relationship and update external_references
+   */
+  static async handleAnalyticsReferenced(payload) {
+    const { detectionStrategy, analyticIds } = payload;
+
+    for (const analyticId of analyticIds) {
+      try {
+        const analytic = await analyticsRepository.retrieveLatestByStixId(analyticId);
+
+        if (!analytic) {
+          logger.warn(
+            `AnalyticsService: Could not find analytic ${analyticId} to add inbound relationship`,
+          );
+          continue;
+        }
+
+        // Initialize embedded_relationships if needed
+        if (!analytic.workspace) {
+          analytic.workspace = {};
+        }
+        if (!analytic.workspace.embedded_relationships) {
+          analytic.workspace.embedded_relationships = [];
+        }
+
+        // Check if relationship already exists
+        const exists = analytic.workspace.embedded_relationships.some(
+          (rel) => rel.stix_id === detectionStrategy.stix.id && rel.direction === 'inbound',
+        );
+
+        if (!exists) {
+          // Add inbound embedded_relationship
+          analytic.workspace.embedded_relationships.push({
+            stix_id: detectionStrategy.stix.id,
+            attack_id: detectionStrategy.workspace?.attack_id || null,
+            direction: 'inbound',
+          });
+
+          logger.info(
+            `AnalyticsService: Added inbound relationship from detection strategy ${detectionStrategy.stix.id} to analytic ${analyticId}`,
+          );
+        }
+
+        // Update external_references with URL to parent detection strategy
+        if (!analytic.stix.external_references) {
+          analytic.stix.external_references = [];
+        }
+
+        // Remove existing ATT&CK external references
+        analytic.stix.external_references = removeAttackExternalReferences(
+          analytic.stix.external_references,
+        );
+
+        // Create new ATT&CK external reference with URL
+        const attackRef = createAttackExternalReference(analytic.toObject());
+        if (attackRef) {
+          analytic.stix.external_references.unshift(attackRef);
+          logger.info(
+            `AnalyticsService: Updated external_references URL for analytic ${analyticId}`,
+          );
+        }
+
+        await analyticsRepository.saveDocument(analytic);
+      } catch (error) {
+        logger.error(
+          `AnalyticsService: Error handling analytics-referenced for ${analyticId}:`,
+          error,
+        );
+        // Continue processing other analytics
+      }
+    }
+  }
+
+  /**
+   * Handle analytics being removed from a detection strategy
+   * Remove inbound embedded_relationship and update external_references
+   */
+  static async handleAnalyticsRemoved(payload) {
+    const { detectionStrategyId, analyticIds } = payload;
+
+    for (const analyticId of analyticIds) {
+      try {
+        const analytic = await analyticsRepository.retrieveLatestByStixId(analyticId);
+
+        if (!analytic) {
+          logger.warn(
+            `AnalyticsService: Could not find analytic ${analyticId} to remove inbound relationship`,
+          );
+          continue;
+        }
+
+        if (analytic.workspace?.embedded_relationships) {
+          // Remove inbound embedded_relationship
+          const initialLength = analytic.workspace.embedded_relationships.length;
+          analytic.workspace.embedded_relationships =
+            analytic.workspace.embedded_relationships.filter(
+              (rel) => !(rel.stix_id === detectionStrategyId && rel.direction === 'inbound'),
+            );
+
+          const removed = analytic.workspace.embedded_relationships.length < initialLength;
+          if (removed) {
+            logger.info(
+              `AnalyticsService: Removed inbound relationship from detection strategy ${detectionStrategyId} to analytic ${analyticId}`,
+            );
+          }
+        }
+
+        // Update external_references (remove URL since no parent)
+        if (analytic.stix?.external_references) {
+          // analytic.stix.external_references = removeAttackExternalReferences(
+          //   analytic.stix.external_references,
+          // );
+
+          // Rebuild external reference without URL (no parent detection strategy)
+          const existingAttackRef =
+            analytic.stix.external_references.find(
+              (ref) => ref && ref.source_name === 'mitre-attack',
+            ) || null;
+
+          if (existingAttackRef) delete existingAttackRef.url;
+
+          // const attackRef = {
+          //   source_name: 'mitre-attack',
+          //   external_id: analytic.workspace.attack_id,
+          // };
+          // const attackRef = createAttackExternalReference(analytic.toObject());
+          // if (attackRef) {
+          //   analytic.stix.external_references.unshift(attackRef);
+          // }
+
+          logger.info(
+            `AnalyticsService: Removed external_references URL for analytic ${analyticId}`,
+          );
+        }
+
+        await analyticsRepository.saveDocument(analytic);
+      } catch (error) {
+        logger.error(
+          `AnalyticsService: Error handling analytics-removed for ${analyticId}:`,
+          error,
+        );
+        // Continue processing other analytics
+      }
+    }
+  }
   /**
    * Override updateFull to ensure external_references URL is updated if parent detection strategy changes
    * This can happen if the analytic's embedded_relationships are modified
@@ -190,5 +363,7 @@ class AnalyticsService extends BaseService {
     };
   }
 }
+
+AnalyticsService.initializeEventListeners();
 
 module.exports = new AnalyticsService(AnalyticType, analyticsRepository);
