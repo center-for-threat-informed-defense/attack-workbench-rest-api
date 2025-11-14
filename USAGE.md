@@ -49,7 +49,8 @@ The recommended deployment method is using Docker. The REST API is published as 
 
 #### Using Docker Compose (Recommended)
 
-The simplest way to deploy the entire ATT&CK Workbench application is using Docker Compose. Instructions are available in the [Workbench Deployment Guide](https://github.com/mitre-attack/attack-workbench-deployment).
+The simplest way to deploy the entire ATT&CK Workbench application is using Docker Compose.
+Instructions are available in the [Workbench Deployment Guide](https://github.com/mitre-attack/attack-workbench-deployment).
 
 #### Standalone Docker Deployment
 
@@ -89,6 +90,8 @@ docker run -p 3000:3000 -d \
   --network attack-workbench-network \
   ghcr.io/center-for-threat-informed-defense/attack-workbench-rest-api:latest
 ```
+
+More infomation about configuration options is in the [configuration file documentation](./docs/configuration.md).
 
 ### Manual Installation
 
