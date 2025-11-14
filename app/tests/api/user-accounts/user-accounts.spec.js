@@ -48,7 +48,7 @@ describe('User Accounts API', function () {
     const res = await request(app)
       .get('/api/user-accounts')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -65,7 +65,7 @@ describe('User Accounts API', function () {
       .post('/api/user-accounts')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -76,7 +76,7 @@ describe('User Accounts API', function () {
       .post('/api/user-accounts')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -90,7 +90,7 @@ describe('User Accounts API', function () {
     const res = await request(app)
       .get('/api/user-accounts')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -105,7 +105,7 @@ describe('User Accounts API', function () {
     await request(app)
       .get('/api/user-accounts/not-an-id')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -113,7 +113,7 @@ describe('User Accounts API', function () {
     const res = await request(app)
       .get('/api/user-accounts/' + userAccount1.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -137,7 +137,7 @@ describe('User Accounts API', function () {
     const res = await request(app)
       .get('/api/user-accounts/' + userAccount1.id + '?includeStixIdentity=true')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -173,7 +173,7 @@ describe('User Accounts API', function () {
       .put('/api/user-accounts/' + userAccount1.id)
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -193,7 +193,7 @@ describe('User Accounts API', function () {
     const res = await request(app)
       .get('/api/user-accounts?search=first')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -210,14 +210,14 @@ describe('User Accounts API', function () {
       .post('/api/user-accounts')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
   it('DELETE /api/user-accounts deletes a user account', async function () {
     await request(app)
       .delete('/api/user-accounts/' + userAccount1.id)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
@@ -226,7 +226,7 @@ describe('User Accounts API', function () {
     const res = await request(app)
       .get('/api/user-accounts')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -242,7 +242,7 @@ describe('User Accounts API', function () {
     const res = await request(app)
       .get(`/api/user-accounts/${anonymousUserId}/teams`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -266,7 +266,7 @@ describe('User Accounts API', function () {
     const res = await request(app)
       .get(`/api/user-accounts/${anonymousUserId}/teams`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

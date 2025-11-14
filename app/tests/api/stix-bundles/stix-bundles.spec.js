@@ -477,7 +477,7 @@ describe('STIX Bundles New Specification API', function () {
       .post('/api/collection-bundles')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -493,7 +493,7 @@ describe('STIX Bundles New Specification API', function () {
     request(app)
       .get('/api/stix-bundles?domain=not-a-domain')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .end(function (err, res) {
         if (err) {
@@ -515,7 +515,7 @@ describe('STIX Bundles New Specification API', function () {
       .query({ domain: enterpriseDomain })
       .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -555,7 +555,7 @@ describe('STIX Bundles New Specification API', function () {
       .query({ domain: enterpriseDomain })
       .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -585,7 +585,7 @@ describe('STIX Bundles New Specification API', function () {
       .query({ domain: enterpriseDomain })
       .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -613,7 +613,7 @@ describe('STIX Bundles New Specification API', function () {
       .query({ domain: enterpriseDomain })
       .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -637,7 +637,7 @@ describe('STIX Bundles New Specification API', function () {
       .query({ domain: enterpriseDomain })
       .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -655,7 +655,7 @@ describe('STIX Bundles New Specification API', function () {
       .query({ includeDataSources: true })
       .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -672,7 +672,7 @@ describe('STIX Bundles New Specification API', function () {
       .query({ domain: enterpriseDomain })
       .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -688,7 +688,7 @@ describe('STIX Bundles New Specification API', function () {
       .query({ domain: icsDomain })
       .query({ stixVersion: '2.1' })
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

@@ -21,6 +21,7 @@ function generateSecret() {
 
 const defaultSessionSecret = generateSecret();
 const defaultTokenSigningSecret = generateSecret();
+const defaultMongoStoreCryptoSecret = generateSecret();
 
 const userAuthnMechanismValues = ['anonymous', 'oidc'];
 convict.addFormat(enumFormat('user-authn-mechanism', userAuthnMechanismValues, true));
@@ -240,6 +241,11 @@ function loadConfig() {
         doc: 'Secret used to sign the session ID cookie',
         default: defaultSessionSecret,
         env: 'SESSION_SECRET',
+      },
+      mongoStoreCryptoSecret: {
+        doc: 'Secret used to encrypt session data in MongoDB',
+        default: defaultMongoStoreCryptoSecret,
+        env: 'MONGOSTORE_CRYPTO_SECRET',
       },
     },
     userAuthn: {

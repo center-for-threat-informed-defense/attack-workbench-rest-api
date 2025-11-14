@@ -36,7 +36,7 @@ describe('Teams API Test Invalid Data', function () {
         .post('/api/teams')
         .send(body)
         .set('Accept', 'application/json')
-        .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(400);
     });
   }

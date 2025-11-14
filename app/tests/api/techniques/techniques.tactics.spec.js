@@ -54,7 +54,7 @@ describe('Techniques with Tactics API', function () {
     const res = await request(app)
       .get('/api/techniques')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -71,7 +71,7 @@ describe('Techniques with Tactics API', function () {
     const res = await request(app)
       .get('/api/tactics')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -85,7 +85,7 @@ describe('Techniques with Tactics API', function () {
     await request(app)
       .get(`/api/techniques/not-an-id/modified/2022-01-01T00:00:00.000Z/tactics`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -93,7 +93,7 @@ describe('Techniques with Tactics API', function () {
     const res = await request(app)
       .get(`/api/techniques/${technique1.stix.id}/modified/${technique1.stix.modified}/tactics`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -107,7 +107,7 @@ describe('Techniques with Tactics API', function () {
     const res = await request(app)
       .get(`/api/techniques/${technique2.stix.id}/modified/${technique2.stix.modified}/tactics`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -123,7 +123,7 @@ describe('Techniques with Tactics API', function () {
         `/api/techniques/${technique2.stix.id}/modified/${technique2.stix.modified}/tactics?offset=0&limit=2&includePagination=true`,
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

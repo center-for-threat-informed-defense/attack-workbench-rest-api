@@ -68,7 +68,7 @@ describe('Matrices API', function () {
     const res = await request(app)
       .get('/api/matrices')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -85,7 +85,7 @@ describe('Matrices API', function () {
       .post('/api/matrices')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -99,7 +99,7 @@ describe('Matrices API', function () {
       .post('/api/matrices')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -117,7 +117,7 @@ describe('Matrices API', function () {
     const res = await request(app)
       .get('/api/matrices')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -132,7 +132,7 @@ describe('Matrices API', function () {
     await request(app)
       .get('/api/matrices/not-an-id')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -140,7 +140,7 @@ describe('Matrices API', function () {
     const res = await request(app)
       .get('/api/matrices/' + matrix1.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -178,7 +178,7 @@ describe('Matrices API', function () {
       .put('/api/matrices/' + matrix1.stix.id + '/modified/' + originalModified)
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -195,7 +195,7 @@ describe('Matrices API', function () {
       .post('/api/matrices')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(409);
   });
 
@@ -213,7 +213,7 @@ describe('Matrices API', function () {
       .post('/api/matrices')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -236,7 +236,7 @@ describe('Matrices API', function () {
       .post('/api/matrices')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -249,7 +249,7 @@ describe('Matrices API', function () {
     const res = await request(app)
       .get('/api/matrices/' + matrix3.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
     // We expect to get one matrix in an array
@@ -266,7 +266,7 @@ describe('Matrices API', function () {
     const res = await request(app)
       .get('/api/matrices/' + matrix1.stix.id + '?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -281,7 +281,7 @@ describe('Matrices API', function () {
     const res = await request(app)
       .get('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
     // We expect to get one matrix in an array
@@ -296,7 +296,7 @@ describe('Matrices API', function () {
     const res = await request(app)
       .get('/api/matrices/' + matrix2.stix.id + '/modified/' + matrix2.stix.modified)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -311,21 +311,21 @@ describe('Matrices API', function () {
   it('DELETE /api/matrices/:id should not delete a matrix when the id cannot be found', async function () {
     await request(app)
       .delete('/api/matrices/not-an-id')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
   it('DELETE /api/matrices/:id/modified/:modified deletes a matrix', async function () {
     await request(app)
       .delete('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
   it('DELETE /api/matrices/:id should delete all the matrices with the same stix id', async function () {
     await request(app)
       .delete('/api/matrices/' + matrix2.stix.id)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
@@ -333,7 +333,7 @@ describe('Matrices API', function () {
     const res = await request(app)
       .get('/api/matrices')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -358,7 +358,7 @@ describe('Matrices API', function () {
         '/api/matrices/x-mitre-matrix--2a4858a3-85c3-4418-9729-c3e79800acf7/modified/2020-01-01T00:00:00.000Z/techniques',
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

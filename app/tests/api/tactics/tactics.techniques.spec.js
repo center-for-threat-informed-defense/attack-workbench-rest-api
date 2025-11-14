@@ -51,7 +51,7 @@ describe('Tactics with Techniques API', function () {
     const res = await request(app)
       .get('/api/tactics')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -68,7 +68,7 @@ describe('Tactics with Techniques API', function () {
     const res = await request(app)
       .get('/api/techniques')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -82,7 +82,7 @@ describe('Tactics with Techniques API', function () {
     await request(app)
       .get(`/api/tactics/not-an-id/modified/2022-01-01T00:00:00.000Z/techniques`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -90,7 +90,7 @@ describe('Tactics with Techniques API', function () {
     const res = await request(app)
       .get(`/api/tactics/${tactic1.stix.id}/modified/${tactic1.stix.modified}/techniques`)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -106,7 +106,7 @@ describe('Tactics with Techniques API', function () {
         `/api/tactics/${tactic2.stix.id}/modified/${tactic2.stix.modified}/techniques?offset=0&limit=2&includePagination=true`,
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

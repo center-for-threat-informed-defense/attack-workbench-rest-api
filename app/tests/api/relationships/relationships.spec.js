@@ -64,7 +64,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
     // We expect to get an empty array
@@ -80,7 +80,7 @@ describe('Relationships API', function () {
       .post('/api/relationships')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -94,7 +94,7 @@ describe('Relationships API', function () {
       .post('/api/relationships')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -112,7 +112,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -127,7 +127,7 @@ describe('Relationships API', function () {
     await request(app)
       .get('/api/relationships/not-an-id')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -135,7 +135,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships/' + relationship1a.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -172,7 +172,7 @@ describe('Relationships API', function () {
       .put('/api/relationships/' + relationship1a.stix.id + '/modified/' + originalModified)
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -189,7 +189,7 @@ describe('Relationships API', function () {
       .post('/api/relationships')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(409);
   });
 
@@ -206,7 +206,7 @@ describe('Relationships API', function () {
       .post('/api/relationships')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -228,7 +228,7 @@ describe('Relationships API', function () {
       .post('/api/relationships')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -241,7 +241,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -259,7 +259,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -274,7 +274,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships/' + relationship1b.stix.id)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -292,7 +292,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships/' + relationship1a.stix.id + '?versions=all')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -312,7 +312,7 @@ describe('Relationships API', function () {
           relationship1a.stix.modified,
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -333,7 +333,7 @@ describe('Relationships API', function () {
           relationship1b.stix.modified,
       )
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -357,7 +357,7 @@ describe('Relationships API', function () {
       .post('/api/relationships')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -370,7 +370,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships?sourceRef=' + sourceRef1)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -385,7 +385,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships?targetRef=' + targetRef1)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -400,7 +400,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships?sourceOrTargetRef=' + sourceRef1)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -415,7 +415,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships?sourceRef=' + sourceRef3)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -430,7 +430,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships?targetRef=' + targetRef3)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -445,7 +445,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships?sourceOrTargetRef=' + sourceRef3)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -459,7 +459,7 @@ describe('Relationships API', function () {
   it('DELETE /api/relationships/:id should not delete a relationship when the id cannot be found', async function () {
     await request(app)
       .delete('/api/relationships/not-an-id')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
   });
 
@@ -471,14 +471,14 @@ describe('Relationships API', function () {
           '/modified/' +
           relationship1a.stix.modified,
       )
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
   it('DELETE /api/relationships/:id should delete all the relationships with the same stix id', async function () {
     await request(app)
       .delete('/api/relationships/' + relationship1b.stix.id)
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
@@ -487,7 +487,7 @@ describe('Relationships API', function () {
       .delete(
         '/api/relationships/' + relationship2.stix.id + '/modified/' + relationship2.stix.modified,
       )
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
   });
 
@@ -495,7 +495,7 @@ describe('Relationships API', function () {
     const res = await request(app)
       .get('/api/relationships')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 

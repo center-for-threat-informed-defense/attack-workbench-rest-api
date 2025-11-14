@@ -48,7 +48,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/system-version')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -63,7 +63,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/allowed-values')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -99,7 +99,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/organization-identity')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -112,7 +112,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/authn')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -128,7 +128,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/marking-definitions')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -149,7 +149,7 @@ describe('System Configuration API', function () {
       .put('/api/marking-definitions/' + amberTlpMarkingDefinition.stix.id)
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
   });
 
@@ -157,7 +157,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/default-marking-definitions')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -177,7 +177,7 @@ describe('System Configuration API', function () {
       .post('/api/marking-definitions')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201)
       .expect('Content-Type', /json/);
 
@@ -192,7 +192,7 @@ describe('System Configuration API', function () {
       .post('/api/config/default-marking-definitions')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
 
     // We expect the response body to be an empty object
@@ -204,7 +204,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/default-marking-definitions')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -220,7 +220,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/default-marking-definitions?refOnly=true')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -236,7 +236,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/organization-namespace')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
@@ -254,7 +254,7 @@ describe('System Configuration API', function () {
       .post('/api/config/organization-namespace')
       .send(body)
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(204);
 
     // We expect the response body to be an empty object
@@ -266,7 +266,7 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/organization-namespace')
       .set('Accept', 'application/json')
-      .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
