@@ -19,14 +19,14 @@ const {
   ImmutablePropertyError,
   InvalidPostOperationError,
 } = require('../exceptions');
-const AbstractService = require('./_abstract.service');
+const ServiceWithHooks = require('./_abstract.service');
 
 // Import required repositories
 const systemConfigurationRepository = require('../repository/system-configurations-repository');
 const identitiesRepository = require('../repository/identities-repository');
 const userAccountsService = require('./user-accounts-service');
 
-class BaseService extends AbstractService {
+class BaseService extends ServiceWithHooks {
   constructor(type, repository) {
     super();
     this.type = type;
@@ -315,12 +315,19 @@ class BaseService extends AbstractService {
     return documents;
   }
 
+  // TODO add JSDoc
+  // explain what the method handles
+  // calls beforeCreate --> {own create logic} --> afterCreate --> emitCreatedEvent
   async create(data, options) {
     if (data?.stix?.type !== this.type) {
       throw new InvalidTypeError();
     }
 
     options = options || {};
+
+    // LIFECYCLE HOOK: beforeCreate
+    // Subclasses can prepare data before core creation logic
+    await this.beforeCreate(data, options);
     if (!options.import) {
       const attackIdInExternalReferences = attackIdGenerator.extractAttackIdFromExternalReferences(
         data.stix,
@@ -394,17 +401,19 @@ class BaseService extends AbstractService {
       if (attackRef) {
         data.stix.external_references.unshift(attackRef);
       }
-      console.debug('Generated and set the MITRE ATT&CK external reference:', attackRef);
+      logger.debug(`Generated and set the MITRE ATT&CK external reference: ${attackRef}`);
 
       // Set the ATT&CK Spec Version
       data.stix.x_mitre_attack_spec_version =
         data.stix.x_mitre_attack_spec_version ?? config.app.attackSpecVersion;
-      console.debug('Set the ATT&CK specification version:', data.stix.x_mitre_attack_spec_version);
+      logger.debug(
+        `Set the ATT&CK specification version: ${data.stix.x_mitre_attack_spec_version}`,
+      );
 
       // Record the user account that created the object
       if (options.userAccountId) {
         data.workspace.workflow.created_by_user_account = options.userAccountId;
-        console.debug('Recorded the user account that created the object:', options.userAccountId);
+        logger.debug(`Recorded the user account that created the object: ${options.userAccountId}`);
       }
 
       // Set the default marking definitions
@@ -435,7 +444,18 @@ class BaseService extends AbstractService {
         data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
       }
     }
-    return await this.repository.save(data);
+
+    // Core creation: Save the document
+    const createdDocument = await this.repository.save(data);
+
+    // LIFECYCLE HOOK: afterCreate
+    // Subclasses can handle post-creation logic
+    await this.afterCreate(createdDocument, options);
+
+    // EVENT EMISSION: Emit created event for other services to react
+    await this.emitCreatedEvent(createdDocument, options);
+
+    return createdDocument;
   }
 
   async updateFull(stixId, stixModified, data) {
@@ -451,6 +471,10 @@ class BaseService extends AbstractService {
     if (!document) {
       return null;
     }
+
+    // LIFECYCLE HOOK: beforeUpdate
+    // Subclasses can prepare data before core update logic
+    await this.beforeUpdate(stixId, stixModified, data, document);
 
     // Handle ATT&CK external reference for UPDATE operations
     // On update, clients CAN provide ATT&CK external references, but they must match the existing data
@@ -490,6 +514,13 @@ class BaseService extends AbstractService {
     const newDocument = await this.repository.updateAndSave(document, data);
 
     if (newDocument === document) {
+      // LIFECYCLE HOOK: afterUpdate
+      // Subclasses can handle post-update logic
+      await this.afterUpdate(newDocument, document);
+
+      // EVENT EMISSION: Emit updated event for other services to react
+      await this.emitUpdatedEvent(newDocument, document);
+
       // Document successfully saved
       return newDocument;
     } else {
