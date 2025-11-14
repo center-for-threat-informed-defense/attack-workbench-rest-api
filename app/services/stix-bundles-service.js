@@ -562,13 +562,23 @@ class StixBundlesService extends BaseService {
       this.repositories.dataSource.retrieveAllByDomain(options.domain, options),
     ]);
 
+    // Filter out analytics that don't have a URL, since they're not yet linked to a detection strategy
+    const filteredDomainAnalytics = domainAnalytics.filter((a) => {
+      const externalReferences = a?.stix?.external_references;
+      return (
+        Array.isArray(externalReferences) &&
+        externalReferences.length > 0 &&
+        externalReferences[0].url
+      );
+    });
+
     let primaryObjects = [
       ...domainMatrices,
       ...domainMitigations,
       ...domainSoftware,
       ...domainTactics,
       ...domainTechniques,
-      ...domainAnalytics,
+      ...filteredDomainAnalytics,
       ...domainDataComponents,
       ...(options.includeDataSources === true ? domainDataSources : []),
     ];
@@ -829,10 +839,14 @@ class StixBundlesService extends BaseService {
     // included if they reference an analytic that is in the domain
     const analyticsInBundle = bundle.objects.filter((obj) => obj.type === 'x-mitre-analytic');
 
-    for (const analytic of analyticsInBundle) {
-      // Find all detection strategies that reference this analytic
-      const detectionStrategyDocs = await this.repositories.detectionStrategy.findByAnalyticRef(
-        analytic.id,
+    if (analyticsInBundle.length > 0) {
+      // Collect all analytic IDs in the bundle
+      const analyticIds = analyticsInBundle.map((analytic) => analytic.id);
+
+      // Single batch query to find all detection strategies that reference any of these analytics
+      // This replaces the N+1 query pattern that was causing timeouts
+      const detectionStrategyDocs = await this.repositories.detectionStrategy.findByAnalyticRefs(
+        analyticIds,
         options,
       );
 
