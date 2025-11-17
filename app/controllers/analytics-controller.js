@@ -2,12 +2,7 @@
 
 const analyticsService = require('../services/analytics-service');
 const logger = require('../lib/logger');
-const {
-  DuplicateIdError,
-  BadlyFormattedParameterError,
-  InvalidQueryStringParameterError,
-  ImmutablePropertyError,
-} = require('../exceptions');
+const { BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
 
 exports.retrieveAll = async function (req, res) {
   const options = {
@@ -20,7 +15,8 @@ exports.retrieveAll = async function (req, res) {
     search: req.query.search,
     lastUpdatedBy: req.query.lastUpdatedBy,
     includePagination: req.query.includePagination,
-    includeRefs: req.query.includeRefs === 'true' || req.query.includeRefs === true,
+    includeEmbeddedRelationships:
+      req.query.includeRefs === 'true' || req.query.includeRefs === true,
   };
 
   try {
@@ -42,7 +38,8 @@ exports.retrieveAll = async function (req, res) {
 exports.retrieveById = async function (req, res) {
   const options = {
     versions: req.query.versions || 'latest',
-    includeRefs: req.query.includeRefs === 'true' || req.query.includeRefs === true,
+    includeEmbeddedRelationships:
+      req.query.includeRefs === 'true' || req.query.includeRefs === true,
   };
 
   try {
@@ -92,7 +89,7 @@ exports.retrieveVersionById = async function (req, res) {
   }
 };
 
-exports.create = async function (req, res) {
+exports.create = async function (req, res, next) {
   // Get the data from the request
   const analyticData = req.body;
   const options = {
@@ -100,32 +97,21 @@ exports.create = async function (req, res) {
     userAccountId: req.user?.userAccountId,
   };
 
-  // Create the analytic
   try {
+    // Create the analytic
     const analytic = await analyticsService.create(analyticData, options);
     logger.debug('Success: Created analytic with id ' + analytic.stix.id);
     return res.status(201).send(analytic);
   } catch (err) {
-    if (err instanceof ImmutablePropertyError) {
-      return res.status(400).send(err.message);
-    }
-    if (err instanceof DuplicateIdError) {
-      logger.warn('Duplicate stix.id and stix.modified');
-      return res
-        .status(409)
-        .send('Unable to create analytic. Duplicate stix.id and stix.modified properties.');
-    } else {
-      logger.error('Failed with error: ' + err);
-      return res.status(500).send('Unable to create analytic. Server error.');
-    }
+    // Pass the error to the service exception middleware
+    return next(err);
   }
 };
 
-exports.updateFull = async function (req, res) {
+exports.updateFull = async function (req, res, next) {
   // Get the data from the request
   const analyticData = req.body;
 
-  // Create the analytic
   try {
     const analytic = await analyticsService.updateFull(
       req.params.stixId,
@@ -134,13 +120,12 @@ exports.updateFull = async function (req, res) {
     );
     if (!analytic) {
       return res.status(404).send('Analytic not found.');
-    } else {
-      logger.debug('Success: Updated analytic with id ' + analytic.stix.id);
-      return res.status(200).send(analytic);
     }
+    logger.debug('Success: Updated analytic with id ' + analytic.stix.id);
+    return res.status(200).send(analytic);
   } catch (err) {
-    logger.error('Failed with error: ' + err);
-    return res.status(500).send('Unable to update analytic. Server error.');
+    // Pass the error to the service exception middleware
+    return next(err);
   }
 };
 
