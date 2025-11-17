@@ -505,7 +505,9 @@ class AnalyticsService extends BaseService {
    */
   async stripEmbeddedRelationships(analytics) {
     for (const analytic of analytics) {
-      delete analytic.stix.embedded_relationships;
+      if (analytic.workspace) {
+        delete analytic.workspace.embedded_relationships;
+      }
     }
   }
 }
