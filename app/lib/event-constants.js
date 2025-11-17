@@ -112,6 +112,12 @@ module.exports = Object.freeze({
 
   // Detection Strategy - Analytics relationship
   DETECTION_STRATEGY_ANALYTICS_CHANGED: 'detection-strategy::analytics-changed',
+  DETECTION_STRATEGY_ANALYTICS_REFERENCED: 'x-mitre-detection-strategy::analytics-referenced',
+  DETECTION_STRATEGY_ANALYTICS_REMOVED: 'x-mitre-detection-strategy::analytics-removed',
+
+  // Analytic - Data Components relationship
+  ANALYTIC_DATA_COMPONENTS_REFERENCED: 'x-mitre-analytic::data-components-referenced',
+  ANALYTIC_DATA_COMPONENTS_REMOVED: 'x-mitre-analytic::data-components-removed',
 
   // Technique - Sub-technique conversion
   TECHNIQUE_CONVERTED_TO_SUBTECHNIQUE: 'attack-pattern::converted-to-subtechnique',
