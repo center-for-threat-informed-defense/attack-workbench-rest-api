@@ -348,6 +348,7 @@ class BaseRepository extends AbstractRepository {
       const document = new this.model(data);
       return await document.save();
     } catch (err) {
+      logger.error(`A database error occurred: ${err.message}`);
       if (err.name === 'MongoServerError' && err.code === 11000) {
         throw new DuplicateIdError({
           details: `Document with id '${data.stix.id}' already exists.`,
