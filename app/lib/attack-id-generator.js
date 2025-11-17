@@ -4,7 +4,7 @@ const {
   stixTypeToAttackIdMapping,
   attackIdExamples,
   createAttackIdSchema,
-} = require('@mitre-attack/attack-data-model/dist/schemas/common/property-schemas/attack-id');
+} = require('@mitre-attack/attack-data-model');
 const { InvalidTypeError, DuplicateIdError } = require('../exceptions');
 const logger = require('./logger');
 
