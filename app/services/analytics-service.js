@@ -506,7 +506,8 @@ class AnalyticsService extends BaseService {
   async stripEmbeddedRelationships(analytics) {
     for (const analytic of analytics) {
       if (analytic.workspace) {
-        delete analytic.workspace.embedded_relationships;
+        // For Mongoose documents, we need to set to undefined to trigger proper deletion
+        analytic.workspace.embedded_relationships = undefined;
       }
     }
   }
