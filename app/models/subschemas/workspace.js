@@ -11,6 +11,7 @@ const collectionVersionSchema = new mongoose.Schema(collectionVersion, { _id: fa
 const embedddedRelationship = {
   stix_id: { type: String, required: true },
   attack_id: String,
+  name: String,
   direction: {
     type: String,
     // inbound: The embedded relationship points TO this document (I am referenced)
@@ -34,7 +35,7 @@ module.exports.common = {
   },
   attack_id: String,
   collections: [collectionVersionSchema],
-  embedded_relationships: { type: [embeddedRelationshipSchema], required: true },
+  embedded_relationships: { type: [embeddedRelationshipSchema] },
 };
 
 // x-mitre-collection workspace structure
