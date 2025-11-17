@@ -35,6 +35,8 @@ class DetectionStrategiesService extends BaseService {
     }
 
     // Build outbound embedded_relationships for x_mitre_analytic_refs
+    // Cross-repository READS are allowed for denormalization (see CROSS_SERVICE_READS_PATTERN.md)
+    // We emit events in afterCreate/afterUpdate for cross-service WRITES
     const analyticRefs = data.stix?.x_mitre_analytic_refs || [];
     for (const analyticId of analyticRefs) {
       try {
@@ -42,6 +44,7 @@ class DetectionStrategiesService extends BaseService {
         data.workspace.embedded_relationships.push({
           stix_id: analyticId,
           attack_id: analytic?.workspace?.attack_id || null,
+          name: analytic?.stix?.name || null,
           direction: 'outbound',
         });
       } catch (error) {
@@ -53,6 +56,7 @@ class DetectionStrategiesService extends BaseService {
         data.workspace.embedded_relationships.push({
           stix_id: analyticId,
           attack_id: null,
+          name: null,
           direction: 'outbound',
         });
       }
