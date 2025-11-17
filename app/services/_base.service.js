@@ -325,10 +325,8 @@ class BaseService extends ServiceWithHooks {
 
     options = options || {};
 
-    // LIFECYCLE HOOK: beforeCreate
-    // Subclasses can prepare data before core creation logic
-    await this.beforeCreate(data, options);
     if (!options.import) {
+      // Extracting some fields from the payload - we will need these later
       const attackIdInExternalReferences = attackIdGenerator.extractAttackIdFromExternalReferences(
         data.stix,
       );
@@ -336,6 +334,7 @@ class BaseService extends ServiceWithHooks {
       const isSubtechnique = data.stix?.x_mitre_is_subtechnique === true;
       const parentTechniqueId = options?.parentTechniqueId;
 
+      // SECTION START: CHECKING ILLEGAL OPS
       // Throw (reject request) if user attempts to manually define the ATT&CK ID -- this field is controlled exclusively by the backend
       if (attackIdInExternalReferences) {
         logger.warn(
@@ -349,7 +348,25 @@ class BaseService extends ServiceWithHooks {
         throw new ImmutablePropertyError('workspace.attack_id');
       }
 
-      // Generate ATT&CK ID
+      if (data.stix?.external_references) {
+        // On create, clients MUST NOT provide ATT&CK external references - the backend controls this
+        // Throw (reject request) if user attempts to manually set the MITRE citation in the external_references array
+        const mitreAttackRefInExternalReferences =
+          attackIdGenerator.extractAttackIdFromExternalReferences(data.stix);
+        if (mitreAttackRefInExternalReferences) {
+          logger.error(
+            'User manually attempted to set the MITRE ATT&CK citation at external_references.0',
+          );
+          throw new ImmutablePropertyError('external_references.0', {
+            input: mitreAttackRefInExternalReferences,
+          });
+        }
+      } else {
+        data.stix.external_references = [];
+      }
+      // SECTION END: CHECKING ILLEGAL OPS
+
+      // Generate and set the ATT&CK ID
       if (attackIdGenerator.requiresAttackId(this.type)) {
         // Validate subtechnique requirements
         if (isSubtechnique && !parentTechniqueId) {
@@ -375,25 +392,7 @@ class BaseService extends ServiceWithHooks {
 
         data.workspace = data.workspace || {};
         data.workspace.attack_id = attackId;
-        logger.debug('Generated and set ATT&CK ID:', attackId);
-      }
-
-      // Handle ATT&CK external reference for CREATE operations
-      if (data.stix?.external_references) {
-        // On create, clients MUST NOT provide ATT&CK external references - the backend controls this
-        // Throw (reject request) if user attempts to manually set the MITRE citation in the external_references array
-        const mitreAttackRefInExternalReferences =
-          attackIdGenerator.extractAttackIdFromExternalReferences(data.stix);
-        if (mitreAttackRefInExternalReferences) {
-          logger.error(
-            'User manually attempted to set the MITRE ATT&CK citation at external_references.0',
-          );
-          throw new ImmutablePropertyError('external_references.0', {
-            input: mitreAttackRefInExternalReferences,
-          });
-        }
-      } else {
-        data.stix.external_references = [];
+        logger.debug(`Set the ATT&CK ID: ${attackId}`);
       }
 
       // Generate and add the ATT&CK external reference
@@ -401,7 +400,9 @@ class BaseService extends ServiceWithHooks {
       if (attackRef) {
         data.stix.external_references.unshift(attackRef);
       }
-      logger.debug(`Generated and set the MITRE ATT&CK external reference: ${attackRef}`);
+      logger.debug(
+        `Generated and set the MITRE ATT&CK external reference: ${JSON.stringify(attackRef)}`,
+      );
 
       // Set the ATT&CK Spec Version
       data.stix.x_mitre_attack_spec_version =
@@ -418,6 +419,7 @@ class BaseService extends ServiceWithHooks {
 
       // Set the default marking definitions
       await this.setDefaultMarkingDefinitionsForObject(data);
+      logger.debug(`Set the default marking definition for object`);
 
       // Get the organization identity
       const organizationIdentityRef = await this.retrieveOrganizationIdentityRef();
@@ -432,18 +434,32 @@ class BaseService extends ServiceWithHooks {
         // New version of an existing object
         // Only set the x_mitre_modified_by_ref property
         data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+        logger.debug(
+          'Found existing object with matching STIX ID - setting x_mitre_modified_by_ref',
+        );
       } else {
         // New object
         // Assign a new STIX id if not already provided
         if (!data.stix.id) {
           data.stix.id = `${data.stix.type}--${uuid.v4()}`;
         }
+        logger.debug(`Did not find existing object - setting STIX ID: ${data.stix.id}`);
 
         // Set the created_by_ref and x_mitre_modified_by_ref properties
         data.stix.created_by_ref = organizationIdentityRef;
+        logger.debug(
+          `Did not find existing object - setting created_by_ref: ${data.stix.created_by_ref}`,
+        );
         data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
+        logger.debug(
+          `Did not find existing object - setting modified_by_ref: ${data.stix.x_mitre_modified_by_ref}`,
+        );
       }
     }
+
+    // LIFECYCLE HOOK: beforeCreate
+    // Subclasses can prepare data before core creation logic
+    await this.beforeCreate(data, options);
 
     // Core creation: Save the document
     const createdDocument = await this.repository.save(data);
