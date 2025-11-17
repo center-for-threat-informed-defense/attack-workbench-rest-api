@@ -52,6 +52,42 @@ ServiceB (modifies its own documents in response)
 - ✅ **Emits domain events** when changes affect other services
 - ✅ **Listens to domain events** from other services and responds
 
+**Cross-Service Communication Rules:**
+
+| Operation | Allowed? | Pattern |
+|-----------|----------|---------|
+| Cross-service WRITES | ❌ NO | Use events instead |
+| Cross-service READS | ✅ YES | Direct repository access permitted for denormalization and validation |
+
+**WRITES - Use Events:**
+- ❌ Service A MUST NOT directly modify Service B's documents
+- ✅ Service A emits event → Service B modifies its own documents
+- Rationale: Maintains ownership boundaries, enables loose coupling
+
+**READS - Direct Repository Access:**
+- ✅ Service A MAY read from Service B's repository
+- Use cases: Building denormalized metadata (embedded_relationships), validation
+- Must handle missing documents gracefully (null values, try/catch)
+- Rationale: Reads are safe, idempotent, and necessary for materialized views
+
+**Example:**
+```javascript
+// DetectionStrategiesService
+async beforeCreate(data) {
+  // ✅ ALLOWED: Read from analytics repository to build denormalized metadata
+  const analytic = await analyticsRepository.retrieveLatestByStixId(analyticId);
+  data.workspace.embedded_relationships.push({
+    stix_id: analyticId,
+    name: analytic.stix.name,  // Denormalized data from read
+  });
+}
+
+async afterCreate(document) {
+  // ✅ REQUIRED: Emit event so AnalyticsService can update its own documents
+  await EventBus.emit('analytics-referenced', { ... });
+}
+```
+
 **No Generic Manager Services:**
 - ❌ No `EmbeddedRelationshipsManager` - services handle their own relationships
 - ❌ No `ExternalReferencesManager` - services handle their own references
