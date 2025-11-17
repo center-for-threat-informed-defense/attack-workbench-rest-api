@@ -37,18 +37,6 @@ const initialObjectData = {
     x_mitre_attack_spec_version: '3.3.0',
     x_mitre_platforms: ['windows'],
     x_mitre_domains: ['enterprise-attack'],
-    x_mitre_log_source_references: [
-      {
-        x_mitre_data_component_ref: 'data-component-1',
-        name: 'perm-1',
-        channel: 'perm-1',
-      },
-      {
-        x_mitre_data_component_ref: 'data-component-2',
-        name: 'perm-2',
-        channel: 'perm-2',
-      },
-    ],
     x_mitre_mutable_elements: [
       {
         field: 'fieldOne',
@@ -132,9 +120,6 @@ describe('Analytics API', function () {
     expect(Array.isArray(analytic1.stix.x_mitre_domains)).toBe(true);
     expect(analytic1.stix.x_mitre_domains.length).toBe(1);
 
-    expect(analytic1.stix.x_mitre_log_source_references).toBeDefined();
-    expect(Array.isArray(analytic1.stix.x_mitre_log_source_references)).toBe(true);
-    expect(analytic1.stix.x_mitre_log_source_references.length).toBe(2);
     expect(analytic1.stix.x_mitre_mutable_elements).toBeDefined();
     expect(Array.isArray(analytic1.stix.x_mitre_mutable_elements)).toBe(true);
     expect(analytic1.stix.x_mitre_mutable_elements.length).toBe(2);
@@ -193,11 +178,6 @@ describe('Analytics API', function () {
       analytic1.stix.x_mitre_attack_spec_version,
     );
 
-    expect(analytic.stix.x_mitre_log_source_references).toBeDefined();
-    expect(Array.isArray(analytic.stix.x_mitre_log_source_references)).toBe(true);
-    expect(analytic.stix.x_mitre_log_source_references.length).toBe(
-      analytic1.stix.x_mitre_log_source_references.length,
-    );
     expect(analytic.stix.x_mitre_mutable_elements).toBeDefined();
     expect(Array.isArray(analytic.stix.x_mitre_mutable_elements)).toBe(true);
     expect(analytic.stix.x_mitre_mutable_elements.length).toBe(
@@ -227,7 +207,12 @@ describe('Analytics API', function () {
   });
 
   it('POST /api/analytics does not create a analytic with the same id and modified date', async function () {
-    const body = analytic1;
+    const body = _.cloneDeep(analytic1);
+    // Remove system-controlled fields
+    delete body._id;
+    delete body.__t;
+    delete body.__v;
+    delete body.workspace.attack_id;
     await request(app)
       .post('/api/analytics')
       .send(body)
@@ -238,13 +223,13 @@ describe('Analytics API', function () {
 
   let analytic2;
   it('POST /api/analytics should create a new version of a analytic with a duplicate stix.id but different stix.modified date', async function () {
-    analytic2 = _.cloneDeep(analytic1);
-    analytic2._id = undefined;
-    analytic2.__t = undefined;
-    analytic2.__v = undefined;
+    const body = _.cloneDeep(analytic1);
+    body._id = undefined;
+    body.__t = undefined;
+    body.__v = undefined;
+    delete body.workspace.attack_id;
     const timestamp = new Date().toISOString();
-    analytic2.stix.modified = timestamp;
-    const body = analytic2;
+    body.stix.modified = timestamp;
     const res = await request(app)
       .post('/api/analytics')
       .send(body)
@@ -254,19 +239,19 @@ describe('Analytics API', function () {
       .expect('Content-Type', /json/);
 
     // We expect to get the created analytic
-    const analytic = res.body;
-    expect(analytic).toBeDefined();
+    analytic2 = res.body;
+    expect(analytic2).toBeDefined();
   });
 
   let analytic3;
   it('POST /api/analytics should create a new version of a analytic with a duplicate stix.id but different stix.modified date', async function () {
-    analytic3 = _.cloneDeep(analytic1);
-    analytic3._id = undefined;
-    analytic3.__t = undefined;
-    analytic3.__v = undefined;
+    const body = _.cloneDeep(analytic1);
+    body._id = undefined;
+    body.__t = undefined;
+    body.__v = undefined;
+    delete body.workspace.attack_id;
     const timestamp = new Date().toISOString();
-    analytic3.stix.modified = timestamp;
-    const body = analytic3;
+    body.stix.modified = timestamp;
     const res = await request(app)
       .post('/api/analytics')
       .send(body)
@@ -276,8 +261,8 @@ describe('Analytics API', function () {
       .expect('Content-Type', /json/);
 
     // We expect to get the created analytic
-    const analytic = res.body;
-    expect(analytic).toBeDefined();
+    analytic3 = res.body;
+    expect(analytic3).toBeDefined();
   });
 
   it('GET /api/analytics returns the latest added analytic', async function () {
@@ -434,8 +419,10 @@ describe('Analytics API', function () {
     });
 
     it('GET /api/analytics?search should find analytic by its own name', async function () {
+      // Analytics are named after their attack_id (e.g., AN0001)
+      const searchTerm = searchTestAnalytic.stix.name;
       const res = await request(app)
-        .get('/api/analytics?search=Search Test')
+        .get(`/api/analytics?search=${encodeURIComponent(searchTerm)}`)
         .set('Accept', 'application/json')
         .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
         .expect(200)
