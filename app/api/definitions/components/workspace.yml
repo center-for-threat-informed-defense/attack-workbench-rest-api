@@ -14,12 +14,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/collection_reference'
-        embedded_relationships:
-          type: array
-          items:
-            $ref: '#/components/schemas/embedded_relationship'
-          description: 'References to parent objects in embedded relationships (e.g., analytics referencing detection strategies)'
-
     collection_reference:
       type: object
       properties:
@@ -31,23 +25,3 @@ components:
       required:
         - collection_ref
         - collection_modified
-
-    embedded_relationship:
-      type: object
-      properties:
-        stix_id:
-          type: string
-          description: 'STIX ID of the related object'
-          example: 'x-mitre-detection-strategy--12345678-1234-1234-1234-123456789abc'
-        attack_id:
-          type: string
-          description: 'ATT&CK ID of the related object (optional)'
-          example: 'DET0001'
-        direction:
-          type: string
-          enum: ['inbound', 'outbound']
-          description: 'Specifies whether this relationship is pointing to me or I to it'
-          example: 'inbound'
-      required:
-        - stix_id
-        - direction
