@@ -334,65 +334,104 @@ class BaseService extends ServiceWithHooks {
       const isSubtechnique = data.stix?.x_mitre_is_subtechnique === true;
       const parentTechniqueId = options?.parentTechniqueId;
 
+      // Check if we're creating a new version of an existing object (same stix.id)
+      let existingVersion = null;
+      if (data.stix?.id) {
+        // Look for any existing version with the same stix.id
+        const existingVersions = await this.repository.retrieveAllById(data.stix.id);
+        if (existingVersions && existingVersions.length > 0) {
+          existingVersion = existingVersions[0]; // Get any version to extract the attack_id
+          logger.debug(
+            `Found existing version(s) with stix.id: ${data.stix.id}, will reuse attack_id: ${existingVersion.workspace?.attack_id}`,
+          );
+        }
+      }
+
       // SECTION START: CHECKING ILLEGAL OPS
-      // Throw (reject request) if user attempts to manually define the ATT&CK ID -- this field is controlled exclusively by the backend
-      if (attackIdInExternalReferences) {
-        logger.warn(
-          'Immutable property: user attempted to set backend-controlled property, external_references.0.external_id',
-        );
-        throw new ImmutablePropertyError('external_references.0.external_id');
-      } else if (attackIdInWorkspace) {
-        logger.warn(
-          'Immutable property: user attempted to set backend-controlled property, workspace.attack_id',
-        );
-        throw new ImmutablePropertyError('workspace.attack_id');
+      if (existingVersion) {
+        // POST for existing object (new version/snapshot): Allow client to provide attack_id if it matches
+        const existingAttackId = existingVersion.workspace?.attack_id;
+
+        if (attackIdInWorkspace && attackIdInWorkspace !== existingAttackId) {
+          logger.warn(
+            `Immutable property: user attempted to change workspace.attack_id from ${existingAttackId} to ${attackIdInWorkspace}`,
+          );
+          throw new ImmutablePropertyError('workspace.attack_id', {
+            details: `Expected '${existingAttackId}' but received '${attackIdInWorkspace}'`,
+          });
+        }
+
+        if (attackIdInExternalReferences && attackIdInExternalReferences !== existingAttackId) {
+          logger.warn(
+            `Immutable property: user attempted to change external_references[0].external_id from ${existingAttackId} to ${attackIdInExternalReferences}`,
+          );
+          throw new ImmutablePropertyError('external_references[0].external_id', {
+            details: `Expected '${existingAttackId}' but received '${attackIdInExternalReferences}'`,
+          });
+        }
+
+        // Client provided matching values or no values - both are fine
+        // We'll use the existing attack_id
+      } else {
+        // POST for new object: Reject any client-provided attack_id
+        if (attackIdInExternalReferences) {
+          logger.warn(
+            'Immutable property: user attempted to set backend-controlled property, external_references.0.external_id',
+          );
+          throw new ImmutablePropertyError('external_references.0.external_id');
+        } else if (attackIdInWorkspace) {
+          logger.warn(
+            'Immutable property: user attempted to set backend-controlled property, workspace.attack_id',
+          );
+          throw new ImmutablePropertyError('workspace.attack_id');
+        }
       }
 
       if (data.stix?.external_references) {
-        // On create, clients MUST NOT provide ATT&CK external references - the backend controls this
-        // Throw (reject request) if user attempts to manually set the MITRE citation in the external_references array
-        const mitreAttackRefInExternalReferences =
-          attackIdGenerator.extractAttackIdFromExternalReferences(data.stix);
-        if (mitreAttackRefInExternalReferences) {
-          logger.error(
-            'User manually attempted to set the MITRE ATT&CK citation at external_references.0',
-          );
-          throw new ImmutablePropertyError('external_references.0', {
-            input: mitreAttackRefInExternalReferences,
-          });
-        }
+        // Filter out any MITRE ATT&CK external references (we'll add the correct one below)
+        data.stix.external_references = data.stix.external_references.filter(
+          (ref) => !config.attackSourceNames.includes(ref.source_name),
+        );
       } else {
         data.stix.external_references = [];
       }
       // SECTION END: CHECKING ILLEGAL OPS
 
-      // Generate and set the ATT&CK ID
+      // Generate or reuse the ATT&CK ID
       if (attackIdGenerator.requiresAttackId(this.type)) {
-        // Validate subtechnique requirements
-        if (isSubtechnique && !parentTechniqueId) {
-          const errorMessage =
-            'Subtechniques require a parentTechniqueId query parameter. Provide the parent technique ATT&CK ID (e.g., T1234).';
-          logger.error(errorMessage);
-          throw new InvalidPostOperationError(errorMessage);
-        }
-        if (!isSubtechnique && parentTechniqueId) {
-          const errorMessage =
-            'parentTechniqueId query parameter is only valid for subtechniques (x_mitre_is_subtechnique: true).';
-          logger.error(errorMessage);
-          throw new InvalidPostOperationError(errorMessage);
-        }
+        let attackId;
 
-        // Set the ATT&CK ID!
-        const attackId = await attackIdGenerator.generateAttackId(
-          this.type,
-          this.repository,
-          isSubtechnique,
-          parentTechniqueId,
-        );
+        if (existingVersion) {
+          // Reuse the attack_id from the existing version
+          attackId = existingVersion.workspace.attack_id;
+          logger.debug(`Reusing ATT&CK ID from existing version: ${attackId}`);
+        } else {
+          // Validate subtechnique requirements
+          if (isSubtechnique && !parentTechniqueId) {
+            const errorMessage =
+              'Subtechniques require a parentTechniqueId query parameter. Provide the parent technique ATT&CK ID (e.g., T1234).';
+            logger.error(errorMessage);
+            throw new InvalidPostOperationError(errorMessage);
+          }
+          if (!isSubtechnique && parentTechniqueId) {
+            const errorMessage =
+              'parentTechniqueId query parameter is only valid for subtechniques (x_mitre_is_subtechnique: true).';
+            logger.error(errorMessage);
+            throw new InvalidPostOperationError(errorMessage);
+          }
+
+          // Generate a new ATT&CK ID
+          attackId = await attackIdGenerator.generateAttackId(
+            this.type,
+            this.repository,
+            isSubtechnique,
+            parentTechniqueId,
+          );
+          logger.debug(`Generated new ATT&CK ID: ${attackId}`);
+        }
 
         data.workspace = data.workspace || {};
         data.workspace.attack_id = attackId;
-        logger.debug(`Set the ATT&CK ID: ${attackId}`);
       }
 
       // Generate and add the ATT&CK external reference
