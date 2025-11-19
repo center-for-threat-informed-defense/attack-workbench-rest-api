@@ -1,6 +1,6 @@
 'use strict';
 
-const analyticsService = require('../services/analytics-service');
+const analyticsService = require('../services/stix/analytics-service');
 const logger = require('../lib/logger');
 const { BadlyFormattedParameterError, InvalidQueryStringParameterError } = require('../exceptions');
 

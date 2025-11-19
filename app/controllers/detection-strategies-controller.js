@@ -1,6 +1,6 @@
 'use strict';
 
-const detectionStrategiesService = require('../services/detection-strategies-service');
+const detectionStrategiesService = require('../services/stix/detection-strategies-service');
 const logger = require('../lib/logger');
 const {
   DuplicateIdError,

@@ -1,6 +1,6 @@
 'use strict';
 
-const dataComponentsService = require('../services/data-components-service');
+const dataComponentsService = require('../services/stix/data-components-service');
 const logger = require('../lib/logger');
 const { DuplicateIdError } = require('../exceptions');
 

@@ -1,6 +1,6 @@
 'use strict';
 
-const techniquesService = require('../services/techniques-service');
+const techniquesService = require('../services/stix/techniques-service');
 const logger = require('../lib/logger');
 const {
   BadlyFormattedParameterError,

@@ -1,6 +1,6 @@
 'use strict';
 
-const userAccountsService = require('../services/user-accounts-service');
+const userAccountsService = require('../services/system/user-accounts-service');
 const logger = require('../lib/logger');
 const config = require('../config/config');
 const { BadlyFormattedParameterError, DuplicateEmailError } = require('../exceptions');

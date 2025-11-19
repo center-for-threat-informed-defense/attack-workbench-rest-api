@@ -1,9 +1,9 @@
 'use strict';
 
 const schedule = require('node-schedule');
-const collectionIndexesService = require('../services/collection-indexes-service');
-const collectionsService = require('../services/collections-service');
-const collectionBundlesService = require('../services/collection-bundles-service');
+const collectionIndexesService = require('../services/stix/collection-indexes-service');
+const collectionsService = require('../services/stix/collections-service');
+const collectionBundlesService = require('../services/stix/collection-bundles-service');
 const {
   MissingParameterError,
   NotFoundError,

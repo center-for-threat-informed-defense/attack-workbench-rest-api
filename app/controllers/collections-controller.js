@@ -1,6 +1,6 @@
 'use strict';
 
-const collectionsService = require('../services/collections-service');
+const collectionsService = require('../services/stix/collections-service');
 const logger = require('../lib/logger');
 const {
   BadlyFormattedParameterError,
