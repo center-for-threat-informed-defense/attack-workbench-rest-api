@@ -7,6 +7,7 @@ const {
 } = require('@mitre-attack/attack-data-model');
 const { InvalidTypeError, DuplicateIdError } = require('../exceptions');
 const logger = require('./logger');
+const config = require('../config/config');
 
 /**
  * Determines if a given ATT&CK object type requires an ATT&CK ID.
@@ -40,9 +41,9 @@ function extractAttackIdFromExternalReferences(stix) {
     return null;
   }
 
-  const attackSources = ['enterprise-attack', 'mobile-attack', 'ics-attack'];
   const attackRef = stix.external_references.find(
-    (ref) => ref.source_name && attackSources.includes(ref.source_name) && ref.external_id,
+    (ref) =>
+      ref.source_name && config.attackSourceNames.includes(ref.source_name) && ref.external_id,
   );
 
   return attackRef ? attackRef.external_id : null;
