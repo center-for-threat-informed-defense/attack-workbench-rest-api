@@ -1,12 +1,12 @@
 const request = require('supertest');
 const { expect } = require('expect');
-const _ = require('lodash');
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
 const login = require('../../shared/login');
+const { cloneForCreate } = require('../../shared/clone-for-create');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -209,10 +209,7 @@ describe('Detection Strategies API', function () {
 
   let detectionStrategy2;
   it('POST /api/detection-strategies should create a new version of a detection strategy with a duplicate stix.id but different stix.modified date', async function () {
-    detectionStrategy2 = _.cloneDeep(detectionStrategy1);
-    detectionStrategy2._id = undefined;
-    detectionStrategy2.__t = undefined;
-    detectionStrategy2.__v = undefined;
+    detectionStrategy2 = cloneForCreate(detectionStrategy1);
     const timestamp = new Date().toISOString();
     detectionStrategy2.stix.modified = timestamp;
     const body = detectionStrategy2;
@@ -231,10 +228,7 @@ describe('Detection Strategies API', function () {
 
   let detectionStrategy3;
   it('POST /api/detection-strategies should create a new version of a detection strategy with a duplicate stix.id but different stix.modified date', async function () {
-    detectionStrategy3 = _.cloneDeep(detectionStrategy1);
-    detectionStrategy3._id = undefined;
-    detectionStrategy3.__t = undefined;
-    detectionStrategy3.__v = undefined;
+    detectionStrategy3 = cloneForCreate(detectionStrategy1);
     const timestamp = new Date().toISOString();
     detectionStrategy3.stix.modified = timestamp;
     const body = detectionStrategy3;

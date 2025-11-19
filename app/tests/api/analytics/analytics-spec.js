@@ -7,6 +7,7 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
 const login = require('../../shared/login');
+const { cloneForCreate } = require('../../shared/clone-for-create');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -207,12 +208,7 @@ describe('Analytics API', function () {
   });
 
   it('POST /api/analytics does not create a analytic with the same id and modified date', async function () {
-    const body = _.cloneDeep(analytic1);
-    // Remove system-controlled fields
-    delete body._id;
-    delete body.__t;
-    delete body.__v;
-    delete body.workspace.attack_id;
+    const body = cloneForCreate(analytic1);
     await request(app)
       .post('/api/analytics')
       .send(body)
@@ -223,11 +219,7 @@ describe('Analytics API', function () {
 
   let analytic2;
   it('POST /api/analytics should create a new version of a analytic with a duplicate stix.id but different stix.modified date', async function () {
-    const body = _.cloneDeep(analytic1);
-    body._id = undefined;
-    body.__t = undefined;
-    body.__v = undefined;
-    delete body.workspace.attack_id;
+    const body = cloneForCreate(analytic1);
     const timestamp = new Date().toISOString();
     body.stix.modified = timestamp;
     const res = await request(app)
@@ -245,11 +237,7 @@ describe('Analytics API', function () {
 
   let analytic3;
   it('POST /api/analytics should create a new version of a analytic with a duplicate stix.id but different stix.modified date', async function () {
-    const body = _.cloneDeep(analytic1);
-    body._id = undefined;
-    body.__t = undefined;
-    body.__v = undefined;
-    delete body.workspace.attack_id;
+    const body = cloneForCreate(analytic1);
     const timestamp = new Date().toISOString();
     body.stix.modified = timestamp;
     const res = await request(app)

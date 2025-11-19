@@ -1,9 +1,9 @@
 const request = require('supertest');
 const { expect } = require('expect');
-const _ = require('lodash');
 
 const config = require('../../../config/config');
 const login = require('../../shared/login');
+const { cloneForCreate } = require('../../shared/clone-for-create');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -362,10 +362,7 @@ describe('Collections (x-mitre-collection) Basic API', function () {
 
   let collection2;
   it('POST /api/collections should create a new version of a collection with a duplicate stix.id but different stix.modified date', async function () {
-    const collection = _.cloneDeep(collection1);
-    collection._id = undefined;
-    collection.__t = undefined;
-    collection.__v = undefined;
+    const collection = cloneForCreate(collection1);
     const timestamp = new Date().toISOString();
     collection.stix.modified = timestamp;
 

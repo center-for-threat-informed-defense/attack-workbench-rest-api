@@ -1,12 +1,12 @@
 const request = require('supertest');
 const { expect } = require('expect');
-const _ = require('lodash');
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
 const login = require('../../shared/login');
+const { cloneForCreate } = require('../../shared/clone-for-create');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -229,10 +229,7 @@ describe('Techniques Basic API', function () {
 
   let technique2;
   it('POST /api/techniques should create a new version of a technique with a duplicate stix.id but different stix.modified date', async function () {
-    technique2 = _.cloneDeep(technique1);
-    technique2._id = undefined;
-    technique2.__t = undefined;
-    technique2.__v = undefined;
+    technique2 = cloneForCreate(technique1);
     const timestamp = new Date().toISOString();
     technique2.stix.modified = timestamp;
     technique2.stix.description = 'Still a technique. Purple!';
@@ -252,10 +249,7 @@ describe('Techniques Basic API', function () {
 
   let technique3;
   it('POST /api/techniques should create a new version of a technique with a duplicate stix.id but different stix.modified date', async function () {
-    technique3 = _.cloneDeep(technique1);
-    technique3._id = undefined;
-    technique3.__t = undefined;
-    technique3.__v = undefined;
+    technique3 = cloneForCreate(technique1);
     const timestamp = new Date().toISOString();
     technique3.stix.modified = timestamp;
     technique3.stix.description = 'Still a technique. Blue!';

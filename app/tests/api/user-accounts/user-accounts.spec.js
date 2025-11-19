@@ -8,7 +8,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const UserAccount = require('../../../models/user-account-model');
 const Team = require('../../../models/team-model');
-const teamsService = require('../../../services/teams-service');
+const teamsService = require('../../../services/system/teams-service');
 
 const login = require('../../shared/login');
 

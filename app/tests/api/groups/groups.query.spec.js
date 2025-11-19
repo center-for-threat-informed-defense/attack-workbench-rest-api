@@ -13,8 +13,8 @@ logger.level = 'debug';
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
-const userAccountsService = require('../../../services/user-accounts-service');
-const groupsService = require('../../../services/groups-service');
+const userAccountsService = require('../../../services/system/user-accounts-service');
+const groupsService = require('../../../services/stix/groups-service');
 
 function asyncWait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
