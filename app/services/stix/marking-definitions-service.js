@@ -71,7 +71,14 @@ class MarkingDefinitionsService extends BaseService {
       throw new CannotUpdateStaticObjectError();
     }
 
-    const newDoc = await super.updateFull(stixId, data);
+    // Marking definitions don't support versioning (no modified property)
+    // So we retrieve by stixId only and update directly
+    const document = await this.repository.retrieveOneById(stixId);
+    if (!document) {
+      return null;
+    }
+
+    const newDoc = await this.repository.updateAndSave(document, data);
     return newDoc;
   }
 
