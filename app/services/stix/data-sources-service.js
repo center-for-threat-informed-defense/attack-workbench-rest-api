@@ -44,10 +44,6 @@ class DataSourcesService extends BaseService {
       includeRevoked: true,
     });
 
-    console.log('DEBUG: allDataComponents type:', typeof allDataComponents);
-    console.log('DEBUG: allDataComponents is array:', Array.isArray(allDataComponents));
-    console.log('DEBUG: allDataComponents:', JSON.stringify(allDataComponents, null, 2));
-
     // Add the data components that reference the data source
     dataSource.dataComponents = allDataComponents.filter(
       (dataComponent) => dataComponent.stix.x_mitre_data_source_ref === dataSource.stix.id,
