@@ -244,7 +244,7 @@ describe('Data Sources API', function () {
     const timestamp = new Date().toISOString();
     dataSource1.stix.modified = timestamp;
     dataSource1.stix.description = 'This is an updated data source.';
-    const body = dataSource1;
+    const body = cloneForCreate(dataSource1);
     const res = await request(app)
       .put('/api/data-sources/' + dataSource1.stix.id + '/modified/' + originalModified)
       .send(body)

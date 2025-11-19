@@ -250,7 +250,7 @@ describe('Data Components API', function () {
   });
 
   it('POST /api/data-components does not create a data component with the same id and modified date', async function () {
-    const body = dataComponent1;
+    const body = cloneForCreate(dataComponent1);
     await request(app)
       .post('/api/data-components')
       .send(body)

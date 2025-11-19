@@ -211,7 +211,7 @@ describe('User Accounts API', function () {
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400);
+      .expect(409);
   });
 
   it('DELETE /api/user-accounts deletes a user account', async function () {

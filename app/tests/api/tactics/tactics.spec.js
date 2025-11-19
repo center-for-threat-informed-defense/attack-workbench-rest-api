@@ -177,8 +177,10 @@ describe('Tactics API', function () {
   });
 
   it('POST /api/tactics does not create a tactic with the same id and modified date', async function () {
-    const body = tactic1;
-    // We expect to get the created tactic
+    // Clone the tactic to remove backend-controlled fields, but keep the same modified date
+    const body = cloneForCreate(tactic1);
+    body.stix.modified = tactic1.stix.modified; // Keep the same modified date to trigger duplicate check
+    // We expect to get a 409 Conflict error
     await request(app)
       .post('/api/tactics')
       .send(body)
