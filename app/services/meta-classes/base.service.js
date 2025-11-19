@@ -211,7 +211,7 @@ class BaseService extends ServiceWithHooks {
       }
       return documents;
     } else if (options.versions === 'latest') {
-      const document = await this.repository.retrieveLatestByStixId(stixId);
+      const document = await this.repository.retrieveLatestByStixIdLean(stixId);
 
       if (document) {
         try {
