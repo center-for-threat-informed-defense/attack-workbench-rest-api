@@ -51,6 +51,30 @@ exports.requestValidation = function (err, req, res, next) {
   }
 };
 
+/**
+ * Helper function to build error response with all custom properties
+ * @param {Error} err - The error object
+ * @returns {Object|String} Error response object or message string
+ */
+function buildErrorResponse(err) {
+  // Start with the message
+  const errorResponse = { message: err.message };
+
+  // Add any custom properties from the error (excluding standard Error properties)
+  const standardErrorProps = ['name', 'message', 'stack'];
+  let hasCustomProps = false;
+
+  Object.keys(err).forEach((key) => {
+    if (!standardErrorProps.includes(key)) {
+      errorResponse[key] = err[key];
+      hasCustomProps = true;
+    }
+  });
+
+  // Return object if custom properties exist, otherwise just the message string
+  return hasCustomProps ? errorResponse : err.message;
+}
+
 exports.serviceExceptions = function (err, req, res, next) {
   // Handle 400 Bad Request errors (user-related errors)
   if (
@@ -65,7 +89,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof BadRequestError
   ) {
     logger.warn(`Bad request: ${err.message}`);
-    return res.status(400).send(err.message);
+    return res.status(400).send(buildErrorResponse(err));
   }
 
   // Handle 404 Not Found errors
@@ -77,7 +101,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof DefaultMarkingDefinitionsNotFoundError
   ) {
     logger.warn(`Not found: ${err.message}`);
-    return res.status(404).send(err.message);
+    return res.status(404).send(buildErrorResponse(err));
   }
 
   // Handle 409 Conflict errors (duplicate resources)
@@ -87,7 +111,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof DuplicateNameError
   ) {
     logger.warn(`Conflict: ${err.message}`);
-    return res.status(409).send(err.message);
+    return res.status(409).send(buildErrorResponse(err));
   }
 
   // Handle 500 Internal Server errors (service and system errors)
@@ -99,13 +123,13 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof DatabaseError
   ) {
     logger.error(`Service error: ${err.message}`);
-    return res.status(500).send(err.message);
+    return res.status(500).send(buildErrorResponse(err));
   }
 
   // Handle 502 Bad Gateway errors (external service errors)
   if (err instanceof HostNotFoundError || err instanceof ConnectionRefusedError) {
     logger.error(`Bad gateway: ${err.message}`);
-    return res.status(502).send(err.message);
+    return res.status(502).send(buildErrorResponse(err));
   }
 
   // Handle 503 Service Unavailable errors (HTTP and configuration errors)
@@ -115,13 +139,13 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof AnonymousUserAccountNotSetError
   ) {
     logger.error(`Service unavailable: ${err.message}`);
-    return res.status(503).send(err.message);
+    return res.status(503).send(buildErrorResponse(err));
   }
 
   // Handle 501 Not Implemented errors
   if (err instanceof NotImplementedError) {
     logger.warn(`Not implemented: ${err.message}`);
-    return res.status(501).send(err.message);
+    return res.status(501).send(buildErrorResponse(err));
   }
 
   // Pass through to next error handler if not a recognized exception
