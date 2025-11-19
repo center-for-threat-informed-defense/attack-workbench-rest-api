@@ -6,6 +6,7 @@ const { BaseService } = require('../meta-classes');
 const { DetectionStrategy: DetectionStrategyType } = require('../../lib/types');
 const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
+const { NotFoundError } = require('../../exceptions');
 
 /**
  * Service for managing detection strategies
@@ -39,27 +40,22 @@ class DetectionStrategiesService extends BaseService {
     // We emit events in afterCreate/afterUpdate for cross-service WRITES
     const analyticRefs = data.stix?.x_mitre_analytic_refs || [];
     for (const analyticId of analyticRefs) {
-      try {
-        const analytic = await analyticsRepository.retrieveLatestByStixId(analyticId);
-        data.workspace.embedded_relationships.push({
-          stix_id: analyticId,
-          attack_id: analytic?.workspace?.attack_id || null,
-          name: analytic?.stix?.name || null,
-          direction: 'outbound',
-        });
-      } catch (error) {
-        logger.warn(
-          `DetectionStrategiesService: Could not fetch analytic ${analyticId} for outbound relationship`,
-          error,
-        );
-        // Add relationship without attack_id
-        data.workspace.embedded_relationships.push({
-          stix_id: analyticId,
-          attack_id: null,
-          name: null,
-          direction: 'outbound',
+      const analytic = await analyticsRepository.retrieveLatestByStixId(analyticId);
+
+      if (!analytic) {
+        logger.warn(`DetectionStrategiesService: Analytic ${analyticId} does not exist`);
+        throw new NotFoundError({
+          analyticId: analyticId,
+          message: 'The detection strategy cannot reference an analytic that does not exist',
         });
       }
+
+      data.workspace.embedded_relationships.push({
+        stix_id: analyticId,
+        attack_id: analytic?.workspace?.attack_id || null,
+        name: analytic?.stix?.name || null,
+        direction: 'outbound',
+      });
     }
   }
 
