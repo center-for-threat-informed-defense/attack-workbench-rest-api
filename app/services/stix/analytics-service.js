@@ -524,10 +524,14 @@ class AnalyticsService extends BaseService {
 
       for (const rel of analytic.workspace.embedded_relationships) {
         // Handle inbound relationships from detection strategies
-        if (rel.direction === 'inbound' && rel.stix_id?.startsWith('x-mitre-detection-strategy--')) {
+        if (
+          rel.direction === 'inbound' &&
+          rel.stix_id?.startsWith('x-mitre-detection-strategy--')
+        ) {
           try {
-            const detectionStrategy =
-              await detectionStrategiesRepository.retrieveLatestByStixId(rel.stix_id);
+            const detectionStrategy = await detectionStrategiesRepository.retrieveLatestByStixId(
+              rel.stix_id,
+            );
             if (detectionStrategy) {
               // Add name as a transient property (not persisted to DB)
               rel.name = detectionStrategy.stix.name;
@@ -549,7 +553,9 @@ class AnalyticsService extends BaseService {
         // Handle outbound relationships to data components
         if (rel.direction === 'outbound' && rel.stix_id?.startsWith('x-mitre-data-component--')) {
           try {
-            const dataComponent = await dataComponentsRepository.retrieveLatestByStixId(rel.stix_id);
+            const dataComponent = await dataComponentsRepository.retrieveLatestByStixId(
+              rel.stix_id,
+            );
             if (dataComponent) {
               // Add name as a transient property (not persisted to DB)
               rel.name = dataComponent.stix.name;
