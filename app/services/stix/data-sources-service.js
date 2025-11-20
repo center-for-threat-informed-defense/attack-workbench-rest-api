@@ -1,7 +1,6 @@
 'use strict';
 
 const dataSourcesRepository = require('../../repository/data-sources-repository');
-const identitiesService = require('./identities-service');
 const dataComponentsService = require('./data-components-service');
 const { BaseService } = require('../meta-classes');
 const { DataSource: DataSourceType } = require('../../lib/types');
@@ -20,20 +19,20 @@ class DataSourcesService extends BaseService {
     invalidQueryStringParameter: 'Invalid query string parameter',
   };
 
-  static async addExtraData(dataSource, retrieveDataComponents) {
-    await identitiesService.addCreatedByAndModifiedByIdentities(dataSource);
+  async addExtraData(dataSource, retrieveDataComponents) {
+    await this.addCreatedByAndModifiedByIdentities(dataSource);
     if (retrieveDataComponents) {
-      await DataSourcesService.addDataComponents(dataSource);
+      await this.addDataComponents(dataSource);
     }
   }
 
-  static async addExtraDataToAll(dataSources, retrieveDataComponents) {
+  async addExtraDataToAll(dataSources, retrieveDataComponents) {
     for (const dataSource of dataSources) {
-      await DataSourcesService.addExtraData(dataSource, retrieveDataComponents);
+      await this.addExtraData(dataSource, retrieveDataComponents);
     }
   }
 
-  static async addDataComponents(dataSource) {
+  async addDataComponents(dataSource) {
     // We have to work with the latest version of all data components to avoid mishandling a situation
     // where an earlier version of a data component may reference a data source, but the latest
     // version doesn't.
@@ -61,14 +60,14 @@ class DataSourcesService extends BaseService {
 
       if (options.versions === 'all') {
         const dataSources = await this.repository.retrieveAllById(stixId);
-        await DataSourcesService.addExtraDataToAll(dataSources, options.retrieveDataComponents);
+        await this.addExtraDataToAll(dataSources, options.retrieveDataComponents);
         return dataSources;
       } else if (options.versions === 'latest') {
         const dataSource = await this.repository.retrieveLatestByStixId(stixId);
 
         // Note: document is null if not found
         if (dataSource) {
-          await DataSourcesService.addExtraData(dataSource, options.retrieveDataComponents);
+          await this.addExtraData(dataSource, options.retrieveDataComponents);
           return [dataSource];
         } else {
           return [];
@@ -101,7 +100,7 @@ class DataSourcesService extends BaseService {
 
       // Note: document is null if not found
       if (dataSource) {
-        await DataSourcesService.addExtraData(dataSource, options.retrieveDataComponents);
+        await this.addExtraData(dataSource, options.retrieveDataComponents);
         return dataSource;
       } else {
         return null;
