@@ -19,6 +19,11 @@ class CollectionsService extends BaseService {
    * @returns {Promise<Array<Object>>} Array of attack objects in the same order as objectList
    */
   async getContents(xMitreContents) {
+    // Handle empty or undefined contents
+    if (!xMitreContents || xMitreContents.length === 0) {
+      return [];
+    }
+
     const objects = await attackObjectsService.getBulkByIdAndModified(xMitreContents);
 
     // Create lookup map for ordering
@@ -48,10 +53,15 @@ class CollectionsService extends BaseService {
       const collection = await this.repository.retrieveLatestByStixId(stixId);
 
       if (collection) {
+        // Convert mongoose document to plain object for consistency with versions=all
+        // which uses .lean() and returns plain objects
+        const collectionObj = collection.toObject ? collection.toObject() : collection;
+
         if (options.retrieveContents) {
-          collection.contents = await this.getContents(collection.stix.x_mitre_contents);
+          collectionObj.contents = await this.getContents(collectionObj.stix.x_mitre_contents);
         }
-        collections = [collection];
+
+        collections = [collectionObj];
       } else {
         collections = [];
       }
@@ -91,6 +101,11 @@ class CollectionsService extends BaseService {
    * @yields {Object} Attack objects in order with position metadata
    */
   async *streamContents(xMitreContents) {
+    // Handle empty or undefined contents
+    if (!xMitreContents || xMitreContents.length === 0) {
+      return;
+    }
+
     // Create a map to track original positions
     const positionMap = new Map();
     xMitreContents.forEach((ref, index) => {
