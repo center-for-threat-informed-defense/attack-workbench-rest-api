@@ -1,118 +1,249 @@
 'use strict';
 
 const dataSourcesRepository = require('../../repository/data-sources-repository');
-const dataComponentsService = require('./data-components-service');
+const dataComponentsRepository = require('../../repository/data-components-repository');
 const { BaseService } = require('../meta-classes');
 const { DataSource: DataSourceType } = require('../../lib/types');
-const {
-  MissingParameterError,
-  BadlyFormattedParameterError,
-  InvalidQueryStringParameterError,
-} = require('../../exceptions');
+const EventBus = require('../../lib/event-bus');
+const logger = require('../../lib/logger');
 
+/**
+ * Service for managing data sources
+ *
+ * Event listeners:
+ * - x-mitre-data-component::data-source-referenced - Add inbound relationships when data component references data source
+ * - x-mitre-data-component::data-source-removed - Remove inbound relationships when data component removes data source reference
+ *
+ * The retrieveDataComponents query parameter is handled by building the relationship
+ * from workspace.embedded_relationships which are maintained via the event-driven architecture.
+ */
 class DataSourcesService extends BaseService {
-  errors = {
-    missingParameter: 'Missing required parameter',
-    badlyFormattedParameter: 'Badly formatted parameter',
-    duplicateId: 'Duplicate id',
-    notFound: 'Document not found',
-    invalidQueryStringParameter: 'Invalid query string parameter',
-  };
+  /**
+   * Initialize event listeners
+   * Called once on app startup
+   */
+  static initializeEventListeners() {
+    EventBus.on(
+      'x-mitre-data-component::data-source-referenced',
+      this.handleDataSourceReferenced.bind(this),
+    );
 
-  async addExtraData(dataSource, retrieveDataComponents) {
-    await this.addCreatedByAndModifiedByIdentities(dataSource);
-    if (retrieveDataComponents) {
-      await this.addDataComponents(dataSource);
+    EventBus.on(
+      'x-mitre-data-component::data-source-removed',
+      this.handleDataSourceRemoved.bind(this),
+    );
+
+    logger.info('DataSourcesService: Event listeners initialized');
+  }
+
+  /**
+   * Handle data source being referenced by a data component
+   * Add inbound embedded_relationship
+   *
+   * @param {Object} payload - Event payload
+   * @param {Object} payload.dataComponent - The data component document that references the data source
+   * @param {string} payload.dataSourceId - Data source STIX ID being referenced
+   * @returns {Promise<void>}
+   */
+  static async handleDataSourceReferenced(payload) {
+    const { dataComponent, dataSourceId } = payload;
+
+    logger.info(
+      `DataSourcesService heard event: 'x-mitre-data-component::data-source-referenced' for ${dataComponent.stix.id}`,
+    );
+
+    try {
+      const dataSource = await dataSourcesRepository.retrieveLatestByStixId(dataSourceId);
+
+      if (!dataSource) {
+        logger.warn(
+          `DataSourcesService: Could not find data source ${dataSourceId} to add inbound relationship`,
+        );
+        return;
+      }
+
+      // Initialize embedded_relationships if needed
+      if (!dataSource.workspace) {
+        dataSource.workspace = {};
+      }
+      if (!dataSource.workspace.embedded_relationships) {
+        dataSource.workspace.embedded_relationships = [];
+      }
+
+      // Check if relationship already exists
+      const exists = dataSource.workspace.embedded_relationships.some(
+        (rel) => rel.stix_id === dataComponent.stix.id && rel.direction === 'inbound',
+      );
+
+      if (!exists) {
+        // Add inbound embedded_relationship
+        dataSource.workspace.embedded_relationships.push({
+          stix_id: dataComponent.stix.id,
+          attack_id: dataComponent.workspace?.attack_id || null,
+          name: dataComponent.stix.name,
+          direction: 'inbound',
+        });
+
+        logger.info(
+          `DataSourcesService: Added inbound relationship from data component ${dataComponent.stix.id} to data source ${dataSourceId}`,
+        );
+      }
+
+      await dataSourcesRepository.saveDocument(dataSource);
+    } catch (error) {
+      logger.error(
+        `DataSourcesService: Error handling data-source-referenced for ${dataSourceId}:`,
+        error,
+      );
     }
   }
 
-  async addExtraDataToAll(dataSources, retrieveDataComponents) {
-    for (const dataSource of dataSources) {
-      await this.addExtraData(dataSource, retrieveDataComponents);
+  /**
+   * Handle data source being removed from a data component
+   * Remove inbound embedded_relationship
+   *
+   * @param {Object} payload - Event payload
+   * @param {string} payload.dataComponentId - STIX ID of the data component
+   * @param {string} payload.dataSourceId - Data source STIX ID being removed
+   * @returns {Promise<void>}
+   */
+  static async handleDataSourceRemoved(payload) {
+    const { dataComponentId, dataSourceId } = payload;
+
+    logger.info(
+      `DataSourcesService heard event: 'x-mitre-data-component::data-source-removed' for data component ${dataComponentId}`,
+    );
+
+    try {
+      const dataSource = await dataSourcesRepository.retrieveLatestByStixId(dataSourceId);
+
+      if (!dataSource) {
+        logger.warn(
+          `DataSourcesService: Could not find data source ${dataSourceId} to remove inbound relationship`,
+        );
+        return;
+      }
+
+      if (dataSource.workspace?.embedded_relationships) {
+        // Remove inbound embedded_relationship
+        const initialLength = dataSource.workspace.embedded_relationships.length;
+        dataSource.workspace.embedded_relationships =
+          dataSource.workspace.embedded_relationships.filter(
+            (rel) => !(rel.stix_id === dataComponentId && rel.direction === 'inbound'),
+          );
+
+        const removed = dataSource.workspace.embedded_relationships.length < initialLength;
+        if (removed) {
+          logger.info(
+            `DataSourcesService: Removed inbound relationship from data component ${dataComponentId} to data source ${dataSourceId}`,
+          );
+        }
+      }
+
+      await dataSourcesRepository.saveDocument(dataSource);
+    } catch (error) {
+      logger.error(
+        `DataSourcesService: Error handling data-source-removed for ${dataSourceId}:`,
+        error,
+      );
     }
   }
 
-  async addDataComponents(dataSource) {
-    // We have to work with the latest version of all data components to avoid mishandling a situation
-    // where an earlier version of a data component may reference a data source, but the latest
-    // version doesn't.
+  /**
+   * Retrieve data sources by STIX ID
+   * If retrieveDataComponents is true, populate dataComponents array from embedded_relationships
+   *
+   * @param {string} stixId - The STIX ID of the data source
+   * @param {Object} options - Query options
+   * @param {string} [options.versions='latest'] - Which versions to retrieve
+   * @param {boolean} [options.retrieveDataComponents=false] - Include related data components
+   * @returns {Promise<Array>} Array of data source versions
+   */
+  async retrieveById(stixId, options) {
+    const dataSources = await super.retrieveById(stixId, options);
 
-    // Retrieve the latest version of all data components
-    const allDataComponents = await dataComponentsService.retrieveAll({
-      includeDeprecated: true,
-      includeRevoked: true,
-    });
+    // If retrieveDataComponents is requested, build the dataComponents array from embedded_relationships
+    if (options.retrieveDataComponents && dataSources.length > 0) {
+      for (const dataSource of dataSources) {
+        await this.populateDataComponents(dataSource);
+      }
+    }
 
-    // Add the data components that reference the data source
-    dataSource.dataComponents = allDataComponents.filter(
-      (dataComponent) => dataComponent.stix.x_mitre_data_source_ref === dataSource.stix.id,
+    return dataSources;
+  }
+
+  /**
+   * Retrieve a specific version of a data source
+   * If retrieveDataComponents is true, populate dataComponents array from embedded_relationships
+   *
+   * @param {string} stixId - The STIX ID of the data source
+   * @param {string} modified - The modified timestamp of the version
+   * @param {Object} options - Query options
+   * @param {boolean} [options.retrieveDataComponents=false] - Include related data components
+   * @returns {Promise<Object|null>} The data source document or null
+   */
+  async retrieveVersionById(stixId, modified, options) {
+    const dataSource = await super.retrieveVersionById(stixId, modified);
+
+    // If retrieveDataComponents is requested, build the dataComponents array from embedded_relationships
+    if (options.retrieveDataComponents && dataSource) {
+      await this.populateDataComponents(dataSource);
+    }
+
+    return dataSource;
+  }
+
+  /**
+   * Populate the dataComponents array on a data source from its embedded_relationships
+   * This retrieves the full data component documents for each inbound relationship
+   *
+   * @param {Object} dataSource - The data source document
+   * @returns {Promise<void>}
+   */
+  async populateDataComponents(dataSource) {
+    // Get inbound data component relationships from embedded_relationships
+    const dataComponentRels =
+      dataSource.workspace?.embedded_relationships?.filter(
+        (rel) => rel.direction === 'inbound' && rel.stix_id?.startsWith('x-mitre-data-component--'),
+      ) || [];
+
+    // Fetch the full data component documents
+    const dataComponents = [];
+    for (const rel of dataComponentRels) {
+      try {
+        const dataComponent = await dataComponentsRepository.retrieveLatestByStixId(rel.stix_id);
+        if (dataComponent) {
+          // Add identity information to data component
+          await this.addCreatedByAndModifiedByIdentities(dataComponent);
+          dataComponents.push(dataComponent.toObject ? dataComponent.toObject() : dataComponent);
+        } else {
+          logger.warn(
+            `DataSourcesService: Could not find data component ${rel.stix_id} referenced in embedded_relationships`,
+          );
+        }
+      } catch (error) {
+        logger.error(`DataSourcesService: Error fetching data component ${rel.stix_id}:`, error);
+      }
+    }
+
+    // Attach the populated dataComponents array to the data source
+    // This is a transient property, not persisted to the database
+    if (dataSource.toObject) {
+      // For Mongoose documents
+      const obj = dataSource.toObject();
+      obj.dataComponents = dataComponents;
+      Object.assign(dataSource, obj);
+    } else {
+      // For plain objects
+      dataSource.dataComponents = dataComponents;
+    }
+
+    logger.debug(
+      `Populated ${dataComponents.length} data component(s) for data source ${dataSource.stix.id}`,
     );
   }
-
-  async retrieveById(stixId, options) {
-    try {
-      // versions=all    Retrieve all versions of the data source with the stixId
-      // versions=latest Retrieve the data source with the latest modified date for this stixId
-
-      if (!stixId) {
-        throw new MissingParameterError('stixId');
-      }
-
-      if (options.versions === 'all') {
-        const dataSources = await this.repository.retrieveAllById(stixId);
-        await this.addExtraDataToAll(dataSources, options.retrieveDataComponents);
-        return dataSources;
-      } else if (options.versions === 'latest') {
-        const dataSource = await this.repository.retrieveLatestByStixId(stixId);
-
-        // Note: document is null if not found
-        if (dataSource) {
-          await this.addExtraData(dataSource, options.retrieveDataComponents);
-          return [dataSource];
-        } else {
-          return [];
-        }
-      } else {
-        throw new InvalidQueryStringParameterError();
-      }
-    } catch (err) {
-      if (err.name === 'CastError') {
-        throw new BadlyFormattedParameterError();
-      } else {
-        throw err;
-      }
-    }
-  }
-
-  async retrieveVersionById(stixId, modified, options) {
-    try {
-      // Retrieve the version of the data source with the matching stixId and modified date
-
-      if (!stixId) {
-        throw new MissingParameterError('stixId');
-      }
-
-      if (!modified) {
-        throw new MissingParameterError('modified');
-      }
-
-      const dataSource = await this.repository.retrieveOneByVersion(stixId, modified);
-
-      // Note: document is null if not found
-      if (dataSource) {
-        await this.addExtraData(dataSource, options.retrieveDataComponents);
-        return dataSource;
-      } else {
-        return null;
-      }
-    } catch (err) {
-      if (err.name === 'CastError') {
-        throw new BadlyFormattedParameterError();
-      } else {
-        throw err;
-      }
-    }
-  }
 }
+
+DataSourcesService.initializeEventListeners();
 
 module.exports = new DataSourcesService(DataSourceType, dataSourcesRepository);

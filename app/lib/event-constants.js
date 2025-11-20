@@ -119,6 +119,10 @@ module.exports = Object.freeze({
   ANALYTIC_DATA_COMPONENTS_REFERENCED: 'x-mitre-analytic::data-components-referenced',
   ANALYTIC_DATA_COMPONENTS_REMOVED: 'x-mitre-analytic::data-components-removed',
 
+  // Data Component - Data Source relationship
+  DATA_COMPONENT_DATA_SOURCE_REFERENCED: 'x-mitre-data-component::data-source-referenced',
+  DATA_COMPONENT_DATA_SOURCE_REMOVED: 'x-mitre-data-component::data-source-removed',
+
   // Technique - Sub-technique conversion
   TECHNIQUE_CONVERTED_TO_SUBTECHNIQUE: 'attack-pattern::converted-to-subtechnique',
   SUBTECHNIQUE_CONVERTED_TO_TECHNIQUE: 'attack-pattern::converted-to-technique',
