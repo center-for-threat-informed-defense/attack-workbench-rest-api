@@ -80,7 +80,6 @@ class DataSourcesService extends BaseService {
         dataSource.workspace.embedded_relationships.push({
           stix_id: dataComponent.stix.id,
           attack_id: dataComponent.workspace?.attack_id || null,
-          name: dataComponent.stix.name,
           direction: 'inbound',
         });
 

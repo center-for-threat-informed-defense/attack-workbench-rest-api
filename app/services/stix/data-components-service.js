@@ -85,7 +85,6 @@ class DataComponentsService extends BaseService {
           dataComponent.workspace.embedded_relationships.push({
             stix_id: analytic.stix.id,
             attack_id: analytic.workspace?.attack_id || null,
-            name: analytic.stix.name,
             direction: 'inbound',
           });
 
@@ -225,7 +224,6 @@ class DataComponentsService extends BaseService {
       data.workspace.embedded_relationships.push({
         stix_id: newDataSourceRef,
         attack_id: dataSource.workspace?.attack_id || null,
-        name: dataSource.stix?.name || null,
         direction: 'outbound',
       });
 
@@ -344,7 +342,6 @@ class DataComponentsService extends BaseService {
       dataSourceEmbeddedRel.push({
         stix_id: newDataSourceRef,
         attack_id: dataSource.workspace?.attack_id || null,
-        name: dataSource.stix?.name || null,
         direction: 'outbound',
       });
     }

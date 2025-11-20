@@ -258,7 +258,6 @@ class AnalyticsService extends BaseService {
         data.workspace.embedded_relationships.push({
           stix_id: dataComponentId,
           attack_id: dataComponent.workspace?.attack_id || null,
-          name: dataComponent.stix?.name || null,
           direction: 'outbound',
         });
       }
@@ -350,7 +349,6 @@ class AnalyticsService extends BaseService {
         dataComponentEmbeddedRels.push({
           stix_id: dataComponentId,
           attack_id: dataComponent.workspace?.attack_id || null,
-          name: dataComponent.stix?.name || null,
           direction: 'outbound',
         });
       }
@@ -457,6 +455,7 @@ class AnalyticsService extends BaseService {
   /**
    * Retrieve all analytics with optional filtering and pagination
    * Strips embedded_relationships from response unless explicitly requested
+   * When embedded_relationships are included, populates names for detection strategies
    *
    * @param {Object} options - Query options
    * @param {boolean} [options.includeEmbeddedRelationships=false] - Include embedded relationships in response
@@ -466,7 +465,12 @@ class AnalyticsService extends BaseService {
   async retrieveAll(options) {
     const results = await super.retrieveAll(options);
 
-    if (!options.includeEmbeddedRelationships) {
+    if (options.includeEmbeddedRelationships) {
+      // Populate names for embedded relationships
+      const analytics = options.includePagination ? results.data : results;
+      await this.populateEmbeddedRelationshipNames(analytics);
+    } else {
+      // Strip embedded_relationships from response
       if (options.includePagination) {
         await this.stripEmbeddedRelationships(results.data);
       } else {
@@ -480,6 +484,7 @@ class AnalyticsService extends BaseService {
   /**
    * Retrieve analytics by STIX ID
    * Strips embedded_relationships from response unless explicitly requested
+   * When embedded_relationships are included, populates names for detection strategies
    *
    * @param {string} stixId - The STIX ID of the analytic
    * @param {Object} options - Query options
@@ -489,11 +494,81 @@ class AnalyticsService extends BaseService {
   async retrieveById(stixId, options) {
     const results = await super.retrieveById(stixId, options);
 
-    if (!options.includeEmbeddedRelationships) {
+    if (options.includeEmbeddedRelationships) {
+      // Populate names for embedded relationships
+      await this.populateEmbeddedRelationshipNames(results);
+    } else {
+      // Strip embedded_relationships from response
       await this.stripEmbeddedRelationships(results);
     }
 
     return results;
+  }
+
+  /**
+   * Populate names for embedded relationships by fetching referenced documents
+   * This is needed because names are no longer stored in embedded_relationships (only stix_id + attack_id)
+   * Handles both inbound detection strategy relationships and outbound data component relationships
+   *
+   * @param {Array} analytics - Array of analytic documents
+   * @returns {Promise<void>}
+   */
+  async populateEmbeddedRelationshipNames(analytics) {
+    const detectionStrategiesRepository = require('../../repository/detection-strategies-repository');
+    const dataComponentsRepository = require('../../repository/data-components-repository');
+
+    for (const analytic of analytics) {
+      if (!analytic.workspace?.embedded_relationships) {
+        continue;
+      }
+
+      for (const rel of analytic.workspace.embedded_relationships) {
+        // Handle inbound relationships from detection strategies
+        if (rel.direction === 'inbound' && rel.stix_id?.startsWith('x-mitre-detection-strategy--')) {
+          try {
+            const detectionStrategy =
+              await detectionStrategiesRepository.retrieveLatestByStixId(rel.stix_id);
+            if (detectionStrategy) {
+              // Add name as a transient property (not persisted to DB)
+              rel.name = detectionStrategy.stix.name;
+            } else {
+              logger.warn(
+                `AnalyticsService: Could not find detection strategy ${rel.stix_id} to populate name`,
+              );
+              rel.name = null;
+            }
+          } catch (error) {
+            logger.error(
+              `AnalyticsService: Error fetching detection strategy ${rel.stix_id} for name:`,
+              error,
+            );
+            rel.name = null;
+          }
+        }
+
+        // Handle outbound relationships to data components
+        if (rel.direction === 'outbound' && rel.stix_id?.startsWith('x-mitre-data-component--')) {
+          try {
+            const dataComponent = await dataComponentsRepository.retrieveLatestByStixId(rel.stix_id);
+            if (dataComponent) {
+              // Add name as a transient property (not persisted to DB)
+              rel.name = dataComponent.stix.name;
+            } else {
+              logger.warn(
+                `AnalyticsService: Could not find data component ${rel.stix_id} to populate name`,
+              );
+              rel.name = null;
+            }
+          } catch (error) {
+            logger.error(
+              `AnalyticsService: Error fetching data component ${rel.stix_id} for name:`,
+              error,
+            );
+            rel.name = null;
+          }
+        }
+      }
+    }
   }
 
   /**

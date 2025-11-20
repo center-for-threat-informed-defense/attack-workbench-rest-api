@@ -53,7 +53,6 @@ class DetectionStrategiesService extends BaseService {
       data.workspace.embedded_relationships.push({
         stix_id: analyticId,
         attack_id: analytic?.workspace?.attack_id || null,
-        name: analytic?.stix?.name || null,
         direction: 'outbound',
       });
     }

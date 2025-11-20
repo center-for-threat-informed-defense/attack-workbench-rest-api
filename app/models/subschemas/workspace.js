@@ -10,8 +10,9 @@ const collectionVersionSchema = new mongoose.Schema(collectionVersion, { _id: fa
 
 const embedddedRelationship = {
   stix_id: { type: String, required: true },
-  attack_id: String,
-  name: String,
+  attack_id: String, // Immutable, server-generated identifier - safe to denormalize
+  // Note: 'name' field removed - names are mutable and should be fetched on read
+  // Services that need names should fetch the full document using stix_id
   direction: {
     type: String,
     // inbound: The embedded relationship points TO this document (I am referenced)
