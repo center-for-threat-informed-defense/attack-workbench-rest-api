@@ -251,6 +251,45 @@ async function processStixObject(
 }
 
 /**
+ * Sort objects to ensure dependencies are created before objects that reference them
+ * Dependency order:
+ * 1. Data sources must be created before data components
+ * 2. Data components must be created before analytics
+ * 3. Analytics must be created before detection strategies
+ * @param {Array} objects - Array of STIX objects to sort
+ * @returns {Array} Sorted array of STIX objects
+ */
+function sortObjectsByDependencies(objects) {
+  // Define dependency order (lower numbers are created first)
+  const typeOrder = {
+    [types.MarkingDefinition]: 0,
+    [types.Identity]: 1,
+    [types.DataSource]: 2, // Must come before data components
+    [types.DataComponent]: 3, // Must come before analytics
+    [types.Analytic]: 4, // Must come before detection strategies
+    [types.DetectionStrategy]: 5,
+    [types.Technique]: 6,
+    [types.Tactic]: 7,
+    [types.Mitigation]: 8,
+    [types.Group]: 9,
+    [types.Campaign]: 10,
+    [types.Malware]: 11,
+    [types.Tool]: 12,
+    [types.Asset]: 13,
+    [types.Matrix]: 14,
+    [types.Relationship]: 15, // Relationships last
+    [types.Note]: 16,
+    [types.Collection]: 17,
+  };
+
+  return objects.slice().sort((a, b) => {
+    const orderA = typeOrder[a.type] ?? 100; // Unknown types go last
+    const orderB = typeOrder[b.type] ?? 100;
+    return orderA - orderB;
+  });
+}
+
+/**
  * Process all objects in the bundle
  * @param {Array} objects - Array of STIX objects to process
  * @param {Object} options - Import options
@@ -269,7 +308,10 @@ async function processObjects(
   importReferences,
   referenceImportResults,
 ) {
-  for (const importObject of objects) {
+  // Sort objects by dependencies before processing
+  const sortedObjects = sortObjectsByDependencies(objects);
+
+  for (const importObject of sortedObjects) {
     // Check if object is in x_mitre_contents
     if (
       !contentsMap.delete(makeKeyFromObject(importObject)) &&
