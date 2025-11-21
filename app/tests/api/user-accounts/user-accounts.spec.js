@@ -8,7 +8,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const UserAccount = require('../../../models/user-account-model');
 const Team = require('../../../models/team-model');
-const teamsService = require('../../../services/teams-service');
+const teamsService = require('../../../services/system/teams-service');
 
 const login = require('../../shared/login');
 
@@ -211,7 +211,7 @@ describe('User Accounts API', function () {
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${login.passportCookieName}=${passportCookie.value}`)
-      .expect(400);
+      .expect(409);
   });
 
   it('DELETE /api/user-accounts deletes a user account', async function () {
