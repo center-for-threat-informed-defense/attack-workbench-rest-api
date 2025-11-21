@@ -7,6 +7,7 @@ const { DetectionStrategy: DetectionStrategyType } = require('../../lib/types');
 const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
 const { NotFoundError } = require('../../exceptions');
+const assertions = require('../../lib/assertions');
 
 /**
  * Service for managing detection strategies
@@ -23,11 +24,28 @@ const { NotFoundError } = require('../../exceptions');
  */
 class DetectionStrategiesService extends BaseService {
   /**
+   * Assertion: Verify x_mitre_analytic_refs contains only unique values
+   * (This should never actually throw in practice. We have (or will have) validation middleware
+   *  that checks the request body before the service layer runs. That middleware is powered by
+   *  the `@mitre-attack/attack-data-model` library which checks for this condition implicitly.
+   *  This assertion thus serves as a fail-safe in case the middleware is ever somehow bypassed.
+   *  It will throw, causing a 500 exception, but it will block "bad data" from entering the
+   *  database.)
+   */
+  async _assertAnalyticRefsAreUnique(data) {
+    assertions.assertUnique(data.stix?.x_mitre_analytic_refs, 'x_mitre_analytic_refs', {
+      stixId: data.stix?.id || 'unknown',
+    });
+  }
+
+  /**
    * Prepare detection strategy data before creation
    * Build outbound embedded_relationships for x_mitre_analytic_refs
    * Detects if this is a new version and tracks removed relationships
    */
   async beforeCreate(data) {
+    this._assertAnalyticRefsAreUnique(data);
+
     // Initialize workspace if not present
     if (!data.workspace) {
       data.workspace = {};
@@ -57,10 +75,14 @@ class DetectionStrategiesService extends BaseService {
       this._removedAnalyticRefs = oldAnalyticRefs.filter((ref) => !newAnalyticRefs.includes(ref));
     }
 
-    // Reset embedded_relationships and rebuild from current x_mitre_analytic_refs
-    // This ensures stale relationships from previous versions are not carried over
-    data.workspace.embedded_relationships = [];
+    // Preserve non-analytic embedded_relationships and rebuild only analytic refs
+    // This ensures stale analytic relationships from previous versions are not carried over
+    // while preserving any other embedded relationships that may exist
+    const existingNonAnalyticRels = (data.workspace.embedded_relationships || []).filter(
+      (rel) => !rel.stix_id?.startsWith('x-mitre-analytic--'),
+    );
 
+    const analyticEmbeddedRels = [];
     for (const analyticId of newAnalyticRefs) {
       const analytic = await analyticsRepository.retrieveLatestByStixId(analyticId);
 
@@ -72,12 +94,14 @@ class DetectionStrategiesService extends BaseService {
         });
       }
 
-      data.workspace.embedded_relationships.push({
+      analyticEmbeddedRels.push({
         stix_id: analyticId,
         attack_id: analytic?.workspace?.attack_id || null,
         direction: 'outbound',
       });
     }
+
+    data.workspace.embedded_relationships = [...existingNonAnalyticRels, ...analyticEmbeddedRels];
   }
 
   /**
@@ -142,6 +166,8 @@ class DetectionStrategiesService extends BaseService {
    * Detect changes in x_mitre_analytic_refs and update outbound embedded_relationships
    */
   async beforeUpdate(stixId, stixModified, data, existingDocument) {
+    this._assertAnalyticRefsAreUnique(data);
+
     const oldAnalyticRefs = existingDocument.stix?.x_mitre_analytic_refs || [];
     const newAnalyticRefs = data.stix?.x_mitre_analytic_refs || [];
 
