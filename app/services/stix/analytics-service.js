@@ -173,26 +173,18 @@ class AnalyticsService extends BaseService {
 
         // Update external_references (remove URL since no parent)
         if (analytic.stix?.external_references) {
-          // analytic.stix.external_references = removeAttackExternalReferences(
-          //   analytic.stix.external_references,
-          // );
+          // Remove existing ATT&CK external references
+          analytic.stix.external_references = removeAttackExternalReferences(
+            analytic.stix.external_references,
+          );
 
-          // Rebuild external reference without URL (no parent detection strategy)
-          const existingAttackRef =
-            analytic.stix.external_references.find(
-              (ref) => ref && ref.source_name === 'mitre-attack',
-            ) || null;
+          // Rebuild ATT&CK external reference without URL (no parent detection strategy)
+          const attackRef = {
+            source_name: 'mitre-attack',
+            external_id: analytic.workspace.attack_id,
+          };
 
-          if (existingAttackRef) delete existingAttackRef.url;
-
-          // const attackRef = {
-          //   source_name: 'mitre-attack',
-          //   external_id: analytic.workspace.attack_id,
-          // };
-          // const attackRef = createAttackExternalReference(analytic.toObject());
-          // if (attackRef) {
-          //   analytic.stix.external_references.unshift(attackRef);
-          // }
+          analytic.stix.external_references.unshift(attackRef);
 
           logger.info(
             `AnalyticsService: Removed external_references URL for analytic ${analyticId}`,
