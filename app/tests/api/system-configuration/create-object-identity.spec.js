@@ -5,6 +5,7 @@ const uuid = require('uuid');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
+const config = require('../../../config/config');
 const { cloneForCreate } = require('../../shared/clone-for-create');
 
 const logger = require('../../../lib/logger');
