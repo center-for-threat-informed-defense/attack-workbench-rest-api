@@ -14,7 +14,7 @@ logger.level = 'debug';
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
-const techniquesService = require('../../../services/techniques-service');
+const techniquesService = require('../../../services/stix/techniques-service');
 
 function asyncWait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

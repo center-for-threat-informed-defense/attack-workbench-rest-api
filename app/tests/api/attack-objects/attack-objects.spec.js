@@ -10,7 +10,7 @@ const config = require('../../../config/config');
 const login = require('../../shared/login');
 
 const logger = require('../../../lib/logger');
-const collectionBundlesService = require('../../../services/collection-bundles-service');
+const collectionBundlesService = require('../../../services/stix/collection-bundles-service');
 logger.level = 'debug';
 
 // test malware object

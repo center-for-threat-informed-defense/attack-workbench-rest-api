@@ -7,7 +7,7 @@ const { processValidationIssues } = require('../services/validate-service');
 const {
   createAttackIdSchema,
   stixTypeToAttackIdMapping,
-} = require('@mitre-attack/attack-data-model/dist/schemas/common/attack-id');
+} = require('@mitre-attack/attack-data-model/dist/schemas/common/property-schemas/attack-id');
 
 /**
  * Basic workspace schema (without rigid attack ID validation)
