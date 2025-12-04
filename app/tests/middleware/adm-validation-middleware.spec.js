@@ -567,13 +567,13 @@ describe('ADM Validation Middleware', function () {
         },
       };
 
-    // Need to add kill_chain_phases for validation to pass for reviewed techniques
-    updateBody.stix.kill_chain_phases = [
-      {
+      // Need to add kill_chain_phases for validation to pass for reviewed techniques
+      updateBody.stix.kill_chain_phases = [
+        {
           kill_chain_name: 'mitre-attack',
           phase_name: 'initial-access',
-      }
-    ]
+        },
+      ];
 
       // Remove server-managed field
       delete updateBody.stix.x_mitre_attack_spec_version;
