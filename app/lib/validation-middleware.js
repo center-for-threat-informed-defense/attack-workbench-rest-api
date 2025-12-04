@@ -95,7 +95,7 @@ function extractStringLiteralFromStixTypeZodSchema(zodSchema) {
 function createWorkspaceStixSchema(
   stixSchema,
   workflowState,
-  omitStixFields = ['x_mitre_attack_spec_version'],
+  omitStixFields = ['x_mitre_attack_spec_version', 'external_references'],
 ) {
   logger.debug('Creating combined workspace+STIX schema:', { workflowState, omitStixFields });
 

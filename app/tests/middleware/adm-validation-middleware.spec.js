@@ -29,6 +29,7 @@ const { createSyntheticStixObject } = require('@mitre-attack/attack-data-model/d
  *
  * NOTE: Tests focus on techniques initially. Once validated, can be generalized to other types.
  */
+
 describe('ADM Validation Middleware', function () {
   let app;
   let passportCookie;
@@ -132,6 +133,48 @@ describe('ADM Validation Middleware', function () {
     return syntheticStix;
   }
 
+  /**
+   * Filters the properties of an object, returning a new object containing only
+   * those entries whose values pass the validity check.
+   * @param {Object} obj - The object to filter.
+   * @returns {Object} - A new object with only the valid entries.
+   */
+  function filterObject(obj) {
+    const out = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const cleaned = clean(value);
+      if (cleaned !== undefined) out[key] = cleaned;
+    }
+    return out;
+  }
+
+  /**
+   * Checks if the provided field has a valid value.
+   * Returns undefined or the value of the field if it is valid
+   * @param {*} field - The value to validate.
+   * @returns {value} - Value if the field has a valid value, undefined otherwise.
+   */
+  function clean(value) {
+    if (value == null) return undefined; // null or undefined
+    if (typeof value === 'string' && value.trim() === '') return undefined;
+    if (typeof value === 'number' && Number.isNaN(value)) return undefined;
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return undefined;
+      } else {
+        const arr = value.map(v => clean(v)).filter(v => v !== undefined);
+        return arr.length ? arr : undefined;
+      }
+    }
+
+    if (typeof value === 'object') {
+      const obj = filterObject(value);
+      return Object.keys(obj).length ? obj : undefined;
+    }
+
+    return value;
+  }
+
   before(async function () {
     // Enable ADM validation and disable OpenAPI validation
     config.validateRequests.withAttackDataModel = true;
@@ -161,6 +204,8 @@ describe('ADM Validation Middleware', function () {
       const syntheticStix = createSyntheticStix(stixType);
 
       const requestBody = {
+        type: "attack-pattern",
+        status: "work-in-progress",
         workspace: {
           workflow: {
             state: 'work-in-progress',
@@ -333,6 +378,8 @@ describe('ADM Validation Middleware', function () {
       const syntheticStix = createSyntheticStix(stixType);
 
       const createBody = {
+        type: "attack-pattern",
+        status: "work-in-progress",
         workspace: {
           workflow: {
             state: 'work-in-progress',
@@ -352,7 +399,9 @@ describe('ADM Validation Middleware', function () {
     });
 
     it('should accept valid updates in work-in-progress state', async function () {
-      const updateBody = {
+      let updateBody = {
+        type: "attack-pattern",
+        status: "work-in-progress",
         workspace: {
           workflow: {
             state: 'work-in-progress',
@@ -367,8 +416,12 @@ describe('ADM Validation Middleware', function () {
 
       // Remove server-managed field (server adds this automatically)
       delete updateBody.stix.x_mitre_attack_spec_version;
+      // Unset/remove the external_references field because that is handled by the rest-api
+      delete updateBody.stix.external_references;
       // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
 
+      // Filters the properties of an object, returning a new object containing only those entries whose values pass the validity check.
+      updateBody = filterObject(updateBody);
       const res = await request(app)
         .put(`${endpoint}/${createdObject.stix.id}/modified/${createdObject.stix.modified}`)
         .send(updateBody)
@@ -387,7 +440,9 @@ describe('ADM Validation Middleware', function () {
     });
 
     it('should accept updates with missing optional fields in work-in-progress state', async function () {
-      const updateBody = {
+      let updateBody = {
+        type: "attack-pattern",
+        status: "work-in-progress",
         workspace: {
           workflow: {
             state: 'work-in-progress',
@@ -402,11 +457,15 @@ describe('ADM Validation Middleware', function () {
       // Remove optional fields to test partial validation
       delete updateBody.stix.description;
       delete updateBody.stix.x_mitre_platforms;
+      // Unset/remove the external_references field because that is handled by the rest-api
+      delete updateBody.stix.external_references;
 
       // Remove server-managed field
       delete updateBody.stix.x_mitre_attack_spec_version;
       // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
 
+      // Filters the properties of an object, returning a new object containing only those entries whose values pass the validity check.
+      updateBody = filterObject(updateBody);
       const res = await request(app)
         .put(`${endpoint}/${createdObject.stix.id}/modified/${createdObject.stix.modified}`)
         .send(updateBody)
@@ -487,6 +546,8 @@ describe('ADM Validation Middleware', function () {
 
       // Remove server-managed field
       delete updateBody.stix.x_mitre_attack_spec_version;
+      // Unset/remove the external_references field because that is handled by the rest-api
+      delete updateBody.stix.external_references;
       // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
 
       const res = await request(app)
