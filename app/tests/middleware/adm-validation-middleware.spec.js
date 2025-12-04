@@ -162,7 +162,7 @@ describe('ADM Validation Middleware', function () {
       if (value.length === 0) {
         return undefined;
       } else {
-        const arr = value.map(v => clean(v)).filter(v => v !== undefined);
+        const arr = value.map((v) => clean(v)).filter((v) => v !== undefined);
         return arr.length ? arr : undefined;
       }
     }
@@ -204,8 +204,8 @@ describe('ADM Validation Middleware', function () {
       const syntheticStix = createSyntheticStix(stixType);
 
       const requestBody = {
-        type: "attack-pattern",
-        status: "work-in-progress",
+        type: 'attack-pattern',
+        status: 'work-in-progress',
         workspace: {
           workflow: {
             state: 'work-in-progress',
@@ -213,6 +213,8 @@ describe('ADM Validation Middleware', function () {
         },
         stix: syntheticStix,
       };
+
+      delete requestBody.stix.external_references;
 
       const res = await request(app)
         .post(endpoint)
@@ -243,6 +245,8 @@ describe('ADM Validation Middleware', function () {
         },
         stix: syntheticStix,
       };
+
+      delete requestBody.stix.external_references;
 
       const res = await request(app)
         .post(endpoint)
@@ -290,7 +294,7 @@ describe('ADM Validation Middleware', function () {
     it('should accept valid complete data in reviewed state', async function () {
       const syntheticStix = createSyntheticStix(stixType);
 
-      const requestBody = {
+      let requestBody = {
         workspace: {
           workflow: {
             state: 'reviewed',
@@ -298,6 +302,13 @@ describe('ADM Validation Middleware', function () {
         },
         stix: syntheticStix,
       };
+
+      requestBody.stix.kill_chain_phases = [
+        {
+          "kill_chain_name": "mitre-attack",
+          "phase_name": "initial-access"
+        }
+      ]
 
       const res = await request(app)
         .post(endpoint)
@@ -377,9 +388,9 @@ describe('ADM Validation Middleware', function () {
       // Create an object to update
       const syntheticStix = createSyntheticStix(stixType);
 
-      const createBody = {
-        type: "attack-pattern",
-        status: "work-in-progress",
+      let createBody = {
+        type: 'attack-pattern',
+        status: 'work-in-progress',
         workspace: {
           workflow: {
             state: 'work-in-progress',
@@ -387,6 +398,9 @@ describe('ADM Validation Middleware', function () {
         },
         stix: syntheticStix,
       };
+
+      delete createBody.stix.external_references;
+      createBody = filterObject(createBody);
 
       const createRes = await request(app)
         .post(endpoint)
@@ -400,8 +414,8 @@ describe('ADM Validation Middleware', function () {
 
     it('should accept valid updates in work-in-progress state', async function () {
       let updateBody = {
-        type: "attack-pattern",
-        status: "work-in-progress",
+        type: 'attack-pattern',
+        status: 'work-in-progress',
         workspace: {
           workflow: {
             state: 'work-in-progress',
@@ -441,8 +455,8 @@ describe('ADM Validation Middleware', function () {
 
     it('should accept updates with missing optional fields in work-in-progress state', async function () {
       let updateBody = {
-        type: "attack-pattern",
-        status: "work-in-progress",
+        type: 'attack-pattern',
+        status: 'work-in-progress',
         workspace: {
           workflow: {
             state: 'work-in-progress',
