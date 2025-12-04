@@ -303,13 +303,12 @@ describe('ADM Validation Middleware', function () {
         stix: syntheticStix,
       };
 
-
       requestBody.stix.kill_chain_phases = [
         {
-          "kill_chain_name": "mitre-attack",
-          "phase_name": "initial-access"
-        }
-      ]
+          kill_chain_name: 'mitre-attack',
+          phase_name: 'initial-access',
+        },
+      ];
 
       const res = await request(app)
         .post(endpoint)
