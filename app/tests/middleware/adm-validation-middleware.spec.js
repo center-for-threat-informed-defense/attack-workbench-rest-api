@@ -303,6 +303,7 @@ describe('ADM Validation Middleware', function () {
         stix: syntheticStix,
       };
 
+
       requestBody.stix.kill_chain_phases = [
         {
           "kill_chain_name": "mitre-attack",
@@ -400,6 +401,8 @@ describe('ADM Validation Middleware', function () {
       };
 
       delete createBody.stix.external_references;
+
+      // Filters the properties of an object, returning a new object containing only those entries whose values pass the validity check.
       createBody = filterObject(createBody);
 
       const createRes = await request(app)
