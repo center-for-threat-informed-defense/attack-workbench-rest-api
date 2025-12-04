@@ -303,12 +303,16 @@ describe('ADM Validation Middleware', function () {
         stix: syntheticStix,
       };
 
+      // Need to add kill_chain_phases for validation to pass for reviewed techniques
       requestBody.stix.kill_chain_phases = [
         {
           kill_chain_name: 'mitre-attack',
           phase_name: 'initial-access',
         },
       ];
+
+      // Unset/remove the external_references field because that is handled by the rest-api
+      delete requestBody.stix.external_references;
 
       const res = await request(app)
         .post(endpoint)
@@ -528,7 +532,7 @@ describe('ADM Validation Middleware', function () {
       // Create an object to update
       const syntheticStix = createSyntheticStix(stixType);
 
-      const createBody = {
+      let createBody = {
         workspace: {
           workflow: {
             state: 'work-in-progress',
@@ -536,6 +540,9 @@ describe('ADM Validation Middleware', function () {
         },
         stix: syntheticStix,
       };
+
+      // Unset/remove the external_references field because that is handled by the rest-api
+      delete createBody.stix.external_references;
 
       const createRes = await request(app)
         .post(endpoint)
@@ -548,7 +555,7 @@ describe('ADM Validation Middleware', function () {
     });
 
     it('should accept valid complete updates in reviewed state', async function () {
-      const updateBody = {
+      let updateBody = {
         workspace: {
           workflow: {
             state: 'reviewed',
@@ -559,6 +566,14 @@ describe('ADM Validation Middleware', function () {
           name: 'Reviewed Technique Name',
         },
       };
+
+    // Need to add kill_chain_phases for validation to pass for reviewed techniques
+    updateBody.stix.kill_chain_phases = [
+      {
+          kill_chain_name: 'mitre-attack',
+          phase_name: 'initial-access',
+      }
+    ]
 
       // Remove server-managed field
       delete updateBody.stix.x_mitre_attack_spec_version;
