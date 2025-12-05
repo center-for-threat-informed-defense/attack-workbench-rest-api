@@ -25,7 +25,6 @@
     "prettier": "npx prettier app --check",
     "prettier:fix": "npm run prettier -- --write",
     "format": "npm run prettier:fix && npm run lint:fix",
-    "snyk": "snyk test --insecure --fail-on=upgradable",
     "start": "node ./bin/www",
     "test": "npm run test:openapi && npm run test:config && npm run test:api",
     "test:api": "mocha  --timeout 10000 --recursive ./app/tests/api",
@@ -91,7 +90,6 @@
     "semantic-release": "^24.2.5",
     "set-cookie-parser": "^2.7.1",
     "sinon": "^20.0.0",
-    "snyk": "^1.1297.1",
     "supertest": "^7.1.1"
   }
 }
