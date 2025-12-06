@@ -11,6 +11,7 @@ logger.level = 'debug';
 
 const uuid = require('uuid');
 const { createSyntheticStixObject } = require('@mitre-attack/attack-data-model/dist/generator');
+const { cloneForCreate } = require('../shared/clone-for-create')
 
 /**
  * Smoke tests for ATT&CK Data Model (ADM) validation middleware.
@@ -133,48 +134,6 @@ describe('ADM Validation Middleware', function () {
     return syntheticStix;
   }
 
-  /**
-   * Filters the properties of an object, returning a new object containing only
-   * those entries whose values pass the validity check.
-   * @param {Object} obj - The object to filter.
-   * @returns {Object} - A new object with only the valid entries.
-   */
-  function filterObject(obj) {
-    const out = {};
-    for (const [key, value] of Object.entries(obj)) {
-      const cleaned = clean(value);
-      if (cleaned !== undefined) out[key] = cleaned;
-    }
-    return out;
-  }
-
-  /**
-   * Checks if the provided field has a valid value.
-   * Returns undefined or the value of the field if it is valid
-   * @param {*} field - The value to validate.
-   * @returns {value} - Value if the field has a valid value, undefined otherwise.
-   */
-  function clean(value) {
-    if (value == null) return undefined; // null or undefined
-    if (typeof value === 'string' && value.trim() === '') return undefined;
-    if (typeof value === 'number' && Number.isNaN(value)) return undefined;
-    if (Array.isArray(value)) {
-      if (value.length === 0) {
-        return undefined;
-      } else {
-        const arr = value.map((v) => clean(v)).filter((v) => v !== undefined);
-        return arr.length ? arr : undefined;
-      }
-    }
-
-    if (typeof value === 'object') {
-      const obj = filterObject(value);
-      return Object.keys(obj).length ? obj : undefined;
-    }
-
-    return value;
-  }
-
   before(async function () {
     // Enable ADM validation and disable OpenAPI validation
     config.validateRequests.withAttackDataModel = true;
@@ -203,7 +162,7 @@ describe('ADM Validation Middleware', function () {
     it('should accept valid complete data in work-in-progress state', async function () {
       const syntheticStix = createSyntheticStix(stixType);
 
-      const requestBody = {
+      let requestBody = {
         type: 'attack-pattern',
         status: 'work-in-progress',
         workspace: {
@@ -214,7 +173,7 @@ describe('ADM Validation Middleware', function () {
         stix: syntheticStix,
       };
 
-      delete requestBody.stix.external_references;
+      requestBody = cloneForCreate(requestBody);
 
       const res = await request(app)
         .post(endpoint)
@@ -237,7 +196,7 @@ describe('ADM Validation Middleware', function () {
       delete syntheticStix.x_mitre_platforms;
       delete syntheticStix.x_mitre_data_sources;
 
-      const requestBody = {
+      let requestBody = {
         workspace: {
           workflow: {
             state: 'work-in-progress',
@@ -246,7 +205,7 @@ describe('ADM Validation Middleware', function () {
         stix: syntheticStix,
       };
 
-      delete requestBody.stix.external_references;
+      requestBody = cloneForCreate(requestBody);
 
       const res = await request(app)
         .post(endpoint)
@@ -303,16 +262,7 @@ describe('ADM Validation Middleware', function () {
         stix: syntheticStix,
       };
 
-      // Need to add kill_chain_phases for validation to pass for reviewed techniques
-      requestBody.stix.kill_chain_phases = [
-        {
-          kill_chain_name: 'mitre-attack',
-          phase_name: 'initial-access',
-        },
-      ];
-
-      // Unset/remove the external_references field because that is handled by the rest-api
-      delete requestBody.stix.external_references;
+      requestBody = cloneForCreate(requestBody);
 
       const res = await request(app)
         .post(endpoint)
@@ -403,10 +353,7 @@ describe('ADM Validation Middleware', function () {
         stix: syntheticStix,
       };
 
-      delete createBody.stix.external_references;
-
-      // Filters the properties of an object, returning a new object containing only those entries whose values pass the validity check.
-      createBody = filterObject(createBody);
+      createBody = cloneForCreate(createBody);
 
       const createRes = await request(app)
         .post(endpoint)
@@ -434,14 +381,12 @@ describe('ADM Validation Middleware', function () {
         },
       };
 
+      updateBody = cloneForCreate(updateBody);
+
       // Remove server-managed field (server adds this automatically)
       delete updateBody.stix.x_mitre_attack_spec_version;
-      // Unset/remove the external_references field because that is handled by the rest-api
-      delete updateBody.stix.external_references;
       // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
 
-      // Filters the properties of an object, returning a new object containing only those entries whose values pass the validity check.
-      updateBody = filterObject(updateBody);
       const res = await request(app)
         .put(`${endpoint}/${createdObject.stix.id}/modified/${createdObject.stix.modified}`)
         .send(updateBody)
@@ -474,18 +419,16 @@ describe('ADM Validation Middleware', function () {
         },
       };
 
+      updateBody = cloneForCreate(updateBody);
+
       // Remove optional fields to test partial validation
       delete updateBody.stix.description;
       delete updateBody.stix.x_mitre_platforms;
-      // Unset/remove the external_references field because that is handled by the rest-api
-      delete updateBody.stix.external_references;
 
       // Remove server-managed field
       delete updateBody.stix.x_mitre_attack_spec_version;
       // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
-
-      // Filters the properties of an object, returning a new object containing only those entries whose values pass the validity check.
-      updateBody = filterObject(updateBody);
+      
       const res = await request(app)
         .put(`${endpoint}/${createdObject.stix.id}/modified/${createdObject.stix.modified}`)
         .send(updateBody)
@@ -541,8 +484,7 @@ describe('ADM Validation Middleware', function () {
         stix: syntheticStix,
       };
 
-      // Unset/remove the external_references field because that is handled by the rest-api
-      delete createBody.stix.external_references;
+      createBody = cloneForCreate(createBody);
 
       const createRes = await request(app)
         .post(endpoint)
@@ -567,18 +509,10 @@ describe('ADM Validation Middleware', function () {
         },
       };
 
-      // Need to add kill_chain_phases for validation to pass for reviewed techniques
-      updateBody.stix.kill_chain_phases = [
-        {
-          kill_chain_name: 'mitre-attack',
-          phase_name: 'initial-access',
-        },
-      ];
+      updateBody = cloneForCreate(updateBody);
 
       // Remove server-managed field
       delete updateBody.stix.x_mitre_attack_spec_version;
-      // Unset/remove the external_references field because that is handled by the rest-api
-      delete updateBody.stix.external_references;
       // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
 
       const res = await request(app)
