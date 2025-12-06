@@ -11,7 +11,7 @@ logger.level = 'debug';
 
 const uuid = require('uuid');
 const { createSyntheticStixObject } = require('@mitre-attack/attack-data-model/dist/generator');
-const { cloneForCreate } = require('../shared/clone-for-create')
+const { cloneForCreate } = require('../shared/clone-for-create');
 
 /**
  * Smoke tests for ATT&CK Data Model (ADM) validation middleware.
@@ -428,7 +428,7 @@ describe('ADM Validation Middleware', function () {
       // Remove server-managed field
       delete updateBody.stix.x_mitre_attack_spec_version;
       // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
-      
+
       const res = await request(app)
         .put(`${endpoint}/${createdObject.stix.id}/modified/${createdObject.stix.modified}`)
         .send(updateBody)

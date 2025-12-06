@@ -9,7 +9,7 @@ module.exports.attackPattern = {
   description: String,
   kill_chain_phases: {
     type: [stixCore.killChainPhaseSchema],
-    default: undefined
+    default: undefined,
   },
 
   // ATT&CK custom STIX properties
