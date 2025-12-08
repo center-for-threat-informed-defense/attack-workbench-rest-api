@@ -35,7 +35,7 @@ jobs:
       - name: Validate all commits
         run: npx commitlint --from ${{ github.event.pull_request.base.sha || github.event.before }} --to ${{ github.event.pull_request.head.sha || github.sha }} --verbose
 
-  # Job 2: Static Checks (Linting, Security Scanning)
+  # Job 2: Static Checks (Linting)
   static-checks:
     needs: [commitlint]
     runs-on: ubuntu-latest
