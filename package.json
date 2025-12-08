@@ -35,7 +35,8 @@
     "test:authn": "./app/tests/run-mocha-separate-jobs.sh ./app/tests/authn",
     "test:fuzz": "mocha --timeout 10000 --recursive ./app/tests/fuzz",
     "test:scheduler": "mocha --timeout 60000 --recursive ./app/tests/scheduler",
-    "test:file": "mocha --timeout 10000"
+    "test:file": "mocha --timeout 10000",
+    "check:lockfile": "bash scripts/check-package-lock.sh"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^13.0.1",
