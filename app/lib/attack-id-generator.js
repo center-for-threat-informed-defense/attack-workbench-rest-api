@@ -76,7 +76,7 @@ function validateAttackIdFormat(attackId, stixType) {
 exports.validateAttackIdFormat = validateAttackIdFormat;
 
 /**
- * Validate an ATT&CK ID provided by the client
+ * Validate an ATT&CK ID is properly formatted and available for use
  * @param {string} attackId - The ATT&CK ID to validate
  * @param {string} stixType - The STIX type
  * @param {object} repository - The repository for querying existing objects
@@ -96,7 +96,7 @@ async function validateAttackId(attackId, stixType, repository) {
     throw new DuplicateIdError(`ATT&CK ID ${attackId} is already in use`);
   }
 
-  logger.debug(`Validated client-provided ATT&CK ID: ${attackId}`);
+  logger.debug(`Validated ATT&CK ID: ${attackId}`);
   return attackId;
 }
 
@@ -131,7 +131,7 @@ async function generateAttackId(
   parentTechniqueAttackId = null,
 ) {
   // Validate that the STIX type supports ATT&CK IDs
-  if (!(stixType in stixTypeToAttackIdMapping)) {
+  if (!requiresAttackId(stixType)) {
     throw new InvalidTypeError(`STIX type '${stixType}' does not support ATT&CK ID generation`);
   }
 
