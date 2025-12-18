@@ -1,12 +1,12 @@
 const request = require('supertest');
 const { expect } = require('expect');
-const _ = require('lodash');
 
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 
 const config = require('../../../config/config');
 const login = require('../../shared/login');
+const { cloneForCreate } = require('../../shared/clone-for-create');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -195,10 +195,7 @@ describe('Relationships API', function () {
 
   let relationship1b;
   it('POST /api/relationships should create a new version of a relationship with a duplicate stix.id but different stix.modified date', async function () {
-    relationship1b = _.cloneDeep(relationship1a);
-    relationship1b._id = undefined;
-    relationship1b.__t = undefined;
-    relationship1b.__v = undefined;
+    relationship1b = cloneForCreate(relationship1a);
     const timestamp = new Date().toISOString();
     relationship1b.stix.modified = timestamp;
     const body = relationship1b;
@@ -217,10 +214,7 @@ describe('Relationships API', function () {
 
   let relationship1c;
   it('POST /api/relationships should create a new version of a relationship with a duplicate stix.id but different stix.modified date', async function () {
-    relationship1c = _.cloneDeep(relationship1a);
-    relationship1c._id = undefined;
-    relationship1c.__t = undefined;
-    relationship1c.__v = undefined;
+    relationship1c = cloneForCreate(relationship1a);
     const timestamp = new Date().toISOString();
     relationship1c.stix.modified = timestamp;
     const body = relationship1c;

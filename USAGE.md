@@ -15,6 +15,11 @@ This guide provides comprehensive instructions for installing, configuring, and 
       - [Requirements](#requirements)
       - [Installation Steps](#installation-steps)
   - [Configuration](#configuration)
+    - [Environment Variables](#environment-variables)
+    - [Configuration File](#configuration-file)
+  - [Task Scheduling](#task-scheduling)
+    - [Collection Indexes Synchronization Task](#collection-indexes-synchronization-task)
+    - [ATT\&CK ID Reservation Monitoring Task](#attck-id-reservation-monitoring-task)
   - [Authentication](#authentication)
   - [User Management](#user-management)
     - [User Roles and Permissions](#user-roles-and-permissions)
@@ -120,8 +125,151 @@ More infomation about configuration options is in the [configuration file docume
 
 ## Configuration
 
-The REST API can be configured using environment variables, a configuration file, or a combination of both.
-Read all about it in the [configuration docs](./docs/configuration.md).
+The REST API can be configured using environment variables, a configuration file, or a combination of both. Configuration file values take precedence over environment variables.
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| **PORT** | No | `3000` | Port the HTTP server should listen on |
+| **CORS_ALLOWED_ORIGINS** | No | `*` | Configures CORS policy. Accepts a comma-separated list of allowed domains. (`*` allows all domains; `disable` disables CORS entirely.) |
+| **NODE_ENV** | No | `development` | Environment that the app is running in |
+| **DATABASE_URL** | Yes | none | URL of the MongoDB server |
+| **AUTHN_MECHANISM** | No | `anonymous` | Mechanism to use for authenticating users |
+| **ENABLE_SCHEDULER** | No | `true` | Binary toggle for whether the task scheduler should run or not (see [Task Scheduling](#task-scheduling) for details) |
+| **SYNC_COLLECTION_INDEXES_CRON** | No | `* * * * *` (every minute) | How often the [Collection Indexes Synchronization Task](#collection-indexes-synchronization-task) task should run (cron pattern) |
+| **CHECK_WIP_ATTACK_IDS_CRON** | No | `0 * * * *` (every hour) | How often the [ATT&CK ID Reservation Monitoring Task](#attck-id-reservation-monitoring-task) task should run (cron pattern) |
+| **JSON_CONFIG_PATH** | No | `` | Location of a JSON file containing configuration values |
+| **LOG_LEVEL** | No | `info` | Level of messages to be written to the log (error, warn, http, info, verbose, debug) |
+| **WB_REST_STATIC_MARKING_DEFS_PATH** | No | `./app/lib/default-static-marking-definitions/` | Path to a directory containing static marking definitions |
+
+A typical value for DATABASE_URL when running locally is `mongodb://localhost/attack-workspace`.
+
+### Configuration File
+
+If the `JSON_CONFIG_PATH` environment variable is set, the app will read configuration settings from a JSON file at that location.
+
+| Property | Type | Corresponding Environment Variable |
+|----------|------|-----------------------------------|
+| **server.port** | int | PORT |
+| **server.corsAllowedOrigins** | string/array | CORS_ALLOWED_ORIGINS |
+| **app.env** | string | NODE_ENV |
+| **database.url** | string | DATABASE_URL |
+| **logging.logLevel** | string | LOG_LEVEL |
+| **scheduler.enableScheduler** | boolean | ENABLE_SCHEDULER |
+| **scheduler.syncCollectionIndexesCron** | string | SYNC_COLLECTION_INDEXES_CRON |
+| **scheduler.checkWipAttackIdsCron** | string | CHECK_WIP_ATTACK_IDS_CRON |
+
+Example configuration file:
+
+```json
+{
+  "server": {
+    "port": 4000,
+    "corsAllowedOrigins": ["https://example.com", "https://workbench.example.com"]
+  },
+  "database": {
+    "url": "mongodb://localhost/attack-workspace"
+  },
+  "logging": {
+    "logLevel": "debug"
+  },
+  "scheduler": {
+    "enableScheduler": true,
+    "syncCollectionIndexesCron": "* * * * *",
+    "checkWipAttackIdsCron": "0 * * * *"
+  }
+}
+```
+
+## Task Scheduling
+
+The REST API uses [Node Schedule](https://github.com/node-schedule/node-schedule#readme) to schedule and run periodic tasks.
+
+It uses a specific design pattern:
+
+- Tasks are organized in isolated JS modules within the `app/scheduler/` directory.
+- JS Modules must contain the suffix, `-task`. e.g., `foobar-task.js`
+- JS Modules must schedule their own jobs and execute them in the global scope. For example:
+  ```javascript
+  function initializeTask() {
+    const cronPattern = config.scheduler.checkWipAttackIdsCron;
+
+    logger.info(`[check-wip-attack-ids] Scheduling task with cron pattern: ${cronPattern}`);
+
+    schedule.scheduleJob(cronPattern, async () => {
+      try {
+        await checkWipAttackIds();
+      } catch (err) {
+        logger.error(`[check-wip-attack-ids] Task execution failed: ${err.message}`);
+      }
+    });
+
+    logger.info('[check-wip-attack-ids] Task scheduled successfully');
+  }
+
+  // Initialize the task when this module is loaded
+  if (config.scheduler.enableScheduler) {
+    initializeTask();
+  }
+  ```
+- All JS Modules containing schedulable tasks are dynamically loaded by `app/scheduler/index.js`. ONLY modules with the `-task` suffix are loaded!
+
+To date, there are two tasks that are configured to automatically execute at application runtime:
+
+- [Collection Indexes Synchronization Task](#collection-indexes-synchronization-task) (formerly the "collection manager")
+- [ATT&CK ID Reservation Monitoring Task](#attck-id-reservation-monitoring-task)
+
+### Collection Indexes Synchronization Task
+
+* **File:** [app/scheduler/sync-collection-indexes-task.js](app/scheduler/sync-collection-indexes-task.js)
+* **Default Schedule:** `* * * * *` (every minute)
+* **Configuration:** `SYNC_COLLECTION_INDEXES_CRON` environment variable
+
+This task manages the automatic synchronization of collection indexes and their subscribed collections from remote sources. It performs the following operations:
+
+1. **Retrieves all collection indexes** from the local database that have automatic update policies enabled
+2. **Checks if updates are needed** based on the configured interval since the last retrieval
+3. **Fetches remote collection indexes** from their configured URLs and compares timestamps
+4. **Updates local collection indexes** when newer versions are found remotely
+5. **Processes subscriptions** by checking each subscribed collection in the collection index:
+   - Compares local collection versions with available remote versions
+   - Downloads and imports newer collection bundles automatically
+   - Validates that bundles contain proper `x-mitre-collection` objects
+
+This task ensures that Workbench stays synchronized with upstream ATT&CK data sources without manual intervention, making it easier to keep local collections current.
+
+### ATT&CK ID Reservation Monitoring Task
+
+* **File:** [app/scheduler/check-wip-attack-ids-task.js](app/scheduler/check-wip-attack-ids-task.js)
+* **Default Schedule:** `0 * * * *` (every hour at minute 0)
+* **Configuration:** `CHECK_WIP_ATTACK_IDS_CRON` environment variable
+
+This task monitors for potential ATT&CK ID exhaustion issues by identifying work-in-progress (WIP) objects that have been assigned ATT&CK IDs. It performs the following operations:
+
+1. **Scans all STIX object types** that can have ATT&CK IDs assigned:
+   - Techniques (`attack-pattern`)
+   - Tactics (`x-mitre-tactic`)
+   - Groups (`intrusion-set`)
+   - Software (`malware` and `tool`)
+   - Mitigations (`course-of-action`)
+   - Campaigns (`campaign`)
+   - Data Sources (`x-mitre-data-source`)
+   - Data Components (`x-mitre-data-component`)
+
+2. **Identifies WIP objects with assigned IDs** by querying for objects in `work-in-progress` state that have an `attack_id` value
+
+3. **Logs warnings** when such objects are found, as this may indicate:
+   - Premature consumption of the limited ATT&CK ID namespace (IDs range from 0001-9999 per type)
+   - Objects that may never be published, permanently reserving their IDs
+   - Potential issues with automatic ID assignment workflows
+
+4. **Generates a summary report** containing:
+   - Total count of WIP objects with IDs
+   - Breakdown by object type
+   - Details of each affected object (STIX ID, ATT&CK ID, name, modification date)
+
+This monitoring helps administrators identify and review objects that may be tying up valuable ID space unnecessarily.
 
 ## Authentication
 

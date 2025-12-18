@@ -34,10 +34,12 @@
     "test:authn": "./app/tests/run-mocha-separate-jobs.sh ./app/tests/authn",
     "test:fuzz": "mocha --timeout 10000 --recursive ./app/tests/fuzz",
     "test:scheduler": "mocha --timeout 60000 --recursive ./app/tests/scheduler",
+    "test:file": "mocha --timeout 10000",
     "check:lockfile": "bash scripts/check-package-lock.sh"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^13.0.1",
+    "@mitre-attack/attack-data-model": "^4.5.1",
     "async": "^3.2.6",
     "async-await-retry": "^2.1.0",
     "body-parser": "^2.2.0",
@@ -58,6 +60,7 @@
     "morgan": "^1.10.1",
     "nanoid": "^5.1.5",
     "node-cache": "^5.1.2",
+    "node-schedule": "^2.1.1",
     "openid-client": "^5.7.1",
     "passport": "^0.7.0",
     "passport-anonym-uuid": "^1.0.3",
