@@ -310,6 +310,8 @@ async function processObjects(
 ) {
   // Sort objects by dependencies before processing
   const sortedObjects = sortObjectsByDependencies(objects);
+  let totalObjects = 0;
+  let processedObjects = 0;
 
   for (const importObject of sortedObjects) {
     // Check if object is in x_mitre_contents
