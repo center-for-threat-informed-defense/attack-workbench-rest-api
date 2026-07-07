@@ -858,7 +858,7 @@ GET /api/release-tracks/:id?format=workbench&include=all
 ```
 
 **Query params:**
-- `format`: `bundle` | `workbench` | `filesystemstore`
+- `format`: `bundle` | `workbench` | `filesystemstore` (`filesystemstore` is not yet implemented and returns HTTP 501)
 - `include`: `members` | `quarantine` | `all`
 - `resolve`: `true` (default) | `false` - Whether to resolve composition
 

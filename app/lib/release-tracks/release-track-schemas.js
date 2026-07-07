@@ -150,9 +150,9 @@ const cronSchema = z
 
 const domainParamSchema = z.enum(['enterprise', 'ics', 'mobile']);
 
-const formatQuerySchema = z.enum(['snapshot', 'bundle', 'filesystemstore', 'workbench']);
+const formatQuerySchema = z.enum(['bundle', 'filesystemstore', 'workbench']);
 
-const includeQuerySchema = z.enum(['staged', 'candidates', 'all']);
+const includeQuerySchema = z.enum(['members', 'staged', 'candidates', 'quarantine', 'all']);
 
 const trackTypeQuerySchema = z.enum(['standard', 'virtual']);
 

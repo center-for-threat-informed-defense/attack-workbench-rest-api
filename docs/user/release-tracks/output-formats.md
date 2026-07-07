@@ -6,7 +6,56 @@ Release tracks (or rather, each snapshot) can serialize/export to multiple forma
 GET /api/release-tracks/:id?format=<format>
 ```
 
-### Format: `bundle` (Default)
+### Format: `workbench` (Default)
+
+Workbench-optimized release-track snapshot format. This is the default response
+shape for snapshot retrieval endpoints and is intended for the Workbench frontend.
+
+```json
+{
+  "id": "release-track--123",
+  "type": "standard",
+  "version": null,
+  "name": "ATT&CK Enterprise",
+  "modified": "2024-01-15T16:20:00Z",
+  "members": [
+    {
+      "object_ref": "attack-pattern--aaa",
+      "object_modified": "2024-01-10T10:00:00Z",
+      "attack_id": "T1234",
+      "name": "Technique A",
+      "description": "Technique description",
+      "modified_by_user": {
+        "id": "identity--...",
+        "username": "alice",
+        "displayName": "Alice Example",
+        "name": "Alice Example"
+      }
+    }
+  ],
+  "staged": [],
+  "candidates": [],
+  "quarantine": []
+}
+```
+
+**Characteristics:**
+- Preserves the release-track snapshot structure
+- Includes `members`, `staged`, `candidates`, and `quarantine` tier arrays when present
+- Adds UI-friendly object details to tier entries
+- Suitable for Workbench UI rendering and release-track management workflows
+
+Use `include` to narrow tier arrays in `workbench` responses:
+
+```bash
+GET /api/release-tracks/:id?include=members
+GET /api/release-tracks/:id?include=staged
+GET /api/release-tracks/:id?include=candidates
+GET /api/release-tracks/:id?include=quarantine
+GET /api/release-tracks/:id?include=all
+```
+
+### Format: `bundle`
 
 Standard STIX 2.1 bundle format:
 
@@ -38,7 +87,10 @@ Standard STIX 2.1 bundle format:
 - No workflow states, no workspace data
 - Suitable for external publication
 
-### Format: `filesystemstore`
+### Format: `filesystemstore` (Not Implemented)
+
+STIX FileSystemStore export is planned, but is not implemented yet. Requests
+with `format=filesystemstore` currently return HTTP 501.
 
 STIX FileSystemStore structure (directory tree):
 
@@ -53,7 +105,7 @@ collection-123/
     malware--xxx.json
 ```
 
-**Response:**
+**Example Response:**
 ```json
 {
   "format": "filesystemstore",
@@ -76,62 +128,19 @@ collection-123/
 
 > **NOTE**: The `filesystemstore` is still a *concept* that will need additional refinement before it can be implemented. We will need to figure out an optimal way to return JSON files to the user. Optionally, we can attempt to generate an archive and serialize it over the wire, though this may be slow and error prone. Additionally, we can allow users to specify an output path via S3, FTP, etc. 
 
-### Format: `workbench` (Custom)
-
-Workbench-optimized format with full metadata:
-
-```json
-{
-  "collection": {
-    "id": "x-mitre-collection--123",
-    "version": "1.1",
-    "name": "ATT&CK Enterprise",
-    "modified": "2024-01-15T16:20:00Z"
-  },
-  "objects": [
-    {
-      "stix": { /* Full STIX object */ },
-      "workspace": {
-        "workflow": {
-          "status": "reviewed",
-          "reviewed_by": "admin@example.com",
-          "reviewed_at": "2024-01-14T10:00:00Z"
-        }
-      },
-      "metadata": {
-        "collection_tier": "released",  // "released" | "staged" | "candidate"
-        "object_type": "attack-pattern",
-        "object_name": "Technique A"
-      }
-    }
-  ],
-  "summary": {
-    "released_count": 2,
-    "staged_count": 1,
-    "candidate_count": 1
-  }
-}
-```
-
-**Characteristics:**
-- Includes workflow states
-- Includes workspace metadata
-- Optimized for Workbench UI consumption
-- Shows which tier each object belongs to
-
-> **NOTE**: The response `workbench` object above is just an example. This is not a prescriptive, final draft. The concept is desribed here to illustrate that we can serve information to the frontend in formats more suitable for UI rendering; we are not beholden to exclusively serving content in STIX-compatible formats. 
 
 ### Format Usage
 
 ```bash
+# Workbench UI response
+GET /api/release-tracks/:id
+GET /api/release-tracks/:id?format=workbench
+
 # Standard STIX bundle for publication
 GET /api/release-tracks/:id?format=bundle
 
-# FileSystemStore export
-GET /api/release-tracks/:id?format=filesystemstore
-
-# Workbench UI with workflow metadata
-GET /api/release-tracks/:id?format=workbench
+# FileSystemStore export is not implemented yet
+GET /api/release-tracks/:id?format=filesystemstore  # Returns HTTP 501
 
 # Dry run with detailed preview
 GET /api/release-tracks/:id/bump/preview?format=workbench

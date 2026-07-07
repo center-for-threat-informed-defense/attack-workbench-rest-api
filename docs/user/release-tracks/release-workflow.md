@@ -452,7 +452,9 @@ PUT /api/release-tracks/:id/config
 
 ### 5. Viewing Latest Snapshot with All Tiers
 
-Set the `include` query parameter to `members`, `staged`, `candidates` or `all` to view different subsets of a given snapshot.
+Workbench snapshot responses include all tier arrays by default. Set the
+`include` query parameter to `members`, `staged`, `candidates`, `quarantine`,
+or `all` to view a narrower subset of a given snapshot.
 ```
 GET /api/release-tracks/:id?include=all
 ```
@@ -1107,4 +1109,3 @@ July 16 (manual):
 - All snapshots start as **drafts** (must explicitly tag)
 - Component tracks must have at least one tagged release
 - Circular dependencies not allowed
-

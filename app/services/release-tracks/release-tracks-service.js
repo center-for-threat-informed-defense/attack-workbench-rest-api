@@ -23,11 +23,137 @@ const exportService = require('./export-service');
 const ephemeralService = require('./ephemeral-service');
 const bundleImportService = require('./bundle-import-service');
 const memberSyncService = require('./member-sync-service');
+const attackObjectsService = require('../stix/attack-objects-service');
+const userAccountsService = require('../system/user-accounts-service');
 
 const MODULE = 'release-tracks-service';
+const TIER_NAMES = ['members', 'staged', 'candidates', 'quarantine'];
 
 function notImplemented(methodName) {
   throw new NotImplementedError(MODULE, methodName);
+}
+
+function rejectFilesystemStoreFormat(format, methodName) {
+  if (format !== 'filesystemstore') return;
+
+  throw new NotImplementedError(MODULE, methodName, {
+    message: 'The filesystemstore format is not yet implemented',
+  });
+}
+
+function versionKey(objectRef, objectModified) {
+  return `${objectRef}:${new Date(objectModified).toISOString()}`;
+}
+
+function getTierUserId(entry) {
+  return entry.object_added_by || entry.object_staged_by;
+}
+
+function formatUser(user) {
+  if (!user) return undefined;
+
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    name: user.displayName || user.username,
+  };
+}
+
+async function getUsersById(userIds) {
+  const usersById = new Map();
+
+  await Promise.all(
+    userIds.map(async (userId) => {
+      if (userId === 'system') {
+        usersById.set(userId, { id: userId, username: userId });
+        return;
+      }
+
+      const user = await userAccountsService.getLatest(userId);
+      if (user) {
+        usersById.set(userId, user);
+      }
+    }),
+  );
+
+  return usersById;
+}
+
+function addObjectInfo(entry, objectsByVersion, usersById) {
+  const object = objectsByVersion.get(versionKey(entry.object_ref, entry.object_modified));
+  const entryWithObjectInfo = {
+    ...entry,
+  };
+
+  if (object) {
+    entryWithObjectInfo.attack_id = object.workspace?.attack_id;
+    entryWithObjectInfo.name = object.stix?.name;
+  }
+
+  if (object?.stix?.description !== undefined) {
+    entryWithObjectInfo.description = object.stix.description;
+  }
+
+  const user = object?.created_by_user_account || usersById.get(getTierUserId(entry));
+  if (user) {
+    entryWithObjectInfo.modified_by_user = formatUser(user);
+  }
+
+  return entryWithObjectInfo;
+}
+
+async function addObjectInfoToSnapshot(snapshot) {
+  const tierEntries = TIER_NAMES.flatMap((tierName) => snapshot[tierName] || []);
+
+  if (tierEntries.length === 0) {
+    return snapshot;
+  }
+
+  const uniqueEntriesByVersion = new Map();
+  for (const entry of tierEntries) {
+    uniqueEntriesByVersion.set(versionKey(entry.object_ref, entry.object_modified), entry);
+  }
+
+  const objects = await attackObjectsService.getBulkByIdAndModified([
+    ...uniqueEntriesByVersion.values(),
+  ]);
+  const objectsByVersion = new Map(
+    objects.map((object) => [versionKey(object.stix.id, object.stix.modified), object]),
+  );
+  const userIds = [...new Set(tierEntries.map(getTierUserId).filter(Boolean))];
+  const usersById = await getUsersById(userIds);
+
+  const snapshotWithObjectInfo = { ...snapshot };
+  for (const tierName of TIER_NAMES) {
+    if (snapshot[tierName]) {
+      snapshotWithObjectInfo[tierName] = snapshot[tierName].map((entry) =>
+        addObjectInfo(entry, objectsByVersion, usersById),
+      );
+    }
+  }
+
+  return snapshotWithObjectInfo;
+}
+
+function filterSnapshotTiers(snapshot, include) {
+  if (!include || include === 'all') return snapshot;
+
+  const includedTiers = new Set(['members', include]);
+  const filtered = { ...snapshot };
+
+  for (const tierName of TIER_NAMES) {
+    if (!includedTiers.has(tierName)) {
+      delete filtered[tierName];
+    }
+  }
+
+  return filtered;
+}
+
+async function formatWorkbenchSnapshot(snapshot, options) {
+  const enriched = await addObjectInfoToSnapshot(snapshot);
+  return filterSnapshotTiers(enriched, options?.include);
 }
 
 // -----------------------------------------------------------------------------
@@ -53,25 +179,29 @@ exports.importTrack = async function importTrack(_data) {
 };
 
 // Phase 6: Format-aware snapshot retrieval
-// - 'snapshot' format (or no format): returns raw snapshot as stored
-// - 'bundle'/'workbench' formats: hydrates and transforms via export-service
-// - 'filesystemstore': blocked at controller level (NotImplementedError)
+// - 'workbench' format (or no format): returns enriched release-track snapshot
+// - 'bundle' format: hydrates members and transforms via export-service
+// - 'filesystemstore': blocked before delegation (NotImplementedError)
 exports.getLatestSnapshot = async function getLatestSnapshot(trackId, options) {
   const snapshot = await snapshotService.getLatestSnapshot(trackId, options);
   const format = options?.format;
-  if (format && format !== 'snapshot') {
+  rejectFilesystemStoreFormat(format, 'getLatestSnapshot');
+
+  if (format === 'bundle') {
     return exportService.exportSnapshot(snapshot, format, options);
   }
-  return snapshot;
+  return formatWorkbenchSnapshot(snapshot, options);
 };
 
 exports.getSnapshotByModified = async function getSnapshotByModified(trackId, modified, options) {
   const snapshot = await snapshotService.getSnapshotByModified(trackId, modified, options);
   const format = options?.format;
-  if (format && format !== 'snapshot') {
+  rejectFilesystemStoreFormat(format, 'getSnapshotByModified');
+
+  if (format === 'bundle') {
     return exportService.exportSnapshot(snapshot, format, options);
   }
-  return snapshot;
+  return formatWorkbenchSnapshot(snapshot, options);
 };
 
 exports.updateMetadata = function updateMetadata(trackId, updates, userId) {
@@ -121,6 +251,7 @@ exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
 // -----------------------------------------------------------------------------
 
 exports.getEphemeralBundle = function getEphemeralBundle(domain, format) {
+  rejectFilesystemStoreFormat(format, 'getEphemeralBundle');
   return ephemeralService.getEphemeralBundle(domain, format);
 };
 
@@ -177,6 +308,7 @@ exports.bumpByModified = function bumpByModified(trackId, modified, options) {
 };
 
 exports.previewBump = function previewBump(trackId, format) {
+  rejectFilesystemStoreFormat(format, 'previewBump');
   return versioningService.previewBump(trackId, format);
 };
 

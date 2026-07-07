@@ -21,19 +21,19 @@ paths:
             example: 'enterprise-attack'
         - name: format
           in: query
-          description: 'Output format (bundle, workbench, or filesystem-store)'
+          description: 'Output format. filesystemstore is not yet implemented.'
           schema:
             type: string
             enum:
               - bundle
               - workbench
-              - filesystem-store
+              - filesystemstore
             default: bundle
       responses:
         '200':
           description: 'Ephemeral bundle generated successfully'
         '501':
-          description: 'Not yet implemented'
+          description: 'Requested format is not yet implemented'
 
   # =============================================================================
   # Track management
@@ -154,7 +154,8 @@ paths:
       operationId: 'release-tracks-get-latest'
       description: |
         Retrieve the most recent snapshot for a release track.
-        By default returns only members; use include query param for other tiers.
+        By default returns the Workbench snapshot shape with all tiers present.
+        Use the include query parameter to narrow tier arrays when desired.
       tags:
         - 'Release Tracks'
       parameters:
@@ -174,19 +175,19 @@ paths:
               - members
               - staged
               - candidates
+              - quarantine
               - all
-            default: members
+            default: all
         - name: format
           in: query
-          description: 'Output format: snapshot (raw), bundle (STIX 2.1), workbench (with metadata), filesystemstore (not implemented)'
+          description: 'Output format. filesystemstore is not yet implemented.'
           schema:
             type: string
             enum:
-              - snapshot
               - bundle
               - workbench
               - filesystemstore
-            default: snapshot
+            default: workbench
       responses:
         '200':
           description: 'Latest snapshot retrieved successfully'
@@ -196,6 +197,8 @@ paths:
                 $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
         '404':
           description: 'Release track not found'
+        '501':
+          description: 'Requested format is not yet implemented'
 
     delete:
       summary: 'Delete a release track'
@@ -326,17 +329,19 @@ paths:
             type: string
         - name: format
           in: query
+          description: 'Output format. filesystemstore is not yet implemented.'
           schema:
             type: string
             enum:
-              - summary
-              - detailed
-            default: summary
+              - bundle
+              - workbench
+              - filesystemstore
+            default: workbench
       responses:
         '200':
           description: 'Release preview generated'
         '501':
-          description: 'Not yet implemented'
+          description: 'Requested format is not yet implemented'
 
   # =============================================================================
   # Candidate management
@@ -728,22 +733,26 @@ paths:
               - members
               - staged
               - candidates
+              - quarantine
               - all
-            default: members
+            default: all
         - name: format
           in: query
+          description: 'Output format. filesystemstore is not yet implemented.'
           schema:
             type: string
             enum:
-              - snapshot
               - bundle
+              - filesystemstore
               - workbench
-            default: snapshot
+            default: workbench
       responses:
         '200':
           description: 'Snapshot retrieved successfully'
         '404':
           description: 'Snapshot not found'
+        '501':
+          description: 'Requested format is not yet implemented'
 
     delete:
       summary: 'Delete a specific snapshot'
