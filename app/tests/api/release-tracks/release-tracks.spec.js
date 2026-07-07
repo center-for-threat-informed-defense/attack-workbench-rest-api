@@ -6,6 +6,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const AttackObject = require('../../../models/attack-object-model');
+const snapshotService = require('../../../services/release-tracks/snapshot-service');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -68,10 +69,27 @@ describe('Release Tracks API', function () {
     );
   }
 
-  it('GET /api/release-tracks includes latest tier count summaries', async function () {
+  function expectObjectInfo(entry, object) {
+    expect(entry).toMatchObject({
+      attack_id: object.workspace.attack_id,
+      name: object.stix.name,
+      description: object.stix.description,
+      modified_by_user: {
+        username: 'anonymous',
+        displayName: 'Anonymous User',
+        name: 'Anonymous User',
+      },
+    });
+  }
+
+  it('GET /api/release-tracks includes summaries and workbench object details', async function () {
     const memberObject = await createTechnique('Member Technique', 'Member description');
     const candidateObject = await createTechnique('Candidate Technique', 'Candidate description');
     const stagedObject = await createTechnique('Staged Technique', 'Staged description');
+    const quarantinedObject = await createTechnique(
+      'Quarantined Technique',
+      'Quarantined description',
+    );
     await removeObjectUser(candidateObject);
     await removeObjectUser(stagedObject);
 
@@ -123,7 +141,7 @@ describe('Release Tracks API', function () {
       .expect(200)
       .expect('Content-Type', /json/);
 
-    await request(app)
+    const promoteRes = await request(app)
       .post(`/api/release-tracks/${trackId}/candidates/promote`)
       .send({
         object_refs: [stagedObject.stix.id],
@@ -132,6 +150,19 @@ describe('Release Tracks API', function () {
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
+
+    const promotedSnapshot = await snapshotService.getLatestSnapshot(trackId);
+    await snapshotService.cloneSnapshot(trackId, promotedSnapshot, {
+      quarantine: [
+        {
+          object_ref: quarantinedObject.stix.id,
+          object_modified: quarantinedObject.stix.modified,
+          source_track_id: trackId,
+          source_track_name: 'Enterprise Test',
+          conflict_reason: 'test conflict',
+        },
+      ],
+    });
 
     const listRes = await request(app)
       .get('/api/release-tracks')
@@ -155,31 +186,65 @@ describe('Release Tracks API', function () {
       .expect(200)
       .expect('Content-Type', /json/);
 
+    const member = latestRes.body.members.find(
+      (entry) => entry.object_ref === memberObject.stix.id,
+    );
+    expectObjectInfo(member, memberObject);
+
     const candidate = latestRes.body.candidates.find(
       (entry) => entry.object_ref === candidateObject.stix.id,
     );
-    expect(candidate).toMatchObject({
-      attack_id: candidateObject.workspace.attack_id,
-      name: candidateObject.stix.name,
-      description: candidateObject.stix.description,
-      modified_by_user: {
-        username: 'anonymous',
-        displayName: 'Anonymous User',
-        name: 'Anonymous User',
-      },
-    });
+    expectObjectInfo(candidate, candidateObject);
 
     const staged = latestRes.body.staged.find((entry) => entry.object_ref === stagedObject.stix.id);
-    expect(staged).toMatchObject({
-      attack_id: stagedObject.workspace.attack_id,
-      name: stagedObject.stix.name,
-      description: stagedObject.stix.description,
-      modified_by_user: {
-        username: 'anonymous',
-        displayName: 'Anonymous User',
-        name: 'Anonymous User',
-      },
-    });
+    expectObjectInfo(staged, stagedObject);
+
+    const quarantined = latestRes.body.quarantine.find(
+      (entry) => entry.object_ref === quarantinedObject.stix.id,
+    );
+    expectObjectInfo(quarantined, quarantinedObject);
+
+    const historicalRes = await request(app)
+      .get(`/api/release-tracks/${trackId}/snapshots/${promoteRes.body.modified}`)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200)
+      .expect('Content-Type', /json/);
+
+    const historicalMember = historicalRes.body.members.find(
+      (entry) => entry.object_ref === memberObject.stix.id,
+    );
+    expectObjectInfo(historicalMember, memberObject);
+
+    const historicalCandidate = historicalRes.body.candidates.find(
+      (entry) => entry.object_ref === candidateObject.stix.id,
+    );
+    expectObjectInfo(historicalCandidate, candidateObject);
+
+    const historicalStaged = historicalRes.body.staged.find(
+      (entry) => entry.object_ref === stagedObject.stix.id,
+    );
+    expectObjectInfo(historicalStaged, stagedObject);
+
+    await request(app)
+      .get(`/api/release-tracks/${trackId}?format=snapshot`)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(400);
+
+    await request(app)
+      .get(`/api/release-tracks/${trackId}?format=filesystemstore`)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(501);
+
+    await request(app)
+      .get(
+        `/api/release-tracks/${trackId}/snapshots/${promoteRes.body.modified}?format=filesystemstore`,
+      )
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(501);
   });
 
   after(async function () {

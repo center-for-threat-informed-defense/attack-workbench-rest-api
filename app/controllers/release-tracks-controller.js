@@ -56,12 +56,31 @@ function parseOptionalQuery(value, schema, defaultValue) {
   return result.success ? result.data : defaultValue;
 }
 
+function parseOptionalQueryStrict(value, schema, defaultValue, parameterName) {
+  if (value === undefined || value === null) return defaultValue;
+  const result = schema.safeParse(value);
+  if (result.success) return result.data;
+
+  throw new InvalidQueryStringParameterError({
+    parameterName,
+    message: `Invalid ${parameterName} parameter`,
+  });
+}
+
+function rejectFilesystemStoreFormat(format, methodName) {
+  if (format !== 'filesystemstore') return null;
+
+  return new NotImplementedError('release-tracks-controller', methodName, {
+    message: 'The filesystemstore format is not yet implemented',
+  });
+}
+
 /**
  * Parse common query parameters shared across GET snapshot endpoints.
  */
 function parseSnapshotQueryParams(query) {
   return {
-    format: parseOptionalQuery(query.format, formatQuerySchema, 'snapshot'),
+    format: parseOptionalQueryStrict(query.format, formatQuerySchema, 'workbench', 'format'),
     include: parseOptionalQuery(query.include, includeQuerySchema, undefined),
     releases: query.releases === 'only' ? 'only' : undefined,
     version: parseOptionalQuery(query.version, xMitreVersionSchema, undefined),
@@ -88,7 +107,17 @@ exports.retrieveEphemeralByDomain = async function retrieveEphemeralByDomain(req
       );
     }
 
-    const format = parseOptionalQuery(req.query.format, formatQuerySchema, 'bundle');
+    const format = parseOptionalQueryStrict(
+      req.query.format,
+      formatQuerySchema,
+      'bundle',
+      'format',
+    );
+    const formatError = rejectFilesystemStoreFormat(format, 'retrieveEphemeralByDomain');
+    if (formatError) {
+      return next(formatError);
+    }
+
     const result = await releaseTracksService.getEphemeralBundle(domainResult.data, format);
     logger.debug(`Success: Retrieved ephemeral ${domainResult.data} bundle`);
     return res.status(200).send(result);
@@ -182,14 +211,9 @@ exports.importReleaseTrack = async function importReleaseTrack(_req, _res, next)
 exports.retrieveLatestSnapshot = async function retrieveLatestSnapshot(req, res, next) {
   try {
     const queryOptions = parseSnapshotQueryParams(req.query);
-
-    // filesystemstore format is not yet implemented
-    if (queryOptions.format === 'filesystemstore') {
-      return next(
-        new NotImplementedError('release-tracks-controller', 'retrieveLatestSnapshot', {
-          message: 'The filesystemstore format is not yet implemented',
-        }),
-      );
+    const formatError = rejectFilesystemStoreFormat(queryOptions.format, 'retrieveLatestSnapshot');
+    if (formatError) {
+      return next(formatError);
     }
 
     const result = await releaseTracksService.getLatestSnapshot(req.params.id, queryOptions);
@@ -323,6 +347,13 @@ exports.deleteReleaseTrack = async function deleteReleaseTrack(req, res, next) {
 exports.retrieveSnapshotByModified = async function retrieveSnapshotByModified(req, res, next) {
   try {
     const queryOptions = parseSnapshotQueryParams(req.query);
+    const formatError = rejectFilesystemStoreFormat(
+      queryOptions.format,
+      'retrieveSnapshotByModified',
+    );
+    if (formatError) {
+      return next(formatError);
+    }
 
     const result = await releaseTracksService.getSnapshotByModified(
       req.params.id,
@@ -686,7 +717,16 @@ exports.updateConfig = async function updateConfig(req, res, next) {
 /** GET /api/release-tracks/:id/bump/preview */
 exports.previewBump = async function previewBump(req, res, next) {
   try {
-    const format = parseOptionalQuery(req.query.format, formatQuerySchema, 'workbench');
+    const format = parseOptionalQueryStrict(
+      req.query.format,
+      formatQuerySchema,
+      'workbench',
+      'format',
+    );
+    const formatError = rejectFilesystemStoreFormat(format, 'previewBump');
+    if (formatError) {
+      return next(formatError);
+    }
 
     const result = await releaseTracksService.previewBump(req.params.id, format);
     logger.debug(`Success: Generated bump preview for track ${req.params.id}`);

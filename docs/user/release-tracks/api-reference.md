@@ -121,7 +121,7 @@ GET /api/release-tracks/ephemeral/:domain
 - `:domain` - `enterprise` | `ics` | `mobile`
 
 **Query Parameters:**
-- `format` - `bundle` | `filesystemstore` | `workbench` (default: `bundle`)
+- `format` - `bundle` | `filesystemstore` | `workbench` (default: `bundle`; `filesystemstore` is not yet implemented)
 
 ---
 
@@ -262,7 +262,8 @@ Retrieves the most recent snapshot from the release track (by `modified` timesta
 GET /api/release-tracks/:id
 ```
 
-For raw snapshot responses, entries in the `candidates` and `staged` tiers include extra object details:
+Workbench responses return the release-track snapshot shape. Entries in the `members`,
+`staged`, `candidates`, and `quarantine` tiers include UI-friendly object details:
 
 - `attack_id`
 - `name`
@@ -273,8 +274,8 @@ For raw snapshot responses, entries in the `candidates` and `staged` tiers inclu
 
 | Parameter | Values | Description |
 |-----------|--------|-------------|
-| `format` | `bundle` \| `filesystemstore` \| `workbench` | Output format (default: `bundle`) |
-| `include` | `staged` \| `candidates` \| `all` | Which tiers to include (default: members only) |
+| `format` | `workbench` \| `bundle` \| `filesystemstore` | Output format (default: `workbench`; `filesystemstore` is not yet implemented) |
+| `include` | `members` \| `staged` \| `candidates` \| `quarantine` \| `all` | Which tier arrays to include in `workbench` responses (default: all tiers) |
 | `releases` | `only` | Return only the latest tagged release instead of latest snapshot |
 | `version` | `X.Y` | Return specific version (e.g., `14.1`) |
 | `versions` | `all` | List all snapshots with metadata |
@@ -282,11 +283,14 @@ For raw snapshot responses, entries in the `candidates` and `staged` tiers inclu
 **Examples:**
 
 ```bash
-# Get latest snapshot as STIX bundle (members only)
+# Get latest snapshot for the Workbench UI
 GET /api/release-tracks/:id
 
-# Get latest snapshot with all tiers in workbench format
-GET /api/release-tracks/:id?include=all&format=workbench
+# Get latest snapshot as STIX bundle (members only)
+GET /api/release-tracks/:id?format=bundle
+
+# Get latest snapshot with members and quarantine only
+GET /api/release-tracks/:id?include=quarantine
 
 # Get latest tagged release (not draft)
 GET /api/release-tracks/:id?releases=only
@@ -397,16 +401,16 @@ GET /api/release-tracks/:id/snapshots/:modified
 - `:modified` - ISO 8601 timestamp (e.g., `2024-01-15T16:20:00.000Z`)
 
 **Query Parameters:**
-- `format` - `bundle` | `filesystemstore` | `workbench` (default: `bundle`)
-- `include` - `staged` | `candidates` | `all` (default: members only)
+- `format` - `workbench` | `bundle` | `filesystemstore` (default: `workbench`; `filesystemstore` is not yet implemented)
+- `include` - `members` | `staged` | `candidates` | `quarantine` | `all` (default: all tiers)
 
 **Example:**
 ```bash
-# Get snapshot from January 15, 2024 as STIX bundle
+# Get snapshot from January 15, 2024 for the Workbench UI
 GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z
 
-# Get with all tiers in workbench format
-GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?include=all&format=workbench
+# Get snapshot from January 15, 2024 as STIX bundle
+GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle
 ```
 
 ### Update Metadata (Specific Snapshot)
@@ -661,7 +665,7 @@ GET /api/release-tracks/:id/bump/preview
 ```
 
 **Query Parameters:**
-- `format` - `bundle` | `filesystemstore` | `workbench` (default: `workbench`)
+- `format` - `bundle` | `filesystemstore` | `workbench` (default: `workbench`; `filesystemstore` is not yet implemented)
 
 **Response Example:**
 ```json
@@ -765,17 +769,20 @@ GET /api/release-tracks/:id/objects/:objectRef/versions
 
 ## Output Formats
 
-### `bundle` (Default)
+### `workbench` (Default)
+
+Release-track snapshot shape optimized for the Workbench frontend. Tier entries
+include UI-friendly object details such as `attack_id`, `name`, `description`,
+and `modified_by_user`.
+
+### `bundle`
 
 Standard STIX 2.1 bundle.
 
-### `filesystemstore`
+### `filesystemstore` (Not Implemented)
 
-STIX FileSystemStore directory structure.
-
-### `workbench`
-
-Custom format with workflow metadata for UI.
+Planned STIX FileSystemStore directory structure. Requests with
+`format=filesystemstore` currently return HTTP 501.
 
 ---
 
@@ -951,25 +958,30 @@ GET /api/release-tracks/:id/snapshots/preview
 
 ### Snapshot Retrieval Endpoints
 
-The following retrieval endpoints support `include` and `format` query parameters:
+The following release-track snapshot retrieval endpoints support `include` and
+`format` query parameters:
 
 - `GET /api/release-tracks/:id` (get latest snapshot)
 - `GET /api/release-tracks/:id/snapshots/:modified` (get specific snapshot)
-- `GET /api/release-tracks/ephemeral/:domain` (get ephemeral bundle)
+
+The ephemeral bundle endpoint supports `format`, but not tier `include`, because
+it does not read from a persisted release-track snapshot.
 
 **Include Parameter** (controls which tiers are returned):
 ```
-GET /api/release-tracks/:id                            # Default: members only
+GET /api/release-tracks/:id                            # Default: all tiers
+GET /api/release-tracks/:id?include=members            # Members tier only
 GET /api/release-tracks/:id?include=staged             # Members and staged tiers
 GET /api/release-tracks/:id?include=candidates         # Members and candidates tiers
-GET /api/release-tracks/:id?include=all                # All tiers (members, staged, candidates)
+GET /api/release-tracks/:id?include=quarantine         # Members and quarantine tiers
+GET /api/release-tracks/:id?include=all                # All tiers
 ```
 
 **Format Parameter** (controls output format):
 ```
-GET /api/release-tracks/:id?format=bundle              # Standard STIX 2.1 bundle (default)
-GET /api/release-tracks/:id?format=filesystemstore     # STIX FileSystemStore structure
-GET /api/release-tracks/:id?format=workbench           # Workbench format with metadata
+GET /api/release-tracks/:id?format=workbench           # Workbench snapshot with metadata (default)
+GET /api/release-tracks/:id?format=bundle              # Standard STIX 2.1 bundle
+GET /api/release-tracks/:id?format=filesystemstore     # Not implemented; returns 501
 ```
 
 **Combined Example:**

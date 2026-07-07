@@ -27,9 +27,18 @@ const attackObjectsService = require('../stix/attack-objects-service');
 const userAccountsService = require('../system/user-accounts-service');
 
 const MODULE = 'release-tracks-service';
+const TIER_NAMES = ['members', 'staged', 'candidates', 'quarantine'];
 
 function notImplemented(methodName) {
   throw new NotImplementedError(MODULE, methodName);
+}
+
+function rejectFilesystemStoreFormat(format, methodName) {
+  if (format !== 'filesystemstore') return;
+
+  throw new NotImplementedError(MODULE, methodName, {
+    message: 'The filesystemstore format is not yet implemented',
+  });
 }
 
 function versionKey(objectRef, objectModified) {
@@ -95,9 +104,7 @@ function addObjectInfo(entry, objectsByVersion, usersById) {
 }
 
 async function addObjectInfoToSnapshot(snapshot) {
-  const candidates = snapshot.candidates || [];
-  const staged = snapshot.staged || [];
-  const tierEntries = [...candidates, ...staged];
+  const tierEntries = TIER_NAMES.flatMap((tierName) => snapshot[tierName] || []);
 
   if (tierEntries.length === 0) {
     return snapshot;
@@ -118,18 +125,35 @@ async function addObjectInfoToSnapshot(snapshot) {
   const usersById = await getUsersById(userIds);
 
   const snapshotWithObjectInfo = { ...snapshot };
-  if (snapshot.candidates) {
-    snapshotWithObjectInfo.candidates = candidates.map((entry) =>
-      addObjectInfo(entry, objectsByVersion, usersById),
-    );
-  }
-  if (snapshot.staged) {
-    snapshotWithObjectInfo.staged = staged.map((entry) =>
-      addObjectInfo(entry, objectsByVersion, usersById),
-    );
+  for (const tierName of TIER_NAMES) {
+    if (snapshot[tierName]) {
+      snapshotWithObjectInfo[tierName] = snapshot[tierName].map((entry) =>
+        addObjectInfo(entry, objectsByVersion, usersById),
+      );
+    }
   }
 
   return snapshotWithObjectInfo;
+}
+
+function filterSnapshotTiers(snapshot, include) {
+  if (!include || include === 'all') return snapshot;
+
+  const includedTiers = new Set(['members', include]);
+  const filtered = { ...snapshot };
+
+  for (const tierName of TIER_NAMES) {
+    if (!includedTiers.has(tierName)) {
+      delete filtered[tierName];
+    }
+  }
+
+  return filtered;
+}
+
+async function formatWorkbenchSnapshot(snapshot, options) {
+  const enriched = await addObjectInfoToSnapshot(snapshot);
+  return filterSnapshotTiers(enriched, options?.include);
 }
 
 // -----------------------------------------------------------------------------
@@ -155,25 +179,29 @@ exports.importTrack = async function importTrack(_data) {
 };
 
 // Phase 6: Format-aware snapshot retrieval
-// - 'snapshot' format (or no format): returns raw snapshot as stored
-// - 'bundle'/'workbench' formats: hydrates and transforms via export-service
-// - 'filesystemstore': blocked at controller level (NotImplementedError)
+// - 'workbench' format (or no format): returns enriched release-track snapshot
+// - 'bundle' format: hydrates members and transforms via export-service
+// - 'filesystemstore': blocked before delegation (NotImplementedError)
 exports.getLatestSnapshot = async function getLatestSnapshot(trackId, options) {
   const snapshot = await snapshotService.getLatestSnapshot(trackId, options);
   const format = options?.format;
-  if (format && format !== 'snapshot') {
+  rejectFilesystemStoreFormat(format, 'getLatestSnapshot');
+
+  if (format === 'bundle') {
     return exportService.exportSnapshot(snapshot, format, options);
   }
-  return addObjectInfoToSnapshot(snapshot);
+  return formatWorkbenchSnapshot(snapshot, options);
 };
 
 exports.getSnapshotByModified = async function getSnapshotByModified(trackId, modified, options) {
   const snapshot = await snapshotService.getSnapshotByModified(trackId, modified, options);
   const format = options?.format;
-  if (format && format !== 'snapshot') {
+  rejectFilesystemStoreFormat(format, 'getSnapshotByModified');
+
+  if (format === 'bundle') {
     return exportService.exportSnapshot(snapshot, format, options);
   }
-  return snapshot;
+  return formatWorkbenchSnapshot(snapshot, options);
 };
 
 exports.updateMetadata = function updateMetadata(trackId, updates, userId) {
@@ -223,6 +251,7 @@ exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
 // -----------------------------------------------------------------------------
 
 exports.getEphemeralBundle = function getEphemeralBundle(domain, format) {
+  rejectFilesystemStoreFormat(format, 'getEphemeralBundle');
   return ephemeralService.getEphemeralBundle(domain, format);
 };
 
@@ -279,6 +308,7 @@ exports.bumpByModified = function bumpByModified(trackId, modified, options) {
 };
 
 exports.previewBump = function previewBump(trackId, format) {
+  rejectFilesystemStoreFormat(format, 'previewBump');
   return versioningService.previewBump(trackId, format);
 };
 

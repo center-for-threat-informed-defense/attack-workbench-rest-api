@@ -151,17 +151,17 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
 // =============================================================================
 
 /**
- * Export a snapshot in the specified format.
+ * Export a snapshot in the specified STIX-oriented format.
  *
- * This is the primary entry point called by the facade when a `format`
- * query parameter is provided on snapshot retrieval endpoints.
+ * Workbench snapshot retrieval is handled by release-tracks-service because it
+ * returns the release-track snapshot shape with UI-friendly tier entry details.
  *
  * @param {Object} snapshot - The raw snapshot document from the dynamic repo
- * @param {string} format - One of: 'bundle', 'workbench', 'filesystemstore'
+ * @param {string} format - One of: 'bundle', 'filesystemstore'
  * @param {Object} [options] - Additional options
- * @param {string} [options.include] - For workbench format: 'staged', 'candidates', or 'all'
  * @returns {Promise<Object>} The formatted export
  */
+// eslint-disable-next-line no-unused-vars
 exports.exportSnapshot = async function exportSnapshot(snapshot, format, options = {}) {
   const members = snapshot.members || [];
 
@@ -170,26 +170,12 @@ exports.exportSnapshot = async function exportSnapshot(snapshot, format, options
     return exports.formatAsBundle(snapshot, hydratedMembers);
   }
 
-  if (format === 'workbench') {
-    // Workbench format optionally includes staged and/or candidate objects
-    const allRefs = [...members];
-    if (options.include === 'staged' || options.include === 'all') {
-      allRefs.push(...(snapshot.staged || []));
-    }
-    if (options.include === 'candidates' || options.include === 'all') {
-      allRefs.push(...(snapshot.candidates || []));
-    }
-
-    const hydratedAll = await exports.hydrateMembers(allRefs);
-    return exports.formatAsWorkbench(snapshot, hydratedAll);
-  }
-
   if (format === 'filesystemstore') {
     const hydratedMembers = await exports.hydrateMembers(members);
     return exports.formatAsFilesystemStore(snapshot, hydratedMembers);
   }
 
-  // Unknown format — return raw snapshot unchanged
-  logger.warn(`ExportService: Unknown format "${format}", returning raw snapshot`);
+  // Unknown format -- return the snapshot unchanged.
+  logger.warn(`ExportService: Unknown format "${format}", returning snapshot unchanged`);
   return snapshot;
 };

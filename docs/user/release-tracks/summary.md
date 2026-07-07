@@ -145,17 +145,18 @@ workspace.config.candidacy_threshold = "work-in-progress"  // Very permissive
 
 ### Multiple Output Formats
 
+- **workbench** - Release-track snapshot with UI-friendly metadata (default for UI)
 - **bundle** - Standard STIX 2.1 bundle (for publication)
-- **filesystemstore** - STIX FileSystemStore directory structure
-- **workbench** - Custom format with workflow metadata (for UI)
+- **filesystemstore** - Planned STIX FileSystemStore directory structure; not implemented yet and returns HTTP 501
 
 ### Dry Run + Preview
 
 "Preview" will provide a verbose/detailed diff of what will change in the next release
 ```
 GET /api/release-tracks/:id/bump/preview
-  ?format = bundle | filesystemstore | workbench
+  ?format = bundle | workbench
 ```
+`format=filesystemstore` is reserved for future FileSystemStore export support and currently returns HTTP 501.
 
 "Dry-run" will output the literal/exact contents of the would-be tagged release
 ```
