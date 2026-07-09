@@ -57,7 +57,7 @@ GET /api/release-tracks/:id?include=all
 
 ### Format: `bundle`
 
-Standard STIX 2.1 bundle format:
+Standard STIX bundle format:
 
 ```json
 {
@@ -67,9 +67,12 @@ Standard STIX 2.1 bundle format:
     {
       "type": "x-mitre-collection",
       "id": "x-mitre-collection--123",
+      "name": "ATT&CK Enterprise",
       "x_mitre_version": "1.1",
-      "x_mitre_contents": ["attack-pattern--aaa", "malware--bbb"],
-      "name": "ATT&CK Enterprise"
+      "x_mitre_contents": [
+        { "object_ref": "attack-pattern--aaa", "object_modified": "2024-01-10T10:00:00.000Z" }
+      ],
+      "object_marking_refs": ["marking-definition--..."]
     },
     {
       "type": "attack-pattern",
@@ -82,10 +85,54 @@ Standard STIX 2.1 bundle format:
 ```
 
 **Characteristics:**
-- STIX 2.1 compliant
+- STIX compliant (2.1 by default; 2.0 via `stixVersion=2.0`). Per the STIX
+  specifications, the bundle object carries `spec_version` only for STIX 2.0;
+  STIX 2.1 bundles omit it and each object declares its own `spec_version`.
 - Only includes `stix.*` properties
 - No workflow states, no workspace data
+- Self-contained: identities and marking definitions referenced by the
+  exported objects are included automatically
+- `LinkById` tags in descriptions are converted to markdown citations
+- Notes are never included (notes are Workbench-native objects, not STIX objects)
 - Suitable for external publication
+
+**Bundle query parameters** (apply only when `format=bundle`):
+
+| Parameter | Values | Default | Description |
+|-----------|--------|---------|-------------|
+| `include` | `staged`, `candidates` (comma-separated or repeated) | _(members only)_ | Additional tiers to include in the bundle alongside members |
+| `state` | `work-in-progress`, `awaiting-review` (comma-separated or repeated) | _(no filter)_ | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included, irrespective of this parameter. Members are unaffected. |
+| `stixVersion` | `2.0`, `2.1` | `2.1` | STIX version the emitted bundle conforms to |
+| `includeToc` | `true`, `false` | `true` | Include a table-of-contents object (of type `x-mitre-collection`) as the first object in the bundle |
+
+Examples:
+
+```bash
+# Members only (default)
+GET /api/release-tracks/:id?format=bundle
+
+# Members + staged objects
+GET /api/release-tracks/:id?format=bundle&include=staged
+
+# Members + candidates and staged objects that are work-in-progress or reviewed
+GET /api/release-tracks/:id?format=bundle&include=candidates,staged&state=work-in-progress
+
+# STIX 2.0 bundle without a table of contents
+GET /api/release-tracks/:id?format=bundle&stixVersion=2.0&includeToc=false
+```
+
+**The table of contents (TOC) object**
+
+By default, bundles begin with an `x-mitre-collection` object that acts as a
+table of contents. It is derived from the release-track metadata:
+
+- `id` — stable per track (reuses the track UUID)
+- `name` / `description` — from the release track
+- `x_mitre_version` — the snapshot's tagged version, or `0.1` for draft snapshots
+- `modified` — the snapshot's modified timestamp
+- `x_mitre_attack_spec_version` — the deployment's default ATT&CK spec version
+- `x_mitre_contents` — every object in the bundle (marking definitions are
+  recorded in `object_marking_refs` instead)
 
 ### Format: `filesystemstore` (Not Implemented)
 

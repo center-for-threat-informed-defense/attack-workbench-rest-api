@@ -154,6 +154,41 @@ const formatQuerySchema = z.enum(['bundle', 'filesystemstore', 'workbench']);
 
 const includeQuerySchema = z.enum(['members', 'staged', 'candidates', 'quarantine', 'all']);
 
+/**
+ * Normalize a query-string value that represents a list. Accepts a repeated
+ * parameter (array), a comma-separated string, or a single value, and returns
+ * an array of trimmed strings.
+ */
+function normalizeQueryArray(value) {
+  const rawValues = Array.isArray(value) ? value : [value];
+  return rawValues
+    .flatMap((entry) => String(entry).split(','))
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+// `include` for format=bundle: which non-member tiers to add to the bundle.
+// Accepts singular or plural tier names; normalized to the plural tier names.
+const bundleIncludeQuerySchema = z.preprocess(
+  (value) =>
+    normalizeQueryArray(value).map((entry) => (entry === 'candidate' ? 'candidates' : entry)),
+  z.array(z.enum(['candidates', 'staged'])).min(1),
+);
+
+// `state` for format=bundle: workflow-status filter applied to the tiers
+// selected via `include`. 'reviewed' is intentionally not a valid filter
+// value — reviewed objects are always included.
+const bundleStateQuerySchema = z.preprocess(
+  (value) => normalizeQueryArray(value),
+  z.array(z.enum(['work-in-progress', 'awaiting-review'])).min(1),
+);
+
+const stixVersionQuerySchema = z.enum(['2.0', '2.1']);
+
+// Boolean query parameters arrive as strings ('true'/'false') unless the
+// OpenAPI validator has already coerced them to booleans.
+const booleanQuerySchema = z.union([z.boolean(), z.stringbool()]);
+
 const trackTypeQuerySchema = z.enum(['standard', 'virtual']);
 
 const bumpTypeSchema = z.enum(['major', 'minor']);
@@ -375,6 +410,10 @@ module.exports = {
   domainParamSchema,
   formatQuerySchema,
   includeQuerySchema,
+  bundleIncludeQuerySchema,
+  bundleStateQuerySchema,
+  stixVersionQuerySchema,
+  booleanQuerySchema,
   trackTypeQuerySchema,
   bumpTypeSchema,
   workflowStatusSchema,

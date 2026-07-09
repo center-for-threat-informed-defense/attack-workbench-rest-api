@@ -6,6 +6,7 @@ const { BaseService } = require('../meta-classes');
 const linkById = require('../../lib/linkById');
 const logger = require('../../lib/logger');
 const { requiresAttackId } = require('../../lib/attack-id-generator');
+const stixConformance = require('../../lib/stix-conformance');
 
 // Import repositories
 const analyticsRepository = require('../../repository/analytics-repository');
@@ -220,43 +221,20 @@ class StixBundlesService extends BaseService {
 
   /**
    * Removes empty array properties from a STIX object.
+   * Delegates to the shared lib/stix-conformance helpers.
    * @param {Object} stixObject - The STIX object to clean
    */
   static removeEmptyArrays(stixObject) {
-    for (const propertyName of Object.keys(stixObject)) {
-      if (Array.isArray(stixObject[propertyName]) && stixObject[propertyName].length === 0) {
-        delete stixObject[propertyName];
-      }
-    }
+    stixConformance.removeEmptyArrays(stixObject);
   }
 
   /**
    * Modifies a STIX object to conform to the specified STIX version (2.0 or 2.1).
-   * Handles version-specific requirements for various object types.
+   * Delegates to the shared lib/stix-conformance helpers.
    * @param {Object} stixObject - The STIX object to modify
    */
   static conformToStixVersion(stixObject, stixVersion) {
-    if (stixVersion === '2.0') {
-      // Remove STIX 2.1 specific properties
-      delete stixObject.spec_version;
-
-      // Handle malware and tool specific requirements
-      if (stixObject.type === 'malware') {
-        delete stixObject.is_family;
-        stixObject.labels = ['malware'];
-      }
-
-      if (stixObject.type === 'tool') {
-        stixObject.labels = ['tool'];
-      }
-    } else if (stixVersion === '2.1') {
-      stixObject.spec_version = '2.1';
-      if (stixObject.type != 'course-of-action') {
-        delete stixObject.labels;
-      }
-    }
-
-    this.removeEmptyArrays(stixObject);
+    stixConformance.conformToStixVersion(stixObject, stixVersion);
   }
 
   // ============================

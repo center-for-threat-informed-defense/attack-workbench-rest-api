@@ -23,6 +23,10 @@ const {
   domainParamSchema,
   formatQuerySchema,
   includeQuerySchema,
+  bundleIncludeQuerySchema,
+  bundleStateQuerySchema,
+  stixVersionQuerySchema,
+  booleanQuerySchema,
   trackTypeQuerySchema,
   workflowStatusSchema,
   createTrackBodySchema,
@@ -77,16 +81,56 @@ function rejectFilesystemStoreFormat(format, methodName) {
 
 /**
  * Parse common query parameters shared across GET snapshot endpoints.
+ *
+ * The `include` parameter is format-sensitive:
+ *   - format=workbench: single tier name ('members' | 'staged' | 'candidates'
+ *     | 'quarantine' | 'all') controlling which tier arrays are returned
+ *   - format=bundle: list of additional tiers ('staged' and/or 'candidates')
+ *     to hydrate into the bundle alongside members. Omitted → members only.
+ *
+ * The `state`, `stixVersion`, and `includeToc` parameters only apply to
+ * format=bundle.
  */
 function parseSnapshotQueryParams(query) {
-  return {
-    format: parseOptionalQueryStrict(query.format, formatQuerySchema, 'workbench', 'format'),
-    include: parseOptionalQuery(query.include, includeQuerySchema, undefined),
+  const format = parseOptionalQueryStrict(query.format, formatQuerySchema, 'workbench', 'format');
+
+  const common = {
+    format,
     releases: query.releases === 'only' ? 'only' : undefined,
     version: parseOptionalQuery(query.version, xMitreVersionSchema, undefined),
     versions: query.versions === 'all' ? 'all' : undefined,
     limit: query.limit ? parseInt(query.limit, 10) : undefined,
     offset: query.offset ? parseInt(query.offset, 10) : undefined,
+  };
+
+  if (format === 'bundle') {
+    return {
+      ...common,
+      include: parseOptionalQueryStrict(
+        query.include,
+        bundleIncludeQuerySchema,
+        undefined,
+        'include',
+      ),
+      state: parseOptionalQueryStrict(query.state, bundleStateQuerySchema, undefined, 'state'),
+      stixVersion: parseOptionalQueryStrict(
+        query.stixVersion,
+        stixVersionQuerySchema,
+        '2.1',
+        'stixVersion',
+      ),
+      includeToc: parseOptionalQueryStrict(
+        query.includeToc,
+        booleanQuerySchema,
+        true,
+        'includeToc',
+      ),
+    };
+  }
+
+  return {
+    ...common,
+    include: parseOptionalQueryStrict(query.include, includeQuerySchema, undefined, 'include'),
   };
 }
 
@@ -118,7 +162,41 @@ exports.retrieveEphemeralByDomain = async function retrieveEphemeralByDomain(req
       return next(formatError);
     }
 
-    const result = await releaseTracksService.getEphemeralBundle(domainResult.data, format);
+    const options = {
+      format,
+      stixVersion: parseOptionalQueryStrict(
+        req.query.stixVersion,
+        stixVersionQuerySchema,
+        '2.1',
+        'stixVersion',
+      ),
+      includeToc: parseOptionalQueryStrict(
+        req.query.includeToc,
+        booleanQuerySchema,
+        true,
+        'includeToc',
+      ),
+      includeObjectsWithMissingAttackId: parseOptionalQueryStrict(
+        req.query.includeObjectsWithMissingAttackId,
+        booleanQuerySchema,
+        false,
+        'includeObjectsWithMissingAttackId',
+      ),
+      includeDeprecated: parseOptionalQueryStrict(
+        req.query.includeDeprecated,
+        booleanQuerySchema,
+        false,
+        'includeDeprecated',
+      ),
+      includeRevoked: parseOptionalQueryStrict(
+        req.query.includeRevoked,
+        booleanQuerySchema,
+        false,
+        'includeRevoked',
+      ),
+    };
+
+    const result = await releaseTracksService.getEphemeralBundle(domainResult.data, options);
     logger.debug(`Success: Retrieved ephemeral ${domainResult.data} bundle`);
     return res.status(200).send(result);
   } catch (err) {

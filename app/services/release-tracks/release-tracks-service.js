@@ -250,9 +250,9 @@ exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
 // Ephemeral  (Phase 6 → ephemeral-service)
 // -----------------------------------------------------------------------------
 
-exports.getEphemeralBundle = function getEphemeralBundle(domain, format) {
-  rejectFilesystemStoreFormat(format, 'getEphemeralBundle');
-  return ephemeralService.getEphemeralBundle(domain, format);
+exports.getEphemeralBundle = function getEphemeralBundle(domain, options) {
+  rejectFilesystemStoreFormat(options?.format, 'getEphemeralBundle');
+  return ephemeralService.getEphemeralBundle(domain, options);
 };
 
 // -----------------------------------------------------------------------------

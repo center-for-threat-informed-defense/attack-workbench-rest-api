@@ -117,11 +117,31 @@ These refer to all objects delineated by ATT&CK domain membership as reflected b
 GET /api/release-tracks/ephemeral/:domain
 ```
 
+This endpoint supplants the deprecated `GET /api/stix-bundles` endpoint. The
+generated bundle preserves the legacy object-selection behavior: primary
+objects are retrieved by domain, secondary objects (groups, campaigns,
+detection strategies) are discovered through relationships, and referenced
+identities and marking definitions are included so the bundle is
+self-contained.
+
 **Path Parameters:**
 - `:domain` - `enterprise` | `ics` | `mobile`
 
 **Query Parameters:**
-- `format` - `bundle` | `filesystemstore` | `workbench` (default: `bundle`; `filesystemstore` is not yet implemented)
+
+| Parameter | Values | Default | Description |
+|-----------|--------|---------|-------------|
+| `format` | `bundle` \| `workbench` \| `filesystemstore` | `bundle` | Output format (`filesystemstore` is not yet implemented) |
+| `stixVersion` | `2.0` \| `2.1` | `2.1` | STIX version the emitted bundle conforms to (bundle format only) |
+| `includeToc` | `true` \| `false` | `true` | Include a table-of-contents object (of type `x-mitre-collection`) in the bundle. The TOC is generated with `x_mitre_version: "0.1"` (signifying an ephemeral, non-release-track collection), a `modified` of the current timestamp, and the deployment's default ATT&CK spec version. |
+| `includeObjectsWithMissingAttackId` | `true` \| `false` | `false` | Include objects that should have an ATT&CK ID set but do not |
+| `includeDeprecated` | `true` \| `false` | `false` | Include objects with `x_mitre_deprecated: true` (this also governs deprecated Data Sources) |
+| `includeRevoked` | `true` \| `false` | `false` | Include objects with `revoked: true` |
+
+> [!Note]
+> The ephemeral endpoint does not support the `include` or `state` tier
+> filters because it does not read from a persisted release-track snapshot —
+> it includes all objects in the domain.
 
 ---
 
@@ -280,6 +300,17 @@ Workbench responses return the release-track snapshot shape. Entries in the `mem
 | `version` | `X.Y` | Return specific version (e.g., `14.1`) |
 | `versions` | `all` | List all snapshots with metadata |
 
+**Additional query parameters for `format=bundle`:**
+
+| Parameter | Values | Description |
+|-----------|--------|-------------|
+| `include` | `staged` and/or `candidates` (comma-separated or repeated) | Additional tiers to include in the bundle alongside members. If omitted, only members are included. (Note the different semantics from `workbench` responses.) |
+| `state` | `work-in-progress` and/or `awaiting-review` (comma-separated or repeated) | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included. Members are unaffected. |
+| `stixVersion` | `2.0` \| `2.1` | STIX version the emitted bundle conforms to (default: `2.1`) |
+| `includeToc` | `true` \| `false` | Include a table-of-contents object (of type `x-mitre-collection`) derived from the release-track metadata (default: `true`) |
+
+See [Output Formats](output-formats.md) for details on the bundle structure.
+
 **Examples:**
 
 ```bash
@@ -288,6 +319,12 @@ GET /api/release-tracks/:id
 
 # Get latest snapshot as STIX bundle (members only)
 GET /api/release-tracks/:id?format=bundle
+
+# Get latest snapshot as STIX bundle with staged and candidate objects
+GET /api/release-tracks/:id?format=bundle&include=candidates,staged
+
+# Get latest snapshot as STIX bundle with candidates awaiting review
+GET /api/release-tracks/:id?format=bundle&include=candidates&state=awaiting-review
 
 # Get latest snapshot with members and quarantine only
 GET /api/release-tracks/:id?include=quarantine
@@ -404,6 +441,10 @@ GET /api/release-tracks/:id/snapshots/:modified
 - `format` - `workbench` | `bundle` | `filesystemstore` (default: `workbench`; `filesystemstore` is not yet implemented)
 - `include` - `members` | `staged` | `candidates` | `quarantine` | `all` (default: all tiers)
 
+For `format=bundle`, the same additional parameters as
+[Get Latest Snapshot](#get-latest-snapshot) apply: `include` (bundle
+semantics), `state`, `stixVersion`, and `includeToc`.
+
 **Example:**
 ```bash
 # Get snapshot from January 15, 2024 for the Workbench UI
@@ -411,6 +452,9 @@ GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z
 
 # Get snapshot from January 15, 2024 as STIX bundle
 GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle
+
+# Historical snapshot as a bundle including staged objects
+GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle&include=staged
 ```
 
 ### Update Metadata (Specific Snapshot)
@@ -967,7 +1011,7 @@ The following release-track snapshot retrieval endpoints support `include` and
 The ephemeral bundle endpoint supports `format`, but not tier `include`, because
 it does not read from a persisted release-track snapshot.
 
-**Include Parameter** (controls which tiers are returned):
+**Include Parameter** (workbench format — controls which tiers are returned):
 ```
 GET /api/release-tracks/:id                            # Default: all tiers
 GET /api/release-tracks/:id?include=members            # Members tier only
@@ -977,10 +1021,26 @@ GET /api/release-tracks/:id?include=quarantine         # Members and quarantine 
 GET /api/release-tracks/:id?include=all                # All tiers
 ```
 
+**Include Parameter** (bundle format — controls which tiers are hydrated into
+the bundle; members are always included):
+```
+GET /api/release-tracks/:id?format=bundle                            # Members only
+GET /api/release-tracks/:id?format=bundle&include=staged             # Members + staged
+GET /api/release-tracks/:id?format=bundle&include=candidates         # Members + candidates
+GET /api/release-tracks/:id?format=bundle&include=candidates,staged  # Members + both
+```
+
+**State Parameter** (bundle format only — narrows the tiers selected via
+`include` by workflow status; `reviewed` entries are always included):
+```
+GET /api/release-tracks/:id?format=bundle&include=candidates&state=work-in-progress
+GET /api/release-tracks/:id?format=bundle&include=candidates,staged&state=work-in-progress,awaiting-review
+```
+
 **Format Parameter** (controls output format):
 ```
 GET /api/release-tracks/:id?format=workbench           # Workbench snapshot with metadata (default)
-GET /api/release-tracks/:id?format=bundle              # Standard STIX 2.1 bundle
+GET /api/release-tracks/:id?format=bundle              # Standard STIX bundle
 GET /api/release-tracks/:id?format=filesystemstore     # Not implemented; returns 501
 ```
 

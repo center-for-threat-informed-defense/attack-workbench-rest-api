@@ -5,18 +5,26 @@
 //
 // Generates stateless, non-persisted STIX bundles for a given ATT&CK domain.
 // Unlike regular release tracks (which store snapshots with object refs),
-// ephemeral bundles are computed on-the-fly by querying all STIX repositories
-// for objects belonging to the requested domain.
+// ephemeral bundles are computed on-the-fly by querying the database for
+// objects belonging to the requested domain.
 //
 // This service performs cross-service READS (permitted by the event-driven
 // architecture — see docs/CROSS_SERVICE_READS_PATTERN.md) by querying STIX
 // repositories directly. It does NOT write to any repository.
 //
-// The domain query pattern mirrors stix-bundles-service.exportBundle, but
-// operates independently of the legacy collection-bundles infrastructure.
+// The default 'bundle' format supplants the legacy GET /api/stix-bundles
+// endpoint. Bundle generation delegates to stix-bundles-service.exportBundle
+// so that all of its object-selection logic is preserved: secondary objects
+// (groups, campaigns, detection strategies), relationship referential
+// integrity, LinkById citation conversion, STIX version conformance, and
+// x-mitre-collection (TOC) generation. See
+// docs/developer/release-tracks/bundle-export.md for the parameter mapping.
+//
+// The 'workbench' format retains the simpler domain-query pipeline below,
+// which returns full Workbench documents (stix + workspace).
 // =============================================================================
 
-const uuid = require('uuid');
+const config = require('../../config/config');
 const logger = require('../../lib/logger');
 
 // ---------------------------------------------------------------------------
@@ -124,16 +132,47 @@ async function fetchSupportingObjects(identityIds, markingIds) {
 /**
  * Generate an ephemeral STIX bundle for a domain.
  *
- * Queries all domain-aware repositories in parallel for the latest version
- * of each object in the given domain, then discovers and includes
- * relationships that connect those objects, along with referenced identities
- * and marking definitions.
+ * For the default 'bundle' format, delegates to
+ * stix-bundles-service.exportBundle with the following parameter mapping
+ * (this endpoint supplants the deprecated GET /api/stix-bundles endpoint):
+ *
+ *   - stixVersion:                      preserved (default '2.1')
+ *   - includeRevoked/includeDeprecated: preserved (default false)
+ *   - includeObjectsWithMissingAttackId: renamed from includeMissingAttackId
+ *   - includeToc:                       renamed from includeCollectionObject
+ *                                       (default true)
+ *   - collectionObjectVersion:          fixed at '0.1' — signifies that the
+ *                                       TOC was generated ephemerally and is
+ *                                       not connected to a release track
+ *   - collectionObjectModified:         fixed at the current timestamp
+ *   - collectionAttackSpecVersion:      fixed at config.app.attackSpecVersion
+ *   - includeNotes:                     removed — notes are Workbench-native
+ *                                       objects, not STIX objects
+ *   - includeDataSources:               removed — data sources are deprecated
+ *                                       or revoked as of ATT&CK v18, so their
+ *                                       inclusion is governed entirely by
+ *                                       includeDeprecated/includeRevoked
+ *   - useLegacyMethod:                  removed
+ *   - state:                            removed — workflow status is scoped
+ *                                       to release tracks, and this endpoint
+ *                                       is domain-scoped
+ *
+ * For the 'workbench' format, queries all domain-aware repositories in
+ * parallel for the latest version of each object in the given domain, then
+ * discovers and includes relationships that connect those objects, along
+ * with referenced identities and marking definitions.
  *
  * @param {string} domain - One of: 'enterprise', 'ics', 'mobile'
- * @param {string} [format='bundle'] - Output format (currently only 'bundle')
+ * @param {Object} [options] - Output options
+ * @param {string} [options.format='bundle'] - Output format
+ * @param {string} [options.stixVersion='2.1'] - STIX version ('2.0' or '2.1')
+ * @param {boolean} [options.includeToc=true] - Include the x-mitre-collection TOC object
+ * @param {boolean} [options.includeObjectsWithMissingAttackId=false] - Include objects without ATT&CK IDs
+ * @param {boolean} [options.includeDeprecated=false] - Include deprecated objects
+ * @param {boolean} [options.includeRevoked=false] - Include revoked objects
  * @returns {Promise<Object>} A STIX bundle (or formatted output)
  */
-exports.getEphemeralBundle = async function getEphemeralBundle(domain, format) {
+exports.getEphemeralBundle = async function getEphemeralBundle(domain, options = {}) {
   const attackDomain = DOMAIN_MAP[domain];
   if (!attackDomain) {
     const { BadRequestError } = require('../../exceptions');
@@ -141,6 +180,34 @@ exports.getEphemeralBundle = async function getEphemeralBundle(domain, format) {
       message: `Unknown domain: "${domain}"`,
       details: `Valid domains are: ${Object.keys(DOMAIN_MAP).join(', ')}`,
     });
+  }
+
+  const format = options.format || 'bundle';
+
+  if (format === 'bundle') {
+    const stixVersion = options.stixVersion || '2.1';
+
+    // Lazy-load to avoid circular dependency issues at startup
+    const stixBundlesService = require('../stix/stix-bundles-service');
+    const bundle = await stixBundlesService.exportBundle({
+      domain: attackDomain,
+      stixVersion,
+      includeRevoked: options.includeRevoked === true,
+      includeDeprecated: options.includeDeprecated === true,
+      includeMissingAttackId: options.includeObjectsWithMissingAttackId === true,
+      // Notes are Workbench-native objects, not STIX objects
+      includeNotes: false,
+      // Data sources are all deprecated/revoked as of ATT&CK v18; let the
+      // includeDeprecated/includeRevoked flags govern their inclusion
+      includeDataSources: true,
+      includeCollectionObject: options.includeToc !== false,
+      collectionObjectVersion: '0.1',
+      collectionObjectModified: new Date().toISOString(),
+      collectionAttackSpecVersion: config.app.attackSpecVersion,
+    });
+
+    logger.verbose(`EphemeralService: Built ephemeral ${stixVersion} bundle for "${attackDomain}"`);
+    return bundle;
   }
 
   const repos = getRepositories();
@@ -218,64 +285,41 @@ exports.getEphemeralBundle = async function getEphemeralBundle(domain, format) {
   const supportingObjects = await fetchSupportingObjects(identityIds, markingIds);
 
   // ------------------------------------------------------------------
-  // Step 5: Assemble the STIX bundle
+  // Step 5: Format via export-service with a synthetic snapshot envelope
   // ------------------------------------------------------------------
 
-  // Deduplicate by stix.id (in case of overlapping supporting objects)
+  // Deduplicate by stix.id + stix.modified (in case of overlapping
+  // supporting objects)
   const seen = new Set();
-  const bundleObjects = [];
-
+  const deduped = [];
   for (const doc of [...primaryObjects, ...relevantRelationships, ...supportingObjects]) {
     const key = `${doc.stix.id}::${doc.stix.modified}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    bundleObjects.push(doc.stix);
+    deduped.push(doc);
   }
-
-  const bundle = {
-    type: 'bundle',
-    id: `bundle--${uuid.v4()}`,
-    objects: bundleObjects,
-  };
 
   logger.verbose(
-    `EphemeralService: Built ephemeral bundle for "${attackDomain}" ` +
+    `EphemeralService: Built ephemeral ${format} snapshot for "${attackDomain}" ` +
       `(${primaryObjects.length} primary, ${relevantRelationships.length} relationships, ` +
-      `${supportingObjects.length} supporting → ${bundleObjects.length} total objects)`,
+      `${supportingObjects.length} supporting → ${deduped.length} total objects)`,
   );
 
-  // Format conversion (if not plain bundle)
-  if (format === 'workbench' || format === 'filesystemstore') {
-    // Re-use export-service formatters with a synthetic snapshot envelope
-    const exportService = require('./export-service');
-    const syntheticDocs = [...primaryObjects, ...relevantRelationships, ...supportingObjects];
-    const deduped = [];
-    const dedupSeen = new Set();
-    for (const doc of syntheticDocs) {
-      const key = `${doc.stix.id}::${doc.stix.modified}`;
-      if (dedupSeen.has(key)) continue;
-      dedupSeen.add(key);
-      deduped.push(doc);
-    }
+  const exportService = require('./export-service');
+  const syntheticSnapshot = {
+    id: `ephemeral-${domain}`,
+    version: null,
+    name: `${domain} (ephemeral)`,
+    modified: new Date(),
+    members: deduped.map((doc) => ({
+      object_ref: doc.stix.id,
+      // Marking definitions have no modified timestamp; fall back to created
+      object_modified: doc.stix.modified || doc.stix.created,
+    })),
+  };
 
-    const syntheticSnapshot = {
-      id: `ephemeral-${domain}`,
-      version: null,
-      name: `${domain} (ephemeral)`,
-      modified: new Date(),
-      members: deduped.map((doc) => ({
-        object_ref: doc.stix.id,
-        object_modified: doc.stix.modified,
-      })),
-    };
-
-    if (format === 'workbench') {
-      return exportService.formatAsWorkbench(syntheticSnapshot, deduped);
-    }
-    if (format === 'filesystemstore') {
-      return exportService.formatAsFilesystemStore(syntheticSnapshot, deduped);
-    }
+  if (format === 'filesystemstore') {
+    return exportService.formatAsFilesystemStore(syntheticSnapshot, deduped);
   }
-
-  return bundle;
+  return exportService.formatAsWorkbench(syntheticSnapshot, deduped);
 };

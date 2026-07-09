@@ -8,17 +8,22 @@ paths:
       operationId: 'release-tracks-ephemeral-get'
       description: |
         Generate a stateless bundle containing all objects from a given ATT&CK domain.
-        This endpoint queries all STIX repositories by domain without persisting a release track.
+        This endpoint queries the database by domain without persisting a release track.
+        It supplants the deprecated GET /api/stix-bundles endpoint.
       tags:
         - 'Release Tracks'
       parameters:
         - name: domain
           in: path
           required: true
-          description: 'ATT&CK domain (e.g., enterprise-attack, mobile-attack, ics-attack)'
+          description: 'ATT&CK domain'
           schema:
             type: string
-            example: 'enterprise-attack'
+            enum:
+              - enterprise
+              - ics
+              - mobile
+            example: 'enterprise'
         - name: format
           in: query
           description: 'Output format. filesystemstore is not yet implemented.'
@@ -29,6 +34,48 @@ paths:
               - workbench
               - filesystemstore
             default: bundle
+        - name: stixVersion
+          in: query
+          description: |
+            STIX version that the exported bundle should conform to (bundle format only).
+          schema:
+            type: string
+            enum:
+              - '2.0'
+              - '2.1'
+            default: '2.1'
+        - name: includeToc
+          in: query
+          description: |
+            Whether to include a table-of-contents object (of type `x-mitre-collection`)
+            in the bundle (bundle format only).
+          schema:
+            type: boolean
+            default: true
+        - name: includeObjectsWithMissingAttackId
+          in: query
+          description: |
+            Whether to include objects that should have an ATT&CK ID set but do not
+            (bundle format only).
+          schema:
+            type: boolean
+            default: false
+        - name: includeDeprecated
+          in: query
+          description: |
+            Whether to include objects that have the `x_mitre_deprecated` property set to true
+            (bundle format only).
+          schema:
+            type: boolean
+            default: false
+        - name: includeRevoked
+          in: query
+          description: |
+            Whether to include objects that have the `revoked` property set to true
+            (bundle format only).
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: 'Ephemeral bundle generated successfully'
@@ -156,6 +203,7 @@ paths:
         Retrieve the most recent snapshot for a release track.
         By default returns the Workbench snapshot shape with all tiers present.
         Use the include query parameter to narrow tier arrays when desired.
+        Use format=bundle to export the snapshot as a STIX bundle.
       tags:
         - 'Release Tracks'
       parameters:
@@ -168,16 +216,20 @@ paths:
             example: 'release-track--a1b2c3d4-e5f6-7890-abcd-ef1234567890'
         - name: include
           in: query
-          description: 'Which tiers to include in response'
+          description: |
+            Format-sensitive tier selector.
+            For format=workbench (default): a single value controlling which tier arrays
+            are returned — members | staged | candidates | quarantine | all (default: all).
+            For format=bundle: a list of additional tiers (staged and/or candidates,
+            comma-separated or repeated) to include alongside members. If omitted, only
+            members are included in the bundle.
+          allowReserved: true
           schema:
-            type: string
-            enum:
-              - members
-              - staged
-              - candidates
-              - quarantine
-              - all
-            default: all
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
         - name: format
           in: query
           description: 'Output format. filesystemstore is not yet implemented.'
@@ -188,6 +240,38 @@ paths:
               - workbench
               - filesystemstore
             default: workbench
+        - name: state
+          in: query
+          description: |
+            Workflow-status filter for the staged/candidate tiers selected via include
+            (bundle format only). Accepts work-in-progress and/or awaiting-review
+            (comma-separated or repeated). Entries marked reviewed are always included,
+            irrespective of this parameter. Members are unaffected.
+          allowReserved: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: stixVersion
+          in: query
+          description: |
+            STIX version that the exported bundle should conform to (bundle format only).
+          schema:
+            type: string
+            enum:
+              - '2.0'
+              - '2.1'
+            default: '2.1'
+        - name: includeToc
+          in: query
+          description: |
+            Whether to include a table-of-contents object (of type `x-mitre-collection`)
+            derived from the release-track metadata (bundle format only).
+          schema:
+            type: boolean
+            default: true
       responses:
         '200':
           description: 'Latest snapshot retrieved successfully'
@@ -711,6 +795,7 @@ paths:
       operationId: 'release-tracks-snapshot-get'
       description: |
         Retrieve a historical snapshot identified by its modified timestamp.
+        Use format=bundle to export the snapshot as a STIX bundle.
       tags:
         - 'Release Tracks'
       parameters:
@@ -727,15 +812,20 @@ paths:
             type: string
         - name: include
           in: query
+          description: |
+            Format-sensitive tier selector.
+            For format=workbench (default): a single value controlling which tier arrays
+            are returned — members | staged | candidates | quarantine | all (default: all).
+            For format=bundle: a list of additional tiers (staged and/or candidates,
+            comma-separated or repeated) to include alongside members. If omitted, only
+            members are included in the bundle.
+          allowReserved: true
           schema:
-            type: string
-            enum:
-              - members
-              - staged
-              - candidates
-              - quarantine
-              - all
-            default: all
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
         - name: format
           in: query
           description: 'Output format. filesystemstore is not yet implemented.'
@@ -746,6 +836,38 @@ paths:
               - filesystemstore
               - workbench
             default: workbench
+        - name: state
+          in: query
+          description: |
+            Workflow-status filter for the staged/candidate tiers selected via include
+            (bundle format only). Accepts work-in-progress and/or awaiting-review
+            (comma-separated or repeated). Entries marked reviewed are always included,
+            irrespective of this parameter. Members are unaffected.
+          allowReserved: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: stixVersion
+          in: query
+          description: |
+            STIX version that the exported bundle should conform to (bundle format only).
+          schema:
+            type: string
+            enum:
+              - '2.0'
+              - '2.1'
+            default: '2.1'
+        - name: includeToc
+          in: query
+          description: |
+            Whether to include a table-of-contents object (of type `x-mitre-collection`)
+            derived from the release-track metadata (bundle format only).
+          schema:
+            type: boolean
+            default: true
       responses:
         '200':
           description: 'Snapshot retrieved successfully'
