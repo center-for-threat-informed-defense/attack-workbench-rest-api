@@ -56,7 +56,37 @@ class RelationshipsService extends BaseService {
       this.handleSubtechniqueConvertedToTechnique.bind(this),
     );
 
+    EventBus.on(
+      EventConstants.RELEASE_TRACK_CONTENTS_CHANGED,
+      this.handleReleaseTrackContentsChanged.bind(this),
+    );
+
     logger.info('RelationshipsService: Event listeners initialized');
+  }
+
+  /**
+   * Reconcile workspace.release_tracks backrefs on relationship documents
+   * when a release track's contents change. Relationships live in their own
+   * collection, so this service handles the relationship refs while
+   * AttackObjectsService handles everything else.
+   *
+   * @param {Object} payload - { trackId, snapshot } (snapshot null = track deleted)
+   */
+  static async handleReleaseTrackContentsChanged(payload) {
+    const backrefReconciler = require('../../lib/release-tracks/backref-reconciler');
+
+    try {
+      await backrefReconciler.reconcile(
+        relationshipsRepository,
+        payload.trackId,
+        payload.snapshot,
+        (objectRef) => objectRef.startsWith('relationship--'),
+      );
+    } catch (error) {
+      logger.error(
+        `RelationshipsService: Error reconciling release track backrefs for ${payload.trackId}: ${error.message}`,
+      );
+    }
   }
 
   /**
@@ -156,6 +186,11 @@ class RelationshipsService extends BaseService {
 
           deprecatedVersion.stix.x_mitre_deprecated = true;
           deprecatedVersion.stix.modified = new Date().toISOString();
+          // Backrefs are pinned to the exact revision a track references —
+          // never carried onto a new revision.
+          if (deprecatedVersion.workspace) {
+            delete deprecatedVersion.workspace.release_tracks;
+          }
 
           const saved = await relationshipsRepository.save(deprecatedVersion);
           deprecatedDocs.push(saved);
@@ -221,6 +256,11 @@ class RelationshipsService extends BaseService {
 
           relData.stix.x_mitre_deprecated = true;
           relData.stix.modified = new Date().toISOString();
+          // Backrefs are pinned to the exact revision a track references —
+          // never carried onto a new revision.
+          if (relData.workspace) {
+            delete relData.workspace.release_tracks;
+          }
 
           const saved = await relationshipsRepository.save(relData);
           deprecatedDocs.push(saved);

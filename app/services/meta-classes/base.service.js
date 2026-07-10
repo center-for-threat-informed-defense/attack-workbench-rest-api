@@ -370,8 +370,12 @@ class BaseService extends ServiceWithHooks {
 
     // Strip workspace.validation — server-controlled; recomputed on every
     // create/update so a stale entry from a prior GET cannot ride along.
+    // Strip workspace.release_tracks — server-controlled; maintained by
+    // release-track backref reconciliation, and pinned to specific revisions,
+    // so a copy from a prior GET must not ride along onto a new version.
     if (data.workspace) {
       delete data.workspace.validation;
+      delete data.workspace.release_tracks;
     }
 
     if (!options.preserveAttackId) {
@@ -776,8 +780,11 @@ class BaseService extends ServiceWithHooks {
   async composeForImport(data, options) {
     // Strip workspace.validation — server-controlled; the fail-open block
     // below is the only legitimate writer of this field on the import path.
+    // Strip workspace.release_tracks — server-controlled (see
+    // stripServerControlledFields); imported objects must not claim membership.
     if (data.workspace) {
       delete data.workspace.validation;
+      delete data.workspace.release_tracks;
     }
 
     // Extract ATT&CK ID from external_references and propagate to workspace.attack_id
@@ -1081,6 +1088,11 @@ class BaseService extends ServiceWithHooks {
     delete objectAData.__t;
     objectAData.stix.revoked = true;
     objectAData.stix.modified = new Date().toISOString();
+    // Release-track backrefs are pinned to specific revisions — the new
+    // revoked revision is not referenced by any track.
+    if (objectAData.workspace) {
+      delete objectAData.workspace.release_tracks;
+    }
     if (options.userAccountId) {
       objectAData.workspace = objectAData.workspace || {};
       objectAData.workspace.workflow = objectAData.workspace.workflow || {};

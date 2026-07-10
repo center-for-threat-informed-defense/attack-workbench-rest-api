@@ -160,6 +160,7 @@ Where `{type}` is the STIX type (e.g., `attack-pattern`, `x-mitre-analytic`, `x-
 | `x-mitre-detection-strategy::analytics-referenced` | DetectionStrategiesService | When detection strategy references analytics (create/update) | `{ detectionStrategyId, detectionStrategy, analyticIds }` | AnalyticsService |
 | `x-mitre-detection-strategy::analytics-removed` | DetectionStrategiesService | When analytics removed from detection strategy | `{ detectionStrategyId, analyticIds }` | AnalyticsService |
 | `x-mitre-analytic::parent-changed` | AnalyticsService | When analytic's parent detection strategy changes | `{ analyticId, oldParentId, newParentId, analytic }` | (Future: for cascading updates) |
+| `release-track::contents-changed` | snapshot-service / versioning-service | After any persisted change to a track's latest snapshot (or track/snapshot deletion) | `{ trackId, snapshot }` (`snapshot` null when the track or its only snapshot was deleted) | AttackObjectsService, RelationshipsService (reconcile `workspace.release_tracks` backrefs; see [backref-reconciliation.md](release-tracks/backref-reconciliation.md)) |
 
 ## Workflow Examples
 

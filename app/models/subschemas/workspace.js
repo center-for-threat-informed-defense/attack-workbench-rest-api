@@ -30,6 +30,24 @@ const validationIssue = {
 };
 const validationIssueSchema = new mongoose.Schema(validationIssue, { _id: false });
 
+const releaseTrackRef = {
+  id: { type: String, required: true },
+  // Which tier of the track references this revision; values match the
+  // snapshot tier array names.
+  tier: {
+    type: String,
+    enum: ['members', 'staged', 'candidates', 'quarantine'],
+    required: true,
+  },
+  // Track-scoped workflow status. Members are inherently 'reviewed';
+  // quarantined entries (virtual tracks) carry no status.
+  status: {
+    type: String,
+    enum: ['work-in-progress', 'awaiting-review', 'reviewed'],
+  },
+};
+const releaseTrackRefSchema = new mongoose.Schema(releaseTrackRef, { _id: false });
+
 /**
  * Workspace property definition for most object types
  */
@@ -43,6 +61,7 @@ module.exports.common = {
   },
   attack_id: String,
   collections: [collectionVersionSchema],
+  release_tracks: { type: [releaseTrackRefSchema], default: undefined },
   embedded_relationships: { type: [embeddedRelationshipSchema], default: undefined },
   validation: {
     errors: { type: [validationIssueSchema], default: undefined },

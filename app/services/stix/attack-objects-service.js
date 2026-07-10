@@ -199,7 +199,37 @@ class AttackObjectsService extends BaseService {
       AttackObjectsService.handleOrganizationIdentityChanged,
     );
 
+    EventBus.on(
+      Events.RELEASE_TRACK_CONTENTS_CHANGED,
+      AttackObjectsService.handleReleaseTrackContentsChanged,
+    );
+
     logger.info('AttackObjectsService: Event listeners initialized');
+  }
+
+  /**
+   * Reconcile workspace.release_tracks backrefs on attackObjects documents
+   * when a release track's contents change. Covers every STIX type stored in
+   * the attackObjects collection; relationship refs are handled by
+   * RelationshipsService (separate collection).
+   *
+   * @param {Object} payload - { trackId, snapshot } (snapshot null = track deleted)
+   */
+  static async handleReleaseTrackContentsChanged(payload) {
+    const backrefReconciler = require('../../lib/release-tracks/backref-reconciler');
+
+    try {
+      await backrefReconciler.reconcile(
+        attackObjectsRepository,
+        payload.trackId,
+        payload.snapshot,
+        (objectRef) => !objectRef.startsWith('relationship--'),
+      );
+    } catch (error) {
+      logger.error(
+        `AttackObjectsService: Error reconciling release track backrefs for ${payload.trackId}: ${error.message}`,
+      );
+    }
   }
 
   /**
@@ -238,12 +268,15 @@ class AttackObjectsService extends BaseService {
         );
 
         const newVersion = {
-          workspace: obj.workspace,
+          workspace: { ...obj.workspace },
           stix: {
             ...obj.stix,
             modified: new Date().toISOString(),
           },
         };
+        // Release-track backrefs are pinned to specific revisions — the new
+        // revision is not referenced by any track.
+        delete newVersion.workspace.release_tracks;
 
         if (createdByInHistory) {
           newVersion.stix.created_by_ref = newIdentityRef;

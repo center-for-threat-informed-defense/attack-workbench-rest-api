@@ -158,4 +158,11 @@ module.exports = Object.freeze({
 
   // Validation
   VALIDATION_BYPASS_CHECK_REQUESTED: 'validation-bypass::check-requested',
+
+  // Release Tracks
+  // Emitted after any persisted change to a release track's current (latest)
+  // snapshot. Payload: { trackId, snapshot } where snapshot is the track's
+  // latest snapshot, or null when the track (or its only snapshot) was deleted.
+  // Listeners reconcile workspace.release_tracks backrefs on their own documents.
+  RELEASE_TRACK_CONTENTS_CHANGED: 'release-track::contents-changed',
 });

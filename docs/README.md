@@ -21,6 +21,7 @@ Guides for consumers of the REST API — endpoints, workflows, and terminology.
 - [Release Workflow](user/release-tracks/release-workflow.md): Workflow integration and candidacy
 - [Output Formats](user/release-tracks/output-formats.md): Output format specifications
 - [Workflow Examples](user/release-tracks/workflow-examples.md): End-to-end workflow examples
+- [Object Backrefs](user/release-tracks/object-backrefs.md): Release-track membership pointers on object documents (`workspace.release_tracks`)
 
 ## Developer Documentation
 
@@ -39,6 +40,7 @@ Architecture, patterns, and implementation details for contributors.
 ### Release Tracks (Internals)
 
 - [Entities](developer/release-tracks/entities.md): Database schemas and data models
+- [Backref Reconciliation](developer/release-tracks/backref-reconciliation.md): How `workspace.release_tracks` backrefs stay in sync with snapshots
 - [Member Sync Strategies](developer/release-tracks/member-sync-strategies.md): Automatic tracking of member object revisions
 - [Error Handling](developer/release-tracks/error-handling.md): Error handling patterns
 - [Implementation Notes](developer/release-tracks/implementation-notes.md): Implementation notes and decisions

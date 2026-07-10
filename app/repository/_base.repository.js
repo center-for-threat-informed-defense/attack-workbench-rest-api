@@ -527,6 +527,96 @@ class BaseRepository extends AbstractRepository {
     }
   }
 
+  /**
+   * Retrieve the workspace.release_tracks backrefs of one object revision.
+   * Lean, minimal projection — used to refresh a create/update response
+   * after domain-event listeners (member sync → backref reconciliation)
+   * may have stamped backrefs onto the persisted document.
+   *
+   * @param {string} stixId - The STIX ID
+   * @param {Date|string} stixModified - The revision's modified timestamp
+   * @returns {Promise<Object[]|undefined>} The release_tracks entries, if any
+   */
+  async retrieveBackrefsByVersionLean(stixId, stixModified) {
+    try {
+      const document = await this.model
+        .findOne({ 'stix.id': stixId, 'stix.modified': new Date(stixModified) })
+        .select('workspace.release_tracks')
+        .lean()
+        .exec();
+      return document?.workspace?.release_tracks;
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
+   * Retrieve all documents carrying a workspace.release_tracks entry for the
+   * given release track. Lean, minimal projection — used by release-track
+   * backref reconciliation.
+   *
+   * @param {string} trackId - The release track ID
+   * @returns {Promise<Object[]>} Lean documents with _id, stix.id, stix.modified, workspace.release_tracks
+   */
+  async retrieveReleaseTrackRefsLean(trackId) {
+    try {
+      return await this.model
+        .find({ 'workspace.release_tracks.id': trackId })
+        .select('_id stix.id stix.modified workspace.release_tracks')
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
+   * Resolve specific object revisions to their document _ids. Lean, minimal
+   * projection — used by release-track backref reconciliation.
+   *
+   * @param {Array<{object_ref: string, object_modified: Date|string}>} versions
+   * @returns {Promise<Object[]>} Lean documents with _id, stix.id, stix.modified
+   */
+  async retrieveVersionRefsLean(versions) {
+    const BATCH_SIZE = 500;
+    try {
+      const results = [];
+      for (let i = 0; i < versions.length; i += BATCH_SIZE) {
+        const batch = versions.slice(i, i + BATCH_SIZE);
+        const documents = await this.model
+          .find({
+            $or: batch.map((v) => ({
+              'stix.id': v.object_ref,
+              'stix.modified': new Date(v.object_modified),
+            })),
+          })
+          .select('_id stix.id stix.modified')
+          .lean()
+          .exec();
+        results.push(...documents);
+      }
+      return results;
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
+   * Execute a set of bulk write operations, batched to bound memory usage.
+   *
+   * @param {Object[]} operations - MongoDB bulkWrite operations
+   */
+  async bulkWrite(operations) {
+    const BATCH_SIZE = 500;
+    try {
+      for (let i = 0; i < operations.length; i += BATCH_SIZE) {
+        await this.model.bulkWrite(operations.slice(i, i + BATCH_SIZE), { ordered: false });
+      }
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async unsetField(documentId, fieldPath) {
     try {
       return await this.model.updateOne({ _id: documentId }, { $unset: { [fieldPath]: '' } });

@@ -335,6 +335,9 @@ class TechniquesService extends BaseService {
     newVersion.stix.modified = new Date().toISOString();
     newVersion.workspace = newVersion.workspace || {};
     newVersion.workspace.attack_id = newAttackId;
+    // Backrefs are pinned to the exact revision a track references — never
+    // carried onto a new revision.
+    delete newVersion.workspace.release_tracks;
 
     // Rebuild external references: replace ATT&CK ref with the new one
     const userRefs = removeAttackExternalReferences(newVersion.stix.external_references);
@@ -417,6 +420,9 @@ class TechniquesService extends BaseService {
     newVersion.stix.modified = new Date().toISOString();
     newVersion.workspace = newVersion.workspace || {};
     newVersion.workspace.attack_id = newAttackId;
+    // Backrefs are pinned to the exact revision a track references — never
+    // carried onto a new revision.
+    delete newVersion.workspace.release_tracks;
 
     // Rebuild external references: replace ATT&CK ref with the new one
     const userRefs = removeAttackExternalReferences(newVersion.stix.external_references);

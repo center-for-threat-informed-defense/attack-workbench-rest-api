@@ -132,6 +132,12 @@ async function _doBump(trackId, snapshot, options) {
     updated_at: now,
   });
 
+  // The staged → members promotion changed tier membership. Re-read the
+  // latest snapshot rather than using `tagged` — bumpByModified may have
+  // tagged an older snapshot, and backrefs track the latest one.
+  const latest = await dynamicRepo.getLatestSnapshot(trackId);
+  await snapshotService.emitContentsChanged(trackId, latest);
+
   logger.verbose(
     `VersioningService: Tagged track "${trackId}" as v${version} ` +
       `(promoted ${promotedCount} staged → members)`,

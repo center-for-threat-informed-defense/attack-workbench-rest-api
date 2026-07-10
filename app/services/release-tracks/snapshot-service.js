@@ -17,6 +17,8 @@ const registryRepo = require('../../repository/release-tracks/release-track-regi
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
 const modelFactory = require('../../models/release-tracks/model-factory');
 const logger = require('../../lib/logger');
+const EventBus = require('../../lib/event-bus');
+const EventConstants = require('../../lib/event-constants');
 const { TrackNotFoundError, NotFoundError } = require('../../exceptions');
 
 // =============================================================================
@@ -72,6 +74,22 @@ async function syncRegistryCounters(trackId) {
     updated_at: new Date(),
   });
 }
+
+/**
+ * Notify listeners that a track's current (latest) snapshot changed so they
+ * can reconcile workspace.release_tracks backrefs on their own documents.
+ *
+ * Emissions are awaited (request/response blocking): backrefs are consistent
+ * by the time the triggering API call returns.
+ *
+ * @param {string} trackId
+ * @param {Object|null} snapshot - The track's latest snapshot, or null when the
+ *   track (or its only snapshot) was deleted
+ */
+async function emitContentsChanged(trackId, snapshot) {
+  await EventBus.emit(EventConstants.RELEASE_TRACK_CONTENTS_CHANGED, { trackId, snapshot });
+}
+exports.emitContentsChanged = emitContentsChanged;
 
 // =============================================================================
 // Track management
@@ -226,6 +244,9 @@ exports.cloneSnapshot = async function cloneSnapshot(trackId, sourceSnapshot, ov
   const saved = await dynamicRepo.saveSnapshot(trackId, clone);
   await syncRegistryCounters(trackId);
 
+  // The clone (modified = now) is the track's new latest snapshot
+  await emitContentsChanged(trackId, saved);
+
   logger.verbose(`SnapshotService: Cloned snapshot for track "${trackId}"`);
   return saved;
 };
@@ -289,6 +310,9 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
     created_at: now,
     updated_at: now,
   });
+
+  // The new track's initial snapshot carries the source track's contents
+  await emitContentsChanged(newTrackId, saved);
 
   logger.verbose(`SnapshotService: Cloned track to new track "${clone.name}" (${newTrackId})`);
   return saved;
@@ -486,6 +510,9 @@ exports.deleteTrack = async function deleteTrack(trackId) {
   await dynamicRepo.dropCollection(trackId);
   await registryRepo.deleteByTrackId(trackId);
 
+  // Remove all backrefs to the deleted track
+  await emitContentsChanged(trackId, null);
+
   logger.verbose(`SnapshotService: Deleted track "${trackId}"`);
 };
 
@@ -506,6 +533,11 @@ exports.deleteSnapshot = async function deleteSnapshot(trackId, modified) {
 
   await dynamicRepo.deleteSnapshot(trackId, modified);
   await syncRegistryCounters(trackId);
+
+  // Deleting the latest snapshot reverts membership to the previous snapshot
+  // (or clears it if no snapshots remain)
+  const latest = await dynamicRepo.getLatestSnapshot(trackId);
+  await emitContentsChanged(trackId, latest);
 
   logger.verbose(`SnapshotService: Deleted snapshot '${modified}' from track "${trackId}"`);
 };

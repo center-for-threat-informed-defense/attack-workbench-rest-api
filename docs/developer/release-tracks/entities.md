@@ -126,6 +126,7 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
       status_threshold: "reviewed"
     },
     promotion_conflicts: {
+      into_candidates: "prefer_latest",       // "always_overwrite" | "always_reject" | "prefer_latest" | "abort"
       candidates_to_staged: "prefer_latest",  // "always_overwrite" | "always_reject" | "prefer_latest"
       staged_to_members: "abort"              // "always_overwrite" | "always_reject" | "prefer_latest" | "abort"
     },
@@ -185,7 +186,11 @@ This provides:
 
 ### Object (SDO/SRO/SMO) Document Schema
 
-Objects maintain a simple reference to which release tracks reference them:
+Objects maintain a simple reverse reference to the release tracks that
+currently reference them (implemented as `workspace.release_tracks`; see
+[backref-reconciliation.md](backref-reconciliation.md) for how it is kept in
+sync and the [user doc](../../user/release-tracks/object-backrefs.md) for
+field semantics):
 
 ```javascript
 {
@@ -197,30 +202,17 @@ Objects maintain a simple reference to which release tracks reference them:
     // ... other STIX properties
   },
   workspace: {
-    // NO global workflow status - status is tracked per-release-track
-
-    // Simple reverse reference for efficient queries
-    referenced_by: [
+    // Reverse references for efficient "which tracks contain this revision?" queries
+    release_tracks: [
       {
-        release_track_id: "release-track--123",
-        snapshot_id: "2024-12-15T16:20:00.000Z",
-        membership_tier: "members",  // "members" | "staged" | "candidates"
-        review_status: "reviewed"    // "work-in-progress" | "awaiting-review" | "reviewed"
+        id: "release-track--123",
+        tier: "members",             // "members" | "staged" | "candidates" | "quarantine"
+        status: "reviewed"           // "work-in-progress" | "awaiting-review" | "reviewed"
       },
       {
-        release_track_id: "release-track--456",
-        snapshot_id: "2025-01-10T11:00:00.000Z",
-        membership_tier: "candidates",
-        review_status: "work-in-progress"
-      }
-    ],
-
-    // Attribution metadata
-    workflow_history: [
-      {
-        timestamp: "2024-01-12T09:00:00Z",
-        modified_by: "alice@example.com",
-        action: "created"
+        id: "release-track--456",
+        tier: "candidates",
+        status: "work-in-progress"
       }
     ]
   }
@@ -228,10 +220,11 @@ Objects maintain a simple reference to which release tracks reference them:
 ```
 
 **Key Points:**
-- **No global `workflow.status`** - status is release-track-specific
-- `referenced_by` provides reverse lookup for queries like "show me all release tracks containing this object"
+- `workspace.release_tracks` provides reverse lookup for queries like "show me all release tracks containing this object"
+- Entries reflect each track's **latest** snapshot and are pinned to the specific object revision the tier entry references
 - Same object version can have different statuses in different release tracks
 - Multiple versions of same object can exist, each potentially referenced by different release tracks
+- The field is server-controlled and maintained by event-driven reconciliation (`release-track::contents-changed`)
 
 ### Virtual Release Track Snapshot Schema
 
