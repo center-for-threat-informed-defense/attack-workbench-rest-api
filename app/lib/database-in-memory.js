@@ -5,6 +5,11 @@ const logger = require('./logger');
 let mongod;
 
 exports.initializeConnection = async function () {
+  // Reuse a single MongoMemoryServer for all spec files in the process.
+  // Starting a fresh mongod per spec file intermittently collides with a
+  // port the previous instance has not fully released ("Port already in
+  // use"), which fails the spec's before() hook and cascades failures
+  // through that whole file.
   if (!mongod) {
     mongod = await MongoMemoryServer.create();
   }
@@ -24,16 +29,24 @@ exports.initializeConnection = async function () {
   } catch (error) {
     handleError(error);
   }
+
+  // Rebuild schema indexes for models compiled in an earlier spec file.
+  // closeConnection drops the database (including its indexes), and
+  // mongoose's per-model init() is memoized per process — without this,
+  // unique-index constraints (e.g. stix.id + stix.modified) intermittently
+  // vanish for later spec files.
+  await Promise.all(Object.values(mongoose.models).map((model) => model.createIndexes()));
+
   logger.info('Mongoose connected to ' + uri);
 };
 
 exports.closeConnection = async function () {
-  if (mongod) {
+  // Drop data and disconnect, but leave the mongod instance running for the
+  // next spec file. The mocha scripts run with --exit, so the process does
+  // not linger after the last spec.
+  if (mongod && mongoose.connection.readyState !== 0) {
     await mongoose.connection.dropDatabase();
     await mongoose.connection.close();
-    await mongod.stop();
-
-    mongod = null;
   }
 };
 

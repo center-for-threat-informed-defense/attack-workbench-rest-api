@@ -156,6 +156,13 @@ parameter semantics in the `docs { }` block.
 - Legacy endpoints under deprecation (e.g. `GET /api/stix-bundles`) are
   replaced by release-tracks equivalents — check
   `docs/developer/release-tracks/bundle-export.md` before extending them.
+- Historic full-suite flake (fixed 2026-07-10): per-spec-file mongod
+  restarts hit "Port already in use", failing a random file's `before` hook
+  (visible as `loginAnonymous` 404s). `database-in-memory.js` now reuses one
+  mongod across spec files and the mocha scripts use `--exit`. If roaming
+  single-file failures reappear, re-run that spec file in isolation before
+  treating them as real, and check mongod startup errors at the top of the
+  run output.
 
 ## Maintaining this guide
 
