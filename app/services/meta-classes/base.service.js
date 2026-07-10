@@ -698,7 +698,33 @@ class BaseService extends ServiceWithHooks {
 
     const result = createdDocument.toObject ? createdDocument.toObject() : createdDocument;
     result.warnings = warnings;
+    await this._refreshReleaseTrackBackrefs(result);
     return result;
+  }
+
+  /**
+   * Refresh workspace.release_tracks on a response object after domain
+   * events have run. The created/updated event is awaited, and its listeners
+   * (member sync → backref reconciliation) may stamp release-track backrefs
+   * onto the persisted document after the in-memory copy was composed —
+   * without this, the response would hide backrefs the request itself
+   * produced.
+   *
+   * @param {Object} result - The plain response object ({ workspace, stix })
+   * @private
+   */
+  async _refreshReleaseTrackBackrefs(result) {
+    if (!result?.stix?.id || !result?.stix?.modified) {
+      return;
+    }
+    const backrefs = await this.repository.retrieveBackrefsByVersionLean(
+      result.stix.id,
+      result.stix.modified,
+    );
+    if (backrefs) {
+      result.workspace = result.workspace || {};
+      result.workspace.release_tracks = backrefs;
+    }
   }
 
   /**
@@ -984,6 +1010,7 @@ class BaseService extends ServiceWithHooks {
       await this.emitUpdatedEvent(newDocument, document);
       const result = newDocument.toObject ? newDocument.toObject() : newDocument;
       result.warnings = warnings;
+      await this._refreshReleaseTrackBackrefs(result);
       return result;
     } else {
       throw new DatabaseError({

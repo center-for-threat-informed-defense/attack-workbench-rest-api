@@ -70,16 +70,27 @@ A **Member Sync Strategy** is a configuration setting on a release track that de
 
 ### When Does Member Sync Apply?
 
-Member sync logic is triggered by **object modification events**. Specifically, when a STIX object is created or updated (resulting in a new `modified` timestamp), the system checks whether that object is a member of any release tracks. For each release track where the object is a member, the configured member sync strategy determines what action (if any) to take.
+Member sync logic is triggered by **object modification events**. Specifically, when a STIX object is created or updated (resulting in a new `modified` timestamp), the system checks whether that object is referenced by any release track's latest snapshot — in `members`, `candidates`, or `staged`. For each referencing track, the configured member sync strategy determines what action (if any) to take:
 
-**Important:** Member sync only applies to objects that are currently in the `members` array of a release track. It does not apply to objects that are only in `candidates` or `staged`. The rationale is that objects in `candidates` or `staged` are still progressing through the workflow and have not yet been "committed" to the release track as official members.
+- **Object in `members`:** the new revision is auto-enrolled as a candidate (the original behavior). If a candidate/staged entry for the object already exists, the supplant config governs the overlap.
+- **Object pinned only in `candidates`/`staged`:** the pin follows the new revision per the supplant config (`replace` moves the pin — to the same tier under `status_policy: preserve`, back to `candidates` under `reset`; `queue` adds a second candidate entry; `ignore` does nothing).
+
+> **Behavior evolution (2026-07-10):** member sync originally applied *only* to
+> objects in `members`, on the rationale that candidates/staged entries were
+> still in-flight. In practice that meant a candidate pin silently went stale
+> the moment the author kept editing — the release would ship the old pinned
+> revision, and the object's latest view lost its `workspace.release_tracks`
+> backref (the membership appeared to vanish). Under `track_latest`, pins now
+> follow new revisions for all three tiers; `manual` tracks are unaffected.
+> Relationships are deliberately excluded from sync — bundle export pulls
+> active relationships dynamically.
 
 ### Relationship to Existing Features
 
 Member sync strategies integrate with several existing release track features:
 
 - **Candidacy Threshold:** When a new revision is auto-enrolled as a candidate, it may be immediately promoted to `staged` if its status meets the candidacy threshold.
-- **Conflict Resolution Policies:** When member sync adds a new revision and a previous revision already exists in `candidates` or `staged`, the configured conflict resolution policy (from `config.promotion_conflicts`) determines how to handle the overlap.
+- **Conflict Resolution Policies:** Member sync resolves overlaps with existing `candidates`/`staged` entries through its own `supplant` config (below). *Manual* candidate adds and demotions instead go through `config.promotion_conflicts.into_candidates` (default `prefer_latest`) — see `release-workflow.md`. The two are deliberately separate: supplant expresses sync intent (replace/queue/ignore), while `into_candidates` uses the same policy vocabulary as the other tier transitions.
 - **Snapshot Creation:** Any change to a release track's object lists (`candidates`, `staged`, `members`) results in a new draft snapshot being created. Member sync follows this convention.
 
 ---

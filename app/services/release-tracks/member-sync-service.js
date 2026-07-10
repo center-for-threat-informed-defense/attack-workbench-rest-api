@@ -3,16 +3,21 @@
 // =============================================================================
 // Member Sync Service
 //
-// Handles automatic enrollment of new object revisions as candidates when
-// the object is already a member of a release track. This service implements
-// the "Member Sync Strategies" feature documented in 08_MEMBER_SYNC_STRATEGIES.md.
+// Keeps release tracks in sync with new object revisions under the
+// track_latest strategy (see member-sync-strategies.md):
+//   - Objects in `members`: new revisions are auto-enrolled as candidates.
+//   - Objects pinned in `candidates`/`staged`: the pin follows the new
+//     revision per the supplant config — otherwise the pin silently goes
+//     stale while the author keeps editing, and the release would ship an
+//     old revision (the object's latest view would also lose its
+//     workspace.release_tracks backref).
 //
 // Core functionality:
 //   - Listens for STIX object modification events via EventBus
-//   - Identifies release tracks where the modified object is a member
+//   - Identifies release tracks that reference the modified object
 //   - Applies the configured member sync strategy (track_latest vs manual)
 //   - Handles supplant behavior (replace/queue/ignore)
-//   - Creates new draft snapshots with auto-enrolled candidates
+//   - Creates new draft snapshots with the updated tiers
 //
 // This service is event-driven and operates independently of the main
 // release track workflow. It integrates with workflow-service for
@@ -21,7 +26,9 @@
 // Event Integration:
 //   Subscribes to BaseService CRUD events ({type}::created, {type}::updated)
 //   via the EventBus. When a STIX object is created or updated, this service
-//   checks if it's a member of any release track and auto-enrolls if configured.
+//   checks whether any release track references it and syncs if configured.
+//   Relationships are deliberately not subscribed: bundle export pulls
+//   active relationships dynamically.
 // =============================================================================
 
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
@@ -52,17 +59,16 @@ const EventConstants = require('../../lib/event-constants');
 exports.handleObjectModified = async function handleObjectModified(event) {
   const { objectRef, newModified, modifiedBy } = event;
 
-  // 1. Find all release tracks where this object is in members
-  const affectedTracks = await findTracksWithObjectInMembers(objectRef);
+  // 1. Find all release tracks that reference this object (members,
+  //    candidates, or staged)
+  const affectedTracks = await findTracksReferencingObject(objectRef);
 
   if (affectedTracks.length === 0) {
-    logger.debug(`[member-sync] No release tracks contain ${objectRef} in members`);
+    logger.debug(`[member-sync] No release tracks reference ${objectRef}`);
     return [];
   }
 
-  logger.debug(
-    `[member-sync] Found ${affectedTracks.length} track(s) with ${objectRef} in members`,
-  );
+  logger.debug(`[member-sync] Found ${affectedTracks.length} track(s) referencing ${objectRef}`);
 
   // 2. Process each track according to its member_sync config
   const results = [];
@@ -72,6 +78,7 @@ exports.handleObjectModified = async function handleObjectModified(event) {
         objectRef,
         newModified,
         modifiedBy,
+        isMember: trackInfo.isMember,
       });
       if (result) results.push(result);
     } catch (err) {
@@ -88,12 +95,18 @@ exports.handleObjectModified = async function handleObjectModified(event) {
 // =============================================================================
 
 /**
- * Find all release tracks where the given object is in the members array.
+ * Find all release tracks whose latest snapshot references the given object
+ * in the members, candidates, or staged tiers.
+ *
+ * Members enroll new revisions as candidates; candidate/staged pins follow
+ * new revisions per the supplant config — otherwise a pin silently goes
+ * stale while the author keeps editing, and the release would ship an old
+ * revision.
  *
  * @param {string} objectRef - The STIX ID to search for
- * @returns {Promise<Array<{trackId: string, snapshot: Object}>>}
+ * @returns {Promise<Array<{trackId: string, snapshot: Object, isMember: boolean}>>}
  */
-async function findTracksWithObjectInMembers(objectRef) {
+async function findTracksReferencingObject(objectRef) {
   // Get all track IDs from registry
   const allTracks = await registryRepo.findAll({ limit: 10000 });
   const results = [];
@@ -105,12 +118,17 @@ async function findTracksWithObjectInMembers(objectRef) {
     const snapshot = await dynamicRepo.getLatestSnapshot(trackInfo.track_id);
     if (!snapshot) continue;
 
-    // Check if object is in members
-    const memberEntry = snapshot.members?.find((m) => m.object_ref === objectRef);
-    if (memberEntry) {
+    const isMember = (snapshot.members || []).some((m) => m.object_ref === objectRef);
+    const isTracked =
+      isMember ||
+      (snapshot.candidates || []).some((c) => c.object_ref === objectRef) ||
+      (snapshot.staged || []).some((s) => s.object_ref === objectRef);
+
+    if (isTracked) {
       results.push({
         trackId: trackInfo.track_id,
         snapshot,
+        isMember,
       });
     }
   }
@@ -137,7 +155,7 @@ async function findTracksWithObjectInMembers(objectRef) {
  * @returns {Promise<Object|null>} New snapshot if changes made, null otherwise
  */
 async function processMemberSync(trackId, snapshot, event) {
-  const { objectRef, newModified, modifiedBy } = event;
+  const { objectRef, newModified, modifiedBy, isMember } = event;
 
   // Get member sync config with defaults
   const config = getMemberSyncConfig(snapshot);
@@ -158,7 +176,10 @@ async function processMemberSync(trackId, snapshot, event) {
   // Determine action based on supplant.behavior
   let action = null;
   if (!existingEntry) {
-    // No existing entry → simple enrollment
+    // No candidate/staged entry. Only members enroll new revisions from
+    // scratch; a non-member object can only be here via a pin that has
+    // since disappeared (snapshot changed between discovery and processing).
+    if (!isMember) return null;
     action = { type: 'enroll', tier: 'candidates' };
   } else {
     // Existing entry → apply supplant behavior
@@ -383,7 +404,7 @@ initializeEventListeners();
 
 // Expose internal functions for unit testing
 exports._internal = {
-  findTracksWithObjectInMembers,
+  findTracksReferencingObject,
   processMemberSync,
   getMemberSyncConfig,
   handleStixObjectEvent,
