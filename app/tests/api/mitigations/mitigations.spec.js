@@ -168,13 +168,10 @@ describe('Mitigations API', function () {
   });
 
   it('PUT /api/mitigations updates a mitigation', async function () {
-    const originalModified = mitigation1.stix.modified;
-    const timestamp = new Date().toISOString();
-    mitigation1.stix.modified = timestamp;
     mitigation1.stix.description = 'This is an updated mitigation.';
     const body = mitigation1;
     const res = await request(app)
-      .put('/api/mitigations/' + mitigation1.stix.id + '/modified/' + originalModified)
+      .put('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

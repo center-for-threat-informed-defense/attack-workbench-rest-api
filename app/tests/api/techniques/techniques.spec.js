@@ -200,13 +200,10 @@ describe('Techniques Basic API', function () {
   });
 
   it('PUT /api/techniques updates a technique', async function () {
-    const originalModified = technique1.stix.modified;
-    const timestamp = new Date().toISOString();
-    technique1.stix.modified = timestamp;
     technique1.stix.description = 'This is an updated technique.';
     const body = cloneForCreate(technique1);
     const res = await request(app)
-      .put('/api/techniques/' + technique1.stix.id + '/modified/' + originalModified)
+      .put('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

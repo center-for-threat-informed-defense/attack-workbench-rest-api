@@ -194,13 +194,10 @@ describe('Assets API', function () {
   });
 
   it('PUT /api/assets updates an asset', async function () {
-    const originalModified = asset1.stix.modified;
-    const timestamp = new Date().toISOString();
-    asset1.stix.modified = timestamp;
     asset1.stix.description = 'This is an updated asset.';
     const body = asset1;
     const res = await request(app)
-      .put('/api/assets/' + asset1.stix.id + '/modified/' + originalModified)
+      .put('/api/assets/' + asset1.stix.id + '/modified/' + asset1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

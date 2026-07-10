@@ -867,6 +867,26 @@ class BaseService extends ServiceWithHooks {
       throw new MissingParameterError('modified');
     }
 
+    // Revision identity is immutable in place: a PUT may not re-key the
+    // document (release tracks pin revisions by stix.id + stix.modified;
+    // re-keying would strand those pins). Re-keying must go through POST,
+    // which creates a new revision that member sync captures.
+    if (data.stix?.id && data.stix.id !== stixId) {
+      throw new BadRequestError({
+        details: `Body stix.id (${data.stix.id}) must match the stixId path parameter (${stixId})`,
+      });
+    }
+    if (
+      data.stix?.modified &&
+      new Date(data.stix.modified).getTime() !== new Date(stixModified).getTime()
+    ) {
+      throw new BadRequestError({
+        details:
+          `Body stix.modified (${data.stix.modified}) must match the modified path parameter ` +
+          `(${stixModified}) — revision identity cannot be changed by an in-place update`,
+      });
+    }
+
     const document = await this.repository.retrieveOneByVersion(stixId, stixModified);
     if (!document) {
       return null;

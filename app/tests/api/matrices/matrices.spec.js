@@ -172,14 +172,11 @@ describe('Matrices API', function () {
   });
 
   it('PUT /api/matrices updates a matrix', async function () {
-    const originalModified = matrix1.stix.modified;
-    const timestamp = new Date().toISOString();
-    matrix1.stix.modified = timestamp;
     matrix1.stix.description = 'This is an updated matrix.';
     const body = matrix1;
 
     const res = await request(app)
-      .put('/api/matrices/' + matrix1.stix.id + '/modified/' + originalModified)
+      .put('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

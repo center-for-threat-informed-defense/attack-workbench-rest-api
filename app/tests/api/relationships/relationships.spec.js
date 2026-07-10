@@ -167,13 +167,15 @@ describe('Relationships API', function () {
   });
 
   it('PUT /api/relationships updates a relationship', async function () {
-    const originalModified = relationship1a.stix.modified;
-    const timestamp = new Date().toISOString();
-    relationship1a.stix.modified = timestamp;
     relationship1a.stix.description = 'This is an updated relationship.';
     const body = relationship1a;
     const res = await request(app)
-      .put('/api/relationships/' + relationship1a.stix.id + '/modified/' + originalModified)
+      .put(
+        '/api/relationships/' +
+          relationship1a.stix.id +
+          '/modified/' +
+          relationship1a.stix.modified,
+      )
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

@@ -218,13 +218,10 @@ describe('Campaigns API', function () {
   });
 
   it('PUT /api/campaigns updates a campaign', async function () {
-    const originalModified = campaign1.stix.modified;
-    const timestamp = new Date().toISOString();
-    campaign1.stix.modified = timestamp;
     campaign1.stix.description = 'This is an updated campaign. Blue.';
     const body = campaign1;
     const res = await request(app)
-      .put('/api/campaigns/' + campaign1.stix.id + '/modified/' + originalModified)
+      .put('/api/campaigns/' + campaign1.stix.id + '/modified/' + campaign1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

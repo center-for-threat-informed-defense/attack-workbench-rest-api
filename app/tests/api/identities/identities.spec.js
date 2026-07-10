@@ -195,7 +195,7 @@ describe('Identity API', function () {
     const body = JSON.parse(JSON.stringify(mitreIdentity));
     delete body.warnings;
     body.stix.description = 'Updated MITRE identity description.';
-    body.stix.modified = new Date(Date.now() + 1000).toISOString();
+    body.stix.modified = modified;
 
     const res = await request(app)
       .put('/api/identities/' + xMitreIdentity + '/modified/' + modified)
@@ -326,13 +326,10 @@ describe('Identity API', function () {
   });
 
   it('PUT /api/identities updates an identity', async function () {
-    const originalModified = identity1.stix.modified;
-    const timestamp = new Date().toISOString();
-    identity1.stix.modified = timestamp;
     identity1.stix.description = 'This is an updated identity.';
     const body = identity1;
     const res = await request(app)
-      .put('/api/identities/' + identity1.stix.id + '/modified/' + originalModified)
+      .put('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

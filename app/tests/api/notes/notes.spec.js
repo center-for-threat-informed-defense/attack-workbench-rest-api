@@ -185,13 +185,10 @@ describe('Notes API', function () {
   });
 
   it('PUT /api/notes should update a note', async function () {
-    const originalModified = note1.stix.modified;
-    const timestamp = new Date().toISOString();
-    note1.stix.modified = timestamp;
     note1.stix.description = 'This is an updated note.';
     const body = note1;
     const res = await request(app)
-      .put('/api/notes/' + note1.stix.id + '/modified/' + originalModified)
+      .put('/api/notes/' + note1.stix.id + '/modified/' + note1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

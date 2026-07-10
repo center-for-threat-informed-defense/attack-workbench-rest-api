@@ -213,13 +213,10 @@ describe('Software API', function () {
   });
 
   it('PUT /api/software updates a software', async function () {
-    const originalModified = software1.stix.modified;
-    const timestamp = new Date().toISOString();
-    software1.stix.modified = timestamp;
     software1.stix.description = 'This is an updated software.';
     const body = software1;
     const res = await request(app)
-      .put('/api/software/' + software1.stix.id + '/modified/' + originalModified)
+      .put('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

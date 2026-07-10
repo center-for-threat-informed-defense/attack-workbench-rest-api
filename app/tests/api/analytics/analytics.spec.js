@@ -185,13 +185,10 @@ describe('Analytics API', function () {
   });
 
   it('PUT /api/analytics updates a analytic', async function () {
-    const originalModified = analytic1.stix.modified;
-    const timestamp = new Date().toISOString();
-    analytic1.stix.modified = timestamp;
     analytic1.stix.description = 'This is an updated analytic.';
     const body = analytic1;
     const res = await request(app)
-      .put('/api/analytics/' + analytic1.stix.id + '/modified/' + originalModified)
+      .put('/api/analytics/' + analytic1.stix.id + '/modified/' + analytic1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

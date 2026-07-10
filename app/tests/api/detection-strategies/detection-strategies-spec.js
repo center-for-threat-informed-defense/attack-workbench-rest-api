@@ -263,14 +263,14 @@ describe('Detection Strategies API', function () {
   });
 
   it('PUT /api/detection-strategies updates a detection strategy', async function () {
-    const originalModified = detectionStrategy1.stix.modified;
-    const timestamp = new Date().toISOString();
-    detectionStrategy1.stix.modified = timestamp;
     detectionStrategy1.stix.name = 'This is an updated detection strategy.';
     const body = detectionStrategy1;
     const res = await request(app)
       .put(
-        '/api/detection-strategies/' + detectionStrategy1.stix.id + '/modified/' + originalModified,
+        '/api/detection-strategies/' +
+          detectionStrategy1.stix.id +
+          '/modified/' +
+          detectionStrategy1.stix.modified,
       )
       .send(body)
       .set('Accept', 'application/json')

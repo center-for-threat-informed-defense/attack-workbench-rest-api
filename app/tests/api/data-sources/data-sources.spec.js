@@ -248,13 +248,10 @@ describe('Data Sources API', function () {
   });
 
   it('PUT /api/data-sources updates a data source', async function () {
-    const originalModified = dataSource1.stix.modified;
-    const timestamp = new Date().toISOString();
-    dataSource1.stix.modified = timestamp;
     dataSource1.stix.description = 'This is an updated data source.';
     const body = cloneForCreate(dataSource1);
     const res = await request(app)
-      .put('/api/data-sources/' + dataSource1.stix.id + '/modified/' + originalModified)
+      .put('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

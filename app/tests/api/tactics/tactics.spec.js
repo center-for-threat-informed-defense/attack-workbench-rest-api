@@ -160,13 +160,10 @@ describe('Tactics API', function () {
   });
 
   it('PUT /api/tactics updates a tactic', async function () {
-    const originalModified = tactic1.stix.modified;
-    const timestamp = new Date().toISOString();
-    tactic1.stix.modified = timestamp;
     tactic1.stix.description = 'This is an updated tactic.';
     const body = tactic1;
     const res = await request(app)
-      .put('/api/tactics/' + tactic1.stix.id + '/modified/' + originalModified)
+      .put('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

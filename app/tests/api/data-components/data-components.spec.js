@@ -277,13 +277,15 @@ describe('Data Components API', function () {
   });
 
   it('PUT /api/data-components updates a data component', async function () {
-    const originalModified = dataComponent1.stix.modified;
-    const timestamp = new Date().toISOString();
-    dataComponent1.stix.modified = timestamp;
     dataComponent1.stix.description = 'This is an updated data component.';
     const body = dataComponent1;
     const res = await request(app)
-      .put('/api/data-components/' + dataComponent1.stix.id + '/modified/' + originalModified)
+      .put(
+        '/api/data-components/' +
+          dataComponent1.stix.id +
+          '/modified/' +
+          dataComponent1.stix.modified,
+      )
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
