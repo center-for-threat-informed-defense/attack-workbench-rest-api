@@ -366,6 +366,7 @@ const updateCandidateVersionBodySchema = z.object({
 
 /** PUT /release-tracks/:id/config */
 const promotionConflictsSchema = z.object({
+  into_candidates: conflictPolicySchema.optional(),
   candidates_to_staged: conflictPolicySchema.exclude(['abort']).optional(),
   staged_to_members: conflictPolicySchema.optional(),
 });

@@ -251,26 +251,34 @@ POST /api/release-tracks/:id/candidates/promote
 When promoting objects between tiers, conflicts can occur if multiple versions of the same object (same `stix.id`, different `stix.modified` timestamps) exist. Release tracks use **conflict resolution policies** to determine how to handle these situations.
 
 **When do conflicts occur?**
+- Adding an object to `candidates` (manual add or demotion) when a different version of the object is already pinned in `candidates`
 - Promoting from `candidates` to `staged` when a different version of the object already exists in `staged`
 - Promoting from `staged` to `members` (during tagging/release) when a different version already exists in `members`
 
-**Promotions can happen via:**
+**Transitions can happen via:**
+- **Manual candidate adds** via REST API endpoint (e.g., `POST /api/release-tracks/:id/candidates`) — adding without `modified` resolves the object's latest revision
+- **Demotion** back to candidates (`POST /api/release-tracks/:id/staged/demote`)
 - **Manual promotion** via REST API endpoint (e.g., `POST /api/release-tracks/:id/candidates/promote`)
 - **Auto-promotion** based on candidacy threshold (e.g., object status changes to `awaiting-review`)
 - **Tagging/release operations** (e.g., `POST /api/release-tracks/:id/bump`)
 
+Note: revision-sync enrollment (`config.member_sync`, strategy `track_latest`) resolves its overlaps through the `supplant` config rather than these policies — see [member-sync-strategies.md](../../developer/release-tracks/member-sync-strategies.md).
+
 #### Conflict Resolution Policies
 
-Release tracks can be configured with different policies for handling promotion conflicts:
+Release tracks can be configured with different policies for handling tier-transition conflicts:
 
 ```javascript
 config: {
   promotion_conflicts: {
+    into_candidates: "prefer_latest",          // Manual adds / demotions into Candidates
     candidates_to_staged: "prefer_latest",     // Candidates → Staged promotions
     staged_to_members: "abort"                 // Staged → Members promotions (during release)
   }
 }
 ```
+
+Exact duplicates (same `stix.id` *and* same `stix.modified`) are never conflicts: re-adding an identical revision to `candidates` is idempotent and simply skipped.
 
 #### Policy Options
 
@@ -433,6 +441,7 @@ PUT /api/release-tracks/:id/config
 ```json
 {
   "promotion_conflicts": {
+    "into_candidates": "prefer_latest",
     "candidates_to_staged": "prefer_latest",
     "staged_to_members": "abort"
   }
@@ -440,6 +449,7 @@ PUT /api/release-tracks/:id/config
 ```
 
 **Default values:**
+- `into_candidates`: `"prefer_latest"`
 - `candidates_to_staged`: `"prefer_latest"`
 - `staged_to_members`: `"abort"`
 

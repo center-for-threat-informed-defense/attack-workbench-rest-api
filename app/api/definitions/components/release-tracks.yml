@@ -175,8 +175,17 @@ components:
           default: 'reviewed'
         promotion_conflicts:
           type: object
-          description: 'Conflict resolution policies for tier promotions'
+          description: 'Conflict resolution policies for tier transitions'
           properties:
+            into_candidates:
+              type: string
+              enum:
+                - always_overwrite
+                - always_reject
+                - prefer_latest
+                - abort
+              description: 'How to handle conflicts when a manually added or demoted entry targets an object_ref already pinned in candidates at a different revision'
+              default: 'prefer_latest'
             candidates_to_staged:
               type: string
               enum:

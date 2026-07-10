@@ -177,6 +177,13 @@ const compositionResolutionSchema = new mongoose.Schema(compositionResolutionDef
 // --- Config sub-schemas ---
 
 const promotionConflictsDefinition = {
+  // Applies when an entry enters the candidates tier (manual add, demote)
+  // and the object_ref is already pinned at a different revision.
+  into_candidates: {
+    type: String,
+    enum: ['always_overwrite', 'always_reject', 'prefer_latest', 'abort'],
+    default: 'prefer_latest',
+  },
   candidates_to_staged: {
     type: String,
     enum: ['always_overwrite', 'always_reject', 'prefer_latest'],

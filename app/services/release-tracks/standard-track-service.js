@@ -122,7 +122,20 @@ exports.addCandidates = async function addCandidates(trackId, objectRefs, userId
     });
   }
 
-  const mergedCandidates = [...existingCandidates, ...newEntries];
+  // Same-object conflicts (the object_ref is already pinned in candidates at
+  // a different revision) are resolved by the into_candidates policy.
+  const conflictPolicy = source.config?.promotion_conflicts?.into_candidates || 'prefer_latest';
+  const { merged: mergedCandidates, rejected } = conflictResolution.applyConflictPolicy(
+    existingCandidates,
+    newEntries,
+    conflictPolicy,
+  );
+  if (rejected.length > 0) {
+    logger.verbose(
+      `StandardTrackService: into_candidates policy "${conflictPolicy}" rejected ` +
+        `${rejected.length} candidate(s) for track "${trackId}"`,
+    );
+  }
 
   let snapshot = await snapshotService.cloneSnapshot(trackId, source, {
     candidates: mergedCandidates,
@@ -448,9 +461,24 @@ exports.demoteStaged = async function demoteStaged(trackId, objectRefs, userId) 
     });
   }
 
+  // Demoted entries re-enter candidates through the same conflict policy as
+  // manual adds.
+  const conflictPolicy = source.config?.promotion_conflicts?.into_candidates || 'prefer_latest';
+  const { merged: mergedCandidates, rejected } = conflictResolution.applyConflictPolicy(
+    existingCandidates,
+    demotedEntries,
+    conflictPolicy,
+  );
+  if (rejected.length > 0) {
+    logger.verbose(
+      `StandardTrackService: into_candidates policy "${conflictPolicy}" rejected ` +
+        `${rejected.length} demoted entry/entries for track "${trackId}"`,
+    );
+  }
+
   const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
     staged: remainingStaged,
-    candidates: [...existingCandidates, ...demotedEntries],
+    candidates: mergedCandidates,
   });
 
   logger.verbose(
