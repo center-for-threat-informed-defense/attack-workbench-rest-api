@@ -27,7 +27,7 @@ scanning tracks.
 |-------|--------|---------|
 | `id` | `release-track--<uuid>` | The referencing release track |
 | `tier` | `members`, `staged`, `candidates`, `quarantine` | Which tier of the track references this revision; values match the snapshot tier array names |
-| `status` | `work-in-progress`, `awaiting-review`, `reviewed` | Track-scoped workflow status |
+| `status` | `modified-in-place`, `work-in-progress`, `awaiting-review`, `reviewed` | Track-scoped workflow status (`modified-in-place` is server-assigned when the pinned revision is edited via an in-place PUT) |
 
 An object referenced by multiple tracks carries one entry per track.
 
@@ -78,12 +78,18 @@ Release tracks are never blind to changes in the objects they pin:
   captures either one.
 - **Candidate/staged-pinned revisions can be edited in place, but the track
   sees it.** An in-place `PUT` (including one that only sets
-  `x_mitre_deprecated`) resets the pinned entry for re-review: a reviewed or
-  awaiting-review candidate drops back to `work-in-progress`, and a staged
-  entry is demoted back to `candidates` (per the track's member-sync
-  supplant config; `manual`-strategy tracks opt out). If the edit changes
-  nothing the track cares about (the entry was already `work-in-progress`),
-  no new snapshot is created.
+  `x_mitre_deprecated`) marks the pinned entry `modified-in-place`: the
+  content changed, but because in-place edits carry no revision history the
+  track cannot say *what* changed — only that a re-review is required. The
+  entry's tier is decided by the workflow gate against the track's candidacy
+  threshold: in a strict track (threshold `reviewed`, the default) a staged
+  entry demotes back to `candidates`; in a permissive track (threshold
+  `work-in-progress` with `auto_promote`) the entry stays staged, since
+  `modified-in-place` ranks with `work-in-progress`. `manual`-strategy
+  tracks opt out entirely. Repeat edits of an entry already marked
+  `modified-in-place` do not create additional snapshots. Reviewers clear
+  the marker through the normal review endpoint
+  (`from: "modified-in-place"`).
 - **Revoking a tracked object queues the revoked revision.** The revoke
   workflow creates one new revision of the revoked object
   (`revoked: true`); revision sync enrolls it as a candidate in tracks where

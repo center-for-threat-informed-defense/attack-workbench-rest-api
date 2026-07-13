@@ -34,7 +34,7 @@
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
 const snapshotService = require('./snapshot-service');
-const workflowService = require('./workflow-service');
+const workflowGate = require('../../lib/release-tracks/workflow-gate');
 const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
 const EventConstants = require('../../lib/event-constants');
@@ -57,7 +57,7 @@ const EventConstants = require('../../lib/event-constants');
  * @returns {Promise<Object[]>} Array of affected release track snapshots
  */
 exports.handleObjectModified = async function handleObjectModified(event) {
-  const { objectRef, newModified, modifiedBy } = event;
+  const { objectRef, newModified, modifiedBy, trigger } = event;
 
   // 1. Find all release tracks that reference this object (members,
   //    candidates, or staged)
@@ -78,6 +78,7 @@ exports.handleObjectModified = async function handleObjectModified(event) {
         objectRef,
         newModified,
         modifiedBy,
+        trigger,
         isMember: trackInfo.isMember,
       });
       if (result) results.push(result);
@@ -152,10 +153,11 @@ async function findTracksReferencingObject(objectRef) {
  * @param {string} event.objectRef - STIX ID of the modified object
  * @param {Date|string} event.newModified - New modified timestamp
  * @param {string} [event.modifiedBy] - User who made the modification
+ * @param {string} [event.trigger] - 'new-revision' | 'in-place-update' | 'revocation'
  * @returns {Promise<Object|null>} New snapshot if changes made, null otherwise
  */
 async function processMemberSync(trackId, snapshot, event) {
-  const { objectRef, newModified, modifiedBy, isMember } = event;
+  const { objectRef, newModified, modifiedBy, isMember, trigger = 'new-revision' } = event;
 
   // Get member sync config with defaults
   const config = getMemberSyncConfig(snapshot);
@@ -173,29 +175,34 @@ async function processMemberSync(trackId, snapshot, event) {
   const existingEntry = existingInStaged || existingInCandidates;
   const existingTier = existingInStaged ? 'staged' : existingInCandidates ? 'candidates' : null;
 
-  // Determine action based on supplant.behavior
-  let action = null;
-  if (!existingEntry) {
+  // Determine how the entry enters the tier arrays
+  let mode;
+  if (trigger === 'in-place-update') {
+    // In-place edits mutate the pinned content itself; supplant behavior
+    // (which governs how *new revisions* relate to existing pins) does not
+    // apply — the pinned entry is always re-marked, even under queue.
+    if (!existingEntry) {
+      // The edited revision is not pinned by this track (e.g. an unpinned
+      // older revision of a member object) — nothing the track ships changed.
+      return null;
+    }
+    mode = 'move-pin';
+  } else if (!existingEntry) {
     // No candidate/staged entry. Only members enroll new revisions from
     // scratch; a non-member object can only be here via a pin that has
     // since disappeared (snapshot changed between discovery and processing).
     if (!isMember) return null;
-    action = { type: 'enroll', tier: 'candidates' };
+    mode = 'enroll';
   } else {
-    // Existing entry → apply supplant behavior
     switch (config.supplant.behavior) {
       case 'replace':
-        action = {
-          type: 'replace',
-          removeTier: existingTier,
-          removeEntry: existingEntry,
-          targetTier: config.supplant.status_policy === 'preserve' ? existingTier : 'candidates',
-        };
+        mode = 'move-pin';
         break;
       case 'queue':
-        action = { type: 'enroll', tier: 'candidates' };
+        mode = 'queue';
         break;
       case 'ignore':
+      default:
         logger.debug(
           `[member-sync] Track ${trackId}: ignoring ${objectRef} (existing entry in ${existingTier})`,
         );
@@ -203,11 +210,24 @@ async function processMemberSync(trackId, snapshot, event) {
     }
   }
 
-  if (!action) return null;
+  // Workflow gate: the single decision point for the entry's tier and
+  // status given all priors — including the candidacy threshold, so
+  // auto-promotion is decided here in one step instead of bouncing the
+  // entry through candidates and a second snapshot.
+  const placement = workflowGate.decidePlacement({
+    trigger,
+    mode,
+    previousEntry: existingEntry
+      ? { tier: existingTier, status: existingEntry.object_status }
+      : null,
+    statusPolicy: config.supplant.status_policy,
+    candidacyThreshold: snapshot.config?.candidacy_threshold || 'reviewed',
+    autoPromote: snapshot.config?.auto_promote === true,
+  });
 
   const incomingTime = new Date(newModified).getTime();
 
-  if (action.type === 'enroll') {
+  if (mode === 'enroll' || mode === 'queue') {
     // Skip if this exact revision is already pinned in any tier — enrolling
     // it again would create a duplicate cross-tier reference (e.g. a
     // re-import announcing an already-released revision).
@@ -225,82 +245,57 @@ async function processMemberSync(trackId, snapshot, event) {
     }
   }
 
-  if (action.type === 'replace') {
-    // An in-place edit of the pinned revision arrives with the same
-    // object_modified: the pin key does not change. Act only when the
-    // outcome differs — a reviewed entry resets for re-review, a staged
-    // entry demotes back to candidates — otherwise skip instead of cloning
-    // a no-op snapshot.
-    const existingTime = new Date(action.removeEntry.object_modified).getTime();
-    const currentStatus = action.removeEntry.object_status || 'work-in-progress';
-    const resultingStatus =
-      config.supplant.status_policy === 'preserve' ? currentStatus : 'work-in-progress';
+  if (mode === 'move-pin') {
+    // Skip no-op moves: same pin key, same tier, same status (e.g. a second
+    // in-place edit of an entry already marked modified-in-place).
+    const existingTime = new Date(existingEntry.object_modified).getTime();
+    const currentStatus = existingEntry.object_status || 'work-in-progress';
     if (
       existingTime === incomingTime &&
-      action.targetTier === existingTier &&
-      resultingStatus === currentStatus
+      placement.tier === existingTier &&
+      placement.status === currentStatus
     ) {
       logger.debug(
-        `[member-sync] Track ${trackId}: in-place update of ${objectRef} leaves the ` +
-          `pinned entry unchanged, skipping`,
+        `[member-sync] Track ${trackId}: change to ${objectRef} leaves the pinned entry ` +
+          `unchanged, skipping`,
       );
       return null;
     }
   }
 
-  // Build the new candidate/staged entry
+  // Build the new tier entry
   const now = new Date();
   const newEntry = {
     object_ref: objectRef,
     object_modified: new Date(newModified),
-    object_added_at: now,
-    object_added_by: modifiedBy || 'system',
+    object_status: placement.status,
   };
-
-  // Determine status and tier placement
-  const targetTier = action.targetTier || action.tier;
-
-  if (action.type === 'replace' && config.supplant.status_policy === 'preserve') {
-    // Preserve status from old entry
-    newEntry.object_status = action.removeEntry.object_status;
-    if (targetTier === 'staged') {
-      newEntry.object_staged_at = now;
-      newEntry.object_staged_by = modifiedBy || 'system';
-    }
+  if (placement.tier === 'staged') {
+    newEntry.object_staged_at = now;
+    newEntry.object_staged_by = modifiedBy || 'system';
   } else {
-    // Reset status to work-in-progress
-    newEntry.object_status = 'work-in-progress';
+    newEntry.object_added_at = now;
+    newEntry.object_added_by = modifiedBy || 'system';
   }
 
   // Build updated tier arrays
   let newCandidates = [...(snapshot.candidates || [])];
   let newStaged = [...(snapshot.staged || [])];
 
-  // Remove old entry if replacing
-  if (action.type === 'replace') {
-    if (action.removeTier === 'candidates') {
-      newCandidates = newCandidates.filter(
-        (c) =>
-          !(
-            c.object_ref === objectRef &&
-            new Date(c.object_modified).getTime() ===
-              new Date(action.removeEntry.object_modified).getTime()
-          ),
-      );
-    } else if (action.removeTier === 'staged') {
-      newStaged = newStaged.filter(
-        (s) =>
-          !(
-            s.object_ref === objectRef &&
-            new Date(s.object_modified).getTime() ===
-              new Date(action.removeEntry.object_modified).getTime()
-          ),
-      );
+  // Remove the previous entry when moving the pin
+  if (mode === 'move-pin') {
+    const removeTime = new Date(existingEntry.object_modified).getTime();
+    const keep = (e) =>
+      !(e.object_ref === objectRef && new Date(e.object_modified).getTime() === removeTime);
+    if (existingTier === 'candidates') {
+      newCandidates = newCandidates.filter(keep);
+    } else {
+      newStaged = newStaged.filter(keep);
     }
   }
 
-  // Add new entry to target tier
-  if (targetTier === 'staged') {
+  // Add the new entry to the tier the gate selected
+  if (placement.tier === 'staged') {
     newStaged.push(newEntry);
   } else {
     newCandidates.push(newEntry);
@@ -312,16 +307,10 @@ async function processMemberSync(trackId, snapshot, event) {
     staged: newStaged,
   });
 
-  logger.info(`[member-sync] Track ${trackId}: ${action.type} ${objectRef} → ${targetTier}`);
-
-  // Check if auto-promotion should occur (new entry in candidates that meets threshold)
-  if (targetTier === 'candidates' && snapshot.config?.auto_promote) {
-    const promoted = await workflowService.evaluateAutoPromotion(trackId, newSnapshot);
-    if (promoted) {
-      logger.info(`[member-sync] Track ${trackId}: auto-promoted ${objectRef} to staged`);
-      return promoted;
-    }
-  }
+  logger.info(
+    `[member-sync] Track ${trackId}: ${trigger} (${mode}) ${objectRef} → ` +
+      `${placement.tier}/${placement.status}`,
+  );
 
   return newSnapshot;
 }
@@ -405,11 +394,14 @@ const STIX_OBJECT_EVENTS = [
 async function handleStixObjectEvent(payload) {
   const { stixId, document, previousDocument, options } = payload;
 
-  // Transform to member sync event format
+  // Transform to member sync event format. PUT revision identity is
+  // immutable, so an updated event (previousDocument present) is always an
+  // in-place edit of the same revision; a created event is a new revision.
   const event = {
     objectRef: stixId,
     newModified: document.stix?.modified,
     oldModified: previousDocument?.stix?.modified,
+    trigger: previousDocument ? 'in-place-update' : 'new-revision',
     // Try to get user from options (create) or from document workflow metadata
     modifiedBy:
       options?.userAccountId || document.workspace?.workflow?.created_by_user_account || 'system',
@@ -461,6 +453,7 @@ async function handleStixObjectRevokedEvent(payload) {
   const event = {
     objectRef: stixId,
     newModified: revokedDocument?.stix?.modified,
+    trigger: 'revocation',
     modifiedBy:
       options?.userAccountId ||
       revokedDocument?.workspace?.workflow?.created_by_user_account ||

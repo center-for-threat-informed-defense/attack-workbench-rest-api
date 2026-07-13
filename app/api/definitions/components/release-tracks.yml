@@ -125,10 +125,11 @@ components:
             object_status:
               type: string
               enum:
+                - modified-in-place
                 - work-in-progress
                 - awaiting-review
                 - reviewed
-              description: 'Workflow status (scoped to this track)'
+              description: 'Workflow status (scoped to this track). modified-in-place is server-assigned when the pinned revision is edited via an in-place PUT and needs re-review.'
             object_added_at:
               type: string
               format: date-time
@@ -145,10 +146,11 @@ components:
             object_status:
               type: string
               enum:
+                - modified-in-place
                 - work-in-progress
                 - awaiting-review
                 - reviewed
-              description: 'Workflow status (preserved from candidates)'
+              description: 'Workflow status (preserved from candidates). modified-in-place is server-assigned when the pinned revision is edited via an in-place PUT and needs re-review.'
             object_staged_at:
               type: string
               format: date-time

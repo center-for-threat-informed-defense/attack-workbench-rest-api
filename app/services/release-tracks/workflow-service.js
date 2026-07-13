@@ -19,34 +19,25 @@
 
 const snapshotService = require('./snapshot-service');
 const conflictResolution = require('../../lib/release-tracks/conflict-resolution');
+const workflowGate = require('../../lib/release-tracks/workflow-gate');
 const logger = require('../../lib/logger');
 
 // =============================================================================
 // Status ranking and threshold evaluation
 // =============================================================================
 
-const STATUS_RANK = {
-  'work-in-progress': 0,
-  'awaiting-review': 1,
-  reviewed: 2,
-};
-
 /**
  * Check if a candidate's status meets or exceeds the configured threshold.
+ * Ranking is owned by the workflow gate so every placement decision uses
+ * the same order (including 'modified-in-place', which ranks with
+ * 'work-in-progress').
  *
  * @param {string} candidateStatus - The candidate's current status
  * @param {string} threshold - The configured candidacy threshold
  * @returns {boolean} True if the candidate meets the threshold
  */
 exports.meetsThreshold = function meetsThreshold(candidateStatus, threshold) {
-  const candidateRank = STATUS_RANK[candidateStatus];
-  const thresholdRank = STATUS_RANK[threshold];
-
-  if (candidateRank === undefined || thresholdRank === undefined) {
-    return false;
-  }
-
-  return candidateRank >= thresholdRank;
+  return workflowGate.meetsCandidacyThreshold(candidateStatus, threshold);
 };
 
 // =============================================================================

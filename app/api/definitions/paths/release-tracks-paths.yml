@@ -244,9 +244,9 @@ paths:
           in: query
           description: |
             Workflow-status filter for the staged/candidate tiers selected via include
-            (bundle format only). Accepts work-in-progress and/or awaiting-review
-            (comma-separated or repeated). Entries marked reviewed are always included,
-            irrespective of this parameter. Members are unaffected.
+            (bundle format only). Accepts modified-in-place, work-in-progress and/or
+            awaiting-review (comma-separated or repeated). Entries marked reviewed are
+            always included, irrespective of this parameter. Members are unaffected.
           allowReserved: true
           schema:
             oneOf:
@@ -451,6 +451,7 @@ paths:
           schema:
             type: string
             enum:
+              - modified-in-place
               - work-in-progress
               - awaiting-review
               - reviewed
@@ -494,6 +495,8 @@ paths:
       description: |
         Transition candidates from one workflow status to another (forward-only).
         If auto_promote is enabled and candidates meet the threshold after transition, they are auto-promoted to staged.
+        `from` also accepts the server-assigned `modified-in-place` status; `to` accepts only the
+        user-settable statuses (work-in-progress, awaiting-review, reviewed).
         Request body validated via Zod: { from, to, object_refs? }
       tags:
         - 'Release Tracks'
@@ -840,9 +843,9 @@ paths:
           in: query
           description: |
             Workflow-status filter for the staged/candidate tiers selected via include
-            (bundle format only). Accepts work-in-progress and/or awaiting-review
-            (comma-separated or repeated). Entries marked reviewed are always included,
-            irrespective of this parameter. Members are unaffected.
+            (bundle format only). Accepts modified-in-place, work-in-progress and/or
+            awaiting-review (comma-separated or repeated). Entries marked reviewed are
+            always included, irrespective of this parameter. Members are unaffected.
           allowReserved: true
           schema:
             oneOf:

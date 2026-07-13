@@ -180,7 +180,7 @@ const bundleIncludeQuerySchema = z.preprocess(
 // value — reviewed objects are always included.
 const bundleStateQuerySchema = z.preprocess(
   (value) => normalizeQueryArray(value),
-  z.array(z.enum(['work-in-progress', 'awaiting-review'])).min(1),
+  z.array(z.enum(['modified-in-place', 'work-in-progress', 'awaiting-review'])).min(1),
 );
 
 const stixVersionQuerySchema = z.enum(['2.0', '2.1']);
@@ -194,6 +194,18 @@ const trackTypeQuerySchema = z.enum(['standard', 'virtual']);
 const bumpTypeSchema = z.enum(['major', 'minor']);
 
 const workflowStatusSchema = z.enum(['work-in-progress', 'awaiting-review', 'reviewed']);
+
+// Track-entry statuses include the server-assigned 'modified-in-place'
+// marker (set by the workflow gate when a pinned revision is edited via an
+// in-place PUT). Valid wherever an existing entry's status is read or
+// matched (review `from`, status filters) — but not settable as a review
+// target, and not a valid candidacy threshold.
+const trackEntryStatusSchema = z.enum([
+  'modified-in-place',
+  'work-in-progress',
+  'awaiting-review',
+  'reviewed',
+]);
 
 const candidacyThresholdSchema = z.enum(['work-in-progress', 'awaiting-review', 'reviewed']);
 
@@ -326,7 +338,7 @@ const addCandidatesBodySchema = z.object({
 
 /** POST /release-tracks/:id/candidates/review */
 const reviewCandidatesBodySchema = z.object({
-  from: workflowStatusSchema,
+  from: trackEntryStatusSchema,
   to: workflowStatusSchema,
   object_refs: z
     .array(
@@ -418,6 +430,7 @@ module.exports = {
   trackTypeQuerySchema,
   bumpTypeSchema,
   workflowStatusSchema,
+  trackEntryStatusSchema,
   candidacyThresholdSchema,
   deduplicationStrategySchema,
   resolutionStrategySchema,

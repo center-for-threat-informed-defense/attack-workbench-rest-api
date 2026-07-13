@@ -598,10 +598,13 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200);
 
+      // The in-place PUT is captured by revision sync: the entry keeps its
+      // pin but is marked modified-in-place; the fake client-supplied entry
+      // is discarded
       expect(entryForTrack(res.body, trackId)).toEqual({
         id: trackId,
         tier: 'candidates',
-        status: 'work-in-progress',
+        status: 'modified-in-place',
       });
       expect(trackEntries(res.body)).toHaveLength(1);
     });

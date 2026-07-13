@@ -35,7 +35,7 @@ const stagedEntryDefinition = {
   object_modified: { type: Date, required: true },
   object_status: {
     type: String,
-    enum: ['work-in-progress', 'awaiting-review', 'reviewed'],
+    enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed'],
     required: true,
   },
   object_staged_at: { type: Date, required: true },
@@ -52,7 +52,7 @@ const candidateEntryDefinition = {
   object_modified: { type: Date, required: true },
   object_status: {
     type: String,
-    enum: ['work-in-progress', 'awaiting-review', 'reviewed'],
+    enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed'],
     required: true,
   },
   object_added_at: { type: Date, required: true },

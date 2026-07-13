@@ -28,7 +28,7 @@ const {
   stixVersionQuerySchema,
   booleanQuerySchema,
   trackTypeQuerySchema,
-  workflowStatusSchema,
+  trackEntryStatusSchema,
   createTrackBodySchema,
   createFromBundleBodySchema,
   updateMetadataBodySchema,
@@ -600,7 +600,7 @@ exports.addCandidates = async function addCandidates(req, res, next) {
 exports.listCandidates = async function listCandidates(req, res, next) {
   try {
     const options = {
-      status: parseOptionalQuery(req.query.status, workflowStatusSchema, undefined),
+      status: parseOptionalQuery(req.query.status, trackEntryStatusSchema, undefined),
       limit: req.query.limit ? parseInt(req.query.limit, 10) : undefined,
       offset: req.query.offset ? parseInt(req.query.offset, 10) : undefined,
     };

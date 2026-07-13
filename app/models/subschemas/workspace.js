@@ -40,10 +40,12 @@ const releaseTrackRef = {
     required: true,
   },
   // Track-scoped workflow status. Members are inherently 'reviewed';
-  // quarantined entries (virtual tracks) carry no status.
+  // quarantined entries (virtual tracks) carry no status;
+  // 'modified-in-place' marks entries whose pinned revision was changed by
+  // an in-place PUT and needs re-review.
   status: {
     type: String,
-    enum: ['work-in-progress', 'awaiting-review', 'reviewed'],
+    enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed'],
   },
 };
 const releaseTrackRefSchema = new mongoose.Schema(releaseTrackRef, { _id: false });

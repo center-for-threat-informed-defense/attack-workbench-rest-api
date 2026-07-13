@@ -85,20 +85,31 @@ Member sync logic is triggered by **object modification events**. Specifically, 
 > Relationships are deliberately excluded from sync — bundle export pulls
 > active relationships dynamically.
 >
-> **Behavior evolution (2026-07-13):** three further change-capture rules:
+> **Behavior evolution (2026-07-13):** further change-capture rules, all
+> placement decisions now centralized in the **workflow gate**
+> (`app/lib/release-tracks/workflow-gate.js`):
 >
 > - Sync also fires on the per-type `::revoked` events. The revoke workflow
 >   saves the revoked revision directly via the repository (no
 >   `::created`/`::updated` fires), so without this a track silently kept
 >   exporting the pre-revoke revision.
 > - In-place `PUT`s of a pinned revision arrive as `::updated` with an
->   unchanged `(stix.id, modified)` key. Under `replace`, the entry resets
->   for re-review (staged demotes to candidates); if the outcome would be
->   identical (entry already `work-in-progress` in the same tier), the sync
->   skips instead of cloning a no-op snapshot. Enrollment is also skipped
->   when the exact revision is already pinned in some tier (e.g. a re-import
->   announcing an already-released revision) — previously this created a
->   duplicate cross-tier reference.
+>   unchanged `(stix.id, modified)` key. The entry is marked with the
+>   server-assigned **`modified-in-place`** status — the content changed,
+>   but with no revision history to diff the track can only signal that a
+>   re-review is required. The marker ranks with `work-in-progress` in the
+>   candidacy-threshold order and is cleared through the normal review
+>   endpoint (`from: "modified-in-place"`).
+> - The gate codifies the candidacy threshold into placement itself: an
+>   entry whose resulting status meets `candidacy_threshold` (with
+>   `auto_promote`) is placed directly in `staged` — one snapshot instead of
+>   bouncing through candidates and a post-hoc auto-promotion pass. In a
+>   permissive track (threshold `work-in-progress`) an in-place edit of a
+>   staged entry therefore keeps its staged tier; in a strict track it
+>   demotes to candidates.
+> - Repeat no-op changes (entry already in the gate-decided tier/status) and
+>   enrollment of already-pinned revisions (e.g. a re-import announcing an
+>   already-released revision) skip snapshot creation.
 > - `members`-pinned revisions never reach the in-place path at all:
 >   `BaseService` rejects `PUT`/`DELETE` of a members-pinned revision with
 >   409 (`MemberPinnedRevisionError`) — released content is immutable in

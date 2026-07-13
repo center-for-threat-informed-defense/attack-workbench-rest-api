@@ -34,7 +34,7 @@ components:
           description: 'The tier of the release track that references this object revision; values match the snapshot tier array names'
         status:
           type: string
-          enum: ['work-in-progress', 'awaiting-review', 'reviewed']
+          enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed']
           description: 'Track-scoped workflow status. Members are always reviewed; quarantined entries carry no status.'
       required:
         - id
