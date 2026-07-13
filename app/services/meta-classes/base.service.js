@@ -22,6 +22,7 @@ const {
   NotFoundError,
   AlreadyRevokedError,
   SelfRevocationError,
+  MemberPinnedRevisionError,
 } = require('../../exceptions');
 const { getSchema } = require('../../lib/validation-schemas');
 const { deepFreezeStix } = require('../../lib/import-safety');
@@ -703,6 +704,32 @@ class BaseService extends ServiceWithHooks {
   }
 
   /**
+   * Reject in-place mutation (PUT/DELETE) of a revision that any release
+   * track pins in its members tier. Members are released content: mutating
+   * or deleting the pinned document would silently change or break what the
+   * track ships. Changes go through a new revision (POST) — which revision
+   * sync captures — including retirement via x_mitre_deprecated.
+   *
+   * @param {Object} document - The stored document ({ workspace, stix })
+   * @param {string} operation - Verb for the error message ('updated'|'deleted')
+   */
+  static assertNotMemberPinned(document, operation) {
+    const memberPins = (document.workspace?.release_tracks || []).filter(
+      (entry) => entry.tier === 'members',
+    );
+    if (memberPins.length > 0) {
+      throw new MemberPinnedRevisionError({
+        details:
+          `Revision ${document.stix.id} (modified ` +
+          `${new Date(document.stix.modified).toISOString()}) is pinned in the members tier of ` +
+          `release track(s) ${memberPins.map((entry) => entry.id).join(', ')} and cannot be ` +
+          `${operation} in place. Create a new revision instead (set x_mitre_deprecated on a ` +
+          `new revision to retire the object).`,
+      });
+    }
+  }
+
+  /**
    * Refresh workspace.release_tracks on a response object after domain
    * events have run. The created/updated event is awaited, and its listeners
    * (member sync → backref reconciliation) may stamp release-track backrefs
@@ -896,7 +923,7 @@ class BaseService extends ServiceWithHooks {
     // Revision identity is immutable in place: a PUT may not re-key the
     // document (release tracks pin revisions by stix.id + stix.modified;
     // re-keying would strand those pins). Re-keying must go through POST,
-    // which creates a new revision that member sync captures.
+    // which creates a new revision that revision sync captures.
     if (data.stix?.id && data.stix.id !== stixId) {
       throw new BadRequestError({
         details: `Body stix.id (${data.stix.id}) must match the stixId path parameter (${stixId})`,
@@ -917,6 +944,10 @@ class BaseService extends ServiceWithHooks {
     if (!document) {
       return null;
     }
+
+    // Members-pinned revisions are released content — immutable in place.
+    BaseService.assertNotMemberPinned(document, 'updated');
+
     // TODO: diff analysis — detect field-level changes vs document
     // TODO: if no changes detected, short-circuit (no-op)
 
@@ -1031,6 +1062,14 @@ class BaseService extends ServiceWithHooks {
     }
 
     await this.beforeDeleteVersionById(stixId, stixModified);
+
+    // Members-pinned revisions are released content — they must never be
+    // deleted (the track's member entry would silently dangle).
+    const existing = await this.repository.retrieveOneByVersion(stixId, stixModified);
+    if (!existing) {
+      return null;
+    }
+    BaseService.assertNotMemberPinned(existing, 'deleted');
 
     const document = await this.repository.findOneAndDelete(stixId, stixModified);
 
@@ -1317,6 +1356,11 @@ class BaseService extends ServiceWithHooks {
     });
     result.mergeEventResults(eventResults);
 
+    // Revision sync (listening on the revoked event) may have enrolled or
+    // re-pinned the revoked revision in its tracks — refresh so the response
+    // carries the resulting backrefs.
+    await this._refreshReleaseTrackBackrefs(revokedDocument);
+
     // ──────────────────────────────────────────────
     // 9. RETURN RESULT
     // ──────────────────────────────────────────────
@@ -1329,6 +1373,13 @@ class BaseService extends ServiceWithHooks {
       throw new MissingParameterError('stixId');
     }
     await this.beforeDeleteById(stixId);
+
+    // Deleting all versions must not destroy a members-pinned revision
+    const memberPinned = await this.repository.retrieveMemberPinnedVersionsLean(stixId);
+    for (const pinnedDocument of memberPinned) {
+      BaseService.assertNotMemberPinned(pinnedDocument, 'deleted');
+    }
+
     const result = await this.repository.deleteMany(stixId);
     if (result.deletedCount > 0) {
       await this.afterDeleteById(stixId, result);

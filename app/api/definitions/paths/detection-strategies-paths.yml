@@ -189,6 +189,8 @@ paths:
           description: 'All the detection strategy versions were successfully deleted.'
         '404':
           description: 'A detection strategy with the requested STIX id was not found.'
+        '409':
+          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
 
   /api/detection-strategies/{stixId}/modified/{modified}:
     get:
@@ -259,6 +261,8 @@ paths:
           description: 'Missing or invalid parameters were provided. The detection strategy was not updated.'
         '404':
           description: 'A detection strategy with the requested STIX id and modified date was not found.'
+        '409':
+          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
     delete:
       summary: 'Delete a detection strategy'
       operationId: 'detection-strategy-delete'
@@ -285,3 +289,5 @@ paths:
           description: 'The detection strategy was successfully deleted.'
         '404':
           description: 'A detection strategy with the requested STIX id and modified date was not found.'
+        '409':
+          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'

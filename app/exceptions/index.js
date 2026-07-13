@@ -297,6 +297,17 @@ class AlreadyReleasedError extends CustomError {
   }
 }
 
+class MemberPinnedRevisionError extends CustomError {
+  constructor(options) {
+    super(
+      'This revision is pinned in the members tier of a release track and is released content: ' +
+        'it cannot be modified or deleted in place. Create a new revision instead ' +
+        '(set x_mitre_deprecated on a new revision to retire the object).',
+      options,
+    );
+  }
+}
+
 class InvalidVersionError extends CustomError {
   constructor(message, options) {
     super(message || 'Invalid version', options);
@@ -367,6 +378,7 @@ module.exports = {
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
   TrackNotFoundError,
+  MemberPinnedRevisionError,
 
   //** Database-related errors */
   DuplicateIdError,

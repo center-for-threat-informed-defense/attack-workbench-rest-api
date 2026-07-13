@@ -41,6 +41,7 @@ const {
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
   TrackNotFoundError,
+  MemberPinnedRevisionError,
   ObjectHasValidationIssuesError,
 } = require('../exceptions');
 
@@ -130,6 +131,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof AlreadyRevokedError ||
     err instanceof AlreadyReleasedError ||
     err instanceof ReleaseConflictError ||
+    err instanceof MemberPinnedRevisionError ||
     err instanceof ObjectHasValidationIssuesError ||
     err instanceof ActiveOrganizationIdentityDeleteError
   ) {

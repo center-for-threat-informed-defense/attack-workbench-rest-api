@@ -189,6 +189,8 @@ paths:
           description: 'All the tactic versions were successfully deleted.'
         '404':
           description: 'A tactic with the requested STIX id was not found.'
+        '409':
+          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
 
   /api/tactics/{stixId}/modified/{modified}:
     get:
@@ -259,6 +261,8 @@ paths:
           description: 'Missing or invalid parameters were provided. The tactic was not updated.'
         '404':
           description: 'A tactic with the requested STIX id and modified date was not found.'
+        '409':
+          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
     delete:
       summary: 'Delete a tactic'
       operationId: 'tactic-delete'
@@ -285,6 +289,8 @@ paths:
           description: 'The tactic was successfully deleted.'
         '404':
           description: 'A tactic with the requested STIX id and modified date was not found.'
+        '409':
+          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
 
   /api/tactics/{stixId}/modified/{modified}/techniques:
     get:

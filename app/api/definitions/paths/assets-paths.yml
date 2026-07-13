@@ -269,6 +269,8 @@ paths:
           description: 'Missing or invalid parameters were provided. The asset was not updated.'
         '404':
           description: 'An asset with the requested STIX id and modified date was not found.'
+        '409':
+          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
     delete:
       summary: 'Delete an asset'
       operationId: 'asset-delete'
@@ -295,6 +297,8 @@ paths:
           description: 'The asset was successfully deleted.'
         '404':
           description: 'An asset with the requested STIX id and modified date was not found.'
+        '409':
+          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
 
   /api/assets/{stixId}/revoke:
     post:

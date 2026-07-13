@@ -551,6 +551,27 @@ class BaseRepository extends AbstractRepository {
   }
 
   /**
+   * Retrieve the revisions of an object that any release track pins in its
+   * members tier. Lean, minimal projection — used to guard delete
+   * operations (members-pinned revisions are released content and must not
+   * be destroyed).
+   *
+   * @param {string} stixId - The STIX ID
+   * @returns {Promise<Object[]>} Lean documents with stix.id, stix.modified, workspace.release_tracks
+   */
+  async retrieveMemberPinnedVersionsLean(stixId) {
+    try {
+      return await this.model
+        .find({ 'stix.id': stixId, 'workspace.release_tracks.tier': 'members' })
+        .select('stix.id stix.modified workspace.release_tracks')
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
    * Retrieve all documents carrying a workspace.release_tracks entry for the
    * given release track. Lean, minimal projection — used by release-track
    * backref reconciliation.
