@@ -84,6 +84,25 @@ Member sync logic is triggered by **object modification events**. Specifically, 
 > follow new revisions for all three tiers; `manual` tracks are unaffected.
 > Relationships are deliberately excluded from sync — bundle export pulls
 > active relationships dynamically.
+>
+> **Behavior evolution (2026-07-13):** three further change-capture rules:
+>
+> - Sync also fires on the per-type `::revoked` events. The revoke workflow
+>   saves the revoked revision directly via the repository (no
+>   `::created`/`::updated` fires), so without this a track silently kept
+>   exporting the pre-revoke revision.
+> - In-place `PUT`s of a pinned revision arrive as `::updated` with an
+>   unchanged `(stix.id, modified)` key. Under `replace`, the entry resets
+>   for re-review (staged demotes to candidates); if the outcome would be
+>   identical (entry already `work-in-progress` in the same tier), the sync
+>   skips instead of cloning a no-op snapshot. Enrollment is also skipped
+>   when the exact revision is already pinned in some tier (e.g. a re-import
+>   announcing an already-released revision) — previously this created a
+>   duplicate cross-tier reference.
+> - `members`-pinned revisions never reach the in-place path at all:
+>   `BaseService` rejects `PUT`/`DELETE` of a members-pinned revision with
+>   409 (`MemberPinnedRevisionError`) — released content is immutable in
+>   place.
 
 ### Relationship to Existing Features
 

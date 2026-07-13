@@ -66,6 +66,31 @@ An object referenced by multiple tracks carries one entry per track.
   track to the newly created revision, the response body already carries the
   resulting `workspace.release_tracks` entry.
 
+## In-place edits, deletes, and revocations
+
+Release tracks are never blind to changes in the objects they pin:
+
+- **Members-pinned revisions are immutable in place.** `PUT` and `DELETE`
+  against a revision that any track pins in its `members` tier return
+  `409 Conflict` — released content cannot be changed or destroyed under the
+  track. Make changes by creating a new revision (`POST`); retire an object
+  by creating a new revision with `x_mitre_deprecated: true`. Revision sync
+  captures either one.
+- **Candidate/staged-pinned revisions can be edited in place, but the track
+  sees it.** An in-place `PUT` (including one that only sets
+  `x_mitre_deprecated`) resets the pinned entry for re-review: a reviewed or
+  awaiting-review candidate drops back to `work-in-progress`, and a staged
+  entry is demoted back to `candidates` (per the track's member-sync
+  supplant config; `manual`-strategy tracks opt out). If the edit changes
+  nothing the track cares about (the entry was already `work-in-progress`),
+  no new snapshot is created.
+- **Revoking a tracked object queues the revoked revision.** The revoke
+  workflow creates one new revision of the revoked object
+  (`revoked: true`); revision sync enrolls it as a candidate in tracks where
+  the object is a member and moves candidate/staged pins to it. The revoking
+  object and the `revoked-by` relationship are not tracked explicitly —
+  bundle export pulls secondary objects and their SROs in dynamically.
+
 ## Lifecycle example
 
 ```

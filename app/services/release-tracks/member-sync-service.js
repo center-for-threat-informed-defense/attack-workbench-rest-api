@@ -205,6 +205,49 @@ async function processMemberSync(trackId, snapshot, event) {
 
   if (!action) return null;
 
+  const incomingTime = new Date(newModified).getTime();
+
+  if (action.type === 'enroll') {
+    // Skip if this exact revision is already pinned in any tier — enrolling
+    // it again would create a duplicate cross-tier reference (e.g. a
+    // re-import announcing an already-released revision).
+    const alreadyPinned = ['members', 'staged', 'candidates'].some((tier) =>
+      (snapshot[tier] || []).some(
+        (e) => e.object_ref === objectRef && new Date(e.object_modified).getTime() === incomingTime,
+      ),
+    );
+    if (alreadyPinned) {
+      logger.debug(
+        `[member-sync] Track ${trackId}: revision ${objectRef} @ ` +
+          `${new Date(newModified).toISOString()} is already pinned, skipping enrollment`,
+      );
+      return null;
+    }
+  }
+
+  if (action.type === 'replace') {
+    // An in-place edit of the pinned revision arrives with the same
+    // object_modified: the pin key does not change. Act only when the
+    // outcome differs — a reviewed entry resets for re-review, a staged
+    // entry demotes back to candidates — otherwise skip instead of cloning
+    // a no-op snapshot.
+    const existingTime = new Date(action.removeEntry.object_modified).getTime();
+    const currentStatus = action.removeEntry.object_status || 'work-in-progress';
+    const resultingStatus =
+      config.supplant.status_policy === 'preserve' ? currentStatus : 'work-in-progress';
+    if (
+      existingTime === incomingTime &&
+      action.targetTier === existingTier &&
+      resultingStatus === currentStatus
+    ) {
+      logger.debug(
+        `[member-sync] Track ${trackId}: in-place update of ${objectRef} leaves the ` +
+          `pinned entry unchanged, skipping`,
+      );
+      return null;
+    }
+  }
+
   // Build the new candidate/staged entry
   const now = new Date();
   const newEntry = {
@@ -380,18 +423,74 @@ async function handleStixObjectEvent(payload) {
 }
 
 /**
+ * All STIX object revoked events. The revoke workflow saves the revoked
+ * revision directly via the repository (no ::created/::updated fires), so
+ * without this subscription a track would silently keep exporting the
+ * pre-revoke revision.
+ */
+const STIX_OBJECT_REVOKED_EVENTS = [
+  EventConstants.ATTACK_PATTERN_REVOKED,
+  EventConstants.TACTIC_REVOKED,
+  EventConstants.COURSE_OF_ACTION_REVOKED,
+  EventConstants.INTRUSION_SET_REVOKED,
+  EventConstants.MALWARE_REVOKED,
+  EventConstants.TOOL_REVOKED,
+  EventConstants.CAMPAIGN_REVOKED,
+  EventConstants.DATA_SOURCE_REVOKED,
+  EventConstants.DATA_COMPONENT_REVOKED,
+  EventConstants.MATRIX_REVOKED,
+  EventConstants.ASSET_REVOKED,
+];
+
+/**
+ * Handle a STIX object revoked event from BaseService.revoke().
+ *
+ * The revoked payload shape differs from created/updated: the new revision
+ * (revoked: true) arrives as payload.revokedDocument. Treat it like any
+ * other new revision — enroll it in member tracks, move candidate/staged
+ * pins per the supplant config.
+ *
+ * @param {Object} payload - Event payload from BaseService.revoke()
+ * @param {string} payload.stixId - The STIX ID of the revoked object
+ * @param {Object} payload.revokedDocument - The new revoked revision
+ * @param {Object} [payload.options] - Revocation options
+ */
+async function handleStixObjectRevokedEvent(payload) {
+  const { stixId, revokedDocument, options } = payload;
+
+  const event = {
+    objectRef: stixId,
+    newModified: revokedDocument?.stix?.modified,
+    modifiedBy:
+      options?.userAccountId ||
+      revokedDocument?.workspace?.workflow?.created_by_user_account ||
+      'system',
+  };
+
+  try {
+    await exports.handleObjectModified(event);
+  } catch (err) {
+    logger.error(`[member-sync] Error handling object revocation: ${err.message}`, err);
+  }
+}
+
+/**
  * Initialize event listeners for member sync.
  *
- * Subscribes to all STIX object created/updated events via the EventBus.
- * Called automatically when this module is loaded.
+ * Subscribes to all STIX object created/updated/revoked events via the
+ * EventBus. Called automatically when this module is loaded.
  */
 function initializeEventListeners() {
   for (const eventName of STIX_OBJECT_EVENTS) {
     EventBus.on(eventName, handleStixObjectEvent);
   }
+  for (const eventName of STIX_OBJECT_REVOKED_EVENTS) {
+    EventBus.on(eventName, handleStixObjectRevokedEvent);
+  }
 
   logger.info(
-    `[member-sync] Member sync service initialized, listening to ${STIX_OBJECT_EVENTS.length} event types`,
+    `[member-sync] Member sync service initialized, listening to ` +
+      `${STIX_OBJECT_EVENTS.length + STIX_OBJECT_REVOKED_EVENTS.length} event types`,
   );
 }
 
@@ -408,5 +507,7 @@ exports._internal = {
   processMemberSync,
   getMemberSyncConfig,
   handleStixObjectEvent,
+  handleStixObjectRevokedEvent,
   STIX_OBJECT_EVENTS,
+  STIX_OBJECT_REVOKED_EVENTS,
 };

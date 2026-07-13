@@ -647,21 +647,28 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200);
 
-      // The revoked revision is a new version — it must not inherit backrefs
+      // The revoked revision carries a backref only via revision sync (the
+      // candidate pin moved to it) — never via clone-copying: the entry is
+      // the re-pinned candidate, not the fake members entry a copy would show
       expect(res.body.primary.stix.revoked).toBe(true);
-      expect(res.body.primary.workspace.release_tracks).toBeUndefined();
+      expect(entryForTrack(res.body.primary, trackId)).toEqual({
+        id: trackId,
+        tier: 'candidates',
+        status: 'work-in-progress',
+      });
+      const oldTechniqueRevision = await getTechniqueVersion(techniqueA);
+      expect(entryForTrack(oldTechniqueRevision, trackId)).toBeUndefined();
 
       // The relationship referencing the revoked object was deprecated into a
-      // new revision — it must not inherit backrefs either
+      // new revision — relationships are not revision-synced, so any backref
+      // here would be a clone leak
       const latestRels = await getObjectVersion(`/api/relationships/${relationship.stix.id}`);
       const latestRel = latestRels[0];
       expect(latestRel.stix.x_mitre_deprecated).toBe(true);
       expect(latestRel.stix.modified).not.toBe(relationship.stix.modified);
       expect(latestRel.workspace.release_tracks).toBeUndefined();
 
-      // The pinned revisions keep their backrefs
-      const pinnedTechnique = await getTechniqueVersion(techniqueA);
-      expect(entryForTrack(pinnedTechnique, trackId)).toMatchObject({ tier: 'candidates' });
+      // The pinned relationship revision keeps its backref (its pin did not move)
       const pinnedRel = await getObjectVersion(
         `/api/relationships/${relationship.stix.id}/modified/${relationship.stix.modified}`,
       );
