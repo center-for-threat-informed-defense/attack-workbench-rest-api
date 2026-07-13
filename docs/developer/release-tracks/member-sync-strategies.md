@@ -89,10 +89,12 @@ Member sync logic is triggered by **object modification events**. Specifically, 
 > placement decisions now centralized in the **workflow gate**
 > (`app/lib/release-tracks/workflow-gate.js`):
 >
-> - Sync also fires on the per-type `::revoked` events. The revoke workflow
->   saves the revoked revision directly via the repository (no
->   `::created`/`::updated` fires), so without this a track silently kept
->   exporting the pre-revoke revision.
+> - Sync also fires on the per-type `::revoked` events and on the
+>   technique/subtechnique conversion events
+>   (`attack-pattern::converted-to-subtechnique` / `::converted-to-technique`).
+>   Both workflows save the new revision directly via the repository (no
+>   `::created`/`::updated` fires), so without these subscriptions a track
+>   silently kept exporting the pre-revoke / pre-conversion revision.
 > - In-place `PUT`s of a pinned revision arrive as `::updated` with an
 >   unchanged `(stix.id, modified)` key. The entry is marked with the
 >   server-assigned **`modified-in-place`** status — the content changed,

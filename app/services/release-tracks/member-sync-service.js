@@ -468,10 +468,55 @@ async function handleStixObjectRevokedEvent(payload) {
 }
 
 /**
+ * Technique/subtechnique conversion events. Conversions save the new
+ * revision directly via the repository (no ::created/::updated fires), so
+ * without this subscription a track pinning the converted object would keep
+ * pinning the pre-conversion revision with no capture.
+ */
+const STIX_OBJECT_CONVERTED_EVENTS = [
+  EventConstants.TECHNIQUE_CONVERTED_TO_SUBTECHNIQUE,
+  EventConstants.SUBTECHNIQUE_CONVERTED_TO_TECHNIQUE,
+];
+
+/**
+ * Handle a technique/subtechnique conversion event.
+ *
+ * The conversion produces a new revision (payload.document) — treat it like
+ * any other new revision: enroll it in member tracks, move candidate/staged
+ * pins per the supplant config.
+ *
+ * @param {Object} payload - Event payload from TechniquesService
+ * @param {string} payload.stixId - The STIX ID of the converted object
+ * @param {Object} payload.document - The new converted revision
+ * @param {string} [payload.userAccountId] - The acting user
+ */
+async function handleStixObjectConvertedEvent(payload) {
+  const { stixId, document, userAccountId } = payload;
+
+  if (!document?.stix?.modified) {
+    logger.warn(`[member-sync] Conversion event for ${stixId} carried no document, skipping`);
+    return;
+  }
+
+  const event = {
+    objectRef: stixId,
+    newModified: document.stix.modified,
+    trigger: 'new-revision',
+    modifiedBy: userAccountId || document.workspace?.workflow?.created_by_user_account || 'system',
+  };
+
+  try {
+    await exports.handleObjectModified(event);
+  } catch (err) {
+    logger.error(`[member-sync] Error handling object conversion: ${err.message}`, err);
+  }
+}
+
+/**
  * Initialize event listeners for member sync.
  *
- * Subscribes to all STIX object created/updated/revoked events via the
- * EventBus. Called automatically when this module is loaded.
+ * Subscribes to all STIX object created/updated/revoked/converted events via
+ * the EventBus. Called automatically when this module is loaded.
  */
 function initializeEventListeners() {
   for (const eventName of STIX_OBJECT_EVENTS) {
@@ -480,10 +525,17 @@ function initializeEventListeners() {
   for (const eventName of STIX_OBJECT_REVOKED_EVENTS) {
     EventBus.on(eventName, handleStixObjectRevokedEvent);
   }
+  for (const eventName of STIX_OBJECT_CONVERTED_EVENTS) {
+    EventBus.on(eventName, handleStixObjectConvertedEvent);
+  }
 
   logger.info(
     `[member-sync] Member sync service initialized, listening to ` +
-      `${STIX_OBJECT_EVENTS.length + STIX_OBJECT_REVOKED_EVENTS.length} event types`,
+      `${
+        STIX_OBJECT_EVENTS.length +
+        STIX_OBJECT_REVOKED_EVENTS.length +
+        STIX_OBJECT_CONVERTED_EVENTS.length
+      } event types`,
   );
 }
 
@@ -501,6 +553,8 @@ exports._internal = {
   getMemberSyncConfig,
   handleStixObjectEvent,
   handleStixObjectRevokedEvent,
+  handleStixObjectConvertedEvent,
   STIX_OBJECT_EVENTS,
   STIX_OBJECT_REVOKED_EVENTS,
+  STIX_OBJECT_CONVERTED_EVENTS,
 };

@@ -401,6 +401,80 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
     });
   });
 
+  describe('technique conversion reaches the release track', function () {
+    async function convert(stixId, path, body) {
+      const res = await request(app)
+        .post(`/api/techniques/${stixId}/${path}`)
+        .send(body)
+        .set('Accept', 'application/json')
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      return res.body;
+    }
+
+    it('moves a candidate pin to the converted revision (convert-to-subtechnique)', async function () {
+      const parent = await postObject('/api/techniques', buildTechnique('Capture Conv Parent'));
+      const technique = await postObject('/api/techniques', buildTechnique('Capture Conv Child'));
+      const trackId = await createTrack('Capture Conv Candidate Track');
+      await addCandidate(trackId, technique);
+
+      const result = await convert(technique.stix.id, 'convert-to-subtechnique', {
+        parentTechniqueAttackId: parent.workspace.attack_id,
+      });
+
+      // The conversion response carries the re-pinned backref
+      expect(result.primary.stix.x_mitre_is_subtechnique).toBe(true);
+      expect(entryForTrack(result.primary, trackId)).toEqual({
+        id: trackId,
+        tier: 'candidates',
+        status: 'work-in-progress',
+      });
+
+      // The pin moved to the converted revision
+      const oldRevision = await getTechniqueVersion(technique.stix.id, technique.stix.modified);
+      expect(entryForTrack(oldRevision, trackId)).toBeUndefined();
+      const { candidates } = await getJson(`/api/release-tracks/${trackId}/candidates`);
+      expect(candidates).toHaveLength(1);
+      expect(new Date(candidates[0].object_modified).toISOString()).toBe(
+        result.primary.stix.modified,
+      );
+    });
+
+    it('enrolls the converted revision as a candidate in member tracks (convert-to-technique)', async function () {
+      const parent = await postObject('/api/techniques', buildTechnique('Capture Conv2 Parent'));
+      const technique = await postObject('/api/techniques', buildTechnique('Capture Conv2 Child'));
+
+      // Make it a subtechnique first (untracked at this point — no sync)
+      const subtechniqueResult = await convert(technique.stix.id, 'convert-to-subtechnique', {
+        parentTechniqueAttackId: parent.workspace.attack_id,
+      });
+      const subtechniqueRevision = subtechniqueResult.primary;
+
+      const trackId = await createTrack('Capture Conv Member Track');
+      await setMembers(trackId, subtechniqueRevision);
+
+      const result = await convert(technique.stix.id, 'convert-to-technique', {});
+
+      // The converted revision is enrolled as a candidate; the member pin
+      // stays on the pre-conversion revision
+      expect(result.primary.stix.x_mitre_is_subtechnique).toBe(false);
+      expect(entryForTrack(result.primary, trackId)).toEqual({
+        id: trackId,
+        tier: 'candidates',
+        status: 'work-in-progress',
+      });
+      const memberRevision = await getTechniqueVersion(
+        subtechniqueRevision.stix.id,
+        subtechniqueRevision.stix.modified,
+      );
+      expect(entryForTrack(memberRevision, trackId)).toEqual({
+        id: trackId,
+        tier: 'members',
+        status: 'reviewed',
+      });
+    });
+  });
+
   after(async function () {
     await database.closeConnection();
   });

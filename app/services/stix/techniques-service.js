@@ -360,13 +360,20 @@ class TechniquesService extends BaseService {
     const result = new WorkflowResult('convert-to-subtechnique');
     result.setPrimary(savedDocument);
 
-    // Emit domain event — RelationshipsService listens to create the subtechnique-of SRO
+    // Emit domain event — RelationshipsService listens to create the
+    // subtechnique-of SRO; member sync re-pins/enrolls the converted revision
+    // in referencing release tracks
     const eventResults = await EventBus.emit(EventConstants.TECHNIQUE_CONVERTED_TO_SUBTECHNIQUE, {
       stixId /** STIX ID of the converted subtechnique */,
       parentStixId: parentTechnique.stix.id /** STIX ID of the parent technique */,
+      document: savedDocument.toObject ? savedDocument.toObject() : savedDocument,
       userAccountId: options.userAccountId,
     });
     result.mergeEventResults(eventResults);
+
+    // Revision sync may have re-pinned a track to the converted revision —
+    // refresh so the response carries the resulting backrefs
+    await this._refreshReleaseTrackBackrefs(savedDocument);
 
     return result.toJSON();
   }
@@ -445,11 +452,19 @@ class TechniquesService extends BaseService {
     const result = new WorkflowResult('convert-to-technique');
     result.setPrimary(savedDocument);
 
-    // Emit domain event — RelationshipsService listens to deprecate subtechnique-of SROs
+    // Emit domain event — RelationshipsService listens to deprecate
+    // subtechnique-of SROs; member sync re-pins/enrolls the converted
+    // revision in referencing release tracks
     const eventResults = await EventBus.emit(EventConstants.SUBTECHNIQUE_CONVERTED_TO_TECHNIQUE, {
       stixId /** STIX ID of the converted subtechnique */,
+      document: savedDocument.toObject ? savedDocument.toObject() : savedDocument,
+      userAccountId: options.userAccountId,
     });
     result.mergeEventResults(eventResults);
+
+    // Revision sync may have re-pinned a track to the converted revision —
+    // refresh so the response carries the resulting backrefs
+    await this._refreshReleaseTrackBackrefs(savedDocument);
 
     return result.toJSON();
   }

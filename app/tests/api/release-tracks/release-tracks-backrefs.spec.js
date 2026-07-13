@@ -694,13 +694,19 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200);
 
-      // The converted revision is a new version — no inherited backrefs
+      // The converted revision carries a backref only via revision sync (the
+      // candidate pin moved to it) — never via clone-copying: the entry is
+      // the re-pinned candidate, not a fake copied entry
       expect(res.body.primary.stix.x_mitre_is_subtechnique).toBe(true);
-      expect(res.body.primary.workspace.release_tracks).toBeUndefined();
+      expect(entryForTrack(res.body.primary, trackId)).toEqual({
+        id: trackId,
+        tier: 'candidates',
+        status: 'work-in-progress',
+      });
 
-      // The pinned revision keeps its backref
-      const pinned = await getTechniqueVersion(technique);
-      expect(entryForTrack(pinned, trackId)).toMatchObject({ tier: 'candidates' });
+      // The pre-conversion revision no longer carries the entry
+      const oldRevision = await getTechniqueVersion(technique);
+      expect(entryForTrack(oldRevision, trackId)).toBeUndefined();
     });
   });
 
