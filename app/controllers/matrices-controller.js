@@ -137,7 +137,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const matrix = await matricesService.deleteVersionById(req.params.stixId, req.params.modified);
     if (!matrix) {
@@ -148,11 +148,11 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete matrix failed. ' + err);
-    return res.status(500).send('Unable to delete matrix. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const matrices = await matricesService.deleteById(req.params.stixId);
 
@@ -164,7 +164,7 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete matrix failed. ' + err);
-    return res.status(500).send('Unable to delete matrix. Server error.');
+    return next(err);
   }
 };
 

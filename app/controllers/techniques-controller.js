@@ -143,7 +143,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const technique = await techniquesService.deleteVersionById(
       req.params.stixId,
@@ -157,11 +157,11 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete technique failed. ' + err);
-    return res.status(500).send('Unable to delete technique. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const techniques = await techniquesService.deleteById(req.params.stixId);
     if (techniques.deletedCount === 0) {
@@ -172,7 +172,7 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete technique failed. ' + err);
-    return res.status(500).send('Unable to delete technique. Server error.');
+    return next(err);
   }
 };
 

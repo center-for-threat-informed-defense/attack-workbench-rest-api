@@ -150,7 +150,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const software = await softwareService.deleteVersionById(
       req.params.stixId,
@@ -164,14 +164,12 @@ exports.deleteVersionById = async function (req, res) {
       return res.status(204).end();
     }
   } catch (err) {
-    console.log('delete version by id error');
-    console.log(err);
     logger.error('Delete software failed. ' + err);
-    return res.status(500).send('Unable to delete software. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const softwares = await softwareService.deleteById(req.params.stixId);
 
@@ -182,10 +180,8 @@ exports.deleteById = async function (req, res) {
       return res.status(204).end();
     }
   } catch (err) {
-    console.log('delete by id error');
-    console.log(err);
     logger.error('Delete software failed. ' + err);
-    return res.status(500).send('Unable to delete software. Server error.');
+    return next(err);
   }
 };
 

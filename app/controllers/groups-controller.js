@@ -138,7 +138,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const group = await groupsService.deleteVersionById(req.params.stixId, req.params.modified);
     if (!group) {
@@ -149,11 +149,11 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete group failed. ' + err);
-    return res.status(500).send('Unable to delete group. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const groups = await groupsService.deleteById(req.params.stixId);
     if (groups.deletedCount === 0) {
@@ -164,7 +164,7 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete group failed. ' + err);
-    return res.status(500).send('Unable to delete group. Server error.');
+    return next(err);
   }
 };
 

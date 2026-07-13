@@ -134,7 +134,7 @@ exports.updateVersion = async function (req, res, next) {
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const results = await notesService.deleteById(req.params.stixId);
     if (results.deletedCount === 0) {
@@ -145,11 +145,11 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete note failed. ' + err);
-    return res.status(500).send('Unable to delete note. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const note = await notesService.deleteVersionById(req.params.stixId, req.params.modified);
     if (!note) {
@@ -162,6 +162,6 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete note version failed. ' + err);
-    return res.status(500).send('Unable to delete note. Server error.');
+    return next(err);
   }
 };

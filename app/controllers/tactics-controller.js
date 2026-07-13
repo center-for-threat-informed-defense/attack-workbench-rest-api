@@ -144,7 +144,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const tactic = await tacticsService.deleteVersionById(req.params.stixId, req.params.modified);
 
@@ -156,11 +156,11 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete tactic failed. ' + err);
-    return res.status(500).send('Unable to delete tactic. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const tactics = await tacticsService.deleteById(req.params.stixId);
 
@@ -172,7 +172,7 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete tactic failed. ' + err);
-    return res.status(500).send('Unable to delete tactic. Server error.');
+    return next(err);
   }
 };
 

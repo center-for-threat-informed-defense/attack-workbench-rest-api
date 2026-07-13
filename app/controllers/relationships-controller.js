@@ -147,7 +147,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const relationship = await relationshipsService.deleteVersionById(
       req.params.stixId,
@@ -161,11 +161,11 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete relationship failed. ' + err);
-    return res.status(500).send('Unable to delete relationship. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const relationships = await relationshipsService.deleteById(req.params.stixId);
     if (relationships.deletedCount === 0) {
@@ -176,6 +176,6 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete relationship failed. ' + err);
-    return res.status(500).send('Unable to delete relationship. Server error.');
+    return next(err);
   }
 };

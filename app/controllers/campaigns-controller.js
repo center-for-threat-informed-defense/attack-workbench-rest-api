@@ -142,7 +142,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const campaign = await campaignsService.deleteVersionById(
       req.params.stixId,
@@ -156,11 +156,11 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete campaign failed. ' + err);
-    return res.status(500).send('Unable to delete campaign. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const campaigns = await campaignsService.deleteById(req.params.stixId);
     if (campaigns.deletedCount === 0) {
@@ -171,7 +171,7 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete campaign failed. ' + err);
-    return res.status(500).send('Unable to delete campaign. Server error.');
+    return next(err);
   }
 };
 
