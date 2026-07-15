@@ -79,7 +79,9 @@ For one `(repository, trackId, snapshot, includeRef)`:
    supported by a sparse multikey index on both collections.
 3. **Diff → bulkWrite** (batched, unordered):
    - current but not desired → `$pull` the track's entry;
-   - both, but phase/status differ → positional `$set`/`$unset`;
+   - both, but tier/status/type differ → positional `$set`/`$unset` (the
+     `type` comparison also backfills entries written before the field
+     existed);
    - desired but not current → resolve the pinned revision to its `_id`
      (batched `$or` on the `stix.id + stix.modified` index) and `$push` the
      entry. Pins whose revision document doesn't exist (dangling pin, or a

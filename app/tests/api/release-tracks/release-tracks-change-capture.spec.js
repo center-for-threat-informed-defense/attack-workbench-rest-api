@@ -147,6 +147,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       expect(retrieved.stix.name).toBe('Capture Member');
       expect(entryForTrack(retrieved, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'members',
         status: 'reviewed',
       });
@@ -202,6 +203,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       // The PUT response reflects the marker (read-your-own-writes)
       expect(entryForTrack(res.body, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'modified-in-place',
       });
@@ -238,6 +240,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
 
       expect(entryForTrack(res.body, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'modified-in-place',
       });
@@ -272,6 +275,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
 
       expect(entryForTrack(res.body, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'staged',
         status: 'modified-in-place',
       });
@@ -299,6 +303,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       // The track saw the deprecation: the entry is marked for re-review
       expect(entryForTrack(res.body, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'modified-in-place',
       });
@@ -361,6 +366,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       expect(result.primary.stix.revoked).toBe(true);
       expect(entryForTrack(result.primary, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -369,6 +375,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       const memberRevision = await getTechniqueVersion(technique.stix.id, technique.stix.modified);
       expect(entryForTrack(memberRevision, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'members',
         status: 'reviewed',
       });
@@ -378,6 +385,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       );
       expect(entryForTrack(revokedRevision, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -395,6 +403,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       expect(entryForTrack(oldRevision, trackId)).toBeUndefined();
       expect(entryForTrack(result.primary, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -426,6 +435,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       expect(result.primary.stix.x_mitre_is_subtechnique).toBe(true);
       expect(entryForTrack(result.primary, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -460,6 +470,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       expect(result.primary.stix.x_mitre_is_subtechnique).toBe(false);
       expect(entryForTrack(result.primary, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -469,6 +480,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       );
       expect(entryForTrack(memberRevision, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'members',
         status: 'reviewed',
       });

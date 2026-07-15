@@ -112,6 +112,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const retrieved = await getTechniqueVersion(technique);
       expect(entryForTrack(retrieved, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -127,6 +128,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const retrieved = await getTechniqueVersion(technique);
       expect(entryForTrack(retrieved, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'awaiting-review',
       });
@@ -142,6 +144,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const retrieved = await getTechniqueVersion(technique);
       expect(entryForTrack(retrieved, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'staged',
         status: 'awaiting-review',
       });
@@ -157,6 +160,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const retrieved = await getTechniqueVersion(technique);
       expect(entryForTrack(retrieved, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'awaiting-review',
       });
@@ -173,6 +177,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const retrieved = await getTechniqueVersion(technique);
       expect(entryForTrack(retrieved, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'members',
         status: 'reviewed',
       });
@@ -186,6 +191,49 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
 
       const retrieved = await getTechniqueVersion(technique);
       expect(entryForTrack(retrieved, trackId)).toBeUndefined();
+    });
+  });
+
+  describe('track type on backrefs', function () {
+    it('marks entries from virtual tracks with type virtual', async function () {
+      // Build a standard component track with one tagged member
+      const technique = await postObject('/api/techniques', buildTechnique('Backref Virtual'));
+      const componentTrackId = await createTrack('Backref Virtual Component Track');
+      await addCandidates(componentTrackId, [technique]);
+      await postObject(
+        `/api/release-tracks/${componentTrackId}/candidates/promote`,
+        { object_refs: [technique.stix.id] },
+        200,
+      );
+      await postObject(`/api/release-tracks/${componentTrackId}/bump`, { type: 'minor' }, 200);
+
+      // Compose a virtual track over it and create a snapshot
+      const virtual = await postObject('/api/release-tracks/new', {
+        name: 'Backref Virtual Track',
+        type: 'virtual',
+      });
+      await request(app)
+        .put(`/api/release-tracks/${virtual.id}/composition`)
+        .send({
+          component_tracks: [
+            { track_id: componentTrackId, resolution_strategy: 'latest_tagged', priority: 0 },
+          ],
+        })
+        .set('Accept', 'application/json')
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      await postObject(`/api/release-tracks/${virtual.id}/snapshots/create`, {}, 201);
+
+      // The object now carries one entry per referencing track, with types
+      const retrieved = await getTechniqueVersion(technique);
+      expect(entryForTrack(retrieved, componentTrackId)).toMatchObject({
+        type: 'standard',
+        tier: 'members',
+      });
+      expect(entryForTrack(retrieved, virtual.id)).toMatchObject({
+        type: 'virtual',
+        tier: 'members',
+      });
     });
   });
 
@@ -230,6 +278,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       expect(entryForTrack(retrievedA, trackId)).toBeUndefined();
       expect(entryForTrack(retrievedB, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -252,6 +301,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       let retrieved = await getTechniqueVersion(technique);
       expect(entryForTrack(retrieved, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'members',
         status: 'reviewed',
       });
@@ -325,11 +375,13 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const retrievedB = await getTechniqueVersion(revisionB);
       expect(entryForTrack(retrievedA, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'members',
         status: 'reviewed',
       });
       expect(entryForTrack(retrievedB, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -355,6 +407,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       // that re-pin the track are awaited before the response is composed
       expect(entryForTrack(revisionB, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -364,6 +417,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       expect(entryForTrack(retrievedA, trackId)).toBeUndefined();
       expect(entryForTrack(retrievedB, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -392,6 +446,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       expect(entryForTrack(retrievedA, trackId)).toBeUndefined();
       expect(entryForTrack(retrievedB, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -420,6 +475,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const retrievedB = await getTechniqueVersion(revisionB);
       expect(entryForTrack(retrievedA, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -464,6 +520,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       );
       expect(entryForTrack(retrieved, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -526,6 +583,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       expect(entryForTrack(await getTechniqueVersion(revisionA), trackId)).toBeUndefined();
       expect(entryForTrack(await getTechniqueVersion(revisionB), trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -603,6 +661,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       // is discarded
       expect(entryForTrack(res.body, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'modified-in-place',
       });
@@ -656,6 +715,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       expect(res.body.primary.stix.revoked).toBe(true);
       expect(entryForTrack(res.body.primary, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });
@@ -700,6 +760,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       expect(res.body.primary.stix.x_mitre_is_subtechnique).toBe(true);
       expect(entryForTrack(res.body.primary, trackId)).toEqual({
         id: trackId,
+        type: 'standard',
         tier: 'candidates',
         status: 'work-in-progress',
       });

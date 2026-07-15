@@ -152,6 +152,10 @@ Object CRUD paths can mutate or destroy revisions that release tracks pin, witho
 
 - [x] **Technique conversion should reach revision sync.** Implemented 2026-07-13 with the adapter approach (same pattern as `handleStixObjectRevokedEvent`): the `TECHNIQUE_CONVERTED_TO_SUBTECHNIQUE` / `SUBTECHNIQUE_CONVERTED_TO_TECHNIQUE` event payloads now carry the converted revision (`document`) and acting user, and member sync subscribes via `handleStixObjectConvertedEvent`, treating the conversion as a `new-revision` trigger through the workflow gate — candidate/staged pins move to the converted revision, member tracks enroll it as a candidate. The conversion responses refresh `workspace.release_tracks` after event processing (read-your-own-writes). Tests: conversion cases in `release-tracks-change-capture.spec.js` and the updated clone-strip test in `release-tracks-backrefs.spec.js`.
 
+## Small Fixes
+
+- [ ] **Composition schema mismatch: `priority`.** `PUT /api/release-tracks/:id/composition` — the Zod schema (`componentTrackSchema`) marks `priority` optional, but the mongoose snapshot schema requires it, so omitting it passes validation and then fails the save with a 500 (`DatabaseError`) instead of a 400. Align the schemas (either default `priority` or make it required in Zod). Found 2026-07-15 while testing virtual-track backrefs.
+
 ## Diffing Endpoint
 
 - [ ] Implement object diffing endpoints for snapshots. Users should be able to effectively preview changes to objects before tier transitions (candidates, staged, members).

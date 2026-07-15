@@ -28,6 +28,10 @@ components:
         id:
           type: string
           description: 'The release track ID (release-track--<uuid>)'
+        type:
+          type: string
+          enum: ['standard', 'virtual']
+          description: 'The type of the referencing release track'
         tier:
           type: string
           enum: ['members', 'staged', 'candidates', 'quarantine']

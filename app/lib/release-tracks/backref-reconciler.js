@@ -9,8 +9,9 @@
 //
 //   {
 //     id: 'release-track--<uuid>',
+//     type: 'standard'|'virtual',
 //     tier: 'members'|'staged'|'candidates'|'quarantine',
-//     status: 'work-in-progress'|'awaiting-review'|'reviewed'
+//     status: 'modified-in-place'|'work-in-progress'|'awaiting-review'|'reviewed'
 //   }
 //
 // Backrefs are pinned to specific object revisions: the entry lives on the
@@ -125,11 +126,21 @@ async function reconcile(repository, trackId, snapshot, includeRef) {
 
     satisfied.add(key);
     const existing = (document.workspace.release_tracks || []).find((e) => e.id === trackId);
-    if (existing && existing.tier === want.tier && (existing.status || undefined) === want.status) {
+    if (
+      existing &&
+      existing.tier === want.tier &&
+      (existing.status || undefined) === want.status &&
+      existing.type === snapshot.type
+    ) {
       continue; // already correct
     }
 
-    const update = { $set: { 'workspace.release_tracks.$.tier': want.tier } };
+    const update = {
+      $set: {
+        'workspace.release_tracks.$.tier': want.tier,
+        'workspace.release_tracks.$.type': snapshot.type,
+      },
+    };
     if (want.status === undefined) {
       update.$unset = { 'workspace.release_tracks.$.status': '' };
     } else {
@@ -166,7 +177,11 @@ async function reconcile(repository, trackId, snapshot, includeRef) {
         continue;
       }
 
-      const entry = { id: trackId, tier: want.tier };
+      const entry = {
+        id: trackId,
+        type: snapshot.type,
+        tier: want.tier,
+      };
       if (want.status !== undefined) {
         entry.status = want.status;
       }

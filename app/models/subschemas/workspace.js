@@ -32,6 +32,13 @@ const validationIssueSchema = new mongoose.Schema(validationIssue, { _id: false 
 
 const releaseTrackRef = {
   id: { type: String, required: true },
+  // The type of the referencing release track. Optional in the schema to
+  // tolerate entries written before the field existed (the reconciler
+  // backfills on the track's next contents change) but always set on write.
+  type: {
+    type: String,
+    enum: ['standard', 'virtual'],
+  },
   // Which tier of the track references this revision; values match the
   // snapshot tier array names.
   tier: {

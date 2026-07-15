@@ -14,6 +14,7 @@ scanning tracks.
     "release_tracks": [
       {
         "id": "release-track--3a0e2537-1153-4b16-8ff5-1993f2d9cd7d",
+        "type": "standard",
         "tier": "candidates",
         "status": "work-in-progress"
       }
@@ -26,6 +27,7 @@ scanning tracks.
 | Field | Values | Meaning |
 |-------|--------|---------|
 | `id` | `release-track--<uuid>` | The referencing release track |
+| `type` | `standard`, `virtual` | The type of the referencing release track |
 | `tier` | `members`, `staged`, `candidates`, `quarantine` | Which tier of the track references this revision; values match the snapshot tier array names |
 | `status` | `modified-in-place`, `work-in-progress`, `awaiting-review`, `reviewed` | Track-scoped workflow status (`modified-in-place` is server-assigned when the pinned revision is edited via an in-place PUT) |
 
@@ -53,6 +55,8 @@ An object referenced by multiple tracks carries one entry per track.
 - **Reflects the latest snapshot.** Backrefs mirror the track's *current*
   (most recent) snapshot. Deleting the latest snapshot reverts backrefs to the
   previous snapshot's membership; deleting a track removes all of its entries.
+  Entries written before the `type` field existed are backfilled
+  automatically on the track's next contents change.
 - **Status mapping.** Candidates and staged entries carry their track-scoped
   workflow status. Members are always `reviewed` (promotion to member implies
   review). Quarantined entries (virtual tracks) have no workflow status, so

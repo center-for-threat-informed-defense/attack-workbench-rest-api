@@ -206,11 +206,13 @@ field semantics):
     release_tracks: [
       {
         id: "release-track--123",
+        type: "standard",            // "standard" | "virtual"
         tier: "members",             // "members" | "staged" | "candidates" | "quarantine"
-        status: "reviewed"           // "work-in-progress" | "awaiting-review" | "reviewed"
+        status: "reviewed"           // "modified-in-place" | "work-in-progress" | "awaiting-review" | "reviewed"
       },
       {
         id: "release-track--456",
+        type: "standard",
         tier: "candidates",
         status: "work-in-progress"
       }
