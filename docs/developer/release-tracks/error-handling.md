@@ -7,6 +7,7 @@
 **HTTP Status:** 409 Conflict
 
 **Example:**
+
 ```json
 {
   "error": "This snapshot has already been tagged as version 1.0"
@@ -18,6 +19,7 @@
 ### InvalidVersionError
 
 **Thrown when:**
+
 - Explicit version is not valid MAJOR.MINOR format
 - Explicit version is not greater than the previous highest version
 - Version bump would result in regression
@@ -25,6 +27,7 @@
 **HTTP Status:** 400 Bad Request
 
 **Examples:**
+
 ```json
 {
   "error": "Version must be greater than current version 1.5"
@@ -39,6 +42,16 @@
 
 **Solution:** Provide a valid version that is greater than all previous versions.
 
+### TaggedSnapshotDeletionError
+
+**Thrown when:** Attempting to delete a snapshot that has already been tagged.
+
+**HTTP Status:** 409 Conflict
+
+Tagged snapshots are immutable release records. Create or modify a draft
+snapshot instead; deleting an entire release track remains a separate
+track-level operation.
+
 ### NotFoundError
 
 **Thrown when:** Collection with specified ID does not exist.
@@ -46,6 +59,7 @@
 **HTTP Status:** 404 Not Found
 
 **Example:**
+
 ```json
 {
   "error": "Collection not found"

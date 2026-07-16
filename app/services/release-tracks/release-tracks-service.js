@@ -23,6 +23,7 @@ const exportService = require('./export-service');
 const ephemeralService = require('./ephemeral-service');
 const bundleImportService = require('./bundle-import-service');
 const memberSyncService = require('./member-sync-service');
+const releaseHistoryService = require('./release-history-service');
 const attackObjectsService = require('../stix/attack-objects-service');
 const userAccountsService = require('../system/user-accounts-service');
 
@@ -162,6 +163,10 @@ async function formatWorkbenchSnapshot(snapshot, options) {
 
 exports.listTracks = function listTracks(options) {
   return snapshotService.listTracks(options);
+};
+
+exports.getReleasesByObject = function getReleasesByObject(objectRef, options) {
+  return releaseHistoryService.getReleasesByObject(objectRef, options);
 };
 
 exports.createTrack = function createTrack(data) {

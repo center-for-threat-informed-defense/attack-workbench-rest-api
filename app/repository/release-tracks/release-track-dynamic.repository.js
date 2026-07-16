@@ -90,6 +90,49 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getTaggedSnapshotMetadata(trackId) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.find({ id: trackId, version: { $type: 'string' } })
+        .select('modified version version_history')
+        .sort({ modified: 1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async findTaggedSnapshotsContainingObject(trackId, snapshotModifiedValues, objectRef) {
+    if (!snapshotModifiedValues || snapshotModifiedValues.length === 0) {
+      return [];
+    }
+
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.find(
+        {
+          id: trackId,
+          modified: { $in: snapshotModifiedValues },
+          version: { $type: 'string' },
+          'members.object_ref': objectRef,
+        },
+        {
+          id: 1,
+          type: 1,
+          name: 1,
+          modified: 1,
+          version: 1,
+          members: { $elemMatch: { object_ref: objectRef } },
+        },
+      )
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async getAllSnapshots(trackId, options = {}) {
     try {
       const Model = this._getModel(trackId);

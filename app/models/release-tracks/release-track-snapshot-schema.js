@@ -353,6 +353,17 @@ releaseTrackSnapshotSchema.index({ id: 1, modified: -1 }, { unique: true });
 // Find the latest tagged version
 releaseTrackSnapshotSchema.index({ id: 1, version: 1 });
 
+// Historical releases-by-object lookup. Draft snapshots are deliberately
+// excluded because they are numerous, mutable through cloning, and never
+// eligible for the endpoint.
+releaseTrackSnapshotSchema.index(
+  { 'members.object_ref': 1, modified: -1 },
+  {
+    name: 'tagged_members_object_ref',
+    partialFilterExpression: { version: { $type: 'string' } },
+  },
+);
+
 // =============================================================================
 // Exports
 // =============================================================================

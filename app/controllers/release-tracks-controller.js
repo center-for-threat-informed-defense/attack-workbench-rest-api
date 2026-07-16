@@ -28,6 +28,10 @@ const {
   stixVersionQuerySchema,
   booleanQuerySchema,
   trackTypeQuerySchema,
+  releaseOrderQuerySchema,
+  releaseLimitQuerySchema,
+  releaseOffsetQuerySchema,
+  stixIdentifierSchema,
   trackEntryStatusSchema,
   createTrackBodySchema,
   createFromBundleBodySchema,
@@ -225,6 +229,35 @@ exports.listReleaseTracks = async function listReleaseTracks(req, res, next) {
     return res.status(200).send(result);
   } catch (err) {
     logger.error('Failed to list release tracks: ' + err);
+    return next(err);
+  }
+};
+
+/** GET /api/release-tracks/objects/:objectRef/releases */
+exports.getReleasesByObject = async function getReleasesByObject(req, res, next) {
+  try {
+    const objectRefResult = stixIdentifierSchema.safeParse(req.params.objectRef);
+    if (!objectRefResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid STIX object reference',
+          details: objectRefResult.error.errors,
+        }),
+      );
+    }
+
+    const options = {
+      type: parseOptionalQueryStrict(req.query.type, trackTypeQuerySchema, undefined, 'type'),
+      order: parseOptionalQueryStrict(req.query.order, releaseOrderQuerySchema, 'asc', 'order'),
+      limit: parseOptionalQueryStrict(req.query.limit, releaseLimitQuerySchema, 50, 'limit'),
+      offset: parseOptionalQueryStrict(req.query.offset, releaseOffsetQuerySchema, 0, 'offset'),
+    };
+
+    const result = await releaseTracksService.getReleasesByObject(objectRefResult.data, options);
+    logger.debug(`Success: Retrieved tagged releases for object ${objectRefResult.data}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to retrieve tagged releases by object: ' + err);
     return next(err);
   }
 };

@@ -191,6 +191,12 @@ const booleanQuerySchema = z.union([z.boolean(), z.stringbool()]);
 
 const trackTypeQuerySchema = z.enum(['standard', 'virtual']);
 
+const releaseOrderQuerySchema = z.enum(['asc', 'desc']);
+
+const releaseLimitQuerySchema = z.coerce.number().int().min(1).max(200);
+
+const releaseOffsetQuerySchema = z.coerce.number().int().min(0);
+
 const bumpTypeSchema = z.enum(['major', 'minor']);
 
 const workflowStatusSchema = z.enum(['work-in-progress', 'awaiting-review', 'reviewed']);
@@ -428,6 +434,9 @@ module.exports = {
   stixVersionQuerySchema,
   booleanQuerySchema,
   trackTypeQuerySchema,
+  releaseOrderQuerySchema,
+  releaseLimitQuerySchema,
+  releaseOffsetQuerySchema,
   bumpTypeSchema,
   workflowStatusSchema,
   trackEntryStatusSchema,

@@ -5,6 +5,7 @@
 This document provides the complete API reference for Release Tracks V2 (formerly "Collections V2").
 
 **Related Documentation:**
+
 - [summary.md](./summary.md) - High-level design summary and problem statement
 - [terminology.md](./terminology.md) - Complete terminology guide
 - [versioning.md](./versioning.md) - Versioning and release process
@@ -15,6 +16,7 @@ This document provides the complete API reference for Release Tracks V2 (formerl
 - [member-sync-strategies.md](../../developer/release-tracks/member-sync-strategies.md) - Automatic tracking of member object revisions
 
 **Quick Navigation:**
+
 - [Ephemeral Release Tracks](#ephemeral-release-tracks)
 - [Release Track Management](#release-track-management)
 - [Snapshot-Specific Operations](#snapshot-specific-operations)
@@ -28,17 +30,19 @@ This document provides the complete API reference for Release Tracks V2 (formerl
 - [Output Formats](#output-formats)
 - [Error Responses](#error-responses)
 
-
 ## Complete Endpoint List
 
 ### Ephemeral Release Tracks
+
 ```
 GET    /api/release-tracks/ephemeral/:domain
 ```
 
 ### Release Track Management
+
 ```
 GET    /api/release-tracks
+GET    /api/release-tracks/objects/:objectRef/releases
 POST   /api/release-tracks/new
 POST   /api/release-tracks/new-from-bundle
 POST   /api/release-tracks/import
@@ -51,6 +55,7 @@ DELETE /api/release-tracks/:id
 ```
 
 ### Snapshot Operations
+
 ```
 GET    /api/release-tracks/:id/snapshots/:modified
 POST   /api/release-tracks/:id/snapshots/:modified/meta
@@ -60,6 +65,7 @@ DELETE /api/release-tracks/:id/snapshots/:modified
 ```
 
 ### Candidate Management
+
 ```
 POST   /api/release-tracks/:id/candidates
 GET    /api/release-tracks/:id/candidates
@@ -70,28 +76,33 @@ POST   /api/release-tracks/:id/candidates/:objectRef/update-version
 ```
 
 ### Staged Objects
+
 ```
 GET    /api/release-tracks/:id/staged
 POST   /api/release-tracks/:id/staged/demote
 ```
 
 ### Configuration
+
 ```
 GET    /api/release-tracks/:id/config
 PUT    /api/release-tracks/:id/config
 ```
 
 ### Preview & Dry Run
+
 ```
 GET    /api/release-tracks/:id/bump/preview
 ```
 
 ### Version Management
+
 ```
 GET    /api/release-tracks/:id/objects/:objectRef/versions
 ```
 
 ### Virtual Release Tracks (Additional)
+
 ```
 PUT    /api/release-tracks/:id/composition
 POST   /api/release-tracks/:id/snapshots/create
@@ -105,11 +116,12 @@ GET    /api/release-tracks/:id/snapshots/preview
 "Ephemeral" release tracks refer to unmanaged, stateless release track snapshots. Upon request, a STIX bundle will be generated containing the latest copy of all objects contained within the respective domain as defined by the `:domain` path parameter.
 
 Three options are supported in the `:domain` path parameter:
+
 - `enterprise`
 - `ics`
 - `mobile`
 
-These refer to all objects delineated by ATT&CK domain membership as reflected by the objects' `x_mitre_domains` property. 
+These refer to all objects delineated by ATT&CK domain membership as reflected by the objects' `x_mitre_domains` property.
 
 ### Get Ephemeral Bundle
 
@@ -125,18 +137,19 @@ identities and marking definitions are included so the bundle is
 self-contained.
 
 **Path Parameters:**
+
 - `:domain` - `enterprise` | `ics` | `mobile`
 
 **Query Parameters:**
 
-| Parameter | Values | Default | Description |
-|-----------|--------|---------|-------------|
-| `format` | `bundle` \| `workbench` \| `filesystemstore` | `bundle` | Output format (`filesystemstore` is not yet implemented) |
-| `stixVersion` | `2.0` \| `2.1` | `2.1` | STIX version the emitted bundle conforms to (bundle format only) |
-| `includeToc` | `true` \| `false` | `true` | Include a table-of-contents object (of type `x-mitre-collection`) in the bundle. The TOC is generated with `x_mitre_version: "0.1"` (signifying an ephemeral, non-release-track collection), a `modified` of the current timestamp, and the deployment's default ATT&CK spec version. |
-| `includeObjectsWithMissingAttackId` | `true` \| `false` | `false` | Include objects that should have an ATT&CK ID set but do not |
-| `includeDeprecated` | `true` \| `false` | `false` | Include objects with `x_mitre_deprecated: true` (this also governs deprecated Data Sources) |
-| `includeRevoked` | `true` \| `false` | `false` | Include objects with `revoked: true` |
+| Parameter                           | Values                                       | Default  | Description                                                                                                                                                                                                                                                                           |
+| ----------------------------------- | -------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format`                            | `bundle` \| `workbench` \| `filesystemstore` | `bundle` | Output format (`filesystemstore` is not yet implemented)                                                                                                                                                                                                                              |
+| `stixVersion`                       | `2.0` \| `2.1`                               | `2.1`    | STIX version the emitted bundle conforms to (bundle format only)                                                                                                                                                                                                                      |
+| `includeToc`                        | `true` \| `false`                            | `true`   | Include a table-of-contents object (of type `x-mitre-collection`) in the bundle. The TOC is generated with `x_mitre_version: "0.1"` (signifying an ephemeral, non-release-track collection), a `modified` of the current timestamp, and the deployment's default ATT&CK spec version. |
+| `includeObjectsWithMissingAttackId` | `true` \| `false`                            | `false`  | Include objects that should have an ATT&CK ID set but do not                                                                                                                                                                                                                          |
+| `includeDeprecated`                 | `true` \| `false`                            | `false`  | Include objects with `x_mitre_deprecated: true` (this also governs deprecated Data Sources)                                                                                                                                                                                           |
+| `includeRevoked`                    | `true` \| `false`                            | `false`  | Include objects with `revoked: true`                                                                                                                                                                                                                                                  |
 
 > [!Note]
 > The ephemeral endpoint does not support the `include` or `state` tier
@@ -156,12 +169,14 @@ GET /api/release-tracks
 ```
 
 **Query Parameters:**
+
 - `releases` - `only` (filter to show only release tracks that have at least one tagged release)
 - `type` - `standard` | `virtual` (filter by track type)
 - `limit` - Number of results (pagination)
 - `offset` - Pagination offset
 
 **Response Example:**
+
 ```json
 {
   "release_tracks": [
@@ -174,6 +189,14 @@ GET /api/release-tracks
       "latest_modified": "2024-01-15T16:20:00Z",
       "snapshot_count": 47,
       "tagged_release_count": 12,
+      "tagged_releases": [
+        {
+          "snapshot_modified": "2024-01-15T16:20:00Z",
+          "version": "14.1",
+          "tagged_at": "2024-01-15T17:00:00Z",
+          "tagged_by": "user-id"
+        }
+      ],
       "summary": {
         "members_count": 3247,
         "staged_count": 18,
@@ -209,6 +232,7 @@ POST /api/release-tracks/new
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "Release Track Name",
@@ -227,6 +251,7 @@ POST /api/release-tracks/new-from-bundle
 ```
 
 **Request Body:**
+
 ```json
 {
   "type": "bundle",
@@ -247,6 +272,7 @@ POST /api/release-tracks/new-from-bundle
 ```
 
 **Response:**
+
 ```json
 {
   "release_track_id": "release-track--new-uuid",
@@ -292,22 +318,22 @@ Workbench responses return the release-track snapshot shape. Entries in the `mem
 
 **Query Parameters:**
 
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `format` | `workbench` \| `bundle` \| `filesystemstore` | Output format (default: `workbench`; `filesystemstore` is not yet implemented) |
-| `include` | `members` \| `staged` \| `candidates` \| `quarantine` \| `all` | Which tier arrays to include in `workbench` responses (default: all tiers) |
-| `releases` | `only` | Return only the latest tagged release instead of latest snapshot |
-| `version` | `X.Y` | Return specific version (e.g., `14.1`) |
-| `versions` | `all` | List all snapshots with metadata |
+| Parameter  | Values                                                         | Description                                                                    |
+| ---------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `format`   | `workbench` \| `bundle` \| `filesystemstore`                   | Output format (default: `workbench`; `filesystemstore` is not yet implemented) |
+| `include`  | `members` \| `staged` \| `candidates` \| `quarantine` \| `all` | Which tier arrays to include in `workbench` responses (default: all tiers)     |
+| `releases` | `only`                                                         | Return only the latest tagged release instead of latest snapshot               |
+| `version`  | `X.Y`                                                          | Return specific version (e.g., `14.1`)                                         |
+| `versions` | `all`                                                          | List all snapshots with metadata                                               |
 
 **Additional query parameters for `format=bundle`:**
 
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `include` | `staged` and/or `candidates` (comma-separated or repeated) | Additional tiers to include in the bundle alongside members. If omitted, only members are included. (Note the different semantics from `workbench` responses.) |
-| `state` | `work-in-progress` and/or `awaiting-review` (comma-separated or repeated) | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included. Members are unaffected. |
-| `stixVersion` | `2.0` \| `2.1` | STIX version the emitted bundle conforms to (default: `2.1`) |
-| `includeToc` | `true` \| `false` | Include a table-of-contents object (of type `x-mitre-collection`) derived from the release-track metadata (default: `true`) |
+| Parameter     | Values                                                                    | Description                                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include`     | `staged` and/or `candidates` (comma-separated or repeated)                | Additional tiers to include in the bundle alongside members. If omitted, only members are included. (Note the different semantics from `workbench` responses.) |
+| `state`       | `work-in-progress` and/or `awaiting-review` (comma-separated or repeated) | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included. Members are unaffected.         |
+| `stixVersion` | `2.0` \| `2.1`                                                            | STIX version the emitted bundle conforms to (default: `2.1`)                                                                                                   |
+| `includeToc`  | `true` \| `false`                                                         | Include a table-of-contents object (of type `x-mitre-collection`) derived from the release-track metadata (default: `true`)                                    |
 
 See [Output Formats](output-formats.md) for details on the bundle structure.
 
@@ -342,8 +368,10 @@ GET /api/release-tracks/:id?versions=all
 ### Update Metadata
 
 A user or team may wish to:
+
 - rename a release (e.g., fix a typo like `"Entrprise"` to `"Enterprise"`) or shift the scope/purpose of an existing release track without losing its history (though [cloning](#clone-latest-snapshot) is preferred in this scenario)
 - update metadata (which at present consists of a `description` field, `object_marking_references` (typically only includes the global marking definition) and the author (`created_by_ref`).
+
 ```
 POST /api/release-tracks/:id/meta
 ```
@@ -351,6 +379,7 @@ POST /api/release-tracks/:id/meta
 Creates new snapshot with updated metadata.
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Name",
@@ -366,9 +395,10 @@ Creates new snapshot with updated metadata.
 POST /api/release-tracks/:id/contents
 ```
 
-Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.** The main workflow for enrolling new member objects into `x_mitre_contents` is through the candidate-staging promotion cycle described in [versioning.md](./versioning.md). 
+Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.** The main workflow for enrolling new member objects into `x_mitre_contents` is through the candidate-staging promotion cycle described in [versioning.md](./versioning.md).
 
 **Request Body:**
+
 ```json
 {
   "x_mitre_contents": ["attack-pattern--uuid1", "malware--uuid2"]
@@ -389,6 +419,7 @@ POST /api/release-tracks/:id/bump
 ```
 
 **Request Body (optional):**
+
 ```json
 {
   "type": "major" | "minor",  // Defaults to "minor" if omitted
@@ -400,11 +431,13 @@ POST /api/release-tracks/:id/bump
 ### Clone Release Track From Latest
 
 Bootstraps a new `release-track` instance from an existing snapshot.
+
 ```
 POST /api/release-tracks/:id/clone
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "Cloned Release Track" // optional
@@ -418,6 +451,7 @@ DELETE /api/release-tracks/:id
 ```
 
 **Query Parameters:**
+
 - `versions` - `latest` (delete only latest, default: all)
 
 ---
@@ -435,9 +469,11 @@ GET /api/release-tracks/:id/snapshots/:modified
 ```
 
 **Path Parameters:**
+
 - `:modified` - ISO 8601 timestamp (e.g., `2024-01-15T16:20:00.000Z`)
 
 **Query Parameters:**
+
 - `format` - `workbench` | `bundle` | `filesystemstore` (default: `workbench`; `filesystemstore` is not yet implemented)
 - `include` - `members` | `staged` | `candidates` | `quarantine` | `all` (default: all tiers)
 
@@ -446,6 +482,7 @@ For `format=bundle`, the same additional parameters as
 semantics), `state`, `stixVersion`, and `includeToc`.
 
 **Example:**
+
 ```bash
 # Get snapshot from January 15, 2024 for the Workbench UI
 GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z
@@ -490,6 +527,7 @@ POST /api/release-tracks/:id/snapshots/:modified/bump
 ### Clone Specific Snapshot
 
 Bootstraps a new release track from the specified snapshot.
+
 ```
 POST /api/release-tracks/:id/snapshots/:modified/clone
 ```
@@ -497,6 +535,7 @@ POST /api/release-tracks/:id/snapshots/:modified/clone
 ### Delete Specific Snapshot
 
 **TODO**: further consideration needs to be given here. We need to be careful to avoid breaking contextual continuity between snapshots.
+
 ```
 DELETE /api/release-tracks/:id/snapshots/:modified
 ```
@@ -514,16 +553,18 @@ POST /api/release-tracks/:id/candidates
 ```
 
 **Request Body:**
+
 ```json
 {
   "object_refs": [
-    {"id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z"}, // pinned to specific version
-    {"id": "malware--uuid"} // follows latest version while marked as candidate
+    { "id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z" }, // pinned to specific version
+    { "id": "malware--uuid" } // follows latest version while marked as candidate
   ]
 }
 ```
 
 Simplified (uses latest versions):
+
 ```json
 {
   "object_refs": ["attack-pattern--uuid", "malware--uuid"]
@@ -539,9 +580,11 @@ GET /api/release-tracks/:id/candidates
 ```
 
 **Query Parameters:**
+
 - `status` - Filter by workflow status: `work-in-progress` | `awaiting-review` | `reviewed`
 
 **Response Example:**
+
 ```json
 {
   "candidates": [
@@ -571,31 +614,33 @@ GET /api/release-tracks/:id/candidates
 ### Remove Candidate
 
 Remove an object from the latest snapshot's candidates list (`workspace.candidates`).
+
 ```
 DELETE /api/release-tracks/:id/candidates/:objectRef
 ```
 
 ### Bulk Object Status Transition
 
-Bulk transition candidate objects currently in the latest snapshot from workflow status `from` to workflow status `to`. 
-- Optionally target specific candidates using the `object_refs` filter. 
+Bulk transition candidate objects currently in the latest snapshot from workflow status `from` to workflow status `to`.
+
+- Optionally target specific candidates using the `object_refs` filter.
 - `object_refs` is optional; if omitted, transitions all matching `from` status.
 
 Bidirectional status transition is supported here. For example, objects can be transition from "reviewed" → "awaiting-review" or from "awaiting-review" → "work-in-progress".
 
 Notably, changes to an object's status (e.g., "work-in-progress" → "awaiting-review") will automatically update its release track membership standing (e.g., candidate, staged, member). In the most restrictive (typical) scenario, a candidate object transitioning to the "reviewed" state will trigger a new draft snapshot creation wherein the object is now staged.
+
 ```
 POST /api/release-tracks/:id/candidates/review
 ```
 
 **Request Body:**
+
 ```json
 {
   "from": "work-in-progress",
   "to": "awaiting-review",
-  "object_refs": [
-    {"id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z"}
-  ]
+  "object_refs": [{ "id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z" }]
 }
 ```
 
@@ -612,6 +657,7 @@ GET /api/release-tracks/:id/staged
 ```
 
 **Response Example:**
+
 ```json
 {
   "staged": [
@@ -636,6 +682,7 @@ POST /api/release-tracks/:id/candidates/promote
 ```
 
 **Request Body:**
+
 ```json
 {
   "object_refs": ["attack-pattern--eee"]
@@ -643,6 +690,7 @@ POST /api/release-tracks/:id/candidates/promote
 ```
 
 **Response:**
+
 ```json
 {
   "promoted": [
@@ -662,11 +710,10 @@ POST /api/release-tracks/:id/staged/demote
 ```
 
 **Request Body:**
+
 ```json
 {
-  "object_refs": [
-    {"id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z"}
-  ]
+  "object_refs": [{ "id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z" }]
 }
 ```
 
@@ -687,6 +734,7 @@ PUT /api/release-tracks/:id/config
 ```
 
 **Request Body:**
+
 ```json
 {
   "candidacy_threshold": "work-in-progress" | "awaiting-review" | "reviewed",
@@ -698,7 +746,7 @@ PUT /api/release-tracks/:id/config
 
 ## Preview & Dry Run
 
-> **Note on `include` Query Parameter:** The `include` query parameter (used on snapshot retrieval endpoints to filter which tiers are returned) is **NOT supported** on bump preview or dry-run operations. Bump previews and dry-runs are intended to show the user exactly what *will* happen when a bump occurs; ad-hoc filters would be misleading because they do not affect the actual release outcome.
+> **Note on `include` Query Parameter:** The `include` query parameter (used on snapshot retrieval endpoints to filter which tiers are returned) is **NOT supported** on bump preview or dry-run operations. Bump previews and dry-runs are intended to show the user exactly what _will_ happen when a bump occurs; ad-hoc filters would be misleading because they do not affect the actual release outcome.
 
 ### Preview Next Release (Read-Only)
 
@@ -709,9 +757,11 @@ GET /api/release-tracks/:id/bump/preview
 ```
 
 **Query Parameters:**
+
 - `format` - `bundle` | `filesystemstore` | `workbench` (default: `workbench`; `filesystemstore` is not yet implemented)
 
 **Response Example:**
+
 ```json
 {
   "current_version": "1.1",
@@ -746,6 +796,7 @@ POST /api/release-tracks/:id/bump
 ```
 
 **Request Body:**
+
 ```json
 {
   "type": "minor",
@@ -768,6 +819,7 @@ POST /api/release-tracks/:id/candidates/:objectRef/update-version
 ```
 
 **Request Body:**
+
 ```json
 {
   "old_modified": "2024-01-15T10:00:00Z",
@@ -776,6 +828,7 @@ POST /api/release-tracks/:id/candidates/:objectRef/update-version
 ```
 
 **Use Cases:**
+
 - Upgrading a candidate to the latest version of an object
 - Downgrading to a previous stable version
 - Synchronizing with another release track's version
@@ -791,6 +844,7 @@ GET /api/release-tracks/:id/objects/:objectRef/versions
 ```
 
 **Response Example:**
+
 ```json
 {
   "object_ref": "attack-pattern--T1234",
@@ -808,6 +862,22 @@ GET /api/release-tracks/:id/objects/:objectRef/versions
   ]
 }
 ```
+
+### List Tagged Releases Containing an Object
+
+Lists tagged snapshots across all release tracks whose `members` tier directly
+contains the supplied STIX ID. The result spans all revisions and reports the
+exact `object_modified` pin used by each release.
+
+```
+GET /api/release-tracks/objects/:objectRef/releases
+```
+
+Optional query parameters are `type=standard|virtual`, `order=asc|desc`,
+`limit`, and `offset`. Drafts, candidates, staged/quarantined entries, and
+secondary objects added only during bundle export are excluded. See
+[Find Tagged Releases Containing an Object](releases-by-object.md) for the
+complete response contract and semantics.
 
 ---
 
@@ -844,6 +914,12 @@ Snapshot already has a version assigned.
 
 Invalid version format or not greater than previous versions.
 
+### TaggedSnapshotDeletionError
+
+**Status:** 409 Conflict
+
+Tagged snapshots are immutable and cannot be deleted.
+
 ### NotFoundError
 
 **Status:** 404 Not Found
@@ -857,6 +933,7 @@ Release track not found.
 Virtual release tracks are computed aggregations of other release tracks. Unlike standard tracks, virtual tracks don't directly manage objects through the candidate → staged → released workflow. Instead, they compose content from multiple "component tracks" based on configurable rules.
 
 **Key Characteristics:**
+
 - Compute contents from component standard or virtual tracks
 - Only reference **tagged snapshots** from component tracks (never drafts)
 - Create snapshots **manually or on schedule** (never event-driven)
@@ -864,6 +941,7 @@ Virtual release tracks are computed aggregations of other release tracks. Unlike
 - Support **resolution strategies** to control which component versions are included
 
 **Resolution Strategies:**
+
 1. `latest_tagged` - Always use the most recent tagged snapshot from component
 2. `specific_version` - Pin to a specific semantic version (e.g., "5.0")
 3. `specific_snapshot` - Pin to a specific snapshot by timestamp
@@ -877,6 +955,7 @@ POST /api/release-tracks/new
 ```
 
 **Request Body:**
+
 ```json
 {
   "type": "virtual",
@@ -912,6 +991,7 @@ PUT /api/release-tracks/:id/composition
 ```
 
 **Request Body:**
+
 ```json
 {
   "component_tracks": [
@@ -937,6 +1017,7 @@ POST /api/release-tracks/:id/snapshots/create
 ```
 
 **Request Body:**
+
 ```json
 {
   "description": "Q1 2024 snapshot"
@@ -944,6 +1025,7 @@ POST /api/release-tracks/:id/snapshots/create
 ```
 
 **Response:**
+
 ```json
 {
   "stix": {
@@ -979,6 +1061,7 @@ GET /api/release-tracks/:id/snapshots/preview
 ```
 
 **Response:**
+
 ```json
 {
   "preview": {
@@ -1012,6 +1095,7 @@ The ephemeral bundle endpoint supports `format`, but not tier `include`, because
 it does not read from a persisted release-track snapshot.
 
 **Include Parameter** (workbench format — controls which tiers are returned):
+
 ```
 GET /api/release-tracks/:id                            # Default: all tiers
 GET /api/release-tracks/:id?include=members            # Members tier only
@@ -1023,6 +1107,7 @@ GET /api/release-tracks/:id?include=all                # All tiers
 
 **Include Parameter** (bundle format — controls which tiers are hydrated into
 the bundle; members are always included):
+
 ```
 GET /api/release-tracks/:id?format=bundle                            # Members only
 GET /api/release-tracks/:id?format=bundle&include=staged             # Members + staged
@@ -1032,12 +1117,14 @@ GET /api/release-tracks/:id?format=bundle&include=candidates,staged  # Members +
 
 **State Parameter** (bundle format only — narrows the tiers selected via
 `include` by workflow status; `reviewed` entries are always included):
+
 ```
 GET /api/release-tracks/:id?format=bundle&include=candidates&state=work-in-progress
 GET /api/release-tracks/:id?format=bundle&include=candidates,staged&state=work-in-progress,awaiting-review
 ```
 
 **Format Parameter** (controls output format):
+
 ```
 GET /api/release-tracks/:id?format=workbench           # Workbench snapshot with metadata (default)
 GET /api/release-tracks/:id?format=bundle              # Standard STIX bundle
@@ -1045,6 +1132,7 @@ GET /api/release-tracks/:id?format=filesystemstore     # Not implemented; return
 ```
 
 **Combined Example:**
+
 ```
 GET /api/release-tracks/:id?include=all&format=workbench
 ```
@@ -1056,4 +1144,4 @@ The `include` query parameter is **NOT supported** on bump preview or dry-run en
 - `GET /api/release-tracks/:id/bump/preview` — only `format` is supported
 - `POST /api/release-tracks/:id/bump` with `dry_run: true` — only `format` is supported (via request body)
 
-These endpoints are designed to show exactly what *will* happen during a release bump. Allowing ad-hoc tier filters would be misleading because they do not affect the actual release outcome.
+These endpoints are designed to show exactly what _will_ happen during a release bump. Allowing ad-hoc tier filters would be misleading because they do not affect the actual release outcome.

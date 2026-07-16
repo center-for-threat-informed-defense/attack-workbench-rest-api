@@ -22,6 +22,7 @@ Guides for consumers of the REST API — endpoints, workflows, and terminology.
 - [Output Formats](user/release-tracks/output-formats.md): Output format specifications
 - [Workflow Examples](user/release-tracks/workflow-examples.md): End-to-end workflow examples
 - [Object Backrefs](user/release-tracks/object-backrefs.md): Release-track membership pointers on object documents (`workspace.release_tracks`)
+- [Releases By Object](user/release-tracks/releases-by-object.md): Find tagged releases that directly contain a STIX object
 
 ## Developer Documentation
 
@@ -44,6 +45,7 @@ Architecture, patterns, and implementation details for contributors.
 - [Member Sync Strategies](developer/release-tracks/member-sync-strategies.md): Automatic tracking of member object revisions
 - [Error Handling](developer/release-tracks/error-handling.md): Error handling patterns
 - [Implementation Notes](developer/release-tracks/implementation-notes.md): Implementation notes and decisions
+- [Releases By Object](developer/release-tracks/releases-by-object.md): Registry catalogue, fan-out query, and indexing design
 
 ## Admin Documentation
 

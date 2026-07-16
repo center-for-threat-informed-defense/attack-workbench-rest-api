@@ -297,6 +297,12 @@ class AlreadyReleasedError extends CustomError {
   }
 }
 
+class TaggedSnapshotDeletionError extends CustomError {
+  constructor(version, options) {
+    super(`Tagged snapshot version ${version} cannot be deleted`, options);
+  }
+}
+
 class MemberPinnedRevisionError extends CustomError {
   constructor(options) {
     super(
@@ -371,6 +377,7 @@ module.exports = {
 
   //** Version control errors */
   AlreadyReleasedError,
+  TaggedSnapshotDeletionError,
   InvalidVersionError,
 
   //** Release track errors */

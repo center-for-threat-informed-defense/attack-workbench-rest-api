@@ -9,31 +9,74 @@ This document tracks new database schemas, interfaces, etc.; as well as changes 
 #### Naming Conventions
 
 **Release Track Names:**
+
 - Must contain only alphanumeric characters and spaces: `[a-zA-Z0-9 ]`
 - No special characters allowed (no hyphens, underscores, or other punctuation)
 - Examples: `Enterprise`, `Groups Monthly`, `Techniques Quarterly`
 
 **Release Track IDs:**
 MongoDB Collections and release track IDs follow a simple naming convention:
+
 ```
 release-track--$uuid
 ```
 
 Where:
+
 - `release-track--` is a fixed prefix
 - `$uuid` is a dynamically generated UUIDv4 identifier (must be unique)
 
 **Example:**
 A user creates a release track named `Groups Monthly`:
+
 1. Name: `Groups Monthly` (user-specified, stored in the `name` field)
 2. UUID: `8b0ff8f9-27fd-4d7e-bbc9-8fe9465342af` (generated)
 3. Final ID: `release-track--8b0ff8f9-27fd-4d7e-bbc9-8fe9465342af`
 
 This ID is used for:
+
 - MongoDB Collection name
 - The `id` field in release track snapshots
 - API endpoint references (`/api/release-tracks/:id`)
 
+### Release Track Registry
+
+`releaseTrackRegistry` contains exactly one document per release track. It is
+the global catalogue for discovering dynamic track collections and their
+compact metadata; snapshot contents remain authoritative in the per-track
+collections.
+
+```javascript
+{
+  track_id: "release-track--123",
+  type: "standard",
+  name: "ATT&CK Enterprise",
+  latest_snapshot_modified: "2024-02-01T10:00:00.000Z",
+  latest_tagged_version: "2.0",
+  snapshot_count: 47,
+  tagged_release_count: 2,
+  tagged_releases: [
+    {
+      snapshot_modified: "2024-01-15T16:20:00.000Z",
+      version: "1.0",
+      tagged_at: "2024-01-15T17:00:00.000Z",
+      tagged_by: "user-id"
+    },
+    {
+      snapshot_modified: "2024-02-01T10:00:00.000Z",
+      version: "2.0",
+      tagged_at: "2024-02-01T11:00:00.000Z",
+      tagged_by: "user-id"
+    }
+  ]
+}
+```
+
+`tagged_release_count` is derived from `tagged_releases.length`, and
+`latest_tagged_version` is the highest semantic MAJOR.MINOR version rather
+than the tag on the chronologically newest snapshot. See
+[releases-by-object.md](releases-by-object.md) for reconciliation and query
+details.
 
 ### Release Track Types
 
@@ -43,6 +86,7 @@ Release tracks can be one of two types:
 2. **Virtual Release Tracks**: Computed aggregations of other release tracks, used to compose releases from multiple source tracks
 
 The type is identified by the `stix.type` field:
+
 - Standard tracks: `stix.type` is omitted or set to `"standard"`
 - Virtual tracks: `stix.type = "virtual"`
 
@@ -166,20 +210,21 @@ The `version_history` array tracks all tagged releases in reverse chronological 
 ```javascript
 version_history: [
   {
-    version: "2.0",                          // Version (MAJOR.MINOR)
-    tagged_at: "2024-02-01T...",             // When the tagging occurred
-    tagged_by: "user@example.com",           // Who performed the tagging
-    snapshot_id: "2024-02-01T10:00:00.000Z", // Which snapshot was tagged
+    version: '2.0', // Version (MAJOR.MINOR)
+    tagged_at: '2024-02-01T...', // When the tagging occurred
+    tagged_by: 'user@example.com', // Who performed the tagging
+    snapshot_id: '2024-02-01T10:00:00.000Z', // Which snapshot was tagged
     summary: {
       members_count: 3000,
-      promoted_count: 150
-    }
+      promoted_count: 150,
+    },
   },
   // ... older versions
-]
+];
 ```
 
 This provides:
+
 - Complete audit trail of tagged releases
 - Attribution for each tagged release
 - Chronological release history
@@ -222,6 +267,7 @@ field semantics):
 ```
 
 **Key Points:**
+
 - `workspace.release_tracks` provides reverse lookup for queries like "show me all release tracks containing this object"
 - Entries reflect each track's **latest** snapshot and are pinned to the specific object revision the tier entry references
 - Same object version can have different statuses in different release tracks

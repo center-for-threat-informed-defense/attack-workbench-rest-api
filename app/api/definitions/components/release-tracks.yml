@@ -339,6 +339,11 @@ components:
         tagged_release_count:
           type: number
           description: 'Number of tagged releases'
+        tagged_releases:
+          type: array
+          description: 'Compact references to every tagged snapshot in this track'
+          items:
+            $ref: '#/components/schemas/tagged-release-reference'
         summary:
           type: object
           description: 'Counts of objects in each release track tier for the latest snapshot'
@@ -364,6 +369,52 @@ components:
           nullable: true
           description: 'Automated snapshot schedule (virtual tracks only)'
           $ref: '#/components/schemas/snapshot-schedule'
+
+    tagged-release-reference:
+      type: object
+      description: 'Registry reference to a tagged snapshot'
+      properties:
+        snapshot_modified:
+          type: string
+          format: date-time
+          description: 'The tagged snapshot modified timestamp'
+        version:
+          type: string
+          description: 'The tagged MAJOR.MINOR version'
+        tagged_at:
+          type: string
+          format: date-time
+          description: 'When the snapshot was tagged'
+        tagged_by:
+          type: string
+          description: 'User account that tagged the snapshot'
+
+    release-by-object-entry:
+      type: object
+      description: 'One tagged release that directly contains the requested STIX object'
+      properties:
+        track_id:
+          type: string
+        track_type:
+          type: string
+          enum:
+            - standard
+            - virtual
+        track_name:
+          type: string
+        version:
+          type: string
+        snapshot_modified:
+          type: string
+          format: date-time
+        tagged_at:
+          type: string
+          format: date-time
+        tagged_by:
+          type: string
+        object_modified:
+          type: string
+          format: date-time
 
     snapshot-schedule:
       type: object

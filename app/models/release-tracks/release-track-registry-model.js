@@ -24,6 +24,18 @@ const snapshotScheduleDefinition = {
 };
 const snapshotScheduleSchema = new mongoose.Schema(snapshotScheduleDefinition, { _id: false });
 
+const taggedReleaseDefinition = {
+  snapshot_modified: { type: Date, required: true },
+  version: {
+    type: String,
+    required: true,
+    validate: validateVersion,
+  },
+  tagged_at: { type: Date, required: true },
+  tagged_by: { type: String, required: true },
+};
+const taggedReleaseSchema = new mongoose.Schema(taggedReleaseDefinition, { _id: false });
+
 // --- Registry document definition ---
 
 const releaseTrackRegistryDefinition = {
@@ -54,6 +66,7 @@ const releaseTrackRegistryDefinition = {
   },
   snapshot_count: { type: Number, default: 0 },
   tagged_release_count: { type: Number, default: 0 },
+  tagged_releases: { type: [taggedReleaseSchema], default: [] },
 
   // Virtual tracks only
   snapshot_schedule: { type: snapshotScheduleSchema, default: undefined },

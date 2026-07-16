@@ -16,9 +16,9 @@
 
 const snapshotService = require('./snapshot-service');
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
-const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
 const versionUtils = require('../../lib/release-tracks/version-utils');
 const conflictResolution = require('../../lib/release-tracks/conflict-resolution');
+const releaseHistoryService = require('./release-history-service');
 const logger = require('../../lib/logger');
 const { AlreadyReleasedError } = require('../../exceptions');
 
@@ -37,10 +37,14 @@ const { AlreadyReleasedError } = require('../../exceptions');
 async function _doBump(trackId, snapshot, options) {
   // Guard: cannot re-tag an already-tagged snapshot
   if (snapshot.version != null) {
+    await releaseHistoryService.reconcileTaggedReleases(trackId);
     throw new AlreadyReleasedError(snapshot.version);
   }
 
-  const versionHistory = snapshot.version_history || [];
+  // A historical draft's embedded version_history can predate newer tags.
+  // Read the track-wide tagged releases so retroactive tagging cannot reuse or
+  // regress a version.
+  const versionHistory = await releaseHistoryService.getTrackWideVersionHistory(trackId);
 
   // Calculate version
   const version = versionUtils.calculateNextVersion(versionHistory, options.type, options.version);
@@ -122,15 +126,13 @@ async function _doBump(trackId, snapshot, options) {
 
   if (!tagged) {
     // Race condition: snapshot was already tagged between our read and update
+    await releaseHistoryService.reconcileTaggedReleases(trackId);
     throw new AlreadyReleasedError('(concurrent tag)');
   }
 
-  // Update registry counters
-  await registryRepo.updateByTrackId(trackId, {
-    latest_tagged_version: version,
-    tagged_release_count: versionHistory.length + 1,
-    updated_at: now,
-  });
+  // Rebuild the registry's compact tagged-release catalogue from the source
+  // snapshots. This is idempotent and repairs missed/partial prior updates.
+  await releaseHistoryService.reconcileTaggedReleases(trackId);
 
   // The staged → members promotion changed tier membership. Re-read the
   // latest snapshot rather than using `tagged` — bumpByModified may have
@@ -195,7 +197,11 @@ exports.bumpByModified = async function bumpByModified(trackId, modified, option
 exports.previewBump = async function previewBump(trackId, _format) {
   const snapshot = await snapshotService.getLatestSnapshot(trackId);
 
-  const versionHistory = snapshot.version_history || [];
+  // The latest draft may have been cloned before a historical snapshot was
+  // retroactively tagged. Use the authoritative track-wide ledger here for
+  // the same reason _doBump does, otherwise preview can advertise a version
+  // that the subsequent bump rejects.
+  const versionHistory = await releaseHistoryService.getTrackWideVersionHistory(trackId);
   const staged = snapshot.staged || [];
   const existingMembers = snapshot.members || [];
 

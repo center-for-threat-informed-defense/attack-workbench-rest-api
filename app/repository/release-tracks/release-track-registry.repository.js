@@ -86,6 +86,45 @@ class ReleaseTrackRegistryRepository {
     }
   }
 
+  async findWithTaggedReleases(options = {}) {
+    try {
+      const query = { 'tagged_releases.0': { $exists: true } };
+      if (options.type) {
+        query.type = options.type;
+      }
+
+      return await this.model
+        .find(query)
+        .select('track_id type name tagged_releases')
+        .sort({ track_id: 1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async replaceTaggedReleases(trackId, taggedReleases, latestTaggedVersion) {
+    try {
+      return await this.model
+        .findOneAndUpdate(
+          { track_id: trackId },
+          {
+            $set: {
+              tagged_releases: taggedReleases,
+              tagged_release_count: taggedReleases.length,
+              latest_tagged_version: latestTaggedVersion,
+              updated_at: new Date(),
+            },
+          },
+          { new: true, runValidators: true, lean: true },
+        )
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async updateByTrackId(trackId, updates) {
     try {
       const result = await this.model

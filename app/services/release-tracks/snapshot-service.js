@@ -19,7 +19,12 @@ const modelFactory = require('../../models/release-tracks/model-factory');
 const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
 const EventConstants = require('../../lib/event-constants');
-const { TrackNotFoundError, NotFoundError } = require('../../exceptions');
+const versionUtils = require('../../lib/release-tracks/version-utils');
+const {
+  TrackNotFoundError,
+  NotFoundError,
+  TaggedSnapshotDeletionError,
+} = require('../../exceptions');
 
 // =============================================================================
 // Internal helpers
@@ -63,8 +68,13 @@ async function syncRegistryCounters(trackId) {
   // Latest snapshot is first (sorted desc by modified)
   const latestSnapshotModified = snapshots.length > 0 ? snapshots[0].modified : null;
 
-  // Latest tagged version: find the tagged snapshot with the highest modified
-  const latestTaggedVersion = tagged.length > 0 ? tagged[0].version : null;
+  const latestTaggedVersion = tagged.reduce(
+    (highest, snapshot) =>
+      !highest || versionUtils.compareVersions(snapshot.version, highest) > 0
+        ? snapshot.version
+        : highest,
+    null,
+  );
 
   await registryRepo.updateByTrackId(trackId, {
     snapshot_count: snapshotCount,
@@ -529,6 +539,10 @@ exports.deleteSnapshot = async function deleteSnapshot(trackId, modified) {
     throw new NotFoundError({
       details: `Snapshot with modified '${modified}' not found for track '${trackId}'`,
     });
+  }
+
+  if (snapshot.version != null) {
+    throw new TaggedSnapshotDeletionError(snapshot.version);
   }
 
   await dynamicRepo.deleteSnapshot(trackId, modified);

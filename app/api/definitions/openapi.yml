@@ -334,6 +334,9 @@ paths:
   /api/release-tracks:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks'
 
+  /api/release-tracks/objects/{objectRef}/releases:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1objects~1{objectRef}~1releases'
+
   /api/release-tracks/new:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1new'
 

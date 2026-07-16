@@ -33,6 +33,14 @@ router
   );
 
 router
+  .route('/release-tracks/objects/:objectRef/releases')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    releaseTracksController.getReleasesByObject,
+  );
+
+router
   .route('/release-tracks/new')
   .post(
     authn.authenticate,

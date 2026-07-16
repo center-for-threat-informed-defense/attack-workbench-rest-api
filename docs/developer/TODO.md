@@ -152,9 +152,233 @@ Object CRUD paths can mutate or destroy revisions that release tracks pin, witho
 
 - [x] **Technique conversion should reach revision sync.** Implemented 2026-07-13 with the adapter approach (same pattern as `handleStixObjectRevokedEvent`): the `TECHNIQUE_CONVERTED_TO_SUBTECHNIQUE` / `SUBTECHNIQUE_CONVERTED_TO_TECHNIQUE` event payloads now carry the converted revision (`document`) and acting user, and member sync subscribes via `handleStixObjectConvertedEvent`, treating the conversion as a `new-revision` trigger through the workflow gate — candidate/staged pins move to the converted revision, member tracks enroll it as a candidate. The conversion responses refresh `workspace.release_tracks` after event processing (read-your-own-writes). Tests: conversion cases in `release-tracks-change-capture.spec.js` and the updated clone-strip test in `release-tracks-backrefs.spec.js`.
 
+## Get Releases By Object
+
+- [ ] Implement `GET /api/release-tracks/objects/:objectRef/releases` so a
+  caller can retrieve every tagged snapshot whose `members` tier directly
+  contains the supplied STIX ID, across all object revisions and release
+  tracks.
+
+### Design
+
+The existing `workspace.release_tracks` backrefs cannot answer this query:
+they intentionally describe only each track's latest snapshot. A release that
+historically contained an object must still be returned after a later snapshot
+removes it. Conversely, copying all tagged snapshots into a new global MongoDB
+collection would duplicate the existing per-track source data and undermine
+the collection-per-track storage boundary.
+
+Use `releaseTrackRegistry` as a compact global forward catalogue instead. Its
+single document per track gains a server-maintained `tagged_releases` array:
+
+```javascript
+tagged_releases: [{
+  snapshot_modified: Date, // (track_id, snapshot_modified) identifies the snapshot
+  version: String,
+  tagged_at: Date,
+  tagged_by: String
+}]
+```
+
+`tagged_release_count` is derived from `tagged_releases.length`. The actual
+snapshot — including the authoritative `members` pins — remains in the track's
+dynamic collection. Tagging reconciles this registry projection from the
+source snapshots rather than incrementally appending, so retries and
+retroactive tagging are idempotent and self-healing. A migration backfills
+existing tracks.
+
+The endpoint is stateless but necessarily fan-outs: read registry documents
+with tagged releases, then issue one bounded-concurrency query per eligible
+track using all of that track's tagged `snapshot_modified` values. Flatten,
+sort deterministically, and paginate the matches. Registry references reduce
+the search to tagged snapshots, but they are a forward index (track → release),
+not an inverted object → release index; eliminating the per-track fan-out would
+require a separate denormalized membership index and is deliberately out of
+scope.
+
+Add a partial multikey index to every dynamic track collection for
+`members.object_ref`, limited to snapshots whose `version` is a string. Drafts
+therefore incur no index cost, and draft squashing does not affect the lookup.
+
+### Semantics
+
+- Match the STIX ID across all revisions; return the pinned `object_modified`
+  for each release.
+- Include standard and virtual tracks by default; optional `type` filtering.
+- Include only direct `members` entries from tagged snapshots. Do not include
+  candidates, staged/quarantined entries, or secondary objects added during
+  bundle export.
+- Support `order=asc|desc` by `snapshot_modified`, plus `limit` and `offset`.
+- Return 200 with an empty result for a valid STIX ID with no tagged releases;
+  malformed IDs return 400.
+- Ascending order describes first *published/tagged* appearance, not the time
+  the object first entered an untagged draft.
+
+### Checklist
+
+- [x] Registry schema/repository: add `tagged_releases`, reconciliation, and
+  derived count/latest-version maintenance.
+- [x] Dynamic snapshot schema/repository: add the tagged-member partial index
+  and a projected `findTaggedSnapshotsContainingObject` query.
+- [x] Versioning: reconcile registry metadata after tagging and validate
+  version progression against track-wide tagged releases rather than a
+  potentially stale historical snapshot's embedded `version_history`.
+- [x] API: route, controller Zod validation, facade/service orchestration,
+  deterministic pagination, and OpenAPI contract.
+- [x] Migration: backfill registry tagged-release refs and ensure the new index
+  on all existing dynamic track collections.
+- [x] Regression tests: multiple tracks/releases/revisions, removal after an
+  earlier release, retroactive tag, virtual track, draft/non-member exclusion,
+  filtering/order/pagination, empty/malformed input, and backfill behavior.
+- [x] User/developer docs and Bruno request.
+- [ ] Verification: targeted spec first, then the complete `npm test` suite.
+  - Targeted endpoint spec: 8 passing; release-track directory: 69 passing;
+    lint, OpenAPI validation, and middleware suite pass.
+  - `npm test` was attempted three times on 2026-07-16. Each API run reached
+    861-880 passing but hit different roaming failures in unrelated legacy
+    specs (collection-bundle timeout, missing anonymous-session cookie, and
+    transient version lookups). Every failed file passed when rerun in
+    isolation. A clean full-suite run is still required before this task meets
+    the repository definition of done.
+
+## Snapshot Retention (Squash on Tag)
+
+- [ ] Implement draft-snapshot squashing so release cycles don't accumulate
+  unbounded snapshot storage. Design captured 2026-07-15; assessed as sound —
+  see analysis below.
+
+### Why
+
+Every mutation clones the full snapshot document (`cloneSnapshot` in
+`snapshot-service.js`): metadata edits, config edits, tier operations, and —
+critically — every member-sync enrollment. Each snapshot embeds the complete
+`members`/`staged`/`candidates` arrays (~100–150 bytes BSON per pin entry).
+
+At ATT&CK scale (~10k–20k tracked objects), each snapshot document is
+~1–3 MB. A release cycle where 10% of a 10k-object track is edited produces
+~1,000 member-sync snapshots ≈ 1–3 GB of drafts per track per cycle — nearly
+all of it intermediate states nobody will ever read again. Storage per cycle
+is O(edits × track_size); the per-write clone is the root cause, but squashing
+at the tag checkpoint caps the steady state without touching the write path.
+
+Mitigating facts (verified in code):
+
+- Bulk endpoints already exist: `addCandidates`, `promoteCandidates`,
+  `reviewCandidates`, `demoteStaged` all take arrays and produce **one**
+  snapshot per call. Initial population of a track is 3 snapshots (create →
+  bulk-add → bulk-promote), plus an in-place tag (tagging via
+  `tagSnapshotInPlace` creates **zero** snapshots). The N-snapshot trap is
+  calling the bulk endpoints once per object — document this loudly in user
+  docs, but no code change needed there.
+- `::created` events for brand-new objects are no-ops for member sync
+  (`findTracksReferencingObject` only matches already-tracked `stix.id`s).
+  The O(N²) trap is bulk *re-imports/updates* of already-tracked objects
+  (e.g. re-importing a modified 20k-object bundle → 20k snapshots × MBs each).
+- `version_history` is embedded in and carried forward by every clone, so the
+  release ledger survives squashing — tagged snapshots and the latest draft
+  always hold the full history.
+- Backref reconciliation (`emitContentsChanged`) only ever reads the **latest**
+  snapshot; deleting non-latest drafts requires no backref work.
+
+### Semantics
+
+"Squash" = bulk-delete draft snapshots (`version == null`) older than a
+boundary, preserving: all tagged snapshots, the boundary snapshot, and always
+the latest snapshot. Like `git rebase --squash`ing the commits behind a tag.
+
+1. **Squash-on-tag (opt-in):** `POST /api/release-tracks/:id/bump` (and
+   `.../snapshots/:modified/bump`) accept `squash: boolean` (default `false`).
+   After a successful tag of snapshot S, delete all snapshots matching
+   `{ id, version: null, modified: { $lt: S.modified } }`. Drafts newer than S
+   (work already underway toward the next release) survive. Response gains
+   `squashed_count`.
+2. **Standalone maintenance endpoint** (recovery from bulk-operation
+   accidents, no tag required): `POST /api/release-tracks/:id/snapshots/squash`
+   with optional `before` (ISO timestamp; defaults to the latest tagged
+   snapshot's `modified`; if no tagged release exists and `before` is omitted,
+   400). Same delete filter; never deletes the latest snapshot even if it is
+   an untagged draft and `before` post-dates it.
+3. **Concurrency safety:** the filter can't race member sync — concurrent
+   clones get `modified = now`, which is always ≥ the boundary, so they are
+   never matched. Tag-then-squash need not be atomic: a crash between the two
+   just leaves drafts behind (retryable via the maintenance endpoint).
+4. After deletion: one `syncRegistryCounters(trackId)` call; **no**
+   `emitContentsChanged` (latest snapshot unchanged by construction). Add a
+   repo-level `deleteDraftSnapshotsBefore(trackId, boundary)` (`deleteMany`)
+   rather than looping `deleteSnapshot` (which emits per-delete events).
+
+### Drawbacks accepted (documented trade-offs, not blockers)
+
+- **Provenance loss.** Intermediate drafts are the only record of the journey:
+  who added/staged what when (`object_added_by`, `object_staged_at`), status
+  transitions, `modified-in-place` markers that were later cleared. Promotion
+  strips staged metadata from member entries, so after squash only the final
+  state remains. This is exactly git-squash semantics and is why the flag is
+  opt-in, but teams that need review audit trails must not squash (or we later
+  add a roll-up audit record — see Future).
+- **Retro-tagging is foreclosed.** `bumpByModified` can no longer tag a
+  squashed draft. Consistent by construction: squashing is the declaration
+  that intermediates don't matter. Note the "undo/move the tag" worry is
+  already moot — versions are immutable once set, re-tagging throws
+  `AlreadyReleasedError`, and no untag endpoint exists. The genuine loss is
+  forensic/DR, mitigated only by Mongo backups.
+- **Virtual tracks: excluded from v1.** Their scheduled snapshots
+  (`snapshot_schedule`) exist precisely to build a periodic history;
+  squash-on-tag would destroy the thing the schedule creates. Reject
+  (or no-op with a warning) squash on virtual tracks until there's a
+  considered retention policy for them.
+
+### Alternatives considered
+
+- *Amend-in-place* (member sync mutates the latest draft instead of cloning):
+  attacks the root cause but breaks the "every modification is a new
+  snapshot" invariant, complicates concurrent reads, and silently degrades
+  the audit trail for everyone. Rejected for now.
+- *Delta/structural-sharing storage*: large refactor of the snapshot store;
+  revisit only if squash proves insufficient.
+- *TTL/retention config* (e.g. `config.retention.auto_squash_on_tag`,
+  max-draft-age): natural follow-on once manual squash exists.
+
+### Checklist
+
+- [ ] Repo: `deleteDraftSnapshotsBefore(trackId, boundary)` in
+  `release-track-dynamic.repository.js` (deleteMany on
+  `{ id, version: null, modified: { $lt: boundary } }`, excluding the latest
+  snapshot's `modified`).
+- [ ] Service: squash logic in `versioning-service.js` (`squash` option on
+  `_doBump`) + standalone squash operation (probably `snapshot-service.js`);
+  reject for virtual tracks; return `squashed_count`.
+- [ ] Controller/routes: `squash` in the Zod bump body schema; new
+  `POST /api/release-tracks/:id/snapshots/squash` route with Zod-validated
+  optional `before`.
+- [ ] OpenAPI: bump request body + new squash path.
+- [ ] Regression tests (`release-tracks-squash.spec.js`): squash-on-tag
+  deletes only pre-tag drafts; tagged snapshots survive; drafts newer than
+  the tagged snapshot survive; latest-draft never deleted by maintenance
+  squash; registry counters resync; backrefs untouched; virtual track
+  rejected; no-tagged-release + no `before` → 400; idempotent re-squash.
+- [ ] Docs: `docs/user/release-tracks/versioning.md` (squash behavior +
+  the bulk-endpoints-vs-per-object-loop warning for initial population),
+  `docs/developer/release-tracks/` (why, trade-offs, provenance loss).
+- [ ] Bruno: bump `.bru` gains `~squash` toggle; new squash request file.
+
+### Future (not in scope)
+
+- Roll-up audit record written at squash time (compact per-object journey
+  summary appended to the version_history entry or a side collection) to
+  soften the provenance loss.
+- Retention config for auto-squash and for virtual-track snapshot history.
+- Coalescing/debouncing member-sync snapshots during bulk update storms
+  (the re-import O(N²) trap) — e.g. a bulk-import context that suspends
+  per-object snapshotting and emits one consolidated snapshot at the end.
+
 ## Small Fixes
 
 - [ ] **Composition schema mismatch: `priority`.** `PUT /api/release-tracks/:id/composition` — the Zod schema (`componentTrackSchema`) marks `priority` optional, but the mongoose snapshot schema requires it, so omitting it passes validation and then fails the save with a 500 (`DatabaseError`) instead of a 400. Align the schemas (either default `priority` or make it required in Zod). Found 2026-07-15 while testing virtual-track backrefs.
+
+- [ ] **`deleteSnapshot` lacks a tagged-release guard.** `DELETE /api/release-tracks/:id/snapshots/:modified` (`snapshot-service.deleteSnapshot`) deletes any snapshot, including tagged releases — contradicting the "immutable once set" versioning rule. Should 409 on `version != null` (a squash implementation must also filter `version: null`; see Snapshot Retention section). Found 2026-07-15 while designing squash.
+
+- [ ] **`syncRegistryCounters` scales with snapshot count.** It fetches *all* snapshots (`getAllSnapshots` with projection) on every clone to recount — O(snapshot_count) reads per write, on the hottest path (member sync). Fine post-squash; consider a count query or incremental counters if draft accumulation between tags is large.
 
 ## Diffing Endpoint
 

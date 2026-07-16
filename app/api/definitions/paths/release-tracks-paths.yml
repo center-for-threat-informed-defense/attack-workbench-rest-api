@@ -142,6 +142,81 @@ paths:
                       offset:
                         type: number
 
+  /api/release-tracks/objects/{objectRef}/releases:
+    get:
+      summary: 'List tagged releases containing a STIX object'
+      operationId: 'release-tracks-releases-by-object'
+      description: |
+        Return every tagged release-track snapshot whose members tier directly
+        contains the supplied STIX ID. The result spans all object revisions.
+        Drafts, non-member tiers, and secondary bundle-export objects are excluded.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: objectRef
+          in: path
+          required: true
+          description: 'STIX ID to locate across tagged releases'
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: 'Restrict results to one release-track type'
+          schema:
+            type: string
+            enum:
+              - standard
+              - virtual
+        - name: order
+          in: query
+          description: 'Snapshot chronology order'
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: asc
+        - name: limit
+          in: query
+          description: 'Maximum number of results to return'
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          description: 'Number of matching releases to skip'
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: 'Tagged releases containing the object'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object_ref:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '../components/release-tracks.yml#/components/schemas/release-by-object-entry'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+        '400':
+          description: 'Malformed STIX ID or invalid query parameter'
+
   /api/release-tracks/new:
     post:
       summary: 'Create a new release track'
@@ -901,7 +976,7 @@ paths:
       responses:
         '204':
           description: 'Snapshot deleted successfully'
-        '400':
+        '409':
           description: 'Cannot delete tagged snapshot'
         '404':
           description: 'Snapshot not found'
