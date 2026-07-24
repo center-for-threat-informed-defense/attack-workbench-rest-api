@@ -15,6 +15,7 @@
 const snapshotService = require('./snapshot-service');
 const objectResolver = require('../../lib/release-tracks/object-resolver');
 const conflictResolution = require('../../lib/release-tracks/conflict-resolution');
+const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const logger = require('../../lib/logger');
 const { NotFoundError, BadRequestError } = require('../../exceptions');
 
@@ -74,7 +75,7 @@ function normalizeObjectRef(entry) {
  *
  * For each entry:
  *   - If `modified` is "latest" or omitted, resolve via the STIX service layer.
- *   - Skip duplicates (same object_ref + object_modified already in candidates).
+ *   - Skip duplicates (same object_ref + object_modified already in any tier).
  *   - New candidates start as "work-in-progress".
  *
  * @param {string} trackId
@@ -85,9 +86,16 @@ function normalizeObjectRef(entry) {
 exports.addCandidates = async function addCandidates(trackId, objectRefs, userId) {
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertStandardTrack(source);
+  const normalizedSource = tierRevisionInvariant.normalizeSnapshot(source);
+  const workingSource = normalizedSource.snapshot;
 
   const now = new Date();
-  const existingCandidates = source.candidates || [];
+  const existingCandidates = workingSource.candidates || [];
+  const existingRevisionKeys = new Set(
+    tierRevisionInvariant.TIER_PRECEDENCE.flatMap((tier) => workingSource[tier] || []).map(
+      tierRevisionInvariant.revisionKey,
+    ),
+  );
   const newEntries = [];
 
   for (const raw of objectRefs) {
@@ -101,25 +109,30 @@ exports.addCandidates = async function addCandidates(trackId, objectRefs, userId
       modified = new Date(entry.modified);
     }
 
-    // Skip if this exact (object_ref + object_modified) already exists in candidates
-    const isDuplicate = existingCandidates.some(
-      (c) =>
-        c.object_ref === entry.id && new Date(c.object_modified).getTime() === modified.getTime(),
-    );
+    const revision = { object_ref: entry.id, object_modified: modified };
+    const revisionKey = tierRevisionInvariant.revisionKey(revision);
+    const isDuplicate = existingRevisionKeys.has(revisionKey);
     if (isDuplicate) {
       logger.verbose(
-        `StandardTrackService: Skipping duplicate candidate ${entry.id} @ ${modified.toISOString()}`,
+        `StandardTrackService: Skipping already-pinned candidate ${entry.id} @ ` +
+          modified.toISOString(),
       );
       continue;
     }
 
     newEntries.push({
-      object_ref: entry.id,
-      object_modified: modified,
+      ...revision,
       object_status: 'work-in-progress',
       object_added_at: now,
       object_added_by: userId,
     });
+    existingRevisionKeys.add(revisionKey);
+  }
+
+  if (newEntries.length === 0) {
+    return normalizedSource.removed.length > 0
+      ? snapshotService.cloneSnapshot(trackId, source)
+      : source;
   }
 
   // Same-object conflicts (the object_ref is already pinned in candidates at

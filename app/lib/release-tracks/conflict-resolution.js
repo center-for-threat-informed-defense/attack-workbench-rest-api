@@ -15,6 +15,7 @@
 // =============================================================================
 
 const { ReleaseConflictError } = require('../../exceptions');
+const { sameRevision } = require('./tier-revision-invariant');
 
 /**
  * Merge incoming entries into an existing tier, applying a conflict policy.
@@ -31,6 +32,14 @@ exports.applyConflictPolicy = function applyConflictPolicy(existingTier, incomin
   const conflicts = []; // Collect all conflicts for 'abort' policy
 
   for (const incoming of incomingEntries) {
+    const exactDuplicate = merged.some((entry) => sameRevision(entry, incoming));
+    if (exactDuplicate) {
+      // The destination already contains this precise revision. Treat the
+      // move as successful/idempotent so callers remove it from the source
+      // tier instead of putting it back as a rejected conflict.
+      continue;
+    }
+
     const conflictIdx = merged.findIndex((e) => e.object_ref === incoming.object_ref);
 
     if (conflictIdx === -1) {

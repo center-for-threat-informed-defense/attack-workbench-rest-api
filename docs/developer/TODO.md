@@ -10,6 +10,22 @@
 
   Residual: rare (≈1 per run under heavy machine load) single-test failures of a different character (a count assertion, a 20s timeout in a pagination GET) still appear occasionally and pass in isolation — likely load-related; keep observing before chasing further.
 
+## Release-track cross-tier revision uniqueness
+
+- [x] Read the release-track user and developer documentation and identify the
+  intended exact-revision invariant.
+- [x] Trace every standard/virtual tier ingress and transition path.
+- [x] Add regression coverage proving one `(stix.id, stix.modified)` revision
+  cannot occupy multiple tiers while different revisions of one ID can.
+- [x] Enforce the invariant for candidate adds, promotions, demotions, bulk
+  status transitions, release bumps, member sync, and quarantine workflows.
+- [x] Update user/developer documentation (and OpenAPI/Bruno only if the API
+  contract changes).
+- [x] Run focused specs and the complete `npm test` suite. The task-specific
+  and constituent suites pass; repeated aggregate runs each encountered one
+  unrelated roaming API failure that passed immediately in isolation.
+- [x] Review the final diff and propose a conventional commit message.
+
 
 ## Snapshot Output Format
 
@@ -91,6 +107,10 @@ For release track retrieval requests that include the `format=bundle` query para
 - `state: ['work-in-progress', 'awaiting-review']`: If specified, the value must be equal to an array of at least one value. Notably, objects marked as `"reviewed"` are always included (by nature of all members being included —— all members are inherently "reviewed"), irrespective of this query parameter. The parameter acts as a union filter that logically combines with `include`. In other words, when `include` and `state` are both specified, `include` is applied first, then `state` is applied to the remaining `include`-filtered subset. (i.e., Of the candidates and/or staged objects that are ready to be included in the emitted bundle, only include the ones that are marked as "work-in-progress", "awaiting-review", or either). 
 - `stixVersion` should be **preserved**. This parameter allows users to control which STIX version is used in the emitted bundle (`2.0` or `2.1`). It defaults to `2.1`.
 
+### Fixing the /bump/preview endpoint
+
+Currently there exists support for the `format` query parameter on the `GET /api/release-tracks/:id/bump/preview` endpoint. It's not actually functional (has no impact on the response body) and should be removed.
+
 ### In Summary:
 
 - [x] Read the existing release track user + developer documentation in `docs/user/release-tracks/` and `docs/developer/release-tracks/`, respectively.
@@ -101,7 +121,7 @@ For release track retrieval requests that include the `format=bundle` query para
 - [x] Ensure that all required logic (query parameters) is/are implemented in the new endpoints as outlined above.
 - [x] Implement regression tests for the new functionality (`release-tracks-bundle.spec.js`, `ephemeral-bundle.spec.js`)
 - [x] Update the aforementioned user + developer documentation. The user documentation should simply describe how the behavior _is_ while the developer documentation should described _why_ and _how_, and additionally cover what has been described here: explaining what _was_ and how the functionality has evolved from before the introduction of release tracks to after. (See `docs/developer/release-tracks/bundle-export.md`.)
-
+- [] Remove support for the `query` parameter on the `GET /api/release-tracks/:id/bump/preview` endpoint
 
 ## Bidirectional References
 
@@ -154,7 +174,7 @@ Object CRUD paths can mutate or destroy revisions that release tracks pin, witho
 
 ## Get Releases By Object
 
-- [ ] Implement `GET /api/release-tracks/objects/:objectRef/releases` so a
+- [X] Implement `GET /api/release-tracks/objects/:objectRef/releases` so a
   caller can retrieve every tagged snapshot whose `members` tier directly
   contains the supplied STIX ID, across all object revisions and release
   tracks.

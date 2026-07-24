@@ -270,6 +270,8 @@ field semantics):
 
 - `workspace.release_tracks` provides reverse lookup for queries like "show me all release tracks containing this object"
 - Entries reflect each track's **latest** snapshot and are pinned to the specific object revision the tier entry references
+- One precise revision (`stix.id` + `stix.modified`) can occupy only one tier
+  in a snapshot; different revisions of the same object may occupy different tiers
 - Same object version can have different statuses in different release tracks
 - Multiple versions of same object can exist, each potentially referenced by different release tracks
 - The field is server-controlled and maintained by event-driven reconciliation (`release-track::contents-changed`)

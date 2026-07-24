@@ -20,6 +20,7 @@ const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
 const EventConstants = require('../../lib/event-constants');
 const versionUtils = require('../../lib/release-tracks/version-utils');
+const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const {
   TrackNotFoundError,
   NotFoundError,
@@ -251,12 +252,19 @@ exports.cloneSnapshot = async function cloneSnapshot(trackId, sourceSnapshot, ov
     }
   }
 
-  const saved = await dynamicRepo.saveSnapshot(trackId, clone);
+  const normalized = tierRevisionInvariant.normalizeSnapshot(clone);
+  const saved = await dynamicRepo.saveSnapshot(trackId, normalized.snapshot);
   await syncRegistryCounters(trackId);
 
   // The clone (modified = now) is the track's new latest snapshot
   await emitContentsChanged(trackId, saved);
 
+  if (normalized.removed.length > 0) {
+    logger.warn(
+      `SnapshotService: Removed ${normalized.removed.length} exact cross-tier revision ` +
+        `duplicate(s) while cloning track "${trackId}"`,
+    );
+  }
   logger.verbose(`SnapshotService: Cloned snapshot for track "${trackId}"`);
   return saved;
 };
@@ -306,8 +314,10 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
   clone.created_by_ref = options.userAccountId || sourceSnapshot.created_by_ref;
   clone.version_history = [];
 
+  const normalized = tierRevisionInvariant.normalizeSnapshot(clone);
+
   await modelFactory.ensureIndexes(newTrackId);
-  const saved = await dynamicRepo.saveSnapshot(newTrackId, clone);
+  const saved = await dynamicRepo.saveSnapshot(newTrackId, normalized.snapshot);
 
   await registryRepo.create({
     track_id: newTrackId,
@@ -324,6 +334,12 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
   // The new track's initial snapshot carries the source track's contents
   await emitContentsChanged(newTrackId, saved);
 
+  if (normalized.removed.length > 0) {
+    logger.warn(
+      `SnapshotService: Removed ${normalized.removed.length} exact cross-tier revision ` +
+        `duplicate(s) while cloning new track "${newTrackId}"`,
+    );
+  }
   logger.verbose(`SnapshotService: Cloned track to new track "${clone.name}" (${newTrackId})`);
   return saved;
 }

@@ -280,7 +280,21 @@ config: {
 }
 ```
 
-Exact duplicates (same `stix.id` *and* same `stix.modified`) are never conflicts: re-adding an identical revision to `candidates` is idempotent and simply skipped.
+Exact duplicates (same `stix.id` *and* same `stix.modified`) are never
+conflicts. A precise revision can occupy only one tier in a release-track
+snapshot:
+
+- Re-adding a revision that is already in `members`, `staged`, `candidates`,
+  or `quarantine` is idempotent and skipped.
+- Moving a revision into a tier that already contains that exact revision
+  removes the source-tier occurrence and retains the destination occurrence.
+- Conflict policies apply only when the same `stix.id` is pinned to
+  **different** `stix.modified` values.
+
+Different revisions of the same object remain valid across tiers—for example,
+the released revision in `members` and a newer revision in `candidates`.
+Snapshots created from legacy invalid state are normalized with the
+authoritative tier order `members` → `staged` → `candidates` → `quarantine`.
 
 #### Policy Options
 
@@ -431,6 +445,10 @@ POST /api/release-tracks/release-track--123/bump
 **Why abort is important:** Once a snapshot is tagged and released, it becomes immutable. The `abort` policy ensures that releases don't inadvertently overwrite existing released content, providing an additional safety guardrail for critical release operations.
 
 **Why report all conflicts:** When multiple conflicts exist, reporting all of them in a single error response allows editors to address all issues at once, rather than discovering them one at a time through repeated release attempts. This significantly improves the workflow efficiency when dealing with complex release scenarios.
+
+An exact staged/member duplicate does not trigger `abort`: it is the same
+revision, not a competing revision. The redundant staged occurrence is
+removed when the snapshot is tagged.
 
 #### Configuring Conflict Resolution Policies
 

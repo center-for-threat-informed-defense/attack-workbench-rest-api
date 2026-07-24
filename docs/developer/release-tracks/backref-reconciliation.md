@@ -71,8 +71,10 @@ are consistent by the time the triggering API call returns.
 For one `(repository, trackId, snapshot, includeRef)`:
 
 1. **Desired set** — walk the snapshot tiers in order `members`, `staged`,
-   `candidates`, `quarantine` (first tier wins if a revision somehow appears
-   twice), keyed by `(object_ref, object_modified)`. Status mapping:
+   `candidates`, `quarantine`, keyed by `(object_ref, object_modified)`.
+   Snapshot persistence enforces this exact-revision uniqueness invariant;
+   first-tier-wins remains a defensive fallback for legacy/directly written
+   invalid documents. Status mapping:
    members → `reviewed`; staged/candidates → the entry's `object_status`;
    quarantine → none.
 2. **Current set** — `find({ 'workspace.release_tracks.id': trackId })`,

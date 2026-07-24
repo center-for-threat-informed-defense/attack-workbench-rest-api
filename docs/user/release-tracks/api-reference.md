@@ -548,6 +548,11 @@ DELETE /api/release-tracks/:id/snapshots/:modified
 
 Adds STIX objects as candidates to the latest draft snapshot. Each object is identified by its `stix.id` field, as well as (optionally) its `stix.modified` field. If `stix.modified` is omitted, the latest permutation of the relevant STIX object will be added. The candidacy reference will follow the latest version of the object until the moment the draft is converted to a release, at which point the reference will become locked to the specific permutation of the object that was considered "latest" at the time the release bump occurred.
 
+If the resolved revision (the same `stix.id` and `stix.modified`) is already
+present in any tier of the snapshot, the add is idempotently skipped. A newer
+or older revision of an object already in `members` can still be added as a
+candidate.
+
 ```
 POST /api/release-tracks/:id/candidates
 ```
@@ -630,9 +635,13 @@ Bidirectional status transition is supported here. For example, objects can be t
 
 Notably, changes to an object's status (e.g., "work-in-progress" → "awaiting-review") will automatically update its release track membership standing (e.g., candidate, staged, member). In the most restrictive (typical) scenario, a candidate object transitioning to the "reviewed" state will trigger a new draft snapshot creation wherein the object is now staged.
 
+Tier transitions preserve the exact-revision uniqueness invariant. If legacy
+state already contains the same revision in `members` and `candidates`, the
+transition repairs the duplicate and retains the `members` occurrence.
+
 ```
 POST /api/release-tracks/:id/candidates/review
-```
+```/
 
 **Request Body:**
 
@@ -677,6 +686,11 @@ GET /api/release-tracks/:id/staged
 
 ### Promote Candidate Objects To Staged
 
+Promotion conflict policies apply when `staged` contains a different revision
+of the same object. An exact revision already present in another tier is not a
+conflict; the operation retains a single occurrence, with `members` taking
+precedence over workflow tiers.
+
 ```
 POST /api/release-tracks/:id/candidates/promote
 ```
@@ -704,6 +718,10 @@ POST /api/release-tracks/:id/candidates/promote
 ```
 
 ### Demote Staged Objects To Candidates
+
+Demotion follows the same rule: different revisions are handled by
+`promotion_conflicts.into_candidates`, while an exact revision is retained in
+only one tier.
 
 ```
 POST /api/release-tracks/:id/staged/demote

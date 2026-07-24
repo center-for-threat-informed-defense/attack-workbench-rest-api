@@ -413,6 +413,8 @@ paths:
       operationId: 'release-tracks-update-contents-latest'
       description: |
         Replace the members tier with new contents (x_mitre_contents format).
+        Exact revisions already present in another tier are retained only in members;
+        different revisions of the same object remain valid across tiers.
         Creates a new snapshot clone.
         Request body validated via Zod in controller.
       tags:
@@ -453,6 +455,7 @@ paths:
       description: |
         Tag the latest snapshot with a version number.
         For standard tracks: promotes staged → members.
+        Exact staged/member duplicates are idempotent and normalized rather than treated as conflicts.
         For virtual tracks: N/A (already resolved).
         Request body validated via Zod in controller: { type: 'major'|'minor', version?: string, dry_run?: boolean }
       tags:
@@ -549,6 +552,8 @@ paths:
       description: |
         Add one or more objects to the candidates tier.
         If modified is omitted or 'latest', resolves to the latest version of the object.
+        If that exact revision is already pinned in any tier, the add is idempotently skipped.
+        Different revisions of the same object may occupy different tiers.
         If auto_promote is enabled and candidates meet the threshold, they are auto-promoted to staged.
         Request body validated via Zod: { object_refs: Array<string | {id, modified}> }
       tags:
@@ -570,6 +575,7 @@ paths:
       description: |
         Transition candidates from one workflow status to another (forward-only).
         If auto_promote is enabled and candidates meet the threshold after transition, they are auto-promoted to staged.
+        Tier changes retain an exact revision in only one tier and repair legacy cross-tier duplicates.
         `from` also accepts the server-assigned `modified-in-place` status; `to` accepts only the
         user-settable statuses (work-in-progress, awaiting-review, reviewed).
         Request body validated via Zod: { from, to, object_refs? }
@@ -591,7 +597,8 @@ paths:
       operationId: 'release-tracks-candidates-promote'
       description: |
         Manually promote specific candidates to the staged tier, bypassing auto-promotion logic.
-        Applies conflict resolution policy.
+        Applies conflict resolution policy only to different revisions of the same object.
+        Exact revisions are retained in one tier, with members taking precedence.
         Request body validated via Zod: { object_refs: string[] }
       tags:
         - 'Release Tracks'
@@ -637,6 +644,7 @@ paths:
       operationId: 'release-tracks-candidates-update-version'
       description: |
         Change which version of an object is being tracked in the candidates tier.
+        If the new pin exactly matches another tier, the authoritative existing tier is retained.
         Request body validated via Zod: { old_modified, new_modified }
       tags:
         - 'Release Tracks'
@@ -691,6 +699,7 @@ paths:
       operationId: 'release-tracks-staged-demote'
       description: |
         Move objects from staged tier back to candidates tier.
+        Applies into_candidates conflicts only to different revisions; exact revisions remain in one tier.
         Request body validated via Zod: { object_refs: Array<{id, modified}> }
       tags:
         - 'Release Tracks'
@@ -1011,6 +1020,8 @@ paths:
       operationId: 'release-tracks-update-contents-by-modified'
       description: |
         Update member contents on a historical snapshot.
+        Exact revisions already present in another tier are retained only in members;
+        different revisions of the same object remain valid across tiers.
         Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'
@@ -1059,6 +1070,7 @@ paths:
       operationId: 'release-tracks-bump-by-modified'
       description: |
         Tag a historical snapshot with a version number.
+        Exact staged/member duplicates are idempotent and normalized rather than treated as conflicts.
         Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'

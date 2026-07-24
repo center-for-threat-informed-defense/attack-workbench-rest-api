@@ -18,6 +18,7 @@ const snapshotService = require('./snapshot-service');
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
 const versionUtils = require('../../lib/release-tracks/version-utils');
 const conflictResolution = require('../../lib/release-tracks/conflict-resolution');
+const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const releaseHistoryService = require('./release-history-service');
 const logger = require('../../lib/logger');
 const { AlreadyReleasedError } = require('../../exceptions');
@@ -41,6 +42,9 @@ async function _doBump(trackId, snapshot, options) {
     throw new AlreadyReleasedError(snapshot.version);
   }
 
+  const normalized = tierRevisionInvariant.normalizeSnapshot(snapshot);
+  const workingSnapshot = normalized.snapshot;
+
   // A historical draft's embedded version_history can predate newer tags.
   // Read the track-wide tagged releases so retroactive tagging cannot reuse or
   // regress a version.
@@ -53,8 +57,8 @@ async function _doBump(trackId, snapshot, options) {
   versionUtils.validateVersionProgression(version, versionHistory);
 
   // Promote staged → members (standard tracks only)
-  const staged = snapshot.staged || [];
-  const existingMembers = snapshot.members || [];
+  const staged = workingSnapshot.staged || [];
+  const existingMembers = workingSnapshot.members || [];
   let mergedMembers = existingMembers;
   let promotedCount = 0;
 
@@ -66,9 +70,9 @@ async function _doBump(trackId, snapshot, options) {
     }));
 
     const policy =
-      (snapshot.config &&
-        snapshot.config.promotion_conflicts &&
-        snapshot.config.promotion_conflicts.staged_to_members) ||
+      (workingSnapshot.config &&
+        workingSnapshot.config.promotion_conflicts &&
+        workingSnapshot.config.promotion_conflicts.staged_to_members) ||
       'abort';
 
     const { merged } = conflictResolution.applyConflictPolicy(
@@ -93,7 +97,7 @@ async function _doBump(trackId, snapshot, options) {
       members_count: mergedMembers.length,
       promoted_count: promotedCount,
       staged_count: staged.length,
-      candidate_count: (snapshot.candidates || []).length,
+      candidate_count: (workingSnapshot.candidates || []).length,
     },
   };
 
@@ -112,6 +116,9 @@ async function _doBump(trackId, snapshot, options) {
 
   // Build additional atomic ops for the tag update
   const additionalOps = {};
+  for (const tier of normalized.changedTiers) {
+    additionalOps[tier] = workingSnapshot[tier];
+  }
   if (staged.length > 0) {
     additionalOps.members = mergedMembers;
     additionalOps.staged = [];
@@ -144,6 +151,13 @@ async function _doBump(trackId, snapshot, options) {
     `VersioningService: Tagged track "${trackId}" as v${version} ` +
       `(promoted ${promotedCount} staged → members)`,
   );
+
+  if (normalized.removed.length > 0) {
+    logger.warn(
+      `VersioningService: Removed ${normalized.removed.length} exact cross-tier revision ` +
+        `duplicate(s) while tagging track "${trackId}"`,
+    );
+  }
 
   return tagged;
 }
@@ -195,7 +209,8 @@ exports.bumpByModified = async function bumpByModified(trackId, modified, option
  */
 // eslint-disable-next-line no-unused-vars
 exports.previewBump = async function previewBump(trackId, _format) {
-  const snapshot = await snapshotService.getLatestSnapshot(trackId);
+  const sourceSnapshot = await snapshotService.getLatestSnapshot(trackId);
+  const snapshot = tierRevisionInvariant.normalizeSnapshot(sourceSnapshot).snapshot;
 
   // The latest draft may have been cloned before a historical snapshot was
   // retroactively tagged. Use the authoritative track-wide ledger here for
