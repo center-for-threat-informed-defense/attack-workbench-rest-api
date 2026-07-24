@@ -27,6 +27,7 @@ const {
   bundleStateQuerySchema,
   stixVersionQuerySchema,
   booleanQuerySchema,
+  snapshotTaggedQuerySchema,
   trackTypeQuerySchema,
   releaseOrderQuerySchema,
   releaseLimitQuerySchema,
@@ -318,7 +319,7 @@ exports.importReleaseTrack = async function importReleaseTrack(_req, _res, next)
   );
 };
 
-/** GET /api/release-tracks/:id */
+/** GET /api/release-tracks/:id/snapshots/latest */
 exports.retrieveLatestSnapshot = async function retrieveLatestSnapshot(req, res, next) {
   try {
     const queryOptions = parseSnapshotQueryParams(req.query);
@@ -332,6 +333,29 @@ exports.retrieveLatestSnapshot = async function retrieveLatestSnapshot(req, res,
     return res.status(200).send(result);
   } catch (err) {
     logger.error('Failed to retrieve latest snapshot: ' + err);
+    return next(err);
+  }
+};
+
+/** GET /api/release-tracks/:id/snapshots */
+exports.listSnapshots = async function listSnapshots(req, res, next) {
+  try {
+    const options = {
+      tagged: parseOptionalQueryStrict(
+        req.query.tagged,
+        snapshotTaggedQuerySchema,
+        undefined,
+        'tagged',
+      ),
+      limit: parseOptionalQueryStrict(req.query.limit, releaseLimitQuerySchema, 50, 'limit'),
+      offset: parseOptionalQueryStrict(req.query.offset, releaseOffsetQuerySchema, 0, 'offset'),
+    };
+
+    const result = await releaseTracksService.listSnapshots(req.params.id, options);
+    logger.debug(`Success: Retrieved snapshots for track ${req.params.id}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to retrieve snapshots: ' + err);
     return next(err);
   }
 };

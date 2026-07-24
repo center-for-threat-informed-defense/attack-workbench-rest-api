@@ -110,7 +110,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
   }
 
   async function latestSnapshotModified(trackId) {
-    const snapshot = await getJson(`/api/release-tracks/${trackId}`);
+    const snapshot = await getJson(`/api/release-tracks/${trackId}/snapshots/latest`);
     return snapshot.modified;
   }
 
@@ -245,7 +245,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
         status: 'modified-in-place',
       });
 
-      const snapshot = await getJson(`/api/release-tracks/${trackId}`);
+      const snapshot = await getJson(`/api/release-tracks/${trackId}/snapshots/latest`);
       expect(snapshot.staged).toHaveLength(0);
       expect(snapshot.candidates).toHaveLength(1);
     });
@@ -262,7 +262,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
 
       // In a permissive track the fresh candidate auto-promotes immediately
       await addCandidate(trackId, technique);
-      let snapshot = await getJson(`/api/release-tracks/${trackId}`);
+      let snapshot = await getJson(`/api/release-tracks/${trackId}/snapshots/latest`);
       expect(snapshot.staged).toHaveLength(1);
 
       // An in-place edit is marked, but the tier is decided by the workflow
@@ -279,7 +279,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
         tier: 'staged',
         status: 'modified-in-place',
       });
-      snapshot = await getJson(`/api/release-tracks/${trackId}`);
+      snapshot = await getJson(`/api/release-tracks/${trackId}/snapshots/latest`);
       expect(snapshot.staged).toHaveLength(1);
       expect(snapshot.staged[0].object_status).toBe('modified-in-place');
       expect(snapshot.candidates).toHaveLength(0);

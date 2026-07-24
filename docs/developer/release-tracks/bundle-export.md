@@ -56,7 +56,7 @@ spec) and will be removed in a future release. Its replacements:
 | Legacy usage | Replacement |
 |--------------|-------------|
 | Domain-scoped ad hoc bundle | `GET /api/release-tracks/ephemeral/:domain` |
-| Release/publication bundle | `GET /api/release-tracks/:id?format=bundle` (or `/snapshots/:modified?format=bundle`) |
+| Release/publication bundle | `GET /api/release-tracks/:id/snapshots/latest?format=bundle` (or `/snapshots/:modified?format=bundle`) |
 
 ### Ephemeral endpoint parameter mapping
 

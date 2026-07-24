@@ -213,8 +213,24 @@ router
   );
 
 // =============================================================================
-// Virtual track operations (static snapshot sub-paths before :modified param)
+// Snapshot collection and static sub-paths (before :modified param)
 // =============================================================================
+
+router
+  .route('/release-tracks/:id/snapshots')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    releaseTracksController.listSnapshots,
+  );
+
+router
+  .route('/release-tracks/:id/snapshots/latest')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    releaseTracksController.retrieveLatestSnapshot,
+  );
 
 router
   .route('/release-tracks/:id/snapshots/preview')
@@ -294,16 +310,11 @@ router
   );
 
 // =============================================================================
-// Retrieve / delete release track (must be last -- :id is a catch-all param)
+// Delete release track (must be last -- :id is a catch-all param)
 // =============================================================================
 
 router
   .route('/release-tracks/:id')
-  .get(
-    authn.authenticate,
-    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-    releaseTracksController.retrieveLatestSnapshot,
-  )
   .delete(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),

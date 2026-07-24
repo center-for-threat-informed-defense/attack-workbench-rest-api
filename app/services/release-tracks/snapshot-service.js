@@ -187,6 +187,53 @@ exports.createTrack = async function createTrack(data) {
 // =============================================================================
 
 /**
+ * List lightweight summaries of a track's snapshots.
+ *
+ * Standard summaries expose members/staged/candidates counts. Virtual
+ * summaries expose members/quarantine counts.
+ *
+ * @param {string} trackId
+ * @param {Object} options - { tagged?, limit, offset }
+ * @returns {Promise<{data: Object[], pagination: Object}>}
+ * @throws {TrackNotFoundError} If the release track does not exist
+ */
+exports.listSnapshots = async function listSnapshots(trackId, options) {
+  const track = await registryRepo.findByTrackId(trackId);
+  if (!track) {
+    throw new TrackNotFoundError(trackId);
+  }
+
+  const result = await dynamicRepo.getSnapshotSummaries(trackId, options);
+  return {
+    ...result,
+    data: result.data.map((snapshot) => {
+      const common = {
+        id: snapshot.id,
+        type: snapshot.type,
+        modified: snapshot.modified,
+        version: snapshot.version,
+        name: snapshot.name,
+        description: snapshot.description,
+        members_count: snapshot.members_count,
+      };
+
+      if (snapshot.type === 'virtual') {
+        return {
+          ...common,
+          quarantine_count: snapshot.quarantine_count,
+        };
+      }
+
+      return {
+        ...common,
+        staged_count: snapshot.staged_count,
+        candidates_count: snapshot.candidates_count,
+      };
+    }),
+  };
+};
+
+/**
  * Retrieve the most recent snapshot for a track.
  *
  * @param {string} trackId

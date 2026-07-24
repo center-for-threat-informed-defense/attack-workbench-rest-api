@@ -189,6 +189,11 @@ const stixVersionQuerySchema = z.enum(['2.0', '2.1']);
 // OpenAPI validator has already coerced them to booleans.
 const booleanQuerySchema = z.union([z.boolean(), z.stringbool()]);
 
+const snapshotTaggedQuerySchema = z.union([
+  z.boolean(),
+  z.enum(['true', 'false']).transform((value) => value === 'true'),
+]);
+
 const trackTypeQuerySchema = z.enum(['standard', 'virtual']);
 
 const releaseOrderQuerySchema = z.enum(['asc', 'desc']);
@@ -433,6 +438,7 @@ module.exports = {
   bundleStateQuerySchema,
   stixVersionQuerySchema,
   booleanQuerySchema,
+  snapshotTaggedQuerySchema,
   trackTypeQuerySchema,
   releaseOrderQuerySchema,
   releaseLimitQuerySchema,

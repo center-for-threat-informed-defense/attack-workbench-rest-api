@@ -62,7 +62,7 @@ GET  /api/release-tracks/ephemeral/:domain
 
 # Release track management
 POST /api/release-tracks/new
-GET  /api/release-tracks/:id
+GET  /api/release-tracks/:id/snapshots/latest
 POST /api/release-tracks/:id/config
 POST /api/release-tracks/:id/meta
 POST /api/release-tracks/:id/clone

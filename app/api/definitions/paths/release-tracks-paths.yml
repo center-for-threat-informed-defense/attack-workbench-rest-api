@@ -268,97 +268,9 @@ paths:
           description: 'Not yet implemented'
 
   # =============================================================================
-  # Track retrieval and deletion
+  # Track deletion
   # =============================================================================
   /api/release-tracks/{id}:
-    get:
-      summary: 'Get the latest snapshot of a release track'
-      operationId: 'release-tracks-get-latest'
-      description: |
-        Retrieve the most recent snapshot for a release track.
-        By default returns the Workbench snapshot shape with all tiers present.
-        Use the include query parameter to narrow tier arrays when desired.
-        Use format=bundle to export the snapshot as a STIX bundle.
-      tags:
-        - 'Release Tracks'
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: 'Release track ID'
-          schema:
-            type: string
-            example: 'release-track--a1b2c3d4-e5f6-7890-abcd-ef1234567890'
-        - name: include
-          in: query
-          description: |
-            Format-sensitive tier selector.
-            For format=workbench (default): a single value controlling which tier arrays
-            are returned — members | staged | candidates | quarantine | all (default: all).
-            For format=bundle: a list of additional tiers (staged and/or candidates,
-            comma-separated or repeated) to include alongside members. If omitted, only
-            members are included in the bundle.
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
-        - name: format
-          in: query
-          description: 'Output format. filesystemstore is not yet implemented.'
-          schema:
-            type: string
-            enum:
-              - bundle
-              - workbench
-              - filesystemstore
-            default: workbench
-        - name: state
-          in: query
-          description: |
-            Workflow-status filter for the staged/candidate tiers selected via include
-            (bundle format only). Accepts modified-in-place, work-in-progress and/or
-            awaiting-review (comma-separated or repeated). Entries marked reviewed are
-            always included, irrespective of this parameter. Members are unaffected.
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
-        - name: stixVersion
-          in: query
-          description: |
-            STIX version that the exported bundle should conform to (bundle format only).
-          schema:
-            type: string
-            enum:
-              - '2.0'
-              - '2.1'
-            default: '2.1'
-        - name: includeToc
-          in: query
-          description: |
-            Whether to include a table-of-contents object (of type `x-mitre-collection`)
-            derived from the release-track metadata (bundle format only).
-          schema:
-            type: boolean
-            default: true
-      responses:
-        '200':
-          description: 'Latest snapshot retrieved successfully'
-          content:
-            application/json:
-              schema:
-                $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
-        '404':
-          description: 'Release track not found'
-        '501':
-          description: 'Requested format is not yet implemented'
-
     delete:
       summary: 'Delete a release track'
       operationId: 'release-tracks-delete'
@@ -876,6 +788,156 @@ paths:
   # =============================================================================
   # Snapshot-specific operations
   # =============================================================================
+  /api/release-tracks/{id}/snapshots:
+    get:
+      summary: 'List snapshots for a release track'
+      operationId: 'release-tracks-snapshots-list'
+      description: |
+        Return lightweight summaries of every snapshot in the release track,
+        ordered by modified timestamp from newest to oldest. Standard snapshot
+        summaries contain members, staged, and candidates counts. Virtual
+        snapshot summaries contain members and quarantine counts.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 'Release track ID'
+          schema:
+            type: string
+        - name: tagged
+          in: query
+          description: |
+            Filter by tagged state. true returns snapshots with a version;
+            false returns untagged drafts. Omit to return both.
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          description: 'Number of snapshot summaries to return'
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          description: 'Number of matching snapshot summaries to skip'
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: 'Snapshot summaries retrieved successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                  - pagination
+                properties:
+                  data:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: '../components/release-tracks.yml#/components/schemas/standard-snapshot-summary'
+                        - $ref: '../components/release-tracks.yml#/components/schemas/virtual-snapshot-summary'
+                  pagination:
+                    type: object
+                    required:
+                      - total
+                      - limit
+                      - offset
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+        '400':
+          description: 'Invalid filter or pagination parameter'
+        '404':
+          description: 'Release track not found'
+
+  /api/release-tracks/{id}/snapshots/latest:
+    get:
+      summary: 'Get the latest snapshot of a release track'
+      operationId: 'release-tracks-snapshot-get-latest'
+      description: |
+        Return the most recent full snapshot for a release track.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 'Release track ID'
+          schema:
+            type: string
+        - name: include
+          in: query
+          description: |
+            Format-sensitive tier selector. For workbench responses, selects
+            members, staged, candidates, quarantine, or all. For bundle
+            responses, selects staged and/or candidates in addition to members.
+          allowReserved: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: format
+          in: query
+          description: 'Output format. filesystemstore is not yet implemented.'
+          schema:
+            type: string
+            enum:
+              - bundle
+              - workbench
+              - filesystemstore
+            default: workbench
+        - name: state
+          in: query
+          description: 'Workflow-status filter for bundle staged/candidate tiers'
+          allowReserved: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: stixVersion
+          in: query
+          description: 'STIX version for bundle responses'
+          schema:
+            type: string
+            enum:
+              - '2.0'
+              - '2.1'
+            default: '2.1'
+        - name: includeToc
+          in: query
+          description: 'Include the x-mitre-collection TOC in bundle responses'
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: 'Latest snapshot retrieved successfully'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
+        '404':
+          description: 'Release track not found'
+        '501':
+          description: 'Requested format is not yet implemented'
+
   /api/release-tracks/{id}/snapshots/{modified}:
     get:
       summary: 'Get a specific snapshot by modified timestamp'

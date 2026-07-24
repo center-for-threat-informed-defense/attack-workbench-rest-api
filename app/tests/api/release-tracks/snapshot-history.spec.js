@@ -1,0 +1,231 @@
+const request = require('supertest');
+const { expect } = require('expect');
+
+const config = require('../../../config/config');
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
+const login = require('../../shared/login');
+const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
+
+const objectRefs = [
+  'attack-pattern--00000000-0000-4000-8000-000000000001',
+  'attack-pattern--00000000-0000-4000-8000-000000000002',
+  'attack-pattern--00000000-0000-4000-8000-000000000003',
+  'attack-pattern--00000000-0000-4000-8000-000000000004',
+  'attack-pattern--00000000-0000-4000-8000-000000000005',
+  'attack-pattern--00000000-0000-4000-8000-000000000006',
+];
+
+function memberEntry(index, modified) {
+  return {
+    object_ref: objectRefs[index],
+    object_modified: modified,
+  };
+}
+
+function stagedEntry(index, modified) {
+  return {
+    ...memberEntry(index, modified),
+    object_status: 'reviewed',
+    object_staged_at: modified,
+    object_staged_by: 'snapshot-history-test',
+  };
+}
+
+function candidateEntry(index, modified) {
+  return {
+    ...memberEntry(index, modified),
+    object_status: 'work-in-progress',
+    object_added_at: modified,
+    object_added_by: 'snapshot-history-test',
+  };
+}
+
+function snapshotBase(snapshot) {
+  const clone = { ...snapshot };
+  delete clone._id;
+  delete clone.__v;
+  return clone;
+}
+
+describe('GET /api/release-tracks/:id/snapshots', function () {
+  let app;
+  let passportCookie;
+  let standardTrack;
+  let virtualTrack;
+  let standardTaggedModified;
+  let standardLatestModified;
+
+  before(async function () {
+    await database.initializeConnection();
+    await databaseConfiguration.checkSystemConfiguration();
+
+    config.validateRequests.withAttackDataModel = true;
+    config.validateRequests.withOpenApi = true;
+
+    app = await require('../../../index').initializeApp();
+    passportCookie = await login.loginAnonymous(app);
+
+    standardTrack = await createTrack('Snapshot History Standard', 'standard');
+    virtualTrack = await createTrack('Snapshot History Virtual', 'virtual');
+
+    const standardCreated = new Date(standardTrack.modified);
+    standardTaggedModified = new Date(standardCreated.getTime() + 1000);
+    standardLatestModified = new Date(standardCreated.getTime() + 2000);
+
+    await dynamicRepo.saveSnapshot(standardTrack.id, {
+      ...snapshotBase(standardTrack),
+      modified: standardTaggedModified,
+      version: '1.0',
+      members: [memberEntry(0, standardTaggedModified), memberEntry(1, standardTaggedModified)],
+      staged: [stagedEntry(2, standardTaggedModified)],
+      candidates: [
+        candidateEntry(3, standardTaggedModified),
+        candidateEntry(4, standardTaggedModified),
+        candidateEntry(5, standardTaggedModified),
+      ],
+    });
+    await dynamicRepo.saveSnapshot(standardTrack.id, {
+      ...snapshotBase(standardTrack),
+      modified: standardLatestModified,
+      version: null,
+      members: [memberEntry(0, standardLatestModified)],
+      staged: [stagedEntry(1, standardLatestModified), stagedEntry(2, standardLatestModified)],
+      candidates: [candidateEntry(3, standardLatestModified)],
+    });
+
+    const virtualCreated = new Date(virtualTrack.modified);
+    const virtualTaggedModified = new Date(virtualCreated.getTime() + 1000);
+    await dynamicRepo.saveSnapshot(virtualTrack.id, {
+      ...snapshotBase(virtualTrack),
+      modified: virtualTaggedModified,
+      version: '1.0',
+      members: [memberEntry(0, virtualTaggedModified), memberEntry(1, virtualTaggedModified)],
+      quarantine: [
+        {
+          ...memberEntry(2, virtualTaggedModified),
+          source_track_id: standardTrack.id,
+          source_track_name: standardTrack.name,
+          source_snapshot_version: '1.0',
+          conflict_reason: 'conflicting object revisions',
+        },
+      ],
+    });
+  });
+
+  async function createTrack(name, type) {
+    const response = await request(app)
+      .post('/api/release-tracks/new')
+      .send({ name, type })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201);
+    return response.body;
+  }
+
+  function get(path, status = 200) {
+    return request(app)
+      .get(path)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(status);
+  }
+
+  it('returns every standard snapshot newest first with standard tier counts', async function () {
+    const response = await get(`/api/release-tracks/${standardTrack.id}/snapshots`);
+
+    expect(response.body.pagination).toEqual({
+      total: 3,
+      limit: 50,
+      offset: 0,
+    });
+    expect(response.body.data).toHaveLength(3);
+    expect(response.body.data[0]).toMatchObject({
+      id: standardTrack.id,
+      type: 'standard',
+      modified: standardLatestModified.toISOString(),
+      version: null,
+      members_count: 1,
+      staged_count: 2,
+      candidates_count: 1,
+    });
+    expect(response.body.data[0]).not.toHaveProperty('quarantine_count');
+    expect(response.body.data[1]).toMatchObject({
+      modified: standardTaggedModified.toISOString(),
+      version: '1.0',
+      members_count: 2,
+      staged_count: 1,
+      candidates_count: 3,
+    });
+  });
+
+  it('returns type-oriented counts for virtual snapshots', async function () {
+    const response = await get(`/api/release-tracks/${virtualTrack.id}/snapshots?tagged=true`);
+
+    expect(response.body.pagination.total).toBe(1);
+    expect(response.body.data).toHaveLength(1);
+    expect(response.body.data[0]).toMatchObject({
+      id: virtualTrack.id,
+      type: 'virtual',
+      version: '1.0',
+      members_count: 2,
+      quarantine_count: 1,
+    });
+    expect(response.body.data[0]).not.toHaveProperty('staged_count');
+    expect(response.body.data[0]).not.toHaveProperty('candidates_count');
+  });
+
+  it('filters tagged and untagged snapshots before pagination', async function () {
+    const tagged = await get(
+      `/api/release-tracks/${standardTrack.id}/snapshots?tagged=true&limit=1&offset=0`,
+    );
+    expect(tagged.body.pagination).toEqual({
+      total: 1,
+      limit: 1,
+      offset: 0,
+    });
+    expect(tagged.body.data.map((snapshot) => snapshot.version)).toEqual(['1.0']);
+
+    const untagged = await get(
+      `/api/release-tracks/${standardTrack.id}/snapshots?tagged=false&limit=1&offset=1`,
+    );
+    expect(untagged.body.pagination).toEqual({
+      total: 2,
+      limit: 1,
+      offset: 1,
+    });
+    expect(untagged.body.data).toHaveLength(1);
+    expect(untagged.body.data[0].version).toBeNull();
+  });
+
+  it('retrieves the latest snapshot from the canonical endpoint', async function () {
+    const response = await get(`/api/release-tracks/${standardTrack.id}/snapshots/latest`);
+
+    expect(response.body.modified).toBe(standardLatestModified.toISOString());
+    expect(response.body.members).toHaveLength(1);
+    expect(response.body.staged).toHaveLength(2);
+    expect(response.body.candidates).toHaveLength(1);
+  });
+
+  it('does not allow latest-snapshot retrieval at the release-track resource path', async function () {
+    await get(`/api/release-tracks/${standardTrack.id}`, 405);
+  });
+
+  it('rejects invalid filter and pagination values', async function () {
+    await get(`/api/release-tracks/${standardTrack.id}/snapshots?tagged=yes`, 400);
+    await get(`/api/release-tracks/${standardTrack.id}/snapshots?limit=0`, 400);
+    await get(`/api/release-tracks/${standardTrack.id}/snapshots?limit=201`, 400);
+    await get(`/api/release-tracks/${standardTrack.id}/snapshots?offset=-1`, 400);
+  });
+
+  it('returns 404 when the release track does not exist', async function () {
+    await get(
+      '/api/release-tracks/release-track--00000000-0000-4000-8000-000000000099/snapshots',
+      404,
+    );
+  });
+
+  after(async function () {
+    await database.closeConnection();
+  });
+});

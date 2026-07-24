@@ -178,6 +178,10 @@ exports.createTrackFromBundle = function createTrackFromBundle(bundleData) {
   return bundleImportService.createTrackFromBundle(bundleData);
 };
 
+exports.listSnapshots = function listSnapshots(trackId, options) {
+  return snapshotService.listSnapshots(trackId, options);
+};
+
 // eslint-disable-next-line no-unused-vars
 exports.importTrack = async function importTrack(_data) {
   notImplemented('importTrack');

@@ -5,7 +5,7 @@
  * Regression tests for the `format=bundle` output format on the snapshot
  * retrieval endpoints:
  *
- *   - GET /api/release-tracks/:id
+ *   - GET /api/release-tracks/:id/snapshots/latest
  *   - GET /api/release-tracks/:id/snapshots/:modified
  *
  * Covered behavior:
@@ -210,8 +210,8 @@ describe('Release Tracks Bundle Export API', function () {
     snapshotModified = promoteRes.modified;
   });
 
-  it('GET /api/release-tracks/:id?format=bundle returns a members-only STIX 2.1 bundle', async function () {
-    const bundle = await getBundle(`/api/release-tracks/${trackId}?format=bundle`);
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle returns a members-only STIX 2.1 bundle', async function () {
+    const bundle = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest?format=bundle`);
 
     expect(bundle.type).toBe('bundle');
     expect(bundle.id).toMatch(/^bundle--/);
@@ -240,8 +240,8 @@ describe('Release Tracks Bundle Export API', function () {
     expect(member.workspace).toBeUndefined();
   });
 
-  it('GET /api/release-tracks/:id?format=bundle includes a TOC derived from the track metadata', async function () {
-    const bundle = await getBundle(`/api/release-tracks/${trackId}?format=bundle`);
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle includes a TOC derived from the track metadata', async function () {
+    const bundle = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest?format=bundle`);
 
     const toc = bundle.objects[0];
     expect(toc.type).toBe('x-mitre-collection');
@@ -262,21 +262,23 @@ describe('Release Tracks Bundle Export API', function () {
     expect(contentRefs).not.toContain(toc.id);
   });
 
-  it('GET /api/release-tracks/:id?format=bundle&includeToc=false omits the TOC', async function () {
-    const bundle = await getBundle(`/api/release-tracks/${trackId}?format=bundle&includeToc=false`);
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle&includeToc=false omits the TOC', async function () {
+    const bundle = await getBundle(
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&includeToc=false`,
+    );
     const tocObjects = bundle.objects.filter((o) => o.type === 'x-mitre-collection');
     expect(tocObjects.length).toBe(0);
   });
 
-  it('GET /api/release-tracks/:id?format=bundle converts LinkById tags to markdown citations', async function () {
-    const bundle = await getBundle(`/api/release-tracks/${trackId}?format=bundle`);
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle converts LinkById tags to markdown citations', async function () {
+    const bundle = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest?format=bundle`);
     const member = bundle.objects.find((o) => o.id === memberObject.stix.id);
     expect(member.description).toBe(`See [Linked Technique](${linkedAttackUrl}) for details.`);
   });
 
-  it('GET /api/release-tracks/:id?format=bundle&include=candidates adds the candidates tier', async function () {
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates adds the candidates tier', async function () {
     const bundle = await getBundle(
-      `/api/release-tracks/${trackId}?format=bundle&include=candidates`,
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&include=candidates`,
     );
 
     const ids = bundleObjectIds(bundle);
@@ -287,8 +289,10 @@ describe('Release Tracks Bundle Export API', function () {
     expect(ids).not.toContain(stagedObject.stix.id);
   });
 
-  it('GET /api/release-tracks/:id?format=bundle&include=staged adds the staged tier', async function () {
-    const bundle = await getBundle(`/api/release-tracks/${trackId}?format=bundle&include=staged`);
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=staged adds the staged tier', async function () {
+    const bundle = await getBundle(
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&include=staged`,
+    );
 
     const ids = bundleObjectIds(bundle);
     expect(ids).toContain(memberObject.stix.id);
@@ -296,9 +300,9 @@ describe('Release Tracks Bundle Export API', function () {
     expect(ids).not.toContain(candidateWip.stix.id);
   });
 
-  it('GET /api/release-tracks/:id?format=bundle&include=candidates,staged adds both tiers', async function () {
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged adds both tiers', async function () {
     const bundle = await getBundle(
-      `/api/release-tracks/${trackId}?format=bundle&include=candidates,staged`,
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&include=candidates,staged`,
     );
 
     const ids = bundleObjectIds(bundle);
@@ -309,9 +313,9 @@ describe('Release Tracks Bundle Export API', function () {
     expect(ids).toContain(stagedObject.stix.id);
   });
 
-  it('GET /api/release-tracks/:id?format=bundle accepts singular tier names and repeated params', async function () {
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle accepts singular tier names and repeated params', async function () {
     const bundle = await getBundle(
-      `/api/release-tracks/${trackId}?format=bundle&include=candidate&include=staged`,
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&include=candidate&include=staged`,
     );
 
     const ids = bundleObjectIds(bundle);
@@ -321,7 +325,7 @@ describe('Release Tracks Bundle Export API', function () {
 
   it('state narrows included candidates but reviewed entries are always included', async function () {
     const bundle = await getBundle(
-      `/api/release-tracks/${trackId}?format=bundle&include=candidates&state=work-in-progress`,
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&include=candidates&state=work-in-progress`,
     );
 
     const ids = bundleObjectIds(bundle);
@@ -338,18 +342,20 @@ describe('Release Tracks Bundle Export API', function () {
   it('state applies to the staged tier as well', async function () {
     // The staged object retained its work-in-progress status through promotion
     const withMatchingState = await getBundle(
-      `/api/release-tracks/${trackId}?format=bundle&include=staged&state=work-in-progress`,
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&include=staged&state=work-in-progress`,
     );
     expect(bundleObjectIds(withMatchingState)).toContain(stagedObject.stix.id);
 
     const withoutMatchingState = await getBundle(
-      `/api/release-tracks/${trackId}?format=bundle&include=staged&state=awaiting-review`,
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&include=staged&state=awaiting-review`,
     );
     expect(bundleObjectIds(withoutMatchingState)).not.toContain(stagedObject.stix.id);
   });
 
-  it('GET /api/release-tracks/:id?format=bundle&stixVersion=2.0 conforms the bundle to STIX 2.0', async function () {
-    const bundle = await getBundle(`/api/release-tracks/${trackId}?format=bundle&stixVersion=2.0`);
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle&stixVersion=2.0 conforms the bundle to STIX 2.0', async function () {
+    const bundle = await getBundle(
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&stixVersion=2.0`,
+    );
 
     expect(bundle.spec_version).toBe('2.0');
     const member = bundle.objects.find((o) => o.id === memberObject.stix.id);
@@ -357,12 +363,18 @@ describe('Release Tracks Bundle Export API', function () {
   });
 
   it('rejects invalid include, state, and stixVersion values for bundle exports', async function () {
-    await getBundle(`/api/release-tracks/${trackId}?format=bundle&include=quarantine`, 400);
     await getBundle(
-      `/api/release-tracks/${trackId}?format=bundle&include=candidates&state=reviewed`,
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&include=quarantine`,
       400,
     );
-    await getBundle(`/api/release-tracks/${trackId}?format=bundle&stixVersion=3.0`, 400);
+    await getBundle(
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&include=candidates&state=reviewed`,
+      400,
+    );
+    await getBundle(
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&stixVersion=3.0`,
+      400,
+    );
   });
 
   it('GET /api/release-tracks/:id/snapshots/:modified?format=bundle exports a historical snapshot', async function () {
@@ -380,8 +392,8 @@ describe('Release Tracks Bundle Export API', function () {
     expect(ids).toContain(stagedObject.stix.id);
   });
 
-  it('GET /api/release-tracks/:id (workbench default) is unaffected by bundle parameters', async function () {
-    const snapshot = await getBundle(`/api/release-tracks/${trackId}`);
+  it('GET /api/release-tracks/:id/snapshots/latest (workbench default) is unaffected by bundle parameters', async function () {
+    const snapshot = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest`);
     expect(snapshot.members).toBeDefined();
     expect(snapshot.candidates).toBeDefined();
     expect(snapshot.staged).toBeDefined();

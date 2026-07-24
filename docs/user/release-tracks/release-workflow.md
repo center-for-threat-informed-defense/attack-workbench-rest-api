@@ -486,7 +486,7 @@ Workbench snapshot responses include all tier arrays by default. Set the
 `include` query parameter to `members`, `staged`, `candidates`, `quarantine`,
 or `all` to view a narrower subset of a given snapshot.
 ```
-GET /api/release-tracks/:id?include=all
+GET /api/release-tracks/:id/snapshots/latest?include=all
 ```
 
 **Response:**
@@ -1008,7 +1008,7 @@ POST /api/release-tracks/:id/candidates/review
 
 Regularly check candidate status:
 ```bash
-GET /api/release-tracks/:id?include=all
+GET /api/release-tracks/:id/snapshots/latest?include=all
 ```
 
 ### 5. Use Events for Automation

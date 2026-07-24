@@ -172,6 +172,59 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getSnapshotSummaries(trackId, options = {}) {
+    try {
+      const Model = this._getModel(trackId);
+      const query = { id: trackId };
+
+      if (options.tagged === true) {
+        query.version = { $type: 'string' };
+      } else if (options.tagged === false) {
+        query.version = null;
+      }
+
+      const totalCount = await Model.countDocuments(query).exec();
+      const aggregation = [
+        { $match: query },
+        { $sort: { modified: -1 } },
+        { $skip: options.offset || 0 },
+      ];
+
+      if (options.limit) {
+        aggregation.push({ $limit: options.limit });
+      }
+
+      aggregation.push({
+        $project: {
+          _id: 0,
+          id: 1,
+          type: 1,
+          modified: 1,
+          version: 1,
+          name: 1,
+          description: 1,
+          members_count: { $size: { $ifNull: ['$members', []] } },
+          staged_count: { $size: { $ifNull: ['$staged', []] } },
+          candidates_count: { $size: { $ifNull: ['$candidates', []] } },
+          quarantine_count: { $size: { $ifNull: ['$quarantine', []] } },
+        },
+      });
+
+      const documents = await Model.aggregate(aggregation).exec();
+
+      return {
+        data: documents,
+        pagination: {
+          total: totalCount,
+          offset: options.offset || 0,
+          limit: options.limit || 0,
+        },
+      };
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async saveSnapshot(trackId, snapshotData) {
     try {
       const Model = this._getModel(trackId);

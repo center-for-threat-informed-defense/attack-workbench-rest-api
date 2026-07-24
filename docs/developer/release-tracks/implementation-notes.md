@@ -54,6 +54,33 @@ policies remain responsible only for different revisions of one object.
 - Large collections (>10k objects) may need pagination
 - Consider caching for `bump/preview` on large collections
 
+### Snapshot history reads
+
+Snapshot history is exposed as a nested collection at
+`GET /api/release-tracks/:id/snapshots`; latest-snapshot retrieval is exposed
+only at `GET /api/release-tracks/:id/snapshots/latest`. The track resource path
+retains `DELETE` but intentionally has no `GET` method because the release-track
+API was still prerelease when this contract was adopted. The collection route
+also replaces the previously documented but unimplemented `?versions=all`
+polymorphism, so a single endpoint never changes between a full snapshot object
+and a list response.
+
+`release-track-dynamic.repository.getSnapshotSummaries` performs tagged-state
+filtering, descending timestamp ordering, pagination, and tier counts in
+MongoDB. It projects counts with `$size` rather than hydrating the potentially
+large tier arrays. The filter is applied to both the data query and
+`countDocuments`, making `pagination.total` the filtered total.
+
+The service shapes projected counts according to `snapshot.type`:
+
+- standard: `members_count`, `staged_count`, `candidates_count`
+- virtual: `members_count`, `quarantine_count`
+
+This omits structurally inapplicable counts instead of making a zero value
+ambiguous. An omitted `tagged` parameter adds no version predicate;
+`tagged=true` matches string versions and `tagged=false` matches null draft
+versions.
+
 ## Integrating with the Event-Driven Architecture
 
 ### Events Published

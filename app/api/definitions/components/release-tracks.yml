@@ -78,6 +78,76 @@ components:
           items:
             $ref: '#/components/schemas/version-history-entry'
 
+    snapshot-summary:
+      type: object
+      description: 'Lightweight metadata shared by standard and virtual snapshot summaries'
+      required:
+        - id
+        - type
+        - modified
+        - version
+        - name
+        - members_count
+      properties:
+        id:
+          type: string
+          description: 'Release track ID'
+        type:
+          type: string
+          enum:
+            - standard
+            - virtual
+        modified:
+          type: string
+          format: date-time
+        version:
+          type: string
+          nullable: true
+          description: 'Tagged version, or null for an untagged draft'
+        name:
+          type: string
+        description:
+          type: string
+        members_count:
+          type: integer
+          minimum: 0
+
+    standard-snapshot-summary:
+      allOf:
+        - $ref: '#/components/schemas/snapshot-summary'
+        - type: object
+          description: 'Snapshot summary for a standard release track'
+          required:
+            - staged_count
+            - candidates_count
+          properties:
+            type:
+              type: string
+              enum:
+                - standard
+            staged_count:
+              type: integer
+              minimum: 0
+            candidates_count:
+              type: integer
+              minimum: 0
+
+    virtual-snapshot-summary:
+      allOf:
+        - $ref: '#/components/schemas/snapshot-summary'
+        - type: object
+          description: 'Snapshot summary for a virtual release track'
+          required:
+            - quarantine_count
+          properties:
+            type:
+              type: string
+              enum:
+                - virtual
+            quarantine_count:
+              type: integer
+              minimum: 0
+
     tier-entry:
       type: object
       description: 'A reference to a specific version of a STIX object'

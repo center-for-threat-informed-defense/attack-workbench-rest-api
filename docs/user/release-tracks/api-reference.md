@@ -46,7 +46,6 @@ GET    /api/release-tracks/objects/:objectRef/releases
 POST   /api/release-tracks/new
 POST   /api/release-tracks/new-from-bundle
 POST   /api/release-tracks/import
-GET    /api/release-tracks/:id
 POST   /api/release-tracks/:id/meta
 POST   /api/release-tracks/:id/contents
 POST   /api/release-tracks/:id/bump
@@ -57,6 +56,8 @@ DELETE /api/release-tracks/:id
 ### Snapshot Operations
 
 ```
+GET    /api/release-tracks/:id/snapshots
+GET    /api/release-tracks/:id/snapshots/latest
 GET    /api/release-tracks/:id/snapshots/:modified
 POST   /api/release-tracks/:id/snapshots/:modified/meta
 POST   /api/release-tracks/:id/snapshots/:modified/bump
@@ -305,8 +306,12 @@ POST /api/release-tracks/import
 Retrieves the most recent snapshot from the release track (by `modified` timestamp).
 
 ```
-GET /api/release-tracks/:id
+GET /api/release-tracks/:id/snapshots/latest
 ```
+
+`GET /api/release-tracks/:id` is not supported. That resource path is reserved
+for operations such as deleting the track; use `/snapshots/latest` whenever the
+full latest snapshot is required.
 
 Workbench responses return the release-track snapshot shape. Entries in the `members`,
 `staged`, `candidates`, and `quarantine` tiers include UI-friendly object details:
@@ -324,7 +329,6 @@ Workbench responses return the release-track snapshot shape. Entries in the `mem
 | `include`  | `members` \| `staged` \| `candidates` \| `quarantine` \| `all` | Which tier arrays to include in `workbench` responses (default: all tiers)     |
 | `releases` | `only`                                                         | Return only the latest tagged release instead of latest snapshot               |
 | `version`  | `X.Y`                                                          | Return specific version (e.g., `14.1`)                                         |
-| `versions` | `all`                                                          | List all snapshots with metadata                                               |
 
 **Additional query parameters for `format=bundle`:**
 
@@ -341,28 +345,91 @@ See [Output Formats](output-formats.md) for details on the bundle structure.
 
 ```bash
 # Get latest snapshot for the Workbench UI
-GET /api/release-tracks/:id
+GET /api/release-tracks/:id/snapshots/latest
 
 # Get latest snapshot as STIX bundle (members only)
-GET /api/release-tracks/:id?format=bundle
+GET /api/release-tracks/:id/snapshots/latest?format=bundle
 
 # Get latest snapshot as STIX bundle with staged and candidate objects
-GET /api/release-tracks/:id?format=bundle&include=candidates,staged
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged
 
 # Get latest snapshot as STIX bundle with candidates awaiting review
-GET /api/release-tracks/:id?format=bundle&include=candidates&state=awaiting-review
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates&state=awaiting-review
 
 # Get latest snapshot with members and quarantine only
-GET /api/release-tracks/:id?include=quarantine
+GET /api/release-tracks/:id/snapshots/latest?include=quarantine
 
 # Get latest tagged release (not draft)
-GET /api/release-tracks/:id?releases=only
+GET /api/release-tracks/:id/snapshots/latest?releases=only
 
 # Get specific version
-GET /api/release-tracks/:id?version=14.1
+GET /api/release-tracks/:id/snapshots/latest?version=14.1
+```
 
-# List all snapshots
-GET /api/release-tracks/:id?versions=all
+### List Snapshots
+
+Returns a paginated history of lightweight snapshot summaries, ordered by
+`modified` from newest to oldest. Omitting `tagged` applies no tagged-state
+filter.
+
+```
+GET /api/release-tracks/:id/snapshots
+```
+
+**Query Parameters:**
+
+| Parameter | Values          | Default | Description                                      |
+| --------- | --------------- | ------- | ------------------------------------------------ |
+| `tagged`  | `true`\|`false` | omitted | Include only tagged snapshots or untagged drafts |
+| `limit`   | `1`–`200`       | `50`    | Maximum summaries to return                      |
+| `offset`  | integer ≥ `0`   | `0`     | Matching summaries to skip                       |
+
+Filtering occurs before pagination, so `pagination.total` is the total number
+of snapshots matching `tagged`, not the total number in the track.
+
+Every summary contains `id`, `type`, `modified`, `version`, `name`,
+`description` (when set), and `members_count`. Count keys then reflect the
+track type:
+
+- `type: "standard"` adds `staged_count` and `candidates_count`.
+- `type: "virtual"` adds `quarantine_count`.
+
+Inapplicable count keys are omitted rather than returned as zero.
+
+```json
+{
+  "data": [
+    {
+      "id": "release-track--a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "type": "standard",
+      "modified": "2024-01-15T16:20:00.000Z",
+      "version": "14.1",
+      "name": "Enterprise ATT&CK",
+      "description": "Enterprise domain release track",
+      "members_count": 3247,
+      "staged_count": 18,
+      "candidates_count": 5
+    }
+  ],
+  "pagination": {
+    "total": 47,
+    "limit": 50,
+    "offset": 0
+  }
+}
+```
+
+**Examples:**
+
+```bash
+# All tagged and untagged snapshots
+GET /api/release-tracks/:id/snapshots
+
+# Tagged releases only
+GET /api/release-tracks/:id/snapshots?tagged=true
+
+# Untagged drafts only, second page
+GET /api/release-tracks/:id/snapshots?tagged=false&limit=25&offset=25
 ```
 
 ### Update Metadata
@@ -1106,7 +1173,7 @@ GET /api/release-tracks/:id/snapshots/preview
 The following release-track snapshot retrieval endpoints support `include` and
 `format` query parameters:
 
-- `GET /api/release-tracks/:id` (get latest snapshot)
+- `GET /api/release-tracks/:id/snapshots/latest` (get latest snapshot)
 - `GET /api/release-tracks/:id/snapshots/:modified` (get specific snapshot)
 
 The ephemeral bundle endpoint supports `format`, but not tier `include`, because
@@ -1115,44 +1182,44 @@ it does not read from a persisted release-track snapshot.
 **Include Parameter** (workbench format — controls which tiers are returned):
 
 ```
-GET /api/release-tracks/:id                            # Default: all tiers
-GET /api/release-tracks/:id?include=members            # Members tier only
-GET /api/release-tracks/:id?include=staged             # Members and staged tiers
-GET /api/release-tracks/:id?include=candidates         # Members and candidates tiers
-GET /api/release-tracks/:id?include=quarantine         # Members and quarantine tiers
-GET /api/release-tracks/:id?include=all                # All tiers
+GET /api/release-tracks/:id/snapshots/latest                            # Default: all tiers
+GET /api/release-tracks/:id/snapshots/latest?include=members            # Members tier only
+GET /api/release-tracks/:id/snapshots/latest?include=staged             # Members and staged tiers
+GET /api/release-tracks/:id/snapshots/latest?include=candidates         # Members and candidates tiers
+GET /api/release-tracks/:id/snapshots/latest?include=quarantine         # Members and quarantine tiers
+GET /api/release-tracks/:id/snapshots/latest?include=all                # All tiers
 ```
 
 **Include Parameter** (bundle format — controls which tiers are hydrated into
 the bundle; members are always included):
 
 ```
-GET /api/release-tracks/:id?format=bundle                            # Members only
-GET /api/release-tracks/:id?format=bundle&include=staged             # Members + staged
-GET /api/release-tracks/:id?format=bundle&include=candidates         # Members + candidates
-GET /api/release-tracks/:id?format=bundle&include=candidates,staged  # Members + both
+GET /api/release-tracks/:id/snapshots/latest?format=bundle                            # Members only
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=staged             # Members + staged
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates         # Members + candidates
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged  # Members + both
 ```
 
 **State Parameter** (bundle format only — narrows the tiers selected via
 `include` by workflow status; `reviewed` entries are always included):
 
 ```
-GET /api/release-tracks/:id?format=bundle&include=candidates&state=work-in-progress
-GET /api/release-tracks/:id?format=bundle&include=candidates,staged&state=work-in-progress,awaiting-review
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates&state=work-in-progress
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged&state=work-in-progress,awaiting-review
 ```
 
 **Format Parameter** (controls output format):
 
 ```
-GET /api/release-tracks/:id?format=workbench           # Workbench snapshot with metadata (default)
-GET /api/release-tracks/:id?format=bundle              # Standard STIX bundle
-GET /api/release-tracks/:id?format=filesystemstore     # Not implemented; returns 501
+GET /api/release-tracks/:id/snapshots/latest?format=workbench           # Workbench snapshot with metadata (default)
+GET /api/release-tracks/:id/snapshots/latest?format=bundle              # Standard STIX bundle
+GET /api/release-tracks/:id/snapshots/latest?format=filesystemstore     # Not implemented; returns 501
 ```
 
 **Combined Example:**
 
 ```
-GET /api/release-tracks/:id?include=all&format=workbench
+GET /api/release-tracks/:id/snapshots/latest?include=all&format=workbench
 ```
 
 ### Bump Operations (Preview & Dry Run)

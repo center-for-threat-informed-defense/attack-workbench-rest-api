@@ -400,6 +400,12 @@ paths:
   /api/release-tracks/{id}/snapshots/preview:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1preview'
 
+  /api/release-tracks/{id}/snapshots:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots'
+
+  /api/release-tracks/{id}/snapshots/latest:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1latest'
+
   /api/release-tracks/{id}/snapshots/{modified}:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}'
 

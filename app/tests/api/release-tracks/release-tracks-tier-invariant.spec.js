@@ -117,7 +117,7 @@ describe('Release-track cross-tier revision uniqueness', function () {
 
   async function getLatest(trackId) {
     const response = await request(app)
-      .get(`/api/release-tracks/${trackId}`)
+      .get(`/api/release-tracks/${trackId}/snapshots/latest`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200);

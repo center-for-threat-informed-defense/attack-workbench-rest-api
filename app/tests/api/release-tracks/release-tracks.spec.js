@@ -180,7 +180,7 @@ describe('Release Tracks API', function () {
     });
 
     const latestRes = await request(app)
-      .get(`/api/release-tracks/${trackId}`)
+      .get(`/api/release-tracks/${trackId}/snapshots/latest`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
@@ -227,13 +227,13 @@ describe('Release Tracks API', function () {
     expectObjectInfo(historicalStaged, stagedObject);
 
     await request(app)
-      .get(`/api/release-tracks/${trackId}?format=snapshot`)
+      .get(`/api/release-tracks/${trackId}/snapshots/latest?format=snapshot`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
 
     await request(app)
-      .get(`/api/release-tracks/${trackId}?format=filesystemstore`)
+      .get(`/api/release-tracks/${trackId}/snapshots/latest?format=filesystemstore`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(501);

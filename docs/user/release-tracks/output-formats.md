@@ -3,7 +3,7 @@
 Release tracks (or rather, each snapshot) can serialize/export to multiple formats via query parameter:
 
 ```
-GET /api/release-tracks/:id?format=<format>
+GET /api/release-tracks/:id/snapshots/latest?format=<format>
 ```
 
 ### Format: `workbench` (Default)
@@ -48,11 +48,11 @@ shape for snapshot retrieval endpoints and is intended for the Workbench fronten
 Use `include` to narrow tier arrays in `workbench` responses:
 
 ```bash
-GET /api/release-tracks/:id?include=members
-GET /api/release-tracks/:id?include=staged
-GET /api/release-tracks/:id?include=candidates
-GET /api/release-tracks/:id?include=quarantine
-GET /api/release-tracks/:id?include=all
+GET /api/release-tracks/:id/snapshots/latest?include=members
+GET /api/release-tracks/:id/snapshots/latest?include=staged
+GET /api/release-tracks/:id/snapshots/latest?include=candidates
+GET /api/release-tracks/:id/snapshots/latest?include=quarantine
+GET /api/release-tracks/:id/snapshots/latest?include=all
 ```
 
 ### Format: `bundle`
@@ -109,16 +109,16 @@ Examples:
 
 ```bash
 # Members only (default)
-GET /api/release-tracks/:id?format=bundle
+GET /api/release-tracks/:id/snapshots/latest?format=bundle
 
 # Members + staged objects
-GET /api/release-tracks/:id?format=bundle&include=staged
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=staged
 
 # Members + candidates and staged objects that are work-in-progress or reviewed
-GET /api/release-tracks/:id?format=bundle&include=candidates,staged&state=work-in-progress
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged&state=work-in-progress
 
 # STIX 2.0 bundle without a table of contents
-GET /api/release-tracks/:id?format=bundle&stixVersion=2.0&includeToc=false
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&stixVersion=2.0&includeToc=false
 ```
 
 **The table of contents (TOC) object**
@@ -180,14 +180,14 @@ collection-123/
 
 ```bash
 # Workbench UI response
-GET /api/release-tracks/:id
-GET /api/release-tracks/:id?format=workbench
+GET /api/release-tracks/:id/snapshots/latest
+GET /api/release-tracks/:id/snapshots/latest?format=workbench
 
 # Standard STIX bundle for publication
-GET /api/release-tracks/:id?format=bundle
+GET /api/release-tracks/:id/snapshots/latest?format=bundle
 
 # FileSystemStore export is not implemented yet
-GET /api/release-tracks/:id?format=filesystemstore  # Returns HTTP 501
+GET /api/release-tracks/:id/snapshots/latest?format=filesystemstore  # Returns HTTP 501
 
 # Dry run with detailed preview
 GET /api/release-tracks/:id/bump/preview?format=workbench

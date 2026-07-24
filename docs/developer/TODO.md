@@ -1,5 +1,31 @@
 # Release Track TODOs
 
+## Remove implicit latest-snapshot route
+
+- [x] Remove `GET /api/release-tracks/:id` while preserving track deletion.
+- [x] Make `/snapshots/latest` canonical across OpenAPI, tests, docs, Bruno,
+  and the frontend consumer.
+- [x] Add regression coverage proving the removed method returns 405.
+- [x] Run focused regression specs followed by the complete `npm test` suite.
+  The focused suites pass. The aggregate run reached 894 passing with three
+  unrelated documented roaming failures; all three affected specs pass
+  together in isolation (51 passing).
+- [x] Review the final diff and propose a conventional commit message.
+
+## Snapshot history collection endpoint
+
+- [x] Add `GET /api/release-tracks/:id/snapshots` with strict tagged filtering
+  and pagination, plus an explicit `/snapshots/latest` alias.
+- [x] Return lightweight, type-oriented summaries: standard snapshots include
+  member/staged/candidate counts; virtual snapshots include member/quarantine
+  counts.
+- [x] Add regression coverage for defaults, filters, pagination, validation,
+  track types, and not-found behavior.
+- [x] Update OpenAPI, user/developer documentation, and Bruno requests.
+- [x] Run the focused regression spec followed by the complete `npm test`
+  suite.
+- [x] Review the final diff and propose a conventional commit message.
+
 ## Regression Tests
 
 - [ ] Implement regression tests
@@ -47,7 +73,7 @@
 The following release-track snapshot retrieval endpoints support `include` and
 `format` query parameters:
 
-- `GET /api/release-tracks/:id` (get latest snapshot)
+- `GET /api/release-tracks/:id/snapshots/latest` (get latest snapshot)
 - `GET /api/release-tracks/:id/snapshots/:modified` (get specific snapshot)
 
 > [!Note]
@@ -56,24 +82,24 @@ The following release-track snapshot retrieval endpoints support `include` and
 
 **Include Parameter** (controls which tiers are returned):
 ```
-GET /api/release-tracks/:id                            # Default: all tiers
-GET /api/release-tracks/:id?include=members            # Members tier only
-GET /api/release-tracks/:id?include=staged             # Members and staged tiers
-GET /api/release-tracks/:id?include=candidates         # Members and candidates tiers
-GET /api/release-tracks/:id?include=quarantine         # Members and quarantine tiers
-GET /api/release-tracks/:id?include=all                # All tiers
+GET /api/release-tracks/:id/snapshots/latest                            # Default: all tiers
+GET /api/release-tracks/:id/snapshots/latest?include=members            # Members tier only
+GET /api/release-tracks/:id/snapshots/latest?include=staged             # Members and staged tiers
+GET /api/release-tracks/:id/snapshots/latest?include=candidates         # Members and candidates tiers
+GET /api/release-tracks/:id/snapshots/latest?include=quarantine         # Members and quarantine tiers
+GET /api/release-tracks/:id/snapshots/latest?include=all                # All tiers
 ```
 
 **Format Parameter** (controls output format):
 ```
-GET /api/release-tracks/:id?format=workbench           # Workbench snapshot with metadata (default)
-GET /api/release-tracks/:id?format=bundle              # Standard STIX 2.1 bundle
-GET /api/release-tracks/:id?format=filesystemstore     # Not implemented; returns 501
+GET /api/release-tracks/:id/snapshots/latest?format=workbench           # Workbench snapshot with metadata (default)
+GET /api/release-tracks/:id/snapshots/latest?format=bundle              # Standard STIX 2.1 bundle
+GET /api/release-tracks/:id/snapshots/latest?format=filesystemstore     # Not implemented; returns 501
 ```
 
 **Combined Example:**
 ```
-GET /api/release-tracks/:id?include=all&format=workbench
+GET /api/release-tracks/:id/snapshots/latest?include=all&format=workbench
 ```
 
 > [!Note]
@@ -116,7 +142,7 @@ Currently there exists support for the `format` query parameter on the `GET /api
 - [x] Read the existing release track user + developer documentation in `docs/user/release-tracks/` and `docs/developer/release-tracks/`, respectively.
 - [x] Review the new `GET /api/release-tracks/ephemeral/:domain` endpoint implementation as well as the legacy `GET /api/stix-bundles` endpoint.
 - [x] Implement support for the `format=bundle` query parameter in the following two endpoints:
-  - `GET /api/release-tracks/:id` (get latest snapshot)
+  - `GET /api/release-tracks/:id/snapshots/latest` (get latest snapshot)
   - `GET /api/release-tracks/:id/snapshots/:modified` (get specific snapshot)
 - [x] Ensure that all required logic (query parameters) is/are implemented in the new endpoints as outlined above.
 - [x] Implement regression tests for the new functionality (`release-tracks-bundle.spec.js`, `ephemeral-bundle.spec.js`)

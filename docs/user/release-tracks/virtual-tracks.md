@@ -854,7 +854,7 @@ POST /api/release-tracks/:id/snapshots/:modified/bump
 ### Get Virtual Track with Resolved Content
 
 ```bash
-GET /api/release-tracks/:id?format=workbench&include=all
+GET /api/release-tracks/:id/snapshots/latest?format=workbench&include=all
 ```
 
 **Query params:**
@@ -898,7 +898,7 @@ When using the `quarantine` deduplication strategy, conflicting objects are stor
 
 **View quarantined objects:**
 ```bash
-GET /api/release-tracks/:id?include=quarantine
+GET /api/release-tracks/:id/snapshots/latest?include=quarantine
 ```
 
 **Manually promote a quarantined object to members:**
@@ -1064,7 +1064,7 @@ await cache.set(cacheKey, resolved, { ttl: 3600 });  // 1 hour cache
 
 ### 2. Lazy Resolution
 
-For `GET /api/release-tracks/:id` (latest snapshot), only resolve if:
+For `GET /api/release-tracks/:id/snapshots/latest` (latest snapshot), only resolve if:
 - Query param `resolve=true` is specified
 - Format requires resolution (e.g., `format=bundle`)
 
