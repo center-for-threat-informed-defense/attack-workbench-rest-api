@@ -23,7 +23,7 @@ This document provides the complete API reference for Release Tracks V2 (formerl
 - [Candidate Management](#candidate-management)
 - [Staged Objects](#staged-objects)
 - [Configuration](#configuration)
-- [Preview & Dry Run](#preview--dry-run)
+- [Release Previews](#release-previews)
 - [Version Pin Management](#version-pin-management)
 - [Virtual Release Tracks](#virtual-release-tracks)
 - [Query Variations](#query-variations)
@@ -48,7 +48,7 @@ POST   /api/release-tracks/new-from-bundle
 POST   /api/release-tracks/import
 POST   /api/release-tracks/:id/meta
 POST   /api/release-tracks/:id/contents
-POST   /api/release-tracks/:id/bump
+POST   /api/release-tracks/:id/snapshots/latest/release
 POST   /api/release-tracks/:id/clone
 DELETE /api/release-tracks/:id
 ```
@@ -60,7 +60,7 @@ GET    /api/release-tracks/:id/snapshots
 GET    /api/release-tracks/:id/snapshots/latest
 GET    /api/release-tracks/:id/snapshots/:modified
 POST   /api/release-tracks/:id/snapshots/:modified/meta
-POST   /api/release-tracks/:id/snapshots/:modified/bump
+POST   /api/release-tracks/:id/snapshots/:modified/release
 POST   /api/release-tracks/:id/snapshots/:modified/clone
 DELETE /api/release-tracks/:id/snapshots/:modified
 ```
@@ -90,10 +90,10 @@ GET    /api/release-tracks/:id/config
 PUT    /api/release-tracks/:id/config
 ```
 
-### Preview & Dry Run
+### Release Previews
 
 ```
-GET    /api/release-tracks/:id/bump/preview
+GET    /api/release-tracks/:id/snapshots/latest/release/preview
 ```
 
 ### Version Management
@@ -472,28 +472,33 @@ Creates new snapshot with updated member objects. **This is intended for retroac
 }
 ```
 
-### Bump/Tag Latest Snapshot
+### Release Latest Snapshot
 
 Converts the latest draft snapshot to a tagged release. Tags the snapshot in-place (does not create new snapshot). Dynamically sets `x_mitre_version` based on the request body options.
 
 - If `version` is provided, uses that exact version (must be `X.Y` format)
-- If `type` is provided, calculates next version based on bump type
-- If omitted, defaults to minor bump
+- If `increment` is provided, calculates the next `major` or `minor` version
+- `increment` and `version` are mutually exclusive; supplying both returns
+  `400 Bad Request` rather than choosing one
+- If both are omitted, defaults to a minor release
 - If this is the first release, the version will be `1.0`
 
 ```
-POST /api/release-tracks/:id/bump
+POST /api/release-tracks/:id/snapshots/latest/release
 ```
 
-**Request Body (optional):**
+**Request Body:**
 
 ```json
 {
-  "type": "major" | "minor",  // Defaults to "minor" if omitted
-  "version": "X.Y",           // Alternative: explicit version
-  "dry_run": true             // Optional: preview without persisting
+  "increment": "major"
 }
 ```
+
+Use `"version": "2.4"` instead of `increment` to select an explicit
+`MAJOR.MINOR` version. The `latest` selector is resolved when the request is
+handled. Use the `:modified` release endpoint when a caller needs to pin the
+operation to a specific snapshot.
 
 ### Clone Release Track From Latest
 
@@ -581,15 +586,15 @@ Creates new snapshot with updated member objects. **This is intended for retroac
 
 **Request Body:** Same as [Update Contents](#update-contents) for latest snapshot.
 
-### Bump/Tag Specific Snapshot
+### Release/Tag Specific Snapshot
 
 Converts a specific draft snapshot to a tagged release. Tags snapshot in-place (does not create new snapshot).
 
 ```
-POST /api/release-tracks/:id/snapshots/:modified/bump
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
-**Request Body:** Same as [Bump/Tag Latest Snapshot](#bumptag-latest-snapshot).
+**Request Body:** Same as [Release Latest Snapshot](#release-latest-snapshot).
 
 ### Clone Specific Snapshot
 
@@ -613,7 +618,7 @@ DELETE /api/release-tracks/:id/snapshots/:modified
 
 ### Add Candidates
 
-Adds STIX objects as candidates to the latest draft snapshot. Each object is identified by its `stix.id` field, as well as (optionally) its `stix.modified` field. If `stix.modified` is omitted, the latest permutation of the relevant STIX object will be added. The candidacy reference will follow the latest version of the object until the moment the draft is converted to a release, at which point the reference will become locked to the specific permutation of the object that was considered "latest" at the time the release bump occurred.
+Adds STIX objects as candidates to the latest draft snapshot. Each object is identified by its `stix.id` field, as well as (optionally) its `stix.modified` field. If `stix.modified` is omitted, the latest permutation of the relevant STIX object will be added. The candidacy reference will follow the latest version of the object until the moment the draft is converted to a release, at which point the reference will become locked to the specific permutation of the object that was considered "latest" at the time the release occurred.
 
 If the resolved revision (the same `stix.id` and `stix.modified`) is already
 present in any tier of the snapshot, the add is idempotently skipped. A newer
@@ -829,67 +834,53 @@ PUT /api/release-tracks/:id/config
 
 ---
 
-## Preview & Dry Run
+## Release Previews
 
-> **Note on `include` Query Parameter:** The `include` query parameter (used on snapshot retrieval endpoints to filter which tiers are returned) is **NOT supported** on bump preview or dry-run operations. Bump previews and dry-runs are intended to show the user exactly what _will_ happen when a bump occurs; ad-hoc filters would be misleading because they do not affect the actual release outcome.
+Release previews and commits use the same planner. Preview requests never
+persist data. Representation filters change only the rendered preview; they do
+not change the release plan.
 
 ### Preview Next Release (Read-Only)
 
-Shows a verbose diff of what will change in the next tagged release without creating any data.
+Returns a before/after delta by default. Use the historical form
+`/snapshots/:modified/release/preview` to target a specific draft.
 
 ```
-GET /api/release-tracks/:id/bump/preview
+GET /api/release-tracks/:id/snapshots/latest/release/preview
 ```
 
 **Query Parameters:**
 
-- `format` - `bundle` | `filesystemstore` | `workbench` (default: `workbench`; `filesystemstore` is not yet implemented)
+- `format` - `summary` | `workbench` | `bundle` | `filesystemstore` (default:
+  `summary`; `filesystemstore` returns 501)
+- `increment` - `major` | `minor` (default: `minor`)
+- `version` - explicit `MAJOR.MINOR` version; mutually exclusive with
+  `increment`
+- Supplying both selectors returns `400 Bad Request`; the server never chooses
+  one selector over the other
+- `include` - for `workbench`, selects returned tiers; for `bundle`, selects
+  additional non-member tiers
+- `state`, `stixVersion`, `includeToc` - bundle representation options
 
 **Response Example:**
 
 ```json
 {
-  "current_version": "1.1",
-  "next_version": "1.2",
-  "release_preview": {
-    "will_include": [
-      {
-        "ref": "attack-pattern--ddd",
-        "name": "New Technique XYZ",
-        "status": "reviewed",
-        "source": "staged"
-      }
-    ],
-    "will_exclude": [
-      {
-        "ref": "attack-pattern--eee",
-        "name": "WIP Technique",
-        "status": "work-in-progress",
-        "reason": "Does not meet candidacy threshold"
-      }
-    ]
-  }
+  "track_id": "release-track--123",
+  "type": "standard",
+  "source_snapshot_modified": "2024-01-15T16:20:00.000Z",
+  "version": "1.2",
+  "releasable": true,
+  "before": { "members_count": 10, "staged_count": 2, "candidates_count": 1 },
+  "after": { "members_count": 12, "staged_count": 0, "candidates_count": 1 },
+  "changes": { "promoted_count": 2 },
+  "conflicts": []
 }
 ```
 
-### Dry Run Bump (Returns Exact Output)
-
-Performs all bump logic and returns the exact release contents without persisting changes to the database.
-
-```
-POST /api/release-tracks/:id/bump
-```
-
-**Request Body:**
-
-```json
-{
-  "type": "minor",
-  "dry_run": true
-}
-```
-
-**Response:** Returns the exact snapshot that would be created, with all objects and metadata.
+`format=workbench` returns the complete would-be persisted snapshot.
+`format=bundle` returns its publication-ready STIX bundle. Thus “dry run” is
+not a separate command: it is a release preview with the desired format.
 
 ---
 
@@ -1222,11 +1213,9 @@ GET /api/release-tracks/:id/snapshots/latest?format=filesystemstore     # Not im
 GET /api/release-tracks/:id/snapshots/latest?include=all&format=workbench
 ```
 
-### Bump Operations (Preview & Dry Run)
+### Release preview representations
 
-The `include` query parameter is **NOT supported** on bump preview or dry-run endpoints:
-
-- `GET /api/release-tracks/:id/bump/preview` — only `format` is supported
-- `POST /api/release-tracks/:id/bump` with `dry_run: true` — only `format` is supported (via request body)
-
-These endpoints are designed to show exactly what _will_ happen during a release bump. Allowing ad-hoc tier filters would be misleading because they do not affect the actual release outcome.
+`format=summary` describes the release delta. `format=workbench` renders the
+would-be snapshot for the UI, and `format=bundle` renders the publication
+artifact. `include` and bundle filters affect only those representations, not
+what the release command will persist.

@@ -9,7 +9,7 @@
 // Phase 1: Track management, snapshot CRUD, config → snapshot-service
 // Phase 2: Candidates, staged, object versions    → standard-track-service
 // Phase 3: Auto-promotion, workflow               → workflow-service
-// Phase 4: Bump/tag, versioning                   → versioning-service
+// Phase 4: Release planning and versioning        → versioning-service
 // Phase 5: Virtual track composition              → virtual-track-service
 // Phase 6: Export, ephemeral, bundle import        → export-service, ephemeral-service, bundle-import-service
 // =============================================================================
@@ -308,17 +308,38 @@ exports.demoteStaged = function demoteStaged(trackId, objectRefs, userId) {
 // Versioning  (Phase 4 → versioning-service)
 // -----------------------------------------------------------------------------
 
-exports.bumpLatest = function bumpLatest(trackId, options) {
-  return versioningService.bumpLatest(trackId, options);
+exports.releaseLatest = function releaseLatest(trackId, options) {
+  return versioningService.releaseLatest(trackId, options);
 };
 
-exports.bumpByModified = function bumpByModified(trackId, modified, options) {
-  return versioningService.bumpByModified(trackId, modified, options);
+exports.releaseByModified = function releaseByModified(trackId, modified, options) {
+  return versioningService.releaseByModified(trackId, modified, options);
 };
 
-exports.previewBump = function previewBump(trackId, format) {
-  rejectFilesystemStoreFormat(format, 'previewBump');
-  return versioningService.previewBump(trackId, format);
+async function renderReleasePlan(plan, options) {
+  const format = options.format || 'summary';
+  rejectFilesystemStoreFormat(format, 'previewRelease');
+
+  if (format === 'summary') return plan.summary;
+  if (plan.blockingError) throw plan.blockingError;
+  if (format === 'bundle') {
+    return exportService.exportSnapshot(plan.plannedSnapshot, format, options);
+  }
+  return formatWorkbenchSnapshot(plan.plannedSnapshot, options);
+}
+
+exports.previewLatestRelease = async function previewLatestRelease(trackId, options) {
+  const plan = await versioningService.planLatestRelease(trackId, options);
+  return renderReleasePlan(plan, options);
+};
+
+exports.previewReleaseByModified = async function previewReleaseByModified(
+  trackId,
+  modified,
+  options,
+) {
+  const plan = await versioningService.planReleaseByModified(trackId, modified, options);
+  return renderReleasePlan(plan, options);
 };
 
 // -----------------------------------------------------------------------------

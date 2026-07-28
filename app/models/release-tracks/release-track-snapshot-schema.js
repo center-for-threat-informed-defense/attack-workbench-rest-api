@@ -272,7 +272,8 @@ const versionHistoryEntryDefinition = {
     members_count: { type: Number },
     promoted_count: { type: Number },
     staged_count: { type: Number },
-    candidate_count: { type: Number },
+    candidates_count: { type: Number },
+    quarantine_count: { type: Number },
   },
   // Virtual tracks only: records which component versions were included
   component_versions: { type: mongoose.Schema.Types.Mixed, default: undefined },

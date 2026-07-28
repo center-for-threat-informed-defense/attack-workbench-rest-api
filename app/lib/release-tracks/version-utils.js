@@ -46,23 +46,31 @@ exports.compareVersions = function compareVersions(a, b) {
 };
 
 /**
- * Calculate the next version based on version history and bump type.
+ * Calculate the next version based on version history and release increment.
  *
  * If an explicit version is provided, it is returned as-is (validation
  * is handled separately by validateVersionProgression).
  *
+ * Increment and explicit version selectors are mutually exclusive.
+ *
  * If the version history is empty, the first version defaults to "1.0".
  *
  * @param {Array<{ version: string }>} versionHistory - Existing version history entries
- * @param {string} [bumpType='minor'] - 'major' or 'minor'
+ * @param {string} [increment='minor'] - 'major' or 'minor'
  * @param {string} [explicitVersion] - Explicit version override
  * @returns {string} The calculated version string
+ * @throws {InvalidVersionError} If both selectors are supplied or the explicit
+ * version is invalid
  */
 exports.calculateNextVersion = function calculateNextVersion(
   versionHistory,
-  bumpType,
+  increment,
   explicitVersion,
 ) {
+  if (increment && explicitVersion) {
+    throw new InvalidVersionError('increment and version are mutually exclusive');
+  }
+
   if (explicitVersion) {
     // Validate format only; monotonicity is checked by validateVersionProgression
     exports.parseVersion(explicitVersion);
@@ -82,7 +90,7 @@ exports.calculateNextVersion = function calculateNextVersion(
   }
 
   const { major, minor } = exports.parseVersion(highest);
-  const type = bumpType || 'minor';
+  const type = increment || 'minor';
 
   return type === 'major' ? `${major + 1}.0` : `${major}.${minor + 1}`;
 };

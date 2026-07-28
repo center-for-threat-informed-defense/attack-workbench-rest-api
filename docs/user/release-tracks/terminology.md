@@ -148,7 +148,7 @@ The **tagging operation** marks an existing snapshot as a tagged release by assi
 **Characteristics:**
 - Version must be greater than all previous tagged releases (monotonically increasing)
 - Cannot tag a snapshot that is already tagged (throws `AlreadyReleasedError`)
-- Supports automatic version calculation (MAJOR/MINOR bump) or explicit version
+- Supports automatic version calculation (MAJOR/MINOR release) or explicit version
 
 **Examples:**
 - "Tag the latest snapshot as v1.5"

@@ -262,7 +262,7 @@ When promoting objects between tiers, conflicts can occur if multiple versions o
 - **Demotion** back to candidates (`POST /api/release-tracks/:id/staged/demote`)
 - **Manual promotion** via REST API endpoint (e.g., `POST /api/release-tracks/:id/candidates/promote`)
 - **Auto-promotion** based on candidacy threshold (e.g., object status changes to `awaiting-review`)
-- **Tagging/release operations** (e.g., `POST /api/release-tracks/:id/bump`)
+- **Tagging/release operations** (e.g., `POST /api/release-tracks/:id/snapshots/latest/release`)
 
 Note: revision-sync enrollment (`config.member_sync`, strategy `track_latest`) resolves its overlaps through the `supplant` config rather than these policies — see [member-sync-strategies.md](../../developer/release-tracks/member-sync-strategies.md).
 
@@ -372,7 +372,7 @@ Keep whichever version has the newer `modified` timestamp.
 [](./release-workflow.md#4-abort-taggingrelease-operations-only)
 **Only available for `staged_to_members` during tagging/release operations.**
 
-If a conflict occurs during a tagging/release operation (`POST /api/release-tracks/:id/bump`), reject and abort the entire release. The snapshot will NOT be tagged, and no immutable snapshot will be created.
+If a conflict occurs during a tagging/release operation (`POST /api/release-tracks/:id/snapshots/latest/release`), reject and abort the entire release. The snapshot will NOT be tagged, and no immutable snapshot will be created.
 
 **The error response will include ALL conflicting objects**, not just the first one encountered. This allows editors to see the full scope of conflicts that must be resolved before the release can proceed.
 
@@ -383,8 +383,8 @@ If a conflict occurs during a tagging/release operation (`POST /api/release-trac
 // - staged: attack-pattern--T1234, modified: 2024-02-20
 
 // Tagging request:
-POST /api/release-tracks/release-track--123/bump
-{ "type": "minor" }
+POST /api/release-tracks/release-track--123/snapshots/latest/release
+{ "increment": "minor" }
 
 // Result with abort:
 // ERROR Response:
@@ -411,8 +411,8 @@ POST /api/release-tracks/release-track--123/bump
 // - staged: attack-pattern--T9999, modified: 2024-02-22 (no conflict)
 
 // Tagging request:
-POST /api/release-tracks/release-track--123/bump
-{ "type": "minor" }
+POST /api/release-tracks/release-track--123/snapshots/latest/release
+{ "increment": "minor" }
 
 // Result with abort - shows ALL conflicts:
 // ERROR Response:
@@ -477,7 +477,7 @@ PUT /api/release-tracks/:id/config
 
 1. **Production tracks**: Use `abort` for `staged_to_members` to prevent accidental overwrites during releases
 2. **Development tracks**: Use `always_overwrite` or `prefer_latest` for faster iteration
-3. **Review conflicts before releasing**: Always run `GET /api/release-tracks/:id/bump/preview` to identify potential conflicts
+3. **Review conflicts before releasing**: Always run `GET /api/release-tracks/:id/snapshots/latest/release/preview` to identify potential conflicts
 4. **Manual resolution**: When `abort` triggers, manually resolve conflicts before retrying the release
 
 ### 5. Viewing Latest Snapshot with All Tiers
@@ -523,7 +523,7 @@ GET /api/release-tracks/:id/snapshots/latest?include=all
   "summary": {
     "members_count": 2,
     "staged_count": 1,
-    "candidate_count": 1,
+    "candidates_count": 1,
     "total_count": 4
   }
 }
@@ -534,49 +534,21 @@ GET /api/release-tracks/:id/snapshots/latest?include=all
 Compute a release preview, which outputs a verbose diff of what will change in the next release. **This endpoint will detect and report all conflicts** that would prevent the release from proceeding, allowing editors to resolve issues before attempting to tag.
 
 ```
-GET /api/release-tracks/:id/bump/preview
+GET /api/release-tracks/:id/snapshots/latest/release/preview
 ```
 
 **Response (success - no conflicts):**
 ```json
 {
-  "current_version": "1.1",
-  "next_version": "1.2",
-  "release_preview": {
-    "will_include": [
-      {
-        "ref": "attack-pattern--aaa",
-        "modified": "2024-01-10T10:00:00Z",
-        "object_type": "attack-pattern",
-        "name": "Technique A",
-        "status": "reviewed",
-        "source": "members"
-      },
-      {
-        "ref": "attack-pattern--ddd",
-        "modified": "2024-01-14T10:00:00Z",
-        "object_type": "attack-pattern",
-        "name": "New Technique XYZ",
-        "status": "reviewed",
-        "source": "staged"
-      }
-    ],
-    "will_exclude": [
-      {
-        "ref": "attack-pattern--eee",
-        "modified": "2024-01-12T09:00:00Z",
-        "object_type": "attack-pattern",
-        "name": "WIP Technique",
-        "status": "work-in-progress",
-        "reason": "Object is work-in-progress, not meeting candidacy threshold"
-      }
-    ]
-  },
-  "statistics": {
-    "total_objects": 3,
-    "included_objects": 2,
-    "excluded_objects": 1
-  }
+  "track_id": "release-track--123",
+  "type": "standard",
+  "source_snapshot_modified": "2024-01-15T16:20:00.000Z",
+  "version": "1.2",
+  "releasable": true,
+  "before": { "members_count": 2, "staged_count": 3, "candidates_count": 1 },
+  "after": { "members_count": 5, "staged_count": 0, "candidates_count": 1 },
+  "changes": { "promoted_count": 3 },
+  "conflicts": []
 }
 ```
 
@@ -584,14 +556,13 @@ GET /api/release-tracks/:id/bump/preview
 ```json
 {
   "track_id": "release-track--123",
-  "snapshot_modified": "2024-01-15T16:20:00.000Z",
-  "is_already_tagged": false,
-  "current_version": null,
-  "next_version_minor": "1.2",
-  "next_version_major": "2.0",
-  "staged_count": 3,
-  "members_count": 2,
-  "candidates_count": 1,
+  "type": "standard",
+  "source_snapshot_modified": "2024-01-15T16:20:00.000Z",
+  "version": "1.2",
+  "releasable": false,
+  "before": { "members_count": 2, "staged_count": 3, "candidates_count": 1 },
+  "after": { "members_count": 2, "staged_count": 3, "candidates_count": 1 },
+  "changes": { "promoted_count": 0 },
   "conflicts": [
     {
       "object_ref": "attack-pattern--T1234",
@@ -609,17 +580,16 @@ GET /api/release-tracks/:id/bump/preview
 
 **Note:** When the `staged_to_members` conflict policy is set to `abort` and conflicts are detected, the preview will include a `conflicts` array listing **all** conflicting objects, not just the first one encountered.
 
-### 7. Bump with Staging
+### 7. Release with Staging
 
 ```
-POST /api/collections/:id/bump
+POST /api/release-tracks/:id/snapshots/latest/release
 ```
 
 **Request:**
 ```json
 {
-  "type": "minor",
-  "dry_run": false // <-- optionally perform a dry run to preview the next release4
+  "increment": "minor"
 }
 ```
 
@@ -726,9 +696,9 @@ POST /api/collections/collection--enterprise/candidates/review
 }
 # → Promoted to staged tier
 
-# 5. Bump collection to v1.5
-POST /api/collections/collection--enterprise/bump
-{ "type": "minor" }
+# 5. Release collection to v1.5
+POST /api/collections/collection--enterprise/snapshots/latest/release
+{ "increment": "minor" }
 # → Release track now at v1.5
 # → Released tier: attack-pattern--T1234, modified: 2024-02-01T14:00:00Z
 
@@ -852,12 +822,12 @@ POST /api/collections/collection--123/candidates/review
 # → auto-promoted to workspace.staged
 
 # 5. Preview the release
-GET /api/release-tracks/collection--123/bump/preview
+GET /api/release-tracks/collection--123/snapshots/latest/release/preview
 # → Shows attack-pattern--new1 will be included
 
-# 6. Bump the collection
-POST /api/collections/collection--123/bump
-{ "type": "minor" }
+# 6. Release the collection
+POST /api/collections/collection--123/snapshots/latest/release
+{ "increment": "minor" }
 # → attack-pattern--new1 moved to x_mitre_contents
 # → attack-pattern--new2 remains in candidates (still WIP)
 ```
@@ -881,12 +851,12 @@ POST /api/collections/collection--123/candidates/review
 # → All 50 auto-promoted to staged
 
 # Preview release
-GET /api/release-tracks/collection--123/bump/preview
+GET /api/release-tracks/collection--123/snapshots/latest/release/preview
 # → Shows all 50 will be included
 
 # Release
-POST /api/collections/collection--123/bump
-{ "type": "major" }
+POST /api/collections/collection--123/snapshots/latest/release
+{ "increment": "major" }
 # → All 50 moved to x_mitre_contents
 ```
 
@@ -911,9 +881,9 @@ POST /api/collections/collection--123/candidates/review
   "to": "reviewed"
 }
 
-# January 25: Bump to v1.5 (freeze begins for v1.5 release)
-POST /api/collections/collection--123/bump
-{ "type": "minor" }
+# January 25: Release to v1.5 (freeze begins for v1.5 release)
+POST /api/collections/collection--123/snapshots/latest/release
+{ "increment": "minor" }
 # v1.5 now released with:
 # - attack-pattern--A, modified: 2024-01-15T10:00:00Z
 # - attack-pattern--B, modified: 2024-01-15T11:00:00Z
@@ -951,9 +921,9 @@ POST /api/collections/collection--123/candidates/attack-pattern--A/update-versio
 # - members (v1.5): attack-pattern--A, modified: 2024-01-15 (still frozen)
 # - candidates: attack-pattern--A, modified: 2024-02-10 (already in review)
 
-# March 5: Bump to v1.6
-POST /api/collections/collection--123/bump
-{ "type": "minor" }
+# March 5: Release to v1.6
+POST /api/collections/collection--123/snapshots/latest/release
+{ "increment": "minor" }
 # No bottleneck - work continued throughout v1.5 freeze
 ```
 
@@ -972,9 +942,9 @@ POST /api/collections/collection--dev/candidates
 { "object_refs": ["attack-pattern--exp1"] }
 # → Immediately promoted to staged (meets threshold)
 
-# Bump immediately
-POST /api/collections/collection--dev/bump
-{ "type": "minor" }
+# Release immediately
+POST /api/collections/collection--dev/snapshots/latest/release
+{ "increment": "minor" }
 # → WIP objects included in release
 ```
 
@@ -986,11 +956,11 @@ POST /api/collections/collection--dev/bump
 - **Team preview collections**: `candidacy_threshold: "awaiting-review"`
 - **Development collections**: `candidacy_threshold: "work-in-progress"`
 
-### 2. Leverage Dry Run
+### 2. Leverage release preview
 
-Always preview releases before bumping:
+Always preview releases before releasing:
 ```bash
-GET /api/release-tracks/:id/bump/preview?format=workbench
+GET /api/release-tracks/:id/snapshots/latest/release/preview?format=workbench
 ```
 
 ### 3. Bulk Operations for Efficiency

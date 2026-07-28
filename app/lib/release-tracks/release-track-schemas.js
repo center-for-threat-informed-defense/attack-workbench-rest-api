@@ -151,6 +151,7 @@ const cronSchema = z
 const domainParamSchema = z.enum(['enterprise', 'ics', 'mobile']);
 
 const formatQuerySchema = z.enum(['bundle', 'filesystemstore', 'workbench']);
+const releasePreviewFormatSchema = z.enum(['summary', 'bundle', 'filesystemstore', 'workbench']);
 
 const includeQuerySchema = z.enum(['members', 'staged', 'candidates', 'quarantine', 'all']);
 
@@ -202,7 +203,7 @@ const releaseLimitQuerySchema = z.coerce.number().int().min(1).max(200);
 
 const releaseOffsetQuerySchema = z.coerce.number().int().min(0);
 
-const bumpTypeSchema = z.enum(['major', 'minor']);
+const releaseIncrementSchema = z.enum(['major', 'minor']);
 
 const workflowStatusSchema = z.enum(['work-in-progress', 'awaiting-review', 'reviewed']);
 
@@ -320,12 +321,18 @@ const updateContentsBodySchema = z.object({
     .min(1),
 });
 
-/** POST /release-tracks/:id/bump */
-const bumpBodySchema = z.object({
-  type: bumpTypeSchema.optional(),
-  version: xMitreVersionSchema.optional(),
-  dry_run: z.boolean().optional(),
-});
+const releaseVersionSelectionSchema = z
+  .object({
+    increment: releaseIncrementSchema.optional(),
+    version: xMitreVersionSchema.optional(),
+  })
+  .strict()
+  .refine((value) => !(value.increment && value.version), {
+    message: 'increment and version are mutually exclusive',
+  });
+
+/** POST /release-tracks/:id/snapshots/{target}/release */
+const releaseBodySchema = releaseVersionSelectionSchema;
 
 /** POST /release-tracks/:id/clone */
 const cloneBodySchema = z
@@ -433,6 +440,7 @@ module.exports = {
   // Query parameter schemas
   domainParamSchema,
   formatQuerySchema,
+  releasePreviewFormatSchema,
   includeQuerySchema,
   bundleIncludeQuerySchema,
   bundleStateQuerySchema,
@@ -443,7 +451,8 @@ module.exports = {
   releaseOrderQuerySchema,
   releaseLimitQuerySchema,
   releaseOffsetQuerySchema,
-  bumpTypeSchema,
+  releaseIncrementSchema,
+  releaseVersionSelectionSchema,
   workflowStatusSchema,
   trackEntryStatusSchema,
   candidacyThresholdSchema,
@@ -459,7 +468,7 @@ module.exports = {
   createFromBundleBodySchema,
   updateMetadataBodySchema,
   updateContentsBodySchema,
-  bumpBodySchema,
+  releaseBodySchema,
   cloneBodySchema,
   addCandidatesBodySchema,
   reviewCandidatesBodySchema,

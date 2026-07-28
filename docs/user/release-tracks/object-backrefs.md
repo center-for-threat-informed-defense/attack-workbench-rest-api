@@ -107,6 +107,6 @@ Release tracks are never blind to changes in the objects they pin:
 POST /api/release-tracks/:id/candidates            → { tier: "candidates", status: "work-in-progress" }
 POST /api/release-tracks/:id/candidates/review     → { tier: "candidates", status: "awaiting-review" }
 POST /api/release-tracks/:id/candidates/promote    → { tier: "staged",     status: "awaiting-review" }
-POST /api/release-tracks/:id/bump                  → { tier: "members",    status: "reviewed" }
+POST /api/release-tracks/:id/snapshots/latest/release                  → { tier: "members",    status: "reviewed" }
 DELETE /api/release-tracks/:id                     → entry removed
 ```

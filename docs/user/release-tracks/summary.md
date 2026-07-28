@@ -66,7 +66,7 @@ GET  /api/release-tracks/:id/snapshots/latest
 POST /api/release-tracks/:id/config
 POST /api/release-tracks/:id/meta
 POST /api/release-tracks/:id/clone
-PUT /api/release-tracks/:id/bump
+PUT /api/release-tracks/:id/snapshots/latest/release
 POST /api/release-tracks/:id/archive
 DELETE /api/release-tracks/:id
 
@@ -80,7 +80,7 @@ POST /api/release-tracks/:id/snapshots/:modified/config
 POST /api/release-tracks/:id/snapshots/:modified/meta
 POST /api/release-tracks/:id/snapshots/:modified/clone
 DELETE /api/release-tracks/:id/snapshots/:modified
-PUT /api/release-tracks/:id/snapshots/:modified/bump
+PUT /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 ### 2. Git-Inspired Versioning
@@ -149,25 +149,26 @@ workspace.config.candidacy_threshold = "work-in-progress"  // Very permissive
 - **bundle** - Standard STIX 2.1 bundle (for publication)
 - **filesystemstore** - Planned STIX FileSystemStore directory structure; not implemented yet and returns HTTP 501
 
-### Dry Run + Preview
+### Release previews
 
-"Preview" will provide a verbose/detailed diff of what will change in the next release
+The default format provides a before/after summary:
 ```
-GET /api/release-tracks/:id/bump/preview
-  ?format = bundle | workbench
+GET /api/release-tracks/:id/snapshots/latest/release/preview
+  ?format=summary
+  &increment=minor
 ```
 `format=filesystemstore` is reserved for future FileSystemStore export support and currently returns HTTP 501.
 
-"Dry-run" will output the literal/exact contents of the would-be tagged release
+Use `format=workbench` for the literal would-be snapshot or `format=bundle`
+for its publication representation. Previewing never persists.
+
+Commit whichever snapshot is latest when the release request is handled:
 ```
-POST /api/release-tracks/:id/bump
+POST /api/release-tracks/:id/snapshots/latest/release
 {
-  "type": "major",
-  "dry_run": true <-- IMPORTANT!!
+  "increment": "major"
 }
 ```
-
-Shows exactly what will be in the next release before bumping.
 
 ### Bulk Operations
 

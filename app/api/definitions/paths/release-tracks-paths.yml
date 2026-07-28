@@ -360,16 +360,16 @@ paths:
         '201':
           description: 'Release track cloned successfully'
 
-  /api/release-tracks/{id}/bump:
+  /api/release-tracks/{id}/snapshots/latest/release:
     post:
-      summary: 'Tag the latest snapshot (create a release)'
-      operationId: 'release-tracks-bump-latest'
+      summary: 'Release the latest snapshot'
+      operationId: 'release-tracks-release-latest'
       description: |
-        Tag the latest snapshot with a version number.
-        For standard tracks: promotes staged → members.
-        Exact staged/member duplicates are idempotent and normalized rather than treated as conflicts.
-        For virtual tracks: N/A (already resolved).
-        Request body validated via Zod in controller: { type: 'major'|'minor', version?: string, dry_run?: boolean }
+        Immutably tag the latest snapshot with a version. Standard tracks
+        promote staged entries to members. The `latest` selector is resolved
+        when the request is handled. Supply either `increment` (`major` or
+        `minor`) or an explicit `version` in `MAJOR.MINOR` form, but never
+        both. Omitting both defaults to a minor increment.
       tags:
         - 'Release Tracks'
       parameters:
@@ -378,21 +378,33 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        description: |
+          Version selection. `increment` and `version` are mutually exclusive;
+          supplying both returns 400. An empty object defaults to a minor
+          increment.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
-          description: 'Snapshot tagged successfully'
+          description: 'Snapshot released successfully'
+        '400':
+          description: 'Invalid release request'
         '409':
-          description: 'Snapshot already tagged or conflict during promotion'
-        '501':
-          description: 'Not yet implemented'
+          description: 'Already released or conflicting snapshot'
 
-  /api/release-tracks/{id}/bump/preview:
+  /api/release-tracks/{id}/snapshots/latest/release/preview:
     get:
-      summary: 'Preview the next release'
-      operationId: 'release-tracks-bump-preview'
+      summary: 'Preview releasing the latest snapshot'
+      operationId: 'release-tracks-preview-latest-release'
       description: |
-        Compute what the next tagged release will contain without persisting changes.
-        Shows which objects will be promoted from staged → members.
+        Plan without persisting. Summary is the default; workbench and bundle
+        render the complete would-be release. `increment` and `version` are
+        mutually exclusive; omitting both defaults to a minor increment.
       tags:
         - 'Release Tracks'
       parameters:
@@ -403,14 +415,53 @@ paths:
             type: string
         - name: format
           in: query
-          description: 'Output format. filesystemstore is not yet implemented.'
+          description: 'Preview representation. Defaults to summary.'
           schema:
             type: string
             enum:
+              - summary
               - bundle
               - workbench
               - filesystemstore
-            default: workbench
+            default: summary
+        - name: increment
+          in: query
+          description: 'Version increment; mutually exclusive with version.'
+          schema:
+            type: string
+            enum: [major, minor]
+        - name: version
+          in: query
+          description: 'Explicit MAJOR.MINOR version; mutually exclusive with increment.'
+          schema:
+            type: string
+        - name: include
+          in: query
+          allowReserved: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: state
+          in: query
+          allowReserved: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: stixVersion
+          in: query
+          schema:
+            type: string
+            enum: ['2.0', '2.1']
+        - name: includeToc
+          in: query
+          schema:
+            type: boolean
       responses:
         '200':
           description: 'Release preview generated'
@@ -1126,14 +1177,15 @@ paths:
         '201':
           description: 'Release track cloned successfully'
 
-  /api/release-tracks/{id}/snapshots/{modified}/bump:
+  /api/release-tracks/{id}/snapshots/{modified}/release:
     post:
-      summary: 'Tag a specific snapshot'
-      operationId: 'release-tracks-bump-by-modified'
+      summary: 'Release a specific snapshot'
+      operationId: 'release-tracks-release-by-modified'
       description: |
-        Tag a historical snapshot with a version number.
-        Exact staged/member duplicates are idempotent and normalized rather than treated as conflicts.
-        Request body validated via Zod in controller.
+        Immutably tag the snapshot selected by the modified timestamp using
+        the same version-selection contract as the latest release operation:
+        supply `increment` or `version`, never both; omit both for a minor
+        increment.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1147,8 +1199,89 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        description: |
+          Version selection. `increment` and `version` are mutually exclusive;
+          supplying both returns 400. An empty object defaults to a minor
+          increment.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
       responses:
         '200':
-          description: 'Snapshot tagged successfully'
+          description: 'Snapshot released successfully'
+        '400':
+          description: 'Invalid release request'
+        '409':
+          description: 'Already released or conflicting snapshot'
+
+  /api/release-tracks/{id}/snapshots/{modified}/release/preview:
+    get:
+      summary: 'Preview releasing a specific snapshot'
+      operationId: 'release-tracks-preview-release-by-modified'
+      description: |
+        Plan without persisting. `increment` and `version` are mutually
+        exclusive; omitting both defaults to a minor increment.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [summary, workbench, bundle, filesystemstore]
+            default: summary
+        - name: increment
+          in: query
+          schema:
+            type: string
+            enum: [major, minor]
+        - name: version
+          in: query
+          schema:
+            type: string
+        - name: include
+          in: query
+          allowReserved: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: state
+          in: query
+          allowReserved: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: stixVersion
+          in: query
+          schema:
+            type: string
+            enum: ['2.0', '2.1']
+        - name: includeToc
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 'Release preview generated'
         '501':
-          description: 'Not yet implemented'
+          description: 'Requested format is not yet implemented'

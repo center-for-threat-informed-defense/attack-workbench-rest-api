@@ -370,7 +370,7 @@ components:
             staged_count:
               type: number
               description: 'Objects remaining in staged after release'
-            candidate_count:
+            candidates_count:
               type: number
               description: 'Objects in candidates at time of release'
 

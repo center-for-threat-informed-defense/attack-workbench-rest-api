@@ -529,13 +529,13 @@ GET /api/release-tracks/:id/snapshots/:modified?format=workbench&include=all
 Once reviewed, explicitly tag the draft snapshot:
 
 ```bash
-POST /api/release-tracks/:id/snapshots/:modified/bump
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 **Request:**
 ```json
 {
-  "type": "major",  // or "minor", or explicit "version": "14.0"
+  "increment": "major",  // or "minor", or explicit "version": "14.0"
 }
 ```
 
@@ -841,13 +841,13 @@ GET /api/release-tracks/:id/snapshots/preview
 ### Tag Virtual Snapshot
 
 ```bash
-POST /api/release-tracks/:id/snapshots/:modified/bump
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 **Request:**
 ```json
 {
-  "type": "major"
+  "increment": "major"
 }
 ```
 
@@ -984,7 +984,7 @@ POST /api/release-tracks/release-track--uuid-1/candidates
 }
 
 # Tag initial release
-POST /api/release-tracks/release-track--uuid-1/bump
+POST /api/release-tracks/release-track--uuid-1/snapshots/latest/release
 { "version": "1.0" }
 ```
 
@@ -1024,7 +1024,7 @@ POST /api/release-tracks/release-track--uuid-virtual/snapshots/create
 GET /api/release-tracks/release-track--uuid-virtual/snapshots/:modified
 
 # Tag as Enterprise v14.0
-POST /api/release-tracks/release-track--uuid-virtual/snapshots/:modified/bump
+POST /api/release-tracks/release-track--uuid-virtual/snapshots/:modified/release
 { "version": "14.0" }
 ```
 
@@ -1132,7 +1132,7 @@ GET /api/release-tracks/:id/snapshots/:modified?format=workbench
 GET /api/release-tracks/:id/snapshots/:modified?format=bundle
 
 # Tag only when satisfied
-POST /api/release-tracks/:id/snapshots/:modified/bump
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 ### 2. Use Scheduled Snapshots for Consistency

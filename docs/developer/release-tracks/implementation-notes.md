@@ -22,6 +22,10 @@ db.objects.createIndex({ 'workspace.workflow.status': 1 });
 - Candidacy threshold must be valid enum value
 - Object version must exist before adding as candidate (validate `stix.id` and `stix.modified` exist)
 - Version pin (`object_modified`) is immutable once set for a tier entry
+- Release version selection accepts either an `increment` or an explicit
+  `version`, never both. Controller validation returns 400 at the HTTP boundary,
+  and `version-utils.calculateNextVersion` repeats the invariant so internal
+  release-planning callers cannot silently choose one selector.
 
 ### Cross-tier revision enforcement
 
@@ -32,7 +36,7 @@ track cloning uses the same normalizer. Tagging is the one in-place mutation,
 so `versioning-service` normalizes before the atomic tag update. This covers
 candidate adds, manual/automatic promotion, demotion, status transitions,
 candidate pin changes, member sync, direct content replacement, bundle
-import, standard/virtual snapshot creation, and release bumps without
+import, standard/virtual snapshot creation, and release commits without
 route-specific guards.
 
 Normalization keeps the first occurrence in the authoritative order
@@ -52,7 +56,7 @@ policies remain responsible only for different revisions of one object.
 - Bulk operations should use batch updates
 - Event handlers should be async and non-blocking
 - Large collections (>10k objects) may need pagination
-- Consider caching for `bump/preview` on large collections
+- Consider caching for `release/preview` on large collections
 
 ### Snapshot history reads
 
@@ -115,7 +119,7 @@ eventBus.emit('release-track:object-staged', {
   promotedBy: 'auto' // or user email
 });
 
-// When collection is bumped
+// When collection is released
 eventBus.emit('release-track:released', {
   collectionId: 'x-mitre-collection--123',
   version: '1.2',

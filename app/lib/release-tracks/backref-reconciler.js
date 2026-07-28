@@ -21,7 +21,7 @@
 // (latest) snapshot, compute the desired set of backrefs and diff it against
 // the documents that currently carry an entry for that track. This single
 // code path covers every membership mutation (add/remove/review/promote/
-// demote/bump/member-sync/clone/bundle-import/updateContents) as well as
+// demote/release/member-sync/clone/bundle-import/updateContents) as well as
 // snapshot deletion (membership reverts to the new latest snapshot) and
 // track deletion (snapshot = null removes all entries).
 //

@@ -131,7 +131,7 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
 
   // Staged for next release
   staged: [
-    // Objects that are reviewed (in THIS release track) and ready for next bump
+    // Objects that are reviewed (in THIS release track) and ready for next release
     // Automatically promoted from candidates when track-scoped status → "reviewed"
     {
       object_ref: "attack-pattern--ddd",
@@ -196,7 +196,7 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
         members_count: 3,     // Objects in members
         promoted_count: 1,    // Objects promoted from staged to members
         staged_count: 0,      // Objects left in staged (if any)
-        candidate_count: 2    // Objects left in candidates (if any)
+        candidates_count: 2    // Objects left in candidates (if any)
       }
     }
   ]

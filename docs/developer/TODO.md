@@ -1,5 +1,44 @@
 # Release Track TODOs
 
+## Harden release version selection
+
+- [x] Reject simultaneous `increment` and `version` selectors inside the
+  release planner, even when controller validation is bypassed.
+- [x] Add regression coverage for planner-level mutual exclusivity.
+- [x] Make exact, incremental, default, and ambiguous selection behavior
+  explicit in OpenAPI, user/developer docs, and Bruno.
+- [x] Run the focused release-track spec, lint, and complete `npm test` suite.
+  The focused release spec passes (10 tests), lint passes, and the complete
+  backend suite passes (OpenAPI: 2, config: 21, API: 907, middleware: 24).
+  Targeted frontend Prettier and ESLint pass; TypeScript remains blocked by
+  the checkout's existing Angular dependency-resolution and unrelated type
+  errors.
+- [x] Review the final diff and propose a conventional commit message.
+
+## Release command and unified previews
+
+- [x] Replace bump routes and symbols with explicit release operations for
+  latest and historical snapshots.
+- [x] Implement one pure release planner shared by summary, workbench, bundle,
+  and commit paths.
+- [x] Remove `dry_run`, rename version `type` to `increment`, and reject
+  conflicting version-selection inputs.
+- [x] Keep release targeting semantics explicit: `latest` resolves at request
+  time, while `:modified` pins a specific snapshot; no client precondition is
+  required.
+- [x] Add regression coverage for preview parity, non-persistence, conflicts,
+  formats, validation, historical releases, and removed bump routes.
+- [x] Update OpenAPI, user/developer documentation, Bruno, and frontend
+  consumers.
+- [x] Run focused tests and frontend checks, then the complete `npm test`
+  backend suite.
+  Focused release-track suites pass (49 tests), and the affected backref suite
+  passes again in isolation (23 tests). The complete backend suite passes on
+  retry. Targeted frontend formatting and ESLint pass; frontend Vitest and
+  TypeScript startup remain blocked by the checkout's existing
+  ESM/dependency-resolution errors.
+- [x] Review the final diff and propose a conventional commit message.
+
 ## Remove implicit latest-snapshot route
 
 - [x] Remove `GET /api/release-tracks/:id` while preserving track deletion.

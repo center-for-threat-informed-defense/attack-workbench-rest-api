@@ -19,8 +19,8 @@ POST /api/release-tracks/release--123/meta
 # Creates: snapshot 3, x_mitre_version: null
 
 # 4. Ready for first release - tag as v1.0
-POST /api/release-tracks/release--123/bump
-{ "type": "major" }
+POST /api/release-tracks/release--123/snapshots/latest/release
+{ "increment": "major" }
 # Updates: snapshot 3, x_mitre_version: "1.0" (IN-PLACE)
 
 # 5. Continue development
@@ -29,8 +29,8 @@ POST /api/release-tracks/release--123/contents
 # Creates: snapshot 4, x_mitre_version: null
 
 # 6. Minor release
-POST /api/release-tracks/release--123/bump
-{ "type": "minor" }
+POST /api/release-tracks/release--123/snapshots/latest/release
+{ "increment": "minor" }
 # Updates: snapshot 4, x_mitre_version: "1.1" (IN-PLACE)
 
 # 7. More changes
@@ -39,8 +39,8 @@ POST /api/release-tracks/release--123/contents
 # Creates: snapshot 5, x_mitre_version: null
 
 # 8. Another minor release
-POST /api/release-tracks/release--123/bump
-{ "type": "minor" }
+POST /api/release-tracks/release--123/snapshots/latest/release
+{ "increment": "minor" }
 # Updates: snapshot 5, x_mitre_version: "1.2" (IN-PLACE)
 ```
 
@@ -64,10 +64,10 @@ POST /api/collections/collection--456/contents  # snapshot 4
 POST /api/collections/collection--456/contents  # snapshot 5
 
 # Only tag snapshots 2 and 5 as releases
-POST /api/collections/collection--456/modified/<snapshot-2-timestamp>/bump
+POST /api/collections/collection--456/modified/<snapshot-2-timestamp>/snapshots/latest/release
 { "version": "1.0" }
 
-POST /api/collections/collection--456/bump  # Latest = snapshot 5
+POST /api/collections/collection--456/snapshots/latest/release  # Latest = snapshot 5
 { "version": "1.1" }
 ```
 
@@ -86,12 +86,12 @@ This mirrors Git's ability to tag any commit, not just the latest.
 
 ```bash
 # Tag latest snapshot
-POST /api/collections/collection--789/bump
+POST /api/collections/collection--789/snapshots/latest/release
 { "version": "1.0" }
 # Success: snapshot tagged as v1.0
 
-# Attempt to bump the same snapshot again
-POST /api/collections/collection--789/bump
+# Attempt to release the same snapshot again
+POST /api/collections/collection--789/snapshots/latest/release
 { "version": "1.1" }
 # Error: AlreadyReleasedError - "This snapshot has already been tagged as version 1.0"
 
@@ -100,8 +100,8 @@ POST /api/collections/collection--789/contents
 { "x_mitre_contents": [...] }
 # Creates new snapshot
 
-# Now bump the new snapshot
-POST /api/collections/collection--789/bump
+# Now release the new snapshot
+POST /api/collections/collection--789/snapshots/latest/release
 { "version": "1.1" }
 # Success: new snapshot tagged as v1.1
 ```

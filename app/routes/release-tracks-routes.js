@@ -68,15 +68,6 @@ router
 // Latest snapshot operations (parameterised by :id)
 // =============================================================================
 
-/** Bump preview must be registered before :id/bump to avoid param conflict */
-router
-  .route('/release-tracks/:id/bump/preview')
-  .get(
-    authn.authenticate,
-    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-    releaseTracksController.previewBump,
-  );
-
 router
   .route('/release-tracks/:id/meta')
   .post(
@@ -96,14 +87,6 @@ router
     authn.authenticate,
     authz.requireRole(authz.admin),
     releaseTracksController.updateContentsByLatest,
-  );
-
-router
-  .route('/release-tracks/:id/bump')
-  .post(
-    authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.bumpByLatest,
   );
 
 router
@@ -233,6 +216,22 @@ router
   );
 
 router
+  .route('/release-tracks/:id/snapshots/latest/release/preview')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    releaseTracksController.previewLatestRelease,
+  );
+
+router
+  .route('/release-tracks/:id/snapshots/latest/release')
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.releaseLatest,
+  );
+
+router
   .route('/release-tracks/:id/snapshots/preview')
   .get(
     authn.authenticate,
@@ -269,11 +268,19 @@ router
   );
 
 router
-  .route('/release-tracks/:id/snapshots/:modified/bump')
+  .route('/release-tracks/:id/snapshots/:modified/release/preview')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    releaseTracksController.previewReleaseByModified,
+  );
+
+router
+  .route('/release-tracks/:id/snapshots/:modified/release')
   .post(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.bumpByModified,
+    releaseTracksController.releaseByModified,
   );
 
 router

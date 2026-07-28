@@ -263,16 +263,18 @@ describe('Release-track cross-tier revision uniqueness', function () {
     expect(occurrences(latest, revisionB)).toEqual([]);
   });
 
-  it('tags and repairs an exact staged/member duplicate instead of reporting a conflict', async function () {
-    const technique = await createTechnique('Tier Invariant Bump');
-    const track = await createTrack('Tier Invariant Bump Track');
+  it('releases and repairs an exact staged/member duplicate instead of reporting a conflict', async function () {
+    const technique = await createTechnique('Tier Invariant Release');
+    const track = await createTrack('Tier Invariant Release Track');
     await injectLatestSnapshot(track.id, {
       members: [memberEntry(technique)],
       staged: [stagedEntry(technique)],
       candidates: [candidateEntry(technique)],
     });
 
-    const tagged = await post(`/api/release-tracks/${track.id}/bump`, { type: 'minor' });
+    const tagged = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {
+      increment: 'minor',
+    });
 
     expect(tagged.version).toBe('1.0');
     expect(occurrences(tagged, technique)).toEqual(['members']);

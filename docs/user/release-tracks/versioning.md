@@ -32,7 +32,7 @@ A **tagged release** is a snapshot that has been marked as production-ready for 
 
 **Note:** ATT&CK release tracks use a two-part versioning scheme (MAJOR.MINOR), not the three-part semver format (MAJOR.MINOR.PATCH). The patch component is not tracked in `version`.
 
-Not all snapshots are tagged releases. Only snapshots explicitly tagged via the **bump** operation become tagged releases.
+Not all snapshots are tagged releases. Only snapshots explicitly tagged via the **release** operation become tagged releases.
 
 **Example Timeline with Tagged Releases:**
 ```
@@ -43,7 +43,7 @@ id: "release-track--123", modified: "2024-01-02T14:30:00.000Z"
   version: null  ← DRAFT RELEASE (work in progress)
 
 id: "release-track--123", modified: "2024-01-05T09:15:00.000Z"
-  version: "1.0"  ← TAGGED RELEASE (via tagging operation)
+  version: "1.0"  ← TAGGED RELEASE (via release operation)
   version_history: [{
     version: "1.0",
     tagged_at: "2024-01-05T10:00:00Z",
@@ -55,18 +55,21 @@ id: "release-track--123", modified: "2024-01-10T11:00:00.000Z"
   version: null  ← DRAFT RELEASE (more development)
 
 id: "release-track--123", modified: "2024-01-15T16:20:00.000Z"
-  version: "1.1"  ← TAGGED RELEASE (via tagging operation)
+  version: "1.1"  ← TAGGED RELEASE (via release operation)
   version_history: [
     { version: "1.1", tagged_at: "2024-01-15T17:00:00Z", tagged_by: "user@example.com", modified: "2024-01-15T16:20:00.000Z" },
     { version: "1.0", tagged_at: "2024-01-05T10:00:00Z", tagged_by: "user@example.com", modified: "2024-01-05T09:15:00.000Z" }
   ]
 ```
 
-## The Tagging Operation
+## The Release Operation
 
-### What is "Tagging"?
+### What Does Releasing Do?
 
-The `tag` operation **tags an existing snapshot as a release** by assigning it a semantic version number (without the patch number). It does **NOT** create a new snapshot.
+The `release` operation **tags an existing snapshot as a release** by assigning
+it a semantic version number (without the patch number). It does **not** create
+a new snapshot. `release` is the command; `tagged` describes the resulting
+snapshot state.
 
 This is analogous to Git's tagging system:
 - Git commits = release track snapshots (identified by `modified` key)
@@ -74,7 +77,7 @@ This is analogous to Git's tagging system:
 
 ### In-Place Tagging Strategy
 
-When you tag a snapshot:
+When you release a snapshot:
 
 1. The **existing** snapshot is updated in-place
 2. `version` is set to the new version
@@ -89,20 +92,26 @@ When you tag a snapshot:
 
 ### Tagging Endpoints
 
-#### Tag Latest Snapshot
+#### Release Latest Snapshot
 ```
-POST /api/release-tracks/:id/bump
+POST /api/release-tracks/:id/snapshots/latest/release
 ```
 
-Tags the most recent snapshot (highest `modified`) as a tagged release.
+Releases the most recent snapshot (highest `modified`) as a tagged release.
 
-**Request Body (optional):**
+**Request Body:**
 ```json
 {
-  "type": "major" | "minor",  // Default: "minor"
-  "version": "2.0"            // Alternative: explicit version (MAJOR.MINOR format)
+  "increment": "major"
 }
 ```
+
+Use `"version": "2.0"` instead of `increment` for an explicit version.
+The selectors are mutually exclusive: supplying both returns `400 Bad
+Request`, and the server never chooses one over the other. Omitting both
+version selectors defaults to a minor increment. The `latest` selector is
+resolved when the release request is handled. Callers that need to pin the
+operation to one snapshot should use the `:modified` endpoint.
 
 **Examples:**
 
@@ -110,9 +119,9 @@ Tags the most recent snapshot (highest `modified`) as a tagged release.
 ```bash
 # Current latest tagged release: 1.2
 # Tag as: 1.3 (minor increment)
-POST /api/release-tracks/release--123/bump
+POST /api/release-tracks/release--123/snapshots/latest/release
 {
-  "type": "minor"
+  "increment": "minor"
 }
 ```
 
@@ -120,30 +129,31 @@ POST /api/release-tracks/release--123/bump
 ```bash
 # Current latest tagged release: 1.2
 # Tag as: 2.0 (major increment)
-POST /api/release-tracks/release--123/bump
+POST /api/release-tracks/release--123/snapshots/latest/release
 {
-  "type": "major"
+  "increment": "major"
 }
 ```
 
 1. **Explicit version:**
 ```bash
 # Set specific version (must be greater than previous)
-POST /api/release-tracks/release--123/bump
+POST /api/release-tracks/release--123/snapshots/latest/release
 {
   "version": "2.0"
 }
 ```
 
-1. **Default behavior (no body):**
+1. **Default version selection:**
 ```bash
 # Defaults to minor increment
-POST /api/release-tracks/release--123/bump
+POST /api/release-tracks/release--123/snapshots/latest/release
+{}
 ```
 
-#### Tag Specific Snapshot
+#### Release Specific Snapshot
 ```
-POST /api/release-tracks/:id/snapshots/:modified/bump
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 Tags a specific snapshot as a tagged release. Can tag retroactively, (i.e., a non-latest snapshot can be tagged), granted no [versioning rules](#versioning-rules) are violated.

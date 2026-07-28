@@ -89,6 +89,16 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
     );
   }
 
+  async function releaseLatest(trackId) {
+    return postObject(
+      `/api/release-tracks/${trackId}/snapshots/latest/release`,
+      {
+        increment: 'minor',
+      },
+      200,
+    );
+  }
+
   function trackEntries(object) {
     return object.workspace.release_tracks || [];
   }
@@ -166,13 +176,13 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       });
     });
 
-    it('bumping the track promotes staged backrefs to member/reviewed', async function () {
+    it('releasing the track promotes staged backrefs to member/reviewed', async function () {
       await postObject(
         `/api/release-tracks/${trackId}/candidates/promote`,
         { object_refs: [technique.stix.id] },
         200,
       );
-      await postObject(`/api/release-tracks/${trackId}/bump`, { type: 'minor' }, 200);
+      await releaseLatest(trackId);
 
       const retrieved = await getTechniqueVersion(technique);
       expect(entryForTrack(retrieved, trackId)).toEqual({
@@ -205,7 +215,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         { object_refs: [technique.stix.id] },
         200,
       );
-      await postObject(`/api/release-tracks/${componentTrackId}/bump`, { type: 'minor' }, 200);
+      await releaseLatest(componentTrackId);
 
       // Compose a virtual track over it and create a snapshot
       const virtual = await postObject('/api/release-tracks/new', {

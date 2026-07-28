@@ -2,7 +2,7 @@
 
 ### AlreadyReleasedError
 
-**Thrown when:** Attempting to bump a snapshot that already has `x_mitre_version` set.
+**Thrown when:** Attempting to release a snapshot that already has `x_mitre_version` set.
 
 **HTTP Status:** 409 Conflict
 
@@ -14,7 +14,7 @@
 }
 ```
 
-**Solution:** Create a new snapshot by modifying the collection, then bump the new snapshot.
+**Solution:** Create a new snapshot by modifying the collection, then release the new snapshot.
 
 ### InvalidVersionError
 
@@ -22,7 +22,7 @@
 
 - Explicit version is not valid MAJOR.MINOR format
 - Explicit version is not greater than the previous highest version
-- Version bump would result in regression
+- Version release would result in regression
 
 **HTTP Status:** 400 Bad Request
 

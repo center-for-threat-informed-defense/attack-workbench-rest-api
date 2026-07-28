@@ -68,26 +68,28 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     trackA = createdA.id;
     const initialSnapshotModified = createdA.modified;
     trackATaggedSnapshot = await setMembers(trackA, [objectRevisionA]);
-    await post(`/api/release-tracks/${trackA}/bump`, { type: 'minor' }, 200);
+    await releaseLatest(trackA);
 
     // Remove the requested object from the latest state and tag that state.
     // The earlier tagged release must remain discoverable despite its current
     // backref disappearing.
     await setMembers(trackA, [otherObject]);
-    await post(`/api/release-tracks/${trackA}/bump`, { type: 'minor' }, 200);
+    await releaseLatest(trackA);
 
     // Retroactively tag the original empty draft. Its embedded history is
     // stale, so the track-wide version ledger must produce 1.2 rather than 1.0.
     await post(
-      `/api/release-tracks/${trackA}/snapshots/${initialSnapshotModified}/bump`,
-      { type: 'minor' },
+      `/api/release-tracks/${trackA}/snapshots/${initialSnapshotModified}/release`,
+      {
+        increment: 'minor',
+      },
       200,
     );
 
     const createdB = await createTrack('Releases By Object B');
     trackB = createdB.id;
     await setMembers(trackB, [objectRevisionB]);
-    await post(`/api/release-tracks/${trackB}/bump`, { type: 'minor' }, 200);
+    await releaseLatest(trackB);
 
     // A tagged snapshot where the object is only a candidate must not match.
     const candidateOnly = await createTrack('Releases Candidate Only');
@@ -96,7 +98,7 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
       { object_refs: [{ id: objectRevisionA.stix.id, modified: objectRevisionA.stix.modified }] },
       200,
     );
-    await post(`/api/release-tracks/${candidateOnly.id}/bump`, { type: 'minor' }, 200);
+    await releaseLatest(candidateOnly.id);
 
     // Virtual tagged releases use the same direct-members semantics.
     const virtual = await post(
@@ -109,7 +111,7 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
       component_tracks: [{ track_id: trackB, resolution_strategy: 'latest_tagged', priority: 0 }],
     });
     await post(`/api/release-tracks/${virtualTrack}/snapshots/create`, {}, 201);
-    await post(`/api/release-tracks/${virtualTrack}/bump`, { type: 'minor' }, 200);
+    await releaseLatest(virtualTrack);
   });
 
   async function post(path, body, status) {
@@ -156,6 +158,16 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
           obj_ref: object.stix.id,
           obj_modified: object.stix.modified,
         })),
+      },
+      200,
+    );
+  }
+
+  async function releaseLatest(trackId, increment = 'minor') {
+    return post(
+      `/api/release-tracks/${trackId}/snapshots/latest/release`,
+      {
+        increment,
       },
       200,
     );
@@ -212,9 +224,14 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
       200,
     );
 
-    const preview = await get(`/api/release-tracks/${trackA}/bump/preview`);
-    expect(preview.body.next_version_minor).toBe('1.3');
-    expect(preview.body.next_version_major).toBe('2.0');
+    const minor = await get(
+      `/api/release-tracks/${trackA}/snapshots/latest/release/preview?increment=minor`,
+    );
+    const major = await get(
+      `/api/release-tracks/${trackA}/snapshots/latest/release/preview?increment=major`,
+    );
+    expect(minor.body.version).toBe('1.3');
+    expect(major.body.version).toBe('2.0');
   });
 
   it('supports type filtering, ordering, and pagination', async function () {

@@ -216,7 +216,7 @@ const workbenchTransformSchema = exportInputSchema.transform((input) => {
     summary: {
       released_count: (input.snapshot.members || []).length,
       staged_count: (input.snapshot.staged || []).length,
-      candidate_count: (input.snapshot.candidates || []).length,
+      candidates_count: (input.snapshot.candidates || []).length,
     },
   };
 });

@@ -189,6 +189,6 @@ GET /api/release-tracks/:id/snapshots/latest?format=bundle
 # FileSystemStore export is not implemented yet
 GET /api/release-tracks/:id/snapshots/latest?format=filesystemstore  # Returns HTTP 501
 
-# Dry run with detailed preview
-GET /api/release-tracks/:id/bump/preview?format=workbench
+# release preview with detailed preview
+GET /api/release-tracks/:id/snapshots/latest/release/preview?format=workbench
 ```
