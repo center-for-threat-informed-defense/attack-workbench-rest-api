@@ -316,10 +316,6 @@ Virtual release tracks compute their contents by aggregating objects from compon
         resolution_strategy: "latest_tagged",  // "latest_tagged" | "specific_version" | "specific_snapshot"
         priority: 1,  // Required for prioritize_higher_priority strategy (lower number = higher priority)
 
-        // Optional: version/snapshot specification for non-latest strategies
-        version: "5.0",  // Used with "specific_version" strategy
-        snapshot: "2024-02-01T10:00:00Z",  // Used with "specific_snapshot" strategy
-
         // Optional: filters to limit which objects are included
         filters: {
           object_types: ["intrusion-set"],
@@ -463,5 +459,11 @@ Virtual release tracks compute their contents by aggregating objects from compon
 - All snapshots start as **drafts** and must be explicitly tagged
 - Component tracks must exist and have at least one tagged release
 - Each component track must have a unique **priority** value (no duplicates)
+- Composition request objects are strict; unknown composition, component,
+  filter, and deduplication keys return `400 Bad Request`
+- Selector fields form a discriminated request contract:
+  - `latest_tagged` rejects `version` and `snapshot`
+  - `specific_version` requires `version` and rejects `snapshot`
+  - `specific_snapshot` requires `snapshot` and rejects `version`
 - Quarantine promotion selects an exact revision in a new draft and preserves
   the source snapshot's immutable `composition_resolution`

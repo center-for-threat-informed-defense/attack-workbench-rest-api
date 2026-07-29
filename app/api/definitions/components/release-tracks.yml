@@ -288,24 +288,42 @@ components:
     composition:
       type: object
       description: 'Virtual track composition (references to component standard tracks)'
+      additionalProperties: false
+      required:
+        - component_tracks
       properties:
         component_tracks:
           type: array
+          minItems: 1
           items:
             $ref: '#/components/schemas/component-track'
-        deduplication_strategy:
-          type: string
-          enum:
-            - prioritize_latest_object
-            - prioritize_latest_snapshot
-            - prioritize_higher_priority
-            - quarantine
-          description: 'How to resolve duplicate objects across components'
-          default: 'prioritize_latest_object'
+        deduplication:
+          type: object
+          additionalProperties: false
+          required:
+            - strategy
+          properties:
+            strategy:
+              type: string
+              enum:
+                - prioritize_latest_object
+                - prioritize_latest_snapshot
+                - prioritize_higher_priority
+                - quarantine
+              description: 'How to resolve duplicate objects across components'
+              default: 'prioritize_latest_object'
 
     component-track:
       type: object
-      description: 'Reference to a component track in a virtual track composition'
+      description: |
+        Reference to a component standard track. Selector fields are determined
+        by resolution_strategy: latest_tagged rejects version and snapshot;
+        specific_version requires only version; specific_snapshot requires only
+        snapshot. Unknown properties are rejected.
+      additionalProperties: false
+      required:
+        - track_id
+        - resolution_strategy
       properties:
         track_id:
           type: string
@@ -324,16 +342,15 @@ components:
           default: 'latest_tagged'
         version:
           type: string
-          nullable: true
           description: 'Specific version to pin to (when resolution_strategy is specific_version)'
-        snapshot_modified:
+        snapshot:
           type: string
           format: date-time
-          nullable: true
           description: 'Specific snapshot to pin to (when resolution_strategy is specific_snapshot)'
         filters:
           type: object
           description: 'Optional filters to apply to component members'
+          additionalProperties: false
           properties:
             object_types:
               type: array
@@ -345,6 +362,38 @@ components:
               items:
                 type: string
               description: 'Only include exact pinned object revisions whose x_mitre_domains intersects these ATT&CK domains. Primary matrices fall back to external_references.external_id. Accepts enterprise/mobile/ics and their -attack forms.'
+      oneOf:
+        - title: 'Latest tagged release'
+          properties:
+            resolution_strategy:
+              enum:
+                - latest_tagged
+          not:
+            anyOf:
+              - required:
+                  - version
+              - required:
+                  - snapshot
+        - title: 'Specific release version'
+          required:
+            - version
+          properties:
+            resolution_strategy:
+              enum:
+                - specific_version
+          not:
+            required:
+              - snapshot
+        - title: 'Specific tagged snapshot'
+          required:
+            - snapshot
+          properties:
+            resolution_strategy:
+              enum:
+                - specific_snapshot
+          not:
+            required:
+              - version
 
     version-history-entry:
       type: object

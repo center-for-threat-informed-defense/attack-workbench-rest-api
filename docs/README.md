@@ -40,6 +40,10 @@ Architecture, patterns, and implementation details for contributors.
 
 ### Release Tracks (Internals)
 
+- [Implementation Backlog](developer/TODO.md): Active release-track work and
+  completed implementation records
+- [Frontend Handoff](developer/FRONTEND_TODO.md): Backend contract changes
+  requiring downstream Angular updates
 - [Entities](developer/release-tracks/entities.md): Database schemas and data models
 - [Backref Reconciliation](developer/release-tracks/backref-reconciliation.md): How `workspace.release_tracks` backrefs stay in sync with snapshots
 - [Member Sync Strategies](developer/release-tracks/member-sync-strategies.md): Automatic tracking of member object revisions

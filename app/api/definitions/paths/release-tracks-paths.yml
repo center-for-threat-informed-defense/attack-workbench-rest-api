@@ -223,7 +223,9 @@ paths:
       operationId: 'release-tracks-create'
       description: |
         Create a new standard or virtual release track with an initial empty draft snapshot.
-        Request body is validated via Zod (not OpenAPI). See controller for schema.
+        Request body is validated via Zod (not OpenAPI). Virtual composition
+        objects are strict, and component selectors must match their
+        resolution_strategy.
       tags:
         - 'Release Tracks'
       # Request body validation moved to Zod in controller
@@ -793,7 +795,10 @@ paths:
         operation is available only for tracks whose type is `virtual`.
         The new pending draft has empty members and quarantine tiers and a null
         composition_resolution. Materialize it before release preview or commit.
-        Request body validated via Zod in controller.
+        Request body is strictly validated via Zod. Unknown composition,
+        component, filter, and deduplication keys are rejected. latest_tagged
+        rejects selector fields; specific_version requires version;
+        specific_snapshot requires snapshot.
       tags:
         - 'Release Tracks'
       parameters:
@@ -802,6 +807,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
       responses:
         '200':
           description: 'Composition updated successfully'

@@ -263,28 +263,53 @@ const snapshotScheduleSchema = z.object({
   dates: z.array(z.iso.datetime()).optional(),
 });
 
-const componentTrackSchema = z.object({
-  track_id: releaseTrackIdSchema,
-  resolution_strategy: resolutionStrategySchema,
-  priority: z.number().int().min(0).optional(),
-  version: xMitreVersionSchema.optional(),
-  snapshot: z.iso.datetime().optional(),
-  filters: z
-    .object({
-      object_types: z.array(z.string()).optional(),
-      domains: z.array(z.string()).optional(),
-    })
-    .optional(),
-});
+const componentTrackFiltersSchema = z
+  .object({
+    object_types: z.array(z.string()).optional(),
+    domains: z.array(z.string()).optional(),
+  })
+  .strict();
 
-const compositionSchema = z.object({
-  component_tracks: z.array(componentTrackSchema).min(1),
-  deduplication: z
+const componentTrackBaseShape = {
+  track_id: releaseTrackIdSchema,
+  priority: z.number().int().min(0).optional(),
+  filters: componentTrackFiltersSchema.optional(),
+};
+
+const componentTrackSchema = z.discriminatedUnion('resolution_strategy', [
+  z
     .object({
-      strategy: deduplicationStrategySchema,
+      ...componentTrackBaseShape,
+      resolution_strategy: z.literal('latest_tagged'),
     })
-    .optional(),
-});
+    .strict(),
+  z
+    .object({
+      ...componentTrackBaseShape,
+      resolution_strategy: z.literal('specific_version'),
+      version: xMitreVersionSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...componentTrackBaseShape,
+      resolution_strategy: z.literal('specific_snapshot'),
+      snapshot: z.iso.datetime(),
+    })
+    .strict(),
+]);
+
+const compositionSchema = z
+  .object({
+    component_tracks: z.array(componentTrackSchema).min(1),
+    deduplication: z
+      .object({
+        strategy: deduplicationStrategySchema,
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 
 const createTrackBodySchema = z.object({
   name: trackNameSchema,

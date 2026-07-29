@@ -1,8 +1,217 @@
 # Release Track TODOs
 
+## Virtual release tracks
+
+This section records the 2026-07-29 documentation-to-implementation audit of
+virtual release tracks. Items are ordered by integrity risk and implementation
+dependency. A checked item must include regression coverage and any necessary
+OpenAPI, user/developer documentation, client, and Bruno updates.
+
+The completed P0 implementation and verification records remain in the dated
+sections below. The following items constitute the active virtual-track
+completion backlog.
+
+### P1 — Composition validation and deterministic resolution
+
+- [x] Make request validation strict so misspelled keys such as
+  `filters.domain` return 400 instead of silently disabling filtering.
+- [x] Validate component selectors according to `resolution_strategy`:
+  - `specific_version` requires `version` and rejects `snapshot`;
+  - `specific_snapshot` requires `snapshot` and rejects `version`;
+  - `latest_tagged` rejects both selector fields.
+- [ ] Make `priority` consistently required in Zod, Mongoose, OpenAPI, docs,
+  and examples; reject duplicate priorities at the request boundary.
+- [ ] Validate component existence, standard-track type, duplicate track IDs,
+  and duplicate priorities when a virtual track is initially created, not only
+  when composition is later updated or materialized.
+- [ ] Validate `snapshot_schedule` by mode:
+  - `manual` rejects `cron` and `dates`;
+  - `cron` requires `cron` and rejects `dates`;
+  - `dates` requires at least one date and rejects `cron`.
+- [ ] Constrain or document accepted `filters.object_types` values and add
+  direct regression coverage for exact-revision filtering.
+
+### P1 — Deduplication correctness
+
+- [ ] Treat the same exact object revision contributed by multiple components
+  as one duplicate, not a conflicting revision.
+- [ ] Ensure the `quarantine` strategy only quarantines genuinely different
+  revisions of the same object.
+- [ ] Attribute each surviving revision to one deterministic component so
+  `objects_contributed` totals cannot exceed `summary.total_objects`.
+- [ ] Add dedicated tests for all four strategies:
+  `prioritize_latest_object`, `prioritize_latest_snapshot`,
+  `prioritize_higher_priority`, and `quarantine`.
+
+### P1 — Release provenance
+
+- [ ] Populate virtual release `version_history[].component_versions` from the
+  materialized snapshot's immutable `composition_resolution`.
+- [ ] Define and test the provenance shape in Mongoose, OpenAPI, and user and
+  developer documentation.
+
+### P2 — Scheduled materialization
+
+- [ ] Connect virtual `snapshot_schedule` metadata to the existing task
+  scheduler.
+- [ ] Implement manual, cron, and explicit-date scheduling semantics.
+- [ ] Define failure behavior when a component has no matching tagged
+  snapshot, including automation-run audit records and retry policy.
+- [ ] Add scheduler integration tests and operational documentation.
+
+### P2 — Contract decisions
+
+- [ ] Decide whether virtual tracks can compose virtual tracks. The
+  implementation currently rejects nesting while portions of the
+  documentation say standard or virtual components are supported.
+- [ ] Decide whether to implement the documented native-members/hybrid model.
+  Prefer a dedicated standard component track unless a demonstrated use case
+  requires a second membership authority inside virtual tracks.
+- [ ] Decide whether to implement `resolve=true` and `resolved_content`.
+  Remove these claims from documentation if eager materialization remains the
+  only supported model.
+- [ ] Implement caching and component-release notifications only if measured
+  scale or an approved product workflow requires them; otherwise describe them
+  as future considerations rather than current capabilities.
+
+### Documentation corrections
+
+- [ ] Replace `stix.type = "virtual"` with the top-level snapshot
+  `type: "virtual"`.
+- [ ] Remove the nonexistent snapshot-level `snapshot_id`; retain
+  `version_history[].snapshot_id`.
+- [ ] Correct response envelopes and the virtual-create response example.
+- [ ] Align `composition_resolution` examples with fields actually generated,
+  or implement the documented `by_type`, `by_tier`, and native statistics.
+- [ ] Align documented error envelopes with centralized error-handler output.
+- [ ] Include required `priority` values in every composition example.
+- [ ] Clearly distinguish configured composition from a materialized draft and
+  describe scheduled behavior as unavailable until scheduler execution exists.
+
+### Verified complete
+
+- [x] Composition changes invalidate inherited materialized contents and
+  require explicit rematerialization before release.
+- [x] Generic contents replacement rejects virtual tracks.
+- [x] Exact-revision quarantine resolution is available at
+  `POST /api/release-tracks/:id/virtual/quarantine/promote`.
+- [x] `filters.domains` hydrates and evaluates exact pinned revisions.
+- [x] Public domain names and STIX `*-attack` names are normalized.
+- [x] Multiple domain values are supported.
+- [x] Objects without domain metadata are excluded when a domain filter is set.
+- [x] Primary Enterprise, ICS, and Mobile matrices use their ATT&CK external ID
+  as the established domain fallback.
+- [x] Virtual tracks resolve only tagged snapshots and consume only component
+  `members`.
+- [x] Virtual tracks maintain independent draft/release history and use the
+  shared snapshot retrieval and release endpoints after materialization.
+
+### Current implementation slice — Strict composition contracts
+
+- [x] Add API regression coverage for unknown composition/filter keys on both
+  virtual-track creation and composition update.
+- [x] Require the selector appropriate to each `resolution_strategy` and
+  reject selectors that do not apply to that strategy.
+- [x] Make the composition, component, filter, and deduplication request
+  objects strict without changing persisted response shapes.
+- [x] Update OpenAPI, user/developer documentation, and Bruno examples.
+- [x] Run the focused regression spec, then lint and the complete `npm test`
+  suite.
+- [x] Review the final diff and propose a conventional commit message.
+
+Verification result (2026-07-29):
+
+- The focused virtual-composition contract spec passes (3), OpenAPI validation
+  passes (2), and backend lint passes.
+- The first complete run encountered one roaming 404 in the new spec after 917
+  API tests passed. The spec passed both in isolation (3) and alongside its
+  preceding snapshot-history spec (10).
+- The required clean `npm test` rerun passes (OpenAPI 2, config 21, API 918,
+  middleware 24).
+- Proposed commit:
+
+  ```text
+  fix(release-tracks): validate virtual composition contracts
+
+  Reject unknown composition properties and enforce strategy-specific
+  component selectors across virtual-track creation and updates. Align
+  OpenAPI, documentation, frontend guidance, and Bruno examples.
+  ```
+
+### Tracker consolidation
+
+- [x] Consolidate the virtual-track completion backlog into this section.
+- [x] Preserve completed implementation evidence in the dated records below.
+- [x] Move the downstream Angular handoff to
+  `docs/developer/FRONTEND_TODO.md`.
+- [x] Remove the superseded root-level tracker files.
+
+## Document downstream frontend work
+
+- [x] Inventory the current release-track API contract and recent endpoint,
+  terminology, lifecycle, validation, and response-shape changes.
+- [x] Inspect the Angular release-track consumers so the handoff identifies
+  concrete downstream work instead of restating backend implementation notes.
+- [x] Create `docs/developer/FRONTEND_TODO.md` with task-oriented guidance,
+  contextual explanations, and acceptance criteria.
+- [x] Cross-check the handoff against OpenAPI, user/developer documentation,
+  Bruno, and the `internalattack` client.
+- [x] Review formatting and the final diff.
+
+Verification result (2026-07-29):
+
+- The handoff was cross-checked against the current OpenAPI paths, release-track
+  documentation, Bruno requests, `internalattack` methods, and Angular
+  release-track consumers.
+- `git diff --check` passes.
+- Proposed commit:
+
+  ```text
+  docs(release-tracks): track required frontend updates
+
+  Document the route, request, response, lifecycle, and terminology changes
+  that the Angular release-track client must adopt.
+  ```
+
+## Implement virtual quarantine resolution
+
+- [x] Add end-to-end regression coverage for exact-revision quarantine
+  promotion, snapshot immutability, back-reference reconciliation, validation,
+  and virtual-track type enforcement.
+- [x] Add `POST /api/release-tracks/:id/virtual/quarantine/promote`.
+- [x] Promote the selected revision to members in a new draft and remove all
+  quarantined alternatives for the same object.
+- [x] Preserve the immutable composition-resolution record and historical
+  materialized snapshot.
+- [x] Update OpenAPI, user/developer documentation, and Bruno.
+- [x] Run focused regression specs, then lint and the complete `npm test` suite.
+- [x] Review the final diff and propose a conventional commit message.
+
+Verification result (2026-07-29):
+
+- Focused quarantine, release, back-reference, and virtual-domain specs pass
+  (40); backend lint passes.
+- The first complete run encountered six unrelated shared-suite failures in
+  collection bundles, data-component pagination, and user accounts. All three
+  specs passed in isolation (30, 13, and 14 tests respectively).
+- The required clean `npm test` rerun passes (OpenAPI 2, config 21, API 915,
+  middleware 24).
+- The `internalattack` focused release-track suite passes (30), its complete
+  suite passes (247), and changed-file Ruff and pre-commit checks pass.
+- Proposed commit:
+
+  ```text
+  feat(release-tracks): resolve virtual quarantine conflicts
+
+  Add an explicitly virtual-scoped endpoint for selecting an exact
+  quarantined revision into a new draft. Preserve materialization provenance,
+  reconcile back-references, and update supported clients and documentation.
+  ```
+
 ## Harden virtual materialization lifecycle
 
-- [x] Record the complete virtual-track audit in `VIRTUAL_TRACKS_TODO.md`.
+- [x] Record the complete virtual-track audit in the dedicated virtual release
+  tracks section of this file.
 - [x] Add regression coverage for stale composition state, unmaterialized
   release attempts, and virtual use of standard contents endpoints.
 - [x] Clear inherited materialized state when virtual composition changes.

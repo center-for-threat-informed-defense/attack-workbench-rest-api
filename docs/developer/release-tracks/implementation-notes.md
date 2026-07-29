@@ -74,6 +74,14 @@ Virtual-only operations are deliberately scoped beneath
   selects one exact quarantined revision for members, and removes all
   quarantined alternatives for that object.
 
+Composition input uses strict Zod objects at the composition, component,
+filter, and deduplication levels. Components form a discriminated union on
+`resolution_strategy`: `latest_tagged` accepts no selector,
+`specific_version` requires only `version`, and `specific_snapshot` requires
+only `snapshot`. This prevents misspelled filters or irrelevant selectors from
+being silently stripped before persistence. The same schema is used for
+initial virtual-track creation and composition updates.
+
 There is no side-effect-free virtual snapshot-creation preview. Once a virtual
 draft is persisted, it uses the same retrieval and release endpoints as a
 standard draft. Release planning never resolves composition and rejects a

@@ -182,6 +182,15 @@ Resolves to a specific snapshot by its `modified` timestamp.
 
 **Use case:** "Lock to exact snapshot for reproducibility"
 
+Component selectors are strict and strategy-specific:
+
+- `latest_tagged` rejects both `version` and `snapshot`.
+- `specific_version` requires `version` and rejects `snapshot`.
+- `specific_snapshot` requires `snapshot` and rejects `version`.
+
+Unknown component properties are rejected with `400 Bad Request`; they are
+not silently discarded.
+
 ### Component Track Sync Rules
 
 Virtual tracks **only sync from component tracks' `members` tier** (`x_mitre_contents`). This ensures that virtual tracks only aggregate objects that have been officially released in their source tracks.
@@ -218,7 +227,8 @@ ATT&CK data identifies their domain through
 matrix fallback.
 
 `stix_pattern` is not part of the current request schema and is not
-implemented.
+implemented. Filter objects are strict, so misspelled or unsupported keys such
+as `domain` fail with `400 Bad Request`; use the plural `domains`.
 
 ### Deduplication Strategies
 
@@ -825,6 +835,12 @@ PUT /api/release-tracks/:id/virtual/composition
   ]
 }
 ```
+
+Composition requests are strict at every nested level. Unknown composition,
+component, filter, or deduplication properties return `400 Bad Request`.
+Selector fields must match `resolution_strategy`: `latest_tagged` accepts
+neither selector, `specific_version` requires only `version`, and
+`specific_snapshot` requires only `snapshot`.
 
 **Note:** Updating composition creates a pending draft with the new rules and
 invalidates any previously materialized contents. The draft has empty
