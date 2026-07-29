@@ -83,6 +83,20 @@ function virtualReleaseChanges(previousSnapshot, draftSnapshot) {
 }
 
 /**
+ * Capture the tagged component versions frozen into a materialized virtual
+ * draft. Track IDs are stable provenance keys; component names are descriptive
+ * metadata and may change or collide.
+ */
+function virtualComponentVersions(snapshot) {
+  return Object.fromEntries(
+    (snapshot.composition_resolution?.component_snapshots || []).map((component) => [
+      component.track_id,
+      component.resolved_version,
+    ]),
+  );
+}
+
+/**
  * Build the complete release plan without reading or writing external state.
  *
  * @param {string} trackId
@@ -180,6 +194,7 @@ function planRelease(
       ...after,
       promoted_count: blockingError ? 0 : staged.length,
     },
+    component_versions: isVirtual ? virtualComponentVersions(snapshot) : undefined,
   };
   const plannedSnapshot = blockingError
     ? null
@@ -274,6 +289,7 @@ exports.planRelease = planRelease;
 exports._private = {
   memberRevisions,
   sameRevisions,
+  virtualComponentVersions,
   virtualReleaseChanges,
 };
 

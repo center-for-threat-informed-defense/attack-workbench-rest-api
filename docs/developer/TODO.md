@@ -45,9 +45,9 @@ completion backlog.
 
 ### P1 — Release provenance
 
-- [ ] Populate virtual release `version_history[].component_versions` from the
+- [x] Populate virtual release `version_history[].component_versions` from the
   materialized snapshot's immutable `composition_resolution`.
-- [ ] Define and test the provenance shape in Mongoose, OpenAPI, and user and
+- [x] Define and test the provenance shape in Mongoose, OpenAPI, and user and
   developer documentation.
 
 ### P2 — Scheduled materialization
@@ -349,6 +349,61 @@ Verification result (2026-07-29):
 
   Document exact-revision collapse, genuine conflict handling, and deterministic
   component contribution accounting.
+  ```
+
+### Current implementation slice — Virtual release provenance
+
+- [x] Add release preview and commit regressions proving that virtual
+  `version_history[].component_versions` comes from the selected draft's
+  immutable `composition_resolution`, even if a component is released again
+  before the virtual draft is tagged.
+- [x] Define `component_versions` as an optional object keyed by immutable
+  component track ID with tagged `MAJOR.MINOR` version values.
+- [x] Populate provenance only for virtual release history entries and leave
+  standard release history unchanged.
+- [x] Enforce the provenance value shape at the Mongoose persistence boundary
+  and describe it in OpenAPI.
+- [x] Align user/developer documentation, frontend guidance, Bruno, and
+  `internalattack` if the response contract requires downstream changes.
+- [x] Run focused regression specs, lint, and the complete `npm test` suite.
+- [x] Apply logic and performance review checklists, inspect the final diff,
+  and propose conventional commit messages.
+
+Verification result (2026-07-29):
+
+- The focused release-planning and commit spec passes (16), including
+  workbench preview, in-place release persistence, standard-track omission,
+  immutable component advancement, and invalid Mongoose key/value cases.
+- OpenAPI validation passes (2), backend lint passes, and the required clean
+  `npm test` run passes (OpenAPI 2, config 21, API 938, middleware 24).
+- An earlier complete run encountered unrelated roaming 404s in Attack Objects
+  pagination and References after 936 API tests passed. The affected specs pass
+  together in isolation (30).
+- `internalattack` returns release preview and commit responses as raw mappings,
+  so the additive history field requires no Python client change.
+- Logic review result: `ROBUST`. Preview and commit both derive provenance from
+  the selected persisted draft, malformed map keys/values are rejected, and
+  standard release history remains unchanged.
+- Performance review result: `PERFORMANT`. Provenance construction is a linear
+  in-memory pass over already-loaded component resolution metadata and adds no
+  database reads, blocking work, or resource lifecycle.
+- Proposed REST API commit:
+
+  ```text
+  fix(release-tracks): record virtual release provenance
+
+  Persist immutable component track versions from the materialized virtual
+  draft in release history, validate the provenance map, and align API,
+  documentation, frontend, and regression contracts.
+  ```
+
+- Proposed Bruno commit:
+
+  ```text
+  docs(release-tracks): document virtual release provenance
+
+  Describe the track-ID-keyed component version map returned by virtual release
+  previews and commits.
   ```
 
 ### Tracker consolidation

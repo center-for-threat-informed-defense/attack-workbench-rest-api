@@ -154,6 +154,7 @@ const componentSnapshotResolutionDefinition = {
   resolved_snapshot_id: { type: Date, required: true },
   resolved_version: {
     type: String,
+    required: true,
     validate: validateVersion,
   },
   strategy_used: { type: String, required: true },
@@ -288,8 +289,24 @@ const versionHistoryEntryDefinition = {
     candidates_count: { type: Number },
     quarantine_count: { type: Number },
   },
-  // Virtual tracks only: records which component versions were included
-  component_versions: { type: mongoose.Schema.Types.Mixed, default: undefined },
+  // Virtual tracks only: immutable component track ID → tagged version.
+  component_versions: {
+    type: Map,
+    of: {
+      type: String,
+      required: true,
+      validate: validateVersion,
+    },
+    default: undefined,
+    validate: {
+      validator: (value) => {
+        if (value == null) return true;
+        const keys = value instanceof Map ? value.keys() : Object.keys(value);
+        return Array.from(keys).every((key) => validateTrackId.validator(key));
+      },
+      message: 'Component version keys must be valid release track IDs',
+    },
+  },
 };
 const versionHistoryEntrySchema = new mongoose.Schema(versionHistoryEntryDefinition, {
   _id: false,

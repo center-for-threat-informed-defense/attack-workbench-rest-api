@@ -510,6 +510,24 @@ For virtual tracks, the selected draft must have a non-null
 until the virtual snapshot creation endpoint materializes it; preview and
 release return `409 Conflict` before then.
 
+The virtual release response records the materialized component provenance in
+`version_history[].component_versions`:
+
+```json
+{
+  "component_versions": {
+    "release-track--groups-monthly": "5.2",
+    "release-track--techniques-quarterly": "2.1"
+  }
+}
+```
+
+Keys are immutable component track IDs and values are the tagged versions
+stored in the selected draft's `composition_resolution`. The server does not
+look up the components' current releases, so advancing a component after
+materialization does not rewrite the virtual release's provenance. Standard
+release history entries omit `component_versions`.
+
 ### Clone Release Track From Latest
 
 Bootstraps a new `release-track` instance from an existing snapshot.
@@ -893,6 +911,9 @@ GET /api/release-tracks/:id/snapshots/latest/release/preview
 `format=workbench` returns the complete would-be persisted snapshot.
 `format=bundle` returns its publication-ready STIX bundle. Thus “dry run” is
 not a separate command: it is a release preview with the desired format.
+For a materialized virtual draft, the workbench preview includes the same
+track-ID-keyed `version_history[].component_versions` map that a successful
+release would persist.
 
 For a standard track, `before` is the selected draft before staged members are
 promoted and `after` is the would-be tagged result. For a virtual track, the

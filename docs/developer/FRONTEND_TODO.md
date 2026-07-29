@@ -577,6 +577,44 @@ Done when:
 - Component contribution counts add up to the resolved member total.
 - Quarantine views never show repeated copies of the same exact revision.
 
+## P1 — Model and display immutable virtual release provenance
+
+### [ ] Type `component_versions` and resolve component display names
+
+Virtual release history entries now include:
+
+```ts
+component_versions?: Record<string, string>;
+```
+
+Each key is an immutable component release-track ID and each value is the
+tagged component version frozen in the virtual draft's
+`composition_resolution`. The map is present only for virtual releases;
+standard release history entries omit it. Component display names are
+deliberately not used as keys because names can change or collide.
+
+The existing `VersionHistoryEntry` interface currently types this property as
+`any`. Replace that with `Record<string, string>`. If the UI presents
+provenance to operators, pair each track ID with the matching
+`composition_resolution.component_snapshots[].track_name` from the same
+released snapshot while retaining the ID as the authoritative identity.
+
+Do not fetch each component's latest release to construct this display. A
+component may have advanced after virtual materialization; the embedded map is
+the release's immutable provenance and must remain unchanged.
+
+Done when:
+
+- `component_versions` is strongly typed as an optional track-ID-to-version
+  map.
+- Standard release-history fixtures omit the property.
+- Virtual workbench preview and committed-release fixtures include the same
+  map.
+- Any user-facing labels resolve names from the released snapshot's embedded
+  composition metadata and fall back to the track ID.
+- Tests prove that a component's newer current release does not replace the
+  version shown for an older materialized virtual draft.
+
 ## P1 — Separate snapshot and preview output-format types
 
 ### [ ] Remove the invalid `snapshot` format and model `summary` correctly

@@ -634,20 +634,28 @@ POST /api/release-tracks/:id/snapshots/:modified/release
       "tagged_by": "admin@example.com",
       "snapshot_id": "2024-03-01T10:00:00.000Z",
       "component_versions": {
-        "Groups Monthly": "5.2",
-        "Techniques Quarterly": "2.1"
+        "release-track--groups-monthly": "5.2",
+        "release-track--techniques-quarterly": "2.1"
       }
     }
   ]
 }
 ```
 
+`component_versions` is keyed by immutable component track ID. Its values come
+from the selected draft's `composition_resolution`, not from the component
+tracks' current releases. If a component advances after this virtual draft was
+materialized, the virtual release still records the version that actually
+produced its frozen contents. Standard release history entries omit this
+virtual-only property.
+
 **Business Logic:**
 1. Validate snapshot exists and is a draft (version === null)
 2. Calculate/validate version number
 3. Set version on snapshot (in-place update)
-4. Add entry to version_history
-5. Snapshot is now immutable
+4. Copy resolved component versions into the virtual release-history entry
+5. Add entry to version_history
+6. Snapshot is now immutable
 
 ### 5. Snapshot Export
 

@@ -456,6 +456,21 @@ components:
             candidates_count:
               type: number
               description: 'Objects in candidates at time of release'
+            quarantine_count:
+              type: number
+              description: 'Objects in quarantine at time of a virtual release'
+        component_versions:
+          type: object
+          description: |
+            Virtual releases only. Immutable provenance keyed by component
+            release-track ID; each value is the tagged component version frozen
+            in the released draft's composition_resolution. Standard release
+            history entries omit this property.
+          additionalProperties:
+            type: string
+            pattern: '^\d+\.\d+$'
+          example:
+            release-track--a1b2c3d4-e5f6-7890-abcd-ef1234567890: '5.2'
 
     release-track-registry:
       type: object

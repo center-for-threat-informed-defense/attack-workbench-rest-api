@@ -428,8 +428,8 @@ Virtual release tracks compute their contents by aggregating objects from compon
       tagged_by: "admin@example.com",
       snapshot_id: "2024-03-01T10:00:00.000Z",  // When snapshot was created
       component_versions: {
-        "GroupsMonthly": "5.2",
-        "TechniquesQuarterly": "2.1"
+        "release-track--groups-monthly": "5.2",
+        "release-track--techniques-quarterly": "2.1"
       }
     }
   ]
@@ -499,6 +499,12 @@ currently validates and persists all three shapes. Automated execution for
   `object_ref` are resolved or quarantined. Every surviving member is
   attributed to exactly one deterministic component, so summed
   `objects_contributed` equals `summary.total_objects`
+- Releasing a materialized virtual draft copies each
+  `composition_resolution.component_snapshots[].resolved_version` into
+  `version_history[].component_versions`. This is an object keyed by immutable
+  component `track_id`, not display name. It records the frozen materialization
+  inputs even when a component has newer releases by the time the virtual draft
+  is tagged. Standard release history entries omit the field
 - Composition request objects are strict; unknown composition, component,
   filter, and deduplication keys return `400 Bad Request`
 - Selector fields form a discriminated request contract:

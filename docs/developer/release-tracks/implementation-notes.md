@@ -152,6 +152,17 @@ The first virtual release uses zero-valued `before` counts and
 `previous_release: null`. Workbench and bundle previews render the same frozen
 planned snapshot, and the commit path tags that snapshot in place.
 
+Virtual release planning also derives
+`version_history[].component_versions` directly from the selected draft's
+immutable `composition_resolution.component_snapshots`. The property is a
+component track ID to tagged `MAJOR.MINOR` version map. It deliberately does
+not query the component tracks at preview or commit time: a component can
+advance after virtual materialization without changing the provenance of the
+already-frozen draft. Standard release history entries omit the virtual-only
+property. Mongoose validates every map value with the shared release-version
+validator and requires every persisted component resolution to identify its
+tagged `resolved_version`.
+
 ### Snapshot history reads
 
 Snapshot history is exposed as a nested collection at

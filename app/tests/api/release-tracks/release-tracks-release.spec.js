@@ -159,6 +159,145 @@ describe('Release-track release planning and commit API', function () {
 
     expect(released.body.version).toBe(preview.body.version);
     expect(released.body.version_history.at(-1).summary).toMatchObject(preview.body.after);
+    expect(released.body.version_history.at(-1)).not.toHaveProperty('component_versions');
+  });
+
+  it('records immutable component versions when previewing and releasing a virtual draft', async function () {
+    const member = (await post('/api/techniques', buildTechnique('Provenance Member'), 201)).body;
+    const component = await createTrack('Provenance Component');
+    await post(`/api/release-tracks/${component.id}/contents`, {
+      x_mitre_contents: [{ obj_ref: member.stix.id, obj_modified: member.stix.modified }],
+    });
+    const firstComponentRelease = await post(
+      `/api/release-tracks/${component.id}/snapshots/latest/release`,
+      {},
+    );
+    expect(firstComponentRelease.body.version).toBe('1.0');
+
+    const virtual = (
+      await post(
+        '/api/release-tracks/new',
+        {
+          name: 'Virtual Provenance',
+          type: 'virtual',
+          composition: {
+            component_tracks: [
+              {
+                track_id: component.id,
+                resolution_strategy: 'latest_tagged',
+                priority: 1,
+              },
+            ],
+          },
+        },
+        201,
+      )
+    ).body;
+    const materialized = (
+      await post(`/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 201)
+    ).body;
+    expect(materialized.composition_resolution.component_snapshots[0]).toMatchObject({
+      track_id: component.id,
+      resolved_version: '1.0',
+    });
+
+    // Advance the component after materialization. Virtual release provenance
+    // must remain tied to the frozen component resolution, not current state.
+    await post(`/api/release-tracks/${component.id}/contents`, {
+      x_mitre_contents: [{ obj_ref: member.stix.id, obj_modified: member.stix.modified }],
+    });
+    const secondComponentRelease = await post(
+      `/api/release-tracks/${component.id}/snapshots/latest/release`,
+      {},
+    );
+    expect(secondComponentRelease.body.version).toBe('1.1');
+
+    const releasePath =
+      `/api/release-tracks/${virtual.id}/snapshots/` +
+      `${encodeURIComponent(materialized.modified)}/release`;
+    const preview = await get(`${releasePath}/preview?format=workbench`);
+    expect(preview.body.version_history.at(-1).component_versions).toEqual({
+      [component.id]: '1.0',
+    });
+
+    const unchanged = await get(
+      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(materialized.modified)}`,
+    );
+    expect(unchanged.body.version_history).toEqual([]);
+
+    const released = await post(releasePath, {});
+    expect(released.body.version_history.at(-1).component_versions).toEqual({
+      [component.id]: '1.0',
+    });
+  });
+
+  it('validates component release provenance at the persistence boundary', async function () {
+    const track = await createTrack('Provenance Validation', 'virtual');
+    const created = new Date(track.modified);
+    const historyEntry = {
+      version: '1.0',
+      tagged_at: new Date(created.getTime() + 1000),
+      tagged_by: 'system',
+      snapshot_id: new Date(created.getTime() + 1000),
+      summary: { members_count: 0, quarantine_count: 0 },
+    };
+
+    await expect(
+      dynamicRepo.saveSnapshot(track.id, {
+        ...snapshotBase(track),
+        modified: historyEntry.snapshot_id,
+        version: '1.0',
+        version_history: [
+          {
+            ...historyEntry,
+            component_versions: { [track.id]: 'latest' },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'DatabaseError',
+      details: expect.stringContaining('not a valid version'),
+    });
+
+    const invalidKeyModified = new Date(created.getTime() + 2000);
+    await expect(
+      dynamicRepo.saveSnapshot(track.id, {
+        ...snapshotBase(track),
+        modified: invalidKeyModified,
+        version: '1.1',
+        version_history: [
+          {
+            ...historyEntry,
+            version: '1.1',
+            snapshot_id: invalidKeyModified,
+            component_versions: { 'Component Display Name': '1.0' },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'DatabaseError',
+      details: expect.stringContaining('Component version keys must be valid release track IDs'),
+    });
+
+    const missingValueModified = new Date(created.getTime() + 3000);
+    await expect(
+      dynamicRepo.saveSnapshot(track.id, {
+        ...snapshotBase(track),
+        modified: missingValueModified,
+        version: '1.2',
+        version_history: [
+          {
+            ...historyEntry,
+            version: '1.2',
+            snapshot_id: missingValueModified,
+            component_versions: { [track.id]: null },
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'DatabaseError',
+      details: expect.stringContaining('is required'),
+    });
   });
 
   it('resolves latest when the release request is handled', async function () {
