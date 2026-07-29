@@ -832,6 +832,39 @@ paths:
         '400':
           description: 'Track is not virtual or cannot resolve its composition'
 
+  /api/release-tracks/{id}/virtual/quarantine/promote:
+    post:
+      summary: 'Promote one quarantined revision to virtual members'
+      operationId: 'release-tracks-virtual-quarantine-promote'
+      description: |
+        Resolve a conflict in the latest virtual snapshot by selecting one
+        exact quarantined object revision. The operation clones the latest
+        snapshot into a new draft, replaces any existing member revision for
+        that object, and removes every quarantined alternative with the same
+        object_ref. The source snapshot and its composition_resolution remain
+        unchanged. Request body is strictly validated via Zod in the controller.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 'Quarantined revision promoted in a new virtual draft'
+        '400':
+          description: 'Track is not virtual or the request body is invalid'
+        '404':
+          description: 'The selected exact revision is not quarantined'
+
   # =============================================================================
   # Snapshot-specific operations
   # =============================================================================

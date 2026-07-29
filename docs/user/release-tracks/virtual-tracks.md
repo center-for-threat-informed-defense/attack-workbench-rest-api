@@ -365,7 +365,10 @@ deduplication: {
 
 **Use case:** "Conflicts require human review; don't automatically choose a version"
 
-**Follow-up workflow:** Users review the quarantined objects and manually promote one version to `members` during a future snapshot update. The quarantined objects remain in the virtual track until manual intervention occurs.
+**Follow-up workflow:** Users review the quarantined objects and manually
+promote one exact version to `members`. Promotion creates a new draft and
+removes every quarantined alternative for that object. Other quarantined
+objects remain until separately resolved.
 
 ### Virtual Track Two-Tier System
 
@@ -921,21 +924,30 @@ GET /api/release-tracks/:id/snapshots/latest?include=quarantine
 
 **Manually promote a quarantined object to members:**
 ```bash
-POST /api/release-tracks/:id/quarantine/promote
+POST /api/release-tracks/:id/virtual/quarantine/promote
 ```
 
 **Request:**
 ```json
 {
-  "object_ref": "intrusion-set--APT1",
+  "object_ref": "intrusion-set--11111111-1111-4111-8111-111111111111",
   "object_modified": "2024-02-01T10:00:00Z"
 }
 ```
 
 **Effect:**
-- Moves the specified version from `quarantine` to `members`
-- Removes other versions of the same object from `quarantine`
-- Next snapshot tagging will include this object in the release
+- Requires the exact `(object_ref, object_modified)` pair to be quarantined
+- Creates a new draft with the selected revision in `members`
+- Replaces any prior member revision with the same `object_ref`
+- Removes every version of the same object from `quarantine`
+- Leaves the materialized source snapshot and its composition-resolution
+  provenance unchanged
+- Reconciles object back-references to the new latest snapshot
+- Allows the next snapshot tagging operation to include the selected revision
+
+Malformed requests and attempts against standard tracks return `400 Bad
+Request`. Selecting a revision that is not quarantined returns `404 Not Found`
+without creating a snapshot.
 
 ## Hybrid Model: Virtual Track + Native Objects
 

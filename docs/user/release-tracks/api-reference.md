@@ -107,6 +107,7 @@ GET    /api/release-tracks/:id/objects/:objectRef/versions
 ```
 PUT  /api/release-tracks/:id/virtual/composition
 POST /api/release-tracks/:id/virtual/snapshots/create
+POST /api/release-tracks/:id/virtual/quarantine/promote
 ```
 
 ---
@@ -1195,6 +1196,35 @@ to tag it. There is no separate virtual snapshot-creation preview: the release
 preview is the authoritative comparison and representation of the persisted
 draft that would be tagged. A non-null `composition_resolution` is the
 readiness marker for those shared release operations.
+
+### Promote a Quarantined Virtual Revision
+
+```
+POST /api/release-tracks/:id/virtual/quarantine/promote
+```
+
+Select one exact quarantined revision for membership in the latest virtual
+snapshot:
+
+```json
+{
+  "object_ref": "attack-pattern--11111111-1111-4111-8111-111111111111",
+  "object_modified": "2024-02-01T10:00:00Z"
+}
+```
+
+The selected `(object_ref, object_modified)` pair must exist in the latest
+snapshot's `quarantine` tier. A successful request creates a new draft,
+replaces any existing member revision for that object with the selected
+revision, and removes every quarantined alternative with the same
+`object_ref`. The materialized source snapshot remains unchanged and
+retrievable by its `modified` timestamp. Its `composition_resolution` is
+carried forward unchanged as the immutable record of the original component
+resolution.
+
+The endpoint returns `400 Bad Request` for standard tracks or malformed
+requests and `404 Not Found` when the exact selected revision is not
+quarantined.
 
 ---
 

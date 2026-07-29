@@ -366,6 +366,10 @@ exports.createVirtualSnapshot = function createVirtualSnapshot(trackId, options)
   return virtualTrackService.createVirtualSnapshot(trackId, options);
 };
 
+exports.promoteQuarantinedObject = function promoteQuarantinedObject(trackId, selection) {
+  return virtualTrackService.promoteQuarantinedObject(trackId, selection);
+};
+
 // -----------------------------------------------------------------------------
 // Object versions  (Phase 2 → standard-track-service)
 // -----------------------------------------------------------------------------

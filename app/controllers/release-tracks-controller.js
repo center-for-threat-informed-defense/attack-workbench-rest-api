@@ -50,6 +50,7 @@ const {
   updateConfigBodySchema,
   updateCompositionBodySchema,
   createVirtualSnapshotBodySchema,
+  promoteQuarantinedObjectBodySchema,
   xMitreVersionSchema,
 } = require('../lib/release-tracks/release-track-schemas');
 
@@ -1018,6 +1019,31 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(req, res, n
     return res.status(201).send(result);
   } catch (err) {
     logger.error('Failed to create virtual snapshot: ' + err);
+    return next(err);
+  }
+};
+
+/** POST /api/release-tracks/:id/virtual/quarantine/promote */
+exports.promoteQuarantinedObject = async function promoteQuarantinedObject(req, res, next) {
+  try {
+    const bodyResult = promoteQuarantinedObjectBodySchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid quarantine promotion request',
+          details: bodyResult.error.errors,
+        }),
+      );
+    }
+
+    const result = await releaseTracksService.promoteQuarantinedObject(
+      req.params.id,
+      bodyResult.data,
+    );
+    logger.debug(`Success: Promoted quarantined object for track ${req.params.id}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to promote quarantined object: ' + err);
     return next(err);
   }
 };

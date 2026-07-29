@@ -463,3 +463,5 @@ Virtual release tracks compute their contents by aggregating objects from compon
 - All snapshots start as **drafts** and must be explicitly tagged
 - Component tracks must exist and have at least one tagged release
 - Each component track must have a unique **priority** value (no duplicates)
+- Quarantine promotion selects an exact revision in a new draft and preserves
+  the source snapshot's immutable `composition_resolution`

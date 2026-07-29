@@ -70,6 +70,9 @@ Virtual-only operations are deliberately scoped beneath
 - `POST /virtual/snapshots/create` resolves tagged component snapshots and
   persists the concrete members, quarantine, and immutable
   `composition_resolution`.
+- `POST /virtual/quarantine/promote` clones the latest virtual snapshot,
+  selects one exact quarantined revision for members, and removes all
+  quarantined alternatives for that object.
 
 There is no side-effect-free virtual snapshot-creation preview. Once a virtual
 draft is persisted, it uses the same retrieval and release endpoints as a
@@ -77,6 +80,14 @@ standard draft. Release planning never resolves composition and rejects a
 virtual draft without `composition_resolution` with `409 Conflict`. Generic
 latest and historical `/contents` mutations are standard-only; virtual
 membership has composition resolution as its sole authority.
+
+Quarantine promotion is a snapshot mutation, not a composition
+re-resolution. It preserves `composition_resolution` so that field continues
+to describe the immutable component inputs and deduplication result that
+created the source draft. The preceding snapshot retains every quarantined
+source alternative; the new draft records the operator's choice through its
+exact member revision. Normal clone behavior reconciles latest-snapshot object
+back-references after the move.
 
 For virtual summary previews, `versioning-service` loads the latest tagged
 snapshot whose `modified` timestamp is strictly earlier than the selected

@@ -391,6 +391,9 @@ paths:
   /api/release-tracks/{id}/virtual/snapshots/create:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1snapshots~1create'
 
+  /api/release-tracks/{id}/virtual/quarantine/promote:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1quarantine~1promote'
+
   /api/release-tracks/{id}/snapshots:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots'
 

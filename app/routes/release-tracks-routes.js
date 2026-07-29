@@ -239,6 +239,14 @@ router
     releaseTracksController.createVirtualSnapshot,
   );
 
+router
+  .route('/release-tracks/:id/virtual/quarantine/promote')
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.promoteQuarantinedObject,
+  );
+
 // =============================================================================
 // Snapshot-specific operations (parameterised by :modified)
 // =============================================================================

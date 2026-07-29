@@ -28,6 +28,7 @@ const {
   TrackNotFoundError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
+  NotFoundError,
 } = require('../../exceptions');
 
 // =============================================================================
@@ -433,6 +434,59 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
   logger.verbose(
     `VirtualTrackService: Created virtual snapshot for track "${trackId}" ` +
       `(${members.length} members, ${quarantined.length} quarantined)`,
+  );
+  return snapshot;
+};
+
+/**
+ * Resolve one quarantined object by selecting its exact revision.
+ *
+ * The latest virtual snapshot is cloned into a new draft. The selected
+ * revision becomes the sole member entry for its object_ref, and every
+ * quarantined alternative for that object_ref is removed. The original
+ * composition_resolution remains unchanged as materialization provenance.
+ *
+ * @param {string} trackId
+ * @param {Object} selection - { object_ref, object_modified }
+ * @returns {Promise<Object>} The new draft snapshot
+ */
+exports.promoteQuarantinedObject = async function promoteQuarantinedObject(trackId, selection) {
+  const source = await snapshotService.getLatestSnapshot(trackId);
+  assertVirtualTrack(source);
+
+  const selectedTime = new Date(selection.object_modified).getTime();
+  const selected = (source.quarantine || []).find(
+    (entry) =>
+      entry.object_ref === selection.object_ref &&
+      new Date(entry.object_modified).getTime() === selectedTime,
+  );
+
+  if (!selected) {
+    throw new NotFoundError({
+      details:
+        `Revision '${selection.object_modified}' of '${selection.object_ref}' ` +
+        `was not found in the latest snapshot's quarantine tier`,
+    });
+  }
+
+  const members = (source.members || [])
+    .filter((entry) => entry.object_ref !== selected.object_ref)
+    .concat({
+      object_ref: selected.object_ref,
+      object_modified: selected.object_modified,
+    });
+  const quarantine = (source.quarantine || []).filter(
+    (entry) => entry.object_ref !== selected.object_ref,
+  );
+
+  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
+    members,
+    quarantine,
+  });
+
+  logger.verbose(
+    `VirtualTrackService: Promoted quarantined revision "${selected.object_ref}" ` +
+      `at ${new Date(selected.object_modified).toISOString()} in track "${trackId}"`,
   );
   return snapshot;
 };

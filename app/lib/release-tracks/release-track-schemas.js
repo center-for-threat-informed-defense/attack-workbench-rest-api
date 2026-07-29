@@ -418,6 +418,14 @@ const createVirtualSnapshotBodySchema = z
   })
   .optional();
 
+/** POST /release-tracks/:id/virtual/quarantine/promote */
+const promoteQuarantinedObjectBodySchema = z
+  .object({
+    object_ref: stixIdentifierSchema,
+    object_modified: z.iso.datetime(),
+  })
+  .strict();
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -478,6 +486,7 @@ module.exports = {
   updateConfigBodySchema,
   updateCompositionBodySchema,
   createVirtualSnapshotBodySchema,
+  promoteQuarantinedObjectBodySchema,
 
   // Reusable sub-schemas
   componentTrackSchema,
