@@ -12,6 +12,7 @@ describe('Virtual release-track composition validation API', function () {
   let app;
   let passportCookie;
   let componentTrack;
+  let secondComponentTrack;
   let virtualTrack;
   let createSequence = 0;
 
@@ -27,6 +28,10 @@ describe('Virtual release-track composition validation API', function () {
 
     componentTrack = await post('/api/release-tracks/new', {
       name: 'Composition Validation Component',
+      type: 'standard',
+    });
+    secondComponentTrack = await post('/api/release-tracks/new', {
+      name: 'Composition Validation Second Component',
       type: 'standard',
     });
     virtualTrack = await post('/api/release-tracks/new', {
@@ -72,17 +77,27 @@ describe('Virtual release-track composition validation API', function () {
     };
   }
 
-  async function createVirtual(compositionBody, status = 201) {
+  async function createVirtual(compositionBody, status = 201, name) {
     createSequence += 1;
     return post(
       '/api/release-tracks/new',
       {
-        name: `Strict Composition Create ${createSequence}`,
+        name: name || `Strict Composition Create ${createSequence}`,
         type: 'virtual',
         composition: compositionBody,
       },
       status,
     );
+  }
+
+  async function listTracks(search) {
+    const response = await request(app)
+      .get('/api/release-tracks')
+      .query({ search })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
+    return response.body.data;
   }
 
   it('rejects unknown composition keys instead of silently stripping them', async function () {
@@ -142,5 +157,55 @@ describe('Virtual release-track composition validation API', function () {
       const updated = await putComposition(composition(validComponent));
       expect(updated.composition.component_tracks[0]).toMatchObject(validComponent);
     }
+  });
+
+  it('requires unique component priorities and track IDs', async function () {
+    const invalidCompositions = [
+      composition(component('latest_tagged', { priority: undefined })),
+      {
+        component_tracks: [
+          component('latest_tagged'),
+          {
+            track_id: secondComponentTrack.id,
+            resolution_strategy: 'latest_tagged',
+            priority: 1,
+          },
+        ],
+      },
+      {
+        component_tracks: [component('latest_tagged'), component('latest_tagged', { priority: 2 })],
+      },
+    ];
+
+    for (const invalidComposition of invalidCompositions) {
+      await createVirtual(invalidComposition, 400);
+      await putComposition(invalidComposition, 400);
+    }
+  });
+
+  it('validates initial component existence and standard-track type before persistence', async function () {
+    const missingComponentName = 'Missing Component Create';
+    await createVirtual(
+      composition({
+        track_id: 'release-track--11111111-1111-4111-8111-111111111111',
+        resolution_strategy: 'latest_tagged',
+        priority: 1,
+      }),
+      404,
+      missingComponentName,
+    );
+    expect(await listTracks(missingComponentName)).toEqual([]);
+
+    const virtualComponentName = 'Virtual Component Create';
+    await createVirtual(
+      composition({
+        track_id: virtualTrack.id,
+        resolution_strategy: 'latest_tagged',
+        priority: 1,
+      }),
+      400,
+      virtualComponentName,
+    );
+    expect(await listTracks(virtualComponentName)).toEqual([]);
   });
 });

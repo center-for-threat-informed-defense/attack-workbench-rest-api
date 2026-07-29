@@ -85,7 +85,7 @@ Virtual tracks are identified by `stix.type = "virtual"` in their schema.
       {
         track_id: "release-track--uuid-1",
         resolution_strategy: "latest_tagged",
-        priority: 1,  // Used with prioritize_higher_priority strategy (lower number = higher priority)
+        priority: 1,  // Required and unique; lower number = higher priority
         filters: {
           object_types: ["intrusion-set"],
           // Additional filters...
@@ -134,7 +134,8 @@ Always resolves to the most recent **tagged snapshot** from the component track.
 ```javascript
 {
   track_id: "release-track--uuid-1",
-  resolution_strategy: "latest_tagged"
+  resolution_strategy: "latest_tagged",
+  priority: 0
 }
 
 // At virtual snapshot time (e.g., March 1, 2024):
@@ -154,7 +155,8 @@ Resolves to a specific semantic version from the component track.
 {
   track_id: "release-track--uuid-1",
   resolution_strategy: "specific_version",
-  version: "5.0"
+  version: "5.0",
+  priority: 0
 }
 
 // At virtual snapshot time:
@@ -172,7 +174,8 @@ Resolves to a specific snapshot by its `modified` timestamp.
 {
   track_id: "release-track--uuid-1",
   resolution_strategy: "specific_snapshot",
-  snapshot: "2024-02-01T10:00:00Z"
+  snapshot: "2024-02-01T10:00:00Z",
+  priority: 0
 }
 
 // At virtual snapshot time:
@@ -289,7 +292,7 @@ deduplication: {
 
 #### 3. `prioritize_higher_priority`
 
-Keep the version from the component track with the higher priority (lower priority number). Each component track must have a unique priority value.
+Keep the version from the component track with the higher priority (lower priority number). Every component track requires a unique, non-negative integer priority.
 
 ```javascript
 composition: {
@@ -794,15 +797,14 @@ POST /api/release-tracks/new
       {
         "track_id": "release-track--uuid-1",
         "resolution_strategy": "latest_tagged",
+        "priority": 0,
         "filters": {
           "object_types": ["intrusion-set"]
         }
       }
     ],
     "deduplication": {
-      "strategy": "prefer_latest_modified",
-      "tier_resolution": "highest_tier",
-      "status_resolution": "highest_status"
+      "strategy": "prioritize_latest_object"
     }
   },
 
@@ -825,12 +827,14 @@ PUT /api/release-tracks/:id/virtual/composition
   "component_tracks": [
     {
       "track_id": "release-track--uuid-1",
-      "resolution_strategy": "latest_tagged"
+      "resolution_strategy": "latest_tagged",
+      "priority": 0
     },
     {
       "track_id": "release-track--uuid-2",
       "resolution_strategy": "specific_version",
-      "version": "2.0"
+      "version": "2.0",
+      "priority": 1
     }
   ]
 }
@@ -841,6 +845,9 @@ component, filter, or deduplication properties return `400 Bad Request`.
 Selector fields must match `resolution_strategy`: `latest_tagged` accepts
 neither selector, `specific_version` requires only `version`, and
 `specific_snapshot` requires only `snapshot`.
+Every component also requires a unique, non-negative integer `priority`.
+Referenced tracks must exist and must be standard tracks; these rules are
+checked during initial virtual-track creation as well as composition updates.
 
 **Note:** Updating composition creates a pending draft with the new rules and
 invalidates any previously materialized contents. The draft has empty
@@ -977,8 +984,16 @@ Virtual tracks can optionally have **native objects** in addition to composed co
   // Composed from standard tracks
   composition: {
     component_tracks: [
-      { track_id: "release-track--uuid-1", priority: 1 },
-      { track_id: "release-track--uuid-2", priority: 2 }
+      {
+        track_id: "release-track--uuid-1",
+        resolution_strategy: "latest_tagged",
+        priority: 1
+      },
+      {
+        track_id: "release-track--uuid-2",
+        resolution_strategy: "latest_tagged",
+        priority: 2
+      }
     ],
     deduplication: {
       strategy: "prioritize_latest_object"
@@ -1045,11 +1060,13 @@ POST /api/release-tracks/new
     "component_tracks": [
       {
         "track_id": "release-track--uuid-1",
-        "resolution_strategy": "latest_tagged"
+        "resolution_strategy": "latest_tagged",
+        "priority": 0
       },
       {
         "track_id": "release-track--uuid-2",
-        "resolution_strategy": "latest_tagged"
+        "resolution_strategy": "latest_tagged",
+        "priority": 1
       }
     ]
   },

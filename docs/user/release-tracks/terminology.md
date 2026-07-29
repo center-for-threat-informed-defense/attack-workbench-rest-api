@@ -309,17 +309,18 @@ A **virtual release track** is a special type of release track that computes its
 
 ### Component Track
 
-A **component track** is a release track (standard or virtual) that is referenced by a virtual release track.
+A **component track** is a standard release track that is referenced by a virtual release track.
 
 **Technical Definition:**
 - A component track is specified in a virtual track's `composition.component_tracks` array
 - Each component defines a `resolution_strategy` (how to select which snapshot to use)
+- Each component defines a unique, non-negative integer `priority`
 - Each component can optionally specify `filters` (which objects to include)
 
 **Characteristics:**
 - Component tracks are independent - they don't know they're being referenced
 - Virtual tracks "pull" content from components via composition rules
-- Components can be standard tracks (manage objects) or virtual tracks (aggregate)
+- Components must be standard tracks; virtual-track nesting is rejected
 - Components must have at least one tagged snapshot for virtual track to resolve
 
 **Examples:**
@@ -349,11 +350,12 @@ A **component track** is a release track (standard or virtual) that is reference
     {
       track_id: "GroupsMonthly--uuid",
       resolution_strategy: "latest_tagged",
+      priority: 0,
       filters: { object_types: ["intrusion-set"] }
     }
   ],
   deduplication: {
-    strategy: "prefer_latest_modified"
+    strategy: "prioritize_latest_object"
   }
 }
 ```
@@ -402,9 +404,9 @@ A **resolution strategy** determines which snapshot from a component track to us
 3. **specific_snapshot** - Use a specific snapshot by timestamp
 
 **Examples:**
-- `{ resolution_strategy: "latest_tagged" }` → Always gets latest
-- `{ resolution_strategy: "specific_version", version: "5.0" }` → Always uses v5.0
-- `{ resolution_strategy: "specific_snapshot", snapshot: "2024-02-01T10:00:00Z" }` → Always uses that exact snapshot
+- `{ resolution_strategy: "latest_tagged", priority: 0 }` → Always gets latest
+- `{ resolution_strategy: "specific_version", version: "5.0", priority: 0 }` → Always uses v5.0
+- `{ resolution_strategy: "specific_snapshot", snapshot: "2024-02-01T10:00:00Z", priority: 0 }` → Always uses that exact snapshot
 
 ---
 

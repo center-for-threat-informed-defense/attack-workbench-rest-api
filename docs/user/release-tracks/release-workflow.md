@@ -1034,11 +1034,13 @@ POST /api/release-tracks/new
     "component_tracks": [
       {
         "track_id": "GroupsMonthly--uuid",
-        "resolution_strategy": "latest_tagged"
+        "resolution_strategy": "latest_tagged",
+        "priority": 0
       },
       {
         "track_id": "TechniquesQuarterly--uuid",
-        "resolution_strategy": "latest_tagged"
+        "resolution_strategy": "latest_tagged",
+        "priority": 1
       }
     ]
   },

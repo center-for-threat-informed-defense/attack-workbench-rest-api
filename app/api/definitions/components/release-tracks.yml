@@ -324,14 +324,16 @@ components:
       required:
         - track_id
         - resolution_strategy
+        - priority
       properties:
         track_id:
           type: string
           description: 'The release track ID of the component'
           example: 'release-track--a1b2c3d4-e5f6-7890-abcd-ef1234567890'
         priority:
-          type: number
-          description: 'Priority for deduplication (higher wins)'
+          type: integer
+          minimum: 0
+          description: 'Required unique component priority; lower numbers have higher priority'
         resolution_strategy:
           type: string
           enum:

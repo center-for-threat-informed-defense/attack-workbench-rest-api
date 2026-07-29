@@ -19,9 +19,9 @@ completion backlog.
   - `specific_version` requires `version` and rejects `snapshot`;
   - `specific_snapshot` requires `snapshot` and rejects `version`;
   - `latest_tagged` rejects both selector fields.
-- [ ] Make `priority` consistently required in Zod, Mongoose, OpenAPI, docs,
+- [x] Make `priority` consistently required in Zod, Mongoose, OpenAPI, docs,
   and examples; reject duplicate priorities at the request boundary.
-- [ ] Validate component existence, standard-track type, duplicate track IDs,
+- [x] Validate component existence, standard-track type, duplicate track IDs,
   and duplicate priorities when a virtual track is initially created, not only
   when composition is later updated or materialized.
 - [ ] Validate `snapshot_schedule` by mode:
@@ -84,7 +84,7 @@ completion backlog.
 - [ ] Align `composition_resolution` examples with fields actually generated,
   or implement the documented `by_type`, `by_tier`, and native statistics.
 - [ ] Align documented error envelopes with centralized error-handler output.
-- [ ] Include required `priority` values in every composition example.
+- [x] Include required `priority` values in every composition example.
 - [ ] Clearly distinguish configured composition from a materialized draft and
   describe scheduled behavior as unavailable until scheduler execution exists.
 
@@ -136,6 +136,49 @@ Verification result (2026-07-29):
   Reject unknown composition properties and enforce strategy-specific
   component selectors across virtual-track creation and updates. Align
   OpenAPI, documentation, frontend guidance, and Bruno examples.
+  ```
+
+### Current implementation slice — Component identity and priority validation
+
+- [x] Add creation and composition-update regression coverage for required
+  priorities, duplicate priorities, and duplicate component track IDs.
+- [x] Reject missing component tracks and virtual component tracks before an
+  initial virtual track is persisted.
+- [x] Make component priority required and non-negative across Zod, Mongoose,
+  OpenAPI, user/developer documentation, and Bruno examples.
+- [x] Keep service-layer component validation as a defense for non-HTTP
+  callers while moving deterministic duplicates to request validation.
+- [x] Run the focused regression specs, then lint and the complete `npm test`
+  suite.
+- [x] Review the final diff and propose a conventional commit message.
+
+Verification result (2026-07-29):
+
+- The focused release-track regression group passes (22), the isolated
+  backrefs spec passes (23), OpenAPI validation passes (2), and backend lint
+  passes.
+- The first complete run encountered one unrelated shared-suite failure in the
+  backrefs manual-sync case after 919 API tests passed. The affected spec
+  passed in isolation (23).
+- The required clean `npm test` rerun passes (OpenAPI 2, config 21, API 920,
+  middleware 24).
+- Proposed commit:
+
+  ```text
+  fix(release-tracks): validate virtual component identities
+
+  Require unique component priorities and track IDs, validate referenced
+  standard tracks before initial virtual-track persistence, and align request,
+  persistence, OpenAPI, documentation, and frontend contracts.
+  ```
+
+- Proposed companion Bruno commit:
+
+  ```text
+  docs(release-tracks): document component priority constraints
+
+  Document required unique priorities and standard component references for
+  virtual-track creation and composition updates.
   ```
 
 ### Tracker consolidation
@@ -801,7 +844,9 @@ the latest snapshot. Like `git rebase --squash`ing the commits behind a tag.
 
 ## Small Fixes
 
-- [ ] **Composition schema mismatch: `priority`.** `PUT /api/release-tracks/:id/virtual/composition` — the Zod schema (`componentTrackSchema`) marks `priority` optional, but the mongoose snapshot schema requires it, so omitting it passes validation and then fails the save with a 500 (`DatabaseError`) instead of a 400. Align the schemas (either default `priority` or make it required in Zod). Found 2026-07-15 while testing virtual-track backrefs.
+- [x] **Composition schema mismatch: `priority`.** Resolved 2026-07-29 by
+  requiring a unique, non-negative integer priority in request validation,
+  persistence, OpenAPI, documentation, and Bruno examples.
 
 - [ ] **`deleteSnapshot` lacks a tagged-release guard.** `DELETE /api/release-tracks/:id/snapshots/:modified` (`snapshot-service.deleteSnapshot`) deletes any snapshot, including tagged releases — contradicting the "immutable once set" versioning rule. Should 409 on `version != null` (a squash implementation must also filter `version: null`; see Snapshot Retention section). Found 2026-07-15 while designing squash.
 

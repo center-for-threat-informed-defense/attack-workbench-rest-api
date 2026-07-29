@@ -102,7 +102,15 @@ const componentTrackDefinition = {
     enum: ['latest_tagged', 'specific_version', 'specific_snapshot'],
     required: true,
   },
-  priority: { type: Number, required: true },
+  priority: {
+    type: Number,
+    required: true,
+    min: 0,
+    validate: {
+      validator: Number.isInteger,
+      message: 'Component priority must be an integer',
+    },
+  },
   version: {
     type: String,
     validate: validateVersion,

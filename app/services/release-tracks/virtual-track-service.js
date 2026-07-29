@@ -63,6 +63,16 @@ async function validateComponentTracks(componentTracks) {
     });
   }
 
+  const invalidPriority = componentTracks.find(
+    (component) => !Number.isInteger(component.priority) || component.priority < 0,
+  );
+  if (invalidPriority) {
+    throw new BadRequestError({
+      message: 'Invalid component priority',
+      details: 'Each component track must have a non-negative integer priority',
+    });
+  }
+
   // Check for duplicate track_ids
   const trackIds = componentTracks.map((c) => c.track_id);
   const uniqueTrackIds = new Set(trackIds);
@@ -98,6 +108,18 @@ async function validateComponentTracks(componentTracks) {
 
   return registryMap;
 }
+
+/**
+ * Validate component identities and types without resolving their snapshots.
+ * Used before initial virtual-track persistence as well as by virtual
+ * operations that replace or materialize composition.
+ *
+ * @param {Object} composition
+ * @returns {Promise<Map<string, Object>>}
+ */
+exports.validateComposition = async function validateComposition(composition) {
+  return validateComponentTracks(composition.component_tracks);
+};
 
 /**
  * Resolve a component track to a specific tagged snapshot based on its

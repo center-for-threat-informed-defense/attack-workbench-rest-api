@@ -469,6 +469,12 @@ strategy:
 - `latest_tagged` sends neither `version` nor `snapshot`.
 - `specific_version` sends `version` and omits `snapshot`.
 - `specific_snapshot` sends `snapshot` and omits `version`.
+- Every component sends a unique, non-negative integer `priority`; lower
+  numbers have higher priority.
+
+The server validates component identity during both creation and update.
+Referenced tracks must already exist and must be standard tracks, and duplicate
+component track IDs are rejected.
 
 Done when:
 
@@ -476,6 +482,8 @@ Done when:
 - Saved and reloaded composition preserves `filters.domains`.
 - Tests assert the plural key and multi-domain payload shape.
 - Changing resolution strategy clears the selector from the previous strategy.
+- Every component row requires a priority, and duplicate priorities or track
+  selections are blocked before submission.
 - Submitted composition payloads contain only server-supported properties.
 
 ## P1 — Separate snapshot and preview output-format types

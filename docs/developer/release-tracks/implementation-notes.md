@@ -82,6 +82,13 @@ only `snapshot`. This prevents misspelled filters or irrelevant selectors from
 being silently stripped before persistence. The same schema is used for
 initial virtual-track creation and composition updates.
 
+Component `priority` is always required, even when the selected deduplication
+strategy does not inspect it. Zod rejects duplicate component IDs and
+priorities before service delegation. The facade also asks the virtual-track
+service to verify that every component exists and is a standard track before
+persisting an initial virtual track; update and materialization retain the same
+service-layer validation.
+
 There is no side-effect-free virtual snapshot-creation preview. Once a virtual
 draft is persisted, it uses the same retrieval and release endpoints as a
 standard draft. Release planning never resolves composition and rejects a

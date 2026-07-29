@@ -272,7 +272,7 @@ const componentTrackFiltersSchema = z
 
 const componentTrackBaseShape = {
   track_id: releaseTrackIdSchema,
-  priority: z.number().int().min(0).optional(),
+  priority: z.number().int().min(0),
   filters: componentTrackFiltersSchema.optional(),
 };
 
@@ -309,7 +309,31 @@ const compositionSchema = z
       .strict()
       .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((composition, context) => {
+    const trackIds = new Set();
+    const priorities = new Set();
+
+    composition.component_tracks.forEach((component, index) => {
+      if (trackIds.has(component.track_id)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['component_tracks', index, 'track_id'],
+          message: 'Each component track must reference a unique track',
+        });
+      }
+      trackIds.add(component.track_id);
+
+      if (priorities.has(component.priority)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['component_tracks', index, 'priority'],
+          message: 'Each component track must have a unique priority value',
+        });
+      }
+      priorities.add(component.priority);
+    });
+  });
 
 const createTrackBodySchema = z.object({
   name: trackNameSchema,

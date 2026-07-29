@@ -169,7 +169,11 @@ exports.getReleasesByObject = function getReleasesByObject(objectRef, options) {
   return releaseHistoryService.getReleasesByObject(objectRef, options);
 };
 
-exports.createTrack = function createTrack(data) {
+exports.createTrack = async function createTrack(data) {
+  if (data.type === 'virtual' && data.composition) {
+    await virtualTrackService.validateComposition(data.composition);
+  }
+
   return snapshotService.createTrack(data);
 };
 

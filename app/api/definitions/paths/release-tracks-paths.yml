@@ -225,7 +225,9 @@ paths:
         Create a new standard or virtual release track with an initial empty draft snapshot.
         Request body is validated via Zod (not OpenAPI). Virtual composition
         objects are strict, and component selectors must match their
-        resolution_strategy.
+        resolution_strategy. Component IDs and priorities must be unique,
+        every priority is required, and referenced components must already
+        exist as standard tracks.
       tags:
         - 'Release Tracks'
       # Request body validation moved to Zod in controller
@@ -798,7 +800,8 @@ paths:
         Request body is strictly validated via Zod. Unknown composition,
         component, filter, and deduplication keys are rejected. latest_tagged
         rejects selector fields; specific_version requires version;
-        specific_snapshot requires snapshot.
+        specific_snapshot requires snapshot. Component IDs and required
+        non-negative integer priorities must each be unique.
       tags:
         - 'Release Tracks'
       parameters:

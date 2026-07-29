@@ -1121,6 +1121,9 @@ keys, including the incorrect singular `filters.domain`, return
 `400 Bad Request`. Component selectors are also strategy-specific:
 `latest_tagged` rejects `version` and `snapshot`; `specific_version` requires
 only `version`; and `specific_snapshot` requires only `snapshot`.
+Every component requires a unique, non-negative integer `priority`; lower
+numbers have higher priority. When composition is supplied during creation,
+each referenced track must already exist and must be a standard track.
 
 ### Update Virtual Track Composition
 
@@ -1135,12 +1138,14 @@ PUT /api/release-tracks/:id/virtual/composition
   "component_tracks": [
     {
       "track_id": "GroupsMonthly--uuid",
-      "resolution_strategy": "latest_tagged"
+      "resolution_strategy": "latest_tagged",
+      "priority": 0
     },
     {
       "track_id": "TechniquesQuarterly--uuid",
       "resolution_strategy": "specific_version",
-      "version": "2.0"
+      "version": "2.0",
+      "priority": 1
     }
   ]
 }
@@ -1148,7 +1153,7 @@ PUT /api/release-tracks/:id/virtual/composition
 
 The same strict composition and selector validation applies to this update
 operation. Invalid fields are rejected rather than removed from the persisted
-configuration.
+configuration. Component track IDs and priorities must each be unique.
 
 **Note:** Updating composition creates a pending draft containing the new
 rules. To prevent stale materialization from being released, the draft has

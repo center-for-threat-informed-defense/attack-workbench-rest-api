@@ -314,7 +314,7 @@ Virtual release tracks compute their contents by aggregating objects from compon
       {
         track_id: "release-track--groups-monthly",
         resolution_strategy: "latest_tagged",  // "latest_tagged" | "specific_version" | "specific_snapshot"
-        priority: 1,  // Required for prioritize_higher_priority strategy (lower number = higher priority)
+        priority: 1,  // Always required and unique (lower number = higher priority)
 
         // Optional: filters to limit which objects are included
         filters: {
@@ -459,6 +459,10 @@ Virtual release tracks compute their contents by aggregating objects from compon
 - All snapshots start as **drafts** and must be explicitly tagged
 - Component tracks must exist and have at least one tagged release
 - Each component track must have a unique **priority** value (no duplicates)
+- Priority is a required non-negative integer for every component, regardless
+  of deduplication strategy
+- Component IDs and priorities are validated before initial virtual-track
+  persistence as well as during composition updates and materialization
 - Composition request objects are strict; unknown composition, component,
   filter, and deduplication keys return `400 Bad Request`
 - Selector fields form a discriminated request contract:
