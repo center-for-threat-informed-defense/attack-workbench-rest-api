@@ -336,7 +336,7 @@ components:
               type: array
               items:
                 type: string
-              description: 'Only include objects from these ATT&CK domains'
+              description: 'Only include exact pinned object revisions whose x_mitre_domains intersects these ATT&CK domains. Primary matrices fall back to external_references.external_id. Accepts enterprise/mobile/ics and their -attack forms.'
 
     version-history-entry:
       type: object
@@ -437,7 +437,7 @@ components:
           description: 'When the track metadata was last updated'
         snapshot_schedule:
           nullable: true
-          description: 'Automated snapshot schedule (virtual tracks only)'
+          description: 'Stored snapshot schedule metadata for virtual tracks. Automated execution is not yet implemented.'
           $ref: '#/components/schemas/snapshot-schedule'
 
     tagged-release-reference:

@@ -11,6 +11,8 @@
  * Covered behavior:
  *   - Default bundle contains members only, plus referenced identities and
  *     marking definitions (self-contained bundle)
+ *   - Active relationships whose endpoints are both selected are added
+ *     dynamically; relationships with an endpoint outside the export are not
  *   - `include` adds staged and/or candidate tiers (comma-separated or
  *     repeated, singular or plural tier names)
  *   - `state` narrows the included staged/candidate entries by workflow
@@ -48,6 +50,9 @@ describe('Release Tracks Bundle Export API', function () {
 
   let memberObject;
   let linkedMemberObject;
+  let relationshipSource;
+  let includedRelationship;
+  let excludedRelationship;
   let linkedAttackId;
   let linkedAttackUrl;
   let candidateWip;
@@ -152,6 +157,44 @@ describe('Release Tracks Bundle Export API', function () {
     );
     candidateReviewed = await postObject('/api/techniques', buildTechnique('Candidate Reviewed'));
     stagedObject = await postObject('/api/techniques', buildTechnique('Staged Technique'));
+    relationshipSource = await postObject('/api/groups', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        name: 'Bundle Relationship Group',
+        description: 'Group used to verify dynamic relationship inclusion.',
+        spec_version: '2.1',
+        type: 'intrusion-set',
+        object_marking_refs: [staticMarkingDefinitionId],
+      },
+    });
+    includedRelationship = await postObject('/api/relationships', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        spec_version: '2.1',
+        type: 'relationship',
+        relationship_type: 'uses',
+        source_ref: relationshipSource.stix.id,
+        target_ref: memberObject.stix.id,
+        object_marking_refs: [staticMarkingDefinitionId],
+      },
+    });
+    excludedRelationship = await postObject('/api/relationships', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        spec_version: '2.1',
+        type: 'relationship',
+        relationship_type: 'uses',
+        source_ref: relationshipSource.stix.id,
+        target_ref: candidateWip.stix.id,
+        object_marking_refs: [staticMarkingDefinitionId],
+      },
+    });
 
     const track = await postAction(
       '/api/release-tracks/new',
@@ -178,6 +221,7 @@ describe('Release Tracks Bundle Export API', function () {
       x_mitre_contents: [
         { obj_ref: memberObject.stix.id, obj_modified: memberObject.stix.modified },
         { obj_ref: linkedMemberObject.stix.id, obj_modified: linkedMemberObject.stix.modified },
+        { obj_ref: relationshipSource.stix.id, obj_modified: relationshipSource.stix.modified },
       ],
     });
 
@@ -257,9 +301,25 @@ describe('Release Tracks Bundle Export API', function () {
     expect(toc.object_marking_refs).toContain(staticMarkingDefinitionId);
     const contentRefs = toc.x_mitre_contents.map((entry) => entry.object_ref);
     expect(contentRefs).toContain(memberObject.stix.id);
+    expect(contentRefs).toContain(includedRelationship.stix.id);
     expect(contentRefs).toContain(organizationIdentityId);
     expect(contentRefs).not.toContain(staticMarkingDefinitionId);
     expect(contentRefs).not.toContain(toc.id);
+  });
+
+  it('adds only relationships whose endpoints are both selected for the bundle', async function () {
+    const bundle = await getBundle(
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&includeToc=false`,
+    );
+    const ids = bundleObjectIds(bundle);
+
+    expect(ids).toContain(includedRelationship.stix.id);
+    expect(ids).not.toContain(excludedRelationship.stix.id);
+
+    const snapshot = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest`);
+    expect(snapshot.members.map((member) => member.object_ref)).not.toContain(
+      includedRelationship.stix.id,
+    );
   });
 
   it('GET /api/release-tracks/:id/snapshots/latest?format=bundle&includeToc=false omits the TOC', async function () {

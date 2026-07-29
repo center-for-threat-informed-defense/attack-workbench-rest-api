@@ -159,6 +159,10 @@ module.exports = Object.freeze({
   // Validation
   VALIDATION_BYPASS_CHECK_REQUESTED: 'validation-bypass::check-requested',
 
+  // Cross-service reads used by release-track composition/export
+  ATTACK_OBJECT_REVISIONS_REQUESTED: 'attack-object::revisions-requested',
+  BUNDLE_RELATIONSHIPS_REQUESTED: 'relationship::bundle-requested',
+
   // Release Tracks
   // Emitted after any persisted change to a release track's current (latest)
   // snapshot. Payload: { trackId, snapshot } where snapshot is the track's

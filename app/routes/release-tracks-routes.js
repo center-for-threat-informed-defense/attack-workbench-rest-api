@@ -232,15 +232,7 @@ router
   );
 
 router
-  .route('/release-tracks/:id/snapshots/preview')
-  .get(
-    authn.authenticate,
-    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-    releaseTracksController.previewVirtualSnapshot,
-  );
-
-router
-  .route('/release-tracks/:id/snapshots/create')
+  .route('/release-tracks/:id/virtual/snapshots/create')
   .post(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
@@ -309,7 +301,7 @@ router
 // =============================================================================
 
 router
-  .route('/release-tracks/:id/composition')
+  .route('/release-tracks/:id/virtual/composition')
   .put(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),

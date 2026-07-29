@@ -8,8 +8,37 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const versioningService = require('../../../services/release-tracks/versioning-service');
+const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 
 const staticMarkingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
+const virtualObjectRefs = [
+  'attack-pattern--00000000-0000-4000-8000-000000000101',
+  'attack-pattern--00000000-0000-4000-8000-000000000102',
+  'attack-pattern--00000000-0000-4000-8000-000000000103',
+  'attack-pattern--00000000-0000-4000-8000-000000000104',
+];
+
+function snapshotBase(snapshot) {
+  const clone = { ...snapshot };
+  delete clone._id;
+  delete clone.__v;
+  return clone;
+}
+
+function memberEntry(objectRef, modified) {
+  return { object_ref: objectRef, object_modified: modified };
+}
+
+function quarantineEntry(objectRef, modified, sourceTrackId) {
+  return {
+    object_ref: objectRef,
+    object_modified: modified,
+    source_track_id: sourceTrackId,
+    source_track_name: 'Virtual Release Source',
+    source_snapshot_version: '1.0',
+    conflict_reason: 'Conflicting component revisions',
+  };
+}
 
 function buildTechnique(name, previous) {
   const timestamp = previous
@@ -154,13 +183,143 @@ describe('Release-track release planning and commit API', function () {
     expect(released.body.version).toBe('3.0');
   });
 
-  it('orients virtual previews around members and quarantine', async function () {
+  it('compares the latest virtual draft with its preceding tagged release', async function () {
     const track = await createTrack('Virtual Release Preview', 'virtual');
+    const created = new Date(track.modified);
+    const taggedModified = new Date(created.getTime() + 1000);
+    const draftModified = new Date(created.getTime() + 2000);
+    const oldRevision = new Date(created.getTime() - 2000);
+    const newRevision = new Date(created.getTime() - 1000);
+
+    await dynamicRepo.saveSnapshot(track.id, {
+      ...snapshotBase(track),
+      modified: taggedModified,
+      version: '1.0',
+      members: [
+        memberEntry(virtualObjectRefs[0], oldRevision),
+        memberEntry(virtualObjectRefs[1], oldRevision),
+      ],
+      quarantine: [quarantineEntry(virtualObjectRefs[3], oldRevision, track.id)],
+    });
+    await dynamicRepo.saveSnapshot(track.id, {
+      ...snapshotBase(track),
+      modified: draftModified,
+      version: null,
+      members: [
+        memberEntry(virtualObjectRefs[0], newRevision),
+        memberEntry(virtualObjectRefs[2], newRevision),
+      ],
+      quarantine: [],
+    });
+
     const preview = await get(`/api/release-tracks/${track.id}/snapshots/latest/release/preview`);
-    expect(preview.body.type).toBe('virtual');
-    expect(preview.body.before).toEqual({ members_count: 0, quarantine_count: 0 });
+    expect(preview.body).toMatchObject({
+      type: 'virtual',
+      source_snapshot_modified: draftModified.toISOString(),
+      version: '1.1',
+      previous_release: {
+        version: '1.0',
+        modified: taggedModified.toISOString(),
+      },
+      before: { members_count: 2, quarantine_count: 1 },
+      after: { members_count: 2, quarantine_count: 0 },
+      changes: {
+        new_count: 1,
+        updated_count: 1,
+        removed_count: 1,
+        quarantined_count: 0,
+      },
+    });
     expect(preview.body.before).not.toHaveProperty('staged_count');
     expect(preview.body.before).not.toHaveProperty('candidates_count');
+
+    const unchanged = await get(
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(draftModified.toISOString())}`,
+    );
+    expect(unchanged.body.version).toBeNull();
+  });
+
+  it('compares a historical virtual draft with the tagged release that preceded it', async function () {
+    const track = await createTrack('Historical Virtual Release Preview', 'virtual');
+    const created = new Date(track.modified);
+    const firstTaggedModified = new Date(created.getTime() + 1000);
+    const historicalDraftModified = new Date(created.getTime() + 2000);
+    const laterTaggedModified = new Date(created.getTime() + 3000);
+    const oldRevision = new Date(created.getTime() - 2000);
+    const newRevision = new Date(created.getTime() - 1000);
+
+    await dynamicRepo.saveSnapshot(track.id, {
+      ...snapshotBase(track),
+      modified: firstTaggedModified,
+      version: '1.0',
+      members: [memberEntry(virtualObjectRefs[0], oldRevision)],
+    });
+    await dynamicRepo.saveSnapshot(track.id, {
+      ...snapshotBase(track),
+      modified: historicalDraftModified,
+      version: null,
+      members: [memberEntry(virtualObjectRefs[0], newRevision)],
+    });
+    await dynamicRepo.saveSnapshot(track.id, {
+      ...snapshotBase(track),
+      modified: laterTaggedModified,
+      version: '2.0',
+      members: [memberEntry(virtualObjectRefs[3], newRevision)],
+    });
+
+    const preview = await get(
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(historicalDraftModified.toISOString())}/release/preview?version=3.0`,
+    );
+    expect(preview.body.previous_release).toEqual({
+      version: '1.0',
+      modified: firstTaggedModified.toISOString(),
+    });
+    expect(preview.body.before).toEqual({ members_count: 1, quarantine_count: 0 });
+    expect(preview.body.after).toEqual({ members_count: 1, quarantine_count: 0 });
+    expect(preview.body.changes).toEqual({
+      new_count: 0,
+      updated_count: 1,
+      removed_count: 0,
+      quarantined_count: 0,
+    });
+  });
+
+  it('exposes virtual-only draft operations under the explicit virtual namespace', async function () {
+    const standard = await createTrack('Virtual Namespace Guard');
+
+    await request(app)
+      .put(`/api/release-tracks/${standard.id}/virtual/composition`)
+      .send({
+        component_tracks: [
+          {
+            track_id: standard.id,
+            resolution_strategy: 'latest_tagged',
+          },
+        ],
+      })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(400);
+
+    await post(`/api/release-tracks/${standard.id}/virtual/snapshots/create`, {}, 400);
+    // The removed path now falls through to the generic :modified retrieval
+    // route, where "preview" is rejected as a malformed timestamp.
+    await get(`/api/release-tracks/${standard.id}/snapshots/preview`, 400);
+    await post(`/api/release-tracks/${standard.id}/snapshots/create`, {}, 405);
+
+    await request(app)
+      .put(`/api/release-tracks/${standard.id}/composition`)
+      .send({
+        component_tracks: [
+          {
+            track_id: standard.id,
+            resolution_strategy: 'latest_tagged',
+          },
+        ],
+      })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(404);
   });
 
   it('reports blocking promotion conflicts in summaries and rejects materialization', async function () {

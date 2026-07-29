@@ -204,7 +204,24 @@ class AttackObjectsService extends BaseService {
       AttackObjectsService.handleReleaseTrackContentsChanged,
     );
 
+    EventBus.on(
+      Events.ATTACK_OBJECT_REVISIONS_REQUESTED,
+      AttackObjectsService.handleRevisionsRequested,
+    );
+
     logger.info('AttackObjectsService: Event listeners initialized');
+  }
+
+  /**
+   * Hydrate exact ATT&CK object revisions for cross-service consumers.
+   *
+   * @param {Object} payload
+   * @param {Array<{object_ref: string, object_modified: string|Date}>} payload.entries
+   * @returns {Promise<Array<Object>>}
+   */
+  static async handleRevisionsRequested({ entries }) {
+    if (!entries || entries.length === 0) return [];
+    return attackObjectsRepository.findManyByIdAndModified(entries);
   }
 
   /**

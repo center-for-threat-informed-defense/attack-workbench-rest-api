@@ -323,8 +323,7 @@ Virtual release tracks compute their contents by aggregating objects from compon
         // Optional: filters to limit which objects are included
         filters: {
           object_types: ["intrusion-set"],
-          domains: ["enterprise"],
-          stix_pattern: {}  // Advanced STIX filtering
+          domains: ["enterprise"]
         }
       },
       {

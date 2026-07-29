@@ -105,9 +105,8 @@ GET    /api/release-tracks/:id/objects/:objectRef/versions
 ### Virtual Release Tracks (Additional)
 
 ```
-PUT    /api/release-tracks/:id/composition
-POST   /api/release-tracks/:id/snapshots/create
-GET    /api/release-tracks/:id/snapshots/preview
+PUT  /api/release-tracks/:id/virtual/composition
+POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 ---
@@ -882,6 +881,40 @@ GET /api/release-tracks/:id/snapshots/latest/release/preview
 `format=bundle` returns its publication-ready STIX bundle. Thus “dry run” is
 not a separate command: it is a release preview with the desired format.
 
+For a standard track, `before` is the selected draft before staged members are
+promoted and `after` is the would-be tagged result. For a virtual track, the
+contents were already resolved and frozen when the draft was explicitly
+created. Its release summary therefore compares that persisted draft with the
+most recent tagged snapshot that precedes it:
+
+```json
+{
+  "track_id": "release-track--virtual",
+  "type": "virtual",
+  "source_snapshot_modified": "2024-07-15T10:00:00.000Z",
+  "version": "14.0",
+  "releasable": true,
+  "previous_release": {
+    "version": "13.1",
+    "modified": "2024-01-15T10:00:00.000Z"
+  },
+  "before": { "members_count": 850, "quarantine_count": 2 },
+  "after": { "members_count": 870, "quarantine_count": 0 },
+  "changes": {
+    "new_count": 30,
+    "updated_count": 12,
+    "removed_count": 10,
+    "quarantined_count": 0
+  },
+  "conflicts": []
+}
+```
+
+For the first virtual release, `previous_release` is `null` and the `before`
+counts are zero. Historical draft previews compare against the tagged release
+that chronologically preceded the selected draft, not a later release. Release
+preview and release never re-resolve virtual composition.
+
 ---
 
 ## Version Pin Management
@@ -1040,17 +1073,17 @@ POST /api/release-tracks/new
   "composition": {
     "component_tracks": [
       {
-        "track_id": "GroupsMonthly--uuid",
+        "track_id": "release-track--uuid",
         "resolution_strategy": "latest_tagged",
+        "priority": 0,
         "filters": {
-          "object_types": ["intrusion-set"]
+          "object_types": ["intrusion-set"],
+          "domains": ["enterprise"]
         }
       }
     ],
     "deduplication": {
-      "strategy": "prefer_latest_modified",
-      "tier_resolution": "highest_tier",
-      "status_resolution": "highest_status"
+      "strategy": "prioritize_latest_object"
     }
   },
   "snapshot_schedule": {
@@ -1060,10 +1093,18 @@ POST /api/release-tracks/new
 }
 ```
 
+`filters.domains` matches the exact pinned revision's `x_mitre_domains`.
+Short names (`enterprise`, `ics`, `mobile`) and STIX names ending in
+`-attack` are equivalent. Objects without a matching domain are excluded.
+For primary matrices, which omit `x_mitre_domains` in published ATT&CK data,
+the domain is read from `external_references[].external_id`.
+`snapshot_schedule` is stored as metadata only; automated execution is not
+yet implemented.
+
 ### Update Virtual Track Composition
 
 ```
-PUT /api/release-tracks/:id/composition
+PUT /api/release-tracks/:id/virtual/composition
 ```
 
 **Request Body:**
@@ -1084,12 +1125,13 @@ PUT /api/release-tracks/:id/composition
 }
 ```
 
-**Note:** Updating composition creates a new draft snapshot with the new composition rules.
+**Note:** Updating composition creates a new draft snapshot containing the new
+composition rules. It does not resolve component contents.
 
 ### Create Virtual Snapshot
 
 ```
-POST /api/release-tracks/:id/snapshots/create
+POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Request Body:**
@@ -1128,32 +1170,11 @@ POST /api/release-tracks/:id/snapshots/create
 }
 ```
 
-### Preview Virtual Snapshot
-
-Preview what a snapshot would contain without creating it:
-
-```
-GET /api/release-tracks/:id/snapshots/preview
-```
-
-**Response:**
-
-```json
-{
-  "preview": {
-    "would_resolve_to": {
-      "component_snapshots": [...],
-      "total_objects": 870
-    },
-    "comparison_to_latest_tagged": {
-      "current_version": "13.1",
-      "new_objects": 12,
-      "updated_objects": 45,
-      "removed_objects": 3
-    }
-  }
-}
-```
+The response is the persisted draft. Review it through the shared snapshot
+retrieval endpoints, then use the shared release-preview and release endpoints
+to tag it. There is no separate virtual snapshot-creation preview: the release
+preview is the authoritative comparison and representation of the persisted
+draft that would be tagged.
 
 ---
 

@@ -223,7 +223,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         type: 'virtual',
       });
       await request(app)
-        .put(`/api/release-tracks/${virtual.id}/composition`)
+        .put(`/api/release-tracks/${virtual.id}/virtual/composition`)
         .send({
           component_tracks: [
             { track_id: componentTrackId, resolution_strategy: 'latest_tagged', priority: 0 },
@@ -232,7 +232,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         .set('Accept', 'application/json')
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200);
-      await postObject(`/api/release-tracks/${virtual.id}/snapshots/create`, {}, 201);
+      await postObject(`/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 201);
 
       // The object now carries one entry per referencing track, with types
       const retrieved = await getTechniqueVersion(technique);

@@ -83,7 +83,6 @@ class RelationshipsRepository extends BaseRepository {
 
   async retrieveAllForBundle(options) {
     try {
-      // Build query exactly as original - NO domain filter
       const query = {};
       if (!options.includeRevoked) {
         query['stix.revoked'] = { $in: [null, false] };
@@ -96,8 +95,11 @@ class RelationshipsRepository extends BaseRepository {
           ? { $in: options.state }
           : options.state;
       }
+      if (Array.isArray(options.objectRefs)) {
+        query['stix.source_ref'] = { $in: options.objectRefs };
+        query['stix.target_ref'] = { $in: options.objectRefs };
+      }
 
-      // Use exact same aggregation as original
       const aggregation = [
         { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
         { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },

@@ -202,15 +202,23 @@ filters: {
   // Only include specific object types
   object_types: ["intrusion-set", "malware"],
 
-  // Only include objects with specific domains (if applicable)
-  domains: ["enterprise", "mobile"],
-
-  // Only include objects matching STIX filter pattern (advanced)
-  stix_pattern: {
-    "x_mitre_platforms": { "$in": ["Windows", "macOS"] }
-  }
+  // Match the pinned revision's x_mitre_domains values. Both public names
+  // ("enterprise") and STIX names ("enterprise-attack") are accepted.
+  domains: ["enterprise", "mobile"]
 }
 ```
+
+Domain filters hydrate the exact revisions pinned by the component's tagged
+snapshot; they do not inspect the latest database revision. An object with
+multiple matching domains is included in each corresponding virtual track.
+Objects without `x_mitre_domains` are excluded when a domain filter is set.
+The primary Enterprise, ICS, and Mobile matrices are the exception: published
+ATT&CK data identifies their domain through
+`external_references[].external_id`, so virtual filtering uses that established
+matrix fallback.
+
+`stix_pattern` is not part of the current request schema and is not
+implemented.
 
 ### Deduplication Strategies
 
@@ -400,7 +408,7 @@ Virtual track snapshots are created either **manually** or **on schedule**.
 #### Manual Snapshot
 
 ```bash
-POST /api/release-tracks/:id/snapshots/create
+POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Request:**
@@ -490,7 +498,11 @@ snapshot_schedule: {
 }
 ```
 
-**Scheduler integration:**
+The configuration is currently persisted as registry metadata only. No
+release-track scheduler consumes it yet, so `cron` and `dates` schedules do
+not create snapshots automatically.
+
+**Planned scheduler integration:**
 ```javascript
 scheduler.register({
   type: "virtual-track-snapshot",
@@ -522,9 +534,23 @@ GET /api/release-tracks/:id/snapshots/:modified?format=workbench&include=all
 **Response includes:**
 - All objects that will be in the release
 - Composition resolution details (which component versions were used)
-- Statistics and diff from previous tagged release
+- The exact persisted members and quarantine tiers
 
-### 3. Snapshot Tagging
+### 3. Release Preview
+
+Preview the selected draft against its preceding tagged release:
+
+```bash
+GET /api/release-tracks/:id/snapshots/:modified/release/preview
+```
+
+The summary reports the next version, previous tagged release, type-oriented
+before/after counts, and new, updated, removed, and quarantined object counts.
+Use `format=workbench` for the literal would-be tagged snapshot or
+`format=bundle` for its publication artifact. Previewing does not persist and
+never re-resolves composition.
+
+### 4. Snapshot Tagging
 
 Once reviewed, explicitly tag the draft snapshot:
 
@@ -576,7 +602,7 @@ POST /api/release-tracks/:id/snapshots/:modified/release
 4. Add entry to version_history
 5. Snapshot is now immutable
 
-### 4. Snapshot Export
+### 5. Snapshot Export
 
 Export virtual track snapshot as STIX bundle:
 
@@ -704,7 +730,7 @@ for (const component of composition.component_tracks) {
 
 **User experience:**
 ```bash
-POST /api/release-tracks/release-track--uuid-virtual/snapshots/create
+POST /api/release-tracks/release-track--uuid-virtual/virtual/snapshots/create
 
 # Error response:
 {
@@ -777,7 +803,7 @@ POST /api/release-tracks/new
 ### Update Composition
 
 ```bash
-PUT /api/release-tracks/:id/composition
+PUT /api/release-tracks/:id/virtual/composition
 ```
 
 **Request:**
@@ -802,39 +828,13 @@ PUT /api/release-tracks/:id/composition
 ### Create Virtual Snapshot
 
 ```bash
-POST /api/release-tracks/:id/snapshots/create
+POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Request:**
 ```json
 {
   "description": "Q1 2024 snapshot"
-}
-```
-
-### Preview Virtual Snapshot
-
-Preview what a snapshot would contain without creating it:
-
-```bash
-GET /api/release-tracks/:id/snapshots/preview
-```
-
-**Response:**
-```json
-{
-  "preview": {
-    "would_resolve_to": {
-      "component_snapshots": [...],
-      "total_objects": 870
-    },
-    "comparison_to_latest_tagged": {
-      "current_version": "13.1",
-      "new_objects": 12,
-      "updated_objects": 45,
-      "removed_objects": 3
-    }
-  }
 }
 ```
 
@@ -850,6 +850,18 @@ POST /api/release-tracks/:id/snapshots/:modified/release
   "increment": "major"
 }
 ```
+
+Release preview uses the same shared path as standard tracks:
+
+```bash
+GET /api/release-tracks/:id/snapshots/:modified/release/preview
+```
+
+Virtual composition is not recomputed during preview or release. The summary
+compares the selected persisted draft with the tagged release that immediately
+preceded it, reporting members/quarantine counts and new, updated, removed, and
+quarantined object counts. Use `format=workbench` or `format=bundle` to inspect
+the literal snapshot or publication artifact that would be tagged.
 
 ### Get Virtual Track with Resolved Content
 
@@ -1018,7 +1030,7 @@ POST /api/release-tracks/new
 
 ```bash
 # Manually trigger first snapshot
-POST /api/release-tracks/release-track--uuid-virtual/snapshots/create
+POST /api/release-tracks/release-track--uuid-virtual/virtual/snapshots/create
 
 # Review draft snapshot
 GET /api/release-tracks/release-track--uuid-virtual/snapshots/:modified
@@ -1123,13 +1135,13 @@ Always create snapshot, review, then tag:
 
 ```bash
 # Create draft
-POST /api/release-tracks/:id/snapshots/create
+POST /api/release-tracks/:id/virtual/snapshots/create
 
 # Review
 GET /api/release-tracks/:id/snapshots/:modified?format=workbench
 
-# Preview export
-GET /api/release-tracks/:id/snapshots/:modified?format=bundle
+# Preview release artifact
+GET /api/release-tracks/:id/snapshots/:modified/release/preview?format=bundle
 
 # Tag only when satisfied
 POST /api/release-tracks/:id/snapshots/:modified/release

@@ -1014,9 +1014,10 @@ See [virtual-tracks.md](virtual-tracks.md) for complete virtual track documentat
    - Creates draft snapshot with resolved composition
    - Team receives notification to review
 
-4. Review and tag
+4. Review, preview, and tag
    - Team reviews which component versions were included
    - Verifies object counts and composition
+   - Previews the draft against its preceding tagged release
    - Tags snapshot when satisfied
 ```
 
@@ -1067,6 +1068,7 @@ July 15 (scheduled):
 July 16 (manual):
   - Team reviews draft
   - Verifies composition
+  - Previews the release delta and publication artifact
   - Tags as Enterprise v14.0
 ```
 

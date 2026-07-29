@@ -4,6 +4,7 @@ const uuid = require('uuid');
 const config = require('../../config/config');
 const { BaseService } = require('../meta-classes');
 const linkById = require('../../lib/linkById');
+const bundleRelationships = require('../../lib/stix-bundle-relationships');
 const logger = require('../../lib/logger');
 const { requiresAttackId } = require('../../lib/attack-id-generator');
 const stixConformance = require('../../lib/stix-conformance');
@@ -125,16 +126,7 @@ class StixBundlesService extends BaseService {
    * - SRO<x-mitre-data-component, detects, attack-pattern>
    *   Reason: Data components no longer detect techniques; detection strategies do
    */
-  static DEPRECATED_PATTERNS = [
-    {
-      type: 'relationship',
-      conditions: {
-        relationship_type: 'detects',
-        sourceTypePrefix: 'x-mitre-data-component--',
-      },
-      reason: 'Data components cannot detect techniques in v17+ (only detection strategies can)',
-    },
-  ];
+  static DEPRECATED_PATTERNS = bundleRelationships.DEPRECATED_PATTERNS;
 
   /**
    * Checks if a STIX object matches any deprecated pattern and should be excluded.
@@ -142,31 +134,7 @@ class StixBundlesService extends BaseService {
    * @returns {boolean} True if the object matches a deprecated pattern
    */
   static isDeprecatedPattern(stixObject) {
-    for (const pattern of StixBundlesService.DEPRECATED_PATTERNS) {
-      if (stixObject.type !== pattern.type) {
-        continue;
-      }
-
-      // Check all conditions for this pattern
-      let matchesAllConditions = true;
-      for (const [key, value] of Object.entries(pattern.conditions)) {
-        if (key === 'sourceTypePrefix') {
-          // Special handling for source_ref prefix matching
-          if (!stixObject.source_ref?.startsWith(value)) {
-            matchesAllConditions = false;
-            break;
-          }
-        } else if (stixObject[key] !== value) {
-          matchesAllConditions = false;
-          break;
-        }
-      }
-
-      if (matchesAllConditions) {
-        return true;
-      }
-    }
-    return false;
+    return bundleRelationships.isDeprecatedPattern(stixObject);
   }
 
   // ============================
@@ -247,7 +215,7 @@ class StixBundlesService extends BaseService {
    * @returns {boolean} True if the relationship is active
    */
   static relationshipIsActive(relationship) {
-    return !relationship.stix.x_mitre_deprecated && !relationship.stix.revoked;
+    return bundleRelationships.relationshipIsActive(relationship);
   }
 
   /**

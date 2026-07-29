@@ -1,5 +1,111 @@
 # Release Track TODOs
 
+## Consolidate virtual draft creation and shared release previews
+
+- [x] Move virtual-only composition and draft-creation operations under an
+  explicit `/virtual` capability namespace.
+- [x] Remove the standalone virtual snapshot-preview endpoint without an
+  alias.
+- [x] Enhance shared virtual release summaries to compare the persisted draft
+  with its preceding tagged release without recomputing composition.
+- [x] Add regression coverage for route removal, type enforcement, latest and
+  historical virtual previews, and release-preview non-persistence.
+- [x] Update OpenAPI, user/developer documentation, Bruno, and the
+  `internalattack` Python client.
+- [x] Run focused regression specs, then the complete `npm test` suite.
+- [x] Review the final diff and propose a conventional commit message.
+
+Verification result (2026-07-29):
+
+- Focused release, back-reference, release-by-object, and virtual-domain specs
+  pass; backend lint passes.
+- The first complete run encountered two unrelated full-suite flakes in Assets
+  and Campaigns; both passed in isolation. The required second complete
+  `npm test` run passed.
+- The `internalattack` focused suite passes (29), its complete suite passes
+  (246), and changed-file Ruff and pre-commit checks pass.
+- Proposed commit:
+  `feat(release-tracks): clarify virtual draft and release lifecycle`
+
+## Bootstrap faster-release core, defense, and virtual tracks
+
+- [x] Reconcile the clarified ownership partition with the current release-track
+  and virtual-composition API.
+- [x] Add regression coverage for functional virtual domain filters and
+  relationship-complete snapshot bundle exports.
+- [x] Implement virtual `filters.domains` using the established ATT&CK domain
+  inference rules.
+- [x] Reuse/extract existing bundle relationship logic so snapshot
+  `format=bundle` exports dynamically include valid secondary relationships.
+- [x] Inventory and report any additional release-track no-op placeholders.
+- [x] Update user/developer docs and OpenAPI for the effective contract change;
+  Bruno has no new or changed request parameter to mirror.
+- [x] Run focused release-track regression specs, then the complete `npm test`
+  suite.
+- [x] Scan all three ATT&CK v19.1 bundles and construct a disjoint exact-revision
+  partition for Enterprise Core, ICS Core, Mobile Core, and Defense.
+- [x] Assign the shared identity and marking definitions to Enterprise Core
+  using the representations supported by release-track snapshots.
+- [x] Preflight exact track names and refuse conflicting duplicate tracks.
+- [x] Create and verify the four v19.1-pinned standard tracks.
+- [x] Create and verify the three domain-filtered virtual track definitions.
+- [x] Verify that every in-scope v19.1 object is owned by exactly one standard
+  track and record intentional relationship/collection exclusions. CTI owns
+  `course-of-action`; ICS Core owns `x-mitre-asset`.
+- [x] Defer materializing virtual snapshots until the component standard tracks
+  have tagged releases; no release/tag action was authorized in this bootstrap.
+- [x] Review the final repository diff and propose a conventional commit
+  message.
+
+Operational result (2026-07-28):
+
+- Standard tracks: Enterprise Core
+  (`release-track--48be5319-2f98-435a-ba36-5533236a991a`, 875 members),
+  ICS Core (`release-track--73147f31-2598-42a3-9cb4-125d458c4490`, 149),
+  Mobile Core (`release-track--ae6df6f6-3856-4d54-af40-22db856baa2d`, 206),
+  Defense (`release-track--84cb1147-9dba-445f-948e-6eecc51fa7e8`, 3,151),
+  and CTI (`release-track--469b126a-6081-462e-8b4c-709cdbb4eac4`, 1,575).
+- CTI now includes 60 campaigns, 358 courses of action, 194 intrusion sets,
+  866 malware objects, and 97 tools, pinned to the latest database revisions.
+- Virtual definitions: Enterprise
+  (`release-track--a42a6f32-80c6-43a7-b1e7-26ef0814d0cb`), ICS
+  (`release-track--83ede842-58c8-42ce-a3fb-c38c5dd0e74c`), and Mobile
+  (`release-track--05615c60-bca8-4074-b8d3-b537eed52d30`). Each composes all
+  five standard tracks with `latest_tagged`, `prioritize_latest_object`, and
+  its domain filter.
+- Verified 5,928 unique v19.1 owned object IDs form a disjoint partition;
+  relationships remain indirect, collections are generated at export, and
+  marking definitions are supporting metadata.
+- Focused domain-filter and bundle-export specs pass (1 and 15 tests);
+  lint passes; the complete suite passes (OpenAPI 2, config 21, API 909,
+  middleware 24).
+- Proposed commit:
+  `feat(release-tracks): filter virtual tracks and export relationships`
+
+## Bootstrap CTI faster-release tracks
+
+- [x] Read the local environment mapping and release-track documentation.
+- [x] Inspect the internalattack release-track client and reference script.
+- [x] Scan the ATT&CK v19.1 ICS and Mobile bundles and report every object type.
+- [x] Preflight the production-mirroring Workbench API and existing tracks.
+- [x] Create the CTI standard track with the latest intrusion-set, malware,
+  tool, and campaign revisions as members.
+- [x] Verify the persisted CTI snapshot, object-type coverage, exact latest
+  revision pins, and counts.
+- [x] Record operational results and propose a conventional commit message for
+  the committable scratchpad update.
+
+Operational result (2026-07-28):
+
+- Created standard track `CTI`
+  (`release-track--469b126a-6081-462e-8b4c-709cdbb4eac4`).
+- Initially pinned 1,217 exact latest revisions as members: 60 campaigns, 194
+  intrusion sets, 866 malware objects, and 97 tools. The clarified ownership
+  bootstrap subsequently added 358 courses of action for 1,575 total members.
+- Verified the persisted snapshot, registry count, and all 1,575 member
+  backrefs; candidates and staged are empty.
+- Proposed commit: `docs(release-tracks): record CTI bootstrap run`
+
 ## Harden release version selection
 
 - [x] Reject simultaneous `increment` and `version` selectors inside the
@@ -459,7 +565,7 @@ the latest snapshot. Like `git rebase --squash`ing the commits behind a tag.
 
 ## Small Fixes
 
-- [ ] **Composition schema mismatch: `priority`.** `PUT /api/release-tracks/:id/composition` — the Zod schema (`componentTrackSchema`) marks `priority` optional, but the mongoose snapshot schema requires it, so omitting it passes validation and then fails the save with a 500 (`DatabaseError`) instead of a 400. Align the schemas (either default `priority` or make it required in Zod). Found 2026-07-15 while testing virtual-track backrefs.
+- [ ] **Composition schema mismatch: `priority`.** `PUT /api/release-tracks/:id/virtual/composition` — the Zod schema (`componentTrackSchema`) marks `priority` optional, but the mongoose snapshot schema requires it, so omitting it passes validation and then fails the save with a 500 (`DatabaseError`) instead of a 400. Align the schemas (either default `priority` or make it required in Zod). Found 2026-07-15 while testing virtual-track backrefs.
 
 - [ ] **`deleteSnapshot` lacks a tagged-release guard.** `DELETE /api/release-tracks/:id/snapshots/:modified` (`snapshot-service.deleteSnapshot`) deletes any snapshot, including tagged releases — contradicting the "immutable once set" versioning rule. Should 409 on `version != null` (a squash implementation must also filter `version: null`; see Snapshot Retention section). Found 2026-07-15 while designing squash.
 

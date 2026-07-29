@@ -107,10 +107,10 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
       201,
     );
     virtualTrack = virtual.id;
-    await put(`/api/release-tracks/${virtualTrack}/composition`, {
+    await put(`/api/release-tracks/${virtualTrack}/virtual/composition`, {
       component_tracks: [{ track_id: trackB, resolution_strategy: 'latest_tagged', priority: 0 }],
     });
-    await post(`/api/release-tracks/${virtualTrack}/snapshots/create`, {}, 201);
+    await post(`/api/release-tracks/${virtualTrack}/virtual/snapshots/create`, {}, 201);
     await releaseLatest(virtualTrack);
   });
 

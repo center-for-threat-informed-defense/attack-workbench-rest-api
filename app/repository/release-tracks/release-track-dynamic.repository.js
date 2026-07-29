@@ -81,6 +81,25 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getLatestTaggedSnapshotBefore(trackId, modified) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOne({
+        id: trackId,
+        version: { $type: 'string' },
+        modified: { $lt: modified },
+      })
+        .sort({ modified: -1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError({ parameterName: 'modified' });
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
   async getSnapshotByVersion(trackId, version) {
     try {
       const Model = this._getModel(trackId);

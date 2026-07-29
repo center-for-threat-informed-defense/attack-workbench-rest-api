@@ -103,16 +103,21 @@ Implemented in
 2. **Hydration** — the selected `{object_ref, object_modified}` pins are
    batch-fetched per STIX type via each repository's
    `findManyByIdAndModified`.
-3. **Supporting objects** — referenced identities and marking definitions
+3. **Relationships** — the relationship service fetches the latest active
+   relationship revisions whose `source_ref` and `target_ref` are both among
+   the selected objects. Deprecated data-component `detects` relationships
+   are excluded. Relationships remain indirect export-time content; they are
+   not added to the snapshot tiers.
+4. **Supporting objects** — referenced identities and marking definitions
    that are not themselves tier entries are fetched and appended.
-4. **LinkById conversion** — same behavior as the legacy exporter, preferring
+5. **LinkById conversion** — same behavior as the legacy exporter, preferring
    objects already in the export before falling back to a database lookup.
-5. **Assembly** (Zod transform) — notes are dropped, objects are conformed to
+6. **Assembly** (Zod transform) — notes are dropped, objects are conformed to
    `stixVersion` via the shared `lib/stix-conformance.js` helpers, and the
    bundle envelope is emitted (with `spec_version: "2.0"` only when
    `stixVersion=2.0` — STIX 2.1 removed `spec_version` from the bundle
    object).
-6. **TOC** — unless `includeToc=false`, an `x-mitre-collection` object is
+7. **TOC** — unless `includeToc=false`, an `x-mitre-collection` object is
    prepended. Unlike the legacy exporter (which hardcoded per-domain
    metadata) and the ephemeral endpoint (which uses ephemeral defaults), the
    TOC is derived from the release track itself:
@@ -128,6 +133,28 @@ Implemented in
 Because snapshot contents are explicitly curated, the export intentionally
 does **not** apply the legacy attack-id / deprecated / revoked filters — if a
 revision is in the snapshot, it is exported.
+
+#### Relationship consistency boundary
+
+Snapshot SDOs are reproducible because each member records an exact
+`object_modified` revision. Relationships are intentionally different: the
+bundle resolves their latest active revisions when it is requested. This
+keeps relationships secondary and automatically reflects new links between
+released objects, but it creates several tradeoffs:
+
+- exporting the same tagged snapshot at different times can produce different
+  relationship objects or TOC contents;
+- relationship revisions are not represented in snapshot history,
+  release-track backrefs, or composition audit metadata;
+- revoking a relationship can remove it from an older snapshot export, while
+  creating a relationship can add it to that export;
+- each bundle request performs a relationship query, although the query is
+  constrained to relationships whose two endpoints are already selected.
+
+Consumers that require byte-for-byte or graph-level reproducibility must
+archive the emitted bundle. A future model that pins relationship revisions
+in a separate, generated manifest could preserve the indirect ownership model
+while making repeat exports deterministic.
 
 ### Where validation happens
 

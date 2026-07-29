@@ -32,6 +32,52 @@ function tierCounts(snapshot) {
   };
 }
 
+function memberRevisions(snapshot) {
+  const revisionsByObject = new Map();
+  for (const member of snapshot?.members || []) {
+    const revisions = revisionsByObject.get(member.object_ref) || new Set();
+    revisions.add(iso(member.object_modified));
+    revisionsByObject.set(member.object_ref, revisions);
+  }
+  return revisionsByObject;
+}
+
+function sameRevisions(left, right) {
+  if (left.size !== right.size) return false;
+  for (const revision of left) {
+    if (!right.has(revision)) return false;
+  }
+  return true;
+}
+
+function virtualReleaseChanges(previousSnapshot, draftSnapshot) {
+  const previous = memberRevisions(previousSnapshot);
+  const draft = memberRevisions(draftSnapshot);
+  let newCount = 0;
+  let updatedCount = 0;
+  let removedCount = 0;
+
+  for (const [objectRef, revisions] of draft) {
+    const previousRevisions = previous.get(objectRef);
+    if (!previousRevisions) {
+      newCount++;
+    } else if (!sameRevisions(revisions, previousRevisions)) {
+      updatedCount++;
+    }
+  }
+
+  for (const objectRef of previous.keys()) {
+    if (!draft.has(objectRef)) removedCount++;
+  }
+
+  return {
+    new_count: newCount,
+    updated_count: updatedCount,
+    removed_count: removedCount,
+    quarantined_count: (draftSnapshot.quarantine || []).length,
+  };
+}
+
 /**
  * Build the complete release plan without reading or writing external state.
  *
@@ -40,9 +86,17 @@ function tierCounts(snapshot) {
  * @param {Array<Object>} versionHistory
  * @param {Object} options
  * @param {Date} now
+ * @param {Object|null} previousTaggedSnapshot
  * @returns {Object}
  */
-function planRelease(trackId, sourceSnapshot, versionHistory, options = {}, now = new Date()) {
+function planRelease(
+  trackId,
+  sourceSnapshot,
+  versionHistory,
+  options = {},
+  now = new Date(),
+  previousTaggedSnapshot = null,
+) {
   if (sourceSnapshot.version != null) {
     throw new AlreadyReleasedError(sourceSnapshot.version);
   }
@@ -56,7 +110,12 @@ function planRelease(trackId, sourceSnapshot, versionHistory, options = {}, now 
   );
   versionUtils.validateVersionProgression(version, versionHistory);
 
-  const before = tierCounts(snapshot);
+  const isVirtual = snapshot.type === 'virtual';
+  const before = isVirtual
+    ? previousTaggedSnapshot
+      ? tierCounts(previousTaggedSnapshot)
+      : { members_count: 0, quarantine_count: 0 }
+    : tierCounts(snapshot);
   const staged = snapshot.type === 'standard' ? snapshot.staged || [] : [];
   const existingMembers = snapshot.members || [];
   let mergedMembers = existingMembers;
@@ -97,6 +156,11 @@ function planRelease(trackId, sourceSnapshot, versionHistory, options = {}, now 
     ...(snapshot.type === 'standard' ? { staged: [] } : {}),
   };
   const after = tierCounts(afterSnapshot);
+  const changes = isVirtual
+    ? virtualReleaseChanges(previousTaggedSnapshot, afterSnapshot)
+    : {
+        promoted_count: blockingError ? 0 : staged.length,
+      };
   const versionHistoryEntry = {
     version,
     tagged_at: now,
@@ -129,19 +193,39 @@ function planRelease(trackId, sourceSnapshot, versionHistory, options = {}, now 
       source_snapshot_modified: iso(sourceSnapshot.modified),
       version,
       releasable: !blockingError,
+      ...(isVirtual
+        ? {
+            previous_release: previousTaggedSnapshot
+              ? {
+                  version: previousTaggedSnapshot.version,
+                  modified: iso(previousTaggedSnapshot.modified),
+                }
+              : null,
+          }
+        : {}),
       before,
       after: blockingError ? before : after,
-      changes: {
-        promoted_count: blockingError ? 0 : staged.length,
-      },
+      changes,
       conflicts: blockingError?.conflicts || [],
     },
   };
 }
 
 async function planLoadedSnapshot(trackId, snapshot, options) {
-  const versionHistory = await releaseHistoryService.getTrackWideVersionHistory(trackId);
-  return planRelease(trackId, snapshot, versionHistory, options);
+  const [versionHistory, previousTaggedSnapshot] = await Promise.all([
+    releaseHistoryService.getTrackWideVersionHistory(trackId),
+    snapshot.type === 'virtual'
+      ? dynamicRepo.getLatestTaggedSnapshotBefore(trackId, snapshot.modified)
+      : Promise.resolve(null),
+  ]);
+  return planRelease(
+    trackId,
+    snapshot,
+    versionHistory,
+    options,
+    new Date(),
+    previousTaggedSnapshot,
+  );
 }
 
 async function commitPlan(plan) {
@@ -177,6 +261,11 @@ async function commitPlan(plan) {
 }
 
 exports.planRelease = planRelease;
+exports._private = {
+  memberRevisions,
+  sameRevisions,
+  virtualReleaseChanges,
+};
 
 exports.planLatestRelease = async function planLatestRelease(trackId, options = {}) {
   const snapshot = await snapshotService.getLatestSnapshot(trackId);

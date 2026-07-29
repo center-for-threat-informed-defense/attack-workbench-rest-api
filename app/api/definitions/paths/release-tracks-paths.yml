@@ -405,6 +405,9 @@ paths:
         Plan without persisting. Summary is the default; workbench and bundle
         render the complete would-be release. `increment` and `version` are
         mutually exclusive; omitting both defaults to a minor increment.
+        Standard summaries show staged-to-members promotion. Virtual summaries
+        compare the persisted draft with its chronologically preceding tagged
+        release; composition is never recomputed.
       tags:
         - 'Release Tracks'
       parameters:
@@ -774,12 +777,13 @@ paths:
   # =============================================================================
   # Virtual track operations
   # =============================================================================
-  /api/release-tracks/{id}/composition:
+  /api/release-tracks/{id}/virtual/composition:
     put:
       summary: 'Update virtual track composition'
       operationId: 'release-tracks-composition-update'
       description: |
-        Update which component tracks a virtual track aggregates.
+        Update which component tracks a virtual track aggregates. This
+        operation is available only for tracks whose type is `virtual`.
         Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'
@@ -792,15 +796,18 @@ paths:
       responses:
         '200':
           description: 'Composition updated successfully'
-        '501':
-          description: 'Not yet implemented'
+        '400':
+          description: 'Track is not virtual or composition is invalid'
 
-  /api/release-tracks/{id}/snapshots/create:
+  /api/release-tracks/{id}/virtual/snapshots/create:
     post:
       summary: 'Create a virtual track snapshot'
       operationId: 'release-tracks-virtual-snapshot-create'
       description: |
-        Resolve component tracks and create a new virtual snapshot.
+        Resolve the configured component releases and persist a new virtual
+        draft snapshot. The draft must subsequently be reviewed and explicitly
+        released through the shared snapshot release endpoints. This operation
+        is available only for tracks whose type is `virtual`.
         Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'
@@ -813,28 +820,8 @@ paths:
       responses:
         '201':
           description: 'Virtual snapshot created successfully'
-        '501':
-          description: 'Not yet implemented'
-
-  /api/release-tracks/{id}/snapshots/preview:
-    get:
-      summary: 'Preview a virtual track snapshot'
-      operationId: 'release-tracks-virtual-snapshot-preview'
-      description: |
-        Compute what a virtual snapshot would contain without persisting it.
-      tags:
-        - 'Release Tracks'
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: 'Virtual snapshot preview generated'
-        '501':
-          description: 'Not yet implemented'
+        '400':
+          description: 'Track is not virtual or cannot resolve its composition'
 
   # =============================================================================
   # Snapshot-specific operations
@@ -1224,7 +1211,9 @@ paths:
       operationId: 'release-tracks-preview-release-by-modified'
       description: |
         Plan without persisting. `increment` and `version` are mutually
-        exclusive; omitting both defaults to a minor increment.
+        exclusive; omitting both defaults to a minor increment. For a virtual
+        draft, compare against the latest tagged snapshot whose modified
+        timestamp precedes this selected snapshot; never recompute composition.
       tags:
         - 'Release Tracks'
       parameters:

@@ -21,6 +21,9 @@ const config = require('../../config/config');
 const types = require('../../lib/types');
 const logger = require('../../lib/logger');
 const linkById = require('../../lib/linkById');
+const EventBus = require('../../lib/event-bus');
+const Events = require('../../lib/event-constants');
+const { selectRelationshipsForBundle } = require('../../lib/stix-bundle-relationships');
 const {
   bundleTransformSchema,
   workbenchTransformSchema,
@@ -209,6 +212,31 @@ async function fetchSupportingObjects(documents) {
 }
 
 /**
+ * Fetch the latest publishable relationships connecting selected bundle
+ * objects. Relationship revisions remain indirect export-time content rather
+ * than snapshot members.
+ *
+ * @param {Array<Object>} documents - Hydrated selected object documents
+ * @returns {Promise<Array<Object>>}
+ */
+async function fetchRelationships(documents) {
+  const selectedIds = new Set(documents.map((document) => document.stix.id));
+  if (selectedIds.size === 0) return [];
+
+  const results = await EventBus.emit(Events.BUNDLE_RELATIONSHIPS_REQUESTED, {
+    objectRefs: [...selectedIds],
+  });
+  const relationships = results?.[0];
+  if (!relationships) {
+    throw new Error('Unable to retrieve relationships for release-track bundle export');
+  }
+
+  return selectRelationshipsForBundle(relationships, selectedIds).filter(
+    (relationship) => !selectedIds.has(relationship.stix.id),
+  );
+}
+
+/**
  * Convert LinkById tags (e.g. "(LinkById: T1234)") in descriptions to
  * markdown citations, preferring objects already in the export before
  * falling back to a database lookup. Mirrors the legacy stix-bundles-service
@@ -284,9 +312,10 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
  *   1. Select tier entries — members always; staged/candidates via
  *      options.include, narrowed by options.state
  *   2. Hydrate entries into full documents
- *   3. Append referenced identities and marking definitions
- *   4. Convert LinkById tags to markdown citations
- *   5. Assemble the bundle (STIX version conformance + optional TOC) via the
+ *   3. Append current relationships whose endpoints are both selected
+ *   4. Append referenced identities and marking definitions
+ *   5. Convert LinkById tags to markdown citations
+ *   6. Assemble the bundle (STIX version conformance + optional TOC) via the
  *      Zod transform schema
  *
  * @param {Object} snapshot - The raw snapshot document from the dynamic repo
@@ -302,8 +331,9 @@ exports.exportSnapshot = async function exportSnapshot(snapshot, format, options
   if (format === 'bundle') {
     const entries = collectBundleEntries(snapshot, options);
     const hydratedObjects = await exports.hydrateMembers(entries);
-    const supportingObjects = await fetchSupportingObjects(hydratedObjects);
-    const allObjects = [...hydratedObjects, ...supportingObjects];
+    const relationships = await fetchRelationships(hydratedObjects);
+    const supportingObjects = await fetchSupportingObjects([...hydratedObjects, ...relationships]);
+    const allObjects = [...hydratedObjects, ...relationships, ...supportingObjects];
     await convertLinkByIdTags(allObjects);
 
     return exports.formatAsBundle(snapshot, allObjects, {

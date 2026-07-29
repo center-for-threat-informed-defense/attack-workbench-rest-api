@@ -58,6 +58,35 @@ policies remain responsible only for different revisions of one object.
 - Large collections (>10k objects) may need pagination
 - Consider caching for `release/preview` on large collections
 
+### Virtual draft creation and release planning
+
+Virtual-only operations are deliberately scoped beneath
+`/api/release-tracks/:id/virtual`:
+
+- `PUT /virtual/composition` clones a draft with revised composition rules.
+- `POST /virtual/snapshots/create` resolves tagged component snapshots and
+  persists the concrete members, quarantine, and immutable
+  `composition_resolution`.
+
+There is no side-effect-free virtual snapshot-creation preview. Once a virtual
+draft is persisted, it uses the same retrieval and release endpoints as a
+standard draft. Release planning never resolves composition.
+
+For virtual summary previews, `versioning-service` loads the latest tagged
+snapshot whose `modified` timestamp is strictly earlier than the selected
+draft. This chronological lookup matters for historical drafts: a release
+tagged later in the track must not become the comparison baseline. The pure
+planner compares member IDs and exact revision timestamps and reports:
+
+- `new_count`: IDs present only in the draft;
+- `updated_count`: IDs present in both with different revision sets;
+- `removed_count`: IDs present only in the preceding release;
+- `quarantined_count`: entries currently quarantined in the draft.
+
+The first virtual release uses zero-valued `before` counts and
+`previous_release: null`. Workbench and bundle previews render the same frozen
+planned snapshot, and the commit path tags that snapshot in place.
+
 ### Snapshot history reads
 
 Snapshot history is exposed as a nested collection at

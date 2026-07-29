@@ -408,10 +408,10 @@ const updateConfigBodySchema = z.object({
   member_sync: memberSyncConfigSchema.optional(),
 });
 
-/** PUT /release-tracks/:id/composition */
+/** PUT /release-tracks/:id/virtual/composition */
 const updateCompositionBodySchema = compositionSchema;
 
-/** POST /release-tracks/:id/snapshots/create */
+/** POST /release-tracks/:id/virtual/snapshots/create */
 const createVirtualSnapshotBodySchema = z
   .object({
     description: z.string().optional(),

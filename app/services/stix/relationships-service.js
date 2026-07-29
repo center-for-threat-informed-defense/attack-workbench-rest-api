@@ -61,7 +61,29 @@ class RelationshipsService extends BaseService {
       this.handleReleaseTrackContentsChanged.bind(this),
     );
 
+    EventBus.on(
+      EventConstants.BUNDLE_RELATIONSHIPS_REQUESTED,
+      this.handleBundleRelationshipsRequested.bind(this),
+    );
+
     logger.info('RelationshipsService: Event listeners initialized');
+  }
+
+  /**
+   * Return the latest active relationship revisions whose endpoints are both
+   * in the requested bundle object set.
+   *
+   * @param {Object} payload
+   * @param {Array<string>} payload.objectRefs
+   * @returns {Promise<Array<Object>>}
+   */
+  static async handleBundleRelationshipsRequested({ objectRefs }) {
+    if (!objectRefs || objectRefs.length === 0) return [];
+    return relationshipsRepository.retrieveAllForBundle({
+      includeRevoked: false,
+      includeDeprecated: false,
+      objectRefs,
+    });
   }
 
   /**

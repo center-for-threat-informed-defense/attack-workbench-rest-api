@@ -971,7 +971,7 @@ exports.listObjectVersions = async function listObjectVersions(req, res, next) {
 // Virtual track operations
 // =============================================================================
 
-/** PUT /api/release-tracks/:id/composition */
+/** PUT /api/release-tracks/:id/virtual/composition */
 exports.updateComposition = async function updateComposition(req, res, next) {
   try {
     const bodyResult = updateCompositionBodySchema.safeParse(req.body);
@@ -997,7 +997,7 @@ exports.updateComposition = async function updateComposition(req, res, next) {
   }
 };
 
-/** POST /api/release-tracks/:id/snapshots/create */
+/** POST /api/release-tracks/:id/virtual/snapshots/create */
 exports.createVirtualSnapshot = async function createVirtualSnapshot(req, res, next) {
   try {
     const bodyResult = createVirtualSnapshotBodySchema.safeParse(req.body || {});
@@ -1018,18 +1018,6 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(req, res, n
     return res.status(201).send(result);
   } catch (err) {
     logger.error('Failed to create virtual snapshot: ' + err);
-    return next(err);
-  }
-};
-
-/** GET /api/release-tracks/:id/snapshots/preview */
-exports.previewVirtualSnapshot = async function previewVirtualSnapshot(req, res, next) {
-  try {
-    const result = await releaseTracksService.previewVirtualSnapshot(req.params.id);
-    logger.debug(`Success: Generated virtual snapshot preview for track ${req.params.id}`);
-    return res.status(200).send(result);
-  } catch (err) {
-    logger.error('Failed to preview virtual snapshot: ' + err);
     return next(err);
   }
 };

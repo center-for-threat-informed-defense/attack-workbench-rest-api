@@ -366,10 +366,6 @@ exports.createVirtualSnapshot = function createVirtualSnapshot(trackId, options)
   return virtualTrackService.createVirtualSnapshot(trackId, options);
 };
 
-exports.previewVirtualSnapshot = function previewVirtualSnapshot(trackId) {
-  return virtualTrackService.previewVirtualSnapshot(trackId);
-};
-
 // -----------------------------------------------------------------------------
 // Object versions  (Phase 2 → standard-track-service)
 // -----------------------------------------------------------------------------
