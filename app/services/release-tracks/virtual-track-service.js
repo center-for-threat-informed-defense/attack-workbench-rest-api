@@ -370,7 +370,12 @@ exports.updateComposition = async function updateComposition(trackId, compositio
   // Validate all component tracks
   await validateComponentTracks(composition.component_tracks);
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, { composition });
+  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
+    composition,
+    members: [],
+    quarantine: [],
+    composition_resolution: null,
+  });
 
   logger.verbose(
     `VirtualTrackService: Updated composition for track "${trackId}" ` +

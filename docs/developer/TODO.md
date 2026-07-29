@@ -1,5 +1,32 @@
 # Release Track TODOs
 
+## Harden virtual materialization lifecycle
+
+- [x] Record the complete virtual-track audit in `VIRTUAL_TRACKS_TODO.md`.
+- [x] Add regression coverage for stale composition state, unmaterialized
+  release attempts, and virtual use of standard contents endpoints.
+- [x] Clear inherited materialized state when virtual composition changes.
+- [x] Require a materialized virtual draft for release preview and commit.
+- [x] Restrict generic contents replacement to standard tracks.
+- [x] Update OpenAPI, user/developer documentation, and Bruno.
+- [x] Run focused regression specs, then the complete `npm test` suite.
+- [x] Review the final diff and propose a conventional commit message.
+
+Verification result (2026-07-29):
+
+- Focused release, back-reference, release-by-object, and virtual-domain specs
+  pass (46); backend lint passes.
+- The complete suite passes (OpenAPI 2, config 21, API 913, middleware 24).
+- Proposed commit:
+
+  ```text
+  fix(release-tracks): enforce virtual materialization lifecycle
+
+  Invalidate materialized contents when composition changes and reject release
+  planning until the virtual draft is rematerialized. Restrict direct contents
+  replacement to standard tracks and document the remaining virtual-track work.
+  ```
+
 ## Consolidate virtual draft creation and shared release previews
 
 - [x] Move virtual-only composition and draft-creation operations under an

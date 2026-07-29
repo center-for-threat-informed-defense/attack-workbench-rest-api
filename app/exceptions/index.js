@@ -341,6 +341,15 @@ class InvalidComponentTypeError extends CustomError {
   }
 }
 
+class VirtualSnapshotNotMaterializedError extends CustomError {
+  constructor(trackId, options) {
+    super(
+      `Virtual release track ${trackId} has not been materialized from its composition`,
+      options,
+    );
+  }
+}
+
 class TrackNotFoundError extends CustomError {
   constructor(trackId, options) {
     super(`Release track ${trackId} not found`, options);
@@ -384,6 +393,7 @@ module.exports = {
   ReleaseConflictError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
+  VirtualSnapshotNotMaterializedError,
   TrackNotFoundError,
   MemberPinnedRevisionError,
 

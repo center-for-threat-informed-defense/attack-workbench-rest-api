@@ -41,6 +41,7 @@ const {
   ReleaseConflictError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
+  VirtualSnapshotNotMaterializedError,
   TrackNotFoundError,
   MemberPinnedRevisionError,
   ObjectHasValidationIssuesError,
@@ -133,6 +134,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof AlreadyReleasedError ||
     err instanceof TaggedSnapshotDeletionError ||
     err instanceof ReleaseConflictError ||
+    err instanceof VirtualSnapshotNotMaterializedError ||
     err instanceof MemberPinnedRevisionError ||
     err instanceof ObjectHasValidationIssuesError ||
     err instanceof ActiveOrganizationIdentityDeleteError

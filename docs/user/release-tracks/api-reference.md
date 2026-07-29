@@ -463,6 +463,11 @@ POST /api/release-tracks/:id/contents
 
 Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.** The main workflow for enrolling new member objects into `x_mitre_contents` is through the candidate-staging promotion cycle described in [versioning.md](./versioning.md).
 
+This operation is available only for standard tracks. Virtual membership is
+computed from component releases and can only be updated by materializing a
+virtual draft with `POST /api/release-tracks/:id/virtual/snapshots/create`.
+Using either contents endpoint with a virtual track returns `400 Bad Request`.
+
 **Request Body:**
 
 ```json
@@ -498,6 +503,11 @@ Use `"version": "2.4"` instead of `increment` to select an explicit
 `MAJOR.MINOR` version. The `latest` selector is resolved when the request is
 handled. Use the `:modified` release endpoint when a caller needs to pin the
 operation to a specific snapshot.
+
+For virtual tracks, the selected draft must have a non-null
+`composition_resolution`. An initial or composition-update draft is pending
+until the virtual snapshot creation endpoint materializes it; preview and
+release return `409 Conflict` before then.
 
 ### Clone Release Track From Latest
 
@@ -584,6 +594,8 @@ POST /api/release-tracks/:id/snapshots/:modified/contents
 Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.**
 
 **Request Body:** Same as [Update Contents](#update-contents) for latest snapshot.
+
+Like the latest form, this operation is restricted to standard tracks.
 
 ### Release/Tag Specific Snapshot
 
@@ -884,8 +896,10 @@ not a separate command: it is a release preview with the desired format.
 For a standard track, `before` is the selected draft before staged members are
 promoted and `after` is the would-be tagged result. For a virtual track, the
 contents were already resolved and frozen when the draft was explicitly
-created. Its release summary therefore compares that persisted draft with the
-most recent tagged snapshot that precedes it:
+created. A virtual draft without `composition_resolution` returns
+`409 Conflict` instead of previewing stale or empty members. A materialized
+draft's release summary compares that persisted draft with the most recent
+tagged snapshot that precedes it:
 
 ```json
 {
@@ -1125,8 +1139,13 @@ PUT /api/release-tracks/:id/virtual/composition
 }
 ```
 
-**Note:** Updating composition creates a new draft snapshot containing the new
-composition rules. It does not resolve component contents.
+**Note:** Updating composition creates a pending draft containing the new
+rules. To prevent stale materialization from being released, the draft has
+empty `members` and `quarantine` arrays and
+`composition_resolution: null`. It cannot be previewed or tagged as a release
+until `POST /api/release-tracks/:id/virtual/snapshots/create` materializes the
+configured composition. Release preview and release return `409 Conflict`
+while the draft is pending.
 
 ### Create Virtual Snapshot
 
@@ -1174,7 +1193,8 @@ The response is the persisted draft. Review it through the shared snapshot
 retrieval endpoints, then use the shared release-preview and release endpoints
 to tag it. There is no separate virtual snapshot-creation preview: the release
 preview is the authoritative comparison and representation of the persisted
-draft that would be tagged.
+draft that would be tagged. A non-null `composition_resolution` is the
+readiness marker for those shared release operations.
 
 ---
 

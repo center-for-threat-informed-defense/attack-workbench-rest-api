@@ -342,7 +342,9 @@ Virtual release tracks compute their contents by aggregating objects from compon
     }
   },
 
-  // Composition resolution - computed at snapshot creation time, immutable
+  // Composition resolution - computed at snapshot creation time, immutable.
+  // Null/absent means composition is configured but awaiting materialization;
+  // that draft cannot be previewed or tagged as a release.
   composition_resolution: {
     resolved_at: "2024-03-01T10:00:00Z",
 

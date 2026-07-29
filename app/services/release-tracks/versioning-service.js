@@ -11,7 +11,11 @@ const conflictResolution = require('../../lib/release-tracks/conflict-resolution
 const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const releaseHistoryService = require('./release-history-service');
 const logger = require('../../lib/logger');
-const { AlreadyReleasedError, ReleaseConflictError } = require('../../exceptions');
+const {
+  AlreadyReleasedError,
+  ReleaseConflictError,
+  VirtualSnapshotNotMaterializedError,
+} = require('../../exceptions');
 
 function iso(value) {
   return new Date(value).toISOString();
@@ -99,6 +103,12 @@ function planRelease(
 ) {
   if (sourceSnapshot.version != null) {
     throw new AlreadyReleasedError(sourceSnapshot.version);
+  }
+  if (sourceSnapshot.type === 'virtual' && sourceSnapshot.composition_resolution == null) {
+    throw new VirtualSnapshotNotMaterializedError(trackId, {
+      details:
+        'Create a persisted draft with POST /api/release-tracks/:id/virtual/snapshots/create before previewing or releasing it',
+    });
   }
 
   const normalized = tierRevisionInvariant.normalizeSnapshot(sourceSnapshot);

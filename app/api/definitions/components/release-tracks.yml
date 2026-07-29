@@ -70,6 +70,14 @@ components:
           nullable: true
           description: 'Component track references (virtual tracks only)'
           $ref: '#/components/schemas/composition'
+        composition_resolution:
+          type: object
+          nullable: true
+          description: |
+            Immutable component-resolution provenance for a materialized virtual
+            draft. Null or absent means the virtual composition is configured
+            but has not been materialized and therefore cannot be previewed or
+            released.
         config:
           $ref: '#/components/schemas/track-config'
         version_history:

@@ -40,6 +40,14 @@ function quarantineEntry(objectRef, modified, sourceTrackId) {
   };
 }
 
+function compositionResolution(modified) {
+  return {
+    resolved_at: modified,
+    component_snapshots: [],
+    summary: { total_objects: 0, quarantined_objects: 0 },
+  };
+}
+
 function buildTechnique(name, previous) {
   const timestamp = previous
     ? new Date(new Date(previous.stix.modified).getTime() + 1000).toISOString()
@@ -210,6 +218,7 @@ describe('Release-track release planning and commit API', function () {
         memberEntry(virtualObjectRefs[2], newRevision),
       ],
       quarantine: [],
+      composition_resolution: compositionResolution(draftModified),
     });
 
     const preview = await get(`/api/release-tracks/${track.id}/snapshots/latest/release/preview`);
@@ -259,6 +268,7 @@ describe('Release-track release planning and commit API', function () {
       modified: historicalDraftModified,
       version: null,
       members: [memberEntry(virtualObjectRefs[0], newRevision)],
+      composition_resolution: compositionResolution(historicalDraftModified),
     });
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
@@ -320,6 +330,96 @@ describe('Release-track release planning and commit API', function () {
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(404);
+  });
+
+  it('requires virtual composition to be materialized before preview or release', async function () {
+    const member = (
+      await post('/api/techniques', buildTechnique('Virtual Materialization Member'), 201)
+    ).body;
+    const component = await createTrack('Virtual Materialization Component');
+    await post(`/api/release-tracks/${component.id}/contents`, {
+      x_mitre_contents: [{ obj_ref: member.stix.id, obj_modified: member.stix.modified }],
+    });
+    await post(`/api/release-tracks/${component.id}/snapshots/latest/release`, {});
+
+    const virtual = (
+      await post(
+        '/api/release-tracks/new',
+        {
+          name: 'Virtual Materialization Lifecycle',
+          type: 'virtual',
+          composition: {
+            component_tracks: [
+              {
+                track_id: component.id,
+                resolution_strategy: 'latest_tagged',
+                priority: 1,
+              },
+            ],
+          },
+        },
+        201,
+      )
+    ).body;
+    const materialized = (
+      await post(`/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 201)
+    ).body;
+    expect(materialized.members).toHaveLength(1);
+    expect(materialized.composition_resolution).toBeDefined();
+
+    const compositionDraft = await request(app)
+      .put(`/api/release-tracks/${virtual.id}/virtual/composition`)
+      .send({
+        component_tracks: [
+          {
+            track_id: component.id,
+            resolution_strategy: 'latest_tagged',
+            priority: 1,
+          },
+        ],
+      })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
+
+    expect(compositionDraft.body.members).toEqual([]);
+    expect(compositionDraft.body.quarantine).toEqual([]);
+    expect(compositionDraft.body.composition_resolution).toBeNull();
+
+    await get(`/api/release-tracks/${virtual.id}/snapshots/latest/release/preview`, 409);
+    await post(`/api/release-tracks/${virtual.id}/snapshots/latest/release`, {}, 409);
+
+    const rematerialized = (
+      await post(`/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 201)
+    ).body;
+    expect(rematerialized.members).toHaveLength(1);
+    expect(rematerialized.composition_resolution).toBeDefined();
+
+    const preview = await get(`/api/release-tracks/${virtual.id}/snapshots/latest/release/preview`);
+    expect(preview.body.releasable).toBe(true);
+  });
+
+  it('rejects generic contents replacement for virtual tracks', async function () {
+    const virtual = await createTrack('Virtual Contents Guard', 'virtual');
+    const contents = {
+      x_mitre_contents: [
+        {
+          obj_ref: virtualObjectRefs[0],
+          obj_modified: new Date().toISOString(),
+        },
+      ],
+    };
+
+    await post(`/api/release-tracks/${virtual.id}/contents`, contents, 400);
+    await post(
+      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(virtual.modified)}/contents`,
+      contents,
+      400,
+    );
+
+    const latest = await get(`/api/release-tracks/${virtual.id}/snapshots/latest`);
+    expect(latest.body.modified).toBe(virtual.modified);
+    expect(latest.body.members).toEqual([]);
   });
 
   it('reports blocking promotion conflicts in summaries and rejects materialization', async function () {

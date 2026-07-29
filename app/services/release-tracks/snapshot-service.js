@@ -25,6 +25,7 @@ const {
   TrackNotFoundError,
   NotFoundError,
   TaggedSnapshotDeletionError,
+  BadRequestError,
 } = require('../../exceptions');
 
 // =============================================================================
@@ -50,6 +51,16 @@ function normalizeTierSummary(summary) {
     staged_count: summary?.staged_count ?? 0,
     candidates_count: summary?.candidates_count ?? 0,
   };
+}
+
+function assertStandardTrack(snapshot) {
+  if (snapshot.type !== 'standard') {
+    throw new BadRequestError({
+      message: 'Direct contents updates are only available for standard release tracks',
+      details:
+        'Virtual members are computed from component tracks; create a virtual snapshot to update them',
+    });
+  }
 }
 
 /**
@@ -473,6 +484,7 @@ exports.updateMetadataByModified = async function updateMetadataByModified(
 // eslint-disable-next-line no-unused-vars
 exports.updateContents = async function updateContents(trackId, contents, _userId) {
   const source = await exports.getLatestSnapshot(trackId);
+  assertStandardTrack(source);
   const members = contents.x_mitre_contents.map((c) => ({
     object_ref: c.obj_ref,
     object_modified: c.obj_modified === 'latest' ? new Date() : new Date(c.obj_modified),
@@ -497,6 +509,7 @@ exports.updateContentsByModified = async function updateContentsByModified(
   _userId,
 ) {
   const source = await exports.getSnapshotByModified(trackId, modified);
+  assertStandardTrack(source);
   const members = contents.x_mitre_contents.map((c) => ({
     object_ref: c.obj_ref,
     object_modified: c.obj_modified === 'latest' ? new Date() : new Date(c.obj_modified),

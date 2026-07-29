@@ -324,7 +324,9 @@ paths:
       summary: 'Update member contents on the latest snapshot'
       operationId: 'release-tracks-update-contents-latest'
       description: |
-        Replace the members tier with new contents (x_mitre_contents format).
+        Replace the members tier of a standard track with new contents
+        (x_mitre_contents format). Virtual membership can only be produced by
+        POST /api/release-tracks/{id}/virtual/snapshots/create.
         Exact revisions already present in another tier are retained only in members;
         different revisions of the same object remain valid across tiers.
         Creates a new snapshot clone.
@@ -340,6 +342,8 @@ paths:
       responses:
         '200':
           description: 'Contents updated successfully'
+        '400':
+          description: 'Track is virtual or the contents request is invalid'
 
   /api/release-tracks/{id}/clone:
     post:
@@ -407,7 +411,8 @@ paths:
         mutually exclusive; omitting both defaults to a minor increment.
         Standard summaries show staged-to-members promotion. Virtual summaries
         compare the persisted draft with its chronologically preceding tagged
-        release; composition is never recomputed.
+        release; composition is never recomputed. A virtual draft whose
+        composition has not been materialized returns 409.
       tags:
         - 'Release Tracks'
       parameters:
@@ -468,6 +473,8 @@ paths:
       responses:
         '200':
           description: 'Release preview generated'
+        '409':
+          description: 'Virtual draft is unmaterialized or release is blocked by a conflict'
         '501':
           description: 'Requested format is not yet implemented'
 
@@ -784,6 +791,8 @@ paths:
       description: |
         Update which component tracks a virtual track aggregates. This
         operation is available only for tracks whose type is `virtual`.
+        The new pending draft has empty members and quarantine tiers and a null
+        composition_resolution. Materialize it before release preview or commit.
         Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'
@@ -1119,7 +1128,9 @@ paths:
       summary: 'Update contents on a specific snapshot'
       operationId: 'release-tracks-update-contents-by-modified'
       description: |
-        Update member contents on a historical snapshot.
+        Update member contents on a historical standard-track snapshot.
+        Virtual membership can only be produced by
+        POST /api/release-tracks/{id}/virtual/snapshots/create.
         Exact revisions already present in another tier are retained only in members;
         different revisions of the same object remain valid across tiers.
         Request body validated via Zod in controller.
@@ -1139,6 +1150,8 @@ paths:
       responses:
         '200':
           description: 'Contents updated successfully'
+        '400':
+          description: 'Track is virtual or the contents request is invalid'
 
   /api/release-tracks/{id}/snapshots/{modified}/clone:
     post:
@@ -1172,7 +1185,8 @@ paths:
         Immutably tag the snapshot selected by the modified timestamp using
         the same version-selection contract as the latest release operation:
         supply `increment` or `version`, never both; omit both for a minor
-        increment.
+        increment. Virtual drafts must have composition_resolution from a
+        successful materialization.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1214,6 +1228,7 @@ paths:
         exclusive; omitting both defaults to a minor increment. For a virtual
         draft, compare against the latest tagged snapshot whose modified
         timestamp precedes this selected snapshot; never recompute composition.
+        An unmaterialized virtual draft returns 409.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1272,5 +1287,7 @@ paths:
       responses:
         '200':
           description: 'Release preview generated'
+        '409':
+          description: 'Virtual draft is unmaterialized or release is blocked by a conflict'
         '501':
           description: 'Requested format is not yet implemented'

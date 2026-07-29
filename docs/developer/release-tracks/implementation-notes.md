@@ -63,14 +63,20 @@ policies remain responsible only for different revisions of one object.
 Virtual-only operations are deliberately scoped beneath
 `/api/release-tracks/:id/virtual`:
 
-- `PUT /virtual/composition` clones a draft with revised composition rules.
+- `PUT /virtual/composition` clones a pending draft with revised composition
+  rules, empty members/quarantine tiers, and
+  `composition_resolution: null`. Clearing all three prevents a materialized
+  result from surviving a change to the rules that produced it.
 - `POST /virtual/snapshots/create` resolves tagged component snapshots and
   persists the concrete members, quarantine, and immutable
   `composition_resolution`.
 
 There is no side-effect-free virtual snapshot-creation preview. Once a virtual
 draft is persisted, it uses the same retrieval and release endpoints as a
-standard draft. Release planning never resolves composition.
+standard draft. Release planning never resolves composition and rejects a
+virtual draft without `composition_resolution` with `409 Conflict`. Generic
+latest and historical `/contents` mutations are standard-only; virtual
+membership has composition resolution as its sole authority.
 
 For virtual summary previews, `versioning-service` loads the latest tagged
 snapshot whose `modified` timestamp is strictly earlier than the selected

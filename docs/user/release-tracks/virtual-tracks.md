@@ -823,7 +823,11 @@ PUT /api/release-tracks/:id/virtual/composition
 }
 ```
 
-**Note:** Updating composition creates a new draft snapshot with the new composition rules.
+**Note:** Updating composition creates a pending draft with the new rules and
+invalidates any previously materialized contents. The draft has empty
+`members` and `quarantine` arrays and `composition_resolution: null`. Run the
+virtual snapshot creation operation before attempting release preview or
+tagging; those release operations return `409 Conflict` for a pending draft.
 
 ### Create Virtual Snapshot
 
@@ -861,7 +865,9 @@ Virtual composition is not recomputed during preview or release. The summary
 compares the selected persisted draft with the tagged release that immediately
 preceded it, reporting members/quarantine counts and new, updated, removed, and
 quarantined object counts. Use `format=workbench` or `format=bundle` to inspect
-the literal snapshot or publication artifact that would be tagged.
+the literal snapshot or publication artifact that would be tagged. The draft
+must have a non-null `composition_resolution`, proving that its members and
+quarantine tiers were materialized from its current composition.
 
 ### Get Virtual Track with Resolved Content
 
@@ -1146,6 +1152,10 @@ GET /api/release-tracks/:id/snapshots/:modified/release/preview?format=bundle
 # Tag only when satisfied
 POST /api/release-tracks/:id/snapshots/:modified/release
 ```
+
+If composition changes after materialization, repeat the create step. Direct
+member replacement through either standard-track `/contents` endpoint is
+rejected for virtual tracks.
 
 ### 2. Use Scheduled Snapshots for Consistency
 
