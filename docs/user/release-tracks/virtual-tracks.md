@@ -536,10 +536,6 @@ snapshot_schedule: {
 }
 ```
 
-The configuration is currently persisted as registry metadata only. No
-release-track scheduler consumes it yet, so `cron` and `dates` schedules do
-not create snapshots automatically.
-
 Schedule payloads are strict and mode-specific:
 
 - `manual` accepts only `{ mode: "manual" }`.
@@ -549,25 +545,24 @@ Schedule payloads are strict and mode-specific:
 Unknown schedule fields return `400 Bad Request`. Standard tracks do not
 support `snapshot_schedule`.
 
-**Planned scheduler integration:**
-```javascript
-scheduler.register({
-  type: "virtual-track-snapshot",
-  trackId: "release-track--uuid-virtual",
-  schedule: "0 0 1 1,7 *",
-  handler: async (trackId) => {
-    await virtualTrackService.createSnapshot(trackId, {
-      description: `Scheduled snapshot ${new Date().toISOString()}`
-    });
+The global scheduler must be enabled. Five-field cron expressions and dates
+are interpreted in UTC. Each cron occurrence creates a draft while the server
+is running; missed cron occurrences are not backfilled. Due dates are durable:
+the scheduler recovers them after a restart and persists exactly one draft per
+configured timestamp. A failed occurrence is audited and retried once per
+scheduler reconciliation interval.
 
-    // Optionally notify team
-    await notificationService.send({
-      to: "enterprise-team@example.com",
-      subject: "Enterprise ATT&CK snapshot created",
-      body: "A new draft snapshot is ready for review and tagging"
-    });
+Scheduled drafts follow the same composition resolution, deduplication,
+validation, and persistence path as
+`POST /api/release-tracks/:id/virtual/snapshots/create`. They also include:
+
+```json
+{
+  "scheduled_materialization": {
+    "schedule_mode": "cron",
+    "scheduled_for": "2027-01-01T00:00:00.000Z"
   }
-});
+}
 ```
 
 ### 2. Snapshot Review

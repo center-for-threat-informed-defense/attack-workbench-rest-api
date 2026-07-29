@@ -52,24 +52,70 @@ completion backlog.
 
 ### P2 — Scheduled materialization
 
-- [ ] Connect virtual `snapshot_schedule` metadata to the existing task
+- [x] Connect virtual `snapshot_schedule` metadata to the existing task
   scheduler. This is required for virtual-track completion, not an optional
   future enhancement.
-- [ ] Implement `cron` execution so each matching schedule occurrence
+- [x] Implement `cron` execution so each matching schedule occurrence
   materializes a new virtual draft through the same lifecycle and validation
   used by `POST /api/release-tracks/:id/virtual/snapshots/create`.
-- [ ] Implement `dates` execution so every configured timestamp materializes
+- [x] Implement `dates` execution so every configured timestamp materializes
   exactly one virtual draft, including deterministic handling for restart
   recovery, missed timestamps, and duplicate-delivery prevention.
-- [ ] Preserve `manual` semantics: store no executable schedule and create
+- [x] Preserve `manual` semantics: store no executable schedule and create
   drafts only through the explicit virtual snapshot-creation endpoint.
-- [ ] Define failure behavior when a component has no matching tagged
+- [x] Define failure behavior when a component has no matching tagged
   snapshot, including automation-run audit records and retry policy.
-- [ ] Add scheduler integration tests for both `cron` and `dates`, including
+- [x] Add scheduler integration tests for both `cron` and `dates`, including
   successful execution, restart recovery, idempotency, component-resolution
   failure, and retry behavior.
-- [ ] Add operational documentation covering scheduler activation, UTC
+- [x] Add operational documentation covering scheduler activation, UTC
   interpretation, observability, failures, and retries.
+
+### Current implementation slice — Scheduled virtual materialization
+
+- [x] Add a scheduler reconciliation task for persisted virtual-track
+  `cron` and `dates` schedules while preserving explicit-only `manual` mode.
+- [x] Persist schedule occurrences and claim them atomically so multiple
+  scheduler instances cannot concurrently process the same occurrence.
+- [x] Make snapshot persistence idempotent by recording the scheduled
+  occurrence on the resulting virtual draft.
+- [x] Recover missed `dates` occurrences and failed `cron` or `dates`
+  occurrences during reconciliation.
+- [x] Record every materialization attempt in the automation-run audit trail.
+- [x] Add scheduler integration coverage for success, restart recovery,
+  duplicate delivery, component failure, and retry.
+- [x] Update OpenAPI, user/developer/operations documentation, frontend
+  guidance, and Bruno.
+- [x] Run focused scheduler tests, lint, and the complete `npm test` suite.
+- [x] Review the final diff and propose conventional commit messages.
+
+Verification result (2026-07-29):
+
+- The focused scheduler integration spec passes (4), OpenAPI validation
+  passes (2), and backend lint passes.
+- The first complete run encountered five unrelated roaming failures after
+  933 API tests passed. Each affected spec passed in isolation.
+- The required clean `npm test` rerun passes (OpenAPI 2, config 21, API 938,
+  middleware 24).
+- Proposed REST API commit:
+
+  ```text
+  feat(release-tracks): schedule virtual snapshot materialization
+
+  Execute persisted cron and date schedules through the existing virtual
+  snapshot lifecycle. Add durable occurrence claims, restart-safe
+  idempotency, automation-run auditing, retry behavior, scheduled snapshot
+  provenance, and aligned API and operations documentation.
+  ```
+
+- Proposed companion Bruno commit:
+
+  ```text
+  docs(release-tracks): document scheduled materialization
+
+  Describe UTC cron and date execution, restart recovery, idempotency,
+  and retry behavior for virtual snapshot schedules.
+  ```
 
 ### P2 — Contract decisions
 
@@ -97,8 +143,8 @@ completion backlog.
   or implement the documented `by_type`, `by_tier`, and native statistics.
 - [ ] Align documented error envelopes with centralized error-handler output.
 - [x] Include required `priority` values in every composition example.
-- [ ] Clearly distinguish configured composition from a materialized draft and
-  describe scheduled behavior as unavailable until scheduler execution exists.
+- [x] Clearly distinguish configured composition from a materialized draft and
+  document scheduler activation, timing, recovery, and retry behavior.
 
 ### Verified complete
 

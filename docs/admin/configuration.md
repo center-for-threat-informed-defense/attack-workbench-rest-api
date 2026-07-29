@@ -516,22 +516,23 @@ See sample: [multiple-apikey-services.json](../resources/sample-configurations/m
 
 Background job scheduler configuration.
 
-| Option         | Environment Variable       | JSON Path                        | Type    | Default | Description                          |
-|----------------|----------------------------|----------------------------------|---------|---------|--------------------------------------|
-| Enable         | `ENABLE_SCHEDULER`         | `scheduler.enableScheduler`      | boolean | `true`  | Enable background job scheduler      |
-| Check Interval | `CHECK_WORKBENCH_INTERVAL` | `scheduler.checkWorkbenchInterval` | integer | `10`    | Scheduler check interval in seconds  |
+| Option | Environment Variable | JSON Path | Type | Default | Description |
+|---|---|---|---|---|---|
+| Enable | `ENABLE_SCHEDULER` | `scheduler.enableScheduler` | boolean | `true` | Enable background job scheduler |
+| Virtual-track reconciliation | `VIRTUAL_TRACK_SCHEDULES_CRON` | `scheduler.virtualTrackSchedulesCron` | string | `* * * * *` | Discover and retry persisted virtual snapshot schedules |
 
 **Scheduler Functions:**
 
 - Checks for collection index updates
 - Downloads collection bundles from remote URLs
 - Processes subscription update policies
+- Materializes virtual release-track snapshots from cron and date schedules
 
 **Example:**
 
 ```bash
 ENABLE_SCHEDULER=true
-CHECK_WORKBENCH_INTERVAL=30
+VIRTUAL_TRACK_SCHEDULES_CRON="* * * * *"
 ```
 
 ### Validation

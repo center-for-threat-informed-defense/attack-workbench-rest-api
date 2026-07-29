@@ -104,6 +104,22 @@ class ReleaseTrackRegistryRepository {
     }
   }
 
+  async findScheduledVirtualTracks() {
+    try {
+      return await this.model
+        .find({
+          type: 'virtual',
+          'snapshot_schedule.mode': { $in: ['cron', 'dates'] },
+        })
+        .select('track_id name snapshot_schedule')
+        .sort({ track_id: 1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async replaceTaggedReleases(trackId, taggedReleases, latestTaggedVersion) {
     try {
       return await this.model

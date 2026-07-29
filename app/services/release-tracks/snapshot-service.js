@@ -300,6 +300,7 @@ exports.cloneSnapshot = async function cloneSnapshot(trackId, sourceSnapshot, ov
   const clone = deepClone(sourceSnapshot);
   clone.modified = new Date();
   clone.version = null; // clones are always drafts
+  delete clone.scheduled_materialization;
 
   // Apply overrides
   if (overrides) {
@@ -371,6 +372,7 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
   clone.created = now;
   clone.created_by_ref = options.userAccountId || sourceSnapshot.created_by_ref;
   clone.version_history = [];
+  delete clone.scheduled_materialization;
 
   const normalized = tierRevisionInvariant.normalizeSnapshot(clone);
 

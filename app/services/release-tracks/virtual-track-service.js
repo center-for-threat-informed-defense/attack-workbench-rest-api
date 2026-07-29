@@ -25,6 +25,7 @@ const Events = require('../../lib/event-constants');
 const logger = require('../../lib/logger');
 const {
   BadRequestError,
+  DuplicateIdError,
   TrackNotFoundError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
@@ -412,6 +413,12 @@ exports.updateComposition = async function updateComposition(trackId, compositio
  * @returns {Promise<Object>} The new snapshot with composition_resolution metadata
  */
 exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, options = {}) {
+  const scheduledFor = options.scheduledMaterialization?.scheduled_for;
+  if (scheduledFor) {
+    const existing = await dynamicRepo.getSnapshotByScheduledMaterialization(trackId, scheduledFor);
+    if (existing) return existing;
+  }
+
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertVirtualTrack(source);
 
@@ -437,13 +444,23 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
     members,
     quarantine: quarantined,
     composition_resolution: compositionResolution,
+    scheduled_materialization: options.scheduledMaterialization,
   };
 
   if (options.description !== undefined) {
     overrides.description = options.description;
   }
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides);
+  let snapshot;
+  try {
+    snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides);
+  } catch (err) {
+    if (!scheduledFor || !(err instanceof DuplicateIdError)) throw err;
+
+    const existing = await dynamicRepo.getSnapshotByScheduledMaterialization(trackId, scheduledFor);
+    if (!existing) throw err;
+    snapshot = existing;
+  }
 
   logger.verbose(
     `VirtualTrackService: Created virtual snapshot for track "${trackId}" ` +

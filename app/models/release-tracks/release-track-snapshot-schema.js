@@ -188,6 +188,18 @@ const compositionResolutionSchema = new mongoose.Schema(compositionResolutionDef
   _id: false,
 });
 
+const scheduledMaterializationDefinition = {
+  schedule_mode: {
+    type: String,
+    enum: ['cron', 'dates'],
+    required: true,
+  },
+  scheduled_for: { type: Date, required: true },
+};
+const scheduledMaterializationSchema = new mongoose.Schema(scheduledMaterializationDefinition, {
+  _id: false,
+});
+
 // --- Config sub-schemas ---
 
 const promotionConflictsDefinition = {
@@ -366,6 +378,10 @@ const releaseTrackSnapshotDefinition = {
   // --- Virtual track composition ---
   composition: { type: compositionSchema, default: undefined },
   composition_resolution: { type: compositionResolutionSchema, default: undefined },
+  scheduled_materialization: {
+    type: scheduledMaterializationSchema,
+    default: undefined,
+  },
 
   // --- Shared ---
   config: { type: configSchema, default: () => ({}) },
@@ -383,6 +399,18 @@ releaseTrackSnapshotSchema.index({ id: 1, modified: -1 }, { unique: true });
 
 // Find the latest tagged version
 releaseTrackSnapshotSchema.index({ id: 1, version: 1 });
+
+// A scheduled occurrence may materialize at most one snapshot, including
+// after restart recovery or duplicate delivery by multiple scheduler nodes.
+releaseTrackSnapshotSchema.index(
+  { 'scheduled_materialization.scheduled_for': 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      'scheduled_materialization.scheduled_for': { $type: 'date' },
+    },
+  },
+);
 
 // Historical releases-by-object lookup. Draft snapshots are deliberately
 // excluded because they are numerous, mutable through cloning, and never
@@ -408,6 +436,7 @@ module.exports = {
   quarantineEntrySchema,
   compositionSchema,
   compositionResolutionSchema,
+  scheduledMaterializationSchema,
   configSchema,
   versionHistoryEntrySchema,
 };

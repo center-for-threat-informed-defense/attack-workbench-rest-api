@@ -94,8 +94,16 @@ controller and service boundaries. `manual` has no selector field, `cron`
 requires a five-field cron expression, and `dates` requires a nonempty array of
 ISO timestamps. Standard-track creation rejects `snapshot_schedule` instead of
 silently dropping it. Mongoose repeats the mode and track-type invariants for
-direct persistence callers. Schedule configuration remains registry metadata;
-P2 scheduler execution is not implemented.
+direct persistence callers.
+
+The virtual snapshot scheduler reconciles persisted schedules at startup and
+on `VIRTUAL_TRACK_SCHEDULES_CRON`. Cron jobs use `Etc/UTC`; explicit dates at
+or before the reconciliation time become durable occurrences. Atomic
+occurrence claims prevent concurrent workers from processing the same run,
+and a unique scheduled-materialization index on each track collection prevents
+duplicate snapshots after restarts or duplicate delivery. Failures are
+recorded in the automation-run audit trail and retried at the next eligible
+reconciliation.
 
 Component `filters.object_types` values are constrained to the canonical
 Workbench STIX vocabulary exported by `app/lib/types.js`. The request schema

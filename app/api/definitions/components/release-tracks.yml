@@ -81,6 +81,12 @@ components:
             one component, while conflicts include only IDs with genuinely
             different revisions. Each surviving member is attributed to exactly
             one component in objects_contributed.
+        scheduled_materialization:
+          nullable: true
+          description: |
+            Server-controlled provenance for a virtual draft created by a
+            snapshot schedule. Manually created snapshots omit this property.
+          $ref: '#/components/schemas/scheduled-materialization'
         config:
           $ref: '#/components/schemas/track-config'
         version_history:
@@ -535,7 +541,7 @@ components:
           description: 'When the track metadata was last updated'
         snapshot_schedule:
           nullable: true
-          description: 'Stored snapshot schedule metadata for virtual tracks. Automated execution is not yet implemented.'
+          description: 'Snapshot creation schedule for virtual tracks'
           $ref: '#/components/schemas/snapshot-schedule'
 
     tagged-release-reference:
@@ -585,7 +591,9 @@ components:
           format: date-time
 
     snapshot-schedule:
-      description: 'Stored schedule metadata for virtual track snapshot creation; automated execution is not yet implemented'
+      description: |
+        Virtual snapshot-creation schedule. Cron and explicit dates are
+        interpreted in UTC and execute only when the global scheduler is enabled.
       oneOf:
         - type: object
           additionalProperties: false
@@ -628,3 +636,20 @@ components:
                 type: string
                 format: date-time
               description: 'Explicit UTC dates for snapshot creation'
+
+    scheduled-materialization:
+      type: object
+      description: 'Immutable scheduler occurrence that created a virtual draft'
+      required:
+        - schedule_mode
+        - scheduled_for
+      properties:
+        schedule_mode:
+          type: string
+          enum:
+            - cron
+            - dates
+        scheduled_for:
+          type: string
+          format: date-time
+          description: 'UTC occurrence timestamp; also serves as the idempotency key'

@@ -109,6 +109,20 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getSnapshotByScheduledMaterialization(trackId, scheduledFor) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOne({
+        id: trackId,
+        'scheduled_materialization.scheduled_for': scheduledFor,
+      })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async getTaggedSnapshotMetadata(trackId) {
     try {
       const Model = this._getModel(trackId);

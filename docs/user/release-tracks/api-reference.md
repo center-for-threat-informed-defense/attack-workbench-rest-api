@@ -1145,8 +1145,8 @@ When present, the array must contain at least one unique value. Omit it to
 include all object types. Type filtering preserves each member revision pinned
 by the resolved component snapshot.
 
-`snapshot_schedule` is stored as metadata only; automated execution is not
-yet implemented. Its shape depends on `mode`:
+`snapshot_schedule` controls virtual draft creation when the server scheduler
+is enabled. Its shape depends on `mode`:
 
 - `manual` accepts only `{ "mode": "manual" }`;
 - `cron` requires a five-field `cron` expression and rejects `dates`;
@@ -1154,6 +1154,13 @@ yet implemented. Its shape depends on `mode`:
 
 Unknown schedule properties return `400 Bad Request`. Standard tracks also
 reject `snapshot_schedule` rather than silently ignoring it.
+
+Cron expressions and explicit dates are interpreted in UTC. Cron occurrences
+run while the scheduler is active; they are not backfilled after downtime.
+Every due date is recovered after restart and creates exactly one draft.
+Failed cron and date occurrences are retried by the scheduler. Scheduled
+drafts include a server-controlled `scheduled_materialization` object with
+`schedule_mode` and `scheduled_for`; manual drafts omit it.
 
 Composition, component, filter, and deduplication objects are strict. Unknown
 keys, including the incorrect singular `filters.domain`, return

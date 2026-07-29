@@ -510,9 +510,23 @@ therefore submits only `{ mode: 'dates' }`, which the server rejects. The cron
 control is also not conditionally required, allowing `{ mode: 'cron' }` to be
 submitted.
 
-Schedule configuration is metadata only for now. The UI must not imply that
-automatic creation is active until the P2 backend scheduler integration is
-implemented.
+Automatic creation is now active when the backend scheduler is enabled.
+Explain that cron and dates use UTC, cron occurrences are not backfilled after
+downtime, and due dates are recovered after restart. A component-resolution
+failure is retried by the backend; the UI does not need to resubmit the
+schedule.
+
+Scheduled virtual drafts include read-only provenance:
+
+```ts
+scheduled_materialization?: {
+  schedule_mode: 'cron' | 'dates';
+  scheduled_for: string;
+};
+```
+
+Use it to identify scheduled drafts where useful, but never include it in
+create or update payloads.
 
 Done when:
 
@@ -522,7 +536,10 @@ Done when:
 - Selecting manual clears both selector fields.
 - Standard-track creation never sends schedule metadata.
 - Tests cover all three modes and mode switching.
-- User-facing copy says scheduled execution is not yet active.
+- User-facing copy explains UTC execution and the difference between cron and
+  restart-recoverable dates.
+- Scheduled drafts tolerate and preserve the read-only
+  `scheduled_materialization` response property.
 
 ## P1 — Align virtual component object-type filters
 

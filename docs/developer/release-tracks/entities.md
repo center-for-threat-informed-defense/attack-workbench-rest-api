@@ -408,8 +408,7 @@ Virtual release tracks compute their contents by aggregating objects from compon
     }
   },
 
-  // Optional schedule metadata. Choose exactly one mode-specific shape.
-  // This example uses cron; automated execution is a required P2 capability.
+  // Optional schedule. Choose exactly one mode-specific shape.
   snapshot_schedule: {
     mode: "cron",
     cron: "0 0 1 1,7 *"  // Jan 1 and July 1 at midnight UTC
@@ -455,9 +454,20 @@ The three valid `snapshot_schedule` shapes are:
 }
 ```
 
-These are alternatives, not fields to combine in one schedule. The API
-currently validates and persists all three shapes. Automated execution for
-`cron` and `dates` is not implemented yet and is a required P2 deliverable.
+These are alternatives, not fields to combine in one schedule. `manual`
+persists no executable work. A scheduler reconciliation task registers UTC
+cron jobs and durable due-date occurrences. Each scheduled draft records:
+
+```javascript
+scheduled_materialization: {
+  schedule_mode: "cron", // "cron" | "dates"
+  scheduled_for: "2027-01-01T00:00:00.000Z"
+}
+```
+
+The track-local unique index on `scheduled_for`, together with the durable
+`virtualTrackScheduleOccurrences` claim record, makes duplicate delivery and
+restart recovery idempotent. Failed occurrences remain retryable.
 
 **Key Differences from Standard Tracks:**
 
@@ -486,9 +496,8 @@ currently validates and persists all three shapes. Automated execution for
 - Snapshot schedules are strict and mode-discriminated: `manual` accepts only
   `mode`, `cron` requires only a five-field `cron` expression, and `dates`
   requires only a nonempty `dates` array
-- Standard tracks reject `snapshot_schedule`; schedules are stored as virtual
-  registry metadata. Automated `cron` and `dates` execution is required but
-  remains pending until scheduler integration exists
+- Standard tracks reject `snapshot_schedule`; virtual `cron` and `dates`
+  schedules execute through the global scheduler
 - `filters.object_types` uses the canonical Workbench STIX type names from
   `app/lib/types.js`. When present, it must be nonempty and duplicate-free;
   omit it to include every object type. Filtering reads the type prefix from

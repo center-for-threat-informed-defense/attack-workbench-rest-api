@@ -266,6 +266,11 @@ function loadConfig() {
         default: '0 3 * * *', // daily at 3 AM
         env: 'VALIDATE_OBJECTS_CRON',
       },
+      virtualTrackSchedulesCron: {
+        doc: 'Cron pattern for reconciling persisted virtual release-track snapshot schedules.',
+        default: '* * * * *', // every minute
+        env: 'VIRTUAL_TRACK_SCHEDULES_CRON',
+      },
       enableScheduler: {
         format: Boolean,
         default: true,
