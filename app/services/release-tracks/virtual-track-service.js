@@ -331,25 +331,17 @@ async function resolveComposition(snapshot, registryMap) {
   }
 
   // Deduplicate across all components
-  const { members, quarantined, report } = deduplicationStrategies.deduplicate(
+  const { members, quarantined, contributions, report } = deduplicationStrategies.deduplicate(
     allAnnotatedMembers,
     strategy,
   );
 
-  // Update objects_contributed per component by counting how many of each
-  // component's members survived deduplication
+  // Each surviving member is explicitly attributed to one source component
+  // by deduplication, including exact revisions supplied by multiple tracks.
   const survivorSources = new Map();
-  for (const annotated of allAnnotatedMembers) {
-    // Check if this specific entry survived deduplication
-    const survived = members.some(
-      (m) =>
-        m.object_ref === annotated.object_ref &&
-        new Date(m.object_modified).getTime() === new Date(annotated.object_modified).getTime(),
-    );
-    if (survived) {
-      const count = survivorSources.get(annotated._source_track_id) || 0;
-      survivorSources.set(annotated._source_track_id, count + 1);
-    }
+  for (const contribution of contributions) {
+    const count = survivorSources.get(contribution.source_track_id) || 0;
+    survivorSources.set(contribution.source_track_id, count + 1);
   }
 
   for (const meta of componentSnapshotsMeta) {

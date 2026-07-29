@@ -548,6 +548,35 @@ Done when:
   submission.
 - Tests cover the complete option list and clearing the filter.
 
+## P1 — Distinguish virtual duplicates from revision conflicts
+
+### [ ] Align resolution metrics and fixtures with deterministic deduplication
+
+Virtual materialization now reports duplicate contributions and revision
+conflicts as related but different concepts:
+
+- `composition_resolution.deduplication.duplicates_found` counts STIX object
+  IDs contributed by more than one component, even when every component
+  supplies the same exact revision.
+- `conflicts_resolved` contains only object IDs with genuinely different
+  `object_modified` revisions.
+- An exact revision shared by multiple components produces one member and is
+  never quarantined.
+- Each member is attributed to exactly one component. Consequently, the sum of
+  `component_snapshots[].objects_contributed` equals
+  `composition_resolution.summary.total_objects`.
+
+The current page already displays separate duplicate and conflict counters.
+Preserve that distinction instead of assuming the two counts are equal.
+
+Done when:
+
+- Resolution fixtures include an identical revision shared across components
+  and a separate object with conflicting revisions.
+- Duplicate and conflict counters render their respective backend fields.
+- Component contribution counts add up to the resolved member total.
+- Quarantine views never show repeated copies of the same exact revision.
+
 ## P1 — Separate snapshot and preview output-format types
 
 ### [ ] Remove the invalid `snapshot` format and model `summary` correctly

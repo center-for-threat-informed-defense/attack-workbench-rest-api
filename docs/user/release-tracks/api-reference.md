@@ -1199,26 +1199,38 @@ POST /api/release-tracks/:id/virtual/snapshots/create
 
 ```json
 {
-  "stix": {
-    "id": "x-mitre-collection--virtual-uuid",
-    "modified": "2024-03-01T10:00:00Z",
-    "x_mitre_version": null,
-    "type": "virtual"
-  },
+  "id": "release-track--virtual-uuid",
+  "type": "virtual",
+  "modified": "2024-03-01T10:00:00Z",
+  "version": null,
+  "name": "Enterprise ATT&CK",
+  "members": [],
+  "quarantine": [],
   "composition_resolution": {
     "resolved_at": "2024-03-01T10:00:00Z",
     "component_snapshots": [
       {
-        "track_id": "GroupsMonthly--uuid",
+        "track_id": "release-track--groups-monthly",
         "track_name": "Groups Monthly",
-        "resolved_snapshot": "2024-02-15T10:00:00Z",
+        "track_type": "standard",
+        "resolved_snapshot_id": "2024-02-15T10:00:00Z",
         "resolved_version": "5.2",
         "strategy_used": "latest_tagged",
-        "object_count": 47
+        "total_objects_in_source": 47,
+        "objects_after_filter": 47,
+        "objects_contributed": 47
       }
     ],
-    "total_objects": 870,
-    "duplicates_resolved": 0
+    "deduplication": {
+      "total_objects_before": 47,
+      "total_objects_after": 47,
+      "duplicates_found": 0,
+      "conflicts_resolved": []
+    },
+    "summary": {
+      "total_objects": 47,
+      "quarantined_objects": 0
+    }
   }
 }
 ```
@@ -1229,6 +1241,15 @@ to tag it. There is no separate virtual snapshot-creation preview: the release
 preview is the authoritative comparison and representation of the persisted
 draft that would be tagged. A non-null `composition_resolution` is the
 readiness marker for those shared release operations.
+
+`duplicates_found` counts object IDs contributed by more than one component,
+including repeated contributions of the same exact revision.
+`conflicts_resolved` includes only object IDs for which multiple distinct
+`object_modified` revisions remained after exact-revision collapse. The
+component `objects_contributed` counts partition the surviving `members`, so
+their sum equals `summary.total_objects`. With the `quarantine` strategy,
+identical revisions remain one member and only distinct conflicting revisions
+enter `quarantine`.
 
 ### Promote a Quarantined Virtual Revision
 

@@ -240,7 +240,17 @@ as `domain` fail with `400 Bad Request`; use the plural `domains`.
 
 ### Deduplication Strategies
 
-When multiple component tracks contain the same object (same `stix.id`), a conflict occurs during the sync operation. The virtual track's deduplication strategy determines how to resolve the conflict. Four strategies are available:
+When multiple component tracks contain the same object (same `stix.id`), the
+materialization records one duplicate object. Contributions with the same
+`modified` timestamp are the same exact revision, so they collapse to one
+member and do not constitute a conflict. The configured strategy is applied
+only when multiple distinct revisions remain. Four strategies are available:
+
+Each surviving member is attributed to one component. The active strategy
+selects that source where applicable, with the component's required unique
+priority providing a stable tie-breaker. As a result, the sum of
+`component_snapshots[].objects_contributed` equals
+`composition_resolution.summary.total_objects`.
 
 #### 1. `prioritize_latest_object`
 
@@ -342,6 +352,11 @@ composition: {
 #### 4. `quarantine`
 
 Don't automatically choose a version. Instead, store **both** versions in the virtual track's `quarantine` tier for manual review and resolution.
+
+Only distinct revisions are quarantined. If several components contribute the
+same exact revision, it remains one ordinary member. If two distinct revisions
+are present and either is contributed repeatedly, quarantine contains one
+entry for each distinct revision rather than one entry per component.
 
 ```javascript
 deduplication: {
@@ -497,9 +512,11 @@ POST /api/release-tracks/:id/virtual/snapshots/create
    - Apply `filters` to get subset of objects
    - Collect all object references with source metadata
 2. Apply deduplication rules across all components:
-   - If no conflicts: objects go to virtual track's `members`
+   - Collapse identical `(object_ref, object_modified)` contributions
+   - If no distinct-revision conflicts remain: objects go to virtual track's `members`
    - If conflicts + `quarantine` strategy: both versions go to `quarantine`
    - If conflicts + other strategies: winning version goes to `members`
+   - Attribute every surviving member to one deterministic source component
 3. Create new virtual track snapshot with:
    - New `snapshot_id` and `modified` timestamp
    - `version = null` (always starts as draft)

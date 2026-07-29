@@ -105,6 +105,23 @@ means no type filter. Materialization compares each value to the type prefix
 already encoded in the resolved snapshot member's `object_ref`; it never
 re-resolves that member to the latest database revision.
 
+Virtual deduplication distinguishes duplicate contributions from revision
+conflicts. Entries are grouped first by `object_ref`, then by the exact
+`object_modified` timestamp. Multiple components contributing the same exact
+revision produce one member and no conflict; multiple distinct revisions of
+one object invoke the configured resolution strategy. For exact-revision
+source ownership, `prioritize_latest_snapshot` selects the newest resolved
+component snapshot, while the other strategies use the required component
+priority; priority also breaks equal-snapshot ties.
+
+Deduplication returns an internal source attribution for every surviving
+member. `objects_contributed` is calculated from those attributions rather
+than matching each output member back to every input contribution. Therefore
+the component contribution total equals
+`composition_resolution.summary.total_objects`. Under `quarantine`, repeated
+copies of one exact revision remain a single member, and genuine conflicts
+produce one quarantine entry per distinct revision.
+
 There is no side-effect-free virtual snapshot-creation preview. Once a virtual
 draft is persisted, it uses the same retrieval and release endpoints as a
 standard draft. Release planning never resolves composition and rejects a

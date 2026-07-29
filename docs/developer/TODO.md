@@ -33,13 +33,13 @@ completion backlog.
 
 ### P1 — Deduplication correctness
 
-- [ ] Treat the same exact object revision contributed by multiple components
+- [x] Treat the same exact object revision contributed by multiple components
   as one duplicate, not a conflicting revision.
-- [ ] Ensure the `quarantine` strategy only quarantines genuinely different
+- [x] Ensure the `quarantine` strategy only quarantines genuinely different
   revisions of the same object.
-- [ ] Attribute each surviving revision to one deterministic component so
+- [x] Attribute each surviving revision to one deterministic component so
   `objects_contributed` totals cannot exceed `summary.total_objects`.
-- [ ] Add dedicated tests for all four strategies:
+- [x] Add dedicated tests for all four strategies:
   `prioritize_latest_object`, `prioritize_latest_snapshot`,
   `prioritize_higher_priority`, and `quarantine`.
 
@@ -292,6 +292,63 @@ Verification result (2026-07-29):
 
   Document canonical virtual component object-type values, omission semantics,
   and exact-revision behavior.
+  ```
+
+### Current implementation slice — Deterministic virtual deduplication
+
+- [x] Add materialization regressions for all four deduplication strategies
+  using both an exact revision shared by multiple components and genuinely
+  different revisions of the same STIX object.
+- [x] Collapse repeated contributions of the same `(object_ref,
+  object_modified)` revision before applying conflict resolution.
+- [x] Count an object contributed by multiple components once in
+  `duplicates_found`, but include it in `conflicts_resolved` only when multiple
+  distinct revisions remain after exact-revision collapse.
+- [x] Choose one deterministic source component for every surviving revision:
+  use the active strategy's ordering and use component priority as the stable
+  tie-breaker.
+- [x] Quarantine one entry per distinct conflicting revision and leave an
+  identical revision shared by multiple components in `members`.
+- [x] Derive `objects_contributed` from explicit survivor attribution so its
+  component total equals `summary.total_objects`.
+- [x] Align OpenAPI, user/developer documentation, frontend guidance, Bruno,
+  and `internalattack` if the clarified response semantics require downstream
+  changes.
+- [x] Run focused regression specs, lint, and the complete `npm test` suite.
+- [x] Review the final diff and propose conventional commit messages.
+
+Verification result (2026-07-29):
+
+- The dedicated four-strategy deduplication spec passes (4); the combined
+  deduplication, quarantine, and back-reference release-track group passes
+  (29).
+- OpenAPI validation passes (2), backend lint passes, and the required clean
+  `npm test` run passes (OpenAPI 2, config 21, API 936, middleware 24).
+- An earlier complete run encountered unrelated shared-suite 404, 400, and
+  connection-reset failures in Recent Activity, References, and Ephemeral
+  Bundle tests. Those three specs pass together in isolation (30).
+- `internalattack` exposes the resolution response as an untyped mapping, so
+  the clarified metric semantics do not require a Python client change.
+- Performance review result: `PERFORMANT`. The implementation replaces the
+  prior input-to-output nested survivor scan with linear source attribution;
+  no database, blocking, or resource-management regression was found.
+- Proposed REST API commit:
+
+  ```text
+  fix(release-tracks): deduplicate virtual revisions deterministically
+
+  Collapse exact component revision duplicates before resolving conflicts,
+  attribute every surviving member to one deterministic source, and quarantine
+  only genuinely different revisions.
+  ```
+
+- Proposed Bruno commit:
+
+  ```text
+  docs(release-tracks): clarify virtual deduplication
+
+  Document exact-revision collapse, genuine conflict handling, and deterministic
+  component contribution accounting.
   ```
 
 ### Tracker consolidation

@@ -77,7 +77,10 @@ components:
             Immutable component-resolution provenance for a materialized virtual
             draft. Null or absent means the virtual composition is configured
             but has not been materialized and therefore cannot be previewed or
-            released.
+            released. Duplicate counts include STIX IDs contributed by more than
+            one component, while conflicts include only IDs with genuinely
+            different revisions. Each surviving member is attributed to exactly
+            one component in objects_contributed.
         config:
           $ref: '#/components/schemas/track-config'
         version_history:

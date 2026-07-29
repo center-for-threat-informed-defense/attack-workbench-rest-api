@@ -494,6 +494,11 @@ currently validates and persists all three shapes. Automated execution for
   omit it to include every object type. Filtering reads the type prefix from
   each member's immutable `object_ref`, so it preserves the exact revision
   pinned by the resolved component snapshot
+- Exact revisions contributed by multiple components collapse to one member
+  before conflict resolution. Only genuinely different revisions of one
+  `object_ref` are resolved or quarantined. Every surviving member is
+  attributed to exactly one deterministic component, so summed
+  `objects_contributed` equals `summary.total_objects`
 - Composition request objects are strict; unknown composition, component,
   filter, and deduplication keys return `400 Bad Request`
 - Selector fields form a discriminated request contract:
