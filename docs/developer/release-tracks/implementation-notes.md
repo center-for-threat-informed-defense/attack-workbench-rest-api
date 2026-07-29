@@ -97,6 +97,14 @@ silently dropping it. Mongoose repeats the mode and track-type invariants for
 direct persistence callers. Schedule configuration remains registry metadata;
 P2 scheduler execution is not implemented.
 
+Component `filters.object_types` values are constrained to the canonical
+Workbench STIX vocabulary exported by `app/lib/types.js`. The request schema
+requires a nonempty, duplicate-free array when the property is present, and
+the Mongoose composition schema repeats that invariant. Omitting the property
+means no type filter. Materialization compares each value to the type prefix
+already encoded in the resolved snapshot member's `object_ref`; it never
+re-resolves that member to the latest database revision.
+
 There is no side-effect-free virtual snapshot-creation preview. Once a virtual
 draft is persisted, it uses the same retrieval and release endpoints as a
 standard draft. Release planning never resolves composition and rejects a

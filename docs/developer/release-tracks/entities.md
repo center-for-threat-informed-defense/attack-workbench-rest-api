@@ -489,6 +489,11 @@ currently validates and persists all three shapes. Automated execution for
 - Standard tracks reject `snapshot_schedule`; schedules are stored as virtual
   registry metadata. Automated `cron` and `dates` execution is required but
   remains pending until scheduler integration exists
+- `filters.object_types` uses the canonical Workbench STIX type names from
+  `app/lib/types.js`. When present, it must be nonempty and duplicate-free;
+  omit it to include every object type. Filtering reads the type prefix from
+  each member's immutable `object_ref`, so it preserves the exact revision
+  pinned by the resolved component snapshot
 - Composition request objects are strict; unknown composition, component,
   filter, and deduplication keys return `400 Bad Request`
 - Selector fields form a discriminated request contract:

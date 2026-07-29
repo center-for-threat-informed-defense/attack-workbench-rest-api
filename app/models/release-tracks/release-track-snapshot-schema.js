@@ -8,6 +8,7 @@ const {
   validateIdentityRef,
   validateMarkingDefRefs,
   validateVersion,
+  validateObjectTypesFilter,
 } = require('../../lib/release-tracks/release-track-validators');
 
 // =============================================================================
@@ -84,7 +85,11 @@ const quarantineEntrySchema = new mongoose.Schema(quarantineEntryDefinition, { _
 // --- Composition sub-schemas (virtual tracks) ---
 
 const componentTrackFiltersDefinition = {
-  object_types: { type: [String], default: undefined },
+  object_types: {
+    type: [String],
+    default: undefined,
+    validate: validateObjectTypesFilter,
+  },
   domains: { type: [String], default: undefined },
 };
 const componentTrackFiltersSchema = new mongoose.Schema(componentTrackFiltersDefinition, {

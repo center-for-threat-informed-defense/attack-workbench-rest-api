@@ -1113,6 +1113,17 @@ Short names (`enterprise`, `ics`, `mobile`) and STIX names ending in
 `-attack` are equivalent. Objects without a matching domain are excluded.
 For primary matrices, which omit `x_mitre_domains` in published ATT&CK data,
 the domain is read from `external_references[].external_id`.
+
+`filters.object_types` accepts canonical Workbench STIX type names:
+`attack-pattern`, `campaign`, `course-of-action`, `identity`, `intrusion-set`,
+`malware`, `marking-definition`, `note`, `relationship`, `tool`,
+`x-mitre-analytic`, `x-mitre-asset`, `x-mitre-collection`,
+`x-mitre-data-component`, `x-mitre-data-source`,
+`x-mitre-detection-strategy`, `x-mitre-matrix`, and `x-mitre-tactic`.
+When present, the array must contain at least one unique value. Omit it to
+include all object types. Type filtering preserves each member revision pinned
+by the resolved component snapshot.
+
 `snapshot_schedule` is stored as metadata only; automated execution is not
 yet implemented. Its shape depends on `mode`:
 

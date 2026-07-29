@@ -524,6 +524,30 @@ Done when:
 - Tests cover all three modes and mode switching.
 - User-facing copy says scheduled execution is not yet active.
 
+## P1 — Align virtual component object-type filters
+
+### [ ] Use the complete canonical Workbench STIX type vocabulary
+
+The backend now validates `composition.component_tracks[].filters.object_types`
+against its canonical STIX type registry. When `object_types` is present, it
+must be a nonempty array of unique, case-sensitive STIX type names. Omit the
+property to include all types; do not send an empty array.
+
+The create dialog already removes the property when the user has no
+selections, and `mat-select` naturally prevents duplicates. Its current
+hard-coded options are only a subset of the server vocabulary, however. They
+omit `identity`, `marking-definition`, `note`, `relationship`,
+`x-mitre-collection`, and `x-mitre-data-source`.
+
+Done when:
+
+- Creation and composition editing use the same complete canonical option
+  list.
+- Clearing all selections removes `object_types` from the submitted filter.
+- Unknown values loaded from stale local state are rejected or removed before
+  submission.
+- Tests cover the complete option list and clearing the filter.
+
 ## P1 — Separate snapshot and preview output-format types
 
 ### [ ] Remove the invalid `snapshot` format and model `summary` correctly

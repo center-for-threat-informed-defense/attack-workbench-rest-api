@@ -15,6 +15,7 @@ const {
   trackNameSchema,
   cronSchema,
   snapshotScheduleSchema,
+  objectTypesFilterSchema,
   stixIdentifierSchema,
   xMitreVersionSchema,
   createStixIdValidator,
@@ -82,6 +83,14 @@ const validateSnapshotSchedule = {
     'Snapshot schedule fields must match mode: manual has no selector, cron requires cron, and dates requires at least one date',
 };
 
+const validateObjectTypesFilter = {
+  validator: (value) =>
+    value === undefined ||
+    (Array.isArray(value) && objectTypesFilterSchema.safeParse(value).success),
+  message:
+    'Object type filters must be a non-empty, duplicate-free list of supported Workbench STIX types',
+};
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -95,4 +104,5 @@ module.exports = {
   validateVersion,
   validateCron,
   validateSnapshotSchedule,
+  validateObjectTypesFilter,
 };

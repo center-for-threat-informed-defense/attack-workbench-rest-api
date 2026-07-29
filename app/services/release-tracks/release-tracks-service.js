@@ -15,7 +15,10 @@
 // =============================================================================
 
 const { BadRequestError, NotImplementedError } = require('../../exceptions');
-const { snapshotScheduleSchema } = require('../../lib/release-tracks/release-track-schemas');
+const {
+  compositionSchema,
+  snapshotScheduleSchema,
+} = require('../../lib/release-tracks/release-track-schemas');
 const snapshotService = require('./snapshot-service');
 const standardTrackService = require('./standard-track-service');
 const versioningService = require('./versioning-service');
@@ -188,6 +191,17 @@ exports.createTrack = async function createTrack(data) {
       });
     }
     validatedData = { ...data, snapshot_schedule: scheduleResult.data };
+  }
+
+  if (validatedData.composition !== undefined) {
+    const compositionResult = compositionSchema.safeParse(validatedData.composition);
+    if (!compositionResult.success) {
+      throw new BadRequestError({
+        message: 'Invalid virtual track composition',
+        details: compositionResult.error.errors,
+      });
+    }
+    validatedData = { ...validatedData, composition: compositionResult.data };
   }
 
   if (validatedData.type === 'virtual' && validatedData.composition) {
@@ -383,7 +397,14 @@ exports.updateConfig = function updateConfig(trackId, config, userId) {
 // -----------------------------------------------------------------------------
 
 exports.updateComposition = function updateComposition(trackId, composition, userId) {
-  return virtualTrackService.updateComposition(trackId, composition, userId);
+  const compositionResult = compositionSchema.safeParse(composition);
+  if (!compositionResult.success) {
+    throw new BadRequestError({
+      message: 'Invalid virtual track composition',
+      details: compositionResult.error.errors,
+    });
+  }
+  return virtualTrackService.updateComposition(trackId, compositionResult.data, userId);
 };
 
 exports.createVirtualSnapshot = function createVirtualSnapshot(trackId, options) {

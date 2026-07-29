@@ -28,7 +28,7 @@ completion backlog.
   - `manual` rejects `cron` and `dates`;
   - `cron` requires `cron` and rejects `dates`;
   - `dates` requires at least one date and rejects `cron`.
-- [ ] Constrain or document accepted `filters.object_types` values and add
+- [x] Constrain or document accepted `filters.object_types` values and add
   direct regression coverage for exact-revision filtering.
 
 ### P1 — Deduplication correctness
@@ -244,6 +244,54 @@ Verification result (2026-07-29):
   test(release-tracks): align virtual composition fixture
 
   Include the required component priority in virtual-track creation coverage.
+  ```
+
+### Current implementation slice — Object-type filter contracts
+
+- [x] Define `filters.object_types` against the canonical Workbench STIX type
+  vocabulary instead of accepting arbitrary strings.
+- [x] Reject empty arrays, duplicate values, malformed values, and unsupported
+  object types on both virtual-track creation and composition update.
+- [x] Repeat the accepted-value constraint at the Mongoose persistence
+  boundary.
+- [x] Add direct materialization coverage proving that object-type filtering
+  preserves the exact revision pinned by the tagged component snapshot rather
+  than resolving the latest database revision.
+- [x] Align OpenAPI, user/developer documentation, frontend guidance, and
+  Bruno; verify whether `internalattack` needs a typed client change.
+- [x] Run focused regression specs, lint, and the complete `npm test` suite.
+- [x] Review the final diff and propose conventional commit messages.
+
+Verification result (2026-07-29):
+
+- The dedicated object-type contract and exact-revision materialization spec
+  passes (5); the combined virtual composition, domain, schedule, and
+  object-type filter group passes (18).
+- OpenAPI validation passes (2), backend lint passes, and the required clean
+  `npm test` run passes (OpenAPI 2, config 21, API 923, middleware 24).
+- Earlier complete runs encountered unrelated shared-suite flakes in user
+  account startup, analytics socket handling, and campaign/group HTTP
+  handling. The affected specs pass in isolation (14, 12, and 44
+  respectively).
+- `internalattack` already accepts composition filters as a mapping, so this
+  contract clarification does not require a typed client change.
+- Proposed REST API commit:
+
+  ```text
+  fix(release-tracks): validate virtual object type filters
+
+  Constrain virtual component object-type filters to the canonical Workbench
+  STIX vocabulary across request, service, persistence, OpenAPI, and
+  documentation boundaries. Preserve exact component snapshot revisions.
+  ```
+
+- Proposed Bruno commit:
+
+  ```text
+  docs(release-tracks): document object type filters
+
+  Document canonical virtual component object-type values, omission semantics,
+  and exact-revision behavior.
   ```
 
 ### Tracker consolidation

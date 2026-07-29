@@ -17,6 +17,7 @@ const {
   xMitreVersionSchema,
   createStixIdValidator,
 } = require('@mitre-attack/attack-data-model');
+const types = require('../types');
 
 // -----------------------------------------------------------------------------
 // Custom STIX identifier
@@ -277,9 +278,23 @@ const snapshotScheduleSchema = z.discriminatedUnion('mode', [
     .strict(),
 ]);
 
+const releaseTrackObjectTypes = Object.freeze(Object.values(types));
+const releaseTrackObjectTypeSchema = z.enum(releaseTrackObjectTypes);
+const objectTypesFilterSchema = z
+  .array(releaseTrackObjectTypeSchema)
+  .min(1)
+  .superRefine((objectTypes, context) => {
+    if (new Set(objectTypes).size !== objectTypes.length) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Object type filters must not contain duplicate values',
+      });
+    }
+  });
+
 const componentTrackFiltersSchema = z
   .object({
-    object_types: z.array(z.string()).optional(),
+    object_types: objectTypesFilterSchema.optional(),
     domains: z.array(z.string()).optional(),
   })
   .strict();
@@ -512,6 +527,9 @@ module.exports = {
   // Domain schemas
   trackNameSchema,
   cronSchema,
+  releaseTrackObjectTypes,
+  releaseTrackObjectTypeSchema,
+  objectTypesFilterSchema,
 
   // Re-exports from @mitre-attack/attack-data-model
   stixIdentifierSchema,

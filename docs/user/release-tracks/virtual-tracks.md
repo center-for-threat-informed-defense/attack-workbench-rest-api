@@ -227,6 +227,13 @@ ATT&CK data identifies their domain through
 `external_references[].external_id`, so virtual filtering uses that established
 matrix fallback.
 
+`object_types` values are case-sensitive canonical Workbench STIX type names.
+When the property is present, it must contain at least one value and cannot
+contain duplicates. Omit `object_types` to include every type. The filter reads
+the type prefix from each resolved member's `object_ref`, so a newer database
+revision cannot replace the exact revision pinned by the component release.
+Unsupported values return `400 Bad Request`.
+
 `stix_pattern` is not part of the current request schema and is not
 implemented. Filter objects are strict, so misspelled or unsupported keys such
 as `domain` fail with `400 Bad Request`; use the plural `domains`.
