@@ -6,6 +6,7 @@ const {
   validateTrackName,
   validateVersion,
   validateCron,
+  validateSnapshotSchedule,
 } = require('../../lib/release-tracks/release-track-validators');
 
 // --- Sub-schemas ---
@@ -69,7 +70,20 @@ const releaseTrackRegistryDefinition = {
   tagged_releases: { type: [taggedReleaseSchema], default: [] },
 
   // Virtual tracks only
-  snapshot_schedule: { type: snapshotScheduleSchema, default: undefined },
+  snapshot_schedule: {
+    type: snapshotScheduleSchema,
+    default: undefined,
+    validate: {
+      validator: function validateRegistrySnapshotSchedule(value) {
+        return (
+          value === undefined ||
+          (this.type === 'virtual' && validateSnapshotSchedule.validator(value))
+        );
+      },
+      message:
+        'Snapshot schedule is only valid for virtual tracks and its fields must match its mode',
+    },
+  },
 
   created_at: { type: Date, required: true },
   updated_at: { type: Date, required: true },

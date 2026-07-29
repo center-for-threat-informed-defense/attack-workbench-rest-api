@@ -486,6 +486,44 @@ Done when:
   selections are blocked before submission.
 - Submitted composition payloads contain only server-supported properties.
 
+## P1 — Submit mode-correct virtual snapshot schedules
+
+### [ ] Add conditional validation and complete the dates-mode UI
+
+`snapshot_schedule` is virtual-only and now has a strict discriminated
+contract:
+
+```ts
+type SnapshotSchedule =
+  | { mode: 'manual' }
+  | { mode: 'cron'; cron: string }
+  | { mode: 'dates'; dates: string[] };
+```
+
+The modes are mutually exclusive. Do not retain hidden form values when the
+mode changes: `manual` sends neither selector, `cron` sends only a valid
+five-field cron expression, and `dates` sends only a nonempty array of ISO
+timestamps. Standard-track payloads must omit `snapshot_schedule`.
+
+The current dialog already lists `dates`, but it has no date controls and
+therefore submits only `{ mode: 'dates' }`, which the server rejects. The cron
+control is also not conditionally required, allowing `{ mode: 'cron' }` to be
+submitted.
+
+Schedule configuration is metadata only for now. The UI must not imply that
+automatic creation is active until the P2 backend scheduler integration is
+implemented.
+
+Done when:
+
+- Selecting cron makes a valid cron expression required and clears dates.
+- Selecting dates exposes date controls, requires at least one value, emits
+  ISO timestamps, and clears cron.
+- Selecting manual clears both selector fields.
+- Standard-track creation never sends schedule metadata.
+- Tests cover all three modes and mode switching.
+- User-facing copy says scheduled execution is not yet active.
+
 ## P1 — Separate snapshot and preview output-format types
 
 ### [ ] Remove the invalid `snapshot` format and model `summary` correctly

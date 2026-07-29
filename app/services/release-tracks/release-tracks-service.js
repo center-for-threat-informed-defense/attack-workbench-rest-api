@@ -14,7 +14,8 @@
 // Phase 6: Export, ephemeral, bundle import        → export-service, ephemeral-service, bundle-import-service
 // =============================================================================
 
-const { NotImplementedError } = require('../../exceptions');
+const { BadRequestError, NotImplementedError } = require('../../exceptions');
+const { snapshotScheduleSchema } = require('../../lib/release-tracks/release-track-schemas');
 const snapshotService = require('./snapshot-service');
 const standardTrackService = require('./standard-track-service');
 const versioningService = require('./versioning-service');
@@ -170,11 +171,30 @@ exports.getReleasesByObject = function getReleasesByObject(objectRef, options) {
 };
 
 exports.createTrack = async function createTrack(data) {
-  if (data.type === 'virtual' && data.composition) {
-    await virtualTrackService.validateComposition(data.composition);
+  let validatedData = data;
+
+  if (data.snapshot_schedule !== undefined) {
+    if (data.type !== 'virtual') {
+      throw new BadRequestError({
+        message: 'Snapshot schedules are only available for virtual release tracks',
+      });
+    }
+
+    const scheduleResult = snapshotScheduleSchema.safeParse(data.snapshot_schedule);
+    if (!scheduleResult.success) {
+      throw new BadRequestError({
+        message: 'Invalid snapshot schedule',
+        details: scheduleResult.error.errors,
+      });
+    }
+    validatedData = { ...data, snapshot_schedule: scheduleResult.data };
   }
 
-  return snapshotService.createTrack(data);
+  if (validatedData.type === 'virtual' && validatedData.composition) {
+    await virtualTrackService.validateComposition(validatedData.composition);
+  }
+
+  return snapshotService.createTrack(validatedData);
 };
 
 // Phase 6 → bundle-import-service

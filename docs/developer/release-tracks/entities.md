@@ -408,14 +408,11 @@ Virtual release tracks compute their contents by aggregating objects from compon
     }
   },
 
-  // Optional: Virtual tracks can schedule automatic snapshot creation
+  // Optional schedule metadata. Choose exactly one mode-specific shape.
+  // This example uses cron; automated execution is a required P2 capability.
   snapshot_schedule: {
-    mode: "manual",  // "manual" | "cron" | "dates"
-    cron: "0 0 1 1,7 *",  // Cron expression (e.g., Jan 1 and July 1 at midnight)
-    dates: [  // Or specific dates
-      "2024-01-01T00:00:00Z",
-      "2024-07-01T00:00:00Z"
-    ]
+    mode: "cron",
+    cron: "0 0 1 1,7 *"  // Jan 1 and July 1 at midnight UTC
   },
 
   // Configuration
@@ -438,6 +435,29 @@ Virtual release tracks compute their contents by aggregating objects from compon
   ]
 }
 ```
+
+The three valid `snapshot_schedule` shapes are:
+
+```javascript
+// Explicit creation only
+{ mode: "manual" }
+
+// Five-field UTC cron schedule
+{ mode: "cron", cron: "0 0 1 1,7 *" }
+
+// Explicit execution dates
+{
+  mode: "dates",
+  dates: [
+    "2024-01-01T00:00:00Z",
+    "2024-07-01T00:00:00Z"
+  ]
+}
+```
+
+These are alternatives, not fields to combine in one schedule. The API
+currently validates and persists all three shapes. Automated execution for
+`cron` and `dates` is not implemented yet and is a required P2 deliverable.
 
 **Key Differences from Standard Tracks:**
 
@@ -463,6 +483,12 @@ Virtual release tracks compute their contents by aggregating objects from compon
   of deduplication strategy
 - Component IDs and priorities are validated before initial virtual-track
   persistence as well as during composition updates and materialization
+- Snapshot schedules are strict and mode-discriminated: `manual` accepts only
+  `mode`, `cron` requires only a five-field `cron` expression, and `dates`
+  requires only a nonempty `dates` array
+- Standard tracks reject `snapshot_schedule`; schedules are stored as virtual
+  registry metadata. Automated `cron` and `dates` execution is required but
+  remains pending until scheduler integration exists
 - Composition request objects are strict; unknown composition, component,
   filter, and deduplication keys return `400 Bad Request`
 - Selector fields form a discriminated request contract:

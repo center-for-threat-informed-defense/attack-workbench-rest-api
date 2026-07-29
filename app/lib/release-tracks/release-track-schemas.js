@@ -257,11 +257,25 @@ const memberSyncConfigSchema = z.object({
 // =============================================================================
 
 /** POST /release-tracks/new */
-const snapshotScheduleSchema = z.object({
-  mode: z.enum(['manual', 'cron', 'dates']),
-  cron: cronSchema.optional(),
-  dates: z.array(z.iso.datetime()).optional(),
-});
+const snapshotScheduleSchema = z.discriminatedUnion('mode', [
+  z
+    .object({
+      mode: z.literal('manual'),
+    })
+    .strict(),
+  z
+    .object({
+      mode: z.literal('cron'),
+      cron: cronSchema,
+    })
+    .strict(),
+  z
+    .object({
+      mode: z.literal('dates'),
+      dates: z.array(z.iso.datetime()).min(1),
+    })
+    .strict(),
+]);
 
 const componentTrackFiltersSchema = z
   .object({
@@ -335,14 +349,24 @@ const compositionSchema = z
     });
   });
 
-const createTrackBodySchema = z.object({
-  name: trackNameSchema,
-  description: z.string().optional(),
-  type: trackTypeQuerySchema.default('standard'),
-  object_marking_refs: z.array(stixIdentifierSchema).optional(),
-  composition: compositionSchema.optional(),
-  snapshot_schedule: snapshotScheduleSchema.optional(),
-});
+const createTrackBodySchema = z
+  .object({
+    name: trackNameSchema,
+    description: z.string().optional(),
+    type: trackTypeQuerySchema.default('standard'),
+    object_marking_refs: z.array(stixIdentifierSchema).optional(),
+    composition: compositionSchema.optional(),
+    snapshot_schedule: snapshotScheduleSchema.optional(),
+  })
+  .superRefine((track, context) => {
+    if (track.type !== 'virtual' && track.snapshot_schedule !== undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['snapshot_schedule'],
+        message: 'Snapshot schedules are only available for virtual tracks',
+      });
+    }
+  });
 
 /** POST /release-tracks/new-from-bundle */
 const createFromBundleBodySchema = z.object({

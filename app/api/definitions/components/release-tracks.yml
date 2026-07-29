@@ -546,24 +546,46 @@ components:
           format: date-time
 
     snapshot-schedule:
-      type: object
-      description: 'Schedule for automated virtual track snapshot creation'
-      properties:
-        mode:
-          type: string
-          enum:
-            - interval
+      description: 'Stored schedule metadata for virtual track snapshot creation; automated execution is not yet implemented'
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required:
+            - mode
+          properties:
+            mode:
+              type: string
+              enum:
+                - manual
+              description: 'Snapshots are created explicitly'
+        - type: object
+          additionalProperties: false
+          required:
+            - mode
+            - cron
+          properties:
+            mode:
+              type: string
+              enum:
+                - cron
+            cron:
+              type: string
+              description: 'Five-field UTC cron expression'
+              example: '0 0 1 1,7 *'
+        - type: object
+          additionalProperties: false
+          required:
+            - mode
             - dates
-            - disabled
-          description: 'Scheduling mode'
-        interval_days:
-          type: number
-          nullable: true
-          description: 'Days between snapshots (when mode is interval)'
-        dates:
-          type: array
-          nullable: true
-          items:
-            type: string
-            format: date-time
-          description: 'Specific dates for snapshots (when mode is dates)'
+          properties:
+            mode:
+              type: string
+              enum:
+                - dates
+            dates:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                format: date-time
+              description: 'Explicit UTC dates for snapshot creation'

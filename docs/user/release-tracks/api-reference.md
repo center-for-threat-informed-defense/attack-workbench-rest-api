@@ -1114,7 +1114,14 @@ Short names (`enterprise`, `ics`, `mobile`) and STIX names ending in
 For primary matrices, which omit `x_mitre_domains` in published ATT&CK data,
 the domain is read from `external_references[].external_id`.
 `snapshot_schedule` is stored as metadata only; automated execution is not
-yet implemented.
+yet implemented. Its shape depends on `mode`:
+
+- `manual` accepts only `{ "mode": "manual" }`;
+- `cron` requires a five-field `cron` expression and rejects `dates`;
+- `dates` requires at least one ISO timestamp and rejects `cron`.
+
+Unknown schedule properties return `400 Bad Request`. Standard tracks also
+reject `snapshot_schedule` rather than silently ignoring it.
 
 Composition, component, filter, and deduplication objects are strict. Unknown
 keys, including the incorrect singular `filters.domain`, return

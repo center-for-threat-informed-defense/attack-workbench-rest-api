@@ -89,6 +89,14 @@ service to verify that every component exists and is a standard track before
 persisting an initial virtual track; update and materialization retain the same
 service-layer validation.
 
+Snapshot schedules use the same strict, mode-discriminated Zod schema at the
+controller and service boundaries. `manual` has no selector field, `cron`
+requires a five-field cron expression, and `dates` requires a nonempty array of
+ISO timestamps. Standard-track creation rejects `snapshot_schedule` instead of
+silently dropping it. Mongoose repeats the mode and track-type invariants for
+direct persistence callers. Schedule configuration remains registry metadata;
+P2 scheduler execution is not implemented.
+
 There is no side-effect-free virtual snapshot-creation preview. Once a virtual
 draft is persisted, it uses the same retrieval and release endpoints as a
 standard draft. Release planning never resolves composition and rejects a

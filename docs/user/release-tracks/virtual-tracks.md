@@ -108,9 +108,7 @@ Virtual tracks are identified by `stix.type = "virtual"` in their schema.
 
   // Snapshot schedule configuration
   snapshot_schedule: {
-    mode: "manual",  // "manual" | "cron" | "dates"
-    cron: "0 0 1 1,7 *",  // Jan 1 and July 1 at midnight
-    dates: ["2024-01-01T00:00:00Z", "2024-07-01T00:00:00Z"]
+    mode: "manual"  // "manual" | "cron" | "dates"
   },
 
   // Configuration
@@ -517,6 +515,15 @@ snapshot_schedule: {
 The configuration is currently persisted as registry metadata only. No
 release-track scheduler consumes it yet, so `cron` and `dates` schedules do
 not create snapshots automatically.
+
+Schedule payloads are strict and mode-specific:
+
+- `manual` accepts only `{ mode: "manual" }`.
+- `cron` requires `cron` and rejects `dates`.
+- `dates` requires a nonempty `dates` array and rejects `cron`.
+
+Unknown schedule fields return `400 Bad Request`. Standard tracks do not
+support `snapshot_schedule`.
 
 **Planned scheduler integration:**
 ```javascript

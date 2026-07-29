@@ -24,7 +24,7 @@ completion backlog.
 - [x] Validate component existence, standard-track type, duplicate track IDs,
   and duplicate priorities when a virtual track is initially created, not only
   when composition is later updated or materialized.
-- [ ] Validate `snapshot_schedule` by mode:
+- [x] Validate `snapshot_schedule` by mode:
   - `manual` rejects `cron` and `dates`;
   - `cron` requires `cron` and rejects `dates`;
   - `dates` requires at least one date and rejects `cron`.
@@ -53,11 +53,23 @@ completion backlog.
 ### P2 — Scheduled materialization
 
 - [ ] Connect virtual `snapshot_schedule` metadata to the existing task
-  scheduler.
-- [ ] Implement manual, cron, and explicit-date scheduling semantics.
+  scheduler. This is required for virtual-track completion, not an optional
+  future enhancement.
+- [ ] Implement `cron` execution so each matching schedule occurrence
+  materializes a new virtual draft through the same lifecycle and validation
+  used by `POST /api/release-tracks/:id/virtual/snapshots/create`.
+- [ ] Implement `dates` execution so every configured timestamp materializes
+  exactly one virtual draft, including deterministic handling for restart
+  recovery, missed timestamps, and duplicate-delivery prevention.
+- [ ] Preserve `manual` semantics: store no executable schedule and create
+  drafts only through the explicit virtual snapshot-creation endpoint.
 - [ ] Define failure behavior when a component has no matching tagged
   snapshot, including automation-run audit records and retry policy.
-- [ ] Add scheduler integration tests and operational documentation.
+- [ ] Add scheduler integration tests for both `cron` and `dates`, including
+  successful execution, restart recovery, idempotency, component-resolution
+  failure, and retry behavior.
+- [ ] Add operational documentation covering scheduler activation, UTC
+  interpretation, observability, failures, and retries.
 
 ### P2 — Contract decisions
 
@@ -179,6 +191,59 @@ Verification result (2026-07-29):
 
   Document required unique priorities and standard component references for
   virtual-track creation and composition updates.
+  ```
+
+### Current implementation slice — Snapshot schedule contracts
+
+- [x] Add creation regressions for valid and invalid `manual`, `cron`, and
+  `dates` schedule payloads.
+- [x] Enforce a strict mode-discriminated request contract:
+  - `manual` accepts only `mode`;
+  - `cron` requires `cron` and rejects `dates`;
+  - `dates` requires at least one date and rejects `cron`.
+- [x] Reject `snapshot_schedule` on standard-track creation instead of silently
+  dropping it.
+- [x] Repeat schedule invariants at the service and Mongoose boundaries for
+  non-HTTP callers.
+- [x] Align OpenAPI, user/developer documentation, frontend guidance, the
+  `internalattack` test fixture, and Bruno.
+- [x] Run focused regression specs, lint, and the complete `npm test` suite.
+- [x] Review the final diff and propose conventional commit messages.
+
+Verification result (2026-07-29):
+
+- The focused schedule-contract spec passes (7), the focused virtual-track
+  regression group passes (29), OpenAPI validation passes (2), and backend
+  lint passes.
+- The required complete `npm test` suite passes (OpenAPI 2, config 21, API
+  927, middleware 24).
+- The `internalattack` focused release-track suite passes (30), and its
+  complete suite passes (247).
+- Proposed REST API commit:
+
+  ```text
+  fix(release-tracks): validate virtual snapshot schedules
+
+  Enforce strict mode-specific virtual snapshot schedules across request,
+  service, persistence, OpenAPI, documentation, and frontend contracts.
+  Reject schedule metadata for standard tracks.
+  ```
+
+- Proposed companion Bruno commit:
+
+  ```text
+  docs(release-tracks): document snapshot schedule modes
+
+  Document the strict manual, cron, and dates schedule payloads and clarify
+  that automated execution is not yet implemented.
+  ```
+
+- Proposed companion `internalattack` commit:
+
+  ```text
+  test(release-tracks): align virtual composition fixture
+
+  Include the required component priority in virtual-track creation coverage.
   ```
 
 ### Tracker consolidation
