@@ -203,7 +203,7 @@ describe('Virtual release-track object-type filters API', function () {
     const matrix = await post('/api/matrices', buildMatrix('Excluded Type Member'));
 
     await post(
-      `/api/release-tracks/${componentTrack.id}/contents`,
+      `/api/release-tracks/${componentTrack.id}/contents?confirm_track_id=${componentTrack.id}`,
       {
         x_mitre_contents: [mitigation, matrix].map((object) => ({
           obj_ref: object.stix.id,

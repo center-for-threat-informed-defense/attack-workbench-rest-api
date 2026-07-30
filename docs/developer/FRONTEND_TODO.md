@@ -145,6 +145,33 @@ Done when:
 
 ## P0 — Align the Angular connector with the current routes
 
+### [ ] Add administrator confirmation for destructive release-track actions
+
+Full track deletion and both direct standard-track member replacement routes
+are administrator-only. They now require the query parameter
+`confirm_track_id` to exactly equal the `:id` path parameter:
+
+```text
+DELETE /api/release-tracks/:id?confirm_track_id=:id
+POST /api/release-tracks/:id/contents?confirm_track_id=:id
+POST /api/release-tracks/:id/snapshots/:modified/contents?confirm_track_id=:id
+```
+
+Do not expose these actions to editors or team leads. Before sending a request,
+show the track name and ID, explain that direct replacement bypasses the normal
+candidate/staged workflow or that deletion removes all history, and require an
+explicit confirmation interaction. A missing or stale ID returns `400`; a
+non-administrator returns `401`.
+
+Done when:
+
+- Route guards and action visibility match the documented authorization
+  matrix.
+- The connector sends the selected track's exact ID as `confirm_track_id`.
+- Dialogs cannot reuse confirmation state after the selected track changes.
+- Tests cover administrator success plus editor, missing-confirmation, and
+  mismatched-confirmation rejection.
+
 ### [ ] Use only the explicit snapshot-retrieval endpoints
 
 The release-track resource path no longer doubles as an implicit request for

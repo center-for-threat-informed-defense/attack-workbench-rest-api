@@ -73,7 +73,7 @@ describe('Virtual release-track quarantine API', function () {
 
   async function createReleasedComponent(name, member) {
     const track = await createTrack(name);
-    await post(`/api/release-tracks/${track.id}/contents`, {
+    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
       x_mitre_contents: [
         {
           obj_ref: member.stix.id,

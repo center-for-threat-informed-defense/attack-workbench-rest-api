@@ -79,6 +79,25 @@ function parseOptionalQueryStrict(value, schema, defaultValue, parameterName) {
   });
 }
 
+function requireDestructiveConfirmation(req) {
+  if (req.query.confirm_track_id !== req.params.id) {
+    throw new BadRequestError({
+      message: 'Destructive release-track confirmation is required',
+      details: `Set confirm_track_id to the exact target track ID '${req.params.id}'.`,
+      parameter_name: 'confirm_track_id',
+      expected_track_id: req.params.id,
+    });
+  }
+}
+
+function destructiveActor(req) {
+  return {
+    user_account_id: req.user?.userAccountId,
+    role: req.user?.role,
+    authentication_strategy: req.user?.strategy,
+  };
+}
+
 function rejectFilesystemStoreFormat(format, methodName) {
   if (format !== 'filesystemstore') return null;
 
@@ -445,6 +464,7 @@ exports.updateMetadataByLatest = async function updateMetadataByLatest(req, res,
 /** POST /api/release-tracks/:id/contents */
 exports.updateContentsByLatest = async function updateContentsByLatest(req, res, next) {
   try {
+    requireDestructiveConfirmation(req);
     const bodyResult = updateContentsBodySchema.safeParse(req.body);
     if (!bodyResult.success) {
       return next(
@@ -458,7 +478,8 @@ exports.updateContentsByLatest = async function updateContentsByLatest(req, res,
     const result = await releaseTracksService.updateContents(
       req.params.id,
       bodyResult.data,
-      req.user?.userAccountId,
+      destructiveActor(req),
+      req.query.confirm_track_id,
     );
     logger.debug(`Success: Updated contents for track ${req.params.id}`);
     return res.status(200).send(result);
@@ -521,7 +542,12 @@ exports.cloneByLatest = async function cloneByLatest(req, res, next) {
 /** DELETE /api/release-tracks/:id */
 exports.deleteReleaseTrack = async function deleteReleaseTrack(req, res, next) {
   try {
-    await releaseTracksService.deleteTrack(req.params.id);
+    requireDestructiveConfirmation(req);
+    await releaseTracksService.deleteTrack(
+      req.params.id,
+      destructiveActor(req),
+      req.query.confirm_track_id,
+    );
     logger.debug(`Success: Deleted track ${req.params.id}`);
     return res.status(204).end();
   } catch (err) {
@@ -589,6 +615,7 @@ exports.updateMetadataByModified = async function updateMetadataByModified(req, 
 /** POST /api/release-tracks/:id/snapshots/:modified/contents */
 exports.updateContentsByModified = async function updateContentsByModified(req, res, next) {
   try {
+    requireDestructiveConfirmation(req);
     const bodyResult = updateContentsBodySchema.safeParse(req.body);
     if (!bodyResult.success) {
       return next(
@@ -603,7 +630,8 @@ exports.updateContentsByModified = async function updateContentsByModified(req, 
       req.params.id,
       req.params.modified,
       bodyResult.data,
-      req.user?.userAccountId,
+      destructiveActor(req),
+      req.query.confirm_track_id,
     );
     logger.debug(`Success: Updated contents for snapshot ${req.params.modified}`);
     return res.status(200).send(result);

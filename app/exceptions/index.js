@@ -335,6 +335,16 @@ class ReleaseTrackReconciliationError extends CustomError {
   }
 }
 
+class ReleaseTrackAuditError extends CustomError {
+  constructor(trackId, auditEventId, options = {}) {
+    super('Release-track audit recording could not be finalized', {
+      ...options,
+      track_id: trackId,
+      audit_event_id: auditEventId,
+    });
+  }
+}
+
 class TaggedSnapshotDeletionError extends CustomError {
   constructor(version, options) {
     super(`Tagged snapshot version ${version} cannot be deleted`, options);
@@ -433,6 +443,7 @@ module.exports = {
   ReleaseConflictError,
   ReleaseContentIntegrityError,
   ReleaseTrackReconciliationError,
+  ReleaseTrackAuditError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
   VirtualSnapshotNotMaterializedError,

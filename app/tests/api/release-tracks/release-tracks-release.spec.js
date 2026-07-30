@@ -363,7 +363,7 @@ describe('Release-track release planning and commit API', function () {
   it('records immutable component versions when previewing and releasing a virtual draft', async function () {
     const member = (await post('/api/techniques', buildTechnique('Provenance Member'), 201)).body;
     const component = await createTrack('Provenance Component');
-    await post(`/api/release-tracks/${component.id}/contents`, {
+    await post(`/api/release-tracks/${component.id}/contents?confirm_track_id=${component.id}`, {
       x_mitre_contents: [{ obj_ref: member.stix.id, obj_modified: member.stix.modified }],
     });
     const firstComponentRelease = await post(
@@ -401,7 +401,7 @@ describe('Release-track release planning and commit API', function () {
 
     // Advance the component after materialization. Virtual release provenance
     // must remain tied to the frozen component resolution, not current state.
-    await post(`/api/release-tracks/${component.id}/contents`, {
+    await post(`/api/release-tracks/${component.id}/contents?confirm_track_id=${component.id}`, {
       x_mitre_contents: [{ obj_ref: member.stix.id, obj_modified: member.stix.modified }],
     });
     const secondComponentRelease = await post(
@@ -696,7 +696,7 @@ describe('Release-track release planning and commit API', function () {
       await post('/api/techniques', buildTechnique('Virtual Materialization Member'), 201)
     ).body;
     const component = await createTrack('Virtual Materialization Component');
-    await post(`/api/release-tracks/${component.id}/contents`, {
+    await post(`/api/release-tracks/${component.id}/contents?confirm_track_id=${component.id}`, {
       x_mitre_contents: [{ obj_ref: member.stix.id, obj_modified: member.stix.modified }],
     });
     await post(`/api/release-tracks/${component.id}/snapshots/latest/release`, {});
@@ -769,9 +769,13 @@ describe('Release-track release planning and commit API', function () {
       ],
     };
 
-    await post(`/api/release-tracks/${virtual.id}/contents`, contents, 400);
     await post(
-      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(virtual.modified)}/contents`,
+      `/api/release-tracks/${virtual.id}/contents?confirm_track_id=${virtual.id}`,
+      contents,
+      400,
+    );
+    await post(
+      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(virtual.modified)}/contents?confirm_track_id=${virtual.id}`,
       contents,
       400,
     );
@@ -788,7 +792,7 @@ describe('Release-track release planning and commit API', function () {
       await post('/api/techniques', buildTechnique('Release Conflict B', revisionA), 201)
     ).body;
     const track = await createTrack('Release Conflict');
-    await post(`/api/release-tracks/${track.id}/contents`, {
+    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
       x_mitre_contents: [{ obj_ref: revisionA.stix.id, obj_modified: revisionA.stix.modified }],
     });
     await post(`/api/release-tracks/${track.id}/candidates`, {

@@ -109,6 +109,7 @@ describe('Release Tracks API', function () {
 
     await request(app)
       .post(`/api/release-tracks/${trackId}/contents`)
+      .query({ confirm_track_id: trackId })
       .send({
         x_mitre_contents: [
           {

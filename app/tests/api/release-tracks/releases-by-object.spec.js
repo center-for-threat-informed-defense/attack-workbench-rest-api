@@ -152,7 +152,7 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
 
   async function setMembers(trackId, objects) {
     return post(
-      `/api/release-tracks/${trackId}/contents`,
+      `/api/release-tracks/${trackId}/contents?confirm_track_id=${trackId}`,
       {
         x_mitre_contents: objects.map((object) => ({
           obj_ref: object.stix.id,

@@ -727,3 +727,23 @@ components:
           type: string
           format: uuid
           description: 'Durable reconciliation record to inspect or repair'
+
+    release-track-audit-error:
+      type: object
+      required:
+        - message
+        - track_id
+        - audit_event_id
+      properties:
+        message:
+          type: string
+          enum:
+            - 'Release-track audit recording could not be finalized'
+        details:
+          type: string
+          description: 'Operator guidance; the destructive operation may already be persisted'
+        track_id:
+          type: string
+        audit_event_id:
+          type: string
+          format: uuid

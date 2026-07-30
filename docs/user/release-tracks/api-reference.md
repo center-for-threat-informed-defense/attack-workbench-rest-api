@@ -47,10 +47,10 @@ POST   /api/release-tracks/new
 POST   /api/release-tracks/new-from-bundle
 POST   /api/release-tracks/import
 POST   /api/release-tracks/:id/meta
-POST   /api/release-tracks/:id/contents
+POST   /api/release-tracks/:id/contents?confirm_track_id=:id
 POST   /api/release-tracks/:id/snapshots/latest/release
 POST   /api/release-tracks/:id/clone
-DELETE /api/release-tracks/:id
+DELETE /api/release-tracks/:id?confirm_track_id=:id
 ```
 
 ### Snapshot Operations
@@ -470,6 +470,11 @@ POST /api/release-tracks/:id/contents
 
 Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.** The main workflow for enrolling new member objects into `x_mitre_contents` is through the candidate-staging promotion cycle described in [versioning.md](./versioning.md).
 
+This operation requires the administrator role. The
+`confirm_track_id` query parameter must exactly equal the `:id` path
+parameter. Every accepted attempt is recorded in the durable release-track
+destructive audit trail.
+
 This operation is available only for standard tracks. Virtual membership is
 computed from component releases and can only be updated by materializing a
 virtual draft with `POST /api/release-tracks/:id/virtual/snapshots/create`.
@@ -568,12 +573,13 @@ POST /api/release-tracks/:id/clone
 ### Delete Release Track
 
 ```
-DELETE /api/release-tracks/:id
+DELETE /api/release-tracks/:id?confirm_track_id=:id
 ```
 
-**Query Parameters:**
-
-- `versions` - `latest` (delete only latest, default: all)
+This irreversible operation requires the administrator role and removes the
+track's complete snapshot history. `confirm_track_id` must exactly equal the
+`:id` path parameter. Every accepted attempt is recorded in the durable
+release-track destructive audit trail.
 
 ---
 
@@ -628,14 +634,16 @@ Creates new snapshot with updated metadata.
 ### Update Contents (Specific Snapshot)
 
 ```
-POST /api/release-tracks/:id/snapshots/:modified/contents
+POST /api/release-tracks/:id/snapshots/:modified/contents?confirm_track_id=:id
 ```
 
 Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.**
 
 **Request Body:** Same as [Update Contents](#update-contents) for latest snapshot.
 
-Like the latest form, this operation is restricted to standard tracks.
+Like the latest form, this operation is restricted to standard tracks,
+requires the administrator role and exact track-ID confirmation, and creates
+a durable audit event.
 
 ### Release/Tag Specific Snapshot
 
@@ -764,7 +772,7 @@ contains the same exact revision in `members` and `candidates`, the transition
 repairs the duplicate and retains the `members` occurrence. A dynamic
 candidate remains `"latest"` if it is promoted to staged.
 
-```
+````
 POST /api/release-tracks/:id/candidates/review
 ```/
 
@@ -776,7 +784,7 @@ POST /api/release-tracks/:id/candidates/review
   "to": "awaiting-review",
   "object_refs": [{ "id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z" }]
 }
-```
+````
 
 ---
 

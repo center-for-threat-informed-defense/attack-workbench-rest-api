@@ -89,7 +89,7 @@ describe('Virtual release-track deduplication API', function () {
   async function createReleasedComponent(name, members) {
     const track = await post('/api/release-tracks/new', { name, type: 'standard' });
     await post(
-      `/api/release-tracks/${track.id}/contents`,
+      `/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`,
       {
         x_mitre_contents: members.map((member) => ({
           obj_ref: member.stix.id,

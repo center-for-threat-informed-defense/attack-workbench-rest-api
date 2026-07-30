@@ -29,6 +29,7 @@ const ephemeralService = require('./ephemeral-service');
 const bundleImportService = require('./bundle-import-service');
 const memberSyncService = require('./member-sync-service');
 const releaseHistoryService = require('./release-history-service');
+const destructiveAuditService = require('./destructive-audit-service');
 const attackObjectsService = require('../stix/attack-objects-service');
 const userAccountsService = require('../system/user-accounts-service');
 const revisionReference = require('../../lib/release-tracks/revision-reference');
@@ -38,6 +39,16 @@ const TIER_NAMES = ['members', 'staged', 'candidates', 'quarantine'];
 
 function notImplemented(methodName) {
   throw new NotImplementedError(MODULE, methodName);
+}
+
+function destructiveIdentity(trackId, actor, confirmation) {
+  return {
+    actor: actor || {
+      kind: 'system',
+      name: 'internal-service',
+    },
+    confirmation: confirmation || trackId,
+  };
 }
 
 function rejectFilesystemStoreFormat(format, methodName) {
@@ -287,17 +298,38 @@ exports.updateMetadataByModified = function updateMetadataByModified(
   return snapshotService.updateMetadataByModified(trackId, modified, updates, userId);
 };
 
-exports.updateContents = function updateContents(trackId, contents, userId) {
-  return snapshotService.updateContents(trackId, contents, userId);
+exports.updateContents = function updateContents(trackId, contents, actor, confirmation) {
+  return destructiveAuditService.execute(
+    {
+      action: 'replace_members_latest',
+      trackId,
+      ...destructiveIdentity(trackId, actor, confirmation),
+      request: { members_count: contents.x_mitre_contents.length },
+    },
+    () => snapshotService.updateContents(trackId, contents, actor?.user_account_id),
+  );
 };
 
 exports.updateContentsByModified = function updateContentsByModified(
   trackId,
   modified,
   contents,
-  userId,
+  actor,
+  confirmation,
 ) {
-  return snapshotService.updateContentsByModified(trackId, modified, contents, userId);
+  return destructiveAuditService.execute(
+    {
+      action: 'replace_members_historical',
+      trackId,
+      ...destructiveIdentity(trackId, actor, confirmation),
+      request: {
+        source_snapshot_modified: modified,
+        members_count: contents.x_mitre_contents.length,
+      },
+    },
+    () =>
+      snapshotService.updateContentsByModified(trackId, modified, contents, actor?.user_account_id),
+  );
 };
 
 exports.cloneTrack = function cloneTrack(trackId, options) {
@@ -308,8 +340,17 @@ exports.cloneFromSnapshot = function cloneFromSnapshot(trackId, modified, option
   return snapshotService.cloneFromSnapshot(trackId, modified, options);
 };
 
-exports.deleteTrack = function deleteTrack(trackId) {
-  return snapshotService.deleteTrack(trackId);
+exports.deleteTrack = function deleteTrack(trackId, actor, confirmation) {
+  return destructiveAuditService.execute(
+    {
+      action: 'delete_track',
+      trackId,
+      ...destructiveIdentity(trackId, actor, confirmation),
+      request: {},
+      result: () => ({ deleted: true }),
+    },
+    () => snapshotService.deleteTrack(trackId),
+  );
 };
 
 exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {

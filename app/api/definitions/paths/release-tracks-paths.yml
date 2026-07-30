@@ -283,7 +283,9 @@ paths:
       operationId: 'release-tracks-delete'
       description: |
         Delete an entire release track including all snapshots and version history.
-        This operation cannot be undone.
+        This administrator-only operation cannot be undone. The caller must
+        confirm the exact target with confirm_track_id. The server writes a
+        durable audit event before deletion begins.
       tags:
         - 'Release Tracks'
       parameters:
@@ -293,11 +295,29 @@ paths:
           description: 'Release track ID'
           schema:
             type: string
+        - name: confirm_track_id
+          in: query
+          required: true
+          description: 'Must exactly equal the id path parameter'
+          schema:
+            type: string
       responses:
         '204':
           description: 'Release track deleted successfully'
         '404':
           description: 'Release track not found'
+        '400':
+          description: 'Missing or mismatched destructive confirmation'
+        '401':
+          description: 'Administrator role required'
+        '500':
+          description: 'The deletion may be persisted, but its durable audit or membership reconciliation failed'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-audit-error'
+                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-reconciliation-error'
 
   # =============================================================================
   # Latest snapshot operations
@@ -341,6 +361,8 @@ paths:
         Exact revisions already present in another tier are retained only in members;
         different revisions of the same object remain valid across tiers.
         Creates a new snapshot clone.
+        This administrator-only operation requires confirm_track_id to exactly
+        match the target track and writes a durable audit event.
         Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'
@@ -350,11 +372,27 @@ paths:
           required: true
           schema:
             type: string
+        - name: confirm_track_id
+          in: query
+          required: true
+          description: 'Must exactly equal the id path parameter'
+          schema:
+            type: string
       responses:
         '200':
           description: 'Contents updated successfully'
         '400':
           description: 'Track is virtual, the contents request is invalid, or a requested revision does not exist'
+        '401':
+          description: 'Administrator role required'
+        '500':
+          description: 'The replacement may be persisted, but its durable audit or membership reconciliation failed'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-audit-error'
+                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-reconciliation-error'
 
   /api/release-tracks/{id}/clone:
     post:
@@ -1256,6 +1294,8 @@ paths:
         store exact revision pins.
         Exact revisions already present in another tier are retained only in members;
         different revisions of the same object remain valid across tiers.
+        This administrator-only operation requires confirm_track_id to exactly
+        match the target track and writes a durable audit event.
         Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'
@@ -1270,11 +1310,27 @@ paths:
           required: true
           schema:
             type: string
+        - name: confirm_track_id
+          in: query
+          required: true
+          description: 'Must exactly equal the id path parameter'
+          schema:
+            type: string
       responses:
         '200':
           description: 'Contents updated successfully'
         '400':
           description: 'Track is virtual, the contents request is invalid, or a requested revision does not exist'
+        '401':
+          description: 'Administrator role required'
+        '500':
+          description: 'The replacement may be persisted, but its durable audit or membership reconciliation failed'
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-audit-error'
+                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-reconciliation-error'
 
   /api/release-tracks/{id}/snapshots/{modified}/clone:
     post:

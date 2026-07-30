@@ -196,6 +196,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
     it('deleting the track removes its backrefs', async function () {
       await request(app)
         .delete(`/api/release-tracks/${trackId}`)
+        .query({ confirm_track_id: trackId })
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(204);
 
@@ -301,7 +302,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const trackId = await createTrack('Backref Contents Track');
 
       const contentsSnapshot = await postObject(
-        `/api/release-tracks/${trackId}/contents`,
+        `/api/release-tracks/${trackId}/contents?confirm_track_id=${trackId}`,
         {
           x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
         },
@@ -364,7 +365,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const trackId = await createTrack('Backref Member Sync Track');
 
       await postObject(
-        `/api/release-tracks/${trackId}/contents`,
+        `/api/release-tracks/${trackId}/contents?confirm_track_id=${trackId}`,
         {
           x_mitre_contents: [{ obj_ref: revisionA.stix.id, obj_modified: revisionA.stix.modified }],
         },
@@ -469,7 +470,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       );
       const trackId = await createTrack('Backref Dynamic Ignore Track');
       await postObject(
-        `/api/release-tracks/${trackId}/contents`,
+        `/api/release-tracks/${trackId}/contents?confirm_track_id=${trackId}`,
         {
           x_mitre_contents: [{ obj_ref: revisionA.stix.id, obj_modified: revisionA.stix.modified }],
         },

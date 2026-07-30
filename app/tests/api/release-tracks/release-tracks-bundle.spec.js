@@ -217,7 +217,7 @@ describe('Release Tracks Bundle Export API', function () {
       .expect(200);
 
     // Members
-    await postAction(`/api/release-tracks/${trackId}/contents`, {
+    await postAction(`/api/release-tracks/${trackId}/contents?confirm_track_id=${trackId}`, {
       x_mitre_contents: [
         { obj_ref: memberObject.stix.id, obj_modified: memberObject.stix.modified },
         { obj_ref: linkedMemberObject.stix.id, obj_modified: linkedMemberObject.stix.modified },

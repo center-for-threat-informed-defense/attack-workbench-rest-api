@@ -82,7 +82,7 @@ describe('Virtual release-track deterministic membership API', function () {
       type: 'standard',
     });
     const contents = await post(
-      `/api/release-tracks/${component.id}/contents`,
+      `/api/release-tracks/${component.id}/contents?confirm_track_id=${component.id}`,
       {
         x_mitre_contents: [
           {

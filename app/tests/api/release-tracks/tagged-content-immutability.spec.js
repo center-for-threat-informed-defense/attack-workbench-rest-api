@@ -71,7 +71,7 @@ describe('Release-track authoritative tagged-content immutability', function () 
       { name: 'Historical Immutability', type: 'standard' },
       201,
     );
-    await post(`/api/release-tracks/${track.id}/contents`, {
+    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
       x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
     });
     await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, { version: '1.0' });
@@ -79,7 +79,7 @@ describe('Release-track authoritative tagged-content immutability', function () 
     // A newer draft removes the member, so latest-snapshot reconciliation
     // deliberately removes the object's denormalized backref. The historical
     // tagged snapshot remains the immutable authority.
-    await post(`/api/release-tracks/${track.id}/contents`, {
+    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
       x_mitre_contents: [{ obj_ref: replacement.stix.id, obj_modified: replacement.stix.modified }],
     });
     const current = (

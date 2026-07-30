@@ -172,7 +172,7 @@ describe('Release-track durable backref reconciliation', function () {
       { name: 'Full Scan Repair Track', type: 'standard' },
       201,
     );
-    await post(`/api/release-tracks/${track.id}/contents`, {
+    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
       x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
     });
 

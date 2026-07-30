@@ -263,7 +263,7 @@ router
   .route('/release-tracks/:id/snapshots/:modified/contents')
   .post(
     authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
+    authz.requireRole(authz.admin),
     releaseTracksController.updateContentsByModified,
   );
 
@@ -324,7 +324,7 @@ router
   .route('/release-tracks/:id')
   .delete(
     authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
+    authz.requireRole(authz.admin),
     releaseTracksController.deleteReleaseTrack,
   );
 

@@ -125,7 +125,7 @@ describe('Release-track cross-tier revision uniqueness', function () {
   }
 
   async function setMembers(trackId, objects) {
-    return post(`/api/release-tracks/${trackId}/contents`, {
+    return post(`/api/release-tracks/${trackId}/contents?confirm_track_id=${trackId}`, {
       x_mitre_contents: objects.map((object) => ({
         obj_ref: object.stix.id,
         obj_modified: object.stix.modified,

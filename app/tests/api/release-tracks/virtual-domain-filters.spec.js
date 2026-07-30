@@ -114,7 +114,7 @@ describe('Virtual Release Track Domain Filters API', function () {
       type: 'standard',
     });
     await post(
-      `/api/release-tracks/${component.id}/contents`,
+      `/api/release-tracks/${component.id}/contents?confirm_track_id=${component.id}`,
       {
         x_mitre_contents: [enterprise, ics, shared, noDomain, enterpriseMatrix].map((object) => ({
           obj_ref: object.stix.id,

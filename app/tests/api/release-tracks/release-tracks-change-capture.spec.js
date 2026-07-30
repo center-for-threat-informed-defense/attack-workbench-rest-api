@@ -101,7 +101,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
 
   async function setMembers(trackId, technique) {
     return postObject(
-      `/api/release-tracks/${trackId}/contents`,
+      `/api/release-tracks/${trackId}/contents?confirm_track_id=${trackId}`,
       {
         x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
       },

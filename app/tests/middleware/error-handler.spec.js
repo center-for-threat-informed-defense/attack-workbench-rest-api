@@ -13,6 +13,7 @@ const {
   InvalidPostOperationError,
   ReleaseContentIntegrityError,
   ReleaseTrackReconciliationError,
+  ReleaseTrackAuditError,
 } = require('../../exceptions');
 
 describe('error-handler middleware', function () {
@@ -196,6 +197,30 @@ describe('error-handler middleware', function () {
         details: 'Run repair.',
         track_id: 'release-track--track',
         reconciliation_id: 'repair-id',
+      }),
+    ).toBe(true);
+    expect(next.called).toBe(false);
+  });
+
+  it('should return durable audit identifiers when finalization fails', function () {
+    const err = new ReleaseTrackAuditError('release-track--track', 'audit-id', {
+      details: 'Inspect the operation.',
+    });
+    const res = {
+      status: sinon.stub().returnsThis(),
+      send: sinon.stub().returnsThis(),
+    };
+    const next = sinon.stub();
+
+    errorHandler.serviceExceptions(err, {}, res, next);
+
+    expect(res.status.calledOnceWithExactly(500)).toBe(true);
+    expect(
+      res.send.calledOnceWithExactly({
+        message: 'Release-track audit recording could not be finalized',
+        details: 'Inspect the operation.',
+        track_id: 'release-track--track',
+        audit_event_id: 'audit-id',
       }),
     ).toBe(true);
     expect(next.called).toBe(false);

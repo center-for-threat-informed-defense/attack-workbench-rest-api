@@ -94,7 +94,31 @@ Verification result (2026-07-30):
   minutes to roughly one minute; the remaining unrelated transport flake is
   tracked separately from this completed integrity change.
 
-- [ ] P0.4 — Correct destructive authorization and add durable audit records.
+### P0.4 — Correct destructive authorization and add durable audit records
+
+- [x] Require administrator authorization for full track deletion and both
+  direct member-replacement routes.
+- [x] Require an exact `confirm_track_id` precondition on each destructive
+  request so stale or accidental UI actions fail before persistence.
+- [x] Persist a durable, actor-attributed audit event before each operation
+  and record completion or failure without hiding partial persistence.
+- [x] Add an authorization matrix and operator-facing audit documentation.
+- [x] Update OpenAPI, frontend tasks, and Bruno requests for the confirmation
+  contract.
+- [x] Add admin/editor, missing/mismatched confirmation, success/failure
+  audit, lint, OpenAPI, focused, and complete-suite verification.
+
+Verification result (2026-07-30):
+
+- Lint and OpenAPI validation pass.
+- The focused authorization/audit and middleware group passes (11). The
+  complete release-track and virtual-scheduler group passes all 148 relevant
+  cases; one roaming setup 404 passed immediately in isolation (8).
+- The required clean full suite passes: OpenAPI 2, config 21, API 960,
+  middleware 29, and scheduler 10.
+- The `internalattack` focused release-track suite passes (33), its complete
+  suite passes (246), and changed-file Ruff checks pass.
+
 - [ ] P0.5 — Complete the Angular contract migration and end-to-end smoke gate.
 - [ ] P0.6 — Finish scheduled-materialization fencing, retry bounds, and
   operator intervention.

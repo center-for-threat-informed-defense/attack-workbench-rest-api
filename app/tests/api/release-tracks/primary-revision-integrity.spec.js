@@ -145,7 +145,7 @@ describe('Release-track primary revision integrity API', function () {
 
     const response = await api(
       'post',
-      `/api/release-tracks/${track.id}/contents`,
+      `/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`,
       {
         x_mitre_contents: [
           { obj_ref: technique.stix.id, obj_modified: technique.stix.modified },
@@ -199,7 +199,7 @@ describe('Release-track primary revision integrity API', function () {
   it('rejects cloning and export when a stored primary member is missing', async function () {
     const technique = await createTechnique('Missing Stored Member');
     const track = await createTrack('Missing Stored Member Track');
-    await post(`/api/release-tracks/${track.id}/contents`, {
+    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
       x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
     });
     await deleteTechniqueRevision(technique);
@@ -233,7 +233,7 @@ describe('Release-track primary revision integrity API', function () {
   it('propagates repository hydration failures instead of returning a partial export', async function () {
     const technique = await createTechnique('Failed Primary Hydration');
     const track = await createTrack('Failed Primary Hydration Track');
-    await post(`/api/release-tracks/${track.id}/contents`, {
+    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
       x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
     });
     const hydrationStub = sinon
@@ -255,7 +255,7 @@ describe('Release-track primary revision integrity API', function () {
   it('aborts virtual materialization when a component member is missing', async function () {
     const technique = await createTechnique('Missing Virtual Component Member');
     const component = await createTrack('Missing Virtual Component');
-    await post(`/api/release-tracks/${component.id}/contents`, {
+    await post(`/api/release-tracks/${component.id}/contents?confirm_track_id=${component.id}`, {
       x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
     });
     await post(`/api/release-tracks/${component.id}/snapshots/latest/release`, {
