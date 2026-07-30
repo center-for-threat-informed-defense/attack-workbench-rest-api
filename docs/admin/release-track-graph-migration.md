@@ -14,21 +14,25 @@ DATABASE_URL='mongodb://host/database' \
   npm run preview:deterministic-snapshot-graphs
 ```
 
-The report includes the latest relationship revisions scanned, endpoint pins
-that would be written, release-track snapshots found, and baseline manifests
-that would be created. No database writes or indexes are created by this
-command.
+The report includes the latest active relationship revisions scanned, endpoint
+pins that would be written, release-track snapshots found, and baseline
+manifests that would be created. No database writes or indexes are created by
+this command.
 
-The preview fails if a latest relationship references a source or target
-object that no longer exists. Repair those dangling endpoints before
-deployment. Snapshot graph capture fails closed rather than silently producing
-an incomplete deterministic baseline.
+The preview fails if an active latest relationship references a source or
+target object that no longer exists. The error identifies the affected
+relationship and missing endpoint IDs; repair those dangling endpoints before
+deployment. Deprecated and revoked relationships are not eligible for bundle
+graphs, so the migration leaves that inactive legacy history untouched.
+Snapshot graph capture fails closed rather than silently producing an
+incomplete deterministic baseline.
 
 ## What the migration writes
 
-- Exact source and target revision metadata is added only to the latest
-  revision of each relationship in the underlying `relationships` collection.
-  `view.relationships.latest` may be used for discovery but is never written.
+- Exact source and target revision metadata is added only to active latest
+  relationship revisions in the underlying `relationships` collection.
+  `view.relationships.latest.active` may be used for discovery but is never
+  written.
 - Each existing release-track snapshot receives a graph manifest containing
   its exact primary, relationship, secondary, supporting, and LinkById
   dependencies.

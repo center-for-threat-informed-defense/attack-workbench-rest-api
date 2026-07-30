@@ -258,6 +258,29 @@ revision on which that bundle depends.
       Bruno request definitions require no transport change.
 - [x] Run focused specs while iterating, then lint, OpenAPI validation, and the
       complete `npm test` suite.
+
+### Production-shaped migration repair
+
+- [x] Scope legacy endpoint pinning to active latest relationships, matching
+      the relationship set eligible for deterministic snapshot graphs.
+- [x] Preserve fail-closed behavior for active dangling relationships while
+      allowing deprecated or revoked dangling history to remain untouched.
+- [x] Surface actionable missing-endpoint diagnostics in the migration preview
+      and startup failure.
+- [x] Establish manifest indexes independently of whether relationship pin
+      updates happen to be required.
+- [x] Add production-shaped migration regressions and update the operator
+      documentation.
+
+Verification result (2026-07-30):
+
+- The focused migration spec passes all 4 cases.
+- A read-only preview against the restored production database scans 24,818
+  active relationship revisions without encountering the 118 dangling
+  endpoints confined to deprecated relationship history.
+- Lint, formatting, diff checks, and the complete `npm test` suite pass; the
+  API suite passes all 972 cases.
+
 - [x] Propose conventional commits split by independently reviewable
       architectural slice; do not commit until requested.
 
