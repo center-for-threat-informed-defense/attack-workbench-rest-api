@@ -54,6 +54,20 @@ class ModelFactory {
   }
 
   /**
+   * Remove every cached dynamic release-track model.
+   *
+   * Test databases drop every dynamic collection between spec files. Keeping
+   * those models registered makes the next connection recreate indexes for
+   * every track used by every preceding spec, even though none of those
+   * collections still exists.
+   */
+  clearModels() {
+    for (const trackId of [...this._cache.keys()]) {
+      this.removeModel(trackId);
+    }
+  }
+
+  /**
    * Ensure indexes are created on a release track's collection.
    * Call this after creating a new track to build the indexes defined in the schema.
    *

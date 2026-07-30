@@ -25,7 +25,9 @@ exports.initializeConnection = async function () {
   // Bootstrap db connection
   logger.info('Mongoose attempting to connect to in memory database at ' + uri);
   try {
-    await mongoose.connect(uri);
+    if (mongoose.connection.readyState === 0) {
+      await mongoose.connect(uri);
+    }
   } catch (error) {
     handleError(error);
   }
@@ -41,12 +43,17 @@ exports.initializeConnection = async function () {
 };
 
 exports.closeConnection = async function () {
-  // Drop data and disconnect, but leave the mongod instance running for the
-  // next spec file. The mocha scripts run with --exit, so the process does
-  // not linger after the last spec.
+  // Drop data, but keep both mongod and the Mongoose connection alive for the
+  // next spec file. Disconnecting while an event listener is finishing can
+  // reset an otherwise unrelated Supertest request in a later suite. The
+  // mocha scripts run with --exit, so the process does not linger after the
+  // last spec.
   if (mongod && mongoose.connection.readyState !== 0) {
     await mongoose.connection.dropDatabase();
-    await mongoose.connection.close();
+    // Dynamic release-track collections no longer exist after the drop.
+    // Evict their models so the next spec does not rebuild indexes for every
+    // track created by all preceding specs in this process.
+    require('../models/release-tracks/model-factory').clearModels();
   }
 };
 
