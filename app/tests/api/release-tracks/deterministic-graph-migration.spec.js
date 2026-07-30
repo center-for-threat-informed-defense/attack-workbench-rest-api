@@ -25,6 +25,9 @@ describe('Deterministic snapshot graph migration', function () {
   let group;
   let relationship;
   let trackId;
+  const deprecatedDanglingRelationshipId = 'relationship--f7a41277-6599-49df-9567-82c9227fb8b5';
+  const activeDanglingRelationshipId = 'relationship--932fabf0-2868-46ed-9453-41e33dab7f39';
+  const missingEndpointId = 'campaign--5f4e747c-11d7-49ae-a947-a0f436879d62';
 
   before(async function () {
     await database.initializeConnection();
@@ -110,9 +113,65 @@ describe('Deterministic snapshot graph migration', function () {
       ReleaseTrackGraphManifest.deleteMany({ track_id: trackId }),
       ReleaseTrackGraphManifestEntry.deleteMany({ track_id: trackId }),
     ]);
+    await mongoose.connection.db.collection('relationships').insertOne({
+      workspace: {},
+      stix: {
+        type: 'relationship',
+        spec_version: '2.1',
+        id: deprecatedDanglingRelationshipId,
+        created: new Date(timestamp),
+        modified: new Date(timestamp),
+        relationship_type: 'uses',
+        source_ref: missingEndpointId,
+        target_ref: technique.stix.id,
+        revoked: false,
+        x_mitre_deprecated: true,
+        object_marking_refs: [markingDefinitionId],
+      },
+    });
   });
 
-  it('supports a non-mutating dry run', async function () {
+  it('fails closed when an active latest relationship has a dangling endpoint', async function () {
+    const timestamp = new Date();
+    await mongoose.connection.db.collection('relationships').insertOne({
+      workspace: {},
+      stix: {
+        type: 'relationship',
+        spec_version: '2.1',
+        id: activeDanglingRelationshipId,
+        created: timestamp,
+        modified: timestamp,
+        relationship_type: 'uses',
+        source_ref: group.stix.id,
+        target_ref: missingEndpointId,
+        revoked: false,
+        x_mitre_deprecated: false,
+        object_marking_refs: [markingDefinitionId],
+      },
+    });
+
+    try {
+      await expect(
+        migration._private.run(mongoose.connection.db, {
+          dryRun: true,
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining(activeDanglingRelationshipId),
+        missing_relationship_endpoints: [
+          expect.objectContaining({
+            relationship_ref: activeDanglingRelationshipId,
+            missing_endpoints: [missingEndpointId],
+          }),
+        ],
+      });
+    } finally {
+      await mongoose.connection.db
+        .collection('relationships')
+        .deleteOne({ 'stix.id': activeDanglingRelationshipId });
+    }
+  });
+
+  it('supports a non-mutating dry run with unrelated deprecated dangling data', async function () {
     const report = await migration._private.run(mongoose.connection.db, {
       dryRun: true,
     });
@@ -145,6 +204,10 @@ describe('Deterministic snapshot graph migration', function () {
       object_ref: technique.stix.id,
       object_modified: new Date(technique.stix.modified),
     });
+    const deprecatedDanglingRelationship = await mongoose.connection.db
+      .collection('relationships')
+      .findOne({ 'stix.id': deprecatedDanglingRelationshipId });
+    expect(deprecatedDanglingRelationship.workspace.relationship_endpoints).toBeUndefined();
 
     const manifests = await ReleaseTrackGraphManifest.find({
       track_id: trackId,

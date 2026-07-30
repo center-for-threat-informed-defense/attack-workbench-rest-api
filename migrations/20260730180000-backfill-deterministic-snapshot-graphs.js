@@ -14,6 +14,11 @@
 const TRACK_COLLECTION_PATTERN =
   /^release-track--[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CONCURRENCY = 4;
+const ACTIVE_RELATIONSHIP_FILTER = {
+  'stix.x_mitre_deprecated': { $in: [null, false] },
+  'stix.revoked': { $in: [null, false] },
+};
+const ERROR_SAMPLE_LIMIT = 10;
 
 async function mapWithConcurrency(items, mapper) {
   let nextIndex = 0;
@@ -29,11 +34,18 @@ async function mapWithConcurrency(items, mapper) {
 }
 
 async function latestRelationships(db) {
+  const latestActiveViewExists = await db
+    .listCollections({ name: 'view.relationships.latest.active' }, { nameOnly: true })
+    .hasNext();
+  if (latestActiveViewExists) {
+    return db.collection('view.relationships.latest.active').find({}).toArray();
+  }
+
   const latestViewExists = await db
     .listCollections({ name: 'view.relationships.latest' }, { nameOnly: true })
     .hasNext();
   if (latestViewExists) {
-    return db.collection('view.relationships.latest').find({}).toArray();
+    return db.collection('view.relationships.latest').find(ACTIVE_RELATIONSHIP_FILTER).toArray();
   }
 
   return db
@@ -42,6 +54,7 @@ async function latestRelationships(db) {
       { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
       { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
       { $replaceRoot: { newRoot: '$document' } },
+      { $match: ACTIVE_RELATIONSHIP_FILTER },
     ])
     .toArray();
 }
@@ -107,6 +120,21 @@ async function buildRelationshipPinOperations(db) {
   }
 
   return { relationships, operations, missing };
+}
+
+function missingEndpointError(missing) {
+  const sample = missing
+    .slice(0, ERROR_SAMPLE_LIMIT)
+    .map((entry) => `${entry.relationship_ref} -> ${entry.missing_endpoints.join(', ')}`)
+    .join('; ');
+  const remaining = missing.length - ERROR_SAMPLE_LIMIT;
+  const suffix = remaining > 0 ? `; and ${remaining} more` : '';
+  const error = new Error(
+    `Cannot pin ${missing.length} active latest relationship(s) because referenced objects are ` +
+      `missing: ${sample}${suffix}`,
+  );
+  error.missing_relationship_endpoints = missing;
+  return error;
 }
 
 async function findTrackIds(db) {
@@ -206,17 +234,15 @@ async function backfillSnapshotManifests(db, options) {
 async function run(db, options = {}) {
   const relationshipPins = await buildRelationshipPinOperations(db);
   if (relationshipPins.missing.length > 0) {
-    const error = new Error(
-      'Cannot pin latest relationship endpoints because one or more referenced objects are missing',
-    );
-    error.missing_relationship_endpoints = relationshipPins.missing;
-    throw error;
+    throw missingEndpointError(relationshipPins.missing);
   }
 
   if (!options.dryRun && relationshipPins.operations.length > 0) {
     await db.collection('relationships').bulkWrite(relationshipPins.operations, {
       ordered: false,
     });
+  }
+  if (!options.dryRun) {
     await ensureManifestIndexes(db);
   }
   const manifests = await backfillSnapshotManifests(db, options);
@@ -233,7 +259,7 @@ module.exports = {
   async up(db) {
     const report = await run(db);
     console.log(
-      `Pinned ${report.relationship_pins_written} latest relationship revision(s) and ` +
+      `Pinned ${report.relationship_pins_written} active latest relationship revision(s) and ` +
         `created ${report.manifests_created} baseline snapshot manifest(s)`,
     );
   },

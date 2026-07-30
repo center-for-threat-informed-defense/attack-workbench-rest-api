@@ -15,6 +15,15 @@ async function main() {
 main()
   .catch((err) => {
     process.stderr.write(`${err.stack || err.message}\n`);
+    if (err.missing_relationship_endpoints) {
+      process.stderr.write(
+        `${JSON.stringify(
+          { missing_relationship_endpoints: err.missing_relationship_endpoints },
+          null,
+          2,
+        )}\n`,
+      );
+    }
     process.exitCode = 1;
   })
   .finally(async () => {
