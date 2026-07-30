@@ -14,6 +14,7 @@
 
 const snapshotService = require('./snapshot-service');
 const objectResolver = require('../../lib/release-tracks/object-resolver');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 const conflictResolution = require('../../lib/release-tracks/conflict-resolution');
 const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const logger = require('../../lib/logger');
@@ -74,7 +75,8 @@ function normalizeObjectRef(entry) {
  * Add one or more objects as candidates on the latest snapshot.
  *
  * For each entry:
- *   - If `modified` is "latest" or omitted, resolve via the STIX service layer.
+ *   - If `modified` is "latest" or omitted, validate the object exists and
+ *     preserve a dynamic selector through the candidate/staged workflow.
  *   - Skip duplicates (same object_ref + object_modified already in any tier).
  *   - New candidates start as "work-in-progress".
  *
@@ -101,10 +103,13 @@ exports.addCandidates = async function addCandidates(trackId, objectRefs, userId
   for (const raw of objectRefs) {
     const entry = normalizeObjectRef(raw);
 
-    // Resolve modified timestamp
+    // `latest` is a dynamic workflow-tier selector. Resolve it once here to
+    // validate that the object exists, but preserve the selector until the
+    // staged entry is frozen by a release operation.
     let modified;
     if (!entry.modified || entry.modified === 'latest') {
-      modified = await objectResolver.resolveLatestModified(entry.id);
+      await objectResolver.resolveLatestModified(entry.id);
+      modified = revisionReference.LATEST;
     } else {
       modified = new Date(entry.modified);
     }
@@ -115,7 +120,7 @@ exports.addCandidates = async function addCandidates(trackId, objectRefs, userId
     if (isDuplicate) {
       logger.verbose(
         `StandardTrackService: Skipping already-pinned candidate ${entry.id} @ ` +
-          modified.toISOString(),
+          `${revisionReference.isLatest(modified) ? modified : modified.toISOString()}`,
       );
       continue;
     }
@@ -374,19 +379,18 @@ exports.updateCandidateVersion = async function updateCandidateVersion(trackId, 
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertStandardTrack(source);
 
-  const oldTime = new Date(data.old_modified).getTime();
   const existingCandidates = source.candidates || [];
 
   let found = false;
   const updatedCandidates = existingCandidates.map((candidate) => {
     if (
       candidate.object_ref === objectRef &&
-      new Date(candidate.object_modified).getTime() === oldTime
+      revisionReference.sameModified(candidate.object_modified, data.old_modified)
     ) {
       found = true;
       return {
         ...candidate,
-        object_modified: new Date(data.new_modified),
+        object_modified: revisionReference.normalize(data.new_modified),
       };
     }
     return candidate;
@@ -447,13 +451,15 @@ exports.demoteStaged = async function demoteStaged(trackId, objectRefs, userId) 
   const existingCandidates = source.candidates || [];
 
   // Build a lookup key for the refs to demote
-  const demoteKeys = new Set(objectRefs.map((r) => `${r.id}::${new Date(r.modified).getTime()}`));
+  const demoteKeys = new Set(
+    objectRefs.map((r) => `${r.id}::${revisionReference.modifiedKey(r.modified)}`),
+  );
 
   const remainingStaged = [];
   const demotedEntries = [];
 
   for (const staged of existingStaged) {
-    const key = `${staged.object_ref}::${new Date(staged.object_modified).getTime()}`;
+    const key = `${staged.object_ref}::` + revisionReference.modifiedKey(staged.object_modified);
     if (demoteKeys.has(key)) {
       // Convert back to a candidate entry, preserving workflow status
       demotedEntries.push({

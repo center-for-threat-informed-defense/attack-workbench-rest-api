@@ -100,9 +100,11 @@ Implemented in
    filter, mirroring the fact that members are inherently reviewed. `state`
    never affects members. `reviewed` is intentionally not a valid `state`
    value for this reason.
-2. **Hydration** — the selected `{object_ref, object_modified}` pins are
-   batch-fetched per STIX type via each repository's
-   `findManyByIdAndModified`.
+2. **Hydration** — any selected candidate/staged `"latest"` selectors are
+   resolved for this export request, then the concrete
+   `{object_ref, object_modified}` pairs are batch-fetched per STIX type via
+   each repository's `findManyByIdAndModified`. The stored draft selectors are
+   not mutated.
 3. **Relationships** — the relationship service fetches the latest active
    relationship revisions whose `source_ref` and `target_ref` are both among
    the selected objects. Deprecated data-component `detects` relationships
@@ -134,13 +136,33 @@ Because snapshot contents are explicitly curated, the export intentionally
 does **not** apply the legacy attack-id / deprecated / revoked filters — if a
 revision is in the snapshot, it is exported.
 
-#### Relationship consistency boundary
+#### Relationship and secondary-object consistency boundary
 
-Snapshot SDOs are reproducible because each member records an exact
-`object_modified` revision. Relationships are intentionally different: the
-bundle resolves their latest active revisions when it is requested. This
-keeps relationships secondary and automatically reflects new links between
-released objects, but it creates several tradeoffs:
+Release-track snapshots distinguish **primary** and **secondary** content:
+
+- Primary objects are explicit snapshot tier entries. Members and quarantine
+  record exact `(object_ref, object_modified)` revisions. Standard candidates
+  and staged entries may instead store `"latest"` and are resolved just in
+  time when a draft export includes those tiers.
+- Secondary objects are not snapshot members. They are discovered because a
+  primary object references them through an embedded STIX ID, an SRO connects
+  two selected primary objects, or the bundle needs a supporting identity or
+  marking definition.
+
+Tagged standard membership is deterministic because release planning resolves
+staged selectors before promoting them to members. Virtual materialization
+likewise copies exact member revisions from tagged component snapshots and
+never follows a component's later `track_latest` candidate movement. Draft
+exports that explicitly include dynamic candidate/staged tiers are snapshots
+of the latest revisions at export time. Secondary content is also resolved
+just in time during bundle generation.
+
+Relationships are the largest consistency boundary. Current SRO
+`source_ref`/`target_ref` fields identify STIX object IDs, not exact
+`(object_id, object_modified)` revisions. An SRO can consequently describe the
+whole revision chain of each endpoint rather than one precise pair of SDO
+entities. The exporter resolves the latest active relationship revisions when
+the bundle is requested. This creates several tradeoffs:
 
 - exporting the same tagged snapshot at different times can produce different
   relationship objects or TOC contents;
@@ -152,9 +174,17 @@ released objects, but it creates several tradeoffs:
   constrained to relationships whose two endpoints are already selected.
 
 Consumers that require byte-for-byte or graph-level reproducibility must
-archive the emitted bundle. A future model that pins relationship revisions
-in a separate, generated manifest could preserve the indirect ownership model
-while making repeat exports deterministic.
+archive the emitted bundle.
+
+Making bundle graphs deterministic requires a separate, high-risk data-model
+change rather than virtual composition re-resolution. A future design must
+version-control relationships, pin each SRO endpoint to an exact SDO revision,
+and likely clone every affected SRO whenever a new endpoint revision is
+created. It must also persist an export manifest containing the selected
+relationship and other secondary-object revisions. That one-to-one SDO/SRO
+model has significant migration, write-amplification, concurrency, and
+database-storage costs and is deliberately deferred pending design and
+measurement.
 
 ### Where validation happens
 

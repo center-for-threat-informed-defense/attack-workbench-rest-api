@@ -9,6 +9,7 @@ const dynamicRepo = require('../../repository/release-tracks/release-track-dynam
 const versionUtils = require('../../lib/release-tracks/version-utils');
 const conflictResolution = require('../../lib/release-tracks/conflict-resolution');
 const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 const releaseHistoryService = require('./release-history-service');
 const logger = require('../../lib/logger');
 const {
@@ -124,6 +125,12 @@ function planRelease(
         'Create a persisted draft with POST /api/release-tracks/:id/virtual/snapshots/create before previewing or releasing it',
     });
   }
+  if (
+    sourceSnapshot.type === 'standard' &&
+    (sourceSnapshot.staged || []).some((entry) => revisionReference.isLatest(entry.object_modified))
+  ) {
+    throw new TypeError('Standard release planning requires resolved staged revisions');
+  }
 
   const normalized = tierRevisionInvariant.normalizeSnapshot(sourceSnapshot);
   const snapshot = normalized.snapshot;
@@ -237,15 +244,26 @@ function planRelease(
 }
 
 async function planLoadedSnapshot(trackId, snapshot, options) {
-  const [versionHistory, previousTaggedSnapshot] = await Promise.all([
+  const [versionHistory, previousTaggedSnapshot, resolvedStaged] = await Promise.all([
     releaseHistoryService.getTrackWideVersionHistory(trackId),
     snapshot.type === 'virtual'
       ? dynamicRepo.getLatestTaggedSnapshotBefore(trackId, snapshot.modified)
       : Promise.resolve(null),
+    snapshot.type === 'standard'
+      ? revisionReference.resolveEntries(snapshot.staged || [])
+      : Promise.resolve(snapshot.staged || []),
   ]);
+  const releaseInput =
+    snapshot.type === 'standard'
+      ? {
+          ...snapshot,
+          staged: resolvedStaged,
+        }
+      : snapshot;
+
   return planRelease(
     trackId,
-    snapshot,
+    releaseInput,
     versionHistory,
     options,
     new Date(),

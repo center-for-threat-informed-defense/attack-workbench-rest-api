@@ -1,13 +1,14 @@
 'use strict';
 
+const revisionReference = require('./revision-reference');
+
 // A released/member pin is authoritative over workflow and quarantine pins.
 // This order also matches backref reconciliation's long-standing defensive
 // "first tier wins" behavior.
 const TIER_PRECEDENCE = ['members', 'staged', 'candidates', 'quarantine'];
 
 function modifiedKey(value) {
-  const timestamp = new Date(value).getTime();
-  return Number.isNaN(timestamp) ? String(value) : String(timestamp);
+  return revisionReference.modifiedKey(value);
 }
 
 /**

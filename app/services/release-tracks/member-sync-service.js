@@ -35,6 +35,7 @@ const registryRepo = require('../../repository/release-tracks/release-track-regi
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
 const snapshotService = require('./snapshot-service');
 const workflowGate = require('../../lib/release-tracks/workflow-gate');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
 const EventConstants = require('../../lib/event-constants');
@@ -161,9 +162,15 @@ async function processMemberSync(trackId, snapshot, event) {
 
   // Get member sync config with defaults
   const config = getMemberSyncConfig(snapshot);
+  const dynamicWorkflowEntry = [...(snapshot.candidates || []), ...(snapshot.staged || [])].find(
+    (entry) => entry.object_ref === objectRef && revisionReference.isLatest(entry.object_modified),
+  );
 
   // Check strategy
   if (config.strategy === 'manual') {
+    if (dynamicWorkflowEntry && trigger !== 'in-place-update') {
+      await snapshotService.emitContentsChanged(trackId, snapshot);
+    }
     logger.debug(`[member-sync] Track ${trackId} uses manual strategy, skipping auto-enrollment`);
     return null;
   }
@@ -203,11 +210,33 @@ async function processMemberSync(trackId, snapshot, event) {
         break;
       case 'ignore':
       default:
+        if (
+          existingEntry &&
+          revisionReference.isLatest(existingEntry.object_modified) &&
+          trigger !== 'in-place-update'
+        ) {
+          // The persisted selector already follows this revision even though
+          // the supplant policy requests no workflow mutation. Reconcile
+          // backrefs so the newly-latest object document reflects that fact.
+          await snapshotService.emitContentsChanged(trackId, snapshot);
+        }
         logger.debug(
           `[member-sync] Track ${trackId}: ignoring ${objectRef} (existing entry in ${existingTier})`,
         );
         return null;
     }
+  }
+
+  // A dynamic selector already follows the newly-created revision. Queueing a
+  // second `latest` entry would create an indistinguishable cross-tier
+  // duplicate, so retain the existing workflow entry and move its backref.
+  if (
+    mode === 'queue' &&
+    existingEntry &&
+    revisionReference.isLatest(existingEntry.object_modified)
+  ) {
+    await snapshotService.emitContentsChanged(trackId, snapshot);
+    return null;
   }
 
   // Workflow gate: the single decision point for the entry's tier and
@@ -225,15 +254,18 @@ async function processMemberSync(trackId, snapshot, event) {
     autoPromote: snapshot.config?.auto_promote === true,
   });
 
-  const incomingTime = new Date(newModified).getTime();
+  const targetModified = revisionReference.LATEST;
 
   if (mode === 'enroll' || mode === 'queue') {
     // Skip if this exact revision is already pinned in any tier — enrolling
-    // it again would create a duplicate cross-tier reference (e.g. a
-    // re-import announcing an already-released revision).
+    // a dynamic selector for the same revision would create a redundant
+    // cross-tier reference (e.g. a re-import announcing an already-released
+    // revision).
     const alreadyPinned = ['members', 'staged', 'candidates'].some((tier) =>
       (snapshot[tier] || []).some(
-        (e) => e.object_ref === objectRef && new Date(e.object_modified).getTime() === incomingTime,
+        (e) =>
+          e.object_ref === objectRef &&
+          revisionReference.sameModified(e.object_modified, newModified),
       ),
     );
     if (alreadyPinned) {
@@ -248,13 +280,15 @@ async function processMemberSync(trackId, snapshot, event) {
   if (mode === 'move-pin') {
     // Skip no-op moves: same pin key, same tier, same status (e.g. a second
     // in-place edit of an entry already marked modified-in-place).
-    const existingTime = new Date(existingEntry.object_modified).getTime();
     const currentStatus = existingEntry.object_status || 'work-in-progress';
     if (
-      existingTime === incomingTime &&
+      revisionReference.sameModified(existingEntry.object_modified, targetModified) &&
       placement.tier === existingTier &&
       placement.status === currentStatus
     ) {
+      if (trigger !== 'in-place-update') {
+        await snapshotService.emitContentsChanged(trackId, snapshot);
+      }
       logger.debug(
         `[member-sync] Track ${trackId}: change to ${objectRef} leaves the pinned entry ` +
           `unchanged, skipping`,
@@ -267,7 +301,7 @@ async function processMemberSync(trackId, snapshot, event) {
   const now = new Date();
   const newEntry = {
     object_ref: objectRef,
-    object_modified: new Date(newModified),
+    object_modified: targetModified,
     object_status: placement.status,
   };
   if (placement.tier === 'staged') {
@@ -284,9 +318,11 @@ async function processMemberSync(trackId, snapshot, event) {
 
   // Remove the previous entry when moving the pin
   if (mode === 'move-pin') {
-    const removeTime = new Date(existingEntry.object_modified).getTime();
     const keep = (e) =>
-      !(e.object_ref === objectRef && new Date(e.object_modified).getTime() === removeTime);
+      !(
+        e.object_ref === objectRef &&
+        revisionReference.sameModified(e.object_modified, existingEntry.object_modified)
+      );
     if (existingTier === 'candidates') {
       newCandidates = newCandidates.filter(keep);
     } else {

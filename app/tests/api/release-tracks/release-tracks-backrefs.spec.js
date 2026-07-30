@@ -462,6 +462,60 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       });
     });
 
+    it('moves a dynamic candidate backref even when supplant ignores workflow changes', async function () {
+      const revisionA = await postObject(
+        '/api/techniques',
+        buildTechnique('Backref Dynamic Ignore'),
+      );
+      const trackId = await createTrack('Backref Dynamic Ignore Track');
+      await postObject(
+        `/api/release-tracks/${trackId}/contents`,
+        {
+          x_mitre_contents: [{ obj_ref: revisionA.stix.id, obj_modified: revisionA.stix.modified }],
+        },
+        200,
+      );
+      await request(app)
+        .put(`/api/release-tracks/${trackId}/config`)
+        .send({
+          member_sync: {
+            strategy: 'track_latest',
+            supplant: { behavior: 'ignore', status_policy: 'reset' },
+          },
+        })
+        .set('Accept', 'application/json')
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+
+      const revisionBData = buildTechnique('Backref Dynamic Ignore v2');
+      revisionBData.stix.id = revisionA.stix.id;
+      revisionBData.stix.created = revisionA.stix.created;
+      revisionBData.stix.modified = new Date(
+        new Date(revisionA.stix.modified).getTime() + 1000,
+      ).toISOString();
+      const revisionB = await postObject('/api/techniques', revisionBData);
+
+      const revisionCData = buildTechnique('Backref Dynamic Ignore v3');
+      revisionCData.stix.id = revisionA.stix.id;
+      revisionCData.stix.created = revisionA.stix.created;
+      revisionCData.stix.modified = new Date(
+        new Date(revisionB.stix.modified).getTime() + 1000,
+      ).toISOString();
+      const revisionC = await postObject('/api/techniques', revisionCData);
+
+      expect(entryForTrack(await getTechniqueVersion(revisionB), trackId)).toBeUndefined();
+      expect(entryForTrack(await getTechniqueVersion(revisionC), trackId)).toEqual({
+        id: trackId,
+        type: 'standard',
+        tier: 'candidates',
+        status: 'work-in-progress',
+      });
+
+      const snapshot = await getObjectVersion(`/api/release-tracks/${trackId}/snapshots/latest`);
+      expect(snapshot.candidates).toHaveLength(1);
+      expect(snapshot.candidates[0].object_modified).toBe('latest');
+    });
+
     it('manual strategy leaves candidate pins on the original revision', async function () {
       const revisionA = await postObject('/api/techniques', buildTechnique('Backref Manual Sync'));
       const trackId = await createTrack('Backref Manual Sync Track');
@@ -562,7 +616,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       return data;
     }
 
-    it('re-adding an object after a new revision replaces the stale pin (prefer_latest default)', async function () {
+    it('keeps an omitted candidate selector dynamic as newer revisions are created', async function () {
       const revisionA = await postObject('/api/techniques', buildTechnique('Backref Readd'));
       const trackId = await createTrack('Backref Readd Track');
       // manual strategy isolates the add-candidates path from revision sync
@@ -578,8 +632,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         buildNextRevision(revisionA, 'Backref Readd v2'),
       );
 
-      // Re-add without modified — resolves to the latest revision and
-      // replaces the stale pin instead of duplicating it
+      // Re-adding the same dynamic selector is idempotent.
       await postObject(
         `/api/release-tracks/${trackId}/candidates`,
         { object_refs: [{ id: revisionA.stix.id }] },
@@ -588,7 +641,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
 
       const candidates = await listCandidates(trackId);
       expect(candidates).toHaveLength(1);
-      expect(new Date(candidates[0].object_modified).toISOString()).toBe(revisionB.stix.modified);
+      expect(candidates[0].object_modified).toBe('latest');
 
       expect(entryForTrack(await getTechniqueVersion(revisionA), trackId)).toBeUndefined();
       expect(entryForTrack(await getTechniqueVersion(revisionB), trackId)).toEqual({
@@ -598,7 +651,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         status: 'work-in-progress',
       });
 
-      // An exact re-add of the same revision is idempotent
+      // Another dynamic re-add remains idempotent.
       await postObject(
         `/api/release-tracks/${trackId}/candidates`,
         { object_refs: [{ id: revisionA.stix.id }] },

@@ -227,9 +227,10 @@ paths:
         objects are strict, and component selectors must match their
         resolution_strategy. Component IDs and priorities must be unique,
         every priority is required, and referenced components must already
-        exist as standard tracks. Virtual snapshot schedules are strict by
-        mode: manual accepts no selector, cron requires cron, and dates
-        requires at least one date. Standard tracks reject snapshot_schedule.
+        exist as standard tracks; virtual-track nesting and native members are
+        unsupported. Virtual snapshot schedules are strict by mode: manual
+        accepts no selector, cron requires cron, and dates requires at least
+        one date. Standard tracks reject snapshot_schedule.
       tags:
         - 'Release Tracks'
       # Request body validation moved to Zod in controller
@@ -333,6 +334,10 @@ paths:
         Replace the members tier of a standard track with new contents
         (x_mitre_contents format). Virtual membership can only be produced by
         POST /api/release-tracks/{id}/virtual/snapshots/create.
+        obj_modified may be an exact ISO timestamp or the request-time
+        shorthand "latest"; the server resolves "latest" to the actual latest
+        stix.modified timestamp before persistence. Snapshot members always
+        store exact revision pins.
         Exact revisions already present in another tier are retained only in members;
         different revisions of the same object remain valid across tiers.
         Creates a new snapshot clone.
@@ -376,10 +381,12 @@ paths:
       operationId: 'release-tracks-release-latest'
       description: |
         Immutably tag the latest snapshot with a version. Standard tracks
-        promote staged entries to members. The `latest` selector is resolved
-        when the request is handled. Supply either `increment` (`major` or
-        `minor`) or an explicit `version` in `MAJOR.MINOR` form, but never
-        both. Omitting both defaults to a minor increment.
+        promote staged entries to members. Any staged `object_modified:
+        "latest"` selector is resolved to the object's actual latest
+        `stix.modified` timestamp during release planning; tagged members
+        always contain exact revision timestamps. Supply either `increment`
+        (`major` or `minor`) or an explicit `version` in `MAJOR.MINOR` form,
+        but never both. Omitting both defaults to a minor increment.
       tags:
         - 'Release Tracks'
       parameters:
@@ -415,7 +422,8 @@ paths:
         Plan without persisting. Summary is the default; workbench and bundle
         render the complete would-be release. `increment` and `version` are
         mutually exclusive; omitting both defaults to a minor increment.
-        Standard summaries show staged-to-members promotion. Virtual summaries
+        Standard preview plans resolve dynamic staged references exactly as a
+        commit would and show staged-to-members promotion. Virtual summaries
         compare the persisted draft with its chronologically preceding tagged
         release; composition is never recomputed. A virtual draft whose
         composition has not been materialized returns 409.
@@ -530,8 +538,12 @@ paths:
       operationId: 'release-tracks-candidates-add'
       description: |
         Add one or more objects to the candidates tier.
-        If modified is omitted or 'latest', resolves to the latest version of the object.
-        If that exact revision is already pinned in any tier, the add is idempotently skipped.
+        If modified is omitted or 'latest', persist a dynamic selector that
+        follows the latest object revision until release. An explicit ISO
+        timestamp remains an exact pin. Dynamic selectors are preserved when
+        promoted to staged and resolved only when staged content is released
+        into immutable members.
+        If that same selector is already pinned in any tier, the add is idempotently skipped.
         Different revisions of the same object may occupy different tiers.
         If auto_promote is enabled and candidates meet the threshold, they are auto-promoted to staged.
         Request body validated via Zod: { object_refs: Array<string | {id, modified}> }
@@ -554,7 +566,7 @@ paths:
       description: |
         Transition candidates from one workflow status to another (forward-only).
         If auto_promote is enabled and candidates meet the threshold after transition, they are auto-promoted to staged.
-        Tier changes retain an exact revision in only one tier and repair legacy cross-tier duplicates.
+        Tier changes retain a selector in only one tier and repair legacy cross-tier duplicates.
         `from` also accepts the server-assigned `modified-in-place` status; `to` accepts only the
         user-settable statuses (work-in-progress, awaiting-review, reviewed).
         Request body validated via Zod: { from, to, object_refs? }
@@ -623,7 +635,8 @@ paths:
       operationId: 'release-tracks-candidates-update-version'
       description: |
         Change which version of an object is being tracked in the candidates tier.
-        If the new pin exactly matches another tier, the authoritative existing tier is retained.
+        old_modified and new_modified may be exact ISO timestamps or "latest".
+        If the new selector exactly matches another tier, the authoritative existing tier is retained.
         Request body validated via Zod: { old_modified, new_modified }
       tags:
         - 'Release Tracks'
@@ -678,7 +691,9 @@ paths:
       operationId: 'release-tracks-staged-demote'
       description: |
         Move objects from staged tier back to candidates tier.
-        Applies into_candidates conflicts only to different revisions; exact revisions remain in one tier.
+        The modified selector may be an exact ISO timestamp or "latest".
+        Applies into_candidates conflicts only to different selectors; exact
+        duplicates remain in one tier.
         Request body validated via Zod: { object_refs: Array<{id, modified}> }
       tags:
         - 'Release Tracks'
@@ -781,8 +796,15 @@ paths:
                         object_ref:
                           type: string
                         object_modified:
-                          type: string
-                          format: date-time
+                          description: |
+                            Exact timestamp for members, or an exact timestamp
+                            or "latest" selector for candidates and staged.
+                          oneOf:
+                            - type: string
+                              format: date-time
+                            - type: string
+                              enum:
+                                - latest
                         object_status:
                           type: string
                           nullable: true
@@ -833,6 +855,10 @@ paths:
         draft snapshot. The draft must subsequently be reviewed and explicitly
         released through the shared snapshot release endpoints. This operation
         is available only for tracks whose type is `virtual`.
+        Every member and quarantine entry is persisted with an exact
+        object_ref and object_modified revision. The resulting snapshot never
+        follows later component track_latest activity, and snapshot retrieval
+        does not re-resolve composition.
         Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'
@@ -964,7 +990,11 @@ paths:
       summary: 'Get the latest snapshot of a release track'
       operationId: 'release-tracks-snapshot-get-latest'
       description: |
-        Return the most recent full snapshot for a release track.
+        Return the most recent full snapshot for a release track. Virtual
+        snapshot membership is the exact revision set persisted during
+        materialization; retrieval never re-resolves component tracks. Bundle
+        formatting may append secondary relationships and supporting objects
+        resolved at request time.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1180,6 +1210,10 @@ paths:
         Update member contents on a historical standard-track snapshot.
         Virtual membership can only be produced by
         POST /api/release-tracks/{id}/virtual/snapshots/create.
+        obj_modified may be an exact ISO timestamp or the request-time
+        shorthand "latest"; the server resolves "latest" to the actual latest
+        stix.modified timestamp before persistence. Snapshot members always
+        store exact revision pins.
         Exact revisions already present in another tier are retained only in members;
         different revisions of the same object remain valid across tiers.
         Request body validated via Zod in controller.
@@ -1235,7 +1269,9 @@ paths:
         the same version-selection contract as the latest release operation:
         supply `increment` or `version`, never both; omit both for a minor
         increment. Virtual drafts must have composition_resolution from a
-        successful materialization.
+        successful materialization. For standard tracks, dynamic staged
+        references are resolved to exact object revisions when this release
+        request is handled, including when the selected snapshot is historical.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1277,7 +1313,8 @@ paths:
         exclusive; omitting both defaults to a minor increment. For a virtual
         draft, compare against the latest tagged snapshot whose modified
         timestamp precedes this selected snapshot; never recompute composition.
-        An unmaterialized virtual draft returns 409.
+        An unmaterialized virtual draft returns 409. Standard previews resolve
+        dynamic staged references exactly as the corresponding release would.
       tags:
         - 'Release Tracks'
       parameters:

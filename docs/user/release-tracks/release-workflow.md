@@ -4,7 +4,7 @@
 
 This document describes how object workflow states integrate with the release track versioning and release system. It addresses the critical challenge of managing thousands of objects being developed in parallel by multiple users while maintaining clean, production-ready tagged releases.
 
-**Key Design Decision:** This system uses **release track-centric status with version pinning** to solve the "STIX freeze" problem. Each release track tracks its own workflow status for objects and pins to specific object versions, allowing the same object to be in different states across different release tracks and enabling work on future releases while current releases are frozen.
+**Key Design Decision:** This system uses **release track-centric status with revision selection** to solve the "STIX freeze" problem. Each release track tracks its own workflow status for objects and may follow the latest revision or pin an exact revision while work is in flight. Release operations always freeze exact member revisions, allowing the same object to be in different states across tracks while completed releases remain immutable.
 
 **Note on Terminology:** We use **release track** instead of "collection" to avoid confusion with TAXII collections, MongoDB collections, STIX bundles, and `x-mitre-collection` SDOs. See [terminology.md](./terminology.md) for the complete terminology guide.
 
@@ -27,14 +27,16 @@ The three workflow states tracked per release track:
 
 ### Version Pinning
 
-Each tier entry includes **version pinning** via the `object_modified` timestamp:
-- Release tracks track a reference to a **specific version** of an object (identified by its `stix.modified` timestamp)
+Each tier entry includes a revision selector in `object_modified`:
+- Candidate and staged entries may use an exact `stix.modified` timestamp or
+  the dynamic selector `"latest"`
+- Member entries always identify a **specific version** of an object
 - Different release tracks can pin to different versions of the same object
 - This enables working on future object versions while a tagged release containing an earlier version is frozen
 
 ### Release Track Membership Tiers
 
-Release tracks maintain objects in three distinct tiers, with each entry pinning to a specific object version:
+Release tracks maintain objects in three distinct tiers:
 
 1. **Candidates** (`candidates`) - Objects being worked on with track-scoped status
 2. **Staged** (`staged`) - Reviewed objects (in this release track) ready for the next tagged release
@@ -45,13 +47,13 @@ Release tracks maintain objects in three distinct tiers, with each entry pinning
 ```
 Object version added to release track
   ↓
-Track-scoped status: work-in-progress → Added to candidates with version pin
+Track-scoped status: work-in-progress → Added to candidates with exact or dynamic selector
   ↓
 Track-scoped status: awaiting-review → Remains in candidates
   ↓
 Track-scoped status: reviewed → Automatically promoted to staged
   ↓
-Snapshot tagged → staged entries moved to members
+Snapshot tagged → dynamic staged selectors resolved and exact revisions moved to members
   ↓
 Snapshot exported → members reflected in stix.x_mitre_contents of the output bundle
 ```
@@ -149,7 +151,7 @@ POST /api/release-tracks/:id/candidates
     },
     {
       "object_ref": "attack-pattern--fff",
-      "object_modified": "2024-01-13T14:00:00Z",
+      "object_modified": "latest",
       "status": "work-in-progress",
       "added_to": "staged"  // Auto-promoted if meets threshold
     }
@@ -160,11 +162,12 @@ POST /api/release-tracks/:id/candidates
 
 **Business Logic:**
 1. Validate all object_refs exist
-2. Resolve `object_modified` timestamp:
-   - If provided: validate that specific version exists
-   - If omitted: use latest version (highest `stix.modified`)
+2. Establish the `object_modified` selector:
+   - If an ISO timestamp is provided: retain that exact revision pin
+   - If `"latest"` is provided or `modified` is omitted: persist the dynamic
+     `"latest"` selector
 3. Set initial track-scoped status (defaults to "work-in-progress")
-4. Add to `workspace.candidates` with version pin
+4. Add to `workspace.candidates` with the exact or dynamic selector
 5. If status meets `candidacy_threshold`, auto-promote to `workspace.staged`
 6. Update object's `workspace.referenced_by` array
 
@@ -258,7 +261,7 @@ When promoting objects between tiers, conflicts can occur if multiple versions o
 - Promoting from `staged` to `members` (during tagging/release) when a different version already exists in `members`
 
 **Transitions can happen via:**
-- **Manual candidate adds** via REST API endpoint (e.g., `POST /api/release-tracks/:id/candidates`) — adding without `modified` resolves the object's latest revision
+- **Manual candidate adds** via REST API endpoint (e.g., `POST /api/release-tracks/:id/candidates`) — adding without `modified` creates a dynamic `"latest"` selector
 - **Demotion** back to candidates (`POST /api/release-tracks/:id/staged/demote`)
 - **Manual promotion** via REST API endpoint (e.g., `POST /api/release-tracks/:id/candidates/promote`)
 - **Auto-promotion** based on candidacy threshold (e.g., object status changes to `awaiting-review`)
@@ -638,13 +641,19 @@ POST /api/release-tracks/:id/snapshots/latest/release
 **Business Logic:**
 1. Validate no `AlreadyReleasedError`
 2. Calculate next version
-3. Move all entries from `staged` to `members` (preserving version pins)
+3. Resolve every staged `"latest"` selector to the actual latest
+   `stix.modified` timestamp, then move exact entries into `members`
 4. Update object documents: change tier in `workspace.referenced_by` from "staged" → "members"
 5. Set `version` on release track
 6. Add entry to `version_history`
 7. Return summary showing what was promoted
 
-**Note on Version Pins:** The `modified` timestamps are preserved during promotion. Released objects remain pinned to the specific version that was reviewed and staged.
+**Note on Revision Selectors:** Explicit timestamps are preserved during
+promotion. Dynamic staged selectors are frozen during release planning.
+Released objects always contain exact timestamps; `"latest"` is never
+persisted in `members`. A preview and a later commit each resolve independently,
+so the commit may select a newer revision if the object changes between those
+requests.
 
 ## Solving the STIX Freeze Problem
 
@@ -1012,7 +1021,7 @@ See [virtual-tracks.md](virtual-tracks.md) for complete virtual track documentat
 3. Virtual track snapshot creation (manual or scheduled)
    - Resolves latest (or pinned) version from each component
    - Creates draft snapshot with resolved composition
-   - Team receives notification to review
+   - Team coordinates review through its established operator workflow
 
 4. Review, preview, and tag
    - Team reviews which component versions were included

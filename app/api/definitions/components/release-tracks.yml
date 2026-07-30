@@ -165,18 +165,14 @@ components:
               type: integer
               minimum: 0
 
-    tier-entry:
+    tier-entry-base:
       type: object
-      description: 'A reference to a specific version of a STIX object'
+      description: 'Shared fields for a release-track object reference'
       properties:
         object_ref:
           type: string
           description: 'STIX ID of the object'
           example: 'attack-pattern--12345678-1234-1234-1234-123456789012'
-        object_modified:
-          type: string
-          format: date-time
-          description: 'Version pin: the modified timestamp of this object version'
         attack_id:
           type: string
           description: 'ATT&CK ID, if found'
@@ -204,11 +200,30 @@ components:
               type: string
               description: 'Display name, or username if display name is missing'
 
+    tier-entry:
+      allOf:
+        - $ref: '#/components/schemas/tier-entry-base'
+        - type: object
+          description: 'An immutable reference to a specific STIX object revision'
+          properties:
+            object_modified:
+              type: string
+              format: date-time
+              description: 'Exact modified timestamp of this object revision'
+
     candidate-entry:
       allOf:
-        - $ref: '#/components/schemas/tier-entry'
+        - $ref: '#/components/schemas/tier-entry-base'
         - type: object
           properties:
+            object_modified:
+              description: 'An exact revision timestamp or the dynamic selector "latest"'
+              oneOf:
+                - type: string
+                  format: date-time
+                - type: string
+                  enum:
+                    - latest
             object_status:
               type: string
               enum:
@@ -227,9 +242,17 @@ components:
 
     staged-entry:
       allOf:
-        - $ref: '#/components/schemas/tier-entry'
+        - $ref: '#/components/schemas/tier-entry-base'
         - type: object
           properties:
+            object_modified:
+              description: 'An exact revision timestamp or the dynamic selector "latest"'
+              oneOf:
+                - type: string
+                  format: date-time
+                - type: string
+                  enum:
+                    - latest
             object_status:
               type: string
               enum:

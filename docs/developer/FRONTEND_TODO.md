@@ -25,6 +25,52 @@ Keep these rules in mind while updating the connector:
   the namespace convention and do not currently include `/standard/`.
 - A release preview is a read-only `GET`. A release commit is a `POST`.
 
+## P0 — Model draft revision selectors separately from released member pins
+
+### [ ] Preserve `"latest"` in candidate and staged frontend state
+
+Candidate and staged entries no longer always contain an ISO timestamp.
+Their `object_modified` field is a revision selector:
+
+```ts
+type WorkflowRevisionSelector = string | 'latest';
+
+interface CandidateOrStagedEntry {
+  object_ref: string;
+  object_modified: WorkflowRevisionSelector;
+}
+```
+
+Here, `string` should be validated as an ISO timestamp when it is not the
+literal `"latest"`. Member and quarantine models should remain stricter:
+their `object_modified` value is always an exact ISO timestamp.
+
+When `POST /api/release-tracks/:id/candidates` omits `modified` or sends
+`"latest"`, the response preserves `"latest"` instead of replacing it with
+the current timestamp. Promotion to staged preserves that selector. The UI
+should render it as a moving/latest reference and must not parse it as a date.
+An explicitly supplied timestamp remains an exact pin.
+
+Release preview is the freezing boundary. Before a standard release preview is
+rendered, the backend resolves every staged `"latest"` selector. Therefore,
+`format=workbench` shows exact timestamps in the would-be `members`, and a
+committed release always stores exact member revisions. Preview and commit are
+separate resolutions; if an object changes between them, the committed member
+may legitimately be newer than the previewed one.
+
+Done when:
+
+- Candidate and staged DTOs accept either an ISO timestamp or `"latest"`.
+- Member and quarantine DTOs accept exact timestamps only.
+- Candidate/staged views display a useful “latest” label without date parsing
+  errors.
+- Add-candidate flows omit `modified` or send `"latest"` when the operator
+  chooses a moving reference, and send an ISO timestamp for an exact pin.
+- Candidate-version updates and staged demotions can send `"latest"` as their
+  selector.
+- Release-preview fixtures show dynamic staged input becoming exact
+  would-be members, and committed-release fixtures contain no dynamic members.
+
 ## P0 — Align the Angular connector with the current routes
 
 ### [ ] Use only the explicit snapshot-retrieval endpoints
@@ -474,7 +520,13 @@ strategy:
 
 The server validates component identity during both creation and update.
 Referenced tracks must already exist and must be standard tracks, and duplicate
-component track IDs are rejected.
+component track IDs are rejected. Do not offer virtual tracks in a component
+selector.
+
+Virtual tracks are purely compositional. Do not expose candidate, staged,
+direct-member, or `native_members` controls for them. If operators need
+aggregate-specific content, direct them to create or select a standard
+component track that owns that content.
 
 Done when:
 
@@ -484,7 +536,46 @@ Done when:
 - Changing resolution strategy clears the selector from the previous strategy.
 - Every component row requires a priority, and duplicate priorities or track
   selections are blocked before submission.
+- Component selectors list standard tracks only.
+- Virtual-track forms never submit `native_members` or direct membership
+  fields.
 - Submitted composition payloads contain only server-supported properties.
+
+## P1 — Treat virtual snapshot members as exact revision pins
+
+### [ ] Remove any lazy-resolution assumptions from virtual snapshot views
+
+Virtual composition is completed when
+`POST /api/release-tracks/:id/virtual/snapshots/create` succeeds. The returned
+draft directly contains `members`, `quarantine`, and
+`composition_resolution`; every tier entry has an exact `object_ref` and
+`object_modified` timestamp.
+
+Do not send a `resolve` query parameter and do not expect a
+`resolved_content` response wrapper. Shared workbench retrieval returns the
+persisted tier arrays directly. A component's `track_latest` policy may move
+pins in newer standard-track drafts, but it cannot change a previously
+materialized virtual snapshot.
+
+The `latest` path segment selects the newest release-track snapshot; it does
+not mean “resolve every member to its latest object revision.” If the track has
+not acquired another snapshot, repeated `/snapshots/latest` calls identify the
+same primary revision set.
+
+Bundle downloads remain a documented exception: the backend appends secondary
+relationships and supporting objects at request time, so the complete
+`format=bundle` graph is not guaranteed to reproduce an earlier download.
+
+Done when:
+
+- Virtual views read `members` and `quarantine` directly from the snapshot.
+- No connector or model exposes `resolve` or `resolved_content`.
+- Member links and comparison keys use both `object_ref` and
+  `object_modified`.
+- Tests prove that advancing a component after materialization does not change
+  the displayed virtual member revision.
+- User-facing export guidance does not promise byte-identical bundle
+  regeneration.
 
 ## P1 — Submit mode-correct virtual snapshot schedules
 

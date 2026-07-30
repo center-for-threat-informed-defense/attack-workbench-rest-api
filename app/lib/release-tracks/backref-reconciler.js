@@ -31,6 +31,7 @@
 // =============================================================================
 
 const logger = require('../logger');
+const revisionReference = require('./revision-reference');
 
 // Snapshot tier array names, also used verbatim as the backref `tier` value.
 // Order matters: if a revision somehow appears in multiple tiers, the first
@@ -102,7 +103,19 @@ function computeDesiredEntries(snapshot, includeRef) {
  * @returns {Promise<{added: number, updated: number, removed: number}>}
  */
 async function reconcile(repository, trackId, snapshot, includeRef) {
-  const desired = computeDesiredEntries(snapshot, includeRef);
+  let resolvedSnapshot = snapshot;
+  if (snapshot) {
+    const latestByObjectRef = new Map();
+    resolvedSnapshot = { ...snapshot };
+    for (const tierName of TIERS) {
+      resolvedSnapshot[tierName] = await revisionReference.resolveEntries(
+        (snapshot[tierName] || []).filter((entry) => includeRef(entry.object_ref)),
+        latestByObjectRef,
+      );
+    }
+  }
+
+  const desired = computeDesiredEntries(resolvedSnapshot, includeRef);
   const current = await repository.retrieveReleaseTrackRefsLean(trackId);
 
   const operations = [];

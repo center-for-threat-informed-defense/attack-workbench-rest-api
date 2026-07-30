@@ -373,6 +373,7 @@ const createTrackBodySchema = z
     composition: compositionSchema.optional(),
     snapshot_schedule: snapshotScheduleSchema.optional(),
   })
+  .strict()
   .superRefine((track, context) => {
     if (track.type !== 'virtual' && track.snapshot_schedule !== undefined) {
       context.addIssue({
@@ -452,7 +453,7 @@ const reviewCandidatesBodySchema = z.object({
         stixIdentifierSchema,
         z.object({
           id: stixIdentifierSchema,
-          modified: z.iso.datetime().optional(),
+          modified: z.iso.datetime().or(z.literal('latest')).optional(),
         }),
       ]),
     )
@@ -470,7 +471,7 @@ const demoteStagedBodySchema = z.object({
     .array(
       z.object({
         id: stixIdentifierSchema,
-        modified: z.iso.datetime(),
+        modified: z.iso.datetime().or(z.literal('latest')),
       }),
     )
     .min(1),
@@ -478,8 +479,8 @@ const demoteStagedBodySchema = z.object({
 
 /** POST /release-tracks/:id/candidates/:objectRef/update-version */
 const updateCandidateVersionBodySchema = z.object({
-  old_modified: z.iso.datetime(),
-  new_modified: z.iso.datetime(),
+  old_modified: z.iso.datetime().or(z.literal('latest')),
+  new_modified: z.iso.datetime().or(z.literal('latest')),
 });
 
 /** PUT /release-tracks/:id/config */

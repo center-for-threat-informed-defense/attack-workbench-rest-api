@@ -211,7 +211,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
       const { candidates } = await getJson(`/api/release-tracks/${trackId}/candidates`);
       expect(candidates).toHaveLength(1);
       expect(candidates[0].object_status).toBe('modified-in-place');
-      expect(new Date(candidates[0].object_modified).toISOString()).toBe(technique.stix.modified);
+      expect(candidates[0].object_modified).toBe('latest');
 
       // The marker is reviewable: modified-in-place → awaiting-review
       await postObject(
@@ -440,14 +440,12 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
         status: 'work-in-progress',
       });
 
-      // The pin moved to the converted revision
+      // The dynamic pin now resolves to the converted revision.
       const oldRevision = await getTechniqueVersion(technique.stix.id, technique.stix.modified);
       expect(entryForTrack(oldRevision, trackId)).toBeUndefined();
       const { candidates } = await getJson(`/api/release-tracks/${trackId}/candidates`);
       expect(candidates).toHaveLength(1);
-      expect(new Date(candidates[0].object_modified).toISOString()).toBe(
-        result.primary.stix.modified,
-      );
+      expect(candidates[0].object_modified).toBe('latest');
     });
 
     it('enrolls the converted revision as a candidate in member tracks (convert-to-technique)', async function () {

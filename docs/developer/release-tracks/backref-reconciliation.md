@@ -70,11 +70,12 @@ are consistent by the time the triggering API call returns.
 
 For one `(repository, trackId, snapshot, includeRef)`:
 
-1. **Desired set** — walk the snapshot tiers in order `members`, `staged`,
-   `candidates`, `quarantine`, keyed by `(object_ref, object_modified)`.
-   Snapshot persistence enforces this exact-revision uniqueness invariant;
-   first-tier-wins remains a defensive fallback for legacy/directly written
-   invalid documents. Status mapping:
+1. **Desired set** — resolve candidate/staged `"latest"` selectors for the
+   current reconciliation pass, then walk the snapshot tiers in order
+   `members`, `staged`, `candidates`, `quarantine`, keyed by the resulting
+   exact `(object_ref, object_modified)` pair. The persisted workflow selector
+   remains unchanged. First-tier-wins remains a defensive fallback for
+   legacy/directly written invalid documents. Status mapping:
    members → `reviewed`; staged/candidates → the entry's `object_status`;
    quarantine → none.
 2. **Current set** — `find({ 'workspace.release_tracks.id': trackId })`,
@@ -119,9 +120,10 @@ track's pin (which would strand the pin and orphan the backref).
 
 New revisions created through `create()` are covered by the strip; if any
 track references the object (members, candidates, or staged), member sync
-enrolls or re-pins the new revision and the resulting snapshot clone triggers
-reconciliation, which stamps the backref on the new revision (see
-`member-sync-strategies.md`).
+enrolls a dynamic workflow selector or refreshes an existing one. A snapshot
+clone or an explicit contents-changed reconciliation then moves that dynamic
+backref to the newly latest revision without rewriting the stored selector
+(see `member-sync-strategies.md`).
 
 ## Known limitations
 

@@ -135,7 +135,7 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
     // Automatically promoted from candidates when track-scoped status → "reviewed"
     {
       object_ref: "attack-pattern--ddd",
-      object_modified: "2024-01-14T10:00:00Z",  // VERSION PIN: specific object version
+      object_modified: "latest",                 // DYNAMIC SELECTOR: resolved at release
       object_status: "reviewed",                 // Track-scoped status
       object_staged_at: "2024-01-14T11:00:00Z",
       object_staged_by: "reviewer@example.com"
@@ -147,14 +147,14 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
     // Objects being worked on (in THIS release track), not yet ready for release
     {
       object_ref: "attack-pattern--eee",
-      object_modified: "2024-01-12T09:00:00Z",  // VERSION PIN: specific object version
+      object_modified: "2024-01-12T09:00:00Z",  // EXACT SELECTOR: fixed object version
       object_status: "work-in-progress",         // Track-scoped status
       object_added_at: "2024-01-10T10:00:00Z",
       object_added_by: "alice@example.com"
     },
     {
       object_ref: "attack-pattern--fff",
-      object_modified: "2024-01-13T14:00:00Z",  // VERSION PIN: specific object version
+      object_modified: "latest",                 // DYNAMIC SELECTOR: follows latest
       object_status: "awaiting-review",          // Track-scoped status
       object_added_at: "2024-01-12T14:30:00Z",
       object_added_by: "bob@example.com"
@@ -389,11 +389,6 @@ Virtual release tracks compute their contents by aggregating objects from compon
       conflicts_resolved: []
     },
 
-    // Native objects (if virtual track has its own objects in addition to composed)
-    native_objects: {
-      members_count: 0  // Virtual tracks can optionally have native members
-    },
-
     // Final statistics
     summary: {
       total_objects: 870,
@@ -414,10 +409,9 @@ Virtual release tracks compute their contents by aggregating objects from compon
     cron: "0 0 1 1,7 *"  // Jan 1 and July 1 at midnight UTC
   },
 
-  // Configuration
-  config: {
-    notification_email: "enterprise-team@example.com"
-  },
+  // Shared release-track configuration. Virtual tracks do not use
+  // candidate/staged/member-sync workflow controls.
+  config: {},
 
   // Version history (same as standard tracks)
   version_history: [
@@ -434,6 +428,25 @@ Virtual release tracks compute their contents by aggregating objects from compon
   ]
 }
 ```
+
+Standard `candidates` and `staged` entries may use either an exact
+`object_modified` timestamp or the dynamic selector `"latest"`. Promotion
+between those workflow tiers preserves the selector. During release planning,
+every dynamic staged selector is resolved to the latest stored object revision
+before conflict handling and rendering. Only exact revision timestamps may be
+persisted in `members`, so tagged standard snapshots have deterministic primary
+membership.
+
+Virtual `members` and `quarantine` entries always store exact
+`(object_ref, object_modified)` revision pairs. They never store `"latest"` or
+inherit the component track's `track_latest` behavior. Composition resolution
+copies the exact member revisions from the selected tagged component
+snapshots, and later component activity cannot change the persisted virtual
+snapshot.
+
+This deterministic guarantee covers primary snapshot membership. Secondary
+objects and relationships discovered while rendering `format=bundle` remain
+an export-time concern and can change between bundle requests.
 
 The three valid `snapshot_schedule` shapes are:
 
@@ -485,6 +498,9 @@ restart recovery idempotent. Failed occurrences remain retryable.
 - Can only reference **tagged snapshots** from component tracks (not drafts)
 - Can only sync from component tracks' **`members` tier** (released objects only)
 - Can only compose from **standard release tracks** (not other virtual tracks - no nesting allowed)
+- Is purely compositional and has no `native_members` or second membership
+  authority; aggregate-specific content belongs in another standard component
+  track
 - Snapshots are created **manually or on schedule** (never event-driven)
 - All snapshots start as **drafts** and must be explicitly tagged
 - Component tracks must exist and have at least one tagged release

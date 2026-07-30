@@ -70,18 +70,32 @@ A **Member Sync Strategy** is a configuration setting on a release track that de
 
 ### When Does Member Sync Apply?
 
-Member sync logic is triggered by **object modification events**. Specifically, when a STIX object is created or updated (resulting in a new `modified` timestamp), the system checks whether that object is referenced by any release track's latest snapshot — in `members`, `candidates`, or `staged`. For each referencing track, the configured member sync strategy determines what action (if any) to take:
+Member sync logic is triggered by **object modification events**. Specifically,
+when a STIX object is created or updated, the system checks whether that object
+is referenced by any release track's latest snapshot — in `members`,
+`candidates`, or `staged`. For each referencing track, the configured member
+sync strategy determines what workflow action (if any) to take:
 
-- **Object in `members`:** the new revision is auto-enrolled as a candidate (the original behavior). If a candidate/staged entry for the object already exists, the supplant config governs the overlap.
-- **Object pinned only in `candidates`/`staged`:** the pin follows the new revision per the supplant config (`replace` moves the pin — to the same tier under `status_policy: preserve`, back to `candidates` under `reset`; `queue` adds a second candidate entry; `ignore` does nothing).
+- **Object in `members`:** the object is auto-enrolled as a candidate with
+  `object_modified: "latest"`. The exact released member remains unchanged.
+- **Object referenced only in `candidates`/`staged`:** a dynamic selector
+  already follows the new revision. `replace` may reset or preserve its
+  workflow standing; `queue` cannot add a second indistinguishable `"latest"`
+  entry; and `ignore` leaves workflow standing unchanged. If the existing
+  workflow entry is explicitly timestamp-pinned, the supplant policy can
+  replace it with `"latest"`, queue a dynamic candidate beside it, or retain
+  the exact pin.
 
 > **Behavior evolution (2026-07-10):** member sync originally applied *only* to
 > objects in `members`, on the rationale that candidates/staged entries were
 > still in-flight. In practice that meant a candidate pin silently went stale
 > the moment the author kept editing — the release would ship the old pinned
 > revision, and the object's latest view lost its `workspace.release_tracks`
-> backref (the membership appeared to vanish). Under `track_latest`, pins now
-> follow new revisions for all three tiers; `manual` tracks are unaffected.
+> backref (the membership appeared to vanish). Under `track_latest`, workflow
+> entries now use an explicit `"latest"` selector. Exact `members` pins never
+> move. A `manual` track does not auto-enroll or replace entries, although a
+> manually created `"latest"` candidate/staged selector still follows the
+> object by definition.
 > Relationships are deliberately excluded from sync — bundle export pulls
 > active relationships dynamically.
 >
@@ -168,7 +182,8 @@ The `strategy` field determines the primary behavior of member sync.
 
 ##### `"track_latest"` (Default for New Release Tracks)
 
-When a new revision of a member object is created, **automatically add it to `candidates`**.
+When a new revision of a member object is created, **automatically add a
+dynamic `"latest"` reference to `candidates`**.
 
 This is the recommended setting for most release tracks. It provides the intuitive "once enrolled, always tracked" behavior that users expect. With this strategy enabled, users can focus on editing objects without worrying about manually re-enrolling them after each release.
 
@@ -197,7 +212,7 @@ members:
 
 candidates:
   - object_ref: attack-pattern--abc
-    object_modified: 2025-06-15  # Automatically enrolled!
+    object_modified: latest  # Resolves to 2025-06-15 now and keeps following
     object_status: "work-in-progress"
     object_added_at: "2025-06-15T10:30:00Z"
     object_added_by: "system"  # Indicates auto-enrollment
@@ -233,7 +248,11 @@ members:
 
 #### `member_sync.supplant`
 
-The `supplant` configuration controls what happens when a new revision is created **and** an older revision of the same object already exists in `candidates` or `staged`. This scenario is common when users make multiple edits to an object before a release occurs.
+The `supplant` configuration controls workflow placement and status when a new
+revision is created and the same object already exists in `candidates` or
+`staged`. For an exact existing selector, it also controls whether that fixed
+revision is retained or replaced by a dynamic one. It never changes the
+meaning of an already-persisted `"latest"` selector.
 
 ##### `supplant.behavior`
 
@@ -270,7 +289,7 @@ staged:
 
 candidates:
   - object_ref: attack-pattern--abc
-    object_modified: 2027-01-01  # v27
+    object_modified: latest  # Currently resolves to v27
     object_status: "work-in-progress"  # Status reset
 
 staged: []  # v26 removed
@@ -278,7 +297,8 @@ staged: []  # v26 removed
 
 ###### `"queue"`
 
-Keep the older revision where it is and add the newer revision to `candidates` alongside it.
+Keep an exact older revision where it is and add a dynamic `"latest"`
+candidate alongside it.
 
 This setting allows both revisions to coexist and progress through the workflow independently. It is useful when a previous revision needs to ship in an imminent release while a newer revision is still being developed for a subsequent release.
 
@@ -306,7 +326,7 @@ staged:
 
 candidates:
   - object_ref: attack-pattern--abc
-    object_modified: 2027-01-01  # v27
+    object_modified: latest  # Currently resolves to v27
     object_status: "work-in-progress"
 
 staged:
@@ -315,7 +335,12 @@ staged:
     object_status: "reviewed"
 ```
 
-**Note:** When using `queue`, multiple versions of the same object can exist across `candidates` and `staged`. The existing conflict resolution policies (configured via `config.promotion_conflicts`) will handle conflicts when these versions are eventually promoted. For example, if the release track is configured with `staged_to_members: "abort"`, the system will prevent releasing if both v26 and v27 somehow end up competing for promotion to `members`.
+**Note:** `queue` can preserve parallel work only when the incumbent entry is
+an exact timestamp. If it is already `"latest"`, a second dynamic entry would
+be indistinguishable, so the existing selector simply continues following the
+object. Multiple exact/dynamic selectors can otherwise coexist across
+`candidates` and `staged`; release-time resolution occurs before the configured
+promotion conflict policy is applied.
 
 ###### `"ignore"`
 
@@ -390,7 +415,7 @@ staged:
 # With status_policy: "preserve", the new revision:
 staged:
   - object_ref: attack-pattern--abc
-    object_modified: 2027-01-01
+    object_modified: latest
     object_status: "reviewed"  # Preserved from old revision
 ```
 
@@ -423,11 +448,12 @@ staged: []
 members:
   - { object_ref: attack-pattern--T1, object_modified: v25 }
 candidates:
-  - { object_ref: attack-pattern--T1, object_modified: v26, object_status: "work-in-progress" }
+  - { object_ref: attack-pattern--T1, object_modified: latest, object_status: "work-in-progress" }
 staged: []
 ```
 
-**Explanation:** The new revision v26 is automatically enrolled as a candidate. The released version v25 remains in `members`. This is the most common scenario and demonstrates the core value of member sync.
+**Explanation:** A dynamic candidate is automatically enrolled and currently
+resolves to v26. The released version v25 remains exactly pinned in `members`.
 
 ### Scenario 2: Replacement with Status Reset
 
@@ -451,11 +477,13 @@ staged:
 members:
   - { object_ref: attack-pattern--T1, object_modified: v25 }
 candidates:
-  - { object_ref: attack-pattern--T1, object_modified: v27, object_status: "work-in-progress" }
+  - { object_ref: attack-pattern--T1, object_modified: latest, object_status: "work-in-progress" }
 staged: []
 ```
 
-**Explanation:** v26 is removed from `staged` and v27 is added to `candidates` with reset status. The user will need to re-review v27 before it can be staged again. This ensures that the new changes receive proper scrutiny.
+**Explanation:** The exact v26 selector is removed from `staged` and a
+dynamic selector, currently resolving to v27, is added to `candidates` with
+reset status. The user must re-review it before staging.
 
 ### Scenario 3: Replacement with Status Preserved
 
@@ -478,10 +506,11 @@ staged:
 members:
   - { object_ref: attack-pattern--T1, object_modified: v25 }
 staged:
-  - { object_ref: attack-pattern--T1, object_modified: v27, object_status: "reviewed" }
+  - { object_ref: attack-pattern--T1, object_modified: latest, object_status: "reviewed" }
 ```
 
-**Explanation:** v26 is replaced by v27, but v27 inherits the `reviewed` status and remains in `staged`. This is faster but assumes the new changes don't require re-review.
+**Explanation:** The exact v26 selector is replaced by `"latest"`, which
+currently resolves to v27, but it inherits `reviewed` and remains staged.
 
 ### Scenario 4: Queueing Alongside Existing Revision
 
@@ -507,10 +536,12 @@ members:
 staged:
   - { object_ref: attack-pattern--T1, object_modified: v26, object_status: "reviewed" }
 candidates:
-  - { object_ref: attack-pattern--T1, object_modified: v27, object_status: "work-in-progress" }
+  - { object_ref: attack-pattern--T1, object_modified: latest, object_status: "work-in-progress" }
 ```
 
-**Explanation:** Both v26 and v27 coexist. v26 will ship in the next release while v27 progresses through the workflow for a subsequent release. This is useful for parallel development across release cycles.
+**Explanation:** Exact v26 and dynamic `"latest"` coexist. v26 can ship in
+the imminent release while the moving candidate, currently v27, progresses
+for a later release.
 
 ### Scenario 5: Ignoring When Revision Already Exists
 
@@ -568,9 +599,9 @@ members:
   - { object_ref: T3, object_modified: v25 }
 staged: []  # T1-v26 removed
 candidates:
-  - { object_ref: T1, object_modified: v27, object_status: "work-in-progress" }  # Replaced T1-v26
-  - { object_ref: T2, object_modified: v26, object_status: "work-in-progress" }  # New enrollment
-  - { object_ref: T3, object_modified: v27, object_status: "work-in-progress" }  # Replaced T3-v26
+  - { object_ref: T1, object_modified: latest, object_status: "work-in-progress" }  # Currently T1-v27
+  - { object_ref: T2, object_modified: latest, object_status: "work-in-progress" }  # Currently T2-v26
+  - { object_ref: T3, object_modified: latest, object_status: "work-in-progress" }  # Currently T3-v27
 ```
 
 **Explanation:** Each object is handled according to the strategy:
@@ -602,7 +633,7 @@ members:
   - { object_ref: T1, object_modified: v25 }
 candidates: []  # Immediately promoted!
 staged:
-  - { object_ref: T1, object_modified: v26, object_status: "work-in-progress" }
+  - { object_ref: T1, object_modified: latest, object_status: "work-in-progress" }
 ```
 
 **Explanation:** v26 is auto-enrolled to `candidates`, but because the candidacy threshold is `work-in-progress` and auto-promote is enabled, v26 is immediately promoted to `staged`. This demonstrates how member sync integrates with existing promotion logic.
@@ -621,17 +652,25 @@ This can lead to interesting scenarios:
 
 ### Interaction with Conflict Resolution Policies
 
-When `supplant.behavior` is `queue`, multiple revisions of the same object can coexist across `candidates` and `staged`. This creates potential for conflicts during promotion:
+When `supplant.behavior` is `queue`, an exact selector and a dynamic selector
+for the same object can coexist across `candidates` and `staged`. This creates
+potential for conflicts during promotion:
 
 1. **Candidates to Staged:** If v26 is in `candidates` and v27 is also in `candidates`, promoting one may conflict with the other. The `candidates_to_staged` conflict policy determines resolution.
 
-2. **Staged to Members:** If v26 and v27 are both in `staged` (which can happen with `queue` + subsequent manual promotions), the `staged_to_members` policy applies during release.
+2. **Staged to Members:** Release planning resolves `"latest"` first. If the
+   resulting exact revision conflicts with an existing member, the
+   `staged_to_members` policy applies.
 
 The existing conflict resolution policies (`always_overwrite`, `always_reject`, `prefer_latest`, `abort`) handle these situations. No changes to conflict resolution are required for member sync to function correctly.
 
 ### Snapshot Creation
 
-Any change to a release track's `candidates`, `staged`, or `members` arrays results in a new draft snapshot. Member sync follows this convention. When a new revision is auto-enrolled or an existing revision is supplanted, the system creates a new draft snapshot with the updated arrays.
+Any change to a release track's `candidates`, `staged`, or `members` arrays
+results in a new draft snapshot. If an existing dynamic selector needs no
+workflow change, member sync skips the redundant snapshot and emits a
+contents-changed reconciliation so its backref moves to the newly latest
+object revision.
 
 This means:
 - Auto-enrollment generates a new snapshot
@@ -642,7 +681,8 @@ This means:
 
 Member sync requires listening for object modification events. When a STIX object is created or modified:
 
-1. The system identifies all release tracks where this object appears in `members`
+1. The system identifies all release tracks where this object appears in
+   `members`, `candidates`, or `staged`
 2. For each relevant release track, the configured member sync strategy is evaluated
 3. If the strategy dictates action (e.g., auto-enrollment), the appropriate snapshot modifications are made
 
@@ -743,10 +783,11 @@ The following matrix summarizes the behavior for each combination of settings:
 
 | Scenario | `track_latest` + `replace` + `reset` | `track_latest` + `replace` + `preserve` | `track_latest` + `queue` | `track_latest` + `ignore` | `manual` |
 |----------|--------------------------------------|----------------------------------------|--------------------------|--------------------------|----------|
-| New revision created (nothing in candidates/staged) | Add to candidates as WIP | Add to candidates as WIP | Add to candidates as WIP | Add to candidates as WIP | No action |
-| New revision created (older in candidates as WIP) | Replace in candidates as WIP | Replace in candidates as WIP | Add alongside as WIP | No action | No action |
-| New revision created (older in candidates as awaiting-review) | Replace in candidates as WIP | Replace in candidates as awaiting-review | Add alongside as WIP | No action | No action |
-| New revision created (older in staged as reviewed) | Remove from staged, add to candidates as WIP | Replace in staged as reviewed | Keep in staged, add to candidates as WIP | No action | No action |
+| New revision created (nothing in candidates/staged) | Add `"latest"` to candidates as WIP | Add `"latest"` to candidates as WIP | Add `"latest"` to candidates as WIP | Add `"latest"` to candidates as WIP | No auto-enrollment |
+| New revision created (exact older candidate as WIP) | Replace with `"latest"` as WIP | Replace with `"latest"` as WIP | Add `"latest"` alongside | Keep exact pin | Keep exact pin |
+| New revision created (exact older candidate as awaiting-review) | Replace with `"latest"` as WIP | Replace with `"latest"` as awaiting-review | Add `"latest"` alongside | Keep exact pin | Keep exact pin |
+| New revision created (exact older staged as reviewed) | Replace with candidate `"latest"` as WIP | Replace with staged `"latest"` as reviewed | Keep exact staged and add candidate `"latest"` | Keep exact pin | Keep exact pin |
+| New revision created (existing workflow selector is `"latest"`) | Apply reset/preserve workflow policy; selector stays dynamic | Apply reset/preserve workflow policy; selector stays dynamic | No duplicate; selector keeps following | No workflow change; selector keeps following | No workflow change; selector keeps following |
 
 ---
 

@@ -20,6 +20,7 @@ const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
 const EventConstants = require('../../lib/event-constants');
 const versionUtils = require('../../lib/release-tracks/version-utils');
+const objectResolver = require('../../lib/release-tracks/object-resolver');
 const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const {
   TrackNotFoundError,
@@ -61,6 +62,36 @@ function assertStandardTrack(snapshot) {
         'Virtual members are computed from component tracks; create a virtual snapshot to update them',
     });
   }
+}
+
+/**
+ * Convert contents request entries into exact revision pins.
+ *
+ * `latest` is request-time shorthand only. It must never be persisted because
+ * snapshot membership is defined by an immutable `(object_ref,
+ * object_modified)` pair.
+ *
+ * @param {Array<{obj_ref: string, obj_modified: string}>} contents
+ * @returns {Promise<Array<{object_ref: string, object_modified: Date}>>}
+ */
+async function resolveContentsMembers(contents) {
+  const latestByObjectRef = new Map();
+  const resolveLatest = (objectRef) => {
+    if (!latestByObjectRef.has(objectRef)) {
+      latestByObjectRef.set(objectRef, objectResolver.resolveLatestModified(objectRef));
+    }
+    return latestByObjectRef.get(objectRef);
+  };
+
+  return Promise.all(
+    contents.map(async (entry) => ({
+      object_ref: entry.obj_ref,
+      object_modified:
+        entry.obj_modified === 'latest'
+          ? await resolveLatest(entry.obj_ref)
+          : new Date(entry.obj_modified),
+    })),
+  );
 }
 
 /**
@@ -487,10 +518,7 @@ exports.updateMetadataByModified = async function updateMetadataByModified(
 exports.updateContents = async function updateContents(trackId, contents, _userId) {
   const source = await exports.getLatestSnapshot(trackId);
   assertStandardTrack(source);
-  const members = contents.x_mitre_contents.map((c) => ({
-    object_ref: c.obj_ref,
-    object_modified: c.obj_modified === 'latest' ? new Date() : new Date(c.obj_modified),
-  }));
+  const members = await resolveContentsMembers(contents.x_mitre_contents);
   return exports.cloneSnapshot(trackId, source, { members });
 };
 
@@ -512,10 +540,7 @@ exports.updateContentsByModified = async function updateContentsByModified(
 ) {
   const source = await exports.getSnapshotByModified(trackId, modified);
   assertStandardTrack(source);
-  const members = contents.x_mitre_contents.map((c) => ({
-    object_ref: c.obj_ref,
-    object_modified: c.obj_modified === 'latest' ? new Date() : new Date(c.obj_modified),
-  }));
+  const members = await resolveContentsMembers(contents.x_mitre_contents);
   return exports.cloneSnapshot(trackId, source, { members });
 };
 

@@ -183,7 +183,7 @@ describe('Virtual release-track composition validation API', function () {
     }
   });
 
-  it('validates initial component existence and standard-track type before persistence', async function () {
+  it('requires standard component tracks during creation and composition update', async function () {
     const missingComponentName = 'Missing Component Create';
     await createVirtual(
       composition({
@@ -207,5 +207,35 @@ describe('Virtual release-track composition validation API', function () {
       virtualComponentName,
     );
     expect(await listTracks(virtualComponentName)).toEqual([]);
+
+    await putComposition(
+      composition({
+        track_id: virtualTrack.id,
+        resolution_strategy: 'latest_tagged',
+        priority: 1,
+      }),
+      400,
+    );
+  });
+
+  it('rejects native members instead of silently creating a hybrid virtual track', async function () {
+    const name = 'Native Members Rejected';
+    await post(
+      '/api/release-tracks/new',
+      {
+        name,
+        type: 'virtual',
+        composition: composition(component('latest_tagged')),
+        native_members: [
+          {
+            object_ref: 'attack-pattern--11111111-1111-4111-8111-111111111111',
+            object_modified: '2024-02-01T10:00:00.000Z',
+          },
+        ],
+      },
+      400,
+    );
+
+    expect(await listTracks(name)).toEqual([]);
   });
 });

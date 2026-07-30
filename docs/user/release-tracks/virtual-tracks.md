@@ -736,13 +736,6 @@ Each virtual track snapshot stores metadata about how it was composed:
       conflicts_resolved: []
     },
 
-    // Native objects (if any)
-    native_objects: {
-      candidates_count: 0,
-      staged_count: 0,
-      members_count: 0
-    },
-
     // Final statistics
     summary: {
       total_objects: 870,
@@ -929,7 +922,7 @@ the literal snapshot or publication artifact that would be tagged. The draft
 must have a non-null `composition_resolution`, proving that its members and
 quarantine tiers were materialized from its current composition.
 
-### Get Virtual Track with Resolved Content
+### Retrieve a Materialized Virtual Snapshot
 
 ```bash
 GET /api/release-tracks/:id/snapshots/latest?format=workbench&include=all
@@ -938,37 +931,33 @@ GET /api/release-tracks/:id/snapshots/latest?format=workbench&include=all
 **Query params:**
 - `format`: `bundle` | `workbench` | `filesystemstore` (`filesystemstore` is not yet implemented and returns HTTP 501)
 - `include`: `members` | `quarantine` | `all`
-- `resolve`: `true` (default) | `false` - Whether to resolve composition
 
-**Response when `resolve=true`:**
-```json
-{
-  "id": "release-track--uuid-virtual",
-  "type": "virtual",
-  "snapshot_id": "2024-03-05T10:00:00.000Z",
-  "modified": "2024-03-05T10:00:00Z",
-  "version": null,
-  "name": "Enterprise ATT&CK",
+There is no `resolve` query parameter and no `resolved_content` response
+property. Composition is resolved eagerly when the virtual draft is created.
+The concrete `members`, `quarantine`, and `composition_resolution` fields are
+stored directly on that snapshot and are returned without consulting the
+component tracks again.
 
-  "resolved_content": {
-    "members": [
-      {
-        "object_ref": "intrusion-set--APT1",
-        "object_modified": "2024-02-01T10:00:00Z",
-        "source_track": "release-track--uuid-1",
-        "source_version": "5.2"
-      }
-      // ... all resolved objects
-    ],
-    "quarantine": []
-  },
+Every member and quarantined entry contains an exact
+`(object_ref, object_modified)` pair. Standard candidate and staged entries may
+persist the dynamic selector `"latest"`, but standard release planning resolves
+it before promoting those entries into members. Direct standard member
+replacement likewise resolves `"latest"` before persistence. A component
+track's `track_latest` member-sync policy can create or move dynamic workflow
+selectors in newer component drafts, but it cannot change the exact members
+already present in a tagged component snapshot or in an existing virtual
+snapshot.
 
-  "composition_resolution": {
-    "resolved_at": "2024-03-05T10:00:00Z",
-    "component_snapshots": [...]
-  }
-}
-```
+Consequently, while the track does not acquire a newer snapshot,
+`GET /snapshots/latest` returns the same primary member revision set.
+`GET /snapshots/:modified` identifies that persisted set directly. The
+`latest` path segment selects the most recent snapshot; it is not a dynamic
+object-revision selector.
+
+This guarantee applies to the persisted primary snapshot contents.
+`format=bundle` also discovers secondary relationships and supporting objects
+at export time, so the complete bundle graph is not currently reproducible.
+See [Bundle Export](../../developer/release-tracks/bundle-export.md#relationship-and-secondary-object-consistency-boundary).
 
 ## Quarantine Management
 
@@ -1006,59 +995,18 @@ Malformed requests and attempts against standard tracks return `400 Bad
 Request`. Selecting a revision that is not quarantined returns `404 Not Found`
 without creating a snapshot.
 
-## Hybrid Model: Virtual Track + Native Objects
+## Pure Composition
 
-Virtual tracks can optionally have **native objects** in addition to composed content. This is an advanced use case where a virtual track needs to include objects that don't exist in any component track:
+Virtual tracks do not own native members and cannot compose other virtual
+tracks. Every member must originate from a tagged snapshot of a standard
+component track. This keeps one authoritative object lifecycle and one
+membership authority for every contributed object.
 
-```javascript
-{
-  id: "release-track--uuid-virtual",
-  type: "virtual",
-
-  // Composed from standard tracks
-  composition: {
-    component_tracks: [
-      {
-        track_id: "release-track--uuid-1",
-        resolution_strategy: "latest_tagged",
-        priority: 1
-      },
-      {
-        track_id: "release-track--uuid-2",
-        resolution_strategy: "latest_tagged",
-        priority: 2
-      }
-    ],
-    deduplication: {
-      strategy: "prioritize_latest_object"
-    }
-  },
-
-  // PLUS virtual track's own native members
-  native_members: [
-    {
-      object_ref: "marking-definition--enterprise-only",
-      object_modified: "2024-01-01T10:00:00Z"
-    }
-  ],
-
-  // Final result after sync
-  members: [
-    // ... objects from component tracks
-    // ... plus native_members
-  ],
-  quarantine: []
-}
-```
-
-**Use case:** Enterprise track includes Groups and Techniques from standard tracks, PLUS Enterprise-specific marking definitions or custom objects that don't belong in any component track.
-
-**When virtual snapshot is created:**
-1. Resolve composed content from component tracks (goes to `members` or `quarantine`)
-2. Merge with virtual track's `native_members` (goes to `members`)
-3. If any `native_members` conflict with composed objects, apply deduplication strategy
-
-**Note:** This is an advanced feature. Most virtual tracks should only use composition without native members.
+If an aggregate needs content that does not belong in its existing component
+tracks, create a dedicated standard track for that content and add it to the
+virtual composition. Requests containing unsupported properties such as
+`native_members`, or composition entries that reference a virtual track,
+return `400 Bad Request`.
 
 ## Migration Strategy
 
@@ -1143,47 +1091,12 @@ July 1: Enterprise scheduled snapshot triggers
 July 5: Team reviews draft, tags as Enterprise v14.1
 ```
 
-## Performance Optimizations
+## Implementation Characteristics
 
-### 1. Snapshot Caching
+### 1. Eager, Parallel Component Resolution
 
-Since virtual snapshots are immutable once created, cache resolved content:
-
-```javascript
-const cacheKey = `virtual-snapshot:${trackId}:${modified}:resolved`;
-
-const cached = await cache.get(cacheKey);
-if (cached) return cached;
-
-const resolved = await resolveVirtualSnapshot(trackId, modified);
-await cache.set(cacheKey, resolved, { ttl: 3600 });  // 1 hour cache
-```
-
-### 2. Lazy Resolution
-
-For `GET /api/release-tracks/:id/snapshots/latest` (latest snapshot), only resolve if:
-- Query param `resolve=true` is specified
-- Format requires resolution (e.g., `format=bundle`)
-
-Otherwise, return composition metadata without resolving:
-
-```javascript
-if (!query.resolve && query.format === 'workbench') {
-  // Return composition config without resolving
-  return {
-    id: snapshot.id,
-    type: snapshot.type,
-    snapshot_id: snapshot.snapshot_id,
-    modified: snapshot.modified,
-    version: snapshot.version,
-    name: snapshot.name,
-    composition: snapshot.composition,
-    composition_resolution: snapshot.composition_resolution  // Pre-computed
-  };
-}
-```
-
-### 3. Parallel Component Resolution
+Virtual composition is resolved only during explicit or scheduled snapshot
+creation. Component snapshots are fetched in parallel:
 
 Resolve component tracks in parallel:
 
@@ -1195,7 +1108,7 @@ const resolutions = await Promise.all(
 );
 ```
 
-### 4. Deduplication Optimization
+### 2. Deduplication
 
 Use Set for O(1) duplicate detection:
 
@@ -1211,6 +1124,11 @@ for (const obj of allObjects) {
   }
 }
 ```
+
+The persisted snapshot is already the reusable composition result. No
+cross-request snapshot cache is implemented. Caching should be considered only
+if measured bundle-rendering latency or database load justifies the additional
+invalidation and multi-instance consistency work.
 
 ## Best Practices
 
@@ -1264,27 +1182,6 @@ Add metadata to virtual track for documentation:
 }
 ```
 
-### 4. Monitor Component Track Releases
-
-Set up alerts when component tracks release:
-
-```javascript
-eventBus.on('release-track:released', async (event) => {
-  // Find virtual tracks that reference this standard track
-  const virtualTracks = await findVirtualTracksByComponent(event.collectionId);
-
-  // Notify virtual track owners
-  for (const vt of virtualTracks) {
-    await notificationService.send({
-      to: vt.owner_email,
-      subject: `Component track ${event.collectionName} released v${event.version}`,
-      body: `Your virtual track "${vt.name}" references this component. ` +
-        `Consider creating a new snapshot to include the latest release.`
-    });
-  }
-});
-```
-
 ## Limitations
 
 ### 1. No Event-Driven Snapshots
@@ -1293,7 +1190,10 @@ Virtual tracks do NOT automatically snapshot when component tracks release.
 
 **Rationale:** Prevents snapshot explosion when many component tracks release frequently.
 
-**Alternative:** Use notifications + manual snapshots, or scheduled snapshots.
+**Alternative:** Create snapshots manually or configure a cron/date schedule.
+Component-release notifications are not implemented; they require an approved
+operator workflow defining recipients, delivery channel, deduplication, and
+the expected follow-up action.
 
 ### 2. No Workflow on Composed Objects
 

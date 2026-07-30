@@ -15,13 +15,14 @@ db.objects.createIndex({ 'workspace.workflow.status': 1 });
 
 ## Validation Rules
 
-- **Same object version** can only be in one tier per release-track snapshot
+- **Same revision selector** can only be in one tier per release-track snapshot
   (`members`, `staged`, `candidates`, or `quarantine`)
-- **Different versions** of same object CAN exist in multiple tiers simultaneously
+- **Different selectors** for the same object CAN exist in multiple tiers simultaneously
 - Status transitions must be valid: WIP → Awaiting → Reviewed (no backwards transitions)
 - Candidacy threshold must be valid enum value
 - Object version must exist before adding as candidate (validate `stix.id` and `stix.modified` exist)
-- Version pin (`object_modified`) is immutable once set for a tier entry
+- Candidate/staged `object_modified` may be an exact timestamp or `"latest"`;
+  member/quarantine entries must be exact
 - Release version selection accepts either an `increment` or an explicit
   `version`, never both. Controller validation returns 400 at the HTTP boundary,
   and `version-utils.calculateNextVersion` repeats the invariant so internal
@@ -29,8 +30,8 @@ db.objects.createIndex({ 'workspace.workflow.status': 1 });
 
 ### Cross-tier revision enforcement
 
-`app/lib/release-tracks/tier-revision-invariant.js` owns exact-revision
-identity (`object_ref` + normalized `object_modified`) and normalization.
+`app/lib/release-tracks/tier-revision-invariant.js` owns selector identity
+(`object_ref` + normalized `object_modified`) and normalization.
 Every clone-based mutation passes through `snapshot-service.cloneSnapshot`;
 track cloning uses the same normalizer. Tagging is the one in-place mutation,
 so `versioning-service` normalizes before the atomic tag update. This covers
@@ -39,17 +40,33 @@ candidate pin changes, member sync, direct content replacement, bundle
 import, standard/virtual snapshot creation, and release commits without
 route-specific guards.
 
-Normalization keeps the first occurrence in the authoritative order
+Normalization keeps the first identical selector in the authoritative order
 `members` → `staged` → `candidates` → `quarantine`. The order matches
 backref reconciliation's defensive precedence: published membership wins
 over in-flight workflow state, and resolved virtual membership wins over
 quarantine. Exact duplicates within one tier are not collapsed because
 quarantine entries may retain source-specific provenance.
 
-`conflict-resolution.applyConflictPolicy` separately treats an exact
-destination duplicate as an idempotent successful move. It does not reject
-the incoming entry, so callers remove its source-tier occurrence. Conflict
-policies remain responsible only for different revisions of one object.
+`conflict-resolution.applyConflictPolicy` separately treats an identical
+destination selector as an idempotent successful move. It does not reject the
+incoming entry, so callers remove its source-tier occurrence. Conflict
+policies remain responsible only for different selectors of one object.
+
+### Standard release resolution boundary
+
+Candidate requests that omit `modified` or specify `"latest"` persist that
+literal selector. Candidate-to-staged promotion does not freeze it.
+`versioning-service.planLoadedSnapshot` is the single resolution boundary for
+both latest and historical standard release targets: it resolves staged
+selectors before normalization, conflict detection, summary calculation, or
+workbench/bundle rendering. The pure `planRelease` function rejects any
+standard input whose staged tier still contains `"latest"`, preventing
+internal callers from accidentally persisting a dynamic member.
+
+Preview and commit intentionally resolve independently. A new object revision
+between those requests may change the plan; the successful commit freezes the
+revision it resolved. Candidate entries remain workflow state and are not
+resolved or promoted by release.
 
 ## Performance Considerations
 
@@ -70,6 +87,16 @@ Virtual-only operations are deliberately scoped beneath
 - `POST /virtual/snapshots/create` resolves tagged component snapshots and
   persists the concrete members, quarantine, and immutable
   `composition_resolution`.
+- Every persisted member and quarantine entry uses an exact
+  `(object_ref, object_modified)` revision. Standard candidate/staged entries
+  may persist `"latest"`, but standard release planning resolves staged
+  selectors before they enter members. Virtual materialization also normalizes
+  unresolved legacy component entries at its boundary; it never persists a
+  moving reference.
+- `member_sync.strategy = track_latest` applies only to standard tracks. New
+  object revisions may update a component's newer candidate/staged draft, but
+  they cannot rewrite the members of the tagged component snapshot selected
+  during virtual materialization or an already-persisted virtual snapshot.
 - `POST /virtual/quarantine/promote` clones the latest virtual snapshot,
   selects one exact quarantined revision for members, and removes all
   quarantined alternatives for that object.
@@ -87,7 +114,18 @@ strategy does not inspect it. Zod rejects duplicate component IDs and
 priorities before service delegation. The facade also asks the virtual-track
 service to verify that every component exists and is a standard track before
 persisting an initial virtual track; update and materialization retain the same
-service-layer validation.
+service-layer validation. Standard type is a positive requirement, so virtual
+tracks cannot compose other virtual tracks. Virtual tracks are also purely
+compositional: the strict creation contract rejects unsupported properties
+such as `native_members`, and content unique to an aggregate must be modeled in
+a standard component track.
+
+Snapshot retrieval never re-runs composition, so there is no `resolve` query
+parameter or `resolved_content` response wrapper. Workbench retrieval returns
+the persisted primary membership. Bundle export is a separate consistency
+boundary: secondary relationships and supporting objects are discovered at
+request time and are not deterministic until relationships become
+version-controlled against exact endpoint revisions.
 
 Snapshot schedules use the same strict, mode-discriminated Zod schema at the
 controller and service boundaries. `manual` has no selector field, `cron`

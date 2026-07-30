@@ -30,6 +30,7 @@ const memberSyncService = require('./member-sync-service');
 const releaseHistoryService = require('./release-history-service');
 const attackObjectsService = require('../stix/attack-objects-service');
 const userAccountsService = require('../system/user-accounts-service');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 
 const MODULE = 'release-tracks-service';
 const TIER_NAMES = ['members', 'staged', 'candidates', 'quarantine'];
@@ -85,8 +86,15 @@ async function getUsersById(userIds) {
   return usersById;
 }
 
-function addObjectInfo(entry, objectsByVersion, usersById) {
-  const object = objectsByVersion.get(versionKey(entry.object_ref, entry.object_modified));
+function selectorKey(entry) {
+  return `${entry.object_ref}:${revisionReference.modifiedKey(entry.object_modified)}`;
+}
+
+function addObjectInfo(entry, resolvedModifiedBySelector, objectsByVersion, usersById) {
+  const resolvedModified = resolvedModifiedBySelector.get(selectorKey(entry));
+  const object = resolvedModified
+    ? objectsByVersion.get(versionKey(entry.object_ref, resolvedModified))
+    : undefined;
   const entryWithObjectInfo = {
     ...entry,
   };
@@ -115,9 +123,17 @@ async function addObjectInfoToSnapshot(snapshot) {
     return snapshot;
   }
 
+  const resolvedEntries = await revisionReference.resolveEntries(tierEntries);
+  const resolvedModifiedBySelector = new Map();
   const uniqueEntriesByVersion = new Map();
-  for (const entry of tierEntries) {
-    uniqueEntriesByVersion.set(versionKey(entry.object_ref, entry.object_modified), entry);
+  for (let index = 0; index < tierEntries.length; index++) {
+    const entry = tierEntries[index];
+    const resolvedEntry = resolvedEntries[index];
+    resolvedModifiedBySelector.set(selectorKey(entry), resolvedEntry.object_modified);
+    uniqueEntriesByVersion.set(
+      versionKey(resolvedEntry.object_ref, resolvedEntry.object_modified),
+      resolvedEntry,
+    );
   }
 
   const objects = await attackObjectsService.getBulkByIdAndModified([
@@ -133,7 +149,7 @@ async function addObjectInfoToSnapshot(snapshot) {
   for (const tierName of TIER_NAMES) {
     if (snapshot[tierName]) {
       snapshotWithObjectInfo[tierName] = snapshot[tierName].map((entry) =>
-        addObjectInfo(entry, objectsByVersion, usersById),
+        addObjectInfo(entry, resolvedModifiedBySelector, objectsByVersion, usersById),
       );
     }
   }

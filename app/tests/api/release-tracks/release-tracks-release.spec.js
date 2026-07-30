@@ -100,6 +100,15 @@ describe('Release-track release planning and commit API', function () {
       .expect(status);
   }
 
+  async function put(path, body, status = 200) {
+    return request(app)
+      .put(path)
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(status);
+  }
+
   async function createTrack(name, type = 'standard') {
     return (await post('/api/release-tracks/new', { name, type }, 201)).body;
   }
@@ -160,6 +169,145 @@ describe('Release-track release planning and commit API', function () {
     expect(released.body.version).toBe(preview.body.version);
     expect(released.body.version_history.at(-1).summary).toMatchObject(preview.body.after);
     expect(released.body.version_history.at(-1)).not.toHaveProperty('component_versions');
+  });
+
+  it('freezes a dynamic staged reference to the latest revision during release', async function () {
+    const revisionA = (await post('/api/techniques', buildTechnique('Dynamic Release A'), 201))
+      .body;
+    const track = await createTrack('Dynamic Standard Release');
+    await put(`/api/release-tracks/${track.id}/config`, {
+      member_sync: { strategy: 'manual' },
+    });
+
+    const candidate = await post(`/api/release-tracks/${track.id}/candidates`, {
+      object_refs: [revisionA.stix.id],
+    });
+    expect(candidate.body.candidates).toEqual([
+      expect.objectContaining({
+        object_ref: revisionA.stix.id,
+        object_modified: 'latest',
+      }),
+    ]);
+
+    const staged = await post(`/api/release-tracks/${track.id}/candidates/promote`, {
+      object_refs: [revisionA.stix.id],
+    });
+    expect(staged.body.staged).toEqual([
+      expect.objectContaining({
+        object_ref: revisionA.stix.id,
+        object_modified: 'latest',
+      }),
+    ]);
+
+    const revisionB = (
+      await post('/api/techniques', buildTechnique('Dynamic Release B', revisionA), 201)
+    ).body;
+    const draft = await get(`/api/release-tracks/${track.id}/snapshots/latest`);
+    expect(draft.body.staged[0]).toMatchObject({
+      object_ref: revisionB.stix.id,
+      object_modified: 'latest',
+      name: revisionB.stix.name,
+    });
+
+    const draftBundle = await get(
+      `/api/release-tracks/${track.id}/snapshots/latest` +
+        '?format=bundle&include=staged&includeToc=false',
+    );
+    expect(draftBundle.body.objects).toEqual([
+      expect.objectContaining({
+        id: revisionB.stix.id,
+        modified: revisionB.stix.modified,
+      }),
+    ]);
+
+    const preview = await get(
+      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?format=workbench`,
+    );
+    expect(preview.body.staged).toEqual([]);
+    expect(preview.body.members).toEqual([
+      expect.objectContaining({
+        object_ref: revisionB.stix.id,
+        object_modified: revisionB.stix.modified,
+      }),
+    ]);
+
+    const unchangedDraft = await get(`/api/release-tracks/${track.id}/snapshots/latest`);
+    expect(unchangedDraft.body.staged[0].object_modified).toBe('latest');
+
+    const revisionC = (
+      await post('/api/techniques', buildTechnique('Dynamic Release C', revisionB), 201)
+    ).body;
+    const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {});
+    expect(released.body.staged).toEqual([]);
+    expect(released.body.members).toEqual([
+      {
+        object_ref: revisionC.stix.id,
+        object_modified: revisionC.stix.modified,
+      },
+    ]);
+
+    await post('/api/techniques', buildTechnique('Dynamic Release D', revisionC), 201);
+    const immutable = await get(
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(released.body.modified)}`,
+    );
+    expect(immutable.body.members[0].object_modified).toBe(revisionC.stix.modified);
+  });
+
+  it('resolves a historical draft dynamic selector when that draft is released', async function () {
+    const revisionA = (await post('/api/techniques', buildTechnique('Historical Dynamic A'), 201))
+      .body;
+    const track = await createTrack('Historical Dynamic Release');
+    await put(`/api/release-tracks/${track.id}/config`, {
+      member_sync: { strategy: 'manual' },
+    });
+    await post(`/api/release-tracks/${track.id}/candidates`, {
+      object_refs: [{ id: revisionA.stix.id, modified: 'latest' }],
+    });
+    const staged = await post(`/api/release-tracks/${track.id}/candidates/promote`, {
+      object_refs: [revisionA.stix.id],
+    });
+    await post(`/api/release-tracks/${track.id}/meta`, {
+      description: 'newer unrelated draft',
+    });
+
+    const revisionB = (
+      await post('/api/techniques', buildTechnique('Historical Dynamic B', revisionA), 201)
+    ).body;
+    const releasePath =
+      `/api/release-tracks/${track.id}/snapshots/` +
+      `${encodeURIComponent(staged.body.modified)}/release`;
+    const released = await post(releasePath, { version: '4.0' });
+
+    expect(released.body.members).toEqual([
+      {
+        object_ref: revisionB.stix.id,
+        object_modified: revisionB.stix.modified,
+      },
+    ]);
+  });
+
+  it('preserves an explicitly pinned staged revision during release', async function () {
+    const revisionA = (await post('/api/techniques', buildTechnique('Pinned Release A'), 201)).body;
+    const track = await createTrack('Pinned Standard Release');
+    await put(`/api/release-tracks/${track.id}/config`, {
+      member_sync: { strategy: 'manual' },
+    });
+    await post(`/api/release-tracks/${track.id}/candidates`, {
+      object_refs: [{ id: revisionA.stix.id, modified: revisionA.stix.modified }],
+    });
+    await post(`/api/release-tracks/${track.id}/candidates/promote`, {
+      object_refs: [revisionA.stix.id],
+    });
+
+    await post('/api/techniques', buildTechnique('Pinned Release B', revisionA), 201);
+    const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {});
+
+    expect(released.body.members).toEqual([
+      {
+        object_ref: revisionA.stix.id,
+        object_modified: revisionA.stix.modified,
+      },
+    ]);
   });
 
   it('records immutable component versions when previewing and releasing a virtual draft', async function () {
@@ -572,7 +720,7 @@ describe('Release-track release planning and commit API', function () {
       x_mitre_contents: [{ obj_ref: revisionA.stix.id, obj_modified: revisionA.stix.modified }],
     });
     await post(`/api/release-tracks/${track.id}/candidates`, {
-      object_refs: [{ id: revisionB.stix.id, modified: revisionB.stix.modified }],
+      object_refs: [{ id: revisionB.stix.id, modified: 'latest' }],
     });
     await post(`/api/release-tracks/${track.id}/candidates/promote`, {
       object_refs: [revisionB.stix.id],

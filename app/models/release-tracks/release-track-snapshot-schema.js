@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 const {
   validateTrackId,
   validateTrackName,
@@ -27,13 +28,28 @@ const memberEntryDefinition = {
 };
 const memberEntrySchema = new mongoose.Schema(memberEntryDefinition, { _id: false });
 
+const workflowRevisionDefinition = {
+  type: mongoose.Schema.Types.Mixed,
+  required: true,
+  validate: {
+    validator(value) {
+      return (
+        revisionReference.isLatest(value) ||
+        (value instanceof Date && !Number.isNaN(value.getTime())) ||
+        (typeof value === 'string' && !Number.isNaN(new Date(value).getTime()))
+      );
+    },
+    message: 'object_modified must be an exact Date or "latest"',
+  },
+};
+
 const stagedEntryDefinition = {
   object_ref: {
     type: String,
     required: true,
     validate: validateStixId,
   },
-  object_modified: { type: Date, required: true },
+  object_modified: workflowRevisionDefinition,
   object_status: {
     type: String,
     enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed'],
@@ -50,7 +66,7 @@ const candidateEntryDefinition = {
     required: true,
     validate: validateStixId,
   },
-  object_modified: { type: Date, required: true },
+  object_modified: workflowRevisionDefinition,
   object_status: {
     type: String,
     enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed'],

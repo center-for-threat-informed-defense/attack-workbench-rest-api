@@ -20,6 +20,7 @@ const snapshotService = require('./snapshot-service');
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
 const deduplicationStrategies = require('../../lib/release-tracks/deduplication-strategies');
+const objectResolver = require('../../lib/release-tracks/object-resolver');
 const EventBus = require('../../lib/event-bus');
 const Events = require('../../lib/event-constants');
 const logger = require('../../lib/logger');
@@ -101,7 +102,7 @@ async function validateComponentTracks(componentTracks) {
     if (!registry) {
       throw new TrackNotFoundError(component.track_id);
     }
-    if (registry.type === 'virtual') {
+    if (registry.type !== 'standard') {
       throw new InvalidComponentTypeError(component.track_id);
     }
     registryMap.set(component.track_id, registry);
@@ -268,6 +269,54 @@ async function hydrateDomains(componentTracks, resolutions) {
 }
 
 /**
+ * Lock every component member to an exact revision before filtering and
+ * deduplication. Current snapshots already store Date-valued pins; resolving
+ * missing or `latest` values is a defensive compatibility boundary for legacy
+ * component data. The virtual snapshot itself never persists a moving ref.
+ *
+ * @param {Array<Object>} resolutions
+ * @returns {Promise<Array<Object>>}
+ */
+async function lockComponentMemberRevisions(resolutions) {
+  const latestByObjectRef = new Map();
+
+  const resolveLatest = (objectRef) => {
+    if (!latestByObjectRef.has(objectRef)) {
+      latestByObjectRef.set(objectRef, objectResolver.resolveLatestModified(objectRef));
+    }
+    return latestByObjectRef.get(objectRef);
+  };
+
+  return Promise.all(
+    resolutions.map(async (snapshot) => ({
+      ...snapshot,
+      members: await Promise.all(
+        (snapshot.members || []).map(async (member) => {
+          const unresolved = member.object_modified == null || member.object_modified === 'latest';
+          const objectModified = unresolved
+            ? await resolveLatest(member.object_ref)
+            : new Date(member.object_modified);
+
+          if (Number.isNaN(objectModified.getTime())) {
+            throw new BadRequestError({
+              message: 'Component snapshot contains an invalid member revision',
+              details:
+                `Component ${snapshot.id} member ${member.object_ref} must identify ` +
+                'an exact object_modified revision',
+            });
+          }
+
+          return {
+            ...member,
+            object_modified: objectModified,
+          };
+        }),
+      ),
+    })),
+  );
+}
+
+/**
  * Resolve the current virtual composition into concrete member revisions.
  *
  * @param {Object} snapshot - The current virtual track snapshot
@@ -285,9 +334,10 @@ async function resolveComposition(snapshot, registryMap) {
   const allAnnotatedMembers = [];
 
   // Resolve each component track in parallel
-  const resolutions = await Promise.all(
+  const resolvedComponentSnapshots = await Promise.all(
     componentTracks.map((component) => resolveComponentSnapshot(component)),
   );
+  const resolutions = await lockComponentMemberRevisions(resolvedComponentSnapshots);
   const domainsByVersion = await hydrateDomains(componentTracks, resolutions);
 
   for (let i = 0; i < componentTracks.length; i++) {

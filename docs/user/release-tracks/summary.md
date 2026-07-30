@@ -29,8 +29,10 @@ The Release Tracks API supports two types of release tracks:
 - Examples: "GroupsMonthly", "TechniquesQuarterly", "SoftwareBiannual"
 
 **Virtual Release Tracks** - Computed aggregations of other release tracks (NEW)
-- Compose content from multiple standard (or other virtual) tracks
+- Compose content from multiple standard tracks; virtual-track nesting is not
+  supported
 - No duplicate object tracking - objects managed in source tracks only
+- Purely compositional - virtual tracks cannot add native members of their own
 - Create snapshots manually or on schedule (never event-driven)
 - Always compose from tagged snapshots only (never drafts)
 - Examples: "EnterpriseTwiceAnnual" (aggregates Groups + Techniques + Software)
@@ -112,7 +114,26 @@ There are three types of membership "standings":
 
 This presents a tenable solution to the classic "STIX freeze" dilemma wherein editors cannot begin working on the next-*next* (e.g., v20) release until all objects in the next (e.g., v19) release have been released. Staged objects are locked in for the imminent release, but editors are free to continue iterating on future object changes and can queue them up as candidates without affecting the permutation that has already been staged for the imminent release.
 
-Candidates and staged objects alike can be be statically pinned to specific versions via `stix.id` and `stix.modified` couplings, or maintain dynamic/moving references to object versions by omitting `stix.modified`. In the latter, scenario, the release track will effectively "follow" the latest permutation of the relevant object until the moment a release snapshot is generated, at which point the latest permutation will become "locked in" to `x_mitre_contents` via the `stix.id` and `stix.modified` keys of the latest permutation of the object that existed at the time of the release.
+Candidate requests may use `modified: "latest"` (or omit it) to create a
+dynamic workflow reference. That selector remains `"latest"` while the entry
+moves through `candidates` and `staged`; an explicitly supplied timestamp
+remains an exact pin. The `track_latest` member-sync strategy likewise uses
+dynamic candidate/staged references for revisions that should continue
+following the object.
+
+Dynamic references are never supported in `members`. During a standard release
+preview or commit, the server resolves every dynamic staged selector to the
+object revision that is latest when that operation is handled. A successful
+commit promotes those exact `(stix.id, stix.modified)` pairs into `members`,
+making the released primary contents deterministic and immutable. Previewing
+and committing are separate operations, so a newer object revision created
+between them can legitimately produce a different plan; the committed release
+records the revision resolved by the commit itself.
+
+Virtual snapshots are stricter still: they copy only exact member revisions
+from tagged standard component snapshots. They never inherit `track_latest`,
+and retrieving a persisted virtual snapshot does not re-resolve its component
+tracks.
 
 ## Key Features
 
@@ -123,14 +144,15 @@ Object versions automatically move between tiers based on release track-scoped w
 ```
 Object version added to release track
   → track-scoped status = "work-in-progress"
-  → Added to workspace.candidates with version pin
+  → Added to workspace.candidates with an exact or "latest" revision selector
 
 Object status changed in release track
   → track-scoped status = "reviewed"
-  → Auto-promoted to workspace.staged (version pin preserved)
+  → Auto-promoted to workspace.staged (revision selector preserved)
 
 Snapshot tagged
-  → workspace.staged entries → stix.x_mitre_contents (version pins preserved)
+  → Resolve staged "latest" selectors
+  → Promote exact revisions into members / stix.x_mitre_contents
 ```
 
 ### Configurable Thresholds

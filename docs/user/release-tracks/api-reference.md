@@ -473,9 +473,24 @@ Using either contents endpoint with a virtual track returns `400 Bad Request`.
 
 ```json
 {
-  "x_mitre_contents": ["attack-pattern--uuid1", "malware--uuid2"]
+  "x_mitre_contents": [
+    {
+      "obj_ref": "attack-pattern--uuid1",
+      "obj_modified": "2024-02-01T10:00:00.000Z"
+    },
+    {
+      "obj_ref": "malware--uuid2",
+      "obj_modified": "latest"
+    }
+  ]
 }
 ```
+
+Every entry must include an object ID and either an ISO `obj_modified`
+timestamp or the request-time shorthand `"latest"`. The server resolves
+`"latest"` to the object's actual latest `stix.modified` value before
+persisting the new standard-track snapshot. Snapshot members never store a
+moving reference.
 
 ### Release Latest Snapshot
 
@@ -650,10 +665,11 @@ DELETE /api/release-tracks/:id/snapshots/:modified
 
 Adds STIX objects as candidates to the latest draft snapshot. Each object is identified by its `stix.id` field, as well as (optionally) its `stix.modified` field. If `stix.modified` is omitted, the latest permutation of the relevant STIX object will be added. The candidacy reference will follow the latest version of the object until the moment the draft is converted to a release, at which point the reference will become locked to the specific permutation of the object that was considered "latest" at the time the release occurred.
 
-If the resolved revision (the same `stix.id` and `stix.modified`) is already
-present in any tier of the snapshot, the add is idempotently skipped. A newer
-or older revision of an object already in `members` can still be added as a
-candidate.
+If the same selector is already present in any tier of the snapshot, the add
+is idempotently skipped. Thus, a second omitted/`"latest"` request does not
+create another dynamic entry. An exact revision and a dynamic selector are
+different workflow references, and an older or newer exact revision of an
+object already in `members` can still be added as a candidate.
 
 ```
 POST /api/release-tracks/:id/candidates
@@ -706,7 +722,7 @@ GET /api/release-tracks/:id/candidates
     },
     {
       "object_ref": "malware--fff",
-      "object_modified": "2024-01-13T14:00:00Z",
+      "object_modified": "latest",
       "object_name": "New Malware ABC",
       "object_type": "malware",
       "status": "awaiting-review",
@@ -737,9 +753,10 @@ Bidirectional status transition is supported here. For example, objects can be t
 
 Notably, changes to an object's status (e.g., "work-in-progress" → "awaiting-review") will automatically update its release track membership standing (e.g., candidate, staged, member). In the most restrictive (typical) scenario, a candidate object transitioning to the "reviewed" state will trigger a new draft snapshot creation wherein the object is now staged.
 
-Tier transitions preserve the exact-revision uniqueness invariant. If legacy
-state already contains the same revision in `members` and `candidates`, the
-transition repairs the duplicate and retains the `members` occurrence.
+Tier transitions preserve selector uniqueness. If legacy state already
+contains the same exact revision in `members` and `candidates`, the transition
+repairs the duplicate and retains the `members` occurrence. A dynamic
+candidate remains `"latest"` if it is promoted to staged.
 
 ```
 POST /api/release-tracks/:id/candidates/review
@@ -774,7 +791,7 @@ GET /api/release-tracks/:id/staged
   "staged": [
     {
       "object_ref": "attack-pattern--ddd",
-      "object_modified": "2024-01-14T10:00:00Z",
+      "object_modified": "latest",
       "object_name": "Reviewed Technique",
       "object_type": "attack-pattern",
       "status": "reviewed",
@@ -789,9 +806,9 @@ GET /api/release-tracks/:id/staged
 ### Promote Candidate Objects To Staged
 
 Promotion conflict policies apply when `staged` contains a different revision
-of the same object. An exact revision already present in another tier is not a
-conflict; the operation retains a single occurrence, with `members` taking
-precedence over workflow tiers.
+selector for the same object. An identical selector already present in another
+tier is not a conflict; the operation retains a single occurrence, with
+`members` taking precedence over workflow tiers.
 
 ```
 POST /api/release-tracks/:id/candidates/promote
@@ -821,9 +838,10 @@ POST /api/release-tracks/:id/candidates/promote
 
 ### Demote Staged Objects To Candidates
 
-Demotion follows the same rule: different revisions are handled by
-`promotion_conflicts.into_candidates`, while an exact revision is retained in
-only one tier.
+Demotion follows the same rule: different selectors are handled by
+`promotion_conflicts.into_candidates`, while an identical selector is retained
+in only one tier. The request's `modified` value may be an exact timestamp or
+`"latest"`.
 
 ```
 POST /api/release-tracks/:id/staged/demote
@@ -916,12 +934,18 @@ track-ID-keyed `version_history[].component_versions` map that a successful
 release would persist.
 
 For a standard track, `before` is the selected draft before staged members are
-promoted and `after` is the would-be tagged result. For a virtual track, the
-contents were already resolved and frozen when the draft was explicitly
-created. A virtual draft without `composition_resolution` returns
-`409 Conflict` instead of previewing stale or empty members. A materialized
-draft's release summary compares that persisted draft with the most recent
-tagged snapshot that precedes it:
+promoted and `after` is the would-be tagged result. Before either summary or
+rendered preview output is produced, every staged `"latest"` selector is
+resolved to the object revision that is latest for that request. The would-be
+members in `format=workbench` and `format=bundle` therefore contain exact
+timestamps. A later commit performs its own resolution and may select a newer
+revision if the object changed after the preview.
+
+For a virtual track, the contents were already resolved and frozen when the
+draft was explicitly created. A virtual draft without
+`composition_resolution` returns `409 Conflict` instead of previewing stale or
+empty members. A materialized draft's release summary compares that persisted
+draft with the most recent tagged snapshot that precedes it:
 
 ```json
 {
@@ -957,7 +981,9 @@ preview and release never re-resolve virtual composition.
 
 ### Update Candidate Version Pin
 
-Updates which version of an object a candidate reference is pinned to. This allows upgrading a candidate to track a newer version of an object, or downgrading to a previous version.
+Updates the revision selector of a candidate reference. Either value may be an
+exact ISO timestamp or `"latest"`, allowing a candidate to switch between a
+specific revision and a moving reference.
 
 ```
 POST /api/release-tracks/:id/candidates/:objectRef/update-version
@@ -967,7 +993,7 @@ POST /api/release-tracks/:id/candidates/:objectRef/update-version
 
 ```json
 {
-  "old_modified": "2024-01-15T10:00:00Z",
+  "old_modified": "latest",
   "new_modified": "2024-01-20T14:00:00Z"
 }
 ```
@@ -982,7 +1008,9 @@ POST /api/release-tracks/:id/candidates/:objectRef/update-version
 
 ### List Object Versions in Release Track
 
-Lists all versions of a specific object referenced across all tiers (candidates, staged, members) in the release track.
+Lists all occurrences of a specific object across candidates, staged, and
+members. Candidate and staged occurrences may report `"latest"`; members
+always report an exact timestamp.
 
 ```
 GET /api/release-tracks/:id/objects/:objectRef/versions
@@ -1075,11 +1103,16 @@ Release track not found.
 
 ## Virtual Release Tracks
 
-Virtual release tracks are computed aggregations of other release tracks. Unlike standard tracks, virtual tracks don't directly manage objects through the candidate → staged → released workflow. Instead, they compose content from multiple "component tracks" based on configurable rules.
+Virtual release tracks are computed aggregations of standard release tracks.
+Unlike standard tracks, virtual tracks don't directly manage objects through
+the candidate → staged → released workflow. Instead, they compose content from
+multiple standard component tracks based on configurable rules.
 
 **Key Characteristics:**
 
-- Compute contents from component standard or virtual tracks
+- Compute contents only from standard component tracks; virtual-track nesting
+  is rejected
+- Are purely compositional and cannot own native members
 - Only reference **tagged snapshots** from component tracks (never drafts)
 - Create snapshots **manually or on schedule** (never event-driven)
 - All snapshots start as **drafts** and must be explicitly tagged
@@ -1169,7 +1202,9 @@ keys, including the incorrect singular `filters.domain`, return
 only `version`; and `specific_snapshot` requires only `snapshot`.
 Every component requires a unique, non-negative integer `priority`; lower
 numbers have higher priority. When composition is supplied during creation,
-each referenced track must already exist and must be a standard track.
+each referenced track must already exist and must be a standard track. Virtual
+tracks cannot reference other virtual tracks, and unsupported top-level
+properties such as `native_members` return `400 Bad Request`.
 
 ### Update Virtual Track Composition
 
@@ -1269,6 +1304,24 @@ to tag it. There is no separate virtual snapshot-creation preview: the release
 preview is the authoritative comparison and representation of the persisted
 draft that would be tagged. A non-null `composition_resolution` is the
 readiness marker for those shared release operations.
+
+Each resulting `members` and `quarantine` entry contains an exact
+`(object_ref, object_modified)` pair. Virtual materialization preserves exact
+revisions already frozen in the selected tagged component snapshots. It also
+resolves any unresolved legacy component entry before persistence. The virtual
+snapshot never stores `"latest"` and does not inherit a standard component's
+`track_latest` member-sync behavior.
+
+Shared snapshot retrieval returns these persisted fields directly. There is no
+`resolve` query parameter and no `resolved_content` response property;
+retrieval never recomputes virtual composition. As long as the track does not
+acquire a newer snapshot, `/snapshots/latest` selects the same primary revision
+set, and `/snapshots/:modified` addresses that set explicitly.
+
+This determinism does not extend to the complete `format=bundle` graph.
+Secondary relationships, identities, marking definitions, and other supporting
+objects are resolved during bundle generation and may change independently of
+the primary snapshot members.
 
 `duplicates_found` counts object IDs contributed by more than one component,
 including repeated contributions of the same exact revision.

@@ -35,23 +35,25 @@ An object referenced by multiple tracks carries one entry per track.
 
 ## Semantics
 
-- **Revision-pinned.** Release-track tiers pin specific object revisions
-  (`object_ref` + `object_modified`). The backref lives on exactly the pinned
-  revision document. If a track's candidate pin is moved to a newer revision
-  (`POST /:id/candidates/:objectRef/update-version`), the backref moves with
-  it. Different revisions of the same object can carry entries for the same
-  track — e.g. after member sync auto-enrolls a new revision as a candidate,
-  the released revision keeps its `members` entry and the new revision gets a
-  `candidates` entry.
+- **Resolved to a revision.** Member and quarantine tiers pin an exact
+  (`object_ref`, `object_modified`) revision. Candidate/staged tiers may
+  instead store `"latest"`; their backref is attached to the exact revision
+  that currently satisfies that selector. If a candidate selector is changed
+  (`POST /:id/candidates/:objectRef/update-version`), reconciliation moves the
+  backref accordingly. Different revisions of the same object can carry
+  entries for the same track — e.g. after member sync auto-enrolls a dynamic
+  candidate, the released revision keeps its `members` entry and the latest
+  revision gets a `candidates` entry.
 - **Follows new revisions under `track_latest`.** Creating a new revision of
   a tracked object keeps the backref on the object's latest revision: for
-  `members`, the new revision is auto-enrolled as a candidate; for
-  `candidates`/`staged` pins, the pin (and its backref) moves to the new
-  revision per the track's member-sync supplant config. Under the `manual`
-  strategy, pins stay where they are — the old pinned revision keeps the
-  backref, and the new revision (which the track genuinely does not
-  reference) has none; use `?versions=all` to see membership across
-  revisions.
+  `members`, the new revision is auto-enrolled with a dynamic candidate
+  selector; an existing dynamic `candidates`/`staged` selector keeps its
+  literal `"latest"` value while reconciliation moves its backref. An
+  explicitly timestamp-pinned workflow entry remains fixed unless member-sync
+  policy replaces it. Under the `manual` strategy, an exact pin stays where it
+  is, while an explicitly chosen `"latest"` selector still follows the newest
+  revision because that behavior is inherent in the selector; use
+  `?versions=all` to see membership across revisions.
 - **Reflects the latest snapshot.** Backrefs mirror the track's *current*
   (most recent) snapshot. Deleting the latest snapshot reverts backrefs to the
   previous snapshot's membership; deleting a track removes all of its entries.

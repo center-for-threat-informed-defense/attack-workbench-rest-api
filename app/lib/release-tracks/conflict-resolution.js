@@ -16,6 +16,7 @@
 
 const { ReleaseConflictError } = require('../../exceptions');
 const { sameRevision } = require('./tier-revision-invariant');
+const revisionReference = require('./revision-reference');
 
 /**
  * Merge incoming entries into an existing tier, applying a conflict policy.
@@ -60,9 +61,9 @@ exports.applyConflictPolicy = function applyConflictPolicy(existingTier, incomin
         break;
 
       case 'prefer_latest': {
-        const incomingTime = new Date(incoming.object_modified).getTime();
-        const incumbentTime = new Date(incumbent.object_modified).getTime();
-        if (incomingTime > incumbentTime) {
+        if (
+          revisionReference.compareModified(incoming.object_modified, incumbent.object_modified) > 0
+        ) {
           merged[conflictIdx] = incoming;
         } else {
           rejected.push(incoming);

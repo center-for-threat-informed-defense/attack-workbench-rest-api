@@ -1,5 +1,40 @@
 # Release Track TODOs
 
+## Current implementation slice — Deterministic standard releases
+
+- [x] Preserve `modified: "latest"` and omitted candidate selectors as dynamic
+  references through the candidate and staged tiers; preserve explicit
+  timestamps as exact revision pins.
+- [x] Resolve every dynamic staged reference to the actual latest
+  `stix.modified` timestamp during standard release planning, before conflict
+  detection, preview rendering, or commit.
+- [x] Ensure tagged members contain exact revisions only and that preview and
+  commit use the same release-planning rules.
+- [x] Make dynamic candidate/staged references safe in tier comparison,
+  Workbench enrichment, bundle rendering, back-reference reconciliation, and
+  member-sync paths.
+- [x] Add regression coverage for dynamic and explicit candidate promotion,
+  release-time resolution after a newer revision is created, historical
+  release targeting, conflict handling, and member immutability.
+- [x] Update OpenAPI, user/developer documentation, frontend guidance,
+  `internalattack`, and Bruno as required by the corrected contract.
+- [x] Run focused tests, lint, OpenAPI validation, and the complete `npm test`
+  suite.
+- [x] Apply logic review, inspect the final diff, and propose conventional
+  commit messages.
+
+Verification result (2026-07-30):
+
+- The combined release, back-reference, change-capture, bundle,
+  tier-invariant, and virtual-determinism regression group passes (81); the
+  strengthened release-planning spec passes (19).
+- OpenAPI validation passes (2), backend lint passes, and the required clean
+  full suite passes with routine logs suppressed (OpenAPI 2, config 21, API
+  945, middleware 24).
+- The focused `internalattack` release-track suite passes (30), its complete
+  suite passes (247), and changed-file Ruff checks pass.
+- Relevant REST API, `internalattack`, and Bruno diffs pass whitespace checks.
+
 ## Virtual release tracks
 
 This section records the 2026-07-29 documentation-to-implementation audit of
@@ -119,18 +154,135 @@ Verification result (2026-07-29):
 
 ### P2 — Contract decisions
 
-- [ ] Decide whether virtual tracks can compose virtual tracks. The
-  implementation currently rejects nesting while portions of the
-  documentation say standard or virtual components are supported.
-- [ ] Decide whether to implement the documented native-members/hybrid model.
-  Prefer a dedicated standard component track unless a demonstrated use case
-  requires a second membership authority inside virtual tracks.
-- [ ] Decide whether to implement `resolve=true` and `resolved_content`.
-  Remove these claims from documentation if eager materialization remains the
-  only supported model.
-- [ ] Implement caching and component-release notifications only if measured
-  scale or an approved product workflow requires them; otherwise describe them
-  as future considerations rather than current capabilities.
+- [x] Virtual tracks cannot compose virtual tracks. Components must be
+  standard tracks; revisit nesting only if a concrete future use case requires
+  it.
+- [x] Do not implement the documented native-members/hybrid model. Virtual
+  tracks are purely compositional; content that is not already represented
+  belongs in a dedicated standard component track.
+- [x] Do not implement `resolve=true` or `resolved_content`. Virtual
+  composition is resolved eagerly into exact object revisions when a draft is
+  materialized; retrieval must never re-resolve a persisted snapshot.
+- [x] Do not implement caching or component-release notifications without
+  measured scale or an approved operator workflow. Persisted snapshots already
+  avoid composition recomputation, and no notification recipient, channel, or
+  expected action has been defined.
+
+### Current implementation slice — Deterministic virtual membership
+
+- [x] Resolve the `latest` request shorthand to the actual latest
+  `stix.modified` value before standard-track contents are persisted.
+- [x] Defensively lock any unresolved component member to an exact revision
+  during virtual materialization, while preserving exact revisions already
+  frozen into tagged component snapshots.
+- [x] Add regression coverage proving that component `track_latest` behavior
+  cannot move a materialized virtual member and repeated snapshot retrieval
+  returns the same exact revision set.
+- [x] Remove `resolve=true` and `resolved_content` from the documented
+  retrieval contract.
+- [x] Clearly document that persisted primary member revisions are
+  deterministic while bundle-time secondary-object and relationship
+  expansion is not.
+- [x] Update OpenAPI, frontend guidance, and Bruno where the clarified
+  contract affects consumers.
+- [x] Run focused tests, lint, OpenAPI validation, and the complete `npm test`
+  suite.
+- [x] Apply logic review, inspect the final diff, and propose conventional
+  commit messages.
+
+Verification result (2026-07-29):
+
+- The dedicated virtual-determinism spec passes (2), and the combined
+  determinism, release-track lifecycle, and virtual-domain regression group
+  passes (4).
+- OpenAPI validation passes (2), backend lint passes, and the complete
+  `npm test` suite passes (OpenAPI 2, config 21, API 941, middleware 24).
+- Logic review result: `ROBUST`. Request-time `latest` resolution, immutable
+  tagged component pins, legacy unresolved-member locking, invalid-date
+  rejection, and repeated-reference resolution were covered without finding a
+  remaining correctness defect.
+- Proposed commits:
+
+  ```text
+  fix(release-tracks): enforce pure virtual composition
+
+  Require virtual components to be standard tracks and reject unsupported
+  native-member input across the API contract and documentation.
+  ```
+
+  ```text
+  fix(release-tracks): freeze virtual member revisions
+
+  Resolve latest member shorthand before persistence, lock virtual composition
+  to exact revisions, and document the bundle graph consistency boundary.
+  ```
+
+  ```text
+  docs(release-tracks): clarify snapshot determinism
+
+  Document exact virtual member pins and the bundle-time secondary-content
+  consistency boundary in the Bruno collection.
+  ```
+
+### Future architecture — Deterministic bundle graphs
+
+- [ ] Design version-controlled STIX Relationship Objects whose source and
+  target references identify exact `(object_id, object_modified)` revisions
+  rather than an entire STIX object provenance chain.
+- [ ] Evaluate cloning every affected SRO when a new SDO revision is created,
+  including atomicity, fan-out, concurrency, migration, and rollback behavior.
+- [ ] Measure the resulting database-storage amplification and query/index
+  costs before approving implementation.
+- [ ] Define and persist an export manifest that pins every secondary object,
+  supporting object, and relationship revision required to reproduce a bundle.
+- [ ] Until that architecture is approved and implemented, preserve and
+  prominently document the accepted constraint that `format=bundle` output is
+  not graph- or byte-level deterministic.
+
+### Current implementation slice — Pure standard-track composition
+
+- [x] Make standard component tracks a positive service-layer requirement,
+  preserving rejection during both virtual-track creation and composition
+  replacement.
+- [x] Reject unsupported top-level creation properties such as
+  `native_members` instead of silently stripping them.
+- [x] Add regression coverage for virtual-track nesting on both creation and
+  composition update, and for attempted native-member creation.
+- [x] Remove nesting and hybrid/native-member claims from OpenAPI, user and
+  developer documentation, frontend guidance, and Bruno.
+- [x] Run the focused virtual-composition spec, lint, and complete `npm test`
+  suite.
+- [x] Review the final diff and propose conventional commit messages.
+
+Verification result (2026-07-29):
+
+- The focused virtual-composition validation spec passes (6), OpenAPI
+  validation passes (2), and backend lint passes.
+- The first complete run encountered six unrelated roaming failures after
+  910 API tests passed. All affected specs passed in isolation.
+- The required clean `npm test` rerun passes in full, including OpenAPI,
+  configuration, API, and middleware suites.
+- Architecture review result: the positive standard-track allowlist and strict
+  creation schema keep the contract explicit without adding a parallel
+  composition path or new abstraction.
+- Proposed REST API commit:
+
+  ```text
+  fix(release-tracks): enforce pure virtual composition
+
+  Require every virtual component to be a standard track during creation and
+  composition updates. Reject unsupported native-member input and align
+  OpenAPI, documentation, frontend guidance, and regression coverage.
+  ```
+
+- Proposed companion Bruno commit:
+
+  ```text
+  docs(release-tracks): clarify pure virtual composition
+
+  Document standard-only components, rejected virtual nesting, and the absence
+  of native virtual members.
+  ```
 
 ### Documentation corrections
 

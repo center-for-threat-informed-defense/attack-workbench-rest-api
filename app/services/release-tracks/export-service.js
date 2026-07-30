@@ -24,6 +24,7 @@ const linkById = require('../../lib/linkById');
 const EventBus = require('../../lib/event-bus');
 const Events = require('../../lib/event-constants');
 const { selectRelationshipsForBundle } = require('../../lib/stix-bundle-relationships');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 const {
   bundleTransformSchema,
   workbenchTransformSchema,
@@ -83,10 +84,19 @@ function getRepositoryMap() {
  */
 exports.hydrateMembers = async function hydrateMembers(entries) {
   if (!entries || entries.length === 0) return [];
+  const resolvedEntries = await revisionReference.resolveEntries(entries);
+  const uniqueResolvedEntries = [];
+  const seenResolvedEntries = new Set();
+  for (const entry of resolvedEntries) {
+    const key = `${entry.object_ref}::` + revisionReference.modifiedKey(entry.object_modified);
+    if (seenResolvedEntries.has(key)) continue;
+    seenResolvedEntries.add(key);
+    uniqueResolvedEntries.push(entry);
+  }
 
   // Group entries by STIX type prefix
   const byType = {};
-  for (const entry of entries) {
+  for (const entry of uniqueResolvedEntries) {
     const type = entry.object_ref.split('--')[0];
     if (!byType[type]) byType[type] = [];
     byType[type].push(entry);
@@ -157,7 +167,7 @@ function collectBundleEntries(snapshot, options) {
   const seen = new Set();
   const deduped = [];
   for (const entry of entries) {
-    const key = `${entry.object_ref}::${new Date(entry.object_modified).getTime()}`;
+    const key = `${entry.object_ref}::` + revisionReference.modifiedKey(entry.object_modified);
     if (seen.has(key)) continue;
     seen.add(key);
     deduped.push(entry);

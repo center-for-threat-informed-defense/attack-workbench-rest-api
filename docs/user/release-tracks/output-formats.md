@@ -42,6 +42,10 @@ shape for snapshot retrieval endpoints and is intended for the Workbench fronten
 **Characteristics:**
 - Preserves the release-track snapshot structure
 - Includes `members`, `staged`, `candidates`, and `quarantine` tier arrays when present
+- Member and quarantine `object_modified` values are exact timestamps.
+  Standard candidate and staged entries may instead contain `"latest"`; the
+  response enriches them from the currently latest object revision without
+  replacing the stored selector.
 - Adds UI-friendly object details to tier entries
 - Suitable for Workbench UI rendering and release-track management workflows
 
@@ -93,6 +97,9 @@ Standard STIX bundle format:
 - Self-contained: identities and marking definitions referenced by the
   exported objects are included automatically
 - `LinkById` tags in descriptions are converted to markdown citations
+- If a draft export explicitly includes candidate or staged tiers, dynamic
+  `"latest"` selectors are resolved for that export request. Tagged member
+  contents remain exact.
 - Notes are never included (notes are Workbench-native objects, not STIX objects)
 - Suitable for external publication
 

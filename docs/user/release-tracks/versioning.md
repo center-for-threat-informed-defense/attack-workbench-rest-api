@@ -75,6 +75,14 @@ This is analogous to Git's tagging system:
 - Git commits = release track snapshots (identified by `modified` key)
 - Git tags = tagged releases (identified by `version` key)
 
+For a standard track, release planning also freezes workflow selectors.
+Candidate entries are not released. Staged entries with an explicit timestamp
+retain that exact revision; staged entries whose `object_modified` value is
+`"latest"` are resolved to the actual latest `stix.modified` timestamp when
+the preview or commit request is handled. Only exact revisions are promoted
+into `members`, so the tagged release never contains a dynamic member
+reference.
+
 ### In-Place Tagging Strategy
 
 When you release a snapshot:
@@ -109,9 +117,10 @@ Releases the most recent snapshot (highest `modified`) as a tagged release.
 Use `"version": "2.0"` instead of `increment` for an explicit version.
 The selectors are mutually exclusive: supplying both returns `400 Bad
 Request`, and the server never chooses one over the other. Omitting both
-version selectors defaults to a minor increment. The `latest` selector is
-resolved when the release request is handled. Callers that need to pin the
-operation to one snapshot should use the `:modified` endpoint.
+version selectors defaults to a minor increment. The `latest` path segment
+selects whichever snapshot is latest when the release request is handled.
+Callers that need to pin the operation to one snapshot should use the
+`:modified` endpoint.
 
 **Examples:**
 
