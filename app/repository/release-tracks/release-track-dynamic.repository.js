@@ -167,6 +167,43 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  /**
+   * Find tagged snapshots whose members tier contains an object revision.
+   * Omitting objectModified matches every released revision for the STIX ID.
+   * This query reads the tagged snapshots themselves rather than relying on
+   * denormalized object backrefs or registry release metadata.
+   */
+  async findTaggedSnapshotsContainingRevision(trackId, objectRef, objectModified) {
+    try {
+      const Model = this._getModel(trackId);
+      const memberMatch = { object_ref: objectRef };
+      if (objectModified !== undefined) {
+        memberMatch.object_modified = new Date(objectModified);
+      }
+
+      return await Model.find(
+        {
+          id: trackId,
+          version: { $type: 'string' },
+          members: { $elemMatch: memberMatch },
+        },
+        {
+          id: 1,
+          type: 1,
+          name: 1,
+          modified: 1,
+          version: 1,
+          members: { $elemMatch: memberMatch },
+        },
+      )
+        .sort({ modified: 1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async getAllSnapshots(trackId, options = {}) {
     try {
       const Model = this._getModel(trackId);

@@ -116,6 +116,33 @@ Done when:
 - Tests cover multiple missing references and prove no partial snapshot or
   bundle is rendered.
 
+### [ ] Handle persisted mutations whose membership reconciliation failed
+
+A release-track mutation can persist its snapshot before a downstream object
+backref write fails. The server now returns HTTP `500` instead of reporting
+success and includes:
+
+```ts
+{
+  message: 'Release-track membership protection could not be reconciled';
+  track_id: string;
+  reconciliation_id: string;
+  details?: string;
+}
+```
+
+For a release request, the snapshot may already be tagged. Do not
+automatically retry the POST: refresh snapshot history first, show the
+reconciliation ID, and direct the operator to an administrator if protection
+repair is still pending.
+
+Done when:
+
+- The connector preserves `track_id` and `reconciliation_id` from this `500`.
+- Release and mutation dialogs explain that persistence may have succeeded
+  and do not offer a blind retry.
+- The UI refreshes the relevant track before enabling another action.
+
 ## P0 — Align the Angular connector with the current routes
 
 ### [ ] Use only the explicit snapshot-retrieval endpoints

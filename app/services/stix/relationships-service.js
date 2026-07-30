@@ -96,19 +96,12 @@ class RelationshipsService extends BaseService {
    */
   static async handleReleaseTrackContentsChanged(payload) {
     const backrefReconciler = require('../../lib/release-tracks/backref-reconciler');
-
-    try {
-      await backrefReconciler.reconcile(
-        relationshipsRepository,
-        payload.trackId,
-        payload.snapshot,
-        (objectRef) => objectRef.startsWith('relationship--'),
-      );
-    } catch (error) {
-      logger.error(
-        `RelationshipsService: Error reconciling release track backrefs for ${payload.trackId}: ${error.message}`,
-      );
-    }
+    return backrefReconciler.reconcile(
+      relationshipsRepository,
+      payload.trackId,
+      payload.snapshot,
+      (objectRef) => objectRef.startsWith('relationship--'),
+    );
   }
 
   /**

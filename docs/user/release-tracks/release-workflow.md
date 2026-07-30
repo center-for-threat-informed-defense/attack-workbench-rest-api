@@ -64,6 +64,13 @@ revision that no longer exists, the operation returns HTTP `409` with
 `missing_references` and does not tag the snapshot. This check protects both
 standard and virtual releases from publishing incomplete primary membership.
 
+After tagging, the server reconciles the member protections stored on object
+documents. A successful response means both object collections were updated.
+HTTP `500` with a `reconciliation_id` means the release may already be tagged,
+but one or more protection writes failed. Do not repeat the release request
+without checking the selected snapshot first; an administrator can safely
+replay the idempotent reconciliation using that durable record.
+
 ### STIX Freeze Solution
 
 Version pinning solves the "STIX freeze" problem:

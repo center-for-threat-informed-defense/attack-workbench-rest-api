@@ -713,18 +713,56 @@ class BaseService extends ServiceWithHooks {
    * @param {Object} document - The stored document ({ workspace, stix })
    * @param {string} operation - Verb for the error message ('updated'|'deleted')
    */
-  static assertNotMemberPinned(document, operation) {
-    const memberPins = (document.workspace?.release_tracks || []).filter(
+  static async assertNotMemberPinned(document, operation) {
+    const currentMemberPins = (document.workspace?.release_tracks || []).filter(
       (entry) => entry.tier === 'members',
     );
-    if (memberPins.length > 0) {
+    const taggedMembershipService = require('../release-tracks/tagged-membership-service');
+    const taggedPins = await taggedMembershipService.findPinsForRevision(
+      document.stix.id,
+      document.stix.modified,
+    );
+
+    if (currentMemberPins.length > 0 || taggedPins.length > 0) {
+      const trackIds = [
+        ...new Set([
+          ...currentMemberPins.map((entry) => entry.id),
+          ...taggedPins.map((entry) => entry.track_id),
+        ]),
+      ];
       throw new MemberPinnedRevisionError({
         details:
           `Revision ${document.stix.id} (modified ` +
           `${new Date(document.stix.modified).toISOString()}) is pinned in the members tier of ` +
-          `release track(s) ${memberPins.map((entry) => entry.id).join(', ')} and cannot be ` +
+          `release track(s) ${trackIds.join(', ')} and cannot be ` +
           `${operation} in place. Create a new revision instead (set x_mitre_deprecated on a ` +
           `new revision to retire the object).`,
+        release_tracks: trackIds,
+        tagged_releases: taggedPins,
+      });
+    }
+  }
+
+  static async assertNoMemberPinnedVersions(stixId, currentMemberPinned, operation) {
+    const taggedMembershipService = require('../release-tracks/tagged-membership-service');
+    const taggedPins = await taggedMembershipService.findPinsForObject(stixId);
+    const currentTrackIds = currentMemberPinned.flatMap((document) =>
+      (document.workspace?.release_tracks || [])
+        .filter((entry) => entry.tier === 'members')
+        .map((entry) => entry.id),
+    );
+    const trackIds = [
+      ...new Set([...currentTrackIds, ...taggedPins.map((entry) => entry.track_id)]),
+    ];
+
+    if (trackIds.length > 0) {
+      throw new MemberPinnedRevisionError({
+        details:
+          `Object ${stixId} has revision(s) pinned in the members tier of release track(s) ` +
+          `${trackIds.join(', ')} and cannot be ${operation}. Create a new revision instead ` +
+          `(set x_mitre_deprecated on a new revision to retire the object).`,
+        release_tracks: trackIds,
+        tagged_releases: taggedPins,
       });
     }
   }
@@ -946,7 +984,7 @@ class BaseService extends ServiceWithHooks {
     }
 
     // Members-pinned revisions are released content — immutable in place.
-    BaseService.assertNotMemberPinned(document, 'updated');
+    await BaseService.assertNotMemberPinned(document, 'updated');
 
     // TODO: diff analysis — detect field-level changes vs document
     // TODO: if no changes detected, short-circuit (no-op)
@@ -1069,7 +1107,7 @@ class BaseService extends ServiceWithHooks {
     if (!existing) {
       return null;
     }
-    BaseService.assertNotMemberPinned(existing, 'deleted');
+    await BaseService.assertNotMemberPinned(existing, 'deleted');
 
     const document = await this.repository.findOneAndDelete(stixId, stixModified);
 
@@ -1376,9 +1414,7 @@ class BaseService extends ServiceWithHooks {
 
     // Deleting all versions must not destroy a members-pinned revision
     const memberPinned = await this.repository.retrieveMemberPinnedVersionsLean(stixId);
-    for (const pinnedDocument of memberPinned) {
-      BaseService.assertNotMemberPinned(pinnedDocument, 'deleted');
-    }
+    await BaseService.assertNoMemberPinnedVersions(stixId, memberPinned, 'deleted');
 
     const result = await this.repository.deleteMany(stixId);
     if (result.deletedCount > 0) {

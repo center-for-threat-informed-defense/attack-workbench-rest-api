@@ -62,7 +62,38 @@ Verification result (2026-07-30):
 
 ### Remaining prioritized recommendations
 
-- [ ] P0.3 — Make tagged-content immutability authoritative and durable.
+### P0.3 — Make tagged-content immutability authoritative and durable
+
+- [x] Guard object revision update/delete and delete-all by querying tagged
+  snapshot membership, even when `workspace.release_tracks` is missing or
+  stale.
+- [x] Make release-track backref reconciliation failures propagate to the
+  triggering request so a release is never reported as fully successful when
+  protection writes failed.
+- [x] Persist every reconciliation attempt and its terminal outcome so
+  process crashes and partial listener failures remain operator-visible.
+- [x] Provide an idempotent repair command for failed/pending reconciliation
+  records and a full-scan mode for legacy drift.
+- [x] Add failure-injection, missing-backref, repair, and historical-release
+  regressions; update user/developer/admin documentation.
+- [x] Run focused, lint, OpenAPI, and complete-suite verification.
+
+Verification result (2026-07-30):
+
+- Lint and OpenAPI validation pass.
+- The complete release-track API group passes (146), including
+  failure-injection, repair, and authoritative historical-membership
+  regressions. Scheduler/date/cron integration (15) and middleware (11)
+  focused groups pass.
+- Repeated complete-suite runs execute all 958 API cases and consistently
+  pass the release-track cases. The repository's documented roaming
+  Supertest transport flake still moves among unrelated isolated-pass cases
+  (socket resets, transient status mismatches, or timeouts). Dynamic
+  release-track models are now evicted between dropped test databases and the
+  Mongoose connection is reused, reducing the API run from roughly six
+  minutes to roughly one minute; the remaining unrelated transport flake is
+  tracked separately from this completed integrity change.
+
 - [ ] P0.4 — Correct destructive authorization and add durable audit records.
 - [ ] P0.5 — Complete the Angular contract migration and end-to-end smoke gate.
 - [ ] P0.6 — Finish scheduled-materialization fencing, retry bounds, and

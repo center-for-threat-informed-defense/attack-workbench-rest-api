@@ -234,19 +234,12 @@ class AttackObjectsService extends BaseService {
    */
   static async handleReleaseTrackContentsChanged(payload) {
     const backrefReconciler = require('../../lib/release-tracks/backref-reconciler');
-
-    try {
-      await backrefReconciler.reconcile(
-        attackObjectsRepository,
-        payload.trackId,
-        payload.snapshot,
-        (objectRef) => !objectRef.startsWith('relationship--'),
-      );
-    } catch (error) {
-      logger.error(
-        `AttackObjectsService: Error reconciling release track backrefs for ${payload.trackId}: ${error.message}`,
-      );
-    }
+    return backrefReconciler.reconcile(
+      attackObjectsRepository,
+      payload.trackId,
+      payload.snapshot,
+      (objectRef) => !objectRef.startsWith('relationship--'),
+    );
   }
 
   /**

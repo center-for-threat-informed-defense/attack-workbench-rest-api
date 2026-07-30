@@ -42,6 +42,7 @@ const {
   InvalidVersionError,
   ReleaseConflictError,
   ReleaseContentIntegrityError,
+  ReleaseTrackReconciliationError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
   VirtualSnapshotNotMaterializedError,
@@ -155,7 +156,8 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof TechniquesServiceError ||
     err instanceof TacticsServiceError ||
     err instanceof GenericServiceError ||
-    err instanceof DatabaseError
+    err instanceof DatabaseError ||
+    err instanceof ReleaseTrackReconciliationError
   ) {
     logger.error('Service error: %s', JSON.stringify(buildErrorResponse(err)));
     return res.status(500).send(buildErrorResponse(err));

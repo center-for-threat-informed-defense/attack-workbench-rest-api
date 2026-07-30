@@ -12,6 +12,7 @@ const {
   InvalidObjectRevisionError,
   InvalidPostOperationError,
   ReleaseContentIntegrityError,
+  ReleaseTrackReconciliationError,
 } = require('../../exceptions');
 
 describe('error-handler middleware', function () {
@@ -173,6 +174,30 @@ describe('error-handler middleware', function () {
     expect(err.cause).toBeInstanceOf(Error);
     expect(err.cause.message).toBe('Mongo connection failed');
     expect(Object.keys(err)).not.toContain('cause');
+    expect(next.called).toBe(false);
+  });
+
+  it('should return durable reconciliation identifiers on protection failures', function () {
+    const err = new ReleaseTrackReconciliationError('release-track--track', 'repair-id', {
+      details: 'Run repair.',
+    });
+    const res = {
+      status: sinon.stub().returnsThis(),
+      send: sinon.stub().returnsThis(),
+    };
+    const next = sinon.stub();
+
+    errorHandler.serviceExceptions(err, {}, res, next);
+
+    expect(res.status.calledOnceWithExactly(500)).toBe(true);
+    expect(
+      res.send.calledOnceWithExactly({
+        message: 'Release-track membership protection could not be reconciled',
+        details: 'Run repair.',
+        track_id: 'release-track--track',
+        reconciliation_id: 'repair-id',
+      }),
+    ).toBe(true);
     expect(next.called).toBe(false);
   });
 });

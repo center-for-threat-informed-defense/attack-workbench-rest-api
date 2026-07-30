@@ -17,11 +17,10 @@ const registryRepo = require('../../repository/release-tracks/release-track-regi
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
 const modelFactory = require('../../models/release-tracks/model-factory');
 const logger = require('../../lib/logger');
-const EventBus = require('../../lib/event-bus');
-const EventConstants = require('../../lib/event-constants');
 const versionUtils = require('../../lib/release-tracks/version-utils');
 const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const primaryRevisionService = require('./primary-revision-service');
+const reconciliationService = require('./reconciliation-service');
 const {
   TrackNotFoundError,
   NotFoundError,
@@ -129,7 +128,7 @@ async function syncRegistryCounters(trackId) {
  *   track (or its only snapshot) was deleted
  */
 async function emitContentsChanged(trackId, snapshot) {
-  await EventBus.emit(EventConstants.RELEASE_TRACK_CONTENTS_CHANGED, { trackId, snapshot });
+  await reconciliationService.reconcileContentsChanged(trackId, snapshot);
 }
 exports.emitContentsChanged = emitContentsChanged;
 

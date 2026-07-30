@@ -325,6 +325,16 @@ class ReleaseContentIntegrityError extends CustomError {
   }
 }
 
+class ReleaseTrackReconciliationError extends CustomError {
+  constructor(trackId, reconciliationId, options = {}) {
+    super('Release-track membership protection could not be reconciled', {
+      ...options,
+      track_id: trackId,
+      reconciliation_id: reconciliationId,
+    });
+  }
+}
+
 class TaggedSnapshotDeletionError extends CustomError {
   constructor(version, options) {
     super(`Tagged snapshot version ${version} cannot be deleted`, options);
@@ -422,6 +432,7 @@ module.exports = {
   //** Release track errors */
   ReleaseConflictError,
   ReleaseContentIntegrityError,
+  ReleaseTrackReconciliationError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
   VirtualSnapshotNotMaterializedError,

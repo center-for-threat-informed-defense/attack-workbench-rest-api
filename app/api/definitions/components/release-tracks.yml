@@ -705,3 +705,25 @@ components:
           minItems: 1
           items:
             $ref: '#/components/schemas/object-revision-reference'
+
+    release-track-reconciliation-error:
+      type: object
+      required:
+        - message
+        - track_id
+        - reconciliation_id
+      properties:
+        message:
+          type: string
+          enum:
+            - 'Release-track membership protection could not be reconciled'
+        details:
+          type: string
+          description: 'Operator guidance; the track mutation may already be persisted'
+        track_id:
+          type: string
+          description: 'Release track whose object backrefs require repair'
+        reconciliation_id:
+          type: string
+          format: uuid
+          description: 'Durable reconciliation record to inspect or repair'

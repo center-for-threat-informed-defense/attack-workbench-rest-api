@@ -419,6 +419,12 @@ paths:
           description: 'Invalid release request'
         '409':
           description: 'Already released, conflicting snapshot, or missing persisted primary revisions'
+        '500':
+          description: 'The release may be tagged, but durable membership-protection reconciliation failed'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/release-track-reconciliation-error'
 
   /api/release-tracks/{id}/snapshots/latest/release/preview:
     get:
@@ -1343,6 +1349,12 @@ paths:
           description: 'Invalid release request'
         '409':
           description: 'Already released, conflicting snapshot, or missing persisted primary revisions'
+        '500':
+          description: 'The release may be tagged, but durable membership-protection reconciliation failed'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/release-track-reconciliation-error'
 
   /api/release-tracks/{id}/snapshots/{modified}/release/preview:
     get:
