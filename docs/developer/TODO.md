@@ -1,5 +1,14 @@
 # Release Track TODOs
 
+## Bootstrap hotfix — ATT&CK-branded track names
+
+- [x] Permit ampersands in release-track names at the request and persistence
+      validation boundaries.
+- [x] Add an API regression using the production bootstrap name
+      `Enterprise ATT&CK`.
+- [x] Align OpenAPI and developer naming documentation with the accepted
+      contract.
+
 ## Production-readiness branch — `fix/release-tracks-production-readiness`
 
 This branch implements the prioritized findings in

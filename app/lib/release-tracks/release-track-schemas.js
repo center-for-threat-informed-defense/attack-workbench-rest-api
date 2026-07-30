@@ -69,8 +69,8 @@ const releaseTrackIdSchema = createCustomStixIdValidator('release-track');
 const trackNameSchema = z
   .string()
   .min(1, { message: 'Release track name must not be empty' })
-  .regex(/^[a-zA-Z0-9 ]+$/, {
-    message: 'Release track name may only contain alphanumeric characters and spaces',
+  .regex(/^[a-zA-Z0-9 &]+$/, {
+    message: 'Release track name may only contain alphanumeric characters, spaces, and ampersands',
   });
 
 // -----------------------------------------------------------------------------

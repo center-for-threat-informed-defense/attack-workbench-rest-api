@@ -235,6 +235,26 @@ describe('Release Tracks API', function () {
       .expect(501);
   });
 
+  it('accepts ATT&CK branding in release-track names', async function () {
+    const response = await request(app)
+      .post('/api/release-tracks/new')
+      .send({
+        name: 'Enterprise ATT&CK',
+        description: 'Aggregate Enterprise ATT&CK release track.',
+        type: 'virtual',
+        snapshot_schedule: { mode: 'manual' },
+      })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201)
+      .expect('Content-Type', /json/);
+
+    expect(response.body).toMatchObject({
+      name: 'Enterprise ATT&CK',
+      type: 'virtual',
+    });
+  });
+
   after(async function () {
     await database.closeConnection();
   });

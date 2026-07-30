@@ -10,9 +10,10 @@ This document tracks new database schemas, interfaces, etc.; as well as changes 
 
 **Release Track Names:**
 
-- Must contain only alphanumeric characters and spaces: `[a-zA-Z0-9 ]`
-- No special characters allowed (no hyphens, underscores, or other punctuation)
-- Examples: `Enterprise`, `Groups Monthly`, `Techniques Quarterly`
+- May contain alphanumeric characters, spaces, and ampersands:
+  `[a-zA-Z0-9 &]`
+- Other punctuation remains unsupported, including hyphens and underscores.
+- Examples: `Enterprise`, `Groups Monthly`, `Enterprise ATT&CK`
 
 **Release Track IDs:**
 MongoDB Collections and release track IDs follow a simple naming convention:

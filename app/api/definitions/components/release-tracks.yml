@@ -31,7 +31,8 @@ components:
             with this snapshot. Clients should treat this value as opaque.
         name:
           type: string
-          description: 'Human-readable track name'
+          pattern: '^[a-zA-Z0-9 &]+$'
+          description: 'Human-readable track name containing alphanumeric characters, spaces, and ampersands'
           example: 'Enterprise ATT&CK'
         description:
           type: string
@@ -523,7 +524,8 @@ components:
           description: 'Track type'
         name:
           type: string
-          description: 'Track name'
+          pattern: '^[a-zA-Z0-9 &]+$'
+          description: 'Track name containing alphanumeric characters, spaces, and ampersands'
         description:
           type: string
           description: 'Track description'

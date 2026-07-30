@@ -34,7 +34,8 @@ const validateTrackId = {
 const validateTrackName = {
   validator: (v) => trackNameSchema.safeParse(v).success,
   message: (props) =>
-    `"${props.value}" is not a valid release track name (only alphanumeric characters and spaces allowed)`,
+    `"${props.value}" is not a valid release track name ` +
+    '(only alphanumeric characters, spaces, and ampersands allowed)',
 };
 
 const validateStixId = {
