@@ -130,6 +130,10 @@ sync strategy determines what workflow action (if any) to take:
 >   `BaseService` rejects `PUT`/`DELETE` of a members-pinned revision with
 >   409 (`MemberPinnedRevisionError`) — released content is immutable in
 >   place.
+> - A candidate or staged revision remains editable unless it is also a
+>   secondary/supporting dependency frozen in a snapshot graph manifest. In
+>   that case graph integrity takes precedence and the operation returns 409
+>   (`SnapshotGraphPinnedRevisionError`).
 
 ### Relationship to Existing Features
 

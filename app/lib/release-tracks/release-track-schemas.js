@@ -398,18 +398,6 @@ const updateMetadataBodySchema = z.object({
   object_marking_refs: z.array(stixIdentifierSchema).optional(),
 });
 
-/** POST /release-tracks/:id/contents */
-const updateContentsBodySchema = z.object({
-  x_mitre_contents: z
-    .array(
-      z.object({
-        obj_ref: stixIdentifierSchema,
-        obj_modified: z.iso.datetime().or(z.literal('latest')),
-      }),
-    )
-    .min(1),
-});
-
 const releaseVersionSelectionSchema = z
   .object({
     increment: releaseIncrementSchema.optional(),
@@ -567,7 +555,6 @@ module.exports = {
   createTrackBodySchema,
   createFromBundleBodySchema,
   updateMetadataBodySchema,
-  updateContentsBodySchema,
   releaseBodySchema,
   cloneBodySchema,
   addCandidatesBodySchema,

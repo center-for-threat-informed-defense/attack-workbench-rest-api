@@ -18,9 +18,9 @@ tracks follow that precedent but maintain the pointers event-driven.
 
 Membership changes through many routes: add/remove candidates, review,
 manual and auto promotion, demotion, release (staged → members), member sync,
-`updateContents`, track cloning, bundle import, snapshot deletion, and track
-deletion. Patching each route with a bespoke incremental backref update would
-be error-prone and would drift.
+track cloning, bundle import, latest-draft deletion, and track deletion.
+Patching each route with a bespoke incremental backref update would be
+error-prone and would drift.
 
 Instead, every route already funnels through a small set of persistence choke
 points, and each choke point triggers a full **snapshot-driven reconciliation**:
@@ -34,7 +34,7 @@ self-healing — a missed or failed pass is corrected by the next one.
 ```
 snapshot-service.cloneSnapshot        ┐  (every tier/config/metadata mutation,
 snapshot-service._cloneToNewTrack     │   member sync, auto-promotion,
-snapshot-service.deleteSnapshot       │   bundle import, updateContents, ...)
+snapshot-service.deleteSnapshot       │   bundle import, ...)
 snapshot-service.deleteTrack          │
 versioning-service.releaseLatest/releaseByModified            ┘  (staged → members via tagSnapshotInPlace)
         │

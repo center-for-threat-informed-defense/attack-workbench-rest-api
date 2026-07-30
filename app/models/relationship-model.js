@@ -23,10 +23,22 @@ const relationshipProperties = {
   x_mitre_log_source_channel: String,
 };
 
+const exactObjectRevision = {
+  object_ref: { type: String, required: true },
+  object_modified: { type: Date, required: true },
+};
+const exactObjectRevisionSchema = new mongoose.Schema(exactObjectRevision, {
+  _id: false,
+});
+
 // Create the definition
 const relationshipDefinition = {
   workspace: {
     ...workspaceDefinitions.common,
+    relationship_endpoints: {
+      source: { type: exactObjectRevisionSchema, required: true },
+      target: { type: exactObjectRevisionSchema, required: true },
+    },
   },
   stix: {
     ...stixCoreDefinitions.commonRequiredSDO,
@@ -43,6 +55,14 @@ relationshipSchema.index({ 'stix.id': 1, 'stix.modified': -1 }, { unique: true }
 // Multikey index supporting reverse lookups from release tracks
 // (release-track backref reconciliation queries by workspace.release_tracks.id)
 relationshipSchema.index({ 'workspace.release_tracks.id': 1 }, { sparse: true });
+relationshipSchema.index({
+  'workspace.relationship_endpoints.source.object_ref': 1,
+  'workspace.relationship_endpoints.source.object_modified': 1,
+});
+relationshipSchema.index({
+  'workspace.relationship_endpoints.target.object_ref': 1,
+  'workspace.relationship_endpoints.target.object_modified': 1,
+});
 
 // Create the model
 const RelationshipModel = mongoose.model(ModelName.Relationship, relationshipSchema);

@@ -47,7 +47,6 @@ POST   /api/release-tracks/new
 POST   /api/release-tracks/new-from-bundle
 POST   /api/release-tracks/import
 POST   /api/release-tracks/:id/meta
-POST   /api/release-tracks/:id/contents?confirm_track_id=:id
 POST   /api/release-tracks/:id/snapshots/latest/release
 POST   /api/release-tracks/:id/clone
 DELETE /api/release-tracks/:id?confirm_track_id=:id
@@ -59,7 +58,6 @@ DELETE /api/release-tracks/:id?confirm_track_id=:id
 GET    /api/release-tracks/:id/snapshots
 GET    /api/release-tracks/:id/snapshots/latest
 GET    /api/release-tracks/:id/snapshots/:modified
-POST   /api/release-tracks/:id/snapshots/:modified/meta
 POST   /api/release-tracks/:id/snapshots/:modified/release
 POST   /api/release-tracks/:id/snapshots/:modified/clone
 DELETE /api/release-tracks/:id/snapshots/:modified
@@ -462,46 +460,18 @@ Creates new snapshot with updated metadata.
 }
 ```
 
-### Update Contents
+### Snapshot content is append-only
 
-```
-POST /api/release-tracks/:id/contents
-```
+There is no endpoint for replacing a persisted snapshot's `members` tier.
+Standard tracks add or revise content through candidates, promote those
+objects to staged, and freeze them into members during release. Virtual tracks
+derive members only when a composition is materialized.
 
-Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.** The main workflow for enrolling new member objects into `x_mitre_contents` is through the candidate-staging promotion cycle described in [versioning.md](./versioning.md).
-
-This operation requires the administrator role. The
-`confirm_track_id` query parameter must exactly equal the `:id` path
-parameter. Every accepted attempt is recorded in the durable release-track
-destructive audit trail.
-
-This operation is available only for standard tracks. Virtual membership is
-computed from component releases and can only be updated by materializing a
-virtual draft with `POST /api/release-tracks/:id/virtual/snapshots/create`.
-Using either contents endpoint with a virtual track returns `400 Bad Request`.
-
-**Request Body:**
-
-```json
-{
-  "x_mitre_contents": [
-    {
-      "obj_ref": "attack-pattern--uuid1",
-      "obj_modified": "2024-02-01T10:00:00.000Z"
-    },
-    {
-      "obj_ref": "malware--uuid2",
-      "obj_modified": "latest"
-    }
-  ]
-}
-```
-
-Every entry must include an object ID and either an ISO `obj_modified`
-timestamp or the request-time shorthand `"latest"`. The server resolves
-`"latest"` to the object's actual latest `stix.modified` value before
-persisting the new standard-track snapshot. Snapshot members never store a
-moving reference.
+If an operator makes an unwanted draft, delete it while it is still the latest
+untagged snapshot or continue with a newer corrective draft. Historical drafts
+and tagged releases remain part of the immutable track history. Bootstrapping a
+new track from a bundle is the supported way to start with an existing member
+set.
 
 ### Release Latest Snapshot
 
@@ -621,30 +591,6 @@ GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle
 GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle&include=staged
 ```
 
-### Update Metadata (Specific Snapshot)
-
-```
-POST /api/release-tracks/:id/snapshots/:modified/meta
-```
-
-Creates new snapshot with updated metadata.
-
-**Request Body:** Same as [Update Metadata](#update-metadata) for latest snapshot.
-
-### Update Contents (Specific Snapshot)
-
-```
-POST /api/release-tracks/:id/snapshots/:modified/contents?confirm_track_id=:id
-```
-
-Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.**
-
-**Request Body:** Same as [Update Contents](#update-contents) for latest snapshot.
-
-Like the latest form, this operation is restricted to standard tracks,
-requires the administrator role and exact track-ID confirmation, and creates
-a durable audit event.
-
 ### Release/Tag Specific Snapshot
 
 Converts a specific draft snapshot to a tagged release. Tags snapshot in-place (does not create new snapshot).
@@ -665,11 +611,14 @@ POST /api/release-tracks/:id/snapshots/:modified/clone
 
 ### Delete Specific Snapshot
 
-**TODO**: further consideration needs to be given here. We need to be careful to avoid breaking contextual continuity between snapshots.
-
 ```
 DELETE /api/release-tracks/:id/snapshots/:modified
 ```
+
+Deletes the selected snapshot only when it is both the latest snapshot and an
+untagged draft. Deletion reverts the track to the immediately preceding
+snapshot. Tagged releases and older drafts return `409 Conflict`; they cannot
+be removed or rewritten.
 
 ---
 
@@ -1332,10 +1281,16 @@ retrieval never recomputes virtual composition. As long as the track does not
 acquire a newer snapshot, `/snapshots/latest` selects the same primary revision
 set, and `/snapshots/:modified` addresses that set explicitly.
 
-This determinism does not extend to the complete `format=bundle` graph.
-Secondary relationships, identities, marking definitions, and other supporting
-objects are resolved during bundle generation and may change independently of
-the primary snapshot members.
+The server freezes the bounded `format=bundle` graph when it persists the
+snapshot. Repeated exports reuse exact relationship, secondary, supporting,
+and LinkById dependency revisions rather than discovering the current graph.
+Hard deletes and unsafe in-place edits to those protected revisions return
+`409 Conflict`.
+
+A standard draft remains intentionally dynamic only when the request includes
+a candidate or staged entry stored with `object_modified: "latest"`. That
+selector is resolved at request time until release. Tagged standard members
+and all materialized virtual members are exact.
 
 `duplicates_found` counts object IDs contributed by more than one component,
 including repeated contributions of the same exact revision.

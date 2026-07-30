@@ -23,6 +23,12 @@ components:
           nullable: true
           description: 'Semantic version (e.g., "1.0", "2.1") if tagged, null for draft snapshots'
           example: '1.0'
+        graph_manifest_id:
+          type: string
+          readOnly: true
+          description: |
+            Server-controlled identifier for the frozen bundle graph associated
+            with this snapshot. Clients should treat this value as opaque.
         name:
           type: string
           description: 'Human-readable track name'

@@ -18,23 +18,15 @@
 // =============================================================================
 
 const config = require('../../config/config');
-const types = require('../../lib/types');
 const logger = require('../../lib/logger');
 const linkById = require('../../lib/linkById');
-const EventBus = require('../../lib/event-bus');
-const Events = require('../../lib/event-constants');
-const { selectRelationshipsForBundle } = require('../../lib/stix-bundle-relationships');
-const revisionReference = require('../../lib/release-tracks/revision-reference');
 const primaryRevisionService = require('./primary-revision-service');
+const graphManifestService = require('./graph-manifest-service');
 const {
   bundleTransformSchema,
   workbenchTransformSchema,
   filesystemStoreTransformSchema,
 } = require('../../lib/release-tracks/export-schemas');
-
-function getRepositoryMap() {
-  return primaryRevisionService.getRepositoryMap();
-}
 
 // =============================================================================
 // Hydration
@@ -58,142 +50,31 @@ exports.hydrateMembers = async function hydrateMembers(entries) {
 // =============================================================================
 
 /**
- * Select the tier entries that belong in a bundle export.
- *
- * Members are always included. Staged and candidate entries are included only
- * when named in `include`. When `state` is provided it further narrows the
- * staged/candidate entries to those whose workflow status matches — except
- * entries marked 'reviewed', which are always included irrespective of
- * `state` (reviewed content is release-ready by definition, mirroring how all
- * members are inherently reviewed).
- *
- * @param {Object} snapshot - The raw snapshot document
- * @param {Object} options - { include?: Array<'staged'|'candidates'>, state?: Array<string> }
- * @returns {Array<{object_ref: string, object_modified: string|Date}>} Deduplicated entries
- */
-function collectBundleEntries(snapshot, options) {
-  const include = options.include || [];
-  const state = options.state;
-
-  const filterByState = (entries) => {
-    if (!state) return entries;
-    return entries.filter(
-      (entry) => entry.object_status === 'reviewed' || state.includes(entry.object_status),
-    );
-  };
-
-  const entries = [...(snapshot.members || [])];
-  if (include.includes('staged')) {
-    entries.push(...filterByState(snapshot.staged || []));
-  }
-  if (include.includes('candidates')) {
-    entries.push(...filterByState(snapshot.candidates || []));
-  }
-
-  // Deduplicate by object_ref + object_modified
-  const seen = new Set();
-  const deduped = [];
-  for (const entry of entries) {
-    const key = `${entry.object_ref}::` + revisionReference.modifiedKey(entry.object_modified);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    deduped.push(entry);
-  }
-
-  return deduped;
-}
-
-/**
- * Fetch identities and marking definitions referenced by the hydrated
- * documents (via created_by_ref / object_marking_refs) that are not already
- * part of the export. Emitted bundles must be self-contained, so referenced
- * supporting objects are appended even though they are not tier entries.
- *
- * @param {Array<Object>} documents - Hydrated lean documents ({ stix, ... })
- * @returns {Promise<Array<Object>>} Supporting lean documents
- */
-async function fetchSupportingObjects(documents) {
-  const repoMap = getRepositoryMap();
-  const existingIds = new Set(documents.map((doc) => doc.stix.id));
-
-  const identityIds = new Set();
-  const markingIds = new Set();
-  for (const doc of documents) {
-    if (doc.stix.created_by_ref && !existingIds.has(doc.stix.created_by_ref)) {
-      identityIds.add(doc.stix.created_by_ref);
-    }
-    for (const ref of doc.stix.object_marking_refs || []) {
-      if (!existingIds.has(ref)) markingIds.add(ref);
-    }
-  }
-
-  const supportingObjects = [];
-  const fetchLatest = async (repo, stixId, description) => {
-    try {
-      const doc = await repo.retrieveLatestByStixIdLean(stixId);
-      if (doc) supportingObjects.push(doc);
-      else logger.warn(`ExportService: Referenced ${description} not found: ${stixId}`);
-    } catch (err) {
-      logger.warn(`ExportService: Could not fetch ${description} "${stixId}": ${err.message}`);
-    }
-  };
-
-  await Promise.all([
-    ...[...identityIds].map((id) => fetchLatest(repoMap[types.Identity], id, 'identity')),
-    ...[...markingIds].map((id) =>
-      fetchLatest(repoMap[types.MarkingDefinition], id, 'marking definition'),
-    ),
-  ]);
-
-  return supportingObjects;
-}
-
-/**
- * Fetch the latest publishable relationships connecting selected bundle
- * objects. Relationship revisions remain indirect export-time content rather
- * than snapshot members.
- *
- * @param {Array<Object>} documents - Hydrated selected object documents
- * @returns {Promise<Array<Object>>}
- */
-async function fetchRelationships(documents) {
-  const selectedIds = new Set(documents.map((document) => document.stix.id));
-  if (selectedIds.size === 0) return [];
-
-  const results = await EventBus.emit(Events.BUNDLE_RELATIONSHIPS_REQUESTED, {
-    objectRefs: [...selectedIds],
-  });
-  const relationships = results?.[0];
-  if (!relationships) {
-    throw new Error('Unable to retrieve relationships for release-track bundle export');
-  }
-
-  return selectRelationshipsForBundle(relationships, selectedIds).filter(
-    (relationship) => !selectedIds.has(relationship.stix.id),
-  );
-}
-
-/**
  * Convert LinkById tags (e.g. "(LinkById: T1234)") in descriptions to
- * markdown citations, preferring objects already in the export before
- * falling back to a database lookup. Mirrors the legacy stix-bundles-service
- * behavior so bundles emitted from release tracks match published output.
+ * markdown citations using only object revisions frozen in the manifest.
  *
  * @param {Array<Object>} documents - Hydrated lean documents ({ stix, ... })
  */
-async function convertLinkByIdTags(documents) {
+async function convertLinkByIdTags(documents, linkTargetDocuments) {
   const byAttackId = new Map();
-  for (const doc of documents) {
+  for (const doc of [...documents, ...linkTargetDocuments]) {
     const attackId = linkById.getAttackId(doc.stix);
     if (attackId) byAttackId.set(attackId, doc);
   }
 
-  const getAttackObject = async (attackId) =>
-    byAttackId.get(attackId) || (await linkById.getAttackObjectFromDatabase(attackId));
+  const getAttackObject = async (attackId) => byAttackId.get(attackId);
 
   for (const doc of documents) {
     await linkById.convertLinkByIdTags(doc.stix, getAttackObject);
   }
+}
+
+function selectedDraftTierIsDynamic(snapshot, options) {
+  return (options.include || []).some(
+    (tier) =>
+      ['staged', 'candidates'].includes(tier) &&
+      (snapshot[tier] || []).some((entry) => entry.object_modified === 'latest'),
+  );
 }
 
 // =============================================================================
@@ -266,12 +147,12 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
  */
 exports.exportSnapshot = async function exportSnapshot(snapshot, format, options = {}) {
   if (format === 'bundle') {
-    const entries = collectBundleEntries(snapshot, options);
-    const hydratedObjects = await exports.hydrateMembers(entries);
-    const relationships = await fetchRelationships(hydratedObjects);
-    const supportingObjects = await fetchSupportingObjects([...hydratedObjects, ...relationships]);
-    const allObjects = [...hydratedObjects, ...relationships, ...supportingObjects];
-    await convertLinkByIdTags(allObjects);
+    const graph =
+      options.captureGraph || selectedDraftTierIsDynamic(snapshot, options)
+        ? await graphManifestService.replayPlannedSnapshot(snapshot, options)
+        : await graphManifestService.replay(snapshot, options);
+    const allObjects = graph.documents;
+    await convertLinkByIdTags(allObjects, graph.linkTargetDocuments);
 
     return exports.formatAsBundle(snapshot, allObjects, {
       stixVersion: options.stixVersion,

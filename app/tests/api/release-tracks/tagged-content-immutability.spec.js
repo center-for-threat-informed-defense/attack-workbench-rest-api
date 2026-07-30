@@ -8,6 +8,8 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const ReleaseTrackRegistry = require('../../../models/release-tracks/release-track-registry-model');
+const Technique = require('../../../models/technique-model');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 
@@ -65,23 +67,24 @@ describe('Release-track authoritative tagged-content immutability', function () 
 
   it('blocks mutation from historical tagged membership when current backrefs are absent', async function () {
     const technique = await post('/api/techniques', buildTechnique('Historical Member'), 201);
-    const replacement = await post('/api/techniques', buildTechnique('Current Draft Member'), 201);
     const track = await post(
       '/api/release-tracks/new',
       { name: 'Historical Immutability', type: 'standard' },
       201,
     );
-    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
-      x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
+    await releaseExactMembers(app, passportCookie, track.id, [technique], {
+      version: '1.0',
     });
-    await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, { version: '1.0' });
 
-    // A newer draft removes the member, so latest-snapshot reconciliation
-    // deliberately removes the object's denormalized backref. The historical
-    // tagged snapshot remains the immutable authority.
-    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
-      x_mitre_contents: [{ obj_ref: replacement.stix.id, obj_modified: replacement.stix.modified }],
-    });
+    // Simulate a stale derived backref. The tagged snapshot remains the
+    // immutable authority even when both denormalized indexes are missing.
+    await Technique.updateOne(
+      {
+        'stix.id': technique.stix.id,
+        'stix.modified': new Date(technique.stix.modified),
+      },
+      { $pull: { 'workspace.release_tracks': { id: track.id } } },
+    );
     const current = (
       await api(
         'get',

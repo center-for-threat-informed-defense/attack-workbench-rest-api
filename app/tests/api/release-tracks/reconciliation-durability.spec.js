@@ -14,6 +14,7 @@ const attackObjectsRepo = require('../../../repository/attack-objects-repository
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 const reconciliationService = require('../../../services/release-tracks/reconciliation-service');
 const { DatabaseError } = require('../../../exceptions');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 
@@ -172,9 +173,7 @@ describe('Release-track durable backref reconciliation', function () {
       { name: 'Full Scan Repair Track', type: 'standard' },
       201,
     );
-    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
-      x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
-    });
+    await releaseExactMembers(app, passportCookie, track.id, [technique]);
 
     await Technique.updateOne(
       {

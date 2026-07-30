@@ -346,54 +346,6 @@ paths:
               schema:
                 $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
 
-  /api/release-tracks/{id}/contents:
-    post:
-      summary: 'Update member contents on the latest snapshot'
-      operationId: 'release-tracks-update-contents-latest'
-      description: |
-        Replace the members tier of a standard track with new contents
-        (x_mitre_contents format). Virtual membership can only be produced by
-        POST /api/release-tracks/{id}/virtual/snapshots/create.
-        obj_modified may be an exact ISO timestamp or the request-time
-        shorthand "latest"; the server resolves "latest" to the actual latest
-        stix.modified timestamp before persistence. Snapshot members always
-        store exact revision pins.
-        Exact revisions already present in another tier are retained only in members;
-        different revisions of the same object remain valid across tiers.
-        Creates a new snapshot clone.
-        This administrator-only operation requires confirm_track_id to exactly
-        match the target track and writes a durable audit event.
-        Request body validated via Zod in controller.
-      tags:
-        - 'Release Tracks'
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: confirm_track_id
-          in: query
-          required: true
-          description: 'Must exactly equal the id path parameter'
-          schema:
-            type: string
-      responses:
-        '200':
-          description: 'Contents updated successfully'
-        '400':
-          description: 'Track is virtual, the contents request is invalid, or a requested revision does not exist'
-        '401':
-          description: 'Administrator role required'
-        '500':
-          description: 'The replacement may be persisted, but its durable audit or membership reconciliation failed'
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-audit-error'
-                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-reconciliation-error'
-
   /api/release-tracks/{id}/clone:
     post:
       summary: 'Clone the latest snapshot into a new release track'
@@ -1233,8 +1185,10 @@ paths:
       summary: 'Delete a specific snapshot'
       operationId: 'release-tracks-snapshot-delete'
       description: |
-        Delete a snapshot by its modified timestamp.
-        Cannot delete tagged snapshots.
+        Delete the latest untagged draft snapshot by its modified timestamp.
+        Tagged snapshots and historical drafts are immutable and cannot be
+        deleted. Deleting the latest draft reverts the track to its immediately
+        preceding snapshot.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1252,85 +1206,9 @@ paths:
         '204':
           description: 'Snapshot deleted successfully'
         '409':
-          description: 'Cannot delete tagged snapshot'
+          description: 'Cannot delete a tagged snapshot or a historical draft'
         '404':
           description: 'Snapshot not found'
-
-  /api/release-tracks/{id}/snapshots/{modified}/meta:
-    post:
-      summary: 'Update metadata on a specific snapshot'
-      operationId: 'release-tracks-update-meta-by-modified'
-      description: |
-        Update metadata on a historical snapshot.
-        Request body validated via Zod in controller.
-      tags:
-        - 'Release Tracks'
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: modified
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: 'Metadata updated successfully'
-
-  /api/release-tracks/{id}/snapshots/{modified}/contents:
-    post:
-      summary: 'Update contents on a specific snapshot'
-      operationId: 'release-tracks-update-contents-by-modified'
-      description: |
-        Update member contents on a historical standard-track snapshot.
-        Virtual membership can only be produced by
-        POST /api/release-tracks/{id}/virtual/snapshots/create.
-        obj_modified may be an exact ISO timestamp or the request-time
-        shorthand "latest"; the server resolves "latest" to the actual latest
-        stix.modified timestamp before persistence. Snapshot members always
-        store exact revision pins.
-        Exact revisions already present in another tier are retained only in members;
-        different revisions of the same object remain valid across tiers.
-        This administrator-only operation requires confirm_track_id to exactly
-        match the target track and writes a durable audit event.
-        Request body validated via Zod in controller.
-      tags:
-        - 'Release Tracks'
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: modified
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: confirm_track_id
-          in: query
-          required: true
-          description: 'Must exactly equal the id path parameter'
-          schema:
-            type: string
-      responses:
-        '200':
-          description: 'Contents updated successfully'
-        '400':
-          description: 'Track is virtual, the contents request is invalid, or a requested revision does not exist'
-        '401':
-          description: 'Administrator role required'
-        '500':
-          description: 'The replacement may be persisted, but its durable audit or membership reconciliation failed'
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-audit-error'
-                  - $ref: '../components/release-tracks.yml#/components/schemas/release-track-reconciliation-error'
 
   /api/release-tracks/{id}/snapshots/{modified}/clone:
     post:

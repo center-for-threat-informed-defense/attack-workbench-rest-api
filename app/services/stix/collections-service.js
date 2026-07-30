@@ -256,6 +256,36 @@ class CollectionsService extends BaseService {
     }
   }
 
+  async assertCollectionContentsCanBeDeleted(collection, stixId, modified) {
+    for (const reference of collection.stix.x_mitre_contents || []) {
+      const referenceObj = await attackObjectsService.retrieveOneByVersionLean(
+        reference.object_ref,
+        reference.object_modified,
+      );
+      if (!referenceObj) continue;
+
+      const matchQuery = {
+        'stix.id': { $ne: stixId },
+        'stix.x_mitre_contents': {
+          $elemMatch: {
+            object_ref: reference.object_ref,
+            object_modified: reference.object_modified,
+          },
+        },
+      };
+      if (modified) {
+        delete matchQuery['stix.id'];
+        matchQuery.$or = [{ 'stix.id': { $ne: stixId } }, { 'stix.modified': { $ne: modified } }];
+      }
+
+      const matches = await this.repository.findWithContents(matchQuery, { lean: true });
+      if (matches.length === 0) {
+        await BaseService.assertNotMemberPinned(referenceObj, 'deleted');
+        await BaseService.assertNotGraphPinned(referenceObj, 'deleted');
+      }
+    }
+  }
+
   async delete(stixId, deleteAllContents = false) {
     if (!stixId) {
       throw new MissingParameterError('stixId');
@@ -266,7 +296,15 @@ class CollectionsService extends BaseService {
       throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
     }
 
+    for (const collection of collections) {
+      await BaseService.assertNotMemberPinned(collection, 'deleted');
+      await BaseService.assertNotGraphPinned(collection, 'deleted');
+    }
+
     if (deleteAllContents) {
+      for (const collection of collections) {
+        await this.assertCollectionContentsCanBeDeleted(collection, stixId);
+      }
       for (const collection of collections) {
         await this.deleteAllContentsOfCollection(collection, stixId);
       }
@@ -290,7 +328,11 @@ class CollectionsService extends BaseService {
       throw new BadlyFormattedParameterError({ parameterName: 'stixId' });
     }
 
+    await BaseService.assertNotMemberPinned(collection, 'deleted');
+    await BaseService.assertNotGraphPinned(collection, 'deleted');
+
     if (deleteAllContents) {
+      await this.assertCollectionContentsCanBeDeleted(collection, stixId, modified);
       await this.deleteAllContentsOfCollection(collection, stixId, modified);
     }
 

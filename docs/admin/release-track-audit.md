@@ -1,7 +1,7 @@
 # Release-Track Destructive Audit Events
 
-Workbench stores administrator-initiated member replacement and full-track
-deletion attempts in `releaseTrackAuditEvents`.
+Workbench stores administrator-initiated full-track deletion attempts in
+`releaseTrackAuditEvents`.
 
 Each record contains:
 
@@ -41,10 +41,8 @@ db.releaseTrackAuditEvents
 ```
 
 A `pending` event can mean the process stopped after the audit insert or the
-operation completed but the final audit update failed. Inspect the target
-track before retrying. A failed member replacement may also have persisted a
-new snapshot if backref reconciliation subsequently failed; correlate its
-timestamp with `releaseTrackReconciliations`.
+track was deleted but the final audit update failed. Confirm whether the track
+still exists before retrying.
 
 These records have no automatic TTL. Establish retention and archive policy
 according to local audit requirements.

@@ -39,6 +39,7 @@ const {
   DuplicateReleaseVersionError,
   InvalidObjectRevisionError,
   TaggedSnapshotDeletionError,
+  HistoricalSnapshotDeletionError,
   InvalidVersionError,
   ReleaseConflictError,
   ReleaseContentIntegrityError,
@@ -49,6 +50,7 @@ const {
   VirtualSnapshotNotMaterializedError,
   TrackNotFoundError,
   MemberPinnedRevisionError,
+  SnapshotGraphPinnedRevisionError,
   ObjectHasValidationIssuesError,
 } = require('../exceptions');
 
@@ -140,10 +142,12 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof AlreadyReleasedError ||
     err instanceof DuplicateReleaseVersionError ||
     err instanceof TaggedSnapshotDeletionError ||
+    err instanceof HistoricalSnapshotDeletionError ||
     err instanceof ReleaseConflictError ||
     err instanceof ReleaseContentIntegrityError ||
     err instanceof VirtualSnapshotNotMaterializedError ||
     err instanceof MemberPinnedRevisionError ||
+    err instanceof SnapshotGraphPinnedRevisionError ||
     err instanceof ObjectHasValidationIssuesError ||
     err instanceof ActiveOrganizationIdentityDeleteError
   ) {

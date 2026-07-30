@@ -14,6 +14,7 @@ const {
   compositionSchema,
 } = require('../../../models/release-tracks/release-track-snapshot-schema');
 const releaseTracksService = require('../../../services/release-tracks/release-tracks-service');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const staticMarkingDefinitionId = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
 const supportedObjectTypes = Object.values(types);
@@ -202,17 +203,7 @@ describe('Virtual release-track object-type filters API', function () {
     const mitigation = await post('/api/mitigations', buildMitigation('Pinned Type Member'));
     const matrix = await post('/api/matrices', buildMatrix('Excluded Type Member'));
 
-    await post(
-      `/api/release-tracks/${componentTrack.id}/contents?confirm_track_id=${componentTrack.id}`,
-      {
-        x_mitre_contents: [mitigation, matrix].map((object) => ({
-          obj_ref: object.stix.id,
-          obj_modified: object.stix.modified,
-        })),
-      },
-      200,
-    );
-    await post(`/api/release-tracks/${componentTrack.id}/snapshots/latest/release`, {}, 200);
+    await releaseExactMembers(app, passportCookie, componentTrack.id, [mitigation, matrix]);
 
     const newerMitigationRevision = cloneForCreate(mitigation);
     newerMitigationRevision.stix.modified = new Date(Date.now() + 1000).toISOString();

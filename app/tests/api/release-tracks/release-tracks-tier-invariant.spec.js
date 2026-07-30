@@ -7,6 +7,7 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 const snapshotService = require('../../../services/release-tracks/snapshot-service');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const staticMarkingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 const tiers = ['members', 'staged', 'candidates', 'quarantine'];
@@ -125,12 +126,7 @@ describe('Release-track cross-tier revision uniqueness', function () {
   }
 
   async function setMembers(trackId, objects) {
-    return post(`/api/release-tracks/${trackId}/contents?confirm_track_id=${trackId}`, {
-      x_mitre_contents: objects.map((object) => ({
-        obj_ref: object.stix.id,
-        obj_modified: object.stix.modified,
-      })),
-    });
+    return releaseExactMembers(app, passportCookie, trackId, objects);
   }
 
   async function useManualMemberSync(trackId) {

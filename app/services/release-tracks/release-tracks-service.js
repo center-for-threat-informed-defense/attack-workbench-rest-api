@@ -6,7 +6,7 @@
 // Orchestrator that delegates to domain-specific sub-services. This is the
 // single entry point consumed by the controller layer.
 //
-// Phase 1: Track management, snapshot CRUD, config → snapshot-service
+// Phase 1: Track management, snapshot lifecycle, config → snapshot-service
 // Phase 2: Candidates, staged, object versions    → standard-track-service
 // Phase 3: Auto-promotion, workflow               → workflow-service
 // Phase 4: Release planning and versioning        → versioning-service
@@ -289,49 +289,6 @@ exports.updateMetadata = function updateMetadata(trackId, updates, userId) {
   return snapshotService.updateMetadata(trackId, updates, userId);
 };
 
-exports.updateMetadataByModified = function updateMetadataByModified(
-  trackId,
-  modified,
-  updates,
-  userId,
-) {
-  return snapshotService.updateMetadataByModified(trackId, modified, updates, userId);
-};
-
-exports.updateContents = function updateContents(trackId, contents, actor, confirmation) {
-  return destructiveAuditService.execute(
-    {
-      action: 'replace_members_latest',
-      trackId,
-      ...destructiveIdentity(trackId, actor, confirmation),
-      request: { members_count: contents.x_mitre_contents.length },
-    },
-    () => snapshotService.updateContents(trackId, contents, actor?.user_account_id),
-  );
-};
-
-exports.updateContentsByModified = function updateContentsByModified(
-  trackId,
-  modified,
-  contents,
-  actor,
-  confirmation,
-) {
-  return destructiveAuditService.execute(
-    {
-      action: 'replace_members_historical',
-      trackId,
-      ...destructiveIdentity(trackId, actor, confirmation),
-      request: {
-        source_snapshot_modified: modified,
-        members_count: contents.x_mitre_contents.length,
-      },
-    },
-    () =>
-      snapshotService.updateContentsByModified(trackId, modified, contents, actor?.user_account_id),
-  );
-};
-
 exports.cloneTrack = function cloneTrack(trackId, options) {
   return snapshotService.cloneTrack(trackId, options);
 };
@@ -425,7 +382,10 @@ async function renderReleasePlan(plan, options) {
   if (format === 'summary') return plan.summary;
   if (plan.blockingError) throw plan.blockingError;
   if (format === 'bundle') {
-    return exportService.exportSnapshot(plan.plannedSnapshot, format, options);
+    return exportService.exportSnapshot(plan.plannedSnapshot, format, {
+      ...options,
+      captureGraph: true,
+    });
   }
   return formatWorkbenchSnapshot(plan.plannedSnapshot, options);
 }

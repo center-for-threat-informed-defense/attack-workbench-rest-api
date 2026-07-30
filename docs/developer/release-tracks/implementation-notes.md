@@ -52,7 +52,7 @@ silently dropping it.
 The error contract distinguishes who can correct the problem:
 
 - Request ingress returns `400` with `missing_references` when candidate
-  selection or direct member replacement names a revision that does not exist.
+  selection names a revision that does not exist.
 - Operations over already-persisted content return `409` with
   `missing_references` when a release preview/commit, track clone, virtual
   materialization, quarantine promotion, or bundle export encounters a
@@ -162,10 +162,11 @@ a standard component track.
 
 Snapshot retrieval never re-runs composition, so there is no `resolve` query
 parameter or `resolved_content` response wrapper. Workbench retrieval returns
-the persisted primary membership. Bundle export is a separate consistency
-boundary: secondary relationships and supporting objects are discovered at
-request time and are not deterministic until relationships become
-version-controlled against exact endpoint revisions.
+the persisted primary membership. Bundle export replays a graph manifest
+captured with the snapshot. Relationship revisions carry server-controlled
+exact endpoint pins in `workspace.relationship_endpoints`, and the manifest
+freezes the bounded secondary/supporting graph without emitting those internal
+fields in STIX output.
 
 Snapshot schedules use the same strict, mode-discriminated Zod schema at the
 controller and service boundaries. `manual` has no selector field, `cron`
@@ -212,7 +213,8 @@ There is no side-effect-free virtual snapshot-creation preview. Once a virtual
 draft is persisted, it uses the same retrieval and release endpoints as a
 standard draft. Release planning never resolves composition and rejects a
 virtual draft without `composition_resolution` with `409 Conflict`. Generic
-latest and historical `/contents` mutations are standard-only; virtual
+snapshot member replacement is not supported for either track type. Standard
+membership enters through the candidate/staged/release lifecycle; virtual
 membership has composition resolution as its sole authority.
 
 Quarantine promotion is a snapshot mutation, not a composition

@@ -14,6 +14,7 @@ const ReleaseTrackRegistry = require('../../../models/release-tracks/release-tra
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 const techniquesRepo = require('../../../repository/techniques-repository');
 const { DatabaseError } = require('../../../exceptions');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 
@@ -138,26 +139,6 @@ describe('Release-track primary revision integrity API', function () {
     expect(latest.candidates[0].object_modified).toBe(technique.stix.modified);
   });
 
-  it('rejects direct member replacement atomically when one exact revision is missing', async function () {
-    const technique = await createTechnique('Reject Missing Direct Member');
-    const track = await createTrack('Reject Missing Direct Member Track');
-    const missing = missingRevision();
-
-    const response = await api(
-      'post',
-      `/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`,
-      {
-        x_mitre_contents: [
-          { obj_ref: technique.stix.id, obj_modified: technique.stix.modified },
-          { obj_ref: missing.object_ref, obj_modified: missing.object_modified },
-        ],
-      },
-      400,
-    );
-    expect(response.body.missing_references).toEqual([missing]);
-    expect((await dynamicRepo.getAllSnapshots(track.id)).pagination.total).toBe(1);
-  });
-
   it('fails preview and release when a staged revision was deleted', async function () {
     const technique = await createTechnique('Deleted Staged Revision');
     const track = await createTrack('Deleted Staged Revision Track');
@@ -199,9 +180,7 @@ describe('Release-track primary revision integrity API', function () {
   it('rejects cloning and export when a stored primary member is missing', async function () {
     const technique = await createTechnique('Missing Stored Member');
     const track = await createTrack('Missing Stored Member Track');
-    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
-      x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
-    });
+    await releaseExactMembers(app, passportCookie, track.id, [technique]);
     await deleteTechniqueRevision(technique);
     const registryCount = await ReleaseTrackRegistry.countDocuments();
 
@@ -233,9 +212,7 @@ describe('Release-track primary revision integrity API', function () {
   it('propagates repository hydration failures instead of returning a partial export', async function () {
     const technique = await createTechnique('Failed Primary Hydration');
     const track = await createTrack('Failed Primary Hydration Track');
-    await post(`/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`, {
-      x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
-    });
+    await releaseExactMembers(app, passportCookie, track.id, [technique]);
     const hydrationStub = sinon
       .stub(techniquesRepo, 'findManyByIdAndModified')
       .rejects(new DatabaseError(new Error('injected hydration failure')));
@@ -255,10 +232,7 @@ describe('Release-track primary revision integrity API', function () {
   it('aborts virtual materialization when a component member is missing', async function () {
     const technique = await createTechnique('Missing Virtual Component Member');
     const component = await createTrack('Missing Virtual Component');
-    await post(`/api/release-tracks/${component.id}/contents?confirm_track_id=${component.id}`, {
-      x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
-    });
-    await post(`/api/release-tracks/${component.id}/snapshots/latest/release`, {
+    await releaseExactMembers(app, passportCookie, component.id, [technique], {
       version: '1.0',
     });
     const virtual = await createTrack('Missing Virtual Primary', 'virtual', {

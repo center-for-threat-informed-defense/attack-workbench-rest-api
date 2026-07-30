@@ -1,11 +1,14 @@
 'use strict';
 
+const _ = require('lodash');
 const { BaseService } = require('../meta-classes');
 const relationshipsRepository = require('../../repository/relationships-repository');
+const attackObjectsRepository = require('../../repository/attack-objects-repository');
 const { Relationship: RelationshipType } = require('../../lib/types');
 const EventBus = require('../../lib/event-bus');
 const EventConstants = require('../../lib/event-constants');
 const logger = require('../../lib/logger');
+const { BadRequestError, InvalidObjectRevisionError } = require('../../exceptions');
 
 // Map STIX types to ATT&CK types
 const objectTypeMap = new Map([
@@ -24,10 +27,94 @@ const objectTypeMap = new Map([
 
 class RelationshipsService extends BaseService {
   /**
+   * Resolve STIX ID-only relationship endpoints to the exact object revisions
+   * they mean when this relationship revision is created.
+   *
+   * The pins are Workbench metadata rather than custom STIX properties. They
+   * are therefore validated by Mongoose, remain server-controlled, and are
+   * naturally omitted from emitted STIX bundles.
+   *
+   * @param {Object} data Workbench-shaped relationship document
+   * @returns {Promise<void>}
+   */
+  static async pinEndpointRevisions(data) {
+    const [source, target] = await Promise.all([
+      attackObjectsRepository.retrieveLatestByStixIdLean(data.stix.source_ref),
+      attackObjectsRepository.retrieveLatestByStixIdLean(data.stix.target_ref),
+    ]);
+
+    const missing = [];
+    if (!source) {
+      missing.push({
+        endpoint: 'source',
+        object_ref: data.stix.source_ref,
+        object_modified: 'latest',
+      });
+    }
+    if (!target) {
+      missing.push({
+        endpoint: 'target',
+        object_ref: data.stix.target_ref,
+        object_modified: 'latest',
+      });
+    }
+    if (missing.length > 0) {
+      throw new InvalidObjectRevisionError(missing, {
+        details:
+          'Relationship endpoints must resolve to exact object revisions before the ' +
+          'relationship can be persisted.',
+      });
+    }
+
+    data.workspace = data.workspace || {};
+    data.workspace.relationship_endpoints = {
+      source: {
+        object_ref: source.stix.id,
+        object_modified: source.stix.modified,
+      },
+      target: {
+        object_ref: target.stix.id,
+        object_modified: target.stix.modified,
+      },
+    };
+  }
+
+  async beforeCreate(data) {
+    await RelationshipsService.pinEndpointRevisions(data);
+  }
+
+  async beforeUpdate(_stixId, _stixModified, data, existingDocument) {
+    for (const field of ['source_ref', 'target_ref', 'relationship_type']) {
+      if (data.stix[field] !== existingDocument.stix[field]) {
+        throw new BadRequestError({
+          details:
+            `Relationship ${field} cannot be changed in place because that would alter the ` +
+            'meaning of an existing graph revision. Create a new relationship revision instead.',
+          immutable_property: field,
+        });
+      }
+    }
+
+    data.workspace = data.workspace || {};
+    data.workspace.relationship_endpoints = existingDocument.workspace.relationship_endpoints;
+  }
+
+  /**
    * Initialize event listeners.
    * Called once on module load.
    */
   static initializeEventListeners() {
+    const endpointRevisionEvents = [
+      ...new Set([
+        ...Object.values(EventConstants).filter((eventName) => eventName.endsWith('::created')),
+        'identity::created',
+        'note::created',
+      ]),
+    ];
+    for (const event of endpointRevisionEvents) {
+      EventBus.on(event, this.handleEndpointRevisionCreated.bind(this));
+    }
+
     const revokedEvents = [
       EventConstants.ATTACK_PATTERN_REVOKED,
       EventConstants.TACTIC_REVOKED,
@@ -67,6 +154,80 @@ class RelationshipsService extends BaseService {
     );
 
     logger.info('RelationshipsService: Event listeners initialized');
+  }
+
+  /**
+   * Carry active relationship edges forward when one of their exact endpoint
+   * revisions advances.
+   *
+   * The prior SRO revision remains pinned to the prior endpoint revisions.
+   * A new SRO revision is created for the new endpoint state, preserving STIX
+   * revision immutability while retaining the current graph.
+   *
+   * @param {Object} payload Standard BaseService created-event payload
+   * @returns {Promise<{created: Array<Object>}>}
+   */
+  static async handleEndpointRevisionCreated(payload) {
+    const document = payload?.document;
+    if (!document?.stix?.id || !document?.stix?.modified) {
+      return { created: [] };
+    }
+
+    const versions = await attackObjectsRepository.retrieveAllById(document.stix.id);
+    const createdRevisionIndex = versions.findIndex(
+      (version) =>
+        new Date(version.stix.modified).getTime() === new Date(document.stix.modified).getTime(),
+    );
+
+    // Only the latest revision advances the current graph. Older revisions
+    // arriving in a bulk import retain their historical position.
+    if (createdRevisionIndex !== 0 || versions.length < 2) {
+      return { created: [] };
+    }
+
+    const previousRevision = versions[1];
+    const relationships = await relationshipsRepository.retrieveAllBySourceOrTarget(
+      document.stix.id,
+    );
+    const relationshipsToAdvance = relationships.filter((relationship) => {
+      if (relationship.stix.revoked || relationship.stix.x_mitre_deprecated) {
+        return false;
+      }
+
+      const endpoints = relationship.workspace?.relationship_endpoints;
+      return ['source', 'target'].some(
+        (side) =>
+          endpoints?.[side]?.object_ref === previousRevision.stix.id &&
+          new Date(endpoints[side].object_modified).getTime() ===
+            new Date(previousRevision.stix.modified).getTime(),
+      );
+    });
+
+    const created = [];
+    for (const relationship of relationshipsToAdvance) {
+      const relationshipData = _.cloneDeep(relationship);
+      delete relationshipData._id;
+      delete relationshipData.__v;
+      delete relationshipData.__t;
+      if (relationshipData.workspace) {
+        delete relationshipData.workspace.release_tracks;
+        delete relationshipData.workspace.relationship_endpoints;
+      }
+
+      const previousRelationshipModified = new Date(relationship.stix.modified).getTime();
+      relationshipData.stix.modified = new Date(
+        Math.max(Date.now(), previousRelationshipModified + 1),
+      ).toISOString();
+
+      created.push(
+        await module.exports.create(relationshipData, {
+          userAccountId: payload.options?.userAccountId,
+          automationContext: payload.options?.automationContext,
+        }),
+      );
+    }
+
+    return { created };
   }
 
   /**

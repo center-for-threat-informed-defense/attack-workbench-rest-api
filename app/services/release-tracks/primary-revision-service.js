@@ -19,6 +19,7 @@ function getRepositoryMap() {
     [types.Tactic]: require('../../repository/tactics-repository'),
     [types.Group]: require('../../repository/groups-repository'),
     [types.Campaign]: require('../../repository/campaigns-repository'),
+    [types.Collection]: require('../../repository/collections-repository'),
     [types.Mitigation]: require('../../repository/mitigations-repository'),
     [types.Matrix]: require('../../repository/matrix-repository'),
     [types.Relationship]: require('../../repository/relationships-repository'),

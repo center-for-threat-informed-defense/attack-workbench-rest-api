@@ -9,6 +9,7 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const modelFactory = require('../../../models/release-tracks/model-factory');
 const login = require('../../shared/login');
 const { cloneForCreate } = require('../../shared/clone-for-create');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const staticMarkingDefinitionId = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
 
@@ -81,19 +82,9 @@ describe('Virtual release-track deterministic membership API', function () {
       name,
       type: 'standard',
     });
-    const contents = await post(
-      `/api/release-tracks/${component.id}/contents?confirm_track_id=${component.id}`,
-      {
-        x_mitre_contents: [
-          {
-            obj_ref: member.stix.id,
-            obj_modified: modified,
-          },
-        ],
-      },
-      200,
-    );
-    await post(`/api/release-tracks/${component.id}/snapshots/latest/release`, {}, 200);
+    const contents = await releaseExactMembers(app, passportCookie, component.id, [
+      { id: member.stix.id, modified },
+    ]);
     return { component, contents };
   }
 

@@ -68,26 +68,25 @@ GET  /api/release-tracks/:id/snapshots/latest
 POST /api/release-tracks/:id/config
 POST /api/release-tracks/:id/meta
 POST /api/release-tracks/:id/clone
-PUT /api/release-tracks/:id/snapshots/latest/release
-POST /api/release-tracks/:id/archive
-DELETE /api/release-tracks/:id
+POST /api/release-tracks/:id/snapshots/latest/release
+DELETE /api/release-tracks/:id?confirm_track_id=:id
 
 # Candidate/workflow management
 POST /api/release-tracks/:id/candidates
 POST /api/release-tracks/:id/candidates/review
+POST /api/release-tracks/:id/candidates/promote
+POST /api/release-tracks/:id/staged/demote
 
 # Snapshot-specific operations
 GET  /api/release-tracks/:id/snapshots/:modified
-POST /api/release-tracks/:id/snapshots/:modified/config
-POST /api/release-tracks/:id/snapshots/:modified/meta
 POST /api/release-tracks/:id/snapshots/:modified/clone
 DELETE /api/release-tracks/:id/snapshots/:modified
-PUT /api/release-tracks/:id/snapshots/:modified/release
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 ### 2. Git-Inspired Versioning
 
-We borrow heavily concepts from git. Snapshots are sort of like commits and tagged releases are like git tags. A release track contains snapshots: delta permutations that can be linearly tracked to deduce how the release track has evolved over time. A snapshot is generated every time a change is made, whether that be adding/removing objects, updating the release track configuration, or renaming the release track altogether.
+We borrow heavily concepts from git. Snapshots are sort of like commits and tagged releases are like git tags. A release track contains snapshots: delta permutations that can be linearly tracked to deduce how the release track has evolved over time. A snapshot is generated every time a supported draft operation changes state, such as adding or promoting candidates, updating release-track configuration, or renaming the release track.
 
 **Snapshots** (like Git commits)
 - Every modification creates a new snapshot
@@ -129,6 +128,13 @@ making the released primary contents deterministic and immutable. Previewing
 and committing are separate operations, so a newer object revision created
 between them can legitimately produce a different plan; the committed release
 records the revision resolved by the commit itself.
+
+At snapshot persistence, the server also freezes the bounded bundle graph:
+exact relationship endpoint revisions, secondary objects, supporting objects,
+and LinkById render targets. Tagged releases and materialized virtual
+snapshots therefore reproduce the same STIX object graph on later
+`format=bundle` retrievals. The generated bundle-envelope ID itself is not
+stable.
 
 Virtual snapshots are stricter still: they copy only exact member revisions
 from tagged standard component snapshots. They never inherit `track_latest`,

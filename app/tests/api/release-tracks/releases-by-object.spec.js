@@ -8,6 +8,7 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const ReleaseTrackRegistry = require('../../../models/release-tracks/release-track-registry-model');
 const backfillMigration = require('../../../../migrations/20260716000000-backfill-release-track-tagged-releases');
+const { stageExactMembers } = require('./release-track-test-helpers');
 
 const staticMarkingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 
@@ -67,12 +68,12 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     const createdA = await createTrack('Releases By Object A');
     trackA = createdA.id;
     const initialSnapshotModified = createdA.modified;
-    trackATaggedSnapshot = await setMembers(trackA, [objectRevisionA]);
-    await releaseLatest(trackA);
+    await setMembers(trackA, [objectRevisionA]);
+    trackATaggedSnapshot = await releaseLatest(trackA);
 
-    // Remove the requested object from the latest state and tag that state.
-    // The earlier tagged release must remain discoverable despite its current
-    // backref disappearing.
+    // Append another object in a later release. Existing members remain part
+    // of the immutable lineage because direct member replacement is not
+    // supported.
     await setMembers(trackA, [otherObject]);
     await releaseLatest(trackA);
 
@@ -151,16 +152,7 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
   }
 
   async function setMembers(trackId, objects) {
-    return post(
-      `/api/release-tracks/${trackId}/contents?confirm_track_id=${trackId}`,
-      {
-        x_mitre_contents: objects.map((object) => ({
-          obj_ref: object.stix.id,
-          obj_modified: object.stix.modified,
-        })),
-      },
-      200,
-    );
+    return stageExactMembers(app, passportCookie, trackId, objects);
   }
 
   async function releaseLatest(trackId, increment = 'minor') {
@@ -177,19 +169,30 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     const response = await get(`/api/release-tracks/objects/${objectRevisionA.stix.id}/releases`);
 
     expect(response.body.object_ref).toBe(objectRevisionA.stix.id);
-    expect(response.body.pagination).toEqual({ total: 3, limit: 50, offset: 0 });
-    expect(response.body.data).toHaveLength(3);
+    expect(response.body.pagination).toEqual({ total: 4, limit: 50, offset: 0 });
+    expect(response.body.data).toHaveLength(4);
 
-    const standardA = response.body.data.find((entry) => entry.track_id === trackA);
+    const standardA = response.body.data.filter((entry) => entry.track_id === trackA);
     const standardB = response.body.data.find((entry) => entry.track_id === trackB);
     const virtual = response.body.data.find((entry) => entry.track_id === virtualTrack);
 
-    expect(standardA).toMatchObject({
-      track_type: 'standard',
-      track_name: 'Releases By Object A',
-      version: '1.0',
-      object_modified: objectRevisionA.stix.modified,
-    });
+    expect(standardA).toHaveLength(2);
+    expect(standardA).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          track_type: 'standard',
+          track_name: 'Releases By Object A',
+          version: '1.0',
+          object_modified: objectRevisionA.stix.modified,
+        }),
+        expect.objectContaining({
+          track_type: 'standard',
+          track_name: 'Releases By Object A',
+          version: '1.1',
+          object_modified: objectRevisionA.stix.modified,
+        }),
+      ]),
+    );
     expect(standardB).toMatchObject({
       track_type: 'standard',
       version: '1.0',
@@ -238,7 +241,7 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     const standard = await get(
       `/api/release-tracks/objects/${objectRevisionA.stix.id}/releases?type=standard&order=desc&limit=1&offset=1`,
     );
-    expect(standard.body.pagination).toEqual({ total: 2, limit: 1, offset: 1 });
+    expect(standard.body.pagination).toEqual({ total: 3, limit: 1, offset: 1 });
     expect(standard.body.data).toHaveLength(1);
     expect(standard.body.data[0].track_type).toBe('standard');
 
@@ -293,6 +296,6 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     const response = await get(
       `/api/release-tracks/objects/${objectRevisionA.stix.id}/releases?type=standard`,
     );
-    expect(response.body.pagination.total).toBe(2);
+    expect(response.body.pagination.total).toBe(3);
   });
 });

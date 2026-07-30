@@ -49,6 +49,8 @@ describe('Ephemeral Bundle API', function () {
   let icsTechnique;
   let group;
   let relationship;
+  let icsGroup;
+  let icsRelationship;
 
   before(async function () {
     await database.initializeConnection();
@@ -72,13 +74,17 @@ describe('Ephemeral Bundle API', function () {
     return res.body;
   }
 
-  async function getEphemeral(query = '', expectedStatus = 200) {
+  async function getEphemeralForDomain(domain, query = '', expectedStatus = 200) {
     const res = await request(app)
-      .get(`/api/release-tracks/ephemeral/enterprise${query}`)
+      .get(`/api/release-tracks/ephemeral/${domain}${query}`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(expectedStatus);
     return res.body;
+  }
+
+  async function getEphemeral(query = '', expectedStatus = 200) {
+    return getEphemeralForDomain('enterprise', query, expectedStatus);
   }
 
   function buildTechnique(name, domains, overrides = {}) {
@@ -179,6 +185,33 @@ describe('Ephemeral Bundle API', function () {
         object_marking_refs: [staticMarkingDefinitionId],
       },
     });
+
+    icsGroup = await postObject('/api/groups', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        name: 'Ephemeral ICS Test Group',
+        spec_version: '2.1',
+        type: 'intrusion-set',
+        description: 'Group used to verify request-local graph resolution.',
+        object_marking_refs: [staticMarkingDefinitionId],
+      },
+    });
+
+    icsRelationship = await postObject('/api/relationships', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        spec_version: '2.1',
+        type: 'relationship',
+        relationship_type: 'uses',
+        source_ref: icsGroup.stix.id,
+        target_ref: icsTechnique.stix.id,
+        object_marking_refs: [staticMarkingDefinitionId],
+      },
+    });
   });
 
   it('GET /api/release-tracks/ephemeral/:domain returns a STIX 2.1 bundle with legacy-parity contents', async function () {
@@ -229,6 +262,37 @@ describe('Ephemeral Bundle API', function () {
     const contentRefs = toc.x_mitre_contents.map((entry) => entry.object_ref);
     expect(contentRefs).toContain(enterpriseTechnique.stix.id);
     expect(toc.object_marking_refs).toContain(staticMarkingDefinitionId);
+  });
+
+  it('isolates graph state across concurrent domain exports', async function () {
+    const requests = Array.from({ length: 6 }, () =>
+      Promise.all([
+        getEphemeralForDomain('enterprise', '?includeToc=false'),
+        getEphemeralForDomain('ics', '?includeToc=false'),
+      ]),
+    );
+
+    for (const [enterpriseBundle, icsBundle] of await Promise.all(requests)) {
+      const enterpriseIds = bundleObjectIds(enterpriseBundle);
+      const icsIds = bundleObjectIds(icsBundle);
+
+      expect(enterpriseIds).toContain(group.stix.id);
+      expect(enterpriseIds).toContain(relationship.stix.id);
+      expect(enterpriseIds).not.toContain(icsGroup.stix.id);
+      expect(enterpriseIds).not.toContain(icsRelationship.stix.id);
+
+      expect(icsIds).toContain(icsGroup.stix.id);
+      expect(icsIds).toContain(icsRelationship.stix.id);
+      expect(icsIds).not.toContain(group.stix.id);
+      expect(icsIds).not.toContain(relationship.stix.id);
+
+      expect(
+        enterpriseBundle.objects.find((object) => object.id === group.stix.id).x_mitre_domains,
+      ).toEqual([enterpriseDomain]);
+      expect(
+        icsBundle.objects.find((object) => object.id === icsGroup.stix.id).x_mitre_domains,
+      ).toEqual([icsDomain]);
+    }
   });
 
   it('includeToc=false omits the TOC object', async function () {

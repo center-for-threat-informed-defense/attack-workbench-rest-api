@@ -7,6 +7,7 @@ const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const staticMarkingDefinitionId = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
 
@@ -88,17 +89,7 @@ describe('Virtual release-track deduplication API', function () {
 
   async function createReleasedComponent(name, members) {
     const track = await post('/api/release-tracks/new', { name, type: 'standard' });
-    await post(
-      `/api/release-tracks/${track.id}/contents?confirm_track_id=${track.id}`,
-      {
-        x_mitre_contents: members.map((member) => ({
-          obj_ref: member.stix.id,
-          obj_modified: member.stix.modified,
-        })),
-      },
-      200,
-    );
-    const release = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {}, 200);
+    const release = await releaseExactMembers(app, passportCookie, track.id, members);
     return { ...track, release };
   }
 

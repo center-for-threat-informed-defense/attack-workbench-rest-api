@@ -444,9 +444,13 @@ copies the exact member revisions from the selected tagged component
 snapshots, and later component activity cannot change the persisted virtual
 snapshot.
 
-This deterministic guarantee covers primary snapshot membership. Secondary
-objects and relationships discovered while rendering `format=bundle` remain
-an export-time concern and can change between bundle requests.
+Each snapshot also references an internal, tier-aware graph manifest. It
+freezes the exact relationship endpoint revisions, bounded secondary objects,
+supporting objects, and LinkById render targets needed by `format=bundle`.
+Tagged standard snapshots, materialized virtual snapshots, and draft tiers
+that use exact selectors therefore replay the same graph. A standard draft
+tier explicitly stored as `"latest"` remains intentionally dynamic until the
+release boundary.
 
 The three valid `snapshot_schedule` shapes are:
 

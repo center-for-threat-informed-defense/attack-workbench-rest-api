@@ -100,22 +100,19 @@ Implemented in
    filter, mirroring the fact that members are inherently reviewed. `state`
    never affects members. `reviewed` is intentionally not a valid `state`
    value for this reason.
-2. **Hydration** — any selected candidate/staged `"latest"` selectors are
-   resolved for this export request, then the concrete
-   `{object_ref, object_modified}` pairs are batch-fetched per STIX type via
-   each repository's `findManyByIdAndModified`. The stored draft selectors are
-   not mutated. Hydration is fail-closed: if any selected primary revision is
-   missing, the request returns `409` with `missing_references` and emits no
-   partial bundle. Database failures propagate as server errors.
-3. **Relationships** — the relationship service fetches the latest active
-   relationship revisions whose `source_ref` and `target_ref` are both among
-   the selected objects. Deprecated data-component `detects` relationships
-   are excluded. Relationships remain indirect export-time content; they are
-   not added to the snapshot tiers.
-4. **Supporting objects** — referenced identities and marking definitions
-   that are not themselves tier entries are fetched and appended.
-5. **LinkById conversion** — same behavior as the legacy exporter, preferring
-   objects already in the export before falling back to a database lookup.
+2. **Manifest replay** — the snapshot identifies an active graph manifest, or
+   a complete linked pending manifest recovering from an interrupted
+   activation, created at the same persistence boundary. The manifest records exact
+   primary, relationship, secondary, supporting, and LinkById dependency
+   revisions. Export hydrates those entries and performs no live graph
+   expansion.
+3. **Bounded secondary selection** — replay starts from the requested primary
+   tiers, follows only dependency edges frozen in the manifest, and emits a
+   relationship only when both exact endpoint revisions are selected.
+4. **Supporting objects** — only identities and marking definitions frozen in
+   the manifest and referenced by the selected graph are appended.
+5. **LinkById conversion** — conversion uses only exact render targets frozen
+   in the manifest and never falls back to a current database lookup.
 6. **Assembly** (Zod transform) — notes are dropped, objects are conformed to
    `stixVersion` via the shared `lib/stix-conformance.js` helpers, and the
    bundle envelope is emitted (with `spec_version: "2.0"` only when
@@ -134,9 +131,10 @@ Implemented in
    - `x_mitre_contents`: every bundle object except marking definitions
      (which are recorded in `object_marking_refs`), sorted by `object_ref`
 
-Because snapshot contents are explicitly curated, the export intentionally
-does **not** apply the legacy attack-id / deprecated / revoked filters — if a
-revision is in the snapshot, it is exported.
+Because snapshot contents are explicitly curated, primary entries do **not**
+receive the legacy attack-id / deprecated / revoked filters. Secondary graph
+capture retains the established bounded ATT&CK expansion rules and freezes
+the resulting graph at snapshot creation.
 
 #### Relationship and secondary-object consistency boundary
 
@@ -146,47 +144,58 @@ Release-track snapshots distinguish **primary** and **secondary** content:
   record exact `(object_ref, object_modified)` revisions. Standard candidates
   and staged entries may instead store `"latest"` and are resolved just in
   time when a draft export includes those tiers.
-- Secondary objects are not snapshot members. They are discovered because a
-  primary object references them through an embedded STIX ID, an SRO connects
-  two selected primary objects, or the bundle needs a supporting identity or
-  marking definition.
+- Secondary objects are not snapshot members. They are discovered when the
+  snapshot is created because an exact-pinned SRO connects them to a primary,
+  the bounded ATT&CK rules identify a detection strategy, or the bundle needs
+  a supporting identity, marking definition, or LinkById render target.
 
 Tagged standard membership is deterministic because release planning resolves
 staged selectors before promoting them to members. Virtual materialization
 likewise copies exact member revisions from tagged component snapshots and
-never follows a component's later `track_latest` candidate movement. Draft
-exports that explicitly include dynamic candidate/staged tiers are snapshots
-of the latest revisions at export time. Secondary content is also resolved
-just in time during bundle generation.
+never follows a component's later `track_latest` candidate movement.
 
-Relationships are the largest consistency boundary. Current SRO
-`source_ref`/`target_ref` fields identify STIX object IDs, not exact
-`(object_id, object_modified)` revisions. An SRO can consequently describe the
-whole revision chain of each endpoint rather than one precise pair of SDO
-entities. The exporter resolves the latest active relationship revisions when
-the bundle is requested. This creates several tradeoffs:
+Every relationship revision stores server-controlled exact source and target
+pins under `workspace.relationship_endpoints`. These fields identify the
+precise `(object_ref, object_modified)` pair represented by each side of the
+SRO. They are not emitted because bundle output includes only the `stix`
+object. When an endpoint advances, Workbench creates a new SRO revision with
+updated pins rather than rewriting the older SRO.
 
-- exporting the same tagged snapshot at different times can produce different
-  relationship objects or TOC contents;
-- relationship revisions are not represented in snapshot history,
-  release-track backrefs, or composition audit metadata;
-- revoking a relationship can remove it from an older snapshot export, while
-  creating a relationship can add it to that export;
-- each bundle request performs a relationship query, although the query is
-  constrained to relationships whose two endpoints are already selected.
+Each persisted snapshot references a tier-aware manifest. A pending manifest
+and all of its entries are written before the snapshot is linked to it, then
+activated after persistence succeeds. The snapshot link is the durable commit
+record: replay can use and self-activate a complete linked pending manifest
+after a process interruption.
+A standard release replaces the draft manifest with one built from the
+resolved release plan, so dynamic staged selectors become exact members.
+Materialized virtual snapshots contain exact roots from the outset.
 
-Consumers that require byte-for-byte or graph-level reproducibility must
-archive the emitted bundle.
+Active and pending manifests protect their exact dependencies. In-place
+updates and hard deletes that would invalidate a primary or secondary
+revision return `409`; lineage deletion is rejected when any version is
+protected. Relationship source, target, and type changes are rejected.
+Description-only relationship corrections remain allowed because the
+relationship STIX payload used by older snapshots is frozen in the manifest.
+Deleting a draft snapshot or track removes its manifest and releases
+protection that no other snapshot needs.
 
-Making bundle graphs deterministic requires a separate, high-risk data-model
-change rather than virtual composition re-resolution. A future design must
-version-control relationships, pin each SRO endpoint to an exact SDO revision,
-and likely clone every affected SRO whenever a new endpoint revision is
-created. It must also persist an export manifest containing the selected
-relationship and other secondary-object revisions. That one-to-one SDO/SRO
-model has significant migration, write-amplification, concurrency, and
-database-storage costs and is deliberately deferred pending design and
-measurement.
+Existing data is upgraded by an idempotent migration. Only the latest
+revision of each legacy relationship can be endpoint-pinned truthfully.
+Pre-existing snapshot manifests are labeled `baseline_reconstruction`
+because they describe the graph visible during migration rather than an
+unknowable historical graph.
+
+The deliberate exception is a standard draft export that explicitly includes
+a candidate or staged entry stored as `"latest"`. That selector is defined to
+move until release, so the selected draft graph is resolved for that request.
+Release preview and commit resolve it again; a successful commit stores an
+exact manifest. Members, tagged releases, materialized virtual snapshots, and
+exact-selector draft tiers replay deterministically.
+
+The graph and object payload are reproducible, but the bundle is not promised
+to be byte-for-byte identical: the bundle envelope receives a newly generated
+bundle ID. Consumers should compare the emitted STIX object set and revisions,
+not the envelope UUID.
 
 ### Where validation happens
 

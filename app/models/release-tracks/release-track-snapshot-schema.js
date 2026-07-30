@@ -364,6 +364,7 @@ const releaseTrackSnapshotDefinition = {
     default: null,
     validate: validateVersion,
   },
+  graph_manifest_id: { type: String },
 
   // Release track metadata
   name: {

@@ -351,12 +351,34 @@ class TaggedSnapshotDeletionError extends CustomError {
   }
 }
 
+class HistoricalSnapshotDeletionError extends CustomError {
+  constructor(snapshotModified, latestSnapshotModified, options = {}) {
+    super('Only the latest untagged snapshot can be deleted', {
+      ...options,
+      snapshot_modified: new Date(snapshotModified).toISOString(),
+      latest_snapshot_modified: latestSnapshotModified
+        ? new Date(latestSnapshotModified).toISOString()
+        : null,
+    });
+  }
+}
+
 class MemberPinnedRevisionError extends CustomError {
   constructor(options) {
     super(
       'This revision is pinned in the members tier of a release track and is released content: ' +
         'it cannot be modified or deleted in place. Create a new revision instead ' +
         '(set x_mitre_deprecated on a new revision to retire the object).',
+      options,
+    );
+  }
+}
+
+class SnapshotGraphPinnedRevisionError extends CustomError {
+  constructor(options) {
+    super(
+      'This revision is frozen in a release-track snapshot graph and cannot be modified or ' +
+        'deleted in place. Create a new revision instead.',
       options,
     );
   }
@@ -437,6 +459,7 @@ module.exports = {
   DuplicateReleaseVersionError,
   InvalidObjectRevisionError,
   TaggedSnapshotDeletionError,
+  HistoricalSnapshotDeletionError,
   InvalidVersionError,
 
   //** Release track errors */
@@ -449,6 +472,7 @@ module.exports = {
   VirtualSnapshotNotMaterializedError,
   TrackNotFoundError,
   MemberPinnedRevisionError,
+  SnapshotGraphPinnedRevisionError,
 
   //** Database-related errors */
   DuplicateIdError,
