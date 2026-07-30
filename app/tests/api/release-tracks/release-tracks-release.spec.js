@@ -2,13 +2,16 @@
 
 const request = require('supertest');
 const { expect } = require('expect');
+const sinon = require('sinon');
 
 const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
+const releaseHistoryService = require('../../../services/release-tracks/release-history-service');
 const versioningService = require('../../../services/release-tracks/versioning-service');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const staticMarkingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 const virtualObjectRefs = [
@@ -171,6 +174,54 @@ describe('Release-track release planning and commit API', function () {
     expect(released.body.version_history.at(-1)).not.toHaveProperty('component_versions');
   });
 
+  it('allows only one concurrent release to claim a version', async function () {
+    const track = await createTrack('Concurrent Release Version');
+    const newerDraft = await post(`/api/release-tracks/${track.id}/meta`, {
+      description: 'A distinct draft racing for the same release version',
+    });
+    const originalHistoryLookup = releaseHistoryService.getTrackWideVersionHistory;
+    let waiting = 0;
+    let releaseBarrier;
+    const bothPlanned = new Promise((resolve) => {
+      releaseBarrier = resolve;
+    });
+    const historyStub = sinon
+      .stub(releaseHistoryService, 'getTrackWideVersionHistory')
+      .callsFake(async (...args) => {
+        const history = await originalHistoryLookup(...args);
+        waiting += 1;
+        if (waiting === 2) releaseBarrier();
+        await bothPlanned;
+        return history;
+      });
+
+    const release = (modified) =>
+      request(app)
+        .post(`/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(modified)}/release`)
+        .send({ version: '2.0' })
+        .set('Accept', 'application/json')
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`);
+
+    let responses;
+    try {
+      responses = await Promise.all([release(track.modified), release(newerDraft.body.modified)]);
+    } finally {
+      historyStub.restore();
+    }
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+
+    const conflict = responses.find((response) => response.status === 409);
+    expect(conflict.body).toEqual({
+      message: `Release track ${track.id} already has tagged version 2.0`,
+      track_id: track.id,
+      version: '2.0',
+    });
+
+    const tagged = await dynamicRepo.getAllSnapshots(track.id, { taggedOnly: true });
+    expect(tagged.pagination.total).toBe(1);
+    expect(tagged.data[0].version).toBe('2.0');
+  });
+
   it('freezes a dynamic staged reference to the latest revision during release', async function () {
     const revisionA = (await post('/api/techniques', buildTechnique('Dynamic Release A'), 201))
       .body;
@@ -313,14 +364,10 @@ describe('Release-track release planning and commit API', function () {
   it('records immutable component versions when previewing and releasing a virtual draft', async function () {
     const member = (await post('/api/techniques', buildTechnique('Provenance Member'), 201)).body;
     const component = await createTrack('Provenance Component');
-    await post(`/api/release-tracks/${component.id}/contents`, {
-      x_mitre_contents: [{ obj_ref: member.stix.id, obj_modified: member.stix.modified }],
-    });
-    const firstComponentRelease = await post(
-      `/api/release-tracks/${component.id}/snapshots/latest/release`,
-      {},
-    );
-    expect(firstComponentRelease.body.version).toBe('1.0');
+    const firstComponentRelease = await releaseExactMembers(app, passportCookie, component.id, [
+      member,
+    ]);
+    expect(firstComponentRelease.version).toBe('1.0');
 
     const virtual = (
       await post(
@@ -351,8 +398,8 @@ describe('Release-track release planning and commit API', function () {
 
     // Advance the component after materialization. Virtual release provenance
     // must remain tied to the frozen component resolution, not current state.
-    await post(`/api/release-tracks/${component.id}/contents`, {
-      x_mitre_contents: [{ obj_ref: member.stix.id, obj_modified: member.stix.modified }],
+    await post(`/api/release-tracks/${component.id}/meta`, {
+      description: 'Component draft created after virtual materialization',
     });
     const secondComponentRelease = await post(
       `/api/release-tracks/${component.id}/snapshots/latest/release`,
@@ -479,30 +526,41 @@ describe('Release-track release planning and commit API', function () {
   });
 
   it('compares the latest virtual draft with its preceding tagged release', async function () {
+    const updatedOld = (
+      await post('/api/techniques', buildTechnique('Virtual Preview Updated Old'), 201)
+    ).body;
+    const updatedNew = (
+      await post('/api/techniques', buildTechnique('Virtual Preview Updated New', updatedOld), 201)
+    ).body;
+    const removed = (await post('/api/techniques', buildTechnique('Virtual Preview Removed'), 201))
+      .body;
+    const added = (await post('/api/techniques', buildTechnique('Virtual Preview Added'), 201))
+      .body;
+    const quarantined = (
+      await post('/api/techniques', buildTechnique('Virtual Preview Quarantined'), 201)
+    ).body;
     const track = await createTrack('Virtual Release Preview', 'virtual');
     const created = new Date(track.modified);
     const taggedModified = new Date(created.getTime() + 1000);
     const draftModified = new Date(created.getTime() + 2000);
-    const oldRevision = new Date(created.getTime() - 2000);
-    const newRevision = new Date(created.getTime() - 1000);
 
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: taggedModified,
       version: '1.0',
       members: [
-        memberEntry(virtualObjectRefs[0], oldRevision),
-        memberEntry(virtualObjectRefs[1], oldRevision),
+        memberEntry(updatedOld.stix.id, updatedOld.stix.modified),
+        memberEntry(removed.stix.id, removed.stix.modified),
       ],
-      quarantine: [quarantineEntry(virtualObjectRefs[3], oldRevision, track.id)],
+      quarantine: [quarantineEntry(quarantined.stix.id, quarantined.stix.modified, track.id)],
     });
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: draftModified,
       version: null,
       members: [
-        memberEntry(virtualObjectRefs[0], newRevision),
-        memberEntry(virtualObjectRefs[2], newRevision),
+        memberEntry(updatedNew.stix.id, updatedNew.stix.modified),
+        memberEntry(added.stix.id, added.stix.modified),
       ],
       quarantine: [],
       composition_resolution: compositionResolution(draftModified),
@@ -536,32 +594,43 @@ describe('Release-track release planning and commit API', function () {
   });
 
   it('compares a historical virtual draft with the tagged release that preceded it', async function () {
+    const updatedOld = (
+      await post('/api/techniques', buildTechnique('Historical Virtual Updated Old'), 201)
+    ).body;
+    const updatedNew = (
+      await post(
+        '/api/techniques',
+        buildTechnique('Historical Virtual Updated New', updatedOld),
+        201,
+      )
+    ).body;
+    const laterMember = (
+      await post('/api/techniques', buildTechnique('Historical Virtual Later Member'), 201)
+    ).body;
     const track = await createTrack('Historical Virtual Release Preview', 'virtual');
     const created = new Date(track.modified);
     const firstTaggedModified = new Date(created.getTime() + 1000);
     const historicalDraftModified = new Date(created.getTime() + 2000);
     const laterTaggedModified = new Date(created.getTime() + 3000);
-    const oldRevision = new Date(created.getTime() - 2000);
-    const newRevision = new Date(created.getTime() - 1000);
 
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: firstTaggedModified,
       version: '1.0',
-      members: [memberEntry(virtualObjectRefs[0], oldRevision)],
+      members: [memberEntry(updatedOld.stix.id, updatedOld.stix.modified)],
     });
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: historicalDraftModified,
       version: null,
-      members: [memberEntry(virtualObjectRefs[0], newRevision)],
+      members: [memberEntry(updatedNew.stix.id, updatedNew.stix.modified)],
       composition_resolution: compositionResolution(historicalDraftModified),
     });
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: laterTaggedModified,
       version: '2.0',
-      members: [memberEntry(virtualObjectRefs[3], newRevision)],
+      members: [memberEntry(laterMember.stix.id, laterMember.stix.modified)],
     });
 
     const preview = await get(
@@ -624,10 +693,7 @@ describe('Release-track release planning and commit API', function () {
       await post('/api/techniques', buildTechnique('Virtual Materialization Member'), 201)
     ).body;
     const component = await createTrack('Virtual Materialization Component');
-    await post(`/api/release-tracks/${component.id}/contents`, {
-      x_mitre_contents: [{ obj_ref: member.stix.id, obj_modified: member.stix.modified }],
-    });
-    await post(`/api/release-tracks/${component.id}/snapshots/latest/release`, {});
+    await releaseExactMembers(app, passportCookie, component.id, [member]);
 
     const virtual = (
       await post(
@@ -686,7 +752,7 @@ describe('Release-track release planning and commit API', function () {
     expect(preview.body.releasable).toBe(true);
   });
 
-  it('rejects generic contents replacement for virtual tracks', async function () {
+  it('does not expose generic contents replacement for virtual tracks', async function () {
     const virtual = await createTrack('Virtual Contents Guard', 'virtual');
     const contents = {
       x_mitre_contents: [
@@ -697,11 +763,15 @@ describe('Release-track release planning and commit API', function () {
       ],
     };
 
-    await post(`/api/release-tracks/${virtual.id}/contents`, contents, 400);
     await post(
-      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(virtual.modified)}/contents`,
+      `/api/release-tracks/${virtual.id}/contents?confirm_track_id=${virtual.id}`,
       contents,
-      400,
+      404,
+    );
+    await post(
+      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(virtual.modified)}/contents?confirm_track_id=${virtual.id}`,
+      contents,
+      404,
     );
 
     const latest = await get(`/api/release-tracks/${virtual.id}/snapshots/latest`);
@@ -716,9 +786,7 @@ describe('Release-track release planning and commit API', function () {
       await post('/api/techniques', buildTechnique('Release Conflict B', revisionA), 201)
     ).body;
     const track = await createTrack('Release Conflict');
-    await post(`/api/release-tracks/${track.id}/contents`, {
-      x_mitre_contents: [{ obj_ref: revisionA.stix.id, obj_modified: revisionA.stix.modified }],
-    });
+    await releaseExactMembers(app, passportCookie, track.id, [revisionA]);
     await post(`/api/release-tracks/${track.id}/candidates`, {
       object_refs: [{ id: revisionB.stix.id, modified: 'latest' }],
     });

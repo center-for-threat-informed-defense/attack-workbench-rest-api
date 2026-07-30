@@ -954,10 +954,12 @@ Consequently, while the track does not acquire a newer snapshot,
 `latest` path segment selects the most recent snapshot; it is not a dynamic
 object-revision selector.
 
-This guarantee applies to the persisted primary snapshot contents.
-`format=bundle` also discovers secondary relationships and supporting objects
-at export time, so the complete bundle graph is not currently reproducible.
-See [Bundle Export](../../developer/release-tracks/bundle-export.md#relationship-and-secondary-object-consistency-boundary).
+This guarantee also covers the bounded `format=bundle` object graph.
+Relationship endpoint revisions, secondary objects, supporting objects, and
+LinkById render targets are frozen in the snapshot's graph manifest.
+Repeated exports may use a different bundle-envelope UUID, but replay the same
+snapshot object graph. See
+[Bundle Export](../../developer/release-tracks/bundle-export.md#relationship-and-secondary-object-consistency-boundary).
 
 ## Quarantine Management
 
@@ -1151,8 +1153,7 @@ POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 If composition changes after materialization, repeat the create step. Direct
-member replacement through either standard-track `/contents` endpoint is
-rejected for virtual tracks.
+member replacement is not supported.
 
 ### 2. Use Scheduled Snapshots for Consistency
 

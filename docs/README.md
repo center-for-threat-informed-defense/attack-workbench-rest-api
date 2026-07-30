@@ -50,6 +50,7 @@ Architecture, patterns, and implementation details for contributors.
 - [Error Handling](developer/release-tracks/error-handling.md): Error handling patterns
 - [Implementation Notes](developer/release-tracks/implementation-notes.md): Implementation notes and decisions
 - [Releases By Object](developer/release-tracks/releases-by-object.md): Registry catalogue, fan-out query, and indexing design
+- [Authorization](developer/release-tracks/authorization.md): Role matrix, destructive confirmation, and audit contract
 
 ## Admin Documentation
 
@@ -58,6 +59,9 @@ Configuration, deployment, and identity provider setup.
 - [Configuration](admin/configuration.md): Complete configuration guide (environment variables, JSON files)
 - [Automation Run Audit Trail](admin/automation-runs.md): How to inspect migration and scheduler audit records
 - [Virtual Track Schedules](admin/virtual-track-schedules.md): UTC execution, restart recovery, retries, and observability
+- [Release-Track Membership Reconciliation](admin/release-track-reconciliation.md): Inspect and repair durable object-backref protection failures
+- [Release-Track Destructive Audit Events](admin/release-track-audit.md): Inspect administrator track-deletion attempts
+- [Release-Track Deterministic Graph Migration](admin/release-track-graph-migration.md): Preview and operate the relationship-pin and snapshot-manifest backfill
 
 ### Authentication
 

@@ -5,6 +5,7 @@ const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -100,13 +101,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
   }
 
   async function setMembers(trackId, technique) {
-    return postObject(
-      `/api/release-tracks/${trackId}/contents`,
-      {
-        x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
-      },
-      200,
-    );
+    return releaseExactMembers(app, passportCookie, trackId, [technique]);
   }
 
   async function latestSnapshotModified(trackId) {

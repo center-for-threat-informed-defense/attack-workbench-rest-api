@@ -592,6 +592,19 @@ class BaseRepository extends AbstractRepository {
   }
 
   /**
+   * Return every release-track ID present in denormalized object backrefs.
+   * Used only by administrative full-scan repair so deleted tracks with stale
+   * backrefs are included alongside registry-backed tracks.
+   */
+  async distinctReleaseTrackIds() {
+    try {
+      return await this.model.distinct('workspace.release_tracks.id').exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
    * Resolve specific object revisions to their document _ids. Lean, minimal
    * projection — used by release-track backref reconciliation.
    *

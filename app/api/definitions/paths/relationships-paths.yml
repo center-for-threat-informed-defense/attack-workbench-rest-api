@@ -248,7 +248,7 @@ paths:
         '404':
           description: 'A relationship with the requested STIX id was not found.'
         '409':
-          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
+          description: 'The version is pinned by release-track membership or a snapshot graph manifest and cannot be modified or deleted in place. Create a new revision instead.'
 
   /api/relationships/{stixId}/modified/{modified}:
     get:
@@ -320,7 +320,7 @@ paths:
         '404':
           description: 'A relationship with the requested STIX id and modified date was not found.'
         '409':
-          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
+          description: 'The version is pinned by release-track membership or a snapshot graph manifest and cannot be modified or deleted in place. Create a new revision instead.'
     delete:
       summary: 'Delete a relationship'
       operationId: 'relationship-delete'
@@ -348,4 +348,4 @@ paths:
         '404':
           description: 'A relationship with the requested STIX id and modified date was not found.'
         '409':
-          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
+          description: 'The version is pinned by release-track membership or a snapshot graph manifest and cannot be modified or deleted in place. Create a new revision instead.'

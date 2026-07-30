@@ -4,6 +4,7 @@ const modelFactory = require('../../models/release-tracks/model-factory');
 const {
   DatabaseError,
   DuplicateIdError,
+  DuplicateReleaseVersionError,
   BadlyFormattedParameterError,
 } = require('../../exceptions');
 const logger = require('../../lib/logger');
@@ -166,6 +167,43 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  /**
+   * Find tagged snapshots whose members tier contains an object revision.
+   * Omitting objectModified matches every released revision for the STIX ID.
+   * This query reads the tagged snapshots themselves rather than relying on
+   * denormalized object backrefs or registry release metadata.
+   */
+  async findTaggedSnapshotsContainingRevision(trackId, objectRef, objectModified) {
+    try {
+      const Model = this._getModel(trackId);
+      const memberMatch = { object_ref: objectRef };
+      if (objectModified !== undefined) {
+        memberMatch.object_modified = new Date(objectModified);
+      }
+
+      return await Model.find(
+        {
+          id: trackId,
+          version: { $type: 'string' },
+          members: { $elemMatch: memberMatch },
+        },
+        {
+          id: 1,
+          type: 1,
+          name: 1,
+          modified: 1,
+          version: 1,
+          members: { $elemMatch: memberMatch },
+        },
+      )
+        .sort({ modified: 1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async getAllSnapshots(trackId, options = {}) {
     try {
       const Model = this._getModel(trackId);
@@ -266,8 +304,12 @@ class ReleaseTrackDynamicRepository {
       return saved.toObject();
     } catch (err) {
       if (err.name === 'MongoServerError' && err.code === 11000) {
+        if (err.keyPattern?.version && typeof snapshotData.version === 'string') {
+          throw new DuplicateReleaseVersionError(trackId, snapshotData.version, { cause: err });
+        }
         throw new DuplicateIdError({
           details: `Snapshot with modified '${snapshotData.modified}' already exists for track '${trackId}'.`,
+          cause: err,
         });
       }
       throw new DatabaseError(err);
@@ -305,9 +347,7 @@ class ReleaseTrackDynamicRepository {
       return result;
     } catch (err) {
       if (err.name === 'MongoServerError' && err.code === 11000) {
-        throw new DuplicateIdError({
-          details: `Version conflict while tagging snapshot for track '${trackId}'.`,
-        });
+        throw new DuplicateReleaseVersionError(trackId, versionData.version, { cause: err });
       }
       throw new DatabaseError(err);
     }

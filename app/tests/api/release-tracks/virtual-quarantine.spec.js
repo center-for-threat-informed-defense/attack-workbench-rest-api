@@ -7,6 +7,7 @@ const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const staticMarkingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 
@@ -73,15 +74,7 @@ describe('Virtual release-track quarantine API', function () {
 
   async function createReleasedComponent(name, member) {
     const track = await createTrack(name);
-    await post(`/api/release-tracks/${track.id}/contents`, {
-      x_mitre_contents: [
-        {
-          obj_ref: member.stix.id,
-          obj_modified: member.stix.modified,
-        },
-      ],
-    });
-    await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {});
+    await releaseExactMembers(app, passportCookie, track.id, [member]);
     return track;
   }
 

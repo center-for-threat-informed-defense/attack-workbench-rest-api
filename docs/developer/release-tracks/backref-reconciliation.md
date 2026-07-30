@@ -18,9 +18,9 @@ tracks follow that precedent but maintain the pointers event-driven.
 
 Membership changes through many routes: add/remove candidates, review,
 manual and auto promotion, demotion, release (staged → members), member sync,
-`updateContents`, track cloning, bundle import, snapshot deletion, and track
-deletion. Patching each route with a bespoke incremental backref update would
-be error-prone and would drift.
+track cloning, bundle import, latest-draft deletion, and track deletion.
+Patching each route with a bespoke incremental backref update would be
+error-prone and would drift.
 
 Instead, every route already funnels through a small set of persistence choke
 points, and each choke point triggers a full **snapshot-driven reconciliation**:
@@ -34,11 +34,14 @@ self-healing — a missed or failed pass is corrected by the next one.
 ```
 snapshot-service.cloneSnapshot        ┐  (every tier/config/metadata mutation,
 snapshot-service._cloneToNewTrack     │   member sync, auto-promotion,
-snapshot-service.deleteSnapshot       │   bundle import, updateContents, ...)
+snapshot-service.deleteSnapshot       │   bundle import, ...)
 snapshot-service.deleteTrack          │
 versioning-service.releaseLatest/releaseByModified            ┘  (staged → members via tagSnapshotInPlace)
         │
-        ▼  awaited EventBus.emit release-track::contents-changed  { trackId, snapshot }
+        ▼  persist releaseTrackReconciliations record (pending)
+        │
+        ▼  awaited EventBus.emitRequired release-track::contents-changed
+        │                          { trackId, snapshot, reconciliationId }
         │                          snapshot = track's latest snapshot,
         │                          or null when the track (or its only
         │                          snapshot) was deleted
@@ -63,8 +66,17 @@ can reference its ID yet. `releaseByModified` may tag an older snapshot; the rel
 path therefore re-reads the *latest* snapshot before emitting rather than
 using the tagged one.
 
-Emissions are awaited (the request/response-blocking convention), so backrefs
-are consistent by the time the triggering API call returns.
+Emissions are awaited and required. The EventBus rejects when either owning
+listener fails or is not registered. A successful response therefore means
+both object collections were reconciled. A failure returns HTTP `500` with
+the durable `reconciliation_id`; the release-track mutation may already be
+persisted and must not be retried blindly.
+
+Every attempt is written to `releaseTrackReconciliations` before listeners
+run. Records move through `pending`, `completed`, or `failed` and retain the
+requested snapshot, attempt count, timestamps, and last error. If recording
+completion fails after the listeners succeeded, the record remains pending;
+replaying it is safe because reconciliation is idempotent.
 
 ## Reconciliation algorithm
 
@@ -133,5 +145,37 @@ backref to the newly latest revision without rewriting the stored selector
   revision is later re-created, its backref is restored on the next
   contents-changed event for that track, not immediately.
 - **Historical snapshots.** Backrefs describe only the *latest* snapshot per
-  track. Membership in older snapshots remains discoverable only from the
-  track side.
+  track. Object mutation guards do not trust that derived view: they query
+  every registered track's tagged snapshots for the exact revision before an
+  in-place update or delete. Historical tagged membership therefore remains
+  immutable even after the latest draft removes the object or the registry's
+  tagged-release catalogue is stale.
+- **Crash window before record creation.** Snapshot persistence and the
+  central reconciliation record are not in one MongoDB transaction. A hard
+  process failure in that narrow interval can leave no pending record.
+  Operators should run the full-scan repair after an unclean shutdown; it
+  compares every registered track and every track ID found in object
+  backrefs against current latest snapshots.
+
+## Repair
+
+Repair outstanding `pending`/`failed` attempts:
+
+```bash
+npm run repair:release-track-backrefs
+```
+
+Limit one invocation with `--limit`:
+
+```bash
+npm run repair:release-track-backrefs -- --limit=500
+```
+
+Perform a full idempotent scan, including stale backrefs for deleted tracks:
+
+```bash
+npm run repair:release-track-backrefs -- --all
+```
+
+The command exits nonzero if any track still fails and prints a JSON summary
+with track and reconciliation identifiers.

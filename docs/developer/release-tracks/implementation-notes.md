@@ -13,6 +13,19 @@ db.objects.createIndex({ 'workspace.collections.staged': 1 });
 db.objects.createIndex({ 'workspace.workflow.status': 1 });
 ```
 
+Each release track also owns a dynamic snapshot collection. Tagged versions
+use a unique partial index on `{ id: 1, version: 1 }`, restricted to documents
+whose `version` is a string. Drafts therefore remain unlimited at
+`version: null`, while the database—not an application-level preflight—decides
+which concurrent release may claim a version.
+
+Release tracks are still pre-release, and no shared deployment retains track
+data written under the former non-unique index. Existing personal development
+tracks are therefore reset or recreated instead of establishing a permanent
+upgrade contract for beta data. Once release tracks are formally released,
+future index or persistence changes must include an appropriate migration for
+supported deployments.
+
 ## Validation Rules
 
 - **Same revision selector** can only be in one tier per release-track snapshot
@@ -27,6 +40,33 @@ db.objects.createIndex({ 'workspace.workflow.status': 1 });
   `version`, never both. Controller validation returns 400 at the HTTP boundary,
   and `version-utils.calculateNextVersion` repeats the invariant so internal
   release-planning callers cannot silently choose one selector.
+
+### Primary revision integrity boundary
+
+`app/services/release-tracks/primary-revision-service.js` is the shared
+existence and hydration boundary for primary snapshot content. It resolves
+dynamic selectors, batches exact `(object_ref, object_modified)` reads by STIX
+type, preserves request order, and reports every missing revision instead of
+silently dropping it.
+
+The error contract distinguishes who can correct the problem:
+
+- Request ingress returns `400` with `missing_references` when candidate
+  selection names a revision that does not exist.
+- Operations over already-persisted content return `409` with
+  `missing_references` when a release preview/commit, track clone, virtual
+  materialization, quarantine promotion, or bundle export encounters a
+  dangling primary reference.
+- Repository failures propagate as server errors. They are never interpreted
+  as an empty query result, because doing so could emit a partial release.
+
+Bundle bootstrap is also fail-closed. Every primary bundle object must have a
+supported Workbench repository and must either be persisted successfully or
+already exist as the exact revision being imported. The track registry and
+initial snapshot are not created if any primary object fails. Import is not a
+database transaction across the heterogeneous object collections, so objects
+successfully created before a later failure may remain as ordinary Workbench
+objects; no partial release track points at them.
 
 ### Cross-tier revision enforcement
 
@@ -122,10 +162,11 @@ a standard component track.
 
 Snapshot retrieval never re-runs composition, so there is no `resolve` query
 parameter or `resolved_content` response wrapper. Workbench retrieval returns
-the persisted primary membership. Bundle export is a separate consistency
-boundary: secondary relationships and supporting objects are discovered at
-request time and are not deterministic until relationships become
-version-controlled against exact endpoint revisions.
+the persisted primary membership. Bundle export replays a graph manifest
+captured with the snapshot. Relationship revisions carry server-controlled
+exact endpoint pins in `workspace.relationship_endpoints`, and the manifest
+freezes the bounded secondary/supporting graph without emitting those internal
+fields in STIX output.
 
 Snapshot schedules use the same strict, mode-discriminated Zod schema at the
 controller and service boundaries. `manual` has no selector field, `cron`
@@ -172,7 +213,8 @@ There is no side-effect-free virtual snapshot-creation preview. Once a virtual
 draft is persisted, it uses the same retrieval and release endpoints as a
 standard draft. Release planning never resolves composition and rejects a
 virtual draft without `composition_resolution` with `409 Conflict`. Generic
-latest and historical `/contents` mutations are standard-only; virtual
+snapshot member replacement is not supported for either track type. Standard
+membership enters through the candidate/staged/release lifecycle; virtual
 membership has composition resolution as its sole authority.
 
 Quarantine promotion is a snapshot mutation, not a composition

@@ -206,7 +206,7 @@ paths:
         '404':
           description: 'A analytic with the requested STIX id was not found.'
         '409':
-          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
+          description: 'The version is pinned by release-track membership or a snapshot graph manifest and cannot be modified or deleted in place. Create a new revision instead.'
 
   /api/analytics/{stixId}/modified/{modified}:
     get:
@@ -278,7 +278,7 @@ paths:
         '404':
           description: 'A analytic with the requested STIX id and modified date was not found.'
         '409':
-          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
+          description: 'The version is pinned by release-track membership or a snapshot graph manifest and cannot be modified or deleted in place. Create a new revision instead.'
     delete:
       summary: 'Delete a analytic'
       operationId: 'analytic-delete'
@@ -306,4 +306,4 @@ paths:
         '404':
           description: 'A analytic with the requested STIX id and modified date was not found.'
         '409':
-          description: 'The version is pinned in the members tier of a release track (released content) and cannot be modified or deleted in place. Create a new revision instead.'
+          description: 'The version is pinned by release-track membership or a snapshot graph manifest and cannot be modified or deleted in place. Create a new revision instead.'

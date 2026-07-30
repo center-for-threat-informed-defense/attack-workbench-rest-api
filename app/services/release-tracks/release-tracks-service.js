@@ -6,7 +6,7 @@
 // Orchestrator that delegates to domain-specific sub-services. This is the
 // single entry point consumed by the controller layer.
 //
-// Phase 1: Track management, snapshot CRUD, config → snapshot-service
+// Phase 1: Track management, snapshot lifecycle, config → snapshot-service
 // Phase 2: Candidates, staged, object versions    → standard-track-service
 // Phase 3: Auto-promotion, workflow               → workflow-service
 // Phase 4: Release planning and versioning        → versioning-service
@@ -24,10 +24,12 @@ const standardTrackService = require('./standard-track-service');
 const versioningService = require('./versioning-service');
 const virtualTrackService = require('./virtual-track-service');
 const exportService = require('./export-service');
+const primaryRevisionService = require('./primary-revision-service');
 const ephemeralService = require('./ephemeral-service');
 const bundleImportService = require('./bundle-import-service');
 const memberSyncService = require('./member-sync-service');
 const releaseHistoryService = require('./release-history-service');
+const destructiveAuditService = require('./destructive-audit-service');
 const attackObjectsService = require('../stix/attack-objects-service');
 const userAccountsService = require('../system/user-accounts-service');
 const revisionReference = require('../../lib/release-tracks/revision-reference');
@@ -37,6 +39,16 @@ const TIER_NAMES = ['members', 'staged', 'candidates', 'quarantine'];
 
 function notImplemented(methodName) {
   throw new NotImplementedError(MODULE, methodName);
+}
+
+function destructiveIdentity(trackId, actor, confirmation) {
+  return {
+    actor: actor || {
+      kind: 'system',
+      name: 'internal-service',
+    },
+    confirmation: confirmation || trackId,
+  };
 }
 
 function rejectFilesystemStoreFormat(format, methodName) {
@@ -173,6 +185,12 @@ function filterSnapshotTiers(snapshot, include) {
 }
 
 async function formatWorkbenchSnapshot(snapshot, options) {
+  const include = options?.include;
+  const selectedTiers =
+    !include || include === 'all' ? TIER_NAMES : [...new Set(['members', include])];
+  await primaryRevisionService.assertStoredEntries(
+    selectedTiers.flatMap((tierName) => snapshot[tierName] || []),
+  );
   const enriched = await addObjectInfoToSnapshot(snapshot);
   return filterSnapshotTiers(enriched, options?.include);
 }
@@ -271,28 +289,6 @@ exports.updateMetadata = function updateMetadata(trackId, updates, userId) {
   return snapshotService.updateMetadata(trackId, updates, userId);
 };
 
-exports.updateMetadataByModified = function updateMetadataByModified(
-  trackId,
-  modified,
-  updates,
-  userId,
-) {
-  return snapshotService.updateMetadataByModified(trackId, modified, updates, userId);
-};
-
-exports.updateContents = function updateContents(trackId, contents, userId) {
-  return snapshotService.updateContents(trackId, contents, userId);
-};
-
-exports.updateContentsByModified = function updateContentsByModified(
-  trackId,
-  modified,
-  contents,
-  userId,
-) {
-  return snapshotService.updateContentsByModified(trackId, modified, contents, userId);
-};
-
 exports.cloneTrack = function cloneTrack(trackId, options) {
   return snapshotService.cloneTrack(trackId, options);
 };
@@ -301,8 +297,17 @@ exports.cloneFromSnapshot = function cloneFromSnapshot(trackId, modified, option
   return snapshotService.cloneFromSnapshot(trackId, modified, options);
 };
 
-exports.deleteTrack = function deleteTrack(trackId) {
-  return snapshotService.deleteTrack(trackId);
+exports.deleteTrack = function deleteTrack(trackId, actor, confirmation) {
+  return destructiveAuditService.execute(
+    {
+      action: 'delete_track',
+      trackId,
+      ...destructiveIdentity(trackId, actor, confirmation),
+      request: {},
+      result: () => ({ deleted: true }),
+    },
+    () => snapshotService.deleteTrack(trackId),
+  );
 };
 
 exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
@@ -377,7 +382,10 @@ async function renderReleasePlan(plan, options) {
   if (format === 'summary') return plan.summary;
   if (plan.blockingError) throw plan.blockingError;
   if (format === 'bundle') {
-    return exportService.exportSnapshot(plan.plannedSnapshot, format, options);
+    return exportService.exportSnapshot(plan.plannedSnapshot, format, {
+      ...options,
+      captureGraph: true,
+    });
   }
   return formatWorkbenchSnapshot(plan.plannedSnapshot, options);
 }

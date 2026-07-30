@@ -11,6 +11,8 @@ const conflictResolution = require('../../lib/release-tracks/conflict-resolution
 const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const revisionReference = require('../../lib/release-tracks/revision-reference');
 const releaseHistoryService = require('./release-history-service');
+const primaryRevisionService = require('./primary-revision-service');
+const graphManifestService = require('./graph-manifest-service');
 const logger = require('../../lib/logger');
 const {
   AlreadyReleasedError,
@@ -261,6 +263,11 @@ async function planLoadedSnapshot(trackId, snapshot, options) {
         }
       : snapshot;
 
+  await primaryRevisionService.assertStoredEntries([
+    ...(releaseInput.members || []),
+    ...(releaseInput.staged || []),
+  ]);
+
   return planRelease(
     trackId,
     releaseInput,
@@ -274,15 +281,45 @@ async function planLoadedSnapshot(trackId, snapshot, options) {
 async function commitPlan(plan) {
   if (plan.blockingError) throw plan.blockingError;
 
-  const tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, plan.sourceSnapshot.modified, {
-    version: plan.version,
-    versionHistoryEntry: plan.versionHistoryEntry,
-    additionalOps: Object.keys(plan.additionalOps).length > 0 ? plan.additionalOps : undefined,
-  });
+  const manifestId = await graphManifestService.prepare(plan.plannedSnapshot);
+
+  let tagged;
+  try {
+    tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, plan.sourceSnapshot.modified, {
+      version: plan.version,
+      versionHistoryEntry: plan.versionHistoryEntry,
+      additionalOps: {
+        ...plan.additionalOps,
+        graph_manifest_id: manifestId,
+      },
+    });
+  } catch (err) {
+    await graphManifestService.discard(manifestId);
+    throw err;
+  }
 
   if (!tagged) {
+    await graphManifestService.discard(manifestId);
     await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
     throw new AlreadyReleasedError('(concurrent release)');
+  }
+
+  // Link the complete pending manifest before activation. The snapshot link
+  // is the durable commit record, and replay can recover a linked pending
+  // manifest if the process stops in this narrow window.
+  try {
+    await graphManifestService.activate(manifestId);
+  } catch (err) {
+    logger.warn(
+      `VersioningService: Deferred activation for graph manifest "${manifestId}": ${err.message}`,
+    );
+  }
+
+  if (
+    plan.sourceSnapshot.graph_manifest_id &&
+    plan.sourceSnapshot.graph_manifest_id !== manifestId
+  ) {
+    await graphManifestService.discard(plan.sourceSnapshot.graph_manifest_id);
   }
 
   await releaseHistoryService.reconcileTaggedReleases(plan.trackId);

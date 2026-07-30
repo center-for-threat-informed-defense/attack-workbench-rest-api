@@ -23,6 +23,12 @@ components:
           nullable: true
           description: 'Semantic version (e.g., "1.0", "2.1") if tagged, null for draft snapshots'
           example: '1.0'
+        graph_manifest_id:
+          type: string
+          readOnly: true
+          description: |
+            Server-controlled identifier for the frozen bundle graph associated
+            with this snapshot. Clients should treat this value as opaque.
         name:
           type: string
           description: 'Human-readable track name'
@@ -676,3 +682,74 @@ components:
           type: string
           format: date-time
           description: 'UTC occurrence timestamp; also serves as the idempotency key'
+
+    object-revision-reference:
+      type: object
+      required:
+        - object_ref
+        - object_modified
+      properties:
+        object_ref:
+          type: string
+          description: 'STIX object ID'
+        object_modified:
+          type: string
+          format: date-time
+          description: 'Exact STIX revision timestamp'
+
+    object-revision-error:
+      type: object
+      required:
+        - message
+        - missing_references
+      properties:
+        message:
+          type: string
+          description: 'Whether request input or persisted primary content failed validation'
+        missing_references:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/object-revision-reference'
+
+    release-track-reconciliation-error:
+      type: object
+      required:
+        - message
+        - track_id
+        - reconciliation_id
+      properties:
+        message:
+          type: string
+          enum:
+            - 'Release-track membership protection could not be reconciled'
+        details:
+          type: string
+          description: 'Operator guidance; the track mutation may already be persisted'
+        track_id:
+          type: string
+          description: 'Release track whose object backrefs require repair'
+        reconciliation_id:
+          type: string
+          format: uuid
+          description: 'Durable reconciliation record to inspect or repair'
+
+    release-track-audit-error:
+      type: object
+      required:
+        - message
+        - track_id
+        - audit_event_id
+      properties:
+        message:
+          type: string
+          enum:
+            - 'Release-track audit recording could not be finalized'
+        details:
+          type: string
+          description: 'Operator guidance; the destructive operation may already be persisted'
+        track_id:
+          type: string
+        audit_event_id:
+          type: string
+          format: uuid

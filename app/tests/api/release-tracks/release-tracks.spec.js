@@ -7,6 +7,7 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const AttackObject = require('../../../models/attack-object-model');
 const snapshotService = require('../../../services/release-tracks/snapshot-service');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -107,20 +108,7 @@ describe('Release Tracks API', function () {
 
     const trackId = createRes.body.id;
 
-    await request(app)
-      .post(`/api/release-tracks/${trackId}/contents`)
-      .send({
-        x_mitre_contents: [
-          {
-            obj_ref: memberObject.stix.id,
-            obj_modified: memberObject.stix.modified,
-          },
-        ],
-      })
-      .set('Accept', 'application/json')
-      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
-      .expect('Content-Type', /json/);
+    await releaseExactMembers(app, passportCookie, trackId, [memberObject]);
 
     await request(app)
       .post(`/api/release-tracks/${trackId}/candidates`)

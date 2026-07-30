@@ -23,6 +23,7 @@ const {
   AlreadyRevokedError,
   SelfRevocationError,
   MemberPinnedRevisionError,
+  SnapshotGraphPinnedRevisionError,
 } = require('../../exceptions');
 const { getSchema } = require('../../lib/validation-schemas');
 const { deepFreezeStix } = require('../../lib/import-safety');
@@ -374,9 +375,12 @@ class BaseService extends ServiceWithHooks {
     // Strip workspace.release_tracks — server-controlled; maintained by
     // release-track backref reconciliation, and pinned to specific revisions,
     // so a copy from a prior GET must not ride along onto a new version.
+    // Strip workspace.relationship_endpoints — relationship services resolve
+    // these exact endpoint pins from authoritative object revisions.
     if (data.workspace) {
       delete data.workspace.validation;
       delete data.workspace.release_tracks;
+      delete data.workspace.relationship_endpoints;
     }
 
     if (!options.preserveAttackId) {
@@ -713,20 +717,100 @@ class BaseService extends ServiceWithHooks {
    * @param {Object} document - The stored document ({ workspace, stix })
    * @param {string} operation - Verb for the error message ('updated'|'deleted')
    */
-  static assertNotMemberPinned(document, operation) {
-    const memberPins = (document.workspace?.release_tracks || []).filter(
+  static async assertNotMemberPinned(document, operation) {
+    const currentMemberPins = (document.workspace?.release_tracks || []).filter(
       (entry) => entry.tier === 'members',
     );
-    if (memberPins.length > 0) {
+    const taggedMembershipService = require('../release-tracks/tagged-membership-service');
+    const taggedPins = await taggedMembershipService.findPinsForRevision(
+      document.stix.id,
+      document.stix.modified,
+    );
+
+    if (currentMemberPins.length > 0 || taggedPins.length > 0) {
+      const trackIds = [
+        ...new Set([
+          ...currentMemberPins.map((entry) => entry.id),
+          ...taggedPins.map((entry) => entry.track_id),
+        ]),
+      ];
       throw new MemberPinnedRevisionError({
         details:
           `Revision ${document.stix.id} (modified ` +
           `${new Date(document.stix.modified).toISOString()}) is pinned in the members tier of ` +
-          `release track(s) ${memberPins.map((entry) => entry.id).join(', ')} and cannot be ` +
+          `release track(s) ${trackIds.join(', ')} and cannot be ` +
           `${operation} in place. Create a new revision instead (set x_mitre_deprecated on a ` +
           `new revision to retire the object).`,
+        release_tracks: trackIds,
+        tagged_releases: taggedPins,
       });
     }
+  }
+
+  static async assertNoMemberPinnedVersions(stixId, currentMemberPinned, operation) {
+    const taggedMembershipService = require('../release-tracks/tagged-membership-service');
+    const taggedPins = await taggedMembershipService.findPinsForObject(stixId);
+    const currentTrackIds = currentMemberPinned.flatMap((document) =>
+      (document.workspace?.release_tracks || [])
+        .filter((entry) => entry.tier === 'members')
+        .map((entry) => entry.id),
+    );
+    const trackIds = [
+      ...new Set([...currentTrackIds, ...taggedPins.map((entry) => entry.track_id)]),
+    ];
+
+    if (trackIds.length > 0) {
+      throw new MemberPinnedRevisionError({
+        details:
+          `Object ${stixId} has revision(s) pinned in the members tier of release track(s) ` +
+          `${trackIds.join(', ')} and cannot be ${operation}. Create a new revision instead ` +
+          `(set x_mitre_deprecated on a new revision to retire the object).`,
+        release_tracks: trackIds,
+        tagged_releases: taggedPins,
+      });
+    }
+  }
+
+  /**
+   * Protect every exact revision captured by an active or in-progress graph
+   * manifest. Relationship payloads are frozen in the manifest, so a
+   * non-topology PUT remains safe; relationship endpoint changes are rejected
+   * separately by RelationshipsService. Hard deletion is always rejected.
+   */
+  static async assertNotGraphPinned(document, operation) {
+    const graphManifestService = require('../release-tracks/graph-manifest-service');
+    const pins = await graphManifestService.findPinsForRevision(
+      document.stix.id,
+      document.stix.modified,
+    );
+    if (
+      pins.length === 0 ||
+      (operation === 'updated' && pins.every((pin) => pin.kind === 'relationship'))
+    ) {
+      return;
+    }
+
+    throw new SnapshotGraphPinnedRevisionError({
+      details:
+        `Revision ${document.stix.id} (modified ` +
+        `${new Date(document.stix.modified).toISOString()}) is frozen in ` +
+        `${pins.length} release-track snapshot graph manifest(s) and cannot be ${operation} ` +
+        'in place.',
+      snapshot_graph_pins: pins,
+    });
+  }
+
+  static async assertNoGraphPinnedVersions(stixId, operation) {
+    const graphManifestService = require('../release-tracks/graph-manifest-service');
+    const pins = await graphManifestService.findPinsForObject(stixId);
+    if (pins.length === 0) return;
+
+    throw new SnapshotGraphPinnedRevisionError({
+      details:
+        `Object ${stixId} has revision(s) frozen in ${pins.length} release-track snapshot ` +
+        `graph manifest(s) and cannot be ${operation}.`,
+      snapshot_graph_pins: pins,
+    });
   }
 
   /**
@@ -838,6 +922,7 @@ class BaseService extends ServiceWithHooks {
     if (data.workspace) {
       delete data.workspace.validation;
       delete data.workspace.release_tracks;
+      delete data.workspace.relationship_endpoints;
     }
 
     // Extract ATT&CK ID from external_references and propagate to workspace.attack_id
@@ -946,7 +1031,8 @@ class BaseService extends ServiceWithHooks {
     }
 
     // Members-pinned revisions are released content — immutable in place.
-    BaseService.assertNotMemberPinned(document, 'updated');
+    await BaseService.assertNotMemberPinned(document, 'updated');
+    await BaseService.assertNotGraphPinned(document, 'updated');
 
     // TODO: diff analysis — detect field-level changes vs document
     // TODO: if no changes detected, short-circuit (no-op)
@@ -1069,7 +1155,8 @@ class BaseService extends ServiceWithHooks {
     if (!existing) {
       return null;
     }
-    BaseService.assertNotMemberPinned(existing, 'deleted');
+    await BaseService.assertNotMemberPinned(existing, 'deleted');
+    await BaseService.assertNotGraphPinned(existing, 'deleted');
 
     const document = await this.repository.findOneAndDelete(stixId, stixModified);
 
@@ -1376,9 +1463,8 @@ class BaseService extends ServiceWithHooks {
 
     // Deleting all versions must not destroy a members-pinned revision
     const memberPinned = await this.repository.retrieveMemberPinnedVersionsLean(stixId);
-    for (const pinnedDocument of memberPinned) {
-      BaseService.assertNotMemberPinned(pinnedDocument, 'deleted');
-    }
+    await BaseService.assertNoMemberPinnedVersions(stixId, memberPinned, 'deleted');
+    await BaseService.assertNoGraphPinnedVersions(stixId, 'deleted');
 
     const result = await this.repository.deleteMany(stixId);
     if (result.deletedCount > 0) {

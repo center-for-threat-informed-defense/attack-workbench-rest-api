@@ -36,6 +36,8 @@
     "test:fuzz": "mocha --timeout 10000 --recursive ./app/tests/fuzz --exit",
     "test:scheduler": "mocha --timeout 60000 --recursive ./app/tests/scheduler --exit",
     "test:file": "mocha --timeout 10000 --exit",
+    "repair:release-track-backrefs": "node scripts/reconcileReleaseTrackBackrefs.js",
+    "preview:deterministic-snapshot-graphs": "node scripts/previewDeterministicSnapshotGraphMigration.js",
     "check:lockfile": "bash scripts/check-package-lock.sh"
   },
   "dependencies": {

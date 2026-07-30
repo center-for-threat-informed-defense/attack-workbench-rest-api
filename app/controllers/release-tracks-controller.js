@@ -38,7 +38,6 @@ const {
   createTrackBodySchema,
   createFromBundleBodySchema,
   updateMetadataBodySchema,
-  updateContentsBodySchema,
   releaseBodySchema,
   releaseVersionSelectionSchema,
   cloneBodySchema,
@@ -77,6 +76,25 @@ function parseOptionalQueryStrict(value, schema, defaultValue, parameterName) {
     parameterName,
     message: `Invalid ${parameterName} parameter`,
   });
+}
+
+function requireDestructiveConfirmation(req) {
+  if (req.query.confirm_track_id !== req.params.id) {
+    throw new BadRequestError({
+      message: 'Destructive release-track confirmation is required',
+      details: `Set confirm_track_id to the exact target track ID '${req.params.id}'.`,
+      parameter_name: 'confirm_track_id',
+      expected_track_id: req.params.id,
+    });
+  }
+}
+
+function destructiveActor(req) {
+  return {
+    user_account_id: req.user?.userAccountId,
+    role: req.user?.role,
+    authentication_strategy: req.user?.strategy,
+  };
 }
 
 function rejectFilesystemStoreFormat(format, methodName) {
@@ -442,32 +460,6 @@ exports.updateMetadataByLatest = async function updateMetadataByLatest(req, res,
   }
 };
 
-/** POST /api/release-tracks/:id/contents */
-exports.updateContentsByLatest = async function updateContentsByLatest(req, res, next) {
-  try {
-    const bodyResult = updateContentsBodySchema.safeParse(req.body);
-    if (!bodyResult.success) {
-      return next(
-        new BadRequestError({
-          message: 'Invalid contents update',
-          details: bodyResult.error.errors,
-        }),
-      );
-    }
-
-    const result = await releaseTracksService.updateContents(
-      req.params.id,
-      bodyResult.data,
-      req.user?.userAccountId,
-    );
-    logger.debug(`Success: Updated contents for track ${req.params.id}`);
-    return res.status(200).send(result);
-  } catch (err) {
-    logger.error('Failed to update track contents: ' + err);
-    return next(err);
-  }
-};
-
 /** POST /api/release-tracks/:id/snapshots/latest/release */
 exports.releaseLatest = async function releaseLatest(req, res, next) {
   try {
@@ -521,7 +513,12 @@ exports.cloneByLatest = async function cloneByLatest(req, res, next) {
 /** DELETE /api/release-tracks/:id */
 exports.deleteReleaseTrack = async function deleteReleaseTrack(req, res, next) {
   try {
-    await releaseTracksService.deleteTrack(req.params.id);
+    requireDestructiveConfirmation(req);
+    await releaseTracksService.deleteTrack(
+      req.params.id,
+      destructiveActor(req),
+      req.query.confirm_track_id,
+    );
     logger.debug(`Success: Deleted track ${req.params.id}`);
     return res.status(204).end();
   } catch (err) {
@@ -555,60 +552,6 @@ exports.retrieveSnapshotByModified = async function retrieveSnapshotByModified(r
     return res.status(200).send(result);
   } catch (err) {
     logger.error('Failed to retrieve snapshot by modified: ' + err);
-    return next(err);
-  }
-};
-
-/** POST /api/release-tracks/:id/snapshots/:modified/meta */
-exports.updateMetadataByModified = async function updateMetadataByModified(req, res, next) {
-  try {
-    const bodyResult = updateMetadataBodySchema.safeParse(req.body);
-    if (!bodyResult.success) {
-      return next(
-        new BadRequestError({
-          message: 'Invalid metadata update',
-          details: bodyResult.error.errors,
-        }),
-      );
-    }
-
-    const result = await releaseTracksService.updateMetadataByModified(
-      req.params.id,
-      req.params.modified,
-      bodyResult.data,
-      req.user?.userAccountId,
-    );
-    logger.debug(`Success: Updated metadata for snapshot ${req.params.modified}`);
-    return res.status(200).send(result);
-  } catch (err) {
-    logger.error('Failed to update snapshot metadata: ' + err);
-    return next(err);
-  }
-};
-
-/** POST /api/release-tracks/:id/snapshots/:modified/contents */
-exports.updateContentsByModified = async function updateContentsByModified(req, res, next) {
-  try {
-    const bodyResult = updateContentsBodySchema.safeParse(req.body);
-    if (!bodyResult.success) {
-      return next(
-        new BadRequestError({
-          message: 'Invalid contents update',
-          details: bodyResult.error.errors,
-        }),
-      );
-    }
-
-    const result = await releaseTracksService.updateContentsByModified(
-      req.params.id,
-      req.params.modified,
-      bodyResult.data,
-      req.user?.userAccountId,
-    );
-    logger.debug(`Success: Updated contents for snapshot ${req.params.modified}`);
-    return res.status(200).send(result);
-  } catch (err) {
-    logger.error('Failed to update snapshot contents: ' + err);
     return next(err);
   }
 };

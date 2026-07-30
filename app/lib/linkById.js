@@ -23,6 +23,23 @@ function attackReference(externalReferences) {
 }
 
 const linkByIdRegex = /\(LinkById: ([A-Z]+[0-9]+(\.[0-9]+)?)\)/g;
+
+function extractLinkByIds(stixObject) {
+  const values = [
+    stixObject?.description,
+    stixObject?.type === 'attack-pattern' ? stixObject.x_mitre_detection : undefined,
+    ...(stixObject?.external_references || []).map((reference) => reference.description),
+  ];
+  const attackIds = new Set();
+  for (const value of values) {
+    for (const match of value?.matchAll(linkByIdRegex) || []) {
+      attackIds.add(match[1]);
+    }
+  }
+  return [...attackIds];
+}
+exports.extractLinkByIds = extractLinkByIds;
+
 async function convertLinkById(text, getAttackObject) {
   if (text) {
     let convertedText = '';

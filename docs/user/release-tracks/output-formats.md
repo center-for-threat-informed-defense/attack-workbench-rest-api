@@ -47,6 +47,8 @@ shape for snapshot retrieval endpoints and is intended for the Workbench fronten
   response enriches them from the currently latest object revision without
   replacing the stored selector.
 - Adds UI-friendly object details to tier entries
+- Fails with HTTP `409` and `missing_references` rather than returning
+  partially enriched tier content when a selected primary revision is missing
 - Suitable for Workbench UI rendering and release-track management workflows
 
 Use `include` to narrow tier arrays in `workbench` responses:
@@ -100,6 +102,11 @@ Standard STIX bundle format:
 - If a draft export explicitly includes candidate or staged tiers, dynamic
   `"latest"` selectors are resolved for that export request. Tagged member
   contents remain exact.
+- Bundle export is fail-closed for primary content. If any selected exact
+  revision no longer exists, the server returns HTTP `409` with every missing
+  `(object_ref, object_modified)` pair in `missing_references`; it never emits
+  a partial bundle. A repository/database failure is returned as a server
+  error rather than being mistaken for missing content.
 - Notes are never included (notes are Workbench-native objects, not STIX objects)
 - Suitable for external publication
 

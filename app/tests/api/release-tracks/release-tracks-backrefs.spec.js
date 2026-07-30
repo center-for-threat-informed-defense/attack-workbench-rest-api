@@ -5,6 +5,7 @@ const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -196,6 +197,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
     it('deleting the track removes its backrefs', async function () {
       await request(app)
         .delete(`/api/release-tracks/${trackId}`)
+        .query({ confirm_track_id: trackId })
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(204);
 
@@ -296,30 +298,24 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
   });
 
   describe('members and snapshots', function () {
-    it('setting track contents adds member backrefs and reverts on snapshot delete', async function () {
+    it('deleting the latest draft reverts its candidate backrefs', async function () {
       const technique = await postObject('/api/techniques', buildTechnique('Backref Contents'));
       const trackId = await createTrack('Backref Contents Track');
 
-      const contentsSnapshot = await postObject(
-        `/api/release-tracks/${trackId}/contents`,
-        {
-          x_mitre_contents: [{ obj_ref: technique.stix.id, obj_modified: technique.stix.modified }],
-        },
-        200,
-      );
+      const candidateSnapshot = await addCandidates(trackId, [technique]);
 
       let retrieved = await getTechniqueVersion(technique);
       expect(entryForTrack(retrieved, trackId)).toEqual({
         id: trackId,
         type: 'standard',
-        tier: 'members',
-        status: 'reviewed',
+        tier: 'candidates',
+        status: 'work-in-progress',
       });
 
-      // Deleting the latest snapshot reverts membership to the previous
+      // Deleting the latest snapshot reverts contents to the previous
       // (empty) snapshot — the backref disappears
       await request(app)
-        .delete(`/api/release-tracks/${trackId}/snapshots/${contentsSnapshot.modified}`)
+        .delete(`/api/release-tracks/${trackId}/snapshots/${candidateSnapshot.modified}`)
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(204);
 
@@ -363,13 +359,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const revisionA = await postObject('/api/techniques', buildTechnique('Backref Member Sync'));
       const trackId = await createTrack('Backref Member Sync Track');
 
-      await postObject(
-        `/api/release-tracks/${trackId}/contents`,
-        {
-          x_mitre_contents: [{ obj_ref: revisionA.stix.id, obj_modified: revisionA.stix.modified }],
-        },
-        200,
-      );
+      await releaseExactMembers(app, passportCookie, trackId, [revisionA]);
 
       // Creating a new revision triggers member sync (default strategy:
       // track_latest) which auto-enrolls the new revision as a candidate
@@ -468,13 +458,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         buildTechnique('Backref Dynamic Ignore'),
       );
       const trackId = await createTrack('Backref Dynamic Ignore Track');
-      await postObject(
-        `/api/release-tracks/${trackId}/contents`,
-        {
-          x_mitre_contents: [{ obj_ref: revisionA.stix.id, obj_modified: revisionA.stix.modified }],
-        },
-        200,
-      );
+      await releaseExactMembers(app, passportCookie, trackId, [revisionA]);
       await request(app)
         .put(`/api/release-tracks/${trackId}/config`)
         .send({

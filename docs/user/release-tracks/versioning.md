@@ -191,6 +191,10 @@ Collections use a **two-part versioning scheme** (MAJOR.MINOR), inspired by sema
 2. **Immutable once set** - Once a snapshot has `version` assigned, it cannot be changed
 3. **Cannot re-tag** - A snapshot can only be tagged once (throws `AlreadyReleasedError` if attempted)
 4. **Valid version format** - Must match `/^\d+\.\d+$/` (MAJOR.MINOR only, no patch component)
+5. **Unique within the track** - Exactly one snapshot may hold a given tagged
+   version. If concurrent release requests race for the same version, one
+   succeeds and the other receives `409 Conflict` with the conflicting
+   `track_id` and `version`.
 
 ### First Tagged Release
 

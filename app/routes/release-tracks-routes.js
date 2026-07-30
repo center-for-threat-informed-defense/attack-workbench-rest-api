@@ -76,19 +76,6 @@ router
     releaseTracksController.updateMetadataByLatest,
   );
 
-/**
- * !!IMPORTANT
- * The following endpoint is considered dangerous. It is intended for retroactive hotfixes only. Thus, only admins may use it.
- * The main workflow for enrolling new member objects into members is through the candidate-staging promotion cycle.
- */
-router
-  .route('/release-tracks/:id/contents')
-  .post(
-    authn.authenticate,
-    authz.requireRole(authz.admin),
-    releaseTracksController.updateContentsByLatest,
-  );
-
 router
   .route('/release-tracks/:id/clone')
   .post(
@@ -248,24 +235,8 @@ router
   );
 
 // =============================================================================
-// Snapshot-specific operations (parameterised by :modified)
+// Snapshot-specific read, release, clone, and deletion operations
 // =============================================================================
-
-router
-  .route('/release-tracks/:id/snapshots/:modified/meta')
-  .post(
-    authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.updateMetadataByModified,
-  );
-
-router
-  .route('/release-tracks/:id/snapshots/:modified/contents')
-  .post(
-    authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.updateContentsByModified,
-  );
 
 router
   .route('/release-tracks/:id/snapshots/:modified/release/preview')
@@ -324,7 +295,7 @@ router
   .route('/release-tracks/:id')
   .delete(
     authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
+    authz.requireRole(authz.admin),
     releaseTracksController.deleteReleaseTrack,
   );
 

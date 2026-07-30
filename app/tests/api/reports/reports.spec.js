@@ -4,6 +4,7 @@ const { expect } = require('expect');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const AttackObject = require('../../../models/attack-object-model');
+const Technique = require('../../../models/technique-model');
 const config = require('../../../config/config');
 const login = require('../../shared/login');
 
@@ -69,6 +70,20 @@ describe('Reports API', function () {
 
     // Check for a valid database configuration
     await databaseConfiguration.checkSystemConfiguration();
+
+    const targetTimestamp = new Date();
+    await Technique.create({
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        type: 'attack-pattern',
+        spec_version: '2.1',
+        id: targetRef2,
+        created: targetTimestamp,
+        modified: targetTimestamp,
+        name: 'Report relationship target',
+        x_mitre_is_subtechnique: false,
+      },
+    });
 
     // Enable ADM validation; the request payloads in this spec are ADM-compliant
     config.validateRequests.withAttackDataModel = true;

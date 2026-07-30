@@ -21,8 +21,8 @@ Keep these rules in mind while updating the connector:
   namespace. Snapshot retrieval and release operations are shared.
 - New virtual-only operations include `/virtual/` in the path.
 - The current OpenAPI document is authoritative. Some older standard-only
-  workflow routes, such as `/candidates`, `/staged`, and `/contents`, predate
-  the namespace convention and do not currently include `/standard/`.
+  workflow routes, such as `/candidates` and `/staged`, predate the namespace
+  convention and do not currently include `/standard/`.
 - A release preview is a read-only `GET`. A release commit is a `POST`.
 
 ## P0 — Model draft revision selectors separately from released member pins
@@ -71,7 +71,196 @@ Done when:
 - Release-preview fixtures show dynamic staged input becoming exact
   would-be members, and committed-release fixtures contain no dynamic members.
 
+## P0 — Surface fail-closed primary revision errors
+
+### [ ] Explain missing primary revisions instead of showing a generic failure
+
+The backend now verifies every exact `(object_ref, object_modified)` primary
+reference at request ingress and again before it releases, clones,
+materializes, or renders a snapshot. It no longer omits objects that could not
+be hydrated.
+
+Two structured error cases are relevant to the UI:
+
+```ts
+interface MissingPrimaryRevisions {
+  message: string;
+  missing_references: Array<{
+    object_ref: string;
+    object_modified: string;
+  }>;
+}
+```
+
+- HTTP `400` means the current request selected a revision that does not
+  exist. Candidate add/version-update flows should keep the dialog open,
+  identify the missing selections, and let the operator correct them.
+- HTTP `409` means an existing draft or snapshot contains a dangling primary
+  reference. Snapshot retrieval, release preview/commit, cloning, virtual
+  materialization/quarantine promotion, and bundle export can return this
+  response. The UI should identify the affected revisions and explain that an
+  operator must repair the track/object data before continuing.
+
+Do not render a partial Workbench snapshot or treat a failed bundle request as
+an empty export.
+
+Done when:
+
+- The release-track connector exposes `missing_references` on `400` and `409`
+  responses instead of flattening the response to a generic message.
+- Candidate forms keep their input state after a `400` and highlight the
+  missing revisions.
+- Snapshot, release, clone, virtual-materialization, and export views present
+  an actionable integrity error for `409`.
+- Tests cover multiple missing references and prove no partial snapshot or
+  bundle is rendered.
+
+### [ ] Explain snapshot-graph protection conflicts on object edits and deletes
+
+Release-track snapshots now freeze the exact relationships and secondary
+objects needed to reproduce their bundle graph. If an object revision is a
+protected dependency of any active or linked-pending snapshot manifest, an
+in-place `PUT`, exact-revision `DELETE`, or full-lineage `DELETE` that would
+invalidate that graph returns
+`409 Conflict`:
+
+```ts
+{
+  message: string;
+  details?: string;
+  snapshot_graph_pins: Array<{
+    track_id: string;
+    snapshot_modified: string;
+    kind: 'root' | 'relationship' | 'secondary' | 'supporting' | 'link_target';
+    tier?: 'members' | 'staged' | 'candidates' | 'quarantine';
+  }>;
+}
+```
+
+This can occur from ordinary object-management screens, not only from the
+release-track UI. Present it as a versioning constraint: the operator should
+create a new object revision, or remove the draft snapshots that no longer
+need the old revision. Do not offer a force-delete path; administrator
+authorization does not bypass graph integrity.
+
+A standalone standard-track candidate or staged root remains editable through
+the existing in-place review workflow. It becomes graph-protected only when
+the same revision is also needed as a frozen dependency. Description-only
+relationship corrections are allowed because older snapshots retain the
+relationship payload captured in their manifests; relationship source,
+target, and type changes are rejected as graph changes.
+
+Done when:
+
+- Shared object edit/delete error handling recognizes
+  `snapshot_graph_pins`.
+- The message identifies the affected release track(s) and recommends a new
+  revision instead of a blind retry.
+- The UI does not expose a force-delete action for graph-protected revisions.
+
+### [ ] Handle persisted mutations whose membership reconciliation failed
+
+A release-track mutation can persist its snapshot before a downstream object
+backref write fails. The server now returns HTTP `500` instead of reporting
+success and includes:
+
+```ts
+{
+  message: 'Release-track membership protection could not be reconciled';
+  track_id: string;
+  reconciliation_id: string;
+  details?: string;
+}
+```
+
+For a release request, the snapshot may already be tagged. Do not
+automatically retry the POST: refresh snapshot history first, show the
+reconciliation ID, and direct the operator to an administrator if protection
+repair is still pending.
+
+Done when:
+
+- The connector preserves `track_id` and `reconciliation_id` from this `500`.
+- Release and mutation dialogs explain that persistence may have succeeded
+  and do not offer a blind retry.
+- The UI refreshes the relevant track before enabling another action.
+
 ## P0 — Align the Angular connector with the current routes
+
+### [x] Remove direct snapshot mutation controls and client methods
+
+Persisted snapshot history is now immutable. The backend no longer exposes:
+
+```text
+POST /api/release-tracks/:id/contents
+POST /api/release-tracks/:id/snapshots/:modified/contents
+POST /api/release-tracks/:id/snapshots/:modified/meta
+```
+
+Remove the corresponding connector methods, payload types, dialogs, buttons,
+and tests. Standard-track content should move through candidates, staged, and
+release. Virtual content should move through composition materialization and
+quarantine resolution. Metadata can be changed only from the latest snapshot
+via `POST /api/release-tracks/:id/meta`, which creates a new draft.
+
+Do not replace removed historical-edit actions with hidden calls or local
+state edits. If an operator wants a different result, they should correct the
+latest draft, delete it while deletion is still allowed, or create a newer
+draft.
+
+Done when:
+
+- No Angular code calls or models any of the three removed routes.
+- Snapshot history views are read-only except for supported release, clone,
+  and latest-draft deletion actions.
+- Standard and virtual editors direct users to their respective supported
+  workflows.
+
+Completed 2026-07-30: the Angular connector methods, payload type, and
+regression fixtures were removed. No component or menu called these methods,
+so no UI control needed to be migrated.
+
+### [ ] Offer deletion only for the latest untagged draft
+
+`DELETE /api/release-tracks/:id/snapshots/:modified` is a narrow “undo latest
+draft” operation. The server accepts it only when the selected snapshot is both
+untagged and currently latest. Tagged releases and older drafts return `409`
+because they are immutable history.
+
+In snapshot history, show Delete only on the latest item when `version == null`.
+After a successful delete, refresh both the latest snapshot and the history;
+the preceding snapshot becomes current. If a `409` occurs because another
+operation created a newer draft, refresh instead of retrying the stale delete.
+
+Done when:
+
+- Tagged and historical rows never offer Delete.
+- The confirmation explains that the track will revert to the preceding
+  snapshot.
+- A stale `409` refreshes the view and preserves history.
+
+### [ ] Add administrator confirmation for full track deletion
+
+Full track deletion is administrator-only and requires the query parameter
+`confirm_track_id` to exactly equal the `:id` path parameter:
+
+```text
+DELETE /api/release-tracks/:id?confirm_track_id=:id
+```
+
+Do not expose this action to editors or team leads. Before sending the request,
+show the track name and ID, explain that deletion removes all history, and
+require an explicit confirmation interaction. A missing or stale ID returns
+`400`; a non-administrator returns `401`.
+
+Done when:
+
+- Route guards and action visibility match the documented authorization
+  matrix.
+- The connector sends the selected track's exact ID as `confirm_track_id`.
+- Dialogs cannot reuse confirmation state after the selected track changes.
+- Tests cover administrator success plus editor, missing-confirmation, and
+  mismatched-confirmation rejection.
 
 ### [ ] Use only the explicit snapshot-retrieval endpoints
 
@@ -328,21 +517,11 @@ Done when:
 - A `409` from preview/release explains that materialization is required
   instead of being swallowed as a null preview.
 
-### [ ] Keep standard-only mutations out of virtual-track controls
-
-Direct contents replacement is now explicitly rejected for virtual tracks:
-
-```text
-POST /api/release-tracks/:id/contents
-POST /api/release-tracks/:id/snapshots/:modified/contents
-```
+### [ ] Keep standard workflow controls out of virtual tracks
 
 Virtual membership has one authority: composition materialization followed by
-optional quarantine resolution. Both contents endpoints return `400 Bad
-Request` for a virtual track.
-
-Hide direct member replacement, candidate, and staged controls when
-`type === 'virtual'`. Keep them available for standard tracks on their current
+optional quarantine resolution. Hide candidate and staged controls when
+`type === 'virtual'`; keep them available for standard tracks on their current
 routes.
 
 Done when:
@@ -562,9 +741,9 @@ not mean “resolve every member to its latest object revision.” If the track 
 not acquired another snapshot, repeated `/snapshots/latest` calls identify the
 same primary revision set.
 
-Bundle downloads remain a documented exception: the backend appends secondary
-relationships and supporting objects at request time, so the complete
-`format=bundle` graph is not guaranteed to reproduce an earlier download.
+Bundle downloads now replay the relationship/secondary graph captured when
+the snapshot was created. The generated bundle-envelope ID may change, but
+the object graph for a materialized virtual snapshot is stable.
 
 Done when:
 
@@ -574,8 +753,8 @@ Done when:
   `object_modified`.
 - Tests prove that advancing a component after materialization does not change
   the displayed virtual member revision.
-- User-facing export guidance does not promise byte-identical bundle
-  regeneration.
+- User-facing export guidance distinguishes a stable snapshot object graph
+  from the intentionally variable bundle-envelope UUID.
 
 ## P1 — Submit mode-correct virtual snapshot schedules
 
@@ -781,9 +960,14 @@ Minimum regression coverage:
 The following changes are useful context but should not create extra connector
 work:
 
-- Snapshot bundle exports now include valid secondary relationships
-  dynamically. Existing bundle download code receives a more complete bundle
-  without changing its request.
+- Snapshot bundle exports now include bounded secondary objects and their
+  relationships from a frozen graph manifest. Existing bundle download code
+  receives a more complete and reproducible bundle without changing its
+  request. A standard draft tier explicitly stored as `"latest"` remains
+  dynamic until release.
+- Snapshot responses include an opaque, server-controlled
+  `graph_manifest_id`. The SPA does not need to send, interpret, or persist
+  this field; tolerate it in response models and omit it from request bodies.
 - Release-track object back-references are reconciled when snapshots change.
   Frontend object refreshes will see the updated membership metadata without a
   new endpoint.

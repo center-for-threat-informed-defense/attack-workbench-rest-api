@@ -352,9 +352,6 @@ paths:
   /api/release-tracks/{id}/meta:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1meta'
 
-  /api/release-tracks/{id}/contents:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1contents'
-
   /api/release-tracks/{id}/clone:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1clone'
 
@@ -408,12 +405,6 @@ paths:
 
   /api/release-tracks/{id}/snapshots/{modified}:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}'
-
-  /api/release-tracks/{id}/snapshots/{modified}/meta:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1meta'
-
-  /api/release-tracks/{id}/snapshots/{modified}/contents:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1contents'
 
   /api/release-tracks/{id}/snapshots/{modified}/clone:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1clone'

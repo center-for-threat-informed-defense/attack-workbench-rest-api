@@ -11,8 +11,8 @@
  * Covered behavior:
  *   - Default bundle contains members only, plus referenced identities and
  *     marking definitions (self-contained bundle)
- *   - Active relationships whose endpoints are both selected are added
- *     dynamically; relationships with an endpoint outside the export are not
+ *   - Active relationships and their bounded secondary objects are frozen in
+ *     a snapshot graph manifest
  *   - `include` adds staged and/or candidate tiers (comma-separated or
  *     repeated, singular or plural tier names)
  *   - `state` narrows the included staged/candidate entries by workflow
@@ -31,6 +31,7 @@ const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -53,6 +54,8 @@ describe('Release Tracks Bundle Export API', function () {
   let relationshipSource;
   let includedRelationship;
   let excludedRelationship;
+  let secondaryGroup;
+  let secondaryRelationship;
   let linkedAttackId;
   let linkedAttackUrl;
   let candidateWip;
@@ -195,6 +198,32 @@ describe('Release Tracks Bundle Export API', function () {
         object_marking_refs: [staticMarkingDefinitionId],
       },
     });
+    secondaryGroup = await postObject('/api/groups', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        name: 'Bundle Secondary Group',
+        description: 'A relationship-discovered secondary object.',
+        spec_version: '2.1',
+        type: 'intrusion-set',
+        object_marking_refs: [staticMarkingDefinitionId],
+      },
+    });
+    secondaryRelationship = await postObject('/api/relationships', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        description: 'Frozen relationship description.',
+        spec_version: '2.1',
+        type: 'relationship',
+        relationship_type: 'uses',
+        source_ref: secondaryGroup.stix.id,
+        target_ref: memberObject.stix.id,
+        object_marking_refs: [staticMarkingDefinitionId],
+      },
+    });
 
     const track = await postAction(
       '/api/release-tracks/new',
@@ -216,14 +245,13 @@ describe('Release Tracks Bundle Export API', function () {
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200);
 
-    // Members
-    await postAction(`/api/release-tracks/${trackId}/contents`, {
-      x_mitre_contents: [
-        { obj_ref: memberObject.stix.id, obj_modified: memberObject.stix.modified },
-        { obj_ref: linkedMemberObject.stix.id, obj_modified: linkedMemberObject.stix.modified },
-        { obj_ref: relationshipSource.stix.id, obj_modified: relationshipSource.stix.modified },
-      ],
-    });
+    // Members enter through the supported candidate → staged → release
+    // lifecycle.
+    await releaseExactMembers(app, passportCookie, trackId, [
+      memberObject,
+      linkedMemberObject,
+      relationshipSource,
+    ]);
 
     // Candidates (all start as work-in-progress)
     await postAction(`/api/release-tracks/${trackId}/candidates`, {
@@ -265,6 +293,8 @@ describe('Release Tracks Bundle Export API', function () {
     const ids = bundleObjectIds(bundle);
     expect(ids).toContain(memberObject.stix.id);
     expect(ids).toContain(linkedMemberObject.stix.id);
+    expect(ids).toContain(secondaryGroup.stix.id);
+    expect(ids).toContain(secondaryRelationship.stix.id);
 
     // Tier entries not selected via include are excluded
     expect(ids).not.toContain(candidateWip.stix.id);
@@ -314,12 +344,114 @@ describe('Release Tracks Bundle Export API', function () {
     const ids = bundleObjectIds(bundle);
 
     expect(ids).toContain(includedRelationship.stix.id);
+    expect(ids).toContain(secondaryRelationship.stix.id);
     expect(ids).not.toContain(excludedRelationship.stix.id);
 
     const snapshot = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest`);
     expect(snapshot.members.map((member) => member.object_ref)).not.toContain(
       includedRelationship.stix.id,
     );
+  });
+
+  it('replays frozen relationship payloads and protects graph dependencies', async function () {
+    const relationshipUpdate = JSON.parse(JSON.stringify(secondaryRelationship));
+    relationshipUpdate.stix.description = 'A later in-place typo correction.';
+    relationshipUpdate.stix.external_references = [
+      {
+        source_name: 'deterministic-bundle-test',
+        description: 'Regression-test relationship source.',
+      },
+    ];
+
+    await request(app)
+      .put(
+        `/api/relationships/${secondaryRelationship.stix.id}/modified/` +
+          encodeURIComponent(secondaryRelationship.stix.modified),
+      )
+      .send(relationshipUpdate)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
+
+    const bundle = await getBundle(
+      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&includeToc=false`,
+    );
+    const frozenRelationship = bundle.objects.find(
+      (object) => object.id === secondaryRelationship.stix.id,
+    );
+    expect(frozenRelationship.description).toBe('Frozen relationship description.');
+
+    await request(app)
+      .delete(
+        `/api/relationships/${secondaryRelationship.stix.id}/modified/` +
+          encodeURIComponent(secondaryRelationship.stix.modified),
+      )
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(409);
+
+    const secondaryUpdate = JSON.parse(JSON.stringify(secondaryGroup));
+    secondaryUpdate.stix.description = 'Attempted in-place graph drift.';
+    await request(app)
+      .put(
+        `/api/groups/${secondaryGroup.stix.id}/modified/` +
+          encodeURIComponent(secondaryGroup.stix.modified),
+      )
+      .send(secondaryUpdate)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(409);
+
+    await request(app)
+      .delete(
+        `/api/groups/${secondaryGroup.stix.id}/modified/` +
+          encodeURIComponent(secondaryGroup.stix.modified),
+      )
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(409);
+  });
+
+  it('protects graph dependencies from collection cascade deletion', async function () {
+    const timestamp = new Date().toISOString();
+    const collection = await postObject('/api/collections', {
+      workspace: {
+        imported: timestamp,
+        import_categories: {},
+        workflow: {},
+      },
+      stix: {
+        id: `x-mitre-collection--${trackUuid}`,
+        type: 'x-mitre-collection',
+        spec_version: '2.1',
+        created: timestamp,
+        modified: timestamp,
+        name: 'Graph protection cascade fixture',
+        description: 'Attempts to cascade-delete a protected secondary object.',
+        x_mitre_version: '1.0',
+        x_mitre_contents: [
+          {
+            object_ref: secondaryGroup.stix.id,
+            object_modified: secondaryGroup.stix.modified,
+          },
+        ],
+        object_marking_refs: [staticMarkingDefinitionId],
+      },
+    });
+
+    await request(app)
+      .delete(
+        `/api/collections/${collection.stix.id}/modified/` +
+          `${encodeURIComponent(collection.stix.modified)}?deleteAllContents=true`,
+      )
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(409);
+
+    await request(app)
+      .get(
+        `/api/groups/${secondaryGroup.stix.id}/modified/` +
+          encodeURIComponent(secondaryGroup.stix.modified),
+      )
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
   });
 
   it('GET /api/release-tracks/:id/snapshots/latest?format=bundle&includeToc=false omits the TOC', async function () {

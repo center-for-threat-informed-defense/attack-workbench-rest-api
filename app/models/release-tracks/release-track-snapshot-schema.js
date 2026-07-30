@@ -364,6 +364,7 @@ const releaseTrackSnapshotDefinition = {
     default: null,
     validate: validateVersion,
   },
+  graph_manifest_id: { type: String },
 
   // Release track metadata
   name: {
@@ -413,8 +414,16 @@ const releaseTrackSnapshotSchema = new mongoose.Schema(releaseTrackSnapshotDefin
 // Primary lookup: find snapshot by track id + modified timestamp
 releaseTrackSnapshotSchema.index({ id: 1, modified: -1 }, { unique: true });
 
-// Find the latest tagged version
-releaseTrackSnapshotSchema.index({ id: 1, version: 1 });
+// A tagged version identifies exactly one snapshot within a release track.
+// Drafts are excluded so any number of snapshots may retain version: null.
+releaseTrackSnapshotSchema.index(
+  { id: 1, version: 1 },
+  {
+    name: 'unique_tagged_version',
+    unique: true,
+    partialFilterExpression: { version: { $type: 'string' } },
+  },
+);
 
 // A scheduled occurrence may materialize at most one snapshot, including
 // after restart recovery or duplicate delivery by multiple scheduler nodes.
