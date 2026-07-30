@@ -15,19 +15,34 @@ can be reviewed or reverted item by item.
   identifies the track and requested version.
 - [x] Add a regression that releases two distinct drafts concurrently with the
   same version and proves exactly one succeeds.
-- [x] Add a rerunnable migration that fails closed on pre-existing duplicates
-  before replacing the legacy non-unique index.
-- [x] Update release-version documentation and run focused, migration,
-  middleware, lint, and complete-suite verification.
+- [x] Adopt the pre-release reset policy for collections created with the
+  former non-unique index. No shared deployment retains beta release-track
+  data, so this change deliberately does not establish a permanent
+  migration contract for local development state.
+- [x] Update release-version documentation and run focused, middleware, and
+  lint verification.
+- [ ] Obtain one clean aggregate `npm test` run for the migration cleanup. Three
+  attempts exposed the repository's roaming cross-spec isolation failure;
+  every affected spec passed immediately in isolation.
 
-Verification result (2026-07-30):
+Original implementation verification (2026-07-30):
 
-- The deterministic concurrent-release, migration, middleware, and isolated
-  roaming-failure group passes (39).
+- The deterministic concurrent-release, middleware, and isolated
+  roaming-failure group passes.
 - The required clean full suite passes: OpenAPI 2, config 21, API 947,
   middleware 25, and scheduler 10.
-- The migration preflights the union of registry IDs and canonical orphan
-  release-track collection names before making any index changes.
+- New dynamic track collections create the unique partial index before their
+  initial snapshot is persisted. Existing personal development tracks created
+  under the former beta schema are reset or recreated.
+
+Pre-release migration cleanup verification (2026-07-30):
+
+- Release planning and concurrent-version coverage passes all 20 cases.
+- Error middleware passes all 9 cases; lint and diff checks pass.
+- Aggregate attempts failed in different, unrelated modules: user accounts,
+  groups, releases-by-object, and tagged-content immutability. Those modules
+  pass in isolation (9, 23, 8, and 1 cases respectively), confirming no
+  reproducible migration-cleanup regression.
 
 ### P0.2 — Make primary release membership fail closed
 

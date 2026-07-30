@@ -19,14 +19,12 @@ whose `version` is a string. Drafts therefore remain unlimited at
 `version: null`, while the database—not an application-level preflight—decides
 which concurrent release may claim a version.
 
-Migration `20260730040000-enforce-release-track-version-uniqueness` scans the
-union of registered tracks and canonical `release-track--<UUIDv4>` collection
-names before changing any indexes. Including orphan collections matters
-because track creation predates transaction-backed registry coordination. If any
-`(track_id, version)` has multiple tagged snapshots, it reports all offending
-snapshot timestamps and performs no index changes. After operators repair the
-data, rerunning the migration replaces the legacy non-unique index
-idempotently.
+Release tracks are still pre-release, and no shared deployment retains track
+data written under the former non-unique index. Existing personal development
+tracks are therefore reset or recreated instead of establishing a permanent
+upgrade contract for beta data. Once release tracks are formally released,
+future index or persistence changes must include an appropriate migration for
+supported deployments.
 
 ## Validation Rules
 
