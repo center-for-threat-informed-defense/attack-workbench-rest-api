@@ -6,6 +6,7 @@ const config = require('../config/config');
 const logger = require('../lib/logger');
 const { createAutomationRunRecorder, serializeError } = require('../lib/automation-run-recorder');
 const registryRepo = require('../repository/release-tracks/release-track-registry.repository');
+const dynamicRepo = require('../repository/release-tracks/release-track-dynamic.repository');
 const occurrenceRepo = require('../repository/release-tracks/virtual-track-schedule-occurrence.repository');
 const virtualTrackService = require('../services/release-tracks/virtual-track-service');
 
@@ -48,10 +49,10 @@ async function auditAttempt(occurrence, execute) {
   });
 
   try {
-    const snapshot = await execute();
+    const { snapshot, recovered } = await execute();
     await recorder.recordItem({
-      status: 'changed',
-      action: 'materialize_virtual_snapshot',
+      status: recovered ? 'unchanged' : 'changed',
+      action: recovered ? 'recover_scheduled_virtual_snapshot' : 'materialize_virtual_snapshot',
       target: {
         kind: 'release-track',
         document_id: occurrence.track_id,
@@ -61,13 +62,18 @@ async function auditAttempt(occurrence, execute) {
         snapshot_modified: snapshot.modified,
         members_count: snapshot.members?.length || 0,
         quarantine_count: snapshot.quarantine?.length || 0,
+        recovered,
       },
     });
     await recorder.finish({
       status: 'completed',
-      counts: { materialized: 1, failed: 0 },
+      counts: recovered
+        ? { materialized: 0, recovered: 1, failed: 0 }
+        : { materialized: 1, failed: 0 },
       summary: {
-        message: `Materialized scheduled virtual snapshot for ${occurrence.track_id}`,
+        message: recovered
+          ? `Recovered scheduled virtual snapshot for ${occurrence.track_id}`
+          : `Materialized scheduled virtual snapshot for ${occurrence.track_id}`,
       },
     });
     return snapshot;
@@ -116,14 +122,26 @@ async function executeOccurrence(occurrence, now = new Date()) {
   }
 
   try {
-    const snapshot = await auditAttempt(claimed, () =>
-      virtualTrackService.createVirtualSnapshot(claimed.track_id, {
+    const snapshot = await auditAttempt(claimed, async () => {
+      // A worker may have persisted the snapshot and exited before completing
+      // the occurrence ledger. Recover that durable result without recomputing
+      // composition, which may no longer be resolvable after the crash.
+      const existing = await dynamicRepo.getSnapshotByScheduledMaterialization(
+        claimed.track_id,
+        scheduledFor,
+      );
+      if (existing) {
+        return { snapshot: existing, recovered: true };
+      }
+
+      const materialized = await virtualTrackService.createVirtualSnapshot(claimed.track_id, {
         scheduledMaterialization: {
           schedule_mode: claimed.schedule_mode,
           scheduled_for: scheduledFor,
         },
-      }),
-    );
+      });
+      return { snapshot: materialized, recovered: false };
+    });
     await occurrenceRepo.complete(claimed.track_id, scheduledFor, snapshot.modified);
     return snapshot;
   } catch (err) {

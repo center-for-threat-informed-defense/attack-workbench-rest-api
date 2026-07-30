@@ -55,6 +55,12 @@ track-local index. The ledger prevents concurrent workers from doing the same
 work, while the snapshot index is the final idempotency guard after crashes or
 duplicate delivery.
 
+The snapshot is authoritative if persistence succeeds before the worker can
+complete the occurrence ledger. Reconciliation detects that persisted result,
+marks the reclaimed occurrence complete, and does not recompute virtual
+composition. This matters because component tracks may change or be removed
+after the scheduled snapshot was already created.
+
 Do not put release-track composition logic in the scheduler task. It delegates
 to `virtual-track-service`, which is also used by the explicit HTTP operation.
 

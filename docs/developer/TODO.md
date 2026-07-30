@@ -1,5 +1,54 @@
 # Release Track TODOs
 
+## Current implementation slice — Scheduler regression and virtual schedule coverage
+
+- [x] Repair the legacy collection-index scheduler spec so it imports the
+  refactored `sync-collection-indexes-task` module without auto-registering
+  background jobs during the test.
+- [x] Add virtual-track coverage proving reconciliation registers scheduled
+  cron jobs in UTC and removes jobs for tracks that no longer exist.
+- [x] Add date-schedule boundary coverage for multiple due dates and future
+  dates.
+- [x] Add crash-window recovery coverage for a scheduled virtual snapshot that
+  was persisted before its occurrence ledger reached `completed`.
+- [x] Add stale-claim recovery coverage and document any remaining
+  multi-process lease/fencing limitation.
+- [x] Run the legacy scheduler spec, the virtual scheduler spec, the aggregate
+  scheduler suite, lint, and the complete `npm test` suite.
+- [x] Record the coverage conclusion and propose a conventional commit message.
+
+Coverage conclusion (2026-07-30):
+
+- Functional coverage is sufficient for the current `manual`, `cron`, and
+  `dates` contracts. It exercises UTC cron registration and cleanup, duplicate
+  delivery, multiple due and future dates, missed-date recovery, retryable
+  component failures, expired claims, and recovery after snapshot persistence.
+- Scheduler regressions now run under the default `npm test` and Cobertura
+  coverage gates instead of requiring a separate developer-only command.
+- Remaining production hardening is explicitly tracked below; it does not
+  change the single-worker schedule contract covered by this slice.
+
+Verification result (2026-07-30):
+
+- The deterministic legacy collection-index scheduler spec passes (2), the
+  expanded virtual scheduler spec passes (8), and the aggregate scheduler
+  suite passes (10).
+- Backend lint passes. The required clean full suite passes: OpenAPI 2,
+  config 21, API 945, middleware 24, and scheduler 10.
+- Three roaming API-suite failures seen during earlier runs passed together in
+  isolation (23) before the clean full-suite run.
+
+### Remaining scheduled-materialization hardening
+
+- [ ] Add an owner token (fencing token) to occurrence claims, make terminal
+  updates conditional on the active token, and renew leases for work that may
+  exceed the claim duration. Add a true multi-worker regression proving that
+  an expired worker cannot overwrite the succeeding worker's result.
+- [ ] Decide and document an operator policy for permanent failures. If
+  indefinite one-minute retries are not acceptable, add bounded exponential
+  backoff plus a terminal/dead-letter state and operator-visible recovery
+  controls.
+
 ## Current implementation slice — Deterministic standard releases
 
 - [x] Preserve `modified: "latest"` and omitted candidate selectors as dynamic

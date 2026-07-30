@@ -30,6 +30,12 @@ occurrences. The resulting snapshot also records
 Together, these controls prevent duplicate drafts across restarts, retry
 delivery, and multiple scheduler-enabled API instances.
 
+If a worker persists the scheduled snapshot but exits before marking the
+occurrence complete, the next worker treats that snapshot as the authoritative
+result. It completes the occurrence from the persisted snapshot without
+recomputing composition. The recovery attempt is audited as an unchanged
+`recover_scheduled_virtual_snapshot` item with `counts.recovered: 1`.
+
 ## Failures and retries
 
 An occurrence commonly fails when a component resolution has no matching

@@ -128,6 +128,33 @@ describe('Scheduled virtual release-track materialization', function () {
     expect(await snapshotCount(virtual.id)).toBe(3);
   });
 
+  it('materializes every due date while leaving future dates unregistered', async function () {
+    const component = await createComponent();
+    const firstDue = new Date('2026-03-01T00:00:00.000Z');
+    const secondDue = new Date('2026-03-15T12:00:00.000Z');
+    const future = new Date('2026-04-01T00:00:00.000Z');
+    const virtual = await createVirtual(component.id, {
+      mode: 'dates',
+      dates: [firstDue.toISOString(), secondDue.toISOString(), future.toISOString()],
+    });
+
+    await task.reconcileSchedules(secondDue);
+
+    expect(await snapshotCount(virtual.id)).toBe(3);
+    const occurrences = await VirtualTrackScheduleOccurrence.find({
+      track_id: virtual.id,
+    })
+      .sort({ scheduled_for: 1 })
+      .lean()
+      .exec();
+    expect(occurrences).toHaveLength(2);
+    expect(occurrences.map((occurrence) => occurrence.scheduled_for)).toEqual([
+      firstDue,
+      secondDue,
+    ]);
+    expect(occurrences.every((occurrence) => occurrence.status === 'completed')).toBe(true);
+  });
+
   it('materializes duplicate cron delivery once', async function () {
     const component = await createComponent();
     const virtual = await createVirtual(component.id, {
@@ -149,6 +176,26 @@ describe('Scheduled virtual release-track materialization', function () {
         status: 'completed',
       }),
     ).toBe(1);
+  });
+
+  it('registers cron tracks in UTC and removes their jobs after track deletion', async function () {
+    const component = await createComponent();
+    const virtual = await createVirtual(component.id, {
+      mode: 'cron',
+      cron: '0 0 1 1,7 *',
+    });
+    const jobName = `virtual-track-snapshot-materialization:${virtual.id}`;
+
+    await task.reconcileSchedules(new Date('2026-07-15T00:00:00.000Z'));
+
+    const job = schedule.scheduledJobs[jobName];
+    expect(job).toBeDefined();
+    expect(job.pendingInvocations[0].recurrenceRule._tz).toBe('Etc/UTC');
+
+    await releaseTracksService.deleteTrack(virtual.id);
+    await task.reconcileSchedules(new Date('2026-07-15T00:01:00.000Z'));
+
+    expect(schedule.scheduledJobs[jobName]).toBeUndefined();
   });
 
   it('audits component failures and retries them during reconciliation', async function () {
@@ -201,6 +248,97 @@ describe('Scheduled virtual release-track materialization', function () {
       .sort({ started_at: 1 })
       .toArray();
     expect(runs.map((run) => run.status)).toEqual(['failed', 'completed']);
+  });
+
+  it('reclaims an expired occurrence that has not materialized a snapshot', async function () {
+    const component = await createComponent();
+    const scheduledFor = new Date('2026-05-01T00:00:00.000Z');
+    const virtual = await createVirtual(component.id, {
+      mode: 'dates',
+      dates: [scheduledFor.toISOString()],
+    });
+    const now = new Date('2026-05-01T00:10:00.000Z');
+
+    await VirtualTrackScheduleOccurrence.create({
+      track_id: virtual.id,
+      schedule_mode: 'dates',
+      scheduled_for: scheduledFor,
+      status: 'running',
+      attempt_count: 1,
+      claimed_at: new Date('2026-05-01T00:00:00.000Z'),
+      claim_expires_at: new Date('2026-05-01T00:05:00.000Z'),
+    });
+
+    await task.reconcileSchedules(now);
+
+    expect(await snapshotCount(virtual.id)).toBe(2);
+    expect(
+      await VirtualTrackScheduleOccurrence.findOne({
+        track_id: virtual.id,
+        scheduled_for: scheduledFor,
+      })
+        .lean()
+        .exec(),
+    ).toMatchObject({
+      status: 'completed',
+      attempt_count: 2,
+    });
+  });
+
+  it('completes an expired occurrence from its persisted snapshot without recomputing', async function () {
+    const component = await createComponent();
+    const scheduledFor = new Date('2026-06-01T00:00:00.000Z');
+    const virtual = await createVirtual(component.id, {
+      mode: 'dates',
+      dates: [scheduledFor.toISOString()],
+    });
+
+    await VirtualTrackScheduleOccurrence.create({
+      track_id: virtual.id,
+      schedule_mode: 'dates',
+      scheduled_for: scheduledFor,
+      status: 'running',
+      attempt_count: 1,
+      claimed_at: new Date('2026-06-01T00:00:00.000Z'),
+      claim_expires_at: new Date('2026-06-01T00:05:00.000Z'),
+    });
+    const materialized = await releaseTracksService.createVirtualSnapshot(virtual.id, {
+      scheduledMaterialization: {
+        schedule_mode: 'dates',
+        scheduled_for: scheduledFor,
+      },
+    });
+
+    // A persisted scheduled snapshot is the authoritative result. Recovery
+    // must not depend on the component still being available.
+    await releaseTracksService.deleteTrack(component.id);
+    await task.reconcileSchedules(new Date('2026-06-01T00:10:00.000Z'));
+
+    expect(await snapshotCount(virtual.id)).toBe(2);
+    expect(
+      await VirtualTrackScheduleOccurrence.findOne({
+        track_id: virtual.id,
+        scheduled_for: scheduledFor,
+      })
+        .lean()
+        .exec(),
+    ).toMatchObject({
+      status: 'completed',
+      attempt_count: 2,
+      snapshot_modified: materialized.modified,
+    });
+
+    const recoveryRun = await mongoose.connection
+      .getClient()
+      .db()
+      .collection('automationRuns')
+      .findOne({
+        'scope.track_id': virtual.id,
+        status: 'completed',
+      });
+    expect(recoveryRun).toMatchObject({
+      counts: { materialized: 0, recovered: 1, failed: 0 },
+    });
   });
 
   it('does not schedule or materialize manual tracks', async function () {
