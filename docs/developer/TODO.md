@@ -1,5 +1,47 @@
 # Release Track TODOs
 
+## Production-readiness branch — `fix/release-tracks-production-readiness`
+
+This branch implements the prioritized findings in
+`.nocommit/project-review-release-tracks/15-recommendations.md`. Each numbered
+recommendation is kept as a separate conventional commit so the merge request
+can be reviewed or reverted item by item.
+
+### P0.1 — Enforce release version uniqueness
+
+- [x] Add a unique partial index for tagged `version` strings in every dynamic
+  release-track snapshot collection.
+- [x] Convert duplicate-version races into a typed `409 Conflict` that
+  identifies the track and requested version.
+- [x] Add a regression that releases two distinct drafts concurrently with the
+  same version and proves exactly one succeeds.
+- [x] Add a rerunnable migration that fails closed on pre-existing duplicates
+  before replacing the legacy non-unique index.
+- [x] Update release-version documentation and run focused, migration,
+  middleware, lint, and complete-suite verification.
+
+Verification result (2026-07-30):
+
+- The deterministic concurrent-release, migration, middleware, and isolated
+  roaming-failure group passes (39).
+- The required clean full suite passes: OpenAPI 2, config 21, API 947,
+  middleware 25, and scheduler 10.
+- The migration preflights the union of registry IDs and canonical orphan
+  release-track collection names before making any index changes.
+
+### Remaining prioritized recommendations
+
+- [ ] P0.2 — Make primary release membership fail closed.
+- [ ] P0.3 — Make tagged-content immutability authoritative and durable.
+- [ ] P0.4 — Correct destructive authorization and add durable audit records.
+- [ ] P0.5 — Complete the Angular contract migration and end-to-end smoke gate.
+- [ ] P0.6 — Finish scheduled-materialization fencing, retry bounds, and
+  operator intervention.
+- [ ] P0.7 — Establish and enforce a safe storage operating envelope.
+- [ ] P0.8 — Harden deployment, database readiness, backup/restore, rollback,
+  and post-deploy verification.
+- [ ] Address P1 recommendations in documented criticality order.
+
 ## Current implementation slice — Scheduler regression and virtual schedule coverage
 
 - [x] Repair the legacy collection-index scheduler spec so it imports the

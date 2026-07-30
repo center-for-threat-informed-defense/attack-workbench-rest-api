@@ -297,6 +297,16 @@ class AlreadyReleasedError extends CustomError {
   }
 }
 
+class DuplicateReleaseVersionError extends CustomError {
+  constructor(trackId, version, options = {}) {
+    super(`Release track ${trackId} already has tagged version ${version}`, {
+      ...options,
+      track_id: trackId,
+      version,
+    });
+  }
+}
+
 class TaggedSnapshotDeletionError extends CustomError {
   constructor(version, options) {
     super(`Tagged snapshot version ${version} cannot be deleted`, options);
@@ -386,6 +396,7 @@ module.exports = {
 
   //** Version control errors */
   AlreadyReleasedError,
+  DuplicateReleaseVersionError,
   TaggedSnapshotDeletionError,
   InvalidVersionError,
 

@@ -4,6 +4,7 @@ const modelFactory = require('../../models/release-tracks/model-factory');
 const {
   DatabaseError,
   DuplicateIdError,
+  DuplicateReleaseVersionError,
   BadlyFormattedParameterError,
 } = require('../../exceptions');
 const logger = require('../../lib/logger');
@@ -266,8 +267,12 @@ class ReleaseTrackDynamicRepository {
       return saved.toObject();
     } catch (err) {
       if (err.name === 'MongoServerError' && err.code === 11000) {
+        if (err.keyPattern?.version && typeof snapshotData.version === 'string') {
+          throw new DuplicateReleaseVersionError(trackId, snapshotData.version, { cause: err });
+        }
         throw new DuplicateIdError({
           details: `Snapshot with modified '${snapshotData.modified}' already exists for track '${trackId}'.`,
+          cause: err,
         });
       }
       throw new DatabaseError(err);
@@ -305,9 +310,7 @@ class ReleaseTrackDynamicRepository {
       return result;
     } catch (err) {
       if (err.name === 'MongoServerError' && err.code === 11000) {
-        throw new DuplicateIdError({
-          details: `Version conflict while tagging snapshot for track '${trackId}'.`,
-        });
+        throw new DuplicateReleaseVersionError(trackId, versionData.version, { cause: err });
       }
       throw new DatabaseError(err);
     }

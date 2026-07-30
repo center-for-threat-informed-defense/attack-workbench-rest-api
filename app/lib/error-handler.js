@@ -36,6 +36,7 @@ const {
   AlreadyRevokedError,
   SelfRevocationError,
   AlreadyReleasedError,
+  DuplicateReleaseVersionError,
   TaggedSnapshotDeletionError,
   InvalidVersionError,
   ReleaseConflictError,
@@ -132,6 +133,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof DuplicateNameError ||
     err instanceof AlreadyRevokedError ||
     err instanceof AlreadyReleasedError ||
+    err instanceof DuplicateReleaseVersionError ||
     err instanceof TaggedSnapshotDeletionError ||
     err instanceof ReleaseConflictError ||
     err instanceof VirtualSnapshotNotMaterializedError ||

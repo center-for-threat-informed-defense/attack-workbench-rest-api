@@ -13,6 +13,21 @@ db.objects.createIndex({ 'workspace.collections.staged': 1 });
 db.objects.createIndex({ 'workspace.workflow.status': 1 });
 ```
 
+Each release track also owns a dynamic snapshot collection. Tagged versions
+use a unique partial index on `{ id: 1, version: 1 }`, restricted to documents
+whose `version` is a string. Drafts therefore remain unlimited at
+`version: null`, while the database—not an application-level preflight—decides
+which concurrent release may claim a version.
+
+Migration `20260730040000-enforce-release-track-version-uniqueness` scans the
+union of registered tracks and canonical `release-track--<UUIDv4>` collection
+names before changing any indexes. Including orphan collections matters
+because track creation predates transaction-backed registry coordination. If any
+`(track_id, version)` has multiple tagged snapshots, it reports all offending
+snapshot timestamps and performs no index changes. After operators repair the
+data, rerunning the migration replaces the legacy non-unique index
+idempotently.
+
 ## Validation Rules
 
 - **Same revision selector** can only be in one tier per release-track snapshot

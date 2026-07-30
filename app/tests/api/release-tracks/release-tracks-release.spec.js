@@ -2,11 +2,13 @@
 
 const request = require('supertest');
 const { expect } = require('expect');
+const sinon = require('sinon');
 
 const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
+const releaseHistoryService = require('../../../services/release-tracks/release-history-service');
 const versioningService = require('../../../services/release-tracks/versioning-service');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 
@@ -169,6 +171,54 @@ describe('Release-track release planning and commit API', function () {
     expect(released.body.version).toBe(preview.body.version);
     expect(released.body.version_history.at(-1).summary).toMatchObject(preview.body.after);
     expect(released.body.version_history.at(-1)).not.toHaveProperty('component_versions');
+  });
+
+  it('allows only one concurrent release to claim a version', async function () {
+    const track = await createTrack('Concurrent Release Version');
+    const newerDraft = await post(`/api/release-tracks/${track.id}/meta`, {
+      description: 'A distinct draft racing for the same release version',
+    });
+    const originalHistoryLookup = releaseHistoryService.getTrackWideVersionHistory;
+    let waiting = 0;
+    let releaseBarrier;
+    const bothPlanned = new Promise((resolve) => {
+      releaseBarrier = resolve;
+    });
+    const historyStub = sinon
+      .stub(releaseHistoryService, 'getTrackWideVersionHistory')
+      .callsFake(async (...args) => {
+        const history = await originalHistoryLookup(...args);
+        waiting += 1;
+        if (waiting === 2) releaseBarrier();
+        await bothPlanned;
+        return history;
+      });
+
+    const release = (modified) =>
+      request(app)
+        .post(`/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(modified)}/release`)
+        .send({ version: '2.0' })
+        .set('Accept', 'application/json')
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`);
+
+    let responses;
+    try {
+      responses = await Promise.all([release(track.modified), release(newerDraft.body.modified)]);
+    } finally {
+      historyStub.restore();
+    }
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+
+    const conflict = responses.find((response) => response.status === 409);
+    expect(conflict.body).toEqual({
+      message: `Release track ${track.id} already has tagged version 2.0`,
+      track_id: track.id,
+      version: '2.0',
+    });
+
+    const tagged = await dynamicRepo.getAllSnapshots(track.id, { taggedOnly: true });
+    expect(tagged.pagination.total).toBe(1);
+    expect(tagged.data[0].version).toBe('2.0');
   });
 
   it('freezes a dynamic staged reference to the latest revision during release', async function () {
