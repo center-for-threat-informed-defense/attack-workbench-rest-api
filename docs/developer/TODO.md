@@ -1,5 +1,25 @@
 # Release Track TODOs
 
+## Caller-supplied configuration on track creation
+
+- [x] Add a regression proving `POST /api/release-tracks/new` accepts and
+      persists supported `config` options on the initial snapshot.
+- [x] Reuse the release-track config validation contract in the create request
+      and pass the validated config through the snapshot creation service.
+- [x] Update OpenAPI guidance, user documentation, and the Bruno request.
+- [ ] Run the focused regression and the complete `npm test` suite.
+
+Verification (2026-07-30):
+
+- Focused release-track API regression passes: 3 cases.
+- Backend lint and OpenAPI validation pass.
+- The complete suite was run and reached API 975 passing with four failures
+  in unrelated, pre-existing work: three canonical-domain migration failures
+  and one roaming virtual-composition failure.
+- The virtual-composition spec passes in isolation. The in-progress
+  canonical-domain migration spec still has three isolated failures, so a
+  clean aggregate run remains outstanding.
+
 ## Bootstrap hotfix — ATT&CK-branded track names
 
 - [x] Permit ampersands in release-track names at the request and persistence

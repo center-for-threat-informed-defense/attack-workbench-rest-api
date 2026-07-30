@@ -255,6 +255,42 @@ describe('Release Tracks API', function () {
     });
   });
 
+  it('creates a release track with caller-supplied config', async function () {
+    const suppliedConfig = {
+      candidacy_threshold: 'awaiting-review',
+      auto_promote: false,
+      promotion_conflicts: {
+        into_candidates: 'always_reject',
+        candidates_to_staged: 'always_overwrite',
+        staged_to_members: 'prefer_latest',
+      },
+      member_sync: {
+        strategy: 'manual',
+        supplant: {
+          behavior: 'queue',
+          status_policy: 'preserve',
+        },
+      },
+    };
+
+    const response = await request(app)
+      .post('/api/release-tracks/new')
+      .send({
+        name: 'Custom Config Track',
+        type: 'standard',
+        config: suppliedConfig,
+      })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201)
+      .expect('Content-Type', /json/);
+
+    expect(response.body.config).toEqual(suppliedConfig);
+
+    const persistedSnapshot = await snapshotService.getLatestSnapshot(response.body.id);
+    expect(persistedSnapshot.config).toEqual(suppliedConfig);
+  });
+
   after(async function () {
     await database.closeConnection();
   });

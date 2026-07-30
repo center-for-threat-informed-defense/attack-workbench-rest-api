@@ -253,6 +253,19 @@ const memberSyncConfigSchema = z.object({
   supplant: memberSyncSupplantSchema.optional(),
 });
 
+const promotionConflictsSchema = z.object({
+  into_candidates: conflictPolicySchema.optional(),
+  candidates_to_staged: conflictPolicySchema.exclude(['abort']).optional(),
+  staged_to_members: conflictPolicySchema.optional(),
+});
+
+const updateConfigBodySchema = z.object({
+  candidacy_threshold: candidacyThresholdSchema.optional(),
+  auto_promote: z.boolean().optional(),
+  promotion_conflicts: promotionConflictsSchema.optional(),
+  member_sync: memberSyncConfigSchema.optional(),
+});
+
 // =============================================================================
 // Request body schemas (used inline by controller handlers)
 // =============================================================================
@@ -372,6 +385,7 @@ const createTrackBodySchema = z
     object_marking_refs: z.array(stixIdentifierSchema).optional(),
     composition: compositionSchema.optional(),
     snapshot_schedule: snapshotScheduleSchema.optional(),
+    config: updateConfigBodySchema.optional(),
   })
   .strict()
   .superRefine((track, context) => {
@@ -469,20 +483,6 @@ const demoteStagedBodySchema = z.object({
 const updateCandidateVersionBodySchema = z.object({
   old_modified: z.iso.datetime().or(z.literal('latest')),
   new_modified: z.iso.datetime().or(z.literal('latest')),
-});
-
-/** PUT /release-tracks/:id/config */
-const promotionConflictsSchema = z.object({
-  into_candidates: conflictPolicySchema.optional(),
-  candidates_to_staged: conflictPolicySchema.exclude(['abort']).optional(),
-  staged_to_members: conflictPolicySchema.optional(),
-});
-
-const updateConfigBodySchema = z.object({
-  candidacy_threshold: candidacyThresholdSchema.optional(),
-  auto_promote: z.boolean().optional(),
-  promotion_conflicts: promotionConflictsSchema.optional(),
-  member_sync: memberSyncConfigSchema.optional(),
 });
 
 /** PUT /release-tracks/:id/virtual/composition */

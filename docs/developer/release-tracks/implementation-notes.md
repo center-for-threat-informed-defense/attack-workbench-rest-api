@@ -28,6 +28,11 @@ supported deployments.
 
 ## Validation Rules
 
+- `POST /api/release-tracks/new` and `PUT /api/release-tracks/:id/config`
+  share the same Zod configuration schema. Creation passes the parsed config
+  directly into the initial snapshot so Mongoose applies defaults only to
+  omitted options instead of replacing caller-supplied values with an empty
+  config.
 - **Same revision selector** can only be in one tier per release-track snapshot
   (`members`, `staged`, `candidates`, or `quarantine`)
 - **Different selectors** for the same object CAN exist in multiple tiers simultaneously

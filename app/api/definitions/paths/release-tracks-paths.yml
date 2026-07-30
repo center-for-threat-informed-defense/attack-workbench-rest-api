@@ -223,14 +223,16 @@ paths:
       operationId: 'release-tracks-create'
       description: |
         Create a new standard or virtual release track with an initial empty draft snapshot.
-        Request body is validated via Zod (not OpenAPI). Virtual composition
-        objects are strict, and component selectors must match their
-        resolution_strategy. Component IDs and priorities must be unique,
-        every priority is required, and referenced components must already
-        exist as standard tracks; virtual-track nesting and native members are
-        unsupported. Virtual snapshot schedules are strict by mode: manual
-        accepts no selector, cron requires cron, and dates requires at least
-        one date. Standard tracks reject snapshot_schedule.
+        Request body is validated via Zod (not OpenAPI). An optional config
+        object accepts the same fields and validation rules as PUT
+        /api/release-tracks/:id/config; omitted values receive model defaults.
+        Virtual composition objects are strict, and component selectors must
+        match their resolution_strategy. Component IDs and priorities must be
+        unique, every priority is required, and referenced components must
+        already exist as standard tracks; virtual-track nesting and native
+        members are unsupported. Virtual snapshot schedules are strict by
+        mode: manual accepts no selector, cron requires cron, and dates
+        requires at least one date. Standard tracks reject snapshot_schedule.
       tags:
         - 'Release Tracks'
       # Request body validation moved to Zod in controller

@@ -236,10 +236,31 @@ POST /api/release-tracks/new
 {
   "name": "Release Track Name",
   "description": "Description",
-  "external_references": [],
-  "object_marking_refs": []
+  "type": "standard",
+  "object_marking_refs": [],
+  "config": {
+    "candidacy_threshold": "awaiting-review",
+    "auto_promote": false,
+    "promotion_conflicts": {
+      "into_candidates": "always_reject",
+      "candidates_to_staged": "prefer_latest",
+      "staged_to_members": "abort"
+    },
+    "member_sync": {
+      "strategy": "manual",
+      "supplant": {
+        "behavior": "queue",
+        "status_policy": "preserve"
+      }
+    }
+  }
 }
 ```
+
+`config` is optional. When supplied, it uses the same fields and validation
+rules as [Update Configuration](#update-configuration), and the validated
+values are persisted on the initial draft snapshot. Omitted config fields use
+their model defaults.
 
 ### Bootstrap Release Track From Bundle
 
@@ -838,10 +859,26 @@ PUT /api/release-tracks/:id/config
 
 ```json
 {
-  "candidacy_threshold": "work-in-progress" | "awaiting-review" | "reviewed",
-  "auto_promote": true | false
+  "candidacy_threshold": "awaiting-review",
+  "auto_promote": true,
+  "promotion_conflicts": {
+    "into_candidates": "prefer_latest",
+    "candidates_to_staged": "prefer_latest",
+    "staged_to_members": "abort"
+  },
+  "member_sync": {
+    "strategy": "track_latest",
+    "supplant": {
+      "behavior": "replace",
+      "status_policy": "reset"
+    }
+  }
 }
 ```
+
+All fields are optional. Configuration updates merge with the latest draft;
+nested `promotion_conflicts` and `member_sync.supplant` values are also
+merged. The same configuration object may be supplied when creating a track.
 
 ---
 
