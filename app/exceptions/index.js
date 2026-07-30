@@ -307,6 +307,24 @@ class DuplicateReleaseVersionError extends CustomError {
   }
 }
 
+class InvalidObjectRevisionError extends CustomError {
+  constructor(missingReferences, options = {}) {
+    super('One or more object revisions do not exist', {
+      ...options,
+      missing_references: missingReferences,
+    });
+  }
+}
+
+class ReleaseContentIntegrityError extends CustomError {
+  constructor(missingReferences, options = {}) {
+    super('Release-track primary content is incomplete', {
+      ...options,
+      missing_references: missingReferences,
+    });
+  }
+}
+
 class TaggedSnapshotDeletionError extends CustomError {
   constructor(version, options) {
     super(`Tagged snapshot version ${version} cannot be deleted`, options);
@@ -397,11 +415,13 @@ module.exports = {
   //** Version control errors */
   AlreadyReleasedError,
   DuplicateReleaseVersionError,
+  InvalidObjectRevisionError,
   TaggedSnapshotDeletionError,
   InvalidVersionError,
 
   //** Release track errors */
   ReleaseConflictError,
+  ReleaseContentIntegrityError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
   VirtualSnapshotNotMaterializedError,

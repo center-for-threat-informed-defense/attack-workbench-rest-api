@@ -285,6 +285,12 @@ POST /api/release-tracks/new-from-bundle
 
 **Note:** All objects are added directly to the `members` tier. To add objects as candidates instead, use the standard [Create New Release Track](#create-new-release-track) endpoint followed by [Add Candidates](#add-candidates).
 
+Bundle bootstrap is fail-closed. Unsupported primary object types, invalid
+objects, and primary revisions that cannot be persisted cause HTTP `400`, and
+the release track is not created. Objects successfully persisted before a
+later object fails may remain available in Workbench, but no partial track or
+snapshot is registered.
+
 ### Import Release Track (Not Implemented)
 
 Comprehensively importing a release track would necessitate including the full snapshot history of the source release track. We don't presently have a solution for serializing an entire release track, including its snapshot history, into an atomic structure that can be exchanged between different Workbench deployments.

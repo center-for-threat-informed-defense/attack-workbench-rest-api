@@ -25,48 +25,15 @@ const EventBus = require('../../lib/event-bus');
 const Events = require('../../lib/event-constants');
 const { selectRelationshipsForBundle } = require('../../lib/stix-bundle-relationships');
 const revisionReference = require('../../lib/release-tracks/revision-reference');
+const primaryRevisionService = require('./primary-revision-service');
 const {
   bundleTransformSchema,
   workbenchTransformSchema,
   filesystemStoreTransformSchema,
 } = require('../../lib/release-tracks/export-schemas');
 
-// ---------------------------------------------------------------------------
-// Repository map — lazy-loaded to avoid circular dependency issues at startup.
-//
-// Maps STIX type prefixes to their corresponding repositories so we can
-// batch-query each repository's `findManyByIdAndModified` in parallel.
-// ---------------------------------------------------------------------------
-
-let _repoMap = null;
-
 function getRepositoryMap() {
-  if (_repoMap) return _repoMap;
-
-  _repoMap = {
-    [types.Technique]: require('../../repository/techniques-repository'),
-    [types.Tactic]: require('../../repository/tactics-repository'),
-    [types.Group]: require('../../repository/groups-repository'),
-    [types.Campaign]: require('../../repository/campaigns-repository'),
-    [types.Mitigation]: require('../../repository/mitigations-repository'),
-    [types.Matrix]: require('../../repository/matrix-repository'),
-    [types.Relationship]: require('../../repository/relationships-repository'),
-    [types.MarkingDefinition]: require('../../repository/marking-definitions-repository'),
-    [types.Identity]: require('../../repository/identities-repository'),
-    [types.Note]: require('../../repository/notes-repository'),
-    [types.DataSource]: require('../../repository/data-sources-repository'),
-    [types.DataComponent]: require('../../repository/data-components-repository'),
-    [types.Asset]: require('../../repository/assets-repository'),
-    [types.Analytic]: require('../../repository/analytics-repository'),
-    [types.DetectionStrategy]: require('../../repository/detection-strategies-repository'),
-  };
-
-  // Software types share a single repository
-  const softwareRepo = require('../../repository/software-repository');
-  _repoMap[types.Malware] = softwareRepo;
-  _repoMap[types.Tool] = softwareRepo;
-
-  return _repoMap;
+  return primaryRevisionService.getRepositoryMap();
 }
 
 // =============================================================================
@@ -83,47 +50,7 @@ function getRepositoryMap() {
  * @returns {Promise<Array<Object>>} Full Mongoose lean documents ({ stix, workspace, ... })
  */
 exports.hydrateMembers = async function hydrateMembers(entries) {
-  if (!entries || entries.length === 0) return [];
-  const resolvedEntries = await revisionReference.resolveEntries(entries);
-  const uniqueResolvedEntries = [];
-  const seenResolvedEntries = new Set();
-  for (const entry of resolvedEntries) {
-    const key = `${entry.object_ref}::` + revisionReference.modifiedKey(entry.object_modified);
-    if (seenResolvedEntries.has(key)) continue;
-    seenResolvedEntries.add(key);
-    uniqueResolvedEntries.push(entry);
-  }
-
-  // Group entries by STIX type prefix
-  const byType = {};
-  for (const entry of uniqueResolvedEntries) {
-    const type = entry.object_ref.split('--')[0];
-    if (!byType[type]) byType[type] = [];
-    byType[type].push(entry);
-  }
-
-  const repoMap = getRepositoryMap();
-  const hydrated = [];
-
-  await Promise.all(
-    Object.entries(byType).map(async ([type, refs]) => {
-      const repo = repoMap[type];
-      if (!repo) {
-        logger.warn(
-          `ExportService: No repository for type "${type}", skipping ${refs.length} object(s)`,
-        );
-        return;
-      }
-      try {
-        const docs = await repo.findManyByIdAndModified(refs);
-        hydrated.push(...docs);
-      } catch (err) {
-        logger.error(`ExportService: Failed to hydrate ${refs.length} "${type}" object(s):`, err);
-      }
-    }),
-  );
-
-  return hydrated;
+  return (await primaryRevisionService.assertStoredEntries(entries)).documents;
 };
 
 // =============================================================================

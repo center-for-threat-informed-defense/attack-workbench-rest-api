@@ -37,9 +37,11 @@ const {
   SelfRevocationError,
   AlreadyReleasedError,
   DuplicateReleaseVersionError,
+  InvalidObjectRevisionError,
   TaggedSnapshotDeletionError,
   InvalidVersionError,
   ReleaseConflictError,
+  ReleaseContentIntegrityError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
   VirtualSnapshotNotMaterializedError,
@@ -106,6 +108,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof ValidationError ||
     err instanceof MitreIdentityWriteError ||
     err instanceof InvalidVersionError ||
+    err instanceof InvalidObjectRevisionError ||
     err instanceof NoTaggedSnapshotsError ||
     err instanceof InvalidComponentTypeError
   ) {
@@ -136,6 +139,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof DuplicateReleaseVersionError ||
     err instanceof TaggedSnapshotDeletionError ||
     err instanceof ReleaseConflictError ||
+    err instanceof ReleaseContentIntegrityError ||
     err instanceof VirtualSnapshotNotMaterializedError ||
     err instanceof MemberPinnedRevisionError ||
     err instanceof ObjectHasValidationIssuesError ||

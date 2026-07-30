@@ -256,8 +256,8 @@ paths:
       responses:
         '201':
           description: 'Release track created from bundle'
-        '501':
-          description: 'Not yet implemented'
+        '400':
+          description: 'A bundle primary object is unsupported, invalid, or cannot be persisted'
 
   /api/release-tracks/import:
     post:
@@ -354,7 +354,7 @@ paths:
         '200':
           description: 'Contents updated successfully'
         '400':
-          description: 'Track is virtual or the contents request is invalid'
+          description: 'Track is virtual, the contents request is invalid, or a requested revision does not exist'
 
   /api/release-tracks/{id}/clone:
     post:
@@ -374,6 +374,12 @@ paths:
       responses:
         '201':
           description: 'Release track cloned successfully'
+        '409':
+          description: 'The source snapshot references missing primary revisions'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
 
   /api/release-tracks/{id}/snapshots/latest/release:
     post:
@@ -412,7 +418,7 @@ paths:
         '400':
           description: 'Invalid release request'
         '409':
-          description: 'Already released or conflicting snapshot'
+          description: 'Already released, conflicting snapshot, or missing persisted primary revisions'
 
   /api/release-tracks/{id}/snapshots/latest/release/preview:
     get:
@@ -488,7 +494,7 @@ paths:
         '200':
           description: 'Release preview generated'
         '409':
-          description: 'Virtual draft is unmaterialized or release is blocked by a conflict'
+          description: 'Virtual draft is unmaterialized, release is blocked by a conflict, or persisted primary revisions are missing'
         '501':
           description: 'Requested format is not yet implemented'
 
@@ -558,6 +564,8 @@ paths:
       responses:
         '200':
           description: 'Candidates added successfully'
+        '400':
+          description: 'A requested exact or latest object revision does not exist'
 
   /api/release-tracks/{id}/candidates/review:
     post:
@@ -654,6 +662,8 @@ paths:
       responses:
         '200':
           description: 'Candidate version pin updated successfully'
+        '400':
+          description: 'The requested replacement revision does not exist'
 
   # =============================================================================
   # Staged objects
@@ -873,6 +883,12 @@ paths:
           description: 'Virtual snapshot created successfully'
         '400':
           description: 'Track is not virtual or cannot resolve its composition'
+        '409':
+          description: 'A resolved component snapshot references missing primary revisions'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
 
   /api/release-tracks/{id}/virtual/quarantine/promote:
     post:
@@ -906,6 +922,12 @@ paths:
           description: 'Track is not virtual or the request body is invalid'
         '404':
           description: 'The selected exact revision is not quarantined'
+        '409':
+          description: 'The resulting virtual snapshot would reference missing primary revisions'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
 
   # =============================================================================
   # Snapshot-specific operations
@@ -1061,6 +1083,12 @@ paths:
                 $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
         '404':
           description: 'Release track not found'
+        '409':
+          description: 'The selected snapshot representation references missing primary revisions'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
         '501':
           description: 'Requested format is not yet implemented'
 
@@ -1148,6 +1176,12 @@ paths:
           description: 'Snapshot retrieved successfully'
         '404':
           description: 'Snapshot not found'
+        '409':
+          description: 'The selected snapshot representation references missing primary revisions'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
         '501':
           description: 'Requested format is not yet implemented'
 
@@ -1234,7 +1268,7 @@ paths:
         '200':
           description: 'Contents updated successfully'
         '400':
-          description: 'Track is virtual or the contents request is invalid'
+          description: 'Track is virtual, the contents request is invalid, or a requested revision does not exist'
 
   /api/release-tracks/{id}/snapshots/{modified}/clone:
     post:
@@ -1259,6 +1293,12 @@ paths:
       responses:
         '201':
           description: 'Release track cloned successfully'
+        '409':
+          description: 'The source snapshot references missing primary revisions'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
 
   /api/release-tracks/{id}/snapshots/{modified}/release:
     post:
@@ -1302,7 +1342,7 @@ paths:
         '400':
           description: 'Invalid release request'
         '409':
-          description: 'Already released or conflicting snapshot'
+          description: 'Already released, conflicting snapshot, or missing persisted primary revisions'
 
   /api/release-tracks/{id}/snapshots/{modified}/release/preview:
     get:
@@ -1374,6 +1414,6 @@ paths:
         '200':
           description: 'Release preview generated'
         '409':
-          description: 'Virtual draft is unmaterialized or release is blocked by a conflict'
+          description: 'Release is blocked because the draft is unmaterialized, conflicting, or references missing primary revisions'
         '501':
           description: 'Requested format is not yet implemented'

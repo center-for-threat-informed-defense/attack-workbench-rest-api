@@ -58,6 +58,12 @@ Snapshot tagged → dynamic staged selectors resolved and exact revisions moved 
 Snapshot exported → members reflected in stix.x_mitre_contents of the output bundle
 ```
 
+Immediately before previewing or committing a release, the server hydrates
+every resulting exact member revision. If persisted track content points to a
+revision that no longer exists, the operation returns HTTP `409` with
+`missing_references` and does not tag the snapshot. This check protects both
+standard and virtual releases from publishing incomplete primary membership.
+
 ### STIX Freeze Solution
 
 Version pinning solves the "STIX freeze" problem:
@@ -161,7 +167,9 @@ POST /api/release-tracks/:id/candidates
 ```
 
 **Business Logic:**
-1. Validate all object_refs exist
+1. Validate that every selected exact revision exists. A missing exact pin, or
+   a `"latest"` selector for an object with no current revision, returns HTTP
+   `400` with `missing_references`; no snapshot is created.
 2. Establish the `object_modified` selector:
    - If an ISO timestamp is provided: retain that exact revision pin
    - If `"latest"` is provided or `modified` is omitted: persist the dynamic
@@ -170,6 +178,9 @@ POST /api/release-tracks/:id/candidates
 4. Add to `workspace.candidates` with the exact or dynamic selector
 5. If status meets `candidacy_threshold`, auto-promote to `workspace.staged`
 6. Update object's `workspace.referenced_by` array
+
+The same existence check applies when changing a candidate version pin and
+when replacing a standard snapshot's member contents directly.
 
 Importantly, candidate removal/deletion must occur separately using the `DELETE` operation:
 ```bash

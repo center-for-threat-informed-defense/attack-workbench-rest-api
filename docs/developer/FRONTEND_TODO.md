@@ -71,6 +71,51 @@ Done when:
 - Release-preview fixtures show dynamic staged input becoming exact
   would-be members, and committed-release fixtures contain no dynamic members.
 
+## P0 — Surface fail-closed primary revision errors
+
+### [ ] Explain missing primary revisions instead of showing a generic failure
+
+The backend now verifies every exact `(object_ref, object_modified)` primary
+reference at request ingress and again before it releases, clones,
+materializes, or renders a snapshot. It no longer omits objects that could not
+be hydrated.
+
+Two structured error cases are relevant to the UI:
+
+```ts
+interface MissingPrimaryRevisions {
+  message: string;
+  missing_references: Array<{
+    object_ref: string;
+    object_modified: string;
+  }>;
+}
+```
+
+- HTTP `400` means the current request selected a revision that does not
+  exist. Candidate add/version-update and direct standard member replacement
+  flows should keep the dialog open, identify the missing selections, and let
+  the operator correct them.
+- HTTP `409` means an existing draft or snapshot contains a dangling primary
+  reference. Snapshot retrieval, release preview/commit, cloning, virtual
+  materialization/quarantine promotion, and bundle export can return this
+  response. The UI should identify the affected revisions and explain that an
+  operator must repair the track/object data before continuing.
+
+Do not render a partial Workbench snapshot or treat a failed bundle request as
+an empty export.
+
+Done when:
+
+- The release-track connector exposes `missing_references` on `400` and `409`
+  responses instead of flattening the response to a generic message.
+- Candidate and direct-content forms keep their input state after a `400` and
+  highlight the missing revisions.
+- Snapshot, release, clone, virtual-materialization, and export views present
+  an actionable integrity error for `409`.
+- Tests cover multiple missing references and prove no partial snapshot or
+  bundle is rendered.
+
 ## P0 — Align the Angular connector with the current routes
 
 ### [ ] Use only the explicit snapshot-retrieval endpoints

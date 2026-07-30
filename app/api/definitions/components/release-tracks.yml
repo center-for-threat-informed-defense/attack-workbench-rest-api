@@ -676,3 +676,32 @@ components:
           type: string
           format: date-time
           description: 'UTC occurrence timestamp; also serves as the idempotency key'
+
+    object-revision-reference:
+      type: object
+      required:
+        - object_ref
+        - object_modified
+      properties:
+        object_ref:
+          type: string
+          description: 'STIX object ID'
+        object_modified:
+          type: string
+          format: date-time
+          description: 'Exact STIX revision timestamp'
+
+    object-revision-error:
+      type: object
+      required:
+        - message
+        - missing_references
+      properties:
+        message:
+          type: string
+          description: 'Whether request input or persisted primary content failed validation'
+        missing_references:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/object-revision-reference'

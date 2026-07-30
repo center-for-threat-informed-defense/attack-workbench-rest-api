@@ -529,30 +529,41 @@ describe('Release-track release planning and commit API', function () {
   });
 
   it('compares the latest virtual draft with its preceding tagged release', async function () {
+    const updatedOld = (
+      await post('/api/techniques', buildTechnique('Virtual Preview Updated Old'), 201)
+    ).body;
+    const updatedNew = (
+      await post('/api/techniques', buildTechnique('Virtual Preview Updated New', updatedOld), 201)
+    ).body;
+    const removed = (await post('/api/techniques', buildTechnique('Virtual Preview Removed'), 201))
+      .body;
+    const added = (await post('/api/techniques', buildTechnique('Virtual Preview Added'), 201))
+      .body;
+    const quarantined = (
+      await post('/api/techniques', buildTechnique('Virtual Preview Quarantined'), 201)
+    ).body;
     const track = await createTrack('Virtual Release Preview', 'virtual');
     const created = new Date(track.modified);
     const taggedModified = new Date(created.getTime() + 1000);
     const draftModified = new Date(created.getTime() + 2000);
-    const oldRevision = new Date(created.getTime() - 2000);
-    const newRevision = new Date(created.getTime() - 1000);
 
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: taggedModified,
       version: '1.0',
       members: [
-        memberEntry(virtualObjectRefs[0], oldRevision),
-        memberEntry(virtualObjectRefs[1], oldRevision),
+        memberEntry(updatedOld.stix.id, updatedOld.stix.modified),
+        memberEntry(removed.stix.id, removed.stix.modified),
       ],
-      quarantine: [quarantineEntry(virtualObjectRefs[3], oldRevision, track.id)],
+      quarantine: [quarantineEntry(quarantined.stix.id, quarantined.stix.modified, track.id)],
     });
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: draftModified,
       version: null,
       members: [
-        memberEntry(virtualObjectRefs[0], newRevision),
-        memberEntry(virtualObjectRefs[2], newRevision),
+        memberEntry(updatedNew.stix.id, updatedNew.stix.modified),
+        memberEntry(added.stix.id, added.stix.modified),
       ],
       quarantine: [],
       composition_resolution: compositionResolution(draftModified),
@@ -586,32 +597,43 @@ describe('Release-track release planning and commit API', function () {
   });
 
   it('compares a historical virtual draft with the tagged release that preceded it', async function () {
+    const updatedOld = (
+      await post('/api/techniques', buildTechnique('Historical Virtual Updated Old'), 201)
+    ).body;
+    const updatedNew = (
+      await post(
+        '/api/techniques',
+        buildTechnique('Historical Virtual Updated New', updatedOld),
+        201,
+      )
+    ).body;
+    const laterMember = (
+      await post('/api/techniques', buildTechnique('Historical Virtual Later Member'), 201)
+    ).body;
     const track = await createTrack('Historical Virtual Release Preview', 'virtual');
     const created = new Date(track.modified);
     const firstTaggedModified = new Date(created.getTime() + 1000);
     const historicalDraftModified = new Date(created.getTime() + 2000);
     const laterTaggedModified = new Date(created.getTime() + 3000);
-    const oldRevision = new Date(created.getTime() - 2000);
-    const newRevision = new Date(created.getTime() - 1000);
 
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: firstTaggedModified,
       version: '1.0',
-      members: [memberEntry(virtualObjectRefs[0], oldRevision)],
+      members: [memberEntry(updatedOld.stix.id, updatedOld.stix.modified)],
     });
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: historicalDraftModified,
       version: null,
-      members: [memberEntry(virtualObjectRefs[0], newRevision)],
+      members: [memberEntry(updatedNew.stix.id, updatedNew.stix.modified)],
       composition_resolution: compositionResolution(historicalDraftModified),
     });
     await dynamicRepo.saveSnapshot(track.id, {
       ...snapshotBase(track),
       modified: laterTaggedModified,
       version: '2.0',
-      members: [memberEntry(virtualObjectRefs[3], newRevision)],
+      members: [memberEntry(laterMember.stix.id, laterMember.stix.modified)],
     });
 
     const preview = await get(

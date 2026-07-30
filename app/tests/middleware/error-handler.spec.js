@@ -9,7 +9,9 @@ const {
   DatabaseError,
   DuplicateIdError,
   DuplicateReleaseVersionError,
+  InvalidObjectRevisionError,
   InvalidPostOperationError,
+  ReleaseContentIntegrityError,
 } = require('../../exceptions');
 
 describe('error-handler middleware', function () {
@@ -94,6 +96,58 @@ describe('error-handler middleware', function () {
         message: `Release track ${trackId} already has tagged version 2.0`,
         track_id: trackId,
         version: '2.0',
+      }),
+    ).toBe(true);
+    expect(next.called).toBe(false);
+  });
+
+  it('should return missing request revisions as a structured bad request', function () {
+    const missing = [
+      {
+        object_ref: 'attack-pattern--00000000-0000-4000-8000-000000000001',
+        object_modified: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    const err = new InvalidObjectRevisionError(missing);
+    const res = {
+      status: sinon.stub().returnsThis(),
+      send: sinon.stub().returnsThis(),
+    };
+    const next = sinon.stub();
+
+    errorHandler.serviceExceptions(err, {}, res, next);
+
+    expect(res.status.calledOnceWithExactly(400)).toBe(true);
+    expect(
+      res.send.calledOnceWithExactly({
+        message: 'One or more object revisions do not exist',
+        missing_references: missing,
+      }),
+    ).toBe(true);
+    expect(next.called).toBe(false);
+  });
+
+  it('should return missing stored revisions as a structured conflict', function () {
+    const missing = [
+      {
+        object_ref: 'attack-pattern--00000000-0000-4000-8000-000000000001',
+        object_modified: '2026-01-01T00:00:00.000Z',
+      },
+    ];
+    const err = new ReleaseContentIntegrityError(missing);
+    const res = {
+      status: sinon.stub().returnsThis(),
+      send: sinon.stub().returnsThis(),
+    };
+    const next = sinon.stub();
+
+    errorHandler.serviceExceptions(err, {}, res, next);
+
+    expect(res.status.calledOnceWithExactly(409)).toBe(true);
+    expect(
+      res.send.calledOnceWithExactly({
+        message: 'Release-track primary content is incomplete',
+        missing_references: missing,
       }),
     ).toBe(true);
     expect(next.called).toBe(false);

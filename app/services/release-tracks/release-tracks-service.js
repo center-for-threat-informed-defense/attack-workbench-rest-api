@@ -24,6 +24,7 @@ const standardTrackService = require('./standard-track-service');
 const versioningService = require('./versioning-service');
 const virtualTrackService = require('./virtual-track-service');
 const exportService = require('./export-service');
+const primaryRevisionService = require('./primary-revision-service');
 const ephemeralService = require('./ephemeral-service');
 const bundleImportService = require('./bundle-import-service');
 const memberSyncService = require('./member-sync-service');
@@ -173,6 +174,12 @@ function filterSnapshotTiers(snapshot, include) {
 }
 
 async function formatWorkbenchSnapshot(snapshot, options) {
+  const include = options?.include;
+  const selectedTiers =
+    !include || include === 'all' ? TIER_NAMES : [...new Set(['members', include])];
+  await primaryRevisionService.assertStoredEntries(
+    selectedTiers.flatMap((tierName) => snapshot[tierName] || []),
+  );
   const enriched = await addObjectInfoToSnapshot(snapshot);
   return filterSnapshotTiers(enriched, options?.include);
 }

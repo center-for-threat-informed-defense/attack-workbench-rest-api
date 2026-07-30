@@ -43,6 +43,33 @@ idempotently.
   and `version-utils.calculateNextVersion` repeats the invariant so internal
   release-planning callers cannot silently choose one selector.
 
+### Primary revision integrity boundary
+
+`app/services/release-tracks/primary-revision-service.js` is the shared
+existence and hydration boundary for primary snapshot content. It resolves
+dynamic selectors, batches exact `(object_ref, object_modified)` reads by STIX
+type, preserves request order, and reports every missing revision instead of
+silently dropping it.
+
+The error contract distinguishes who can correct the problem:
+
+- Request ingress returns `400` with `missing_references` when candidate
+  selection or direct member replacement names a revision that does not exist.
+- Operations over already-persisted content return `409` with
+  `missing_references` when a release preview/commit, track clone, virtual
+  materialization, quarantine promotion, or bundle export encounters a
+  dangling primary reference.
+- Repository failures propagate as server errors. They are never interpreted
+  as an empty query result, because doing so could emit a partial release.
+
+Bundle bootstrap is also fail-closed. Every primary bundle object must have a
+supported Workbench repository and must either be persisted successfully or
+already exist as the exact revision being imported. The track registry and
+initial snapshot are not created if any primary object fails. Import is not a
+database transaction across the heterogeneous object collections, so objects
+successfully created before a later failure may remain as ordinary Workbench
+objects; no partial release track points at them.
+
 ### Cross-tier revision enforcement
 
 `app/lib/release-tracks/tier-revision-invariant.js` owns selector identity

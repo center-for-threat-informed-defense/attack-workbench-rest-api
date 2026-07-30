@@ -11,6 +11,7 @@ const conflictResolution = require('../../lib/release-tracks/conflict-resolution
 const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const revisionReference = require('../../lib/release-tracks/revision-reference');
 const releaseHistoryService = require('./release-history-service');
+const primaryRevisionService = require('./primary-revision-service');
 const logger = require('../../lib/logger');
 const {
   AlreadyReleasedError,
@@ -260,6 +261,11 @@ async function planLoadedSnapshot(trackId, snapshot, options) {
           staged: resolvedStaged,
         }
       : snapshot;
+
+  await primaryRevisionService.assertStoredEntries([
+    ...(releaseInput.members || []),
+    ...(releaseInput.staged || []),
+  ]);
 
   return planRelease(
     trackId,

@@ -20,8 +20,8 @@ const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
 const EventConstants = require('../../lib/event-constants');
 const versionUtils = require('../../lib/release-tracks/version-utils');
-const objectResolver = require('../../lib/release-tracks/object-resolver');
 const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
+const primaryRevisionService = require('./primary-revision-service');
 const {
   TrackNotFoundError,
   NotFoundError,
@@ -75,23 +75,12 @@ function assertStandardTrack(snapshot) {
  * @returns {Promise<Array<{object_ref: string, object_modified: Date}>>}
  */
 async function resolveContentsMembers(contents) {
-  const latestByObjectRef = new Map();
-  const resolveLatest = (objectRef) => {
-    if (!latestByObjectRef.has(objectRef)) {
-      latestByObjectRef.set(objectRef, objectResolver.resolveLatestModified(objectRef));
-    }
-    return latestByObjectRef.get(objectRef);
-  };
-
-  return Promise.all(
-    contents.map(async (entry) => ({
-      object_ref: entry.obj_ref,
-      object_modified:
-        entry.obj_modified === 'latest'
-          ? await resolveLatest(entry.obj_ref)
-          : new Date(entry.obj_modified),
-    })),
-  );
+  const requested = contents.map((entry) => ({
+    object_ref: entry.obj_ref,
+    object_modified:
+      entry.obj_modified === 'latest' ? entry.obj_modified : new Date(entry.obj_modified),
+  }));
+  return (await primaryRevisionService.assertRequestEntries(requested)).entries;
 }
 
 /**
@@ -406,6 +395,9 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
   delete clone.scheduled_materialization;
 
   const normalized = tierRevisionInvariant.normalizeSnapshot(clone);
+  await primaryRevisionService.assertStoredEntries(
+    tierRevisionInvariant.TIER_PRECEDENCE.flatMap((tier) => normalized.snapshot[tier] || []),
+  );
 
   await modelFactory.ensureIndexes(newTrackId);
   const saved = await dynamicRepo.saveSnapshot(newTrackId, normalized.snapshot);

@@ -104,7 +104,9 @@ Implemented in
    resolved for this export request, then the concrete
    `{object_ref, object_modified}` pairs are batch-fetched per STIX type via
    each repository's `findManyByIdAndModified`. The stored draft selectors are
-   not mutated.
+   not mutated. Hydration is fail-closed: if any selected primary revision is
+   missing, the request returns `409` with `missing_references` and emits no
+   partial bundle. Database failures propagate as server errors.
 3. **Relationships** — the relationship service fetches the latest active
    relationship revisions whose `source_ref` and `target_ref` are both among
    the selected objects. Deprecated data-component `detects` relationships
@@ -195,6 +197,11 @@ The OpenAPI spec declares the parameters loosely (`oneOf` string/array with
 comma-separated and repeated-parameter forms reach the Zod layer, which
 normalizes and enforces the enums. Invalid values produce a 400
 `InvalidQueryStringParameterError`.
+
+Primary revision existence is validated separately in
+`primary-revision-service.js`. This is intentionally a service-layer
+invariant, because snapshot cloning, scheduled virtual materialization, and
+release planning also enter through non-controller paths.
 
 ### Regression tests
 

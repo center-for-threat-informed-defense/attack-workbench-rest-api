@@ -17,6 +17,7 @@
 // =============================================================================
 
 const snapshotService = require('./snapshot-service');
+const primaryRevisionService = require('./primary-revision-service');
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
 const deduplicationStrategies = require('../../lib/release-tracks/deduplication-strategies');
@@ -488,6 +489,7 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
     source,
     registryMap,
   );
+  await primaryRevisionService.assertStoredEntries([...members, ...quarantined]);
 
   // Build overrides for the new snapshot
   const overrides = {
@@ -559,6 +561,7 @@ exports.promoteQuarantinedObject = async function promoteQuarantinedObject(track
   const quarantine = (source.quarantine || []).filter(
     (entry) => entry.object_ref !== selected.object_ref,
   );
+  await primaryRevisionService.assertStoredEntries([...members, ...quarantine]);
 
   const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
     members,

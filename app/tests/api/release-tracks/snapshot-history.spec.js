@@ -7,25 +7,19 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 
-const objectRefs = [
-  'attack-pattern--00000000-0000-4000-8000-000000000001',
-  'attack-pattern--00000000-0000-4000-8000-000000000002',
-  'attack-pattern--00000000-0000-4000-8000-000000000003',
-  'attack-pattern--00000000-0000-4000-8000-000000000004',
-  'attack-pattern--00000000-0000-4000-8000-000000000005',
-  'attack-pattern--00000000-0000-4000-8000-000000000006',
-];
+const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
+const objectRevisions = [];
 
-function memberEntry(index, modified) {
+function memberEntry(index) {
   return {
-    object_ref: objectRefs[index],
-    object_modified: modified,
+    object_ref: objectRevisions[index].id,
+    object_modified: objectRevisions[index].modified,
   };
 }
 
 function stagedEntry(index, modified) {
   return {
-    ...memberEntry(index, modified),
+    ...memberEntry(index),
     object_status: 'reviewed',
     object_staged_at: modified,
     object_staged_by: 'snapshot-history-test',
@@ -34,7 +28,7 @@ function stagedEntry(index, modified) {
 
 function candidateEntry(index, modified) {
   return {
-    ...memberEntry(index, modified),
+    ...memberEntry(index),
     object_status: 'work-in-progress',
     object_added_at: modified,
     object_added_by: 'snapshot-history-test',
@@ -66,6 +60,9 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
     app = await require('../../../index').initializeApp();
     passportCookie = await login.loginAnonymous(app);
 
+    for (let index = 0; index < 6; index++) {
+      objectRevisions.push(await createTechnique(`Snapshot History Technique ${index + 1}`));
+    }
     standardTrack = await createTrack('Snapshot History Standard', 'standard');
     virtualTrack = await createTrack('Snapshot History Virtual', 'virtual');
 
@@ -77,7 +74,7 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       ...snapshotBase(standardTrack),
       modified: standardTaggedModified,
       version: '1.0',
-      members: [memberEntry(0, standardTaggedModified), memberEntry(1, standardTaggedModified)],
+      members: [memberEntry(0), memberEntry(1)],
       staged: [stagedEntry(2, standardTaggedModified)],
       candidates: [
         candidateEntry(3, standardTaggedModified),
@@ -89,7 +86,7 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       ...snapshotBase(standardTrack),
       modified: standardLatestModified,
       version: null,
-      members: [memberEntry(0, standardLatestModified)],
+      members: [memberEntry(0)],
       staged: [stagedEntry(1, standardLatestModified), stagedEntry(2, standardLatestModified)],
       candidates: [candidateEntry(3, standardLatestModified)],
     });
@@ -100,10 +97,10 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       ...snapshotBase(virtualTrack),
       modified: virtualTaggedModified,
       version: '1.0',
-      members: [memberEntry(0, virtualTaggedModified), memberEntry(1, virtualTaggedModified)],
+      members: [memberEntry(0), memberEntry(1)],
       quarantine: [
         {
-          ...memberEntry(2, virtualTaggedModified),
+          ...memberEntry(2),
           source_track_id: standardTrack.id,
           source_track_name: standardTrack.name,
           source_snapshot_version: '1.0',
@@ -121,6 +118,34 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201);
     return response.body;
+  }
+
+  async function createTechnique(name) {
+    const timestamp = new Date().toISOString();
+    const response = await request(app)
+      .post('/api/techniques')
+      .send({
+        workspace: { workflow: { state: 'work-in-progress' } },
+        stix: {
+          type: 'attack-pattern',
+          spec_version: '2.1',
+          created: timestamp,
+          modified: timestamp,
+          name,
+          description: `${name} description`,
+          object_marking_refs: [markingDefinitionId],
+          kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'persistence' }],
+          x_mitre_is_subtechnique: false,
+          x_mitre_platforms: ['Windows'],
+        },
+      })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201);
+    return {
+      id: response.body.stix.id,
+      modified: response.body.stix.modified,
+    };
   }
 
   function get(path, status = 200) {

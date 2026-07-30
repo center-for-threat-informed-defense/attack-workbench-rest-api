@@ -29,9 +29,39 @@ Verification result (2026-07-30):
 - The migration preflights the union of registry IDs and canonical orphan
   release-track collection names before making any index changes.
 
+### P0.2 — Make primary release membership fail closed
+
+- [x] Add one shared batch hydrator that resolves dynamic selectors, validates
+  every exact `(object_ref, object_modified)` pair, and reports all missing
+  primary revisions without swallowing repository failures.
+- [x] Reject nonexistent exact candidate pins, candidate pin updates, direct
+  member replacement, track cloning, and virtual materialization before
+  snapshot persistence.
+- [x] Revalidate existing and promoted members at release-preview and
+  release-commit boundaries; return a typed `409 Conflict` for corrupt stored
+  drafts.
+- [x] Abort bundle import before creating a track when any authoritative
+  primary object failed to import or cannot be hydrated.
+- [x] Abort bundle/workbench export when selected primary revisions cannot be
+  hydrated; return every missing reference instead of a partial result.
+- [x] Add ingress, partial-import, deleted-staged-revision, virtual
+  materialization, and incomplete-export regressions.
+- [x] Update user/developer documentation and run focused, lint, OpenAPI, and
+  complete-suite verification.
+
+Verification result (2026-07-30):
+
+- The shared integrity, release, export, virtual determinism/quarantine, and
+  middleware regression group passes (54); the complete release-track API
+  regression group passes (143).
+- OpenAPI validation (2) and backend lint pass.
+- The required full suite passes: OpenAPI 2, config 21, API 955, middleware
+  27, and scheduler 10.
+- Bruno documents the structured `400`/`409` integrity response on companion
+  branch `fix/release-tracks-production-readiness`.
+
 ### Remaining prioritized recommendations
 
-- [ ] P0.2 — Make primary release membership fail closed.
 - [ ] P0.3 — Make tagged-content immutability authoritative and durable.
 - [ ] P0.4 — Correct destructive authorization and add durable audit records.
 - [ ] P0.5 — Complete the Angular contract migration and end-to-end smoke gate.

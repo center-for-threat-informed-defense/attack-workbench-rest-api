@@ -13,7 +13,7 @@
 // =============================================================================
 
 const snapshotService = require('./snapshot-service');
-const objectResolver = require('../../lib/release-tracks/object-resolver');
+const primaryRevisionService = require('./primary-revision-service');
 const revisionReference = require('../../lib/release-tracks/revision-reference');
 const conflictResolution = require('../../lib/release-tracks/conflict-resolution');
 const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
@@ -103,16 +103,13 @@ exports.addCandidates = async function addCandidates(trackId, objectRefs, userId
   for (const raw of objectRefs) {
     const entry = normalizeObjectRef(raw);
 
-    // `latest` is a dynamic workflow-tier selector. Resolve it once here to
-    // validate that the object exists, but preserve the selector until the
-    // staged entry is frozen by a release operation.
-    let modified;
-    if (!entry.modified || entry.modified === 'latest') {
-      await objectResolver.resolveLatestModified(entry.id);
-      modified = revisionReference.LATEST;
-    } else {
-      modified = new Date(entry.modified);
-    }
+    // `latest` remains dynamic through the candidate/staged workflow. The
+    // shared primary-revision boundary resolves it only for existence
+    // validation and does not mutate the persisted selector.
+    const modified =
+      !entry.modified || entry.modified === 'latest'
+        ? revisionReference.LATEST
+        : new Date(entry.modified);
 
     const revision = { object_ref: entry.id, object_modified: modified };
     const revisionKey = tierRevisionInvariant.revisionKey(revision);
@@ -139,6 +136,8 @@ exports.addCandidates = async function addCandidates(trackId, objectRefs, userId
       ? snapshotService.cloneSnapshot(trackId, source)
       : source;
   }
+
+  await primaryRevisionService.assertRequestEntries(newEntries);
 
   // Same-object conflicts (the object_ref is already pinned in candidates at
   // a different revision) are resolved by the into_candidates policy.
@@ -382,16 +381,18 @@ exports.updateCandidateVersion = async function updateCandidateVersion(trackId, 
   const existingCandidates = source.candidates || [];
 
   let found = false;
+  let updatedEntry;
   const updatedCandidates = existingCandidates.map((candidate) => {
     if (
       candidate.object_ref === objectRef &&
       revisionReference.sameModified(candidate.object_modified, data.old_modified)
     ) {
       found = true;
-      return {
+      updatedEntry = {
         ...candidate,
         object_modified: revisionReference.normalize(data.new_modified),
       };
+      return updatedEntry;
     }
     return candidate;
   });
@@ -403,6 +404,8 @@ exports.updateCandidateVersion = async function updateCandidateVersion(trackId, 
         `not found in track "${trackId}"`,
     });
   }
+
+  await primaryRevisionService.assertRequestEntries([updatedEntry]);
 
   const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
     candidates: updatedCandidates,
