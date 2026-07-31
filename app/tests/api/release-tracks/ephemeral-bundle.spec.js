@@ -49,6 +49,7 @@ describe('Ephemeral Bundle API', function () {
   let icsTechnique;
   let group;
   let relationship;
+  let sharedIcsRelationship;
   let icsGroup;
   let icsRelationship;
 
@@ -169,6 +170,7 @@ describe('Ephemeral Bundle API', function () {
         type: 'intrusion-set',
         description: 'Group used to verify secondary-object inclusion.',
         object_marking_refs: [staticMarkingDefinitionId],
+        x_mitre_domains: [enterpriseDomain, icsDomain],
       },
     });
 
@@ -182,6 +184,20 @@ describe('Ephemeral Bundle API', function () {
         relationship_type: 'uses',
         source_ref: group.stix.id,
         target_ref: enterpriseTechnique.stix.id,
+        object_marking_refs: [staticMarkingDefinitionId],
+      },
+    });
+
+    sharedIcsRelationship = await postObject('/api/relationships', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        spec_version: '2.1',
+        type: 'relationship',
+        relationship_type: 'uses',
+        source_ref: group.stix.id,
+        target_ref: icsTechnique.stix.id,
         object_marking_refs: [staticMarkingDefinitionId],
       },
     });
@@ -231,9 +247,10 @@ describe('Ephemeral Bundle API', function () {
     expect(ids).toContain(group.stix.id);
     expect(ids).toContain(relationship.stix.id);
 
-    // The group's domains are inferred from the technique it uses
+    // Canonical multi-domain membership is preserved instead of being
+    // narrowed to the requested export domain.
     const bundleGroup = bundle.objects.find((o) => o.id === group.stix.id);
-    expect(bundleGroup.x_mitre_domains).toEqual([enterpriseDomain]);
+    expect(bundleGroup.x_mitre_domains).toEqual([enterpriseDomain, icsDomain]);
 
     // Referenced supporting objects
     expect(ids).toContain(enterpriseTechnique.stix.created_by_ref);
@@ -278,17 +295,22 @@ describe('Ephemeral Bundle API', function () {
 
       expect(enterpriseIds).toContain(group.stix.id);
       expect(enterpriseIds).toContain(relationship.stix.id);
+      expect(enterpriseIds).not.toContain(sharedIcsRelationship.stix.id);
       expect(enterpriseIds).not.toContain(icsGroup.stix.id);
       expect(enterpriseIds).not.toContain(icsRelationship.stix.id);
 
+      expect(icsIds).toContain(group.stix.id);
+      expect(icsIds).toContain(sharedIcsRelationship.stix.id);
       expect(icsIds).toContain(icsGroup.stix.id);
       expect(icsIds).toContain(icsRelationship.stix.id);
-      expect(icsIds).not.toContain(group.stix.id);
       expect(icsIds).not.toContain(relationship.stix.id);
 
       expect(
         enterpriseBundle.objects.find((object) => object.id === group.stix.id).x_mitre_domains,
-      ).toEqual([enterpriseDomain]);
+      ).toEqual([enterpriseDomain, icsDomain]);
+      expect(
+        icsBundle.objects.find((object) => object.id === group.stix.id).x_mitre_domains,
+      ).toEqual([enterpriseDomain, icsDomain]);
       expect(
         icsBundle.objects.find((object) => object.id === icsGroup.stix.id).x_mitre_domains,
       ).toEqual([icsDomain]);

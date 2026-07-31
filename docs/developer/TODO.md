@@ -20,6 +20,83 @@ Verification (2026-07-30):
   canonical-domain migration spec still has three isolated failures, so a
   clean aggregate run remains outstanding.
 
+## Embedded canonical-domain migration and enforcement
+
+- [x] Batch the canonical-domain migration so active revisions use bounded
+      service-layer concurrency and verification/audit records avoid
+      unnecessary per-object database round trips.
+- [x] Replace the v19.1 object manifest with persisted canonical collection
+      provenance and scan the latest revision of all 13 domain-bearing ATT&CK
+      types, irrespective of active, deprecated, or revoked state.
+- [x] Let the native migration driver generate inactive-clone `_id` values so
+      Mongoose BSON 6 values are never passed to MongoDB driver/BSON 7 writes.
+- [x] Serialize concurrent release-track member-sync mutations per track so
+      batched reposts cannot overwrite candidates created by sibling workers.
+- [x] Add batch-size, audit-sequence, shared-track concurrency, and
+      idempotency regressions; update operator documentation and rerun the
+      focused and complete test suites.
+- [x] Add an idempotent startup migration that reposts every active latest
+      domainless object through its normal service create lifecycle.
+- [x] Include deprecated and revoked latest revisions as immutable direct
+      clones, preserving lifecycle state and creating a new `modified`
+      revision without relying on inactive-content POST guardrails.
+- [x] Initialize release-track member synchronization during the migration so
+      newly created revisions follow ordinary track-driven candidacy behavior.
+- [x] Remove static `x_mitre_domains` validation bypasses and delete their
+      already-persisted database copies during migration.
+- [x] Default a latest domainless object that cannot be mapped to canonical
+      collection provenance to `["enterprise-attack"]`, and audit the fallback.
+- [x] Add migration, idempotency, inactive-state, member-sync, and ADM
+      enforcement regressions.
+- [x] Update migration and domain-contract documentation, then run focused
+      tests, lint, and the complete `npm test` suite.
+
+Verification (2026-07-30):
+
+- Release-agnostic canonical-domain migration regression: 8 passing, covering
+  all 13 domain-bearing types and the MongoDB 7/Mongoose MongoDB 6 driver
+  boundary.
+- Focused virtual-domain and bundle regressions: 23 passing.
+- Backend and migration lint plus diff checks pass.
+- Complete suite passes: OpenAPI 2, config 21, API 982, middleware 29, and
+  scheduler 10.
+- Existing release-track change-capture regression: 13 passing.
+- Batch-related lint and formatting checks pass.
+- Two complete-suite runs reached 977 and 975 API passes respectively. The
+  remaining failures were the documented roaming HTTP/Mongo test-harness
+  failures in unrelated specs; every affected spec, including virtual
+  determinism, passes in isolation.
+- Focused canonical-domain migration, virtual-filter, and bundle regressions:
+  110 passing.
+- Application and migration lint plus diff checks pass.
+- The pre-batching clean full-suite baseline was OpenAPI 2, config 21, API 978,
+  middleware 29, and scheduler 10.
+
+## ATT&CK v19.1 canonical domain repair
+
+- [x] Add a dry-run/apply operational migration that derives canonical
+      `x_mitre_domains` values from object presence across the Enterprise, ICS,
+      and Mobile v19.1 collection TOCs.
+- [x] Repost each affected latest active object through its normal create
+      endpoint so the repair creates a new revision and triggers ordinary
+      release-track member synchronization.
+- [x] Preserve canonical multi-domain arrays during legacy and ephemeral bundle
+      export instead of narrowing them to the requested bundle domain.
+- [x] Keep virtual `filters.domains` matching inclusive: any matching canonical
+      domain includes an object, while no matching domain excludes it.
+- [x] Document the canonical-domain contract and the required follow-up
+      standard-track release after the repair creates new candidate revisions.
+- [x] Run focused migration and API regressions, then lint, OpenAPI validation,
+      and the complete `npm test` suite.
+
+Verification (2026-07-30):
+
+- Migration/bootstrap Python regressions: 20 passing.
+- Focused bundle and virtual-domain API regressions: 23 passing.
+- Lint and diff checks pass.
+- Complete server suite passes: OpenAPI 2, config 21, API 973, middleware 29,
+  and scheduler 10.
+
 ## Bootstrap hotfix — ATT&CK-branded track names
 
 - [x] Permit ampersands in release-track names at the request and persistence

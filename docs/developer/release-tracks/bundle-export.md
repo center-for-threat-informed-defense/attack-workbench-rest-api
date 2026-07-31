@@ -15,9 +15,9 @@ implements the ATT&CK bundle-composition rules:
 1. **Primary objects** are retrieved by domain (`x_mitre_domains`):
    techniques, tactics, mitigations, software, matrices, analytics, data
    components, data sources.
-2. **Secondary objects** (groups, campaigns, detection strategies) cannot be
-   assigned domains by users; they are discovered through relationships to
-   primary objects and their `x_mitre_domains` is inferred at export time.
+2. **Secondary objects** (groups, campaigns, detection strategies) were
+   historically discovered through relationships to primary objects and their
+   `x_mitre_domains` was projected at export time.
 3. **Relationship referential integrity**: a relationship is only emitted if
    both its `source_ref` and `target_ref` are present in the bundle.
 4. **Supporting objects**: identities (`created_by_ref`) and marking
@@ -130,6 +130,23 @@ Implemented in
    - `modified`: the snapshot's `modified` timestamp
    - `x_mitre_contents`: every bundle object except marking definitions
      (which are recorded in `object_marking_refs`), sorted by `object_ref`
+
+### Canonical domains and the legacy graph renderer
+
+Domain membership is object data, not an export projection. A cross-domain
+object has one revision whose `x_mitre_domains` contains the complete domain
+union. That same revision may appear in multiple domain bundles; its array is
+not narrowed to the domain requested by a particular export.
+
+The legacy and ephemeral graph renderer now preserves every nonempty
+`x_mitre_domains` array it hydrates. Export-time inference remains only as a
+compatibility fallback for exact historical domainless revisions pinned
+before canonical-domain enforcement, including historical matrix revisions.
+The fallback affects the rendered copy and does not update the stored
+revision. The release-agnostic startup migration creates canonical replacement
+revisions for the latest domainless object in every domain-bearing chain; all
+subsequent content must persist canonical domains so virtual composition,
+snapshot export, and ephemeral export observe the same membership.
 
 Because snapshot contents are explicitly curated, primary entries do **not**
 receive the legacy attack-id / deprecated / revoked filters. Secondary graph

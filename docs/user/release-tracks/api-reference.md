@@ -1162,11 +1162,21 @@ POST /api/release-tracks/new
 }
 ```
 
-`filters.domains` matches the exact pinned revision's `x_mitre_domains`.
-Short names (`enterprise`, `ics`, `mobile`) and STIX names ending in
-`-attack` are equivalent. Objects without a matching domain are excluded.
-For primary matrices, which omit `x_mitre_domains` in published ATT&CK data,
-the domain is read from `external_references[].external_id`.
+`filters.domains` matches the exact pinned revision's canonical
+`x_mitre_domains`. Short names (`enterprise`, `ics`, `mobile`) and STIX names
+ending in `-attack` are equivalent. The comparison is inclusive: any
+intersection between the object's domains and the configured domains includes
+the object. Thus, `["enterprise-attack", "mobile-attack"]` matches either an
+Enterprise or Mobile component filter; `["mobile-attack"]` does not match an
+Enterprise filter. Objects without a matching domain are excluded.
+
+Cross-domain objects retain the complete domain array in every representation.
+The filter selects an exact revision; it does not narrow or rewrite that
+revision for the requested virtual track.
+Current matrix revisions must also persist `x_mitre_domains`. For an exact
+historical matrix revision created before that requirement, the domain can
+still be read from `external_references[].external_id` as a compatibility
+fallback.
 
 `filters.object_types` accepts canonical Workbench STIX type names:
 `attack-pattern`, `campaign`, `course-of-action`, `identity`, `intrusion-set`,

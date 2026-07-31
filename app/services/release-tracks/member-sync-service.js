@@ -40,6 +40,30 @@ const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
 const EventConstants = require('../../lib/event-constants');
 
+// Concurrent object creates can affect the same standard track. Snapshot
+// updates are read-modify-write operations, so serialize them per track while
+// still allowing unrelated tracks to progress concurrently.
+const trackLocks = new Map();
+
+async function withTrackLock(trackId, operation) {
+  const previous = trackLocks.get(trackId) || Promise.resolve();
+  let release;
+  const current = new Promise((resolve) => {
+    release = resolve;
+  });
+  trackLocks.set(trackId, current);
+
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (trackLocks.get(trackId) === current) {
+      trackLocks.delete(trackId);
+    }
+  }
+}
+
 // =============================================================================
 // Main entry point
 // =============================================================================
@@ -75,12 +99,27 @@ exports.handleObjectModified = async function handleObjectModified(event) {
   const results = [];
   for (const trackInfo of affectedTracks) {
     try {
-      const result = await processMemberSync(trackInfo.trackId, trackInfo.snapshot, {
-        objectRef,
-        newModified,
-        modifiedBy,
-        trigger,
-        isMember: trackInfo.isMember,
+      const result = await withTrackLock(trackInfo.trackId, async () => {
+        // Discovery may have happened while another object was cloning this
+        // track. Refresh inside the lock so this mutation always builds on the
+        // authoritative latest snapshot instead of overwriting its peer.
+        const snapshot = await dynamicRepo.getLatestSnapshot(trackInfo.trackId);
+        if (!snapshot) return null;
+
+        const isMember = (snapshot.members || []).some((entry) => entry.object_ref === objectRef);
+        const isTracked =
+          isMember ||
+          (snapshot.candidates || []).some((entry) => entry.object_ref === objectRef) ||
+          (snapshot.staged || []).some((entry) => entry.object_ref === objectRef);
+        if (!isTracked) return null;
+
+        return processMemberSync(trackInfo.trackId, snapshot, {
+          objectRef,
+          newModified,
+          modifiedBy,
+          trigger,
+          isMember,
+        });
       });
       if (result) results.push(result);
     } catch (err) {
@@ -586,6 +625,7 @@ initializeEventListeners();
 exports._internal = {
   findTracksReferencingObject,
   processMemberSync,
+  withTrackLock,
   getMemberSyncConfig,
   handleStixObjectEvent,
   handleStixObjectRevokedEvent,

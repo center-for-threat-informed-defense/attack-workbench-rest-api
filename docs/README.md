@@ -62,6 +62,7 @@ Configuration, deployment, and identity provider setup.
 - [Release-Track Membership Reconciliation](admin/release-track-reconciliation.md): Inspect and repair durable object-backref protection failures
 - [Release-Track Destructive Audit Events](admin/release-track-audit.md): Inspect administrator track-deletion attempts
 - [Release-Track Deterministic Graph Migration](admin/release-track-graph-migration.md): Preview and operate the relationship-pin and snapshot-manifest backfill
+- [ATT&CK Canonical-Domain Migration](admin/canonical-domain-migration.md): Understand the release-agnostic startup repair, inactive-revision handling, strict validation, and verification procedure
 
 ### Authentication
 

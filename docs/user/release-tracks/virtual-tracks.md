@@ -219,13 +219,24 @@ filters: {
 ```
 
 Domain filters hydrate the exact revisions pinned by the component's tagged
-snapshot; they do not inspect the latest database revision. An object with
-multiple matching domains is included in each corresponding virtual track.
-Objects without `x_mitre_domains` are excluded when a domain filter is set.
-The primary Enterprise, ICS, and Mobile matrices are the exception: published
-ATT&CK data identifies their domain through
-`external_references[].external_id`, so virtual filtering uses that established
-matrix fallback.
+snapshot; they do not inspect the latest database revision. Matching uses
+inclusive **any-match** semantics, not exact-array equality: an object is
+included when at least one value in its canonical `x_mitre_domains` array
+matches at least one configured domain. For example,
+`["enterprise-attack", "mobile-attack"]` is included by both an Enterprise
+filter and a Mobile filter, while `["mobile-attack"]` is excluded by an
+Enterprise filter. Objects without `x_mitre_domains` are excluded when a
+domain filter is set.
+
+`x_mitre_domains` is canonical object data. A cross-domain object has one
+revision containing the complete domain union; Workbench does not create or
+emit separate domain-narrowed revisions of that object. Consequently, the
+same exact `(object_ref, object_modified)` member can appear in multiple
+domain-filtered virtual snapshots.
+Current matrix revisions follow the same canonical-domain requirement. For
+exact historical matrix revisions created before enforcement, virtual
+filtering retains a compatibility fallback to the domain in
+`external_references[].external_id`.
 
 `object_types` values are case-sensitive canonical Workbench STIX type names.
 When the property is present, it must contain at least one value and cannot

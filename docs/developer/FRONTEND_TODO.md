@@ -25,6 +25,46 @@ Keep these rules in mind while updating the connector:
   convention and do not currently include `/standard/`.
 - A release preview is a read-only `GET`. A release commit is a `POST`.
 
+## P0 — Send canonical domains for domain-bearing content
+
+### [ ] Require `x_mitre_domains` in affected reviewed-object forms
+
+The backend no longer suppresses the ATT&CK Data Model error for a missing
+`x_mitre_domains` property on campaigns, intrusion sets, detection strategies,
+or matrices. Existing latest v19.1 content is repaired automatically at server
+startup, including revoked and deprecated lineages, but new reviewed revisions
+must carry their own canonical domain membership.
+
+Update the affected Angular create/edit payloads so the field contains the
+object's complete domain union:
+
+```ts
+x_mitre_domains: Array<'enterprise-attack' | 'ics-attack' | 'mobile-attack'>;
+```
+
+Do not reduce a cross-domain object to the currently selected screen or bundle
+domain. For example, one object used by Enterprise and Mobile should persist
+`['enterprise-attack', 'mobile-attack']`; both virtual domain filters will
+include that same exact revision by set intersection.
+
+Workbench still permits incomplete `work-in-progress` objects under the
+existing partial-ADM workflow contract. Before a form advances an affected
+object to `awaiting-review` or `reviewed`, require at least one domain and
+surface the backend's `x_mitre_domains` validation detail if it is missing.
+
+Done when:
+
+- Campaign, group, detection-strategy, and matrix form models expose canonical
+  domain selection.
+- Reviewed create and new-revision payloads always include a nonempty domain
+  array.
+- Multi-select state preserves every selected domain instead of choosing one
+  based on route context.
+- Validation errors for `x_mitre_domains` are displayed next to the domain
+  control.
+- Tests cover a cross-domain payload and rejection of a reviewed domainless
+  payload.
+
 ## P0 — Model draft revision selectors separately from released member pins
 
 ### [ ] Preserve `"latest"` in candidate and staged frontend state

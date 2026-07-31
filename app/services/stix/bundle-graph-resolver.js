@@ -291,11 +291,10 @@ class BundleGraphResolver {
       this.options.inferDomains !== false &&
       (secondaryObject.stix.type === 'intrusion-set' || secondaryObject.stix.type === 'campaign')
     ) {
-      if (secondaryObject.stix.x_mitre_domains) {
-        this.domainCache.set(secondaryObject.stix.id, secondaryObject.stix.x_mitre_domains);
+      if (!this.rememberCanonicalDomains(secondaryObject)) {
+        secondaryObject.stix.x_mitre_domains =
+          await this.getDomainsForSecondaryObject(secondaryObject);
       }
-      secondaryObject.stix.x_mitre_domains =
-        await this.getDomainsForSecondaryObject(secondaryObject);
     }
     return true;
   }
@@ -379,7 +378,7 @@ class BundleGraphResolver {
             }
           }
         }
-        this.rememberAndSetDomains(detectionStrategyDoc, [this.options.domain]);
+        this.setFallbackDomains(detectionStrategyDoc, [this.options.domain]);
         this.addAttackObject(detectionStrategyDoc, objects, objectsMap);
       }
     }
@@ -403,7 +402,7 @@ class BundleGraphResolver {
         groupObject,
         this.endpointDocument(objectsMap, relationship, 'source'),
       );
-      this.rememberAndSetDomains(groupObject, [this.options.domain]);
+      this.setFallbackDomains(groupObject, [this.options.domain]);
       this.addAttackObject(groupObject, objects, objectsMap);
     }
   }
@@ -426,7 +425,7 @@ class BundleGraphResolver {
         detectionStrategy,
         this.endpointDocument(objectsMap, relationship, 'target'),
       );
-      this.rememberAndSetDomains(detectionStrategy, [this.options.domain]);
+      this.setFallbackDomains(detectionStrategy, [this.options.domain]);
       this.addAttackObject(detectionStrategy, objects, objectsMap);
     }
   }
@@ -450,19 +449,21 @@ class BundleGraphResolver {
       this.endpointDocument(objectsMap, relationship, 'target'),
     );
     if (revokedObject.stix.type === 'intrusion-set' || revokedObject.stix.type === 'campaign') {
-      this.rememberAndSetDomains(revokedObject, [this.options.domain]);
+      this.setFallbackDomains(revokedObject, [this.options.domain]);
     }
     this.addAttackObject(revokedObject, objects, objectsMap);
   }
 
-  rememberAndSetDomains(attackObject, domains) {
-    if (this.options.inferDomains === false) {
-      return;
-    }
-    if (attackObject.stix.x_mitre_domains) {
-      this.domainCache.set(attackObject.stix.id, attackObject.stix.x_mitre_domains);
-    }
-    attackObject.stix.x_mitre_domains = domains;
+  rememberCanonicalDomains(attackObject) {
+    const domains = attackObject.stix.x_mitre_domains;
+    if (!Array.isArray(domains) || domains.length === 0) return false;
+    this.domainCache.set(attackObject.stix.id, domains);
+    return true;
+  }
+
+  setFallbackDomains(attackObject, domains) {
+    if (this.options.inferDomains === false || this.rememberCanonicalDomains(attackObject)) return;
+    attackObject.stix.x_mitre_domains = [...new Set(domains)];
   }
 }
 

@@ -24,6 +24,23 @@ The ATT&CK Workbench database supports the following ATT&CK object types (with t
 
 Most ATT&CK object types should be updated by creating a new object with a new `modified` timestamp (POST request). The Collection Index is different and should be updated by modifying (overwriting) the current object (PUT request).
 
+## Canonical Domain Membership
+
+`stix.x_mitre_domains` is authoritative object data for domain-bearing ATT&CK
+objects. Cross-domain content has one revision containing the complete domain
+union, such as `["enterprise-attack", "mobile-attack"]`; Workbench does not
+store separate domain-narrowed copies of that revision.
+
+ADM validation requires the property before a domain-bearing object leaves the
+partial `work-in-progress` workflow. Workbench does not suppress the
+missing-domain error for any domain-bearing ATT&CK type.
+Migration
+`20260730230000-backfill-canonical-x-mitre-domains.js` creates replacement
+latest revisions for all domainless lineages without rewriting historical
+revisions. Domain unions come from persisted canonical collection provenance;
+unmappable content defaults to Enterprise. See the
+[operator guide](../admin/canonical-domain-migration.md).
+
 ## Database Structure
 
 ### attackObjects Collection
@@ -133,6 +150,7 @@ The REST API supports linking between objects using a reference mechanism called
 When one object references another, it uses the format `(LinkById: ref)` where `ref` is the external ID of the referenced object. This is stored in the database as part of the object's text properties (typically the description).
 
 Additionally, an external reference is added to the object with:
+
 - `source_name`: the external ID of the referenced object
 - `url`: the URL of the referenced object
 - `description`: the name of the referenced object

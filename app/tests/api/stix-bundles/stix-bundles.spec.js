@@ -16,11 +16,11 @@
  *    - Require ATT&CK IDs
  *
  * 2. DETECTION STRATEGIES (x-mitre-detection-strategy) - Secondary Objects
- *    - NOT explicitly assigned to domains (domain is inferred)
+ *    - Canonical domains are preserved when explicitly assigned
+ *    - Legacy domainless objects receive an export-time fallback
  *    - Included in bundle under TWO conditions:
  *      a) They detect a technique in the bundle (via 'detects' relationship)
  *      b) They reference an analytic in the bundle (via x_mitre_analytic_refs)
- *    - Their x_mitre_domains is set to the domain being exported
  *
  * 3. DATA COMPONENTS & DATA SOURCES - Now Primary Objects
  *    - Both are now PRIMARY objects with explicit domain assignment
@@ -37,7 +37,8 @@
  * ✓ Analytics are retrieved as primary objects by domain
  * ✓ Detection strategies are included when they detect techniques in bundle
  * ✓ Detection strategies are included when they reference analytics in bundle
- * ✓ Detection strategies get their x_mitre_domains set to the export domain
+ * ✓ Canonical multi-domain detection strategies retain every assigned domain
+ * ✓ Legacy domainless detection strategies get an export-domain fallback
  * ✓ Data components are retrieved as primary objects (not via detects relationships)
  * ✓ Data sources are optionally included via includeDataSources parameter
  * ✓ Deprecated detects relationships from data components are ignored
@@ -46,7 +47,7 @@
  * TEST DATA STRUCTURE:
  * - 3 Techniques (attack-patterns) across enterprise and ICS domains
  * - 2 Analytics in enterprise domain
- * - 3 Detection Strategies (secondary objects with no domain assignment)
+ * - 3 Detection Strategies (secondary objects with canonical or legacy domain assignment)
  * - 2 Data Components with explicit domain assignments
  * - 2 Data Sources with explicit domain assignments
  * - Deprecated detects relationships from data components (to prove they're ignored)
@@ -81,7 +82,7 @@ const mitreIdentityId = 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5';
  * This bundle includes:
  * - 3 techniques (2 enterprise, 1 ICS, with 1 shared)
  * - 2 analytics (both enterprise)
- * - 3 detection strategies (no domain - inferred)
+ * - 3 detection strategies (canonical domains or legacy inference)
  * - 2 data components (1 enterprise, 1 ICS)
  * - 2 data sources (1 enterprise, 1 ICS)
  * - Valid detects relationships: detection-strategy → technique
@@ -294,7 +295,7 @@ const newSpecBundleData = {
       external_references: [{ source_name: 'mitre-attack', external_id: 'DET0001' }],
       x_mitre_analytic_refs: ['x-mitre-analytic--44444444-4444-4444-8444-444444444444'],
       x_mitre_attack_spec_version: config.app.attackSpecVersion,
-      x_mitre_domains: [enterpriseDomain],
+      x_mitre_domains: [enterpriseDomain, icsDomain],
       x_mitre_modified_by_ref: mitreIdentityId,
       x_mitre_version: '1.0',
     },
@@ -641,7 +642,7 @@ describe('STIX Bundles New Specification API', function () {
     );
     expect(ds001).toBeDefined();
     expect(ds001.name).toBe('Detection Strategy 1 - Detects Technique via Relationship');
-    expect(ds001.x_mitre_domains).toEqual([enterpriseDomain]);
+    expect(ds001.x_mitre_domains).toEqual([enterpriseDomain, icsDomain]);
 
     // Verify the 'detects' relationships are included
     const ds001DetectsRels = stixBundle.objects.filter(

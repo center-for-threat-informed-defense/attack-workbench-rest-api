@@ -141,6 +141,14 @@ from tagged standard component snapshots. They never inherit `track_latest`,
 and retrieving a persisted virtual snapshot does not re-resolve its component
 tracks.
 
+Domain membership is likewise pinned object data. A cross-domain object has
+one revision whose `x_mitre_domains` contains the complete domain union; the
+same exact revision can therefore be selected by multiple virtual domain
+filters. Workbench does not create separate domain-narrowed copies during
+bundle export. Campaigns, intrusion sets, detection strategies, and matrices
+can no longer rely on the former missing-domain validation bypass once they
+leave the partial `work-in-progress` state.
+
 ## Key Features
 
 ### Automatic Promotion

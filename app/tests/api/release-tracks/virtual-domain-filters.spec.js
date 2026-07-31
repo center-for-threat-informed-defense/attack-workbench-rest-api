@@ -91,7 +91,7 @@ describe('Virtual Release Track Domain Filters API', function () {
     return post(`/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {});
   }
 
-  it('filters exact pinned revisions by normalized ATT&CK domains', async function () {
+  it('includes exact pinned revisions when any canonical ATT&CK domain matches', async function () {
     const enterprise = await post(
       '/api/mitigations',
       buildMitigation('Enterprise Domain Member', ['enterprise-attack']),
@@ -102,7 +102,11 @@ describe('Virtual Release Track Domain Filters API', function () {
     );
     const shared = await post(
       '/api/mitigations',
-      buildMitigation('Shared Domain Member', ['enterprise-attack', 'ics-attack']),
+      buildMitigation('Shared Domain Member', ['enterprise-attack', 'mobile-attack']),
+    );
+    const mobile = await post(
+      '/api/mitigations',
+      buildMitigation('Mobile Domain Member', ['mobile-attack']),
     );
     const noDomain = await post('/api/mitigations', buildMitigation('No Domain Member', undefined));
     const enterpriseMatrix = await post(
@@ -118,6 +122,7 @@ describe('Virtual Release Track Domain Filters API', function () {
       enterprise,
       ics,
       shared,
+      mobile,
       noDomain,
       enterpriseMatrix,
     ]);
@@ -139,16 +144,26 @@ describe('Virtual Release Track Domain Filters API', function () {
       expect.arrayContaining([enterprise.stix.id, shared.stix.id, enterpriseMatrix.stix.id]),
     );
     expect(enterpriseIds).not.toContain(ics.stix.id);
+    expect(enterpriseIds).not.toContain(mobile.stix.id);
     expect(enterpriseIds).not.toContain(noDomain.stix.id);
 
     const icsSnapshot = await createVirtualSnapshot('ICS Domain Virtual', component.id, [
       'ics-attack',
     ]);
     const icsIds = icsSnapshot.members.map((member) => member.object_ref);
-    expect(icsIds).toEqual(expect.arrayContaining([ics.stix.id, shared.stix.id]));
+    expect(icsIds).toEqual(expect.arrayContaining([ics.stix.id]));
+    expect(icsIds).not.toContain(shared.stix.id);
     expect(icsIds).not.toContain(enterprise.stix.id);
     expect(icsIds).not.toContain(enterpriseMatrix.stix.id);
     expect(icsIds).not.toContain(noDomain.stix.id);
+
+    const mobileSnapshot = await createVirtualSnapshot('Mobile Domain Virtual', component.id, [
+      'mobile',
+    ]);
+    const mobileIds = mobileSnapshot.members.map((member) => member.object_ref);
+    expect(mobileIds).toEqual(expect.arrayContaining([mobile.stix.id, shared.stix.id]));
+    expect(mobileIds).not.toContain(enterprise.stix.id);
+    expect(mobileIds).not.toContain(ics.stix.id);
   });
 
   after(async function () {
