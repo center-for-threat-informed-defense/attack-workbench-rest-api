@@ -233,6 +233,9 @@ paths:
         members are unsupported. Virtual snapshot schedules are strict by
         mode: manual accepts no selector, cron requires cron, and dates
         requires at least one date. Standard tracks reject snapshot_schedule.
+        Virtual tracks may also accept a strict scheduled_materialization
+        object containing schedule_mode and scheduled_for; it is persisted on
+        the initial snapshot and returned by snapshot and track-list GETs.
       tags:
         - 'Release Tracks'
       # Request body validation moved to Zod in controller
@@ -834,6 +837,8 @@ paths:
         rejects selector fields; specific_version requires version;
         specific_snapshot requires snapshot. Component IDs and required
         non-negative integer priorities must each be unique.
+        An optional strict scheduled_materialization object is persisted on the
+        new pending virtual draft and returned by snapshot and track-list GETs.
       tags:
         - 'Release Tracks'
       parameters:
@@ -867,7 +872,9 @@ paths:
         object_ref and object_modified revision. The resulting snapshot never
         follows later component track_latest activity, and snapshot retrieval
         does not re-resolve composition.
-        Request body validated via Zod in controller.
+        Request body validated via Zod in controller. Clients may attach an
+        optional strict scheduled_materialization object to the resulting
+        virtual draft.
       tags:
         - 'Release Tracks'
       parameters:
@@ -938,7 +945,8 @@ paths:
         Return lightweight summaries of every snapshot in the release track,
         ordered by modified timestamp from newest to oldest. Standard snapshot
         summaries contain members, staged, and candidates counts. Virtual
-        snapshot summaries contain members and quarantine counts.
+        snapshot summaries contain members and quarantine counts, plus
+        scheduled_materialization when present.
       tags:
         - 'Release Tracks'
       parameters:

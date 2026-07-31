@@ -398,6 +398,12 @@ const releaseTrackSnapshotDefinition = {
   scheduled_materialization: {
     type: scheduledMaterializationSchema,
     default: undefined,
+    validate: {
+      validator: function validateScheduledMaterialization(value) {
+        return value === undefined || this.type === 'virtual';
+      },
+      message: 'Scheduled materialization is only valid for virtual tracks',
+    },
   },
 
   // --- Shared ---

@@ -1158,6 +1158,10 @@ POST /api/release-tracks/new
   "snapshot_schedule": {
     "mode": "cron",
     "cron": "0 0 1 1,7 *"
+  },
+  "scheduled_materialization": {
+    "schedule_mode": "cron",
+    "scheduled_for": "2027-01-01T00:00:00.000Z"
   }
 }
 ```
@@ -1202,8 +1206,11 @@ Cron expressions and explicit dates are interpreted in UTC. Cron occurrences
 run while the scheduler is active; they are not backfilled after downtime.
 Every due date is recovered after restart and creates exactly one draft.
 Failed cron and date occurrences are retried by the scheduler. Scheduled
-drafts include a server-controlled `scheduled_materialization` object with
-`schedule_mode` and `scheduled_for`; manual drafts omit it.
+drafts include a `scheduled_materialization` object with `schedule_mode` and
+`scheduled_for`. Clients may set the same strict object when creating a
+virtual track. Standard tracks reject it. The value is attached immutably to
+that snapshot and is returned by track listing, snapshot history, latest
+snapshot, and timestamp-selected snapshot GET requests.
 
 Composition, component, filter, and deduplication objects are strict. Unknown
 keys, including the incorrect singular `filters.domain`, return
@@ -1238,13 +1245,19 @@ PUT /api/release-tracks/:id/virtual/composition
       "version": "2.0",
       "priority": 1
     }
-  ]
+  ],
+  "scheduled_materialization": {
+    "schedule_mode": "dates",
+    "scheduled_for": "2027-07-01T00:00:00.000Z"
+  }
 }
 ```
 
 The same strict composition and selector validation applies to this update
 operation. Invalid fields are rejected rather than removed from the persisted
-configuration. Component track IDs and priorities must each be unique.
+configuration. Component track IDs and priorities must each be unique. The
+optional `scheduled_materialization` value uses the same strict shape as
+creation and is persisted on the new pending virtual draft.
 
 **Note:** Updating composition creates a pending draft containing the new
 rules. To prevent stale materialization from being released, the draft has
@@ -1264,9 +1277,16 @@ POST /api/release-tracks/:id/virtual/snapshots/create
 
 ```json
 {
-  "description": "Q1 2024 snapshot"
+  "description": "Q1 2024 snapshot",
+  "scheduled_materialization": {
+    "schedule_mode": "dates",
+    "scheduled_for": "2027-07-01T00:00:00.000Z"
+  }
 }
 ```
+
+`scheduled_materialization` is optional and follows the same strict,
+virtual-only contract as track creation and composition update.
 
 **Response:**
 

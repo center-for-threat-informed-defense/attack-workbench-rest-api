@@ -91,8 +91,10 @@ components:
         scheduled_materialization:
           nullable: true
           description: |
-            Server-controlled provenance for a virtual draft created by a
-            snapshot schedule. Manually created snapshots omit this property.
+            Immutable per-snapshot materialization metadata for virtual
+            tracks. Clients may set it during virtual-track creation or
+            composition update; the scheduler sets the same shape on drafts
+            that it creates.
           $ref: '#/components/schemas/scheduled-materialization'
         config:
           $ref: '#/components/schemas/track-config'
@@ -168,6 +170,9 @@ components:
               type: string
               enum:
                 - virtual
+            scheduled_materialization:
+              nullable: true
+              $ref: '#/components/schemas/scheduled-materialization'
             quarantine_count:
               type: integer
               minimum: 0
@@ -574,6 +579,10 @@ components:
           nullable: true
           description: 'Snapshot creation schedule for virtual tracks'
           $ref: '#/components/schemas/snapshot-schedule'
+        scheduled_materialization:
+          nullable: true
+          description: 'Materialization metadata from the latest virtual snapshot'
+          $ref: '#/components/schemas/scheduled-materialization'
 
     tagged-release-reference:
       type: object
@@ -670,7 +679,10 @@ components:
 
     scheduled-materialization:
       type: object
-      description: 'Immutable scheduler occurrence that created a virtual draft'
+      additionalProperties: false
+      description: |
+        Immutable materialization occurrence attached to one virtual snapshot.
+        It may be supplied by a client write or by the virtual-track scheduler.
       required:
         - schedule_mode
         - scheduled_for

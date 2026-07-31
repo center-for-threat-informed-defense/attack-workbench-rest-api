@@ -576,6 +576,19 @@ validation, and persistence path as
 }
 ```
 
+Clients may attach the same strict object to the initial virtual snapshot with
+`POST /api/release-tracks/new`, or to the pending draft created by
+`PUT /api/release-tracks/:id/virtual/composition`, or to an explicitly
+materialized draft with
+`POST /api/release-tracks/:id/virtual/snapshots/create`. `schedule_mode` must
+be `cron` or `dates`, `scheduled_for` must be an ISO timestamp, and unknown
+keys are rejected. Standard tracks cannot set this property.
+
+The persisted value is observable through `GET /api/release-tracks`, snapshot
+history, latest-snapshot retrieval, and timestamp-selected snapshot retrieval.
+It belongs to one immutable snapshot occurrence; later snapshot clones omit it
+unless the write creating that snapshot supplies a new value.
+
 ### 2. Snapshot Review
 
 Before tagging, team reviews the draft snapshot:

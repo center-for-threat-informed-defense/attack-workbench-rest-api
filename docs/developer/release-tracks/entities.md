@@ -483,6 +483,13 @@ scheduled_materialization: {
 }
 ```
 
+The scheduler writes this object for automated occurrences, and API clients
+may write the same strict virtual-only shape during initial track creation or
+composition update, as well as explicit virtual materialization. It is stored
+on the resulting snapshot and projected into track-list and snapshot-history
+responses. Snapshot clones clear inherited occurrence metadata unless the
+mutation explicitly supplies a replacement.
+
 The track-local unique index on `scheduled_for`, together with the durable
 `virtualTrackScheduleOccurrences` claim record, makes duplicate delivery and
 restart recovery idempotent. Failed occurrences remain retryable.

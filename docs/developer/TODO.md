@@ -1,5 +1,28 @@
 # Release Track TODOs
 
+## Client-managed virtual scheduled materialization
+
+- [x] Add API regressions proving virtual-track POST and composition PUT
+      requests persist `scheduled_materialization`.
+- [x] Validate the client-supplied shape at controller, service, and Mongoose
+      boundaries and reject it for standard tracks.
+- [x] Expose the value through track listing, snapshot history, latest
+      snapshot, and timestamp-selected snapshot GET responses.
+- [x] Align OpenAPI, user/developer documentation, frontend guidance, and
+      Bruno requests with the client-managed contract.
+- [x] Run the focused regression spec followed by the complete `npm test`
+      suite, review the final diff, and propose a conventional commit message.
+
+Verification (2026-07-30):
+
+- Focused scheduler and scheduled-materialization API regressions pass: 13
+  cases.
+- Previously roaming group-query and virtual-deduplication failures pass in
+  isolation: 14 cases.
+- The complete `npm test` suite passes, including OpenAPI, configuration, API,
+  middleware, and scheduler stages.
+- Backend lint and diff whitespace validation pass.
+
 ## Caller-supplied configuration on track creation
 
 - [x] Add a regression proving `POST /api/release-tracks/new` accepts and

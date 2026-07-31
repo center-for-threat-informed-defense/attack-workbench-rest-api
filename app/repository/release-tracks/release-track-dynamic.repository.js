@@ -42,6 +42,7 @@ class ReleaseTrackDynamicRepository {
         {
           $project: {
             _id: 0,
+            scheduled_materialization: 1,
             members_count: { $size: { $ifNull: ['$members', []] } },
             staged_count: { $size: { $ifNull: ['$staged', []] } },
             candidates_count: { $size: { $ifNull: ['$candidates', []] } },
@@ -274,6 +275,7 @@ class ReleaseTrackDynamicRepository {
           version: 1,
           name: 1,
           description: 1,
+          scheduled_materialization: 1,
           members_count: { $size: { $ifNull: ['$members', []] } },
           staged_count: { $size: { $ifNull: ['$staged', []] } },
           candidates_count: { $size: { $ifNull: ['$candidates', []] } },

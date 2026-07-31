@@ -242,6 +242,14 @@ ISO timestamps. Standard-track creation rejects `snapshot_schedule` instead of
 silently dropping it. Mongoose repeats the mode and track-type invariants for
 direct persistence callers.
 
+`scheduled_materialization` uses a separate strict virtual-only schema. Track
+creation, composition update, and explicit virtual-materialization requests
+can attach it to the snapshot they create; the scheduler uses that same
+service input for automated occurrences. Full snapshot reads return the stored
+object directly, while track listing and snapshot history explicitly project
+it. Ordinary clones clear inherited occurrence metadata so it never migrates
+to a different snapshot implicitly.
+
 The virtual snapshot scheduler reconciles persisted schedules at startup and
 on `VIRTUAL_TRACK_SCHEDULES_CRON`. Cron jobs use `Etc/UTC`; explicit dates at
 or before the reconciliation time become durable occurrences. Atomic

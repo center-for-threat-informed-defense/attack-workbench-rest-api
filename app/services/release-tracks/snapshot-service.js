@@ -153,6 +153,7 @@ exports.listTracks = async function listTracks(options) {
       const summary = await dynamicRepo.getLatestSnapshotTierSummary(track.track_id);
       return {
         ...track,
+        scheduled_materialization: summary?.scheduled_materialization,
         summary: normalizeTierSummary(summary),
       };
     }),
@@ -167,7 +168,7 @@ exports.listTracks = async function listTracks(options) {
 /**
  * Create a new release track with an initial empty draft snapshot.
  *
- * @param {Object} data - { name, description?, type, userAccountId?, object_marking_refs?, composition?, snapshot_schedule?, config? }
+ * @param {Object} data - { name, description?, type, userAccountId?, object_marking_refs?, composition?, snapshot_schedule?, scheduled_materialization?, config? }
  * @returns {Promise<Object>} The initial snapshot document
  */
 exports.createTrack = async function createTrack(data) {
@@ -190,6 +191,7 @@ exports.createTrack = async function createTrack(data) {
     candidates: trackType === 'standard' ? [] : undefined,
     quarantine: trackType === 'virtual' ? [] : undefined,
     composition: trackType === 'virtual' ? data.composition : undefined,
+    scheduled_materialization: trackType === 'virtual' ? data.scheduled_materialization : undefined,
     config: data.config || {},
     version_history: [],
   };
@@ -254,6 +256,7 @@ exports.listSnapshots = async function listSnapshots(trackId, options) {
       if (snapshot.type === 'virtual') {
         return {
           ...common,
+          scheduled_materialization: snapshot.scheduled_materialization,
           quarantine_count: snapshot.quarantine_count,
         };
       }

@@ -291,6 +291,13 @@ const snapshotScheduleSchema = z.discriminatedUnion('mode', [
     .strict(),
 ]);
 
+const scheduledMaterializationSchema = z
+  .object({
+    schedule_mode: z.enum(['cron', 'dates']),
+    scheduled_for: z.iso.datetime(),
+  })
+  .strict();
+
 const releaseTrackObjectTypes = Object.freeze(Object.values(types));
 const releaseTrackObjectTypeSchema = z.enum(releaseTrackObjectTypes);
 const objectTypesFilterSchema = z
@@ -341,41 +348,45 @@ const componentTrackSchema = z.discriminatedUnion('resolution_strategy', [
     .strict(),
 ]);
 
-const compositionSchema = z
-  .object({
-    component_tracks: z.array(componentTrackSchema).min(1),
-    deduplication: z
-      .object({
-        strategy: deduplicationStrategySchema,
-      })
-      .strict()
-      .optional(),
-  })
-  .strict()
-  .superRefine((composition, context) => {
-    const trackIds = new Set();
-    const priorities = new Set();
+const compositionShape = {
+  component_tracks: z.array(componentTrackSchema).min(1),
+  deduplication: z
+    .object({
+      strategy: deduplicationStrategySchema,
+    })
+    .strict()
+    .optional(),
+};
 
-    composition.component_tracks.forEach((component, index) => {
-      if (trackIds.has(component.track_id)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['component_tracks', index, 'track_id'],
-          message: 'Each component track must reference a unique track',
-        });
-      }
-      trackIds.add(component.track_id);
+function validateCompositionUniqueness(composition, context) {
+  const trackIds = new Set();
+  const priorities = new Set();
 
-      if (priorities.has(component.priority)) {
-        context.addIssue({
-          code: 'custom',
-          path: ['component_tracks', index, 'priority'],
-          message: 'Each component track must have a unique priority value',
-        });
-      }
-      priorities.add(component.priority);
-    });
+  composition.component_tracks.forEach((component, index) => {
+    if (trackIds.has(component.track_id)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['component_tracks', index, 'track_id'],
+        message: 'Each component track must reference a unique track',
+      });
+    }
+    trackIds.add(component.track_id);
+
+    if (priorities.has(component.priority)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['component_tracks', index, 'priority'],
+        message: 'Each component track must have a unique priority value',
+      });
+    }
+    priorities.add(component.priority);
   });
+}
+
+const compositionSchema = z
+  .object(compositionShape)
+  .strict()
+  .superRefine(validateCompositionUniqueness);
 
 const createTrackBodySchema = z
   .object({
@@ -385,6 +396,7 @@ const createTrackBodySchema = z
     object_marking_refs: z.array(stixIdentifierSchema).optional(),
     composition: compositionSchema.optional(),
     snapshot_schedule: snapshotScheduleSchema.optional(),
+    scheduled_materialization: scheduledMaterializationSchema.optional(),
     config: updateConfigBodySchema.optional(),
   })
   .strict()
@@ -394,6 +406,13 @@ const createTrackBodySchema = z
         code: 'custom',
         path: ['snapshot_schedule'],
         message: 'Snapshot schedules are only available for virtual tracks',
+      });
+    }
+    if (track.type !== 'virtual' && track.scheduled_materialization !== undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['scheduled_materialization'],
+        message: 'Scheduled materialization is only available for virtual tracks',
       });
     }
   });
@@ -486,13 +505,21 @@ const updateCandidateVersionBodySchema = z.object({
 });
 
 /** PUT /release-tracks/:id/virtual/composition */
-const updateCompositionBodySchema = compositionSchema;
+const updateCompositionBodySchema = z
+  .object({
+    ...compositionShape,
+    scheduled_materialization: scheduledMaterializationSchema.optional(),
+  })
+  .strict()
+  .superRefine(validateCompositionUniqueness);
 
 /** POST /release-tracks/:id/virtual/snapshots/create */
 const createVirtualSnapshotBodySchema = z
   .object({
     description: z.string().optional(),
+    scheduled_materialization: scheduledMaterializationSchema.optional(),
   })
+  .strict()
   .optional();
 
 /** POST /release-tracks/:id/virtual/quarantine/promote */
@@ -571,6 +598,7 @@ module.exports = {
   componentTrackSchema,
   compositionSchema,
   snapshotScheduleSchema,
+  scheduledMaterializationSchema,
   objectRefEntrySchema,
   promotionConflictsSchema,
   memberSyncConfigSchema,

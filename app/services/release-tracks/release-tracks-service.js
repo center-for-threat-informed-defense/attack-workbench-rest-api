@@ -18,6 +18,7 @@ const { BadRequestError, NotImplementedError } = require('../../exceptions');
 const {
   compositionSchema,
   snapshotScheduleSchema,
+  scheduledMaterializationSchema,
 } = require('../../lib/release-tracks/release-track-schemas');
 const snapshotService = require('./snapshot-service');
 const standardTrackService = require('./standard-track-service');
@@ -39,6 +40,22 @@ const TIER_NAMES = ['members', 'staged', 'candidates', 'quarantine'];
 
 function notImplemented(methodName) {
   throw new NotImplementedError(MODULE, methodName);
+}
+
+function validateScheduledMaterialization(value) {
+  const scheduledFor = value?.scheduled_for;
+  const normalizedValue =
+    scheduledFor instanceof Date && !Number.isNaN(scheduledFor.getTime())
+      ? { ...value, scheduled_for: scheduledFor.toISOString() }
+      : value;
+  const result = scheduledMaterializationSchema.safeParse(normalizedValue);
+  if (!result.success) {
+    throw new BadRequestError({
+      message: 'Invalid scheduled materialization',
+      details: result.error.errors,
+    });
+  }
+  return result.data;
 }
 
 function destructiveIdentity(trackId, actor, confirmation) {
@@ -209,6 +226,28 @@ exports.getReleasesByObject = function getReleasesByObject(objectRef, options) {
 
 exports.createTrack = async function createTrack(data) {
   let validatedData = data;
+
+  if (data.scheduled_materialization !== undefined) {
+    if (data.type !== 'virtual') {
+      throw new BadRequestError({
+        message: 'Scheduled materialization is only available for virtual release tracks',
+      });
+    }
+
+    const materializationResult = scheduledMaterializationSchema.safeParse(
+      data.scheduled_materialization,
+    );
+    if (!materializationResult.success) {
+      throw new BadRequestError({
+        message: 'Invalid scheduled materialization',
+        details: materializationResult.error.errors,
+      });
+    }
+    validatedData = {
+      ...validatedData,
+      scheduled_materialization: materializationResult.data,
+    };
+  }
 
   if (data.snapshot_schedule !== undefined) {
     if (data.type !== 'virtual') {
@@ -421,18 +460,33 @@ exports.updateConfig = function updateConfig(trackId, config, userId) {
 // -----------------------------------------------------------------------------
 
 exports.updateComposition = function updateComposition(trackId, composition, userId) {
-  const compositionResult = compositionSchema.safeParse(composition);
+  const { scheduled_materialization: scheduledMaterialization, ...compositionData } =
+    composition || {};
+  let validatedScheduledMaterialization = scheduledMaterialization;
+  const compositionResult = compositionSchema.safeParse(compositionData);
   if (!compositionResult.success) {
     throw new BadRequestError({
       message: 'Invalid virtual track composition',
       details: compositionResult.error.errors,
     });
   }
-  return virtualTrackService.updateComposition(trackId, compositionResult.data, userId);
+  if (scheduledMaterialization !== undefined) {
+    validatedScheduledMaterialization = validateScheduledMaterialization(scheduledMaterialization);
+  }
+  return virtualTrackService.updateComposition(trackId, compositionResult.data, userId, {
+    scheduledMaterialization: validatedScheduledMaterialization,
+  });
 };
 
 exports.createVirtualSnapshot = function createVirtualSnapshot(trackId, options) {
-  return virtualTrackService.createVirtualSnapshot(trackId, options);
+  let validatedOptions = options;
+  if (options?.scheduledMaterialization !== undefined) {
+    validatedOptions = {
+      ...options,
+      scheduledMaterialization: validateScheduledMaterialization(options.scheduledMaterialization),
+    };
+  }
+  return virtualTrackService.createVirtualSnapshot(trackId, validatedOptions);
 };
 
 exports.promoteQuarantinedObject = function promoteQuarantinedObject(trackId, selection) {

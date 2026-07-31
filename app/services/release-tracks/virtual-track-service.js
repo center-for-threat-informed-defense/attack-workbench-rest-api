@@ -426,11 +426,17 @@ async function resolveComposition(snapshot, registryMap) {
  *
  * @param {string} trackId
  * @param {Object} composition - The new composition configuration
- * @param {string} [userId]
+ * @param {string} [_userId]
+ * @param {Object} [options]
+ * @param {Object} [options.scheduledMaterialization]
  * @returns {Promise<Object>} The new snapshot
  */
-// eslint-disable-next-line no-unused-vars
-exports.updateComposition = async function updateComposition(trackId, composition, userId) {
+exports.updateComposition = async function updateComposition(
+  trackId,
+  composition,
+  _userId,
+  options = {},
+) {
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertVirtualTrack(source);
 
@@ -442,6 +448,7 @@ exports.updateComposition = async function updateComposition(trackId, compositio
     members: [],
     quarantine: [],
     composition_resolution: null,
+    scheduled_materialization: options.scheduledMaterialization,
   });
 
   logger.verbose(

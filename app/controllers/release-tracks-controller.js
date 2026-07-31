@@ -954,8 +954,11 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(req, res, n
       );
     }
 
+    const { scheduled_materialization: scheduledMaterialization, ...snapshotOptions } =
+      bodyResult.data || {};
     const result = await releaseTracksService.createVirtualSnapshot(req.params.id, {
-      ...(bodyResult.data || {}),
+      ...snapshotOptions,
+      scheduledMaterialization,
       userAccountId: req.user?.userAccountId,
     });
     logger.debug(`Success: Created virtual snapshot for track ${req.params.id}`);

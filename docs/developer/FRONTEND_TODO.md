@@ -826,7 +826,7 @@ downtime, and due dates are recovered after restart. A component-resolution
 failure is retried by the backend; the UI does not need to resubmit the
 schedule.
 
-Scheduled virtual drafts include read-only provenance:
+Virtual drafts may include per-snapshot materialization metadata:
 
 ```ts
 scheduled_materialization?: {
@@ -835,8 +835,13 @@ scheduled_materialization?: {
 };
 ```
 
-Use it to identify scheduled drafts where useful, but never include it in
-create or update payloads.
+Clients may send this strict shape during `POST /api/release-tracks/new` for a
+virtual track, `PUT /api/release-tracks/:id/virtual/composition`, and
+`POST /api/release-tracks/:id/virtual/snapshots/create`. Include it only when
+deliberately attaching the occurrence to the new snapshot; later snapshot
+mutations do not inherit it. Standard tracks must omit it. Read it from track
+listing, snapshot history, latest snapshot, or timestamp-selected snapshot
+responses.
 
 Done when:
 
@@ -848,8 +853,9 @@ Done when:
 - Tests cover all three modes and mode switching.
 - User-facing copy explains UTC execution and the difference between cron and
   restart-recoverable dates.
-- Scheduled drafts tolerate and preserve the read-only
-  `scheduled_materialization` response property.
+- Virtual create and composition update forms can deliberately submit
+  `scheduled_materialization`, and all supported GET representations tolerate
+  and preserve it.
 
 ## P1 — Align virtual component object-type filters
 
