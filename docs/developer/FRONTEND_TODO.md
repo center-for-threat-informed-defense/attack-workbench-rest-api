@@ -31,9 +31,9 @@ Keep these rules in mind while updating the connector:
 
 The backend no longer suppresses the ATT&CK Data Model error for a missing
 `x_mitre_domains` property on campaigns, intrusion sets, detection strategies,
-or matrices. Existing latest v19.1 content is repaired automatically at server
-startup, including revoked and deprecated lineages, but new reviewed revisions
-must carry their own canonical domain membership.
+or matrices. Existing latest domainless content is repaired automatically at
+server startup, including revoked and deprecated lineages, but new reviewed
+revisions must carry their own canonical domain membership.
 
 Update the affected Angular create/edit payloads so the field contains the
 object's complete domain union:
