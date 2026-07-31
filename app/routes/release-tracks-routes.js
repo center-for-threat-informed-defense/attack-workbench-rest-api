@@ -198,7 +198,10 @@ router
   .route('/release-tracks/:id/snapshots/latest')
   .get(
     authn.authenticate,
-    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    authz.requireRole(authz.visitorOrHigher, [
+      authz.serviceRoles.readOnly,
+      authz.serviceRoles.stixExport,
+    ]),
     releaseTracksController.retrieveLatestSnapshot,
   );
 
