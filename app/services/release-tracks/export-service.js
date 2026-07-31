@@ -5,7 +5,7 @@
 //
 // Hydrates STIX object refs (from snapshot members/staged/candidates tiers)
 // into full STIX documents, then formats the output as one of:
-//   - bundle:          Standard STIX 2.1 bundle
+//   - bundle:          Standard STIX 2.0 or 2.1 bundle
 //   - workbench:       Custom format with workflow metadata
 //   - filesystemstore: Directory structure organized by STIX type
 //
@@ -127,6 +127,8 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
  * returns the release-track snapshot shape with UI-friendly tier entry details.
  *
  * Bundle exports (see docs/developer/release-tracks/bundle-export.md):
+ *   - The same pipeline applies to standard snapshots and materialized virtual
+ *     snapshots because both persist exact member revisions and graph manifests.
  *   1. Select tier entries — members always; staged/candidates via
  *      options.include, narrowed by options.state
  *   2. Hydrate entries into full documents

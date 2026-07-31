@@ -91,7 +91,9 @@ Implemented in
 [export-service.js](../../../app/services/release-tracks/export-service.js)
 (`exportSnapshot`) with the DTO transformation in
 [export-schemas.js](../../../app/lib/release-tracks/export-schemas.js)
-(`bundleTransformSchema`). The pipeline:
+(`bundleTransformSchema`). Standard snapshots and materialized virtual
+snapshots use this same pipeline; virtual composition metadata does not alter
+STIX version serialization. The pipeline:
 
 1. **Tier selection** — members are always exported. `include` (values
    `staged` and/or `candidates`; singular forms accepted) adds tiers.

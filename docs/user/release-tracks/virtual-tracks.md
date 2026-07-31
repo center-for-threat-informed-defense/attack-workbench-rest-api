@@ -681,7 +681,11 @@ virtual-only property.
 Export virtual track snapshot as STIX bundle:
 
 ```bash
+# STIX 2.1 (default)
 GET /api/release-tracks/:id/snapshots/:modified?format=bundle
+
+# STIX 2.0
+GET /api/release-tracks/:id/snapshots/:modified?format=bundle&stixVersion=2.0
 ```
 
 **Response:**
@@ -707,6 +711,13 @@ GET /api/release-tracks/:id/snapshots/:modified?format=bundle
   ]
 }
 ```
+
+The default is STIX 2.1. Set `stixVersion=2.0` to serialize the same exact
+materialized revision set under the STIX 2.0 rules used by the legacy bundle
+exporter. A STIX 2.0 bundle carries `spec_version: "2.0"` on its envelope and
+omits `spec_version` from its objects; a STIX 2.1 bundle omits the envelope
+property and declares `spec_version: "2.1"` on each object. Version-specific
+object conversion also applies, including malware/tool label handling.
 
 **Note:** The exported bundle is **materialized** - it contains concrete object references, not composition metadata. Consumers see a standard STIX bundle, unaware it came from a virtual track.
 

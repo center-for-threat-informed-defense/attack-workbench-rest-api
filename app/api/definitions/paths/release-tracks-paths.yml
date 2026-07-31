@@ -1067,7 +1067,10 @@ paths:
                   type: string
         - name: stixVersion
           in: query
-          description: 'STIX version for bundle responses'
+          description: |
+            STIX version for standard or materialized virtual snapshot bundle
+            responses. STIX 2.0 adds spec_version to the bundle envelope and
+            removes it from each bundled object; STIX 2.1 does the inverse.
           schema:
             type: string
             enum:
@@ -1162,7 +1165,10 @@ paths:
         - name: stixVersion
           in: query
           description: |
-            STIX version that the exported bundle should conform to (bundle format only).
+            STIX version that the exported standard or materialized virtual
+            snapshot bundle should conform to (bundle format only). STIX 2.0
+            adds spec_version to the bundle envelope and removes it from each
+            bundled object; STIX 2.1 does the inverse.
           schema:
             type: string
             enum:

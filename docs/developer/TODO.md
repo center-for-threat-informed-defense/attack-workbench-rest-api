@@ -1,5 +1,24 @@
 # Release Track TODOs
 
+## STIX 2.0 virtual snapshot bundles
+
+- [x] Add a virtual-track regression proving materialized snapshots emit STIX
+      2.0 bundles when `stixVersion=2.0` and remain STIX 2.1 by default.
+- [x] Align the virtual snapshot OpenAPI, user documentation, and Bruno request
+      with the explicit STIX-version contract.
+- [x] Run the focused regression followed by the complete `npm test` suite,
+      review the final diff, and propose a conventional commit message.
+
+Verification (2026-07-30):
+
+- Virtual STIX-version bundle regression passes: 2 cases.
+- Existing snapshot-bundle regression passes: 17 cases.
+- Backend lint, Prettier, and diff whitespace validation pass.
+- One aggregate attempt exposed the documented roaming References search 404;
+  the affected spec passed all 17 cases in isolation.
+- The clean complete suite passes: OpenAPI 2, config 21, API 989, middleware
+  29, and scheduler 10.
+
 ## Client-managed virtual scheduled materialization
 
 - [x] Add API regressions proving virtual-track POST and composition PUT
