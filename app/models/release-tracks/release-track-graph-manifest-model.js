@@ -58,6 +58,8 @@ const entrySchema = new mongoose.Schema(
     // Relationship payloads are frozen so description-only corrections do
     // not change older bundles. Marking definitions are not STIX-versioned,
     // so their complete payload is frozen for the same replay guarantee.
+    // Operational baselines may also freeze an exact source-bundle payload
+    // while retaining the database revision pin as the integrity boundary.
     frozen_stix: { type: mongoose.Schema.Types.Mixed },
   },
   { collection: 'releaseTrackGraphManifestEntries' },

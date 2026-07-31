@@ -281,7 +281,11 @@ async function planLoadedSnapshot(trackId, snapshot, options) {
 async function commitPlan(plan) {
   if (plan.blockingError) throw plan.blockingError;
 
-  const manifestId = await graphManifestService.prepare(plan.plannedSnapshot);
+  const reuseVirtualManifest =
+    plan.sourceSnapshot.type === 'virtual' && Boolean(plan.sourceSnapshot.graph_manifest_id);
+  const manifestId = reuseVirtualManifest
+    ? plan.sourceSnapshot.graph_manifest_id
+    : await graphManifestService.prepare(plan.plannedSnapshot);
 
   let tagged;
   try {
@@ -294,12 +298,16 @@ async function commitPlan(plan) {
       },
     });
   } catch (err) {
-    await graphManifestService.discard(manifestId);
+    if (!reuseVirtualManifest) {
+      await graphManifestService.discard(manifestId);
+    }
     throw err;
   }
 
   if (!tagged) {
-    await graphManifestService.discard(manifestId);
+    if (!reuseVirtualManifest) {
+      await graphManifestService.discard(manifestId);
+    }
     await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
     throw new AlreadyReleasedError('(concurrent release)');
   }
@@ -307,12 +315,14 @@ async function commitPlan(plan) {
   // Link the complete pending manifest before activation. The snapshot link
   // is the durable commit record, and replay can recover a linked pending
   // manifest if the process stops in this narrow window.
-  try {
-    await graphManifestService.activate(manifestId);
-  } catch (err) {
-    logger.warn(
-      `VersioningService: Deferred activation for graph manifest "${manifestId}": ${err.message}`,
-    );
+  if (!reuseVirtualManifest) {
+    try {
+      await graphManifestService.activate(manifestId);
+    } catch (err) {
+      logger.warn(
+        `VersioningService: Deferred activation for graph manifest "${manifestId}": ${err.message}`,
+      );
+    }
   }
 
   if (

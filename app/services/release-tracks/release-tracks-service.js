@@ -423,7 +423,10 @@ async function renderReleasePlan(plan, options) {
   if (format === 'bundle') {
     return exportService.exportSnapshot(plan.plannedSnapshot, format, {
       ...options,
-      captureGraph: true,
+      // A virtual release does not alter its members. Replaying the draft's
+      // persisted graph keeps preview output identical to the graph that will
+      // be tagged instead of resolving current database state a second time.
+      captureGraph: plan.sourceSnapshot.type !== 'virtual',
     });
   }
   return formatWorkbenchSnapshot(plan.plannedSnapshot, options);

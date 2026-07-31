@@ -1886,3 +1886,29 @@ Links/references between notes and snapshot objects will be one-to-many. A singl
   "stix": "StixObject"
 }
 ```
+## Deterministic v19.1 virtual-track bootstrap graph
+
+- [x] Preserve the materialized virtual snapshot graph when previewing and committing a release.
+- [x] Enforce virtual component-domain filters throughout graph traversal, including secondary objects.
+- [x] Prevent `LinkById` rendering from selecting revoked or deprecated ATT&CK-ID collisions.
+- [x] Seed virtual snapshot graph manifests from the canonical v19.1 bundles in the bootstrap script.
+- [x] Make bootstrap bundle comparisons detect duplicate revisions and explain unexpected drift.
+- [x] Add regression coverage and document the deterministic-primary/non-deterministic-graph boundary.
+- [x] Run focused tests and the complete `npm test` suite.
+- [x] Delete and recreate only the Enterprise ATT&CK virtual track, then assess its emitted bundle against v19.1.
+
+Verification (2026-07-30):
+
+- The clean complete server suite passes: OpenAPI 2, config 21, API 992,
+  middleware 29, and scheduler 10.
+- Focused graph-integrity regressions pass (3), the affected release-track
+  group passes (40), and the bootstrap regression suite passes (23).
+- The guarded bootstrap completed without accepting unexplained bundle drift;
+  all three standard and virtual baselines are tagged `1.0`.
+- Enterprise contains 4,815 exact members, zero quarantine entries, and a
+  25,842-object publication graph excluding its generated collection. It has
+  no missing, additional, or duplicate STIX IDs; type counts and all 25,841
+  adjusted TOC pins match canonical v19.1.
+- The 312 raw payload differences consist only of the expected canonical-domain
+  repairs and domain-array ordering. After those agreed normalizations, zero
+  payloads differ.

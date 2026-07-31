@@ -5,7 +5,15 @@ const config = require('../config/config');
 
 // Default implmentation. Retrieves the attack object from the database.
 async function getAttackObjectFromDatabase(attackId) {
-  const attackObject = await AttackObject.findOne({ 'workspace.attack_id': attackId })
+  const attackObject = await AttackObject.findOne({
+    'workspace.attack_id': attackId,
+    'stix.revoked': { $ne: true },
+    'stix.x_mitre_deprecated': { $ne: true },
+  })
+    // x_mitre_deprecated lives on discriminator schemas rather than the base
+    // AttackObject schema. Preserve that predicate when Mongoose strictQuery
+    // is enabled.
+    .setOptions({ strictQuery: false })
     .sort('-stix.modified')
     .lean()
     .exec();

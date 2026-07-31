@@ -228,6 +228,12 @@ filter and a Mobile filter, while `["mobile-attack"]` is excluded by an
 Enterprise filter. Objects without `x_mitre_domains` are excluded when a
 domain filter is set.
 
+The domain constraint also bounds the snapshot's publication graph. A
+relationship cannot pull a secondary object with an explicit, nonmatching
+`x_mitre_domains` value into the virtual bundle. Domainless identities,
+marking definitions, and other supporting metadata may still be included
+when referenced by an included object.
+
 `x_mitre_domains` is canonical object data. A cross-domain object has one
 revision containing the complete domain union; Workbench does not create or
 emit separate domain-narrowed revisions of that object. Consequently, the
@@ -956,6 +962,9 @@ quarantined object counts. Use `format=workbench` or `format=bundle` to inspect
 the literal snapshot or publication artifact that would be tagged. The draft
 must have a non-null `composition_resolution`, proving that its members and
 quarantine tiers were materialized from its current composition.
+Bundle preview replays the materialized draft's graph manifest, and release
+retains that same manifest because tagging a virtual snapshot does not alter
+its contents.
 
 ### Retrieve a Materialized Virtual Snapshot
 

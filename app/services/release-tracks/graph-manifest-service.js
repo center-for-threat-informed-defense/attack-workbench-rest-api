@@ -24,6 +24,42 @@ const MUTATION_PROTECTED_ENTRY_FILTER = {
   ],
 };
 
+function normalizeDomain(domain) {
+  return domain.endsWith('-attack') ? domain : `${domain}-attack`;
+}
+
+function virtualSnapshotDomains(snapshot) {
+  if (snapshot.type !== 'virtual') return null;
+
+  const domains = (snapshot.composition?.component_tracks || []).flatMap(
+    (component) => component.filters?.domains || [],
+  );
+  if (domains.length === 0) return null;
+  return new Set(domains.map(normalizeDomain));
+}
+
+function objectDomains(stixObject) {
+  if (Array.isArray(stixObject.x_mitre_domains)) {
+    return stixObject.x_mitre_domains;
+  }
+  if (stixObject.type === 'x-mitre-matrix') {
+    return (stixObject.external_references || [])
+      .map((reference) => reference.external_id)
+      .filter((externalId) => typeof externalId === 'string' && externalId.endsWith('-attack'));
+  }
+  return [];
+}
+
+function secondaryObjectIsValid(document, allowedDomains) {
+  if (!document) return false;
+  if (!allowedDomains) return true;
+
+  const domains = objectDomains(document.stix);
+  return (
+    domains.length === 0 || domains.some((domain) => allowedDomains.has(normalizeDomain(domain)))
+  );
+}
+
 function revisionKey(objectRef, objectModified) {
   return `${objectRef}::${new Date(objectModified).getTime()}`;
 }
@@ -41,6 +77,7 @@ function endpointFor(relationship, side) {
 }
 
 async function buildManifestEntries(snapshot) {
+  const allowedDomains = virtualSnapshotDomains(snapshot);
   const rootRequests = [];
   for (const tier of TIERS) {
     for (const entry of snapshot[tier] || []) {
@@ -98,7 +135,7 @@ async function buildManifestEntries(snapshot) {
     policy: {
       isDeprecatedPattern: bundleRelationships.isDeprecatedPattern,
       relationshipIsActive: bundleRelationships.relationshipIsActive,
-      secondaryObjectIsValid: (document) => Boolean(document),
+      secondaryObjectIsValid: (document) => secondaryObjectIsValid(document, allowedDomains),
     },
     options: {
       inferDomains: false,
@@ -311,7 +348,7 @@ async function replayEntries(entries, manifest, options) {
     ]),
   );
   for (const entry of entries) {
-    if (entry.kind === 'relationship' && entry.frozen_stix) {
+    if (entry.frozen_stix) {
       documentsByRevision.set(entry.revision_key, {
         stix: entry.frozen_stix,
       });

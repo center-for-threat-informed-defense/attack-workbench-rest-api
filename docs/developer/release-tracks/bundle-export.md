@@ -172,6 +172,11 @@ Tagged standard membership is deterministic because release planning resolves
 staged selectors before promoting them to members. Virtual materialization
 likewise copies exact member revisions from tagged component snapshots and
 never follows a component's later `track_latest` candidate movement.
+When a virtual component declares `filters.domains`, the same allowed-domain
+set bounds relationship-discovered secondary objects during graph capture.
+An explicitly domain-bearing secondary object from another domain is not
+included merely because it has a relationship to an included primary root.
+Domainless supporting metadata remains eligible.
 
 Every relationship revision stores server-controlled exact source and target
 pins under `workspace.relationship_endpoints`. These fields identify the
@@ -187,7 +192,10 @@ record: replay can use and self-activate a complete linked pending manifest
 after a process interruption.
 A standard release replaces the draft manifest with one built from the
 resolved release plan, so dynamic staged selectors become exact members.
-Materialized virtual snapshots contain exact roots from the outset.
+Materialized virtual snapshots contain exact roots from the outset. Releasing
+a virtual draft does not change those roots, so bundle preview and commit
+reuse its existing manifest. This makes the preview the literal graph that
+will be tagged rather than a second resolution against newer database state.
 
 Active and pending manifests protect their exact dependencies. In-place
 updates and hard deletes that would invalidate a primary or secondary
@@ -195,6 +203,10 @@ revision return `409`; lineage deletion is rejected when any version is
 protected. Relationship source, target, and type changes are rejected.
 Description-only relationship corrections remain allowed because the
 relationship STIX payload used by older snapshots is frozen in the manifest.
+Manifest entries may also freeze complete source payloads for an audited
+operational baseline. The exact database revision pin remains mandatory and
+protected; the frozen payload preserves the reviewed publication
+representation for deterministic replay.
 Deleting a draft snapshot or track removes its manifest and releases
 protection that no other snapshot needs.
 
