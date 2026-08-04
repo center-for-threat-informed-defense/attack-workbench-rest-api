@@ -104,6 +104,7 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
   // Snapshot metadata
   modified: "2024-01-15T16:20:00.000Z", // when the snapshot was created
   version: "18.0",  // null if draft release
+  snapshot_description: "Why this snapshot matters to our team",
 
   // Release track metadata
   name: "ATT&CK Enterprise",
@@ -203,6 +204,12 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
   ]
 }
 ```
+
+`snapshot_description` is mutable workspace metadata stored directly on the
+snapshot document. It is deliberately separate from the release track's
+long-lived `description`. Editing it does not change `modified`, `version`,
+tier contents, or an attached graph manifest. Rolling edits to the same draft
+preserve its description; the first draft of a new release cycle starts blank.
 
 ### Version History
 

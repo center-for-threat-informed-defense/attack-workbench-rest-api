@@ -38,6 +38,7 @@ const {
   createTrackBodySchema,
   createFromBundleBodySchema,
   updateMetadataBodySchema,
+  updateSnapshotDescriptionBodySchema,
   releaseBodySchema,
   releaseVersionSelectionSchema,
   cloneBodySchema,
@@ -457,6 +458,34 @@ exports.updateMetadataByLatest = async function updateMetadataByLatest(req, res,
     return res.status(200).send(result);
   } catch (err) {
     logger.error('Failed to update track metadata: ' + err);
+    return next(err);
+  }
+};
+
+/** PUT /api/release-tracks/:id/snapshots/:modified/description */
+exports.updateSnapshotDescription = async function updateSnapshotDescription(req, res, next) {
+  try {
+    const bodyResult = updateSnapshotDescriptionBodySchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid snapshot description update',
+          details: bodyResult.error.errors,
+        }),
+      );
+    }
+
+    const result = await releaseTracksService.updateSnapshotDescription(
+      req.params.id,
+      req.params.modified,
+      bodyResult.data.description,
+    );
+    logger.debug(
+      `Success: Updated description for snapshot ${req.params.modified} in track ${req.params.id}`,
+    );
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to update snapshot description: ' + err);
     return next(err);
   }
 };

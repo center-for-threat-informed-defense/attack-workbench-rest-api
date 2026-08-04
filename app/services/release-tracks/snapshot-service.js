@@ -137,7 +137,7 @@ exports.listTracks = async function listTracks(options) {
 /**
  * Create a new release track with an initial empty draft snapshot.
  *
- * @param {Object} data - { name, description?, type, userAccountId?, object_marking_refs?, composition?, snapshot_schedule?, scheduled_materialization?, config? }
+ * @param {Object} data - { name, description?, snapshot_description?, type, userAccountId?, object_marking_refs?, composition?, snapshot_schedule?, scheduled_materialization?, config? }
  * @returns {Promise<Object>} The initial snapshot document
  */
 exports.createTrack = async function createTrack(data) {
@@ -152,6 +152,7 @@ exports.createTrack = async function createTrack(data) {
     version: null,
     name: data.name,
     description: data.description || '',
+    snapshot_description: data.snapshot_description || undefined,
     created: now,
     created_by_ref: data.userAccountId || undefined,
     object_marking_refs: data.object_marking_refs,
@@ -222,6 +223,7 @@ exports.listSnapshots = async function listSnapshots(trackId, options) {
         modified: snapshot.modified,
         version: snapshot.version,
         graph_manifest_id: snapshot.graph_manifest_id,
+        snapshot_description: snapshot.snapshot_description,
         graph_statistics: snapshot.graph_manifest_id
           ? graphStatisticsByManifestId.get(snapshot.graph_manifest_id)
           : undefined,
@@ -301,14 +303,29 @@ exports.getSnapshotByModified = async function getSnapshotByModified(trackId, mo
  */
 exports.cloneSnapshot = async function cloneSnapshot(trackId, sourceSnapshot, overrides) {
   const clone = deepClone(sourceSnapshot);
+  const hasSnapshotDescriptionOverride = Object.prototype.hasOwnProperty.call(
+    overrides || {},
+    'snapshot_description',
+  );
   delete clone.graph_manifest_id;
   clone.modified = new Date();
   clone.version = null; // clones are always drafts
   delete clone.scheduled_materialization;
 
+  // A rolling draft keeps its note as content changes replace that draft. A
+  // new release cycle cloned from a tagged snapshot starts without the prior
+  // release's note unless the caller explicitly supplies one.
+  if (sourceSnapshot.version != null && !hasSnapshotDescriptionOverride) {
+    delete clone.snapshot_description;
+  }
+
   // Apply overrides
   if (overrides) {
     for (const [key, value] of Object.entries(overrides)) {
+      if (key === 'snapshot_description' && (value === undefined || value === '')) {
+        delete clone.snapshot_description;
+        continue;
+      }
       if (value !== undefined) {
         clone[key] = value;
       }
@@ -386,6 +403,7 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
   clone.created_by_ref = options.userAccountId || sourceSnapshot.created_by_ref;
   clone.version_history = [];
   delete clone.scheduled_materialization;
+  delete clone.snapshot_description;
 
   const normalized = tierRevisionInvariant.normalizeSnapshot(clone);
   await primaryRevisionService.assertStoredEntries(
@@ -451,6 +469,38 @@ exports.updateMetadata = async function updateMetadata(trackId, updates, _userId
   }
 
   return exports.cloneSnapshot(trackId, source, overrides);
+};
+
+/**
+ * Set or clear a snapshot-local description without changing its identity,
+ * release tag, members, or release-track registry metadata.
+ *
+ * Snapshot descriptions are editable workspace annotations rather than
+ * versioned publication content, so tagged and draft snapshots are both valid
+ * targets.
+ *
+ * @param {string} trackId
+ * @param {string|Date} modified
+ * @param {string} description
+ * @returns {Promise<Object>}
+ */
+exports.updateSnapshotDescription = async function updateSnapshotDescription(
+  trackId,
+  modified,
+  description,
+) {
+  await exports.getSnapshotByModified(trackId, modified);
+  const update = description
+    ? { $set: { snapshot_description: description } }
+    : { $unset: { snapshot_description: '' } };
+  const updated = await dynamicRepo.updateSnapshot(trackId, modified, update);
+
+  if (!updated) {
+    throw new NotFoundError({
+      details: `Snapshot with modified '${modified}' not found for track '${trackId}'`,
+    });
+  }
+  return updated.toObject ? updated.toObject() : updated;
 };
 
 // =============================================================================

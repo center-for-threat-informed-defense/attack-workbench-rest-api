@@ -409,6 +409,9 @@ paths:
   /api/release-tracks/{id}/snapshots/{modified}/clone:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1clone'
 
+  /api/release-tracks/{id}/snapshots/{modified}/description:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1description'
+
   /api/release-tracks/{id}/snapshots/{modified}/graph:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1graph'
 

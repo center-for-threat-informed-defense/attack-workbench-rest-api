@@ -50,6 +50,10 @@ supported deployments.
   `version`, never both. Controller validation returns 400 at the HTTP boundary,
   and `version-utils.calculateNextVersion` repeats the invariant so internal
   release-planning callers cannot silently choose one selector.
+- Snapshot descriptions are bounded to 4000 characters and are the narrow
+  mutable-metadata exception to snapshot content immutability. They are stored
+  as `snapshot_description` on the selected document and never update the
+  registry or the track-level `description`.
 
 ### ATT&CK canonical-domain migration
 

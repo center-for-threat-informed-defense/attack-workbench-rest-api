@@ -236,6 +236,9 @@ paths:
         Virtual tracks may also accept a strict scheduled_materialization
         object containing schedule_mode and scheduled_for; it is persisted on
         the initial snapshot and returned by snapshot and track-list GETs.
+        `description` is long-lived track metadata. The optional
+        `snapshot_description` is a user-authored annotation on the initial
+        draft snapshot and is limited to 4000 characters.
       tags:
         - 'Release Tracks'
       # Request body validation moved to Zod in controller
@@ -387,7 +390,8 @@ paths:
         `stix.modified` timestamp during release planning; tagged members
         always contain exact revision timestamps. Supply either `increment`
         (`major` or `minor`) or an explicit `version` in `MAJOR.MINOR` form,
-        but never both. Omitting both defaults to a minor increment.
+        but never both. Omitting both defaults to a minor increment. An
+        optional `description` is stored as snapshot-local release notes.
       tags:
         - 'Release Tracks'
       parameters:
@@ -401,7 +405,8 @@ paths:
         description: |
           Version selection. `increment` and `version` are mutually exclusive;
           supplying both returns 400. An empty object defaults to a minor
-          increment.
+          increment. `description` optionally sets snapshot-local notes and is
+          limited to 4000 characters.
         content:
           application/json:
             schema:
@@ -874,7 +879,8 @@ paths:
         does not re-resolve composition.
         Request body validated via Zod in controller. Clients may attach an
         optional strict scheduled_materialization object to the resulting
-        virtual draft.
+        virtual draft. `description` becomes the new snapshot's local notes;
+        it does not replace the release track description.
       tags:
         - 'Release Tracks'
       parameters:
@@ -883,6 +889,19 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  maxLength: 4000
+                  description: 'Optional notes for this snapshot'
+                scheduled_materialization:
+                  $ref: '../components/release-tracks.yml#/components/schemas/scheduled-materialization'
       responses:
         '201':
           description: 'Virtual snapshot created successfully'
@@ -1259,6 +1278,55 @@ paths:
               schema:
                 $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
 
+  /api/release-tracks/{id}/snapshots/{modified}/description:
+    put:
+      summary: 'Set or clear a snapshot description'
+      operationId: 'release-tracks-snapshot-description-update'
+      description: |
+        Replace the user-authored notes on one draft or tagged snapshot.
+        Whitespace is trimmed; an empty string clears the notes. This mutable
+        workspace annotation does not change the snapshot modified timestamp,
+        semantic version, tier contents, graph manifest, or release-track
+        metadata.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date-time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - description
+              additionalProperties: false
+              properties:
+                description:
+                  type: string
+                  maxLength: 4000
+      responses:
+        '200':
+          description: 'Snapshot description updated successfully'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
+        '400':
+          description: 'Invalid description payload'
+        '404':
+          description: 'Snapshot not found'
+
   /api/release-tracks/{id}/snapshots/{modified}/graph:
     post:
       summary: 'Make a tagged snapshot member graph deterministic'
@@ -1379,6 +1447,7 @@ paths:
         successful materialization. For standard tracks, dynamic staged
         references are resolved to exact object revisions when this release
         request is handled, including when the selected snapshot is historical.
+        An optional `description` is stored as snapshot-local release notes.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1397,7 +1466,8 @@ paths:
         description: |
           Version selection. `increment` and `version` are mutually exclusive;
           supplying both returns 400. An empty object defaults to a minor
-          increment.
+          increment. `description` optionally sets snapshot-local notes and is
+          limited to 4000 characters.
         content:
           application/json:
             schema:

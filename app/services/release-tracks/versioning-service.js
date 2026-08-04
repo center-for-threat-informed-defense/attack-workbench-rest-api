@@ -181,13 +181,23 @@ function planRelease(
     additionalOps.members = mergedMembers;
     additionalOps.staged = [];
   }
+  const updatesSnapshotDescription = options.description !== undefined;
+  if (updatesSnapshotDescription && options.description) {
+    additionalOps.snapshot_description = options.description;
+  }
 
   const afterSnapshot = {
     ...snapshot,
     version,
     members: mergedMembers,
+    ...(updatesSnapshotDescription && options.description
+      ? { snapshot_description: options.description }
+      : {}),
     ...(snapshot.type === 'standard' ? { staged: [] } : {}),
   };
+  if (updatesSnapshotDescription && !options.description) {
+    delete afterSnapshot.snapshot_description;
+  }
   const after = tierCounts(afterSnapshot);
   const changes = isVirtual
     ? virtualReleaseChanges(previousTaggedSnapshot, afterSnapshot)
@@ -219,6 +229,7 @@ function planRelease(
     version,
     versionHistoryEntry,
     additionalOps,
+    clearSnapshotDescription: updatesSnapshotDescription && !options.description,
     normalizedRemoved: normalized.removed,
     blockingError,
     summary: {
@@ -282,13 +293,16 @@ async function commitPlan(plan) {
   if (plan.blockingError) throw plan.blockingError;
 
   const obsoleteManifestId = plan.sourceSnapshot.graph_manifest_id;
+  const unsetOps = {};
+  if (obsoleteManifestId) unsetOps.graph_manifest_id = '';
+  if (plan.clearSnapshotDescription) unsetOps.snapshot_description = '';
   const tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, plan.sourceSnapshot.modified, {
     version: plan.version,
     versionHistoryEntry: plan.versionHistoryEntry,
     additionalOps: plan.additionalOps,
     // Older deployments attached graphs to drafts. Releasing changes the
     // member set, so that legacy draft graph cannot describe the release.
-    unsetOps: obsoleteManifestId ? { graph_manifest_id: '' } : undefined,
+    unsetOps: Object.keys(unsetOps).length ? unsetOps : undefined,
   });
 
   if (!tagged) {

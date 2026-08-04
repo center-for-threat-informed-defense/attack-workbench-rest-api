@@ -60,6 +60,7 @@ GET    /api/release-tracks/:id/snapshots/latest
 GET    /api/release-tracks/:id/snapshots/:modified
 POST   /api/release-tracks/:id/snapshots/:modified/release
 POST   /api/release-tracks/:id/snapshots/:modified/clone
+PUT    /api/release-tracks/:id/snapshots/:modified/description
 DELETE /api/release-tracks/:id/snapshots/:modified
 ```
 
@@ -236,6 +237,7 @@ POST /api/release-tracks/new
 {
   "name": "Release Track Name",
   "description": "Description",
+  "snapshot_description": "Context for the initial draft",
   "type": "standard",
   "object_marking_refs": [],
   "config": {
@@ -261,6 +263,10 @@ POST /api/release-tracks/new
 rules as [Update Configuration](#update-configuration), and the validated
 values are persisted on the initial draft snapshot. Omitted config fields use
 their model defaults.
+
+`description` is long-lived track metadata. `snapshot_description` is an
+optional, snapshot-local annotation for the initial draft and is limited to
+4000 characters.
 
 ### Bootstrap Release Track From Bundle
 
@@ -412,8 +418,9 @@ GET /api/release-tracks/:id/snapshots
 Filtering occurs before pagination, so `pagination.total` is the total number
 of snapshots matching `tagged`, not the total number in the track.
 
-Every summary contains `id`, `type`, `modified`, `version`, `name`,
-`description` (when set), and `members_count`. A tagged snapshot whose
+Every summary contains `id`, `type`, `modified`, `version`, `name`, the
+track-level `description` (when set), `snapshot_description` (when the snapshot
+has user-authored notes), and `members_count`. A tagged snapshot whose
 deterministic member graph has been materialized also contains the opaque
 `graph_manifest_id` and `graph_statistics`; graphless snapshots omit both.
 Graph statistics describe the cached graph at a glance:
@@ -444,6 +451,7 @@ Inapplicable count keys are omitted rather than returned as zero.
       "graph_manifest_id": "release-track-graph-manifest--01234567-89ab-4cde-8f01-23456789abcd",
       "name": "Enterprise ATT&CK",
       "description": "Enterprise domain release track",
+      "snapshot_description": "Reviewed publication for the Q1 threat model.",
       "members_count": 3247,
       "graph_statistics": {
         "primary_count": 3247,
@@ -477,6 +485,25 @@ GET /api/release-tracks/:id/snapshots?tagged=true
 # Untagged drafts only, second page
 GET /api/release-tracks/:id/snapshots?tagged=false&limit=25&offset=25
 ```
+
+### Update Snapshot Description
+
+Editors can attach or replace notes on any draft or tagged snapshot:
+
+```
+PUT /api/release-tracks/:id/snapshots/:modified/description
+```
+
+```json
+{
+  "description": "Reviewed publication for the Q1 threat model."
+}
+```
+
+The value is trimmed and limited to 4000 characters. Send an empty string to
+clear it. The API returns the updated snapshot as `snapshot_description` and
+does not change the snapshot's `modified` timestamp, semantic version, tier
+contents, graph cache, or the release track's long-lived description.
 
 ### Update Metadata
 
@@ -518,6 +545,16 @@ set.
 ### Release Latest Snapshot
 
 Converts the latest draft snapshot to a tagged release. Tags the snapshot in-place (does not create new snapshot). Dynamically sets `x_mitre_version` based on the request body options.
+
+The request may also include an optional `description` (up to 4000 characters)
+to set the tagged snapshot's notes in the same operation:
+
+```json
+{
+  "increment": "minor",
+  "description": "Initial production release for the Q1 threat model."
+}
+```
 
 - If `version` is provided, uses that exact version (must be `X.Y` format)
 - If `increment` is provided, calculates the next `major` or `minor` version

@@ -289,6 +289,7 @@ class ReleaseTrackDynamicRepository {
           modified: 1,
           version: 1,
           graph_manifest_id: 1,
+          snapshot_description: 1,
           name: 1,
           description: 1,
           scheduled_materialization: 1,

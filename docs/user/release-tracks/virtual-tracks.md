@@ -481,6 +481,7 @@ POST /api/release-tracks/:id/virtual/snapshots/create
   "version": null,
   "name": "Enterprise ATT&CK",
   "description": "Virtual aggregation of Enterprise content",
+  "snapshot_description": "Q1 2024 Enterprise snapshot",
 
   "composition_resolution": {
     "resolved_at": "2024-03-01T10:00:00Z",
@@ -522,6 +523,10 @@ POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Business Logic:**
+The request `description` is stored as the snapshot-local
+`snapshot_description`; it never replaces the virtual track's long-lived
+description.
+
 1. For each component track in `composition.component_tracks`:
    - Resolve snapshot based on `resolution_strategy`
    - **Validate that resolved snapshot is tagged** (version !== null)

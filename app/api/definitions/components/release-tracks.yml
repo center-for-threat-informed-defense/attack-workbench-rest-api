@@ -30,6 +30,13 @@ components:
             Server-controlled identifier for an opt-in deterministic member
             graph on a tagged snapshot. Absent on drafts and graphless tagged
             snapshots. Clients should treat this value as opaque.
+        snapshot_description:
+          type: string
+          maxLength: 4000
+          description: |
+            User-authored, snapshot-local notes. Editors may change this
+            workspace annotation without changing the snapshot identity,
+            release tag, contents, or deterministic graph.
         name:
           type: string
           pattern: '^[a-zA-Z0-9 &]+$'
@@ -179,6 +186,10 @@ components:
           description: |
             High-level statistics for the materialized graph. Omitted when the
             snapshot does not reference a graph manifest.
+        snapshot_description:
+          type: string
+          maxLength: 4000
+          description: 'User-authored notes attached only to this snapshot'
         name:
           type: string
         description:

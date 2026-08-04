@@ -504,11 +504,8 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
     quarantine: quarantined,
     composition_resolution: compositionResolution,
     scheduled_materialization: options.scheduledMaterialization,
+    snapshot_description: options.description,
   };
-
-  if (options.description !== undefined) {
-    overrides.description = options.description;
-  }
 
   let snapshot;
   try {

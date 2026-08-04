@@ -328,6 +328,14 @@ exports.updateMetadata = function updateMetadata(trackId, updates, userId) {
   return snapshotService.updateMetadata(trackId, updates, userId);
 };
 
+exports.updateSnapshotDescription = function updateSnapshotDescription(
+  trackId,
+  modified,
+  description,
+) {
+  return snapshotService.updateSnapshotDescription(trackId, modified, description);
+};
+
 exports.cloneTrack = function cloneTrack(trackId, options) {
   return snapshotService.cloneTrack(trackId, options);
 };

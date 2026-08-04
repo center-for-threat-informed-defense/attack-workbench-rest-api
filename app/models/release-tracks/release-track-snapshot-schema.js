@@ -365,6 +365,10 @@ const releaseTrackSnapshotDefinition = {
     validate: validateVersion,
   },
   graph_manifest_id: { type: String },
+  snapshot_description: {
+    type: String,
+    maxlength: [4000, 'Snapshot description cannot exceed 4000 characters'],
+  },
 
   // Release track metadata
   name: {

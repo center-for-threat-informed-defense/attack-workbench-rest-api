@@ -242,6 +242,14 @@ router
 // =============================================================================
 
 router
+  .route('/release-tracks/:id/snapshots/:modified/description')
+  .put(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.updateSnapshotDescription,
+  );
+
+router
   .route('/release-tracks/:id/snapshots/:modified/release/preview')
   .get(
     authn.authenticate,

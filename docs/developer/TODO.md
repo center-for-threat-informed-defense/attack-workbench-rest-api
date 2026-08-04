@@ -2203,3 +2203,13 @@ Verification (2026-07-30):
 - The 312 raw payload differences consist only of the expected canonical-domain
   repairs and domain-array ordering. After those agreed normalizations, zero
   payloads differ.
+
+## Snapshot descriptions
+
+- [x] Persist a bounded, snapshot-local description separately from release-track metadata.
+- [x] Allow editors to set the description while materializing or tagging a snapshot and edit it later without changing snapshot identity or contents.
+- [x] Return descriptions in snapshot history and Workbench snapshot responses.
+- [x] Document the API and update the Bruno collection.
+- [x] Add frontend creation, display, edit, clear, and feedback flows.
+- [x] Add backend and frontend regression coverage.
+- [x] Run focused tests and the complete backend and frontend verification suites.

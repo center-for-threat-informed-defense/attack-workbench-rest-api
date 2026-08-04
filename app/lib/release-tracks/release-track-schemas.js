@@ -73,6 +73,8 @@ const trackNameSchema = z
     message: 'Release track name may only contain alphanumeric characters, spaces, and ampersands',
   });
 
+const snapshotDescriptionSchema = z.string().trim().max(4000);
+
 // -----------------------------------------------------------------------------
 // Cron expression
 // See: https://github.com/colinhacks/zod/issues/4239#issuecomment-3161393771
@@ -392,6 +394,7 @@ const createTrackBodySchema = z
   .object({
     name: trackNameSchema,
     description: z.string().optional(),
+    snapshot_description: snapshotDescriptionSchema.optional(),
     type: trackTypeQuerySchema.default('standard'),
     object_marking_refs: z.array(stixIdentifierSchema).optional(),
     composition: compositionSchema.optional(),
@@ -431,6 +434,13 @@ const updateMetadataBodySchema = z.object({
   object_marking_refs: z.array(stixIdentifierSchema).optional(),
 });
 
+/** PUT /release-tracks/:id/snapshots/:modified/description */
+const updateSnapshotDescriptionBodySchema = z
+  .object({
+    description: snapshotDescriptionSchema,
+  })
+  .strict();
+
 const releaseVersionSelectionSchema = z
   .object({
     increment: releaseIncrementSchema.optional(),
@@ -442,7 +452,16 @@ const releaseVersionSelectionSchema = z
   });
 
 /** POST /release-tracks/:id/snapshots/{target}/release */
-const releaseBodySchema = releaseVersionSelectionSchema;
+const releaseBodySchema = z
+  .object({
+    increment: releaseIncrementSchema.optional(),
+    version: xMitreVersionSchema.optional(),
+    description: snapshotDescriptionSchema.optional(),
+  })
+  .strict()
+  .refine((value) => !(value.increment && value.version), {
+    message: 'increment and version are mutually exclusive',
+  });
 
 /** POST /release-tracks/:id/clone */
 const cloneBodySchema = z
@@ -516,7 +535,7 @@ const updateCompositionBodySchema = z
 /** POST /release-tracks/:id/virtual/snapshots/create */
 const createVirtualSnapshotBodySchema = z
   .object({
-    description: z.string().optional(),
+    description: snapshotDescriptionSchema.optional(),
     scheduled_materialization: scheduledMaterializationSchema.optional(),
   })
   .strict()
@@ -620,6 +639,7 @@ module.exports = {
   createTrackBodySchema,
   createFromBundleBodySchema,
   updateMetadataBodySchema,
+  updateSnapshotDescriptionBodySchema,
   releaseBodySchema,
   cloneBodySchema,
   addCandidatesBodySchema,
