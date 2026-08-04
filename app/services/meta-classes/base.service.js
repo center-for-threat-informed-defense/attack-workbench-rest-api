@@ -1,6 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
+const _ = require('lodash');
 const logger = require('../../lib/logger');
 const config = require('../../config/config');
 const attackIdGenerator = require('../../lib/attack-id-generator');
@@ -24,6 +25,7 @@ const {
   SelfRevocationError,
   MemberPinnedRevisionError,
   SnapshotGraphPinnedRevisionError,
+  ImmutableStixRevisionError,
 } = require('../../exceptions');
 const { getSchema } = require('../../lib/validation-schemas');
 const { deepFreezeStix } = require('../../lib/import-safety');
@@ -773,9 +775,9 @@ class BaseService extends ServiceWithHooks {
 
   /**
    * Protect every exact revision captured by an active or in-progress graph
-   * manifest. Relationship payloads are frozen in the manifest, so a
-   * non-topology PUT remains safe; relationship endpoint changes are rejected
-   * separately by RelationshipsService. Hard deletion is always rejected.
+   * manifest. Pointer-only manifests hydrate relationships by exact revision
+   * just like primary and secondary objects, so no versioned STIX payload is
+   * exempt from this guard.
    */
   static async assertNotGraphPinned(document, operation) {
     const graphManifestService = require('../release-tracks/graph-manifest-service');
@@ -783,17 +785,12 @@ class BaseService extends ServiceWithHooks {
       document.stix.id,
       document.stix.modified,
     );
-    if (
-      pins.length === 0 ||
-      (operation === 'updated' && pins.every((pin) => pin.kind === 'relationship'))
-    ) {
-      return;
-    }
+    if (pins.length === 0) return;
 
     throw new SnapshotGraphPinnedRevisionError({
       details:
         `Revision ${document.stix.id} (modified ` +
-        `${new Date(document.stix.modified).toISOString()}) is frozen in ` +
+        `${new Date(document.stix.modified).toISOString()}) is referenced by ` +
         `${pins.length} release-track snapshot graph manifest(s) and cannot be ${operation} ` +
         'in place.',
       snapshot_graph_pins: pins,
@@ -975,15 +972,15 @@ class BaseService extends ServiceWithHooks {
   }
 
   /**
-   * Updates an existing STIX object version in-place.
+   * Updates non-exported workspace metadata on an existing STIX revision.
    *
    * Pipeline stages:
    *   1. ANALYZE REQUEST — retrieve existing document by stixId + modified
    *   2. COMPOSE OBJECT — strip server-controlled fields, compose from existing document
    *   3. SET SERVER-CONTROLLED FIELDS — (future: bump modified timestamp)
    *   4. LIFECYCLE HOOKS — subclass data transformations (beforeUpdate)
-   *   5. VALIDATE WITH ADM — full schema validation on the composed object
-   *   6. PERSIST — merge and save document, run afterUpdate hook, emit event (skip if dryRun)
+   *   5. IMMUTABILITY + ADM VALIDATION — reject STIX changes, validate the composed object
+   *   6. PERSIST — merge and save document, run afterUpdate hook (skip if dryRun)
    *
    * @param {string} stixId - The STIX ID of the object to update
    * @param {string} stixModified - The modified timestamp identifying the specific version
@@ -1029,13 +1026,6 @@ class BaseService extends ServiceWithHooks {
     if (!document) {
       return null;
     }
-
-    // Members-pinned revisions are released content — immutable in place.
-    await BaseService.assertNotMemberPinned(document, 'updated');
-    await BaseService.assertNotGraphPinned(document, 'updated');
-
-    // TODO: diff analysis — detect field-level changes vs document
-    // TODO: if no changes detected, short-circuit (no-op)
 
     // ──────────────────────────────────────────────
     // 2. COMPOSE OBJECT
@@ -1095,6 +1085,19 @@ class BaseService extends ServiceWithHooks {
     // ──────────────────────────────────────────────
     await this.beforeUpdate(stixId, stixModified, data, document, options);
 
+    // A STIX revision is identified by (stix.id, stix.modified). Mutating its
+    // exportable payload in place makes every persisted reference to that
+    // revision ambiguous. PUT therefore remains available only for workspace
+    // metadata; STIX corrections must be posted as a new revision.
+    const persistedStix = JSON.parse(JSON.stringify(document.stix));
+    const proposedStix = JSON.parse(JSON.stringify(data.stix));
+    if (!_.isEqual(persistedStix, proposedStix)) {
+      throw new ImmutableStixRevisionError({
+        stix_id: document.stix.id,
+        stix_modified: new Date(document.stix.modified).toISOString(),
+      });
+    }
+
     // ──────────────────────────────────────────────
     // 5. VALIDATE WITH ADM
     // ──────────────────────────────────────────────
@@ -1124,7 +1127,9 @@ class BaseService extends ServiceWithHooks {
       }
 
       await this.afterUpdate(newDocument, document);
-      await this.emitUpdatedEvent(newDocument, document);
+      // PUT can now change workspace metadata only. STIX-domain update events
+      // drive relationship advancement and release-track revision sync, so
+      // emitting one here would misclassify metadata edits as new content.
       const result = newDocument.toObject ? newDocument.toObject() : newDocument;
       result.warnings = warnings;
       await this._refreshReleaseTrackBackrefs(result);

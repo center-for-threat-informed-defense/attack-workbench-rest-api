@@ -51,7 +51,8 @@ exports.hydrateMembers = async function hydrateMembers(entries) {
 
 /**
  * Convert LinkById tags (e.g. "(LinkById: T1234)") in descriptions to
- * markdown citations using only object revisions frozen in the manifest.
+ * markdown citations using only object revisions supplied by the resolved
+ * live or persisted graph.
  *
  * @param {Array<Object>} documents - Hydrated lean documents ({ stix, ... })
  */
@@ -69,11 +70,12 @@ async function convertLinkByIdTags(documents, linkTargetDocuments) {
   }
 }
 
-function selectedDraftTierIsDynamic(snapshot, options) {
-  return (options.include || []).some(
-    (tier) =>
-      ['staged', 'candidates'].includes(tier) &&
-      (snapshot[tier] || []).some((entry) => entry.object_modified === 'latest'),
+function requiresLiveGraph(snapshot, options) {
+  return (
+    options.captureGraph ||
+    snapshot.version == null ||
+    !snapshot.graph_manifest_id ||
+    (options.include || []).some((tier) => ['staged', 'candidates'].includes(tier))
   );
 }
 
@@ -128,11 +130,11 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
  *
  * Bundle exports (see docs/developer/release-tracks/bundle-export.md):
  *   - The same pipeline applies to standard snapshots and materialized virtual
- *     snapshots because both persist exact member revisions and graph manifests.
+ *     snapshots because both persist exact member revisions.
  *   1. Select tier entries — members always; staged/candidates via
  *      options.include, narrowed by options.state
  *   2. Hydrate entries into full documents
- *   3. Append current relationships whose endpoints are both selected
+ *   3. Resolve live relationships or replay exact persisted graph pointers
  *   4. Append referenced identities and marking definitions
  *   5. Convert LinkById tags to markdown citations
  *   6. Assemble the bundle (STIX version conformance + optional TOC) via the
@@ -149,10 +151,12 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
  */
 exports.exportSnapshot = async function exportSnapshot(snapshot, format, options = {}) {
   if (format === 'bundle') {
-    const graph =
-      options.captureGraph || selectedDraftTierIsDynamic(snapshot, options)
-        ? await graphManifestService.replayPlannedSnapshot(snapshot, options)
-        : await graphManifestService.replay(snapshot, options);
+    // A persisted graph is an opt-in guarantee for members only. Graphless
+    // snapshots and exports that add mutable draft tiers resolve the current
+    // relationship frontier instead of implying determinism they do not have.
+    const graph = requiresLiveGraph(snapshot, options)
+      ? await graphManifestService.replayPlannedSnapshot(snapshot, options)
+      : await graphManifestService.replay(snapshot, options);
     const allObjects = graph.documents;
     await convertLinkByIdTags(allObjects, graph.linkTargetDocuments);
 

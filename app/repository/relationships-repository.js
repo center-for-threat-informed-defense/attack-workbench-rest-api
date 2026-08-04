@@ -113,6 +113,48 @@ class RelationshipsRepository extends BaseRepository {
     }
   }
 
+  /**
+   * Retrieve the current revision of relationship lineages that still touch
+   * any object in a bounded graph frontier. The first indexed lookup finds
+   * candidate lineages; the second aggregation deliberately chooses each
+   * lineage's globally latest revision before reapplying the endpoint filter.
+   * This avoids treating an older, once-relevant revision as current.
+   */
+  async retrieveLatestTouchingObjectRefs(objectRefs, options = {}) {
+    if (!Array.isArray(objectRefs) || objectRefs.length === 0) return [];
+
+    try {
+      const endpointQuery = {
+        $or: [
+          { 'stix.source_ref': { $in: objectRefs } },
+          { 'stix.target_ref': { $in: objectRefs } },
+        ],
+      };
+      const candidateIds = await this.model.distinct('stix.id', endpointQuery).exec();
+      if (candidateIds.length === 0) return [];
+
+      const currentQuery = { ...endpointQuery };
+      if (!options.includeRevoked) {
+        currentQuery['stix.revoked'] = { $in: [null, false] };
+      }
+      if (!options.includeDeprecated) {
+        currentQuery['stix.x_mitre_deprecated'] = { $in: [null, false] };
+      }
+
+      return await this.model
+        .aggregate([
+          { $match: { 'stix.id': { $in: candidateIds } } },
+          { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+          { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
+          { $replaceRoot: { newRoot: '$document' } },
+          { $match: currentQuery },
+        ])
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async retrieveAllWithAttackURLInDescription() {
     const aggregation = [
       { $sort: { 'stix.id': 1, 'stix.modified': -1 } },

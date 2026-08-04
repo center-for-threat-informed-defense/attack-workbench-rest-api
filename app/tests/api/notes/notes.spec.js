@@ -184,22 +184,18 @@ describe('Notes API', function () {
     expect(note.stix.x_mitre_attack_spec_version).toBe(note1.stix.x_mitre_attack_spec_version);
   });
 
-  it('PUT /api/notes should update a note', async function () {
-    note1.stix.description = 'This is an updated note.';
-    const body = note1;
+  it('PUT /api/notes rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(note1);
+    body.stix.description = 'This is an updated note.';
     const res = await request(app)
       .put('/api/notes/' + note1.stix.id + '/modified/' + note1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated note
-    const note = res.body;
-    expect(note).toBeDefined();
-    expect(note.stix.id).toBe(note1.stix.id);
-    expect(note.stix.modified).toBe(note1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/notes should not create a note with the same id and modified date', async function () {

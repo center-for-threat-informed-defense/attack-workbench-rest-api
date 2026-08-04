@@ -4,8 +4,8 @@
 
 The Release Tracks API uses a Git-inspired versioning strategy that separates two distinct concerns:
 
-1. **Snapshot History** - Every modification creates a new timestamped snapshot for complete audit trail
-2. **Release Versioning** - Specific snapshots can be "tagged" as releases using semantic versioning
+1. **Draft State** - Standard tracks keep one rolling, untagged snapshot
+2. **Release History** - Tagged snapshots are retained as immutable releases using semantic versioning
 
 This approach allows continuous development while providing stable, versioned releases for publication.
 
@@ -19,7 +19,9 @@ A **snapshot** is an immutable state of a release track at a specific point in t
 - `id` - The release track's STIX identifier (constant across all snapshots)
 - `modified` - ISO 8601 timestamp when the snapshot was created (unique per snapshot)
 
-Every modification operation creates a new snapshot with a new `modified` timestamp.
+Every content-changing operation creates a replacement snapshot with a new
+`modified` timestamp. For a standard track, the replacement is saved first and
+then the older untagged draft is removed. Tagged snapshots are never pruned.
 
 A snapshot may be either a **draft release** (untagged) or a **tagged release** (has version number).
 
@@ -34,13 +36,13 @@ A **tagged release** is a snapshot that has been marked as production-ready for 
 
 Not all snapshots are tagged releases. Only snapshots explicitly tagged via the **release** operation become tagged releases.
 
-**Example Timeline with Tagged Releases:**
+**Example Timeline with Tagged Releases (standard track):**
 ```
 id: "release-track--123", modified: "2024-01-01T10:00:00.000Z"
-  version: null  ← DRAFT RELEASE (work in progress)
+  version: null  ← FIRST ROLLING DRAFT
 
 id: "release-track--123", modified: "2024-01-02T14:30:00.000Z"
-  version: null  ← DRAFT RELEASE (work in progress)
+  version: null  ← REPLACEMENT DRAFT; THE 2024-01-01 DRAFT IS PRUNED
 
 id: "release-track--123", modified: "2024-01-05T09:15:00.000Z"
   version: "1.0"  ← TAGGED RELEASE (via release operation)
@@ -52,7 +54,7 @@ id: "release-track--123", modified: "2024-01-05T09:15:00.000Z"
   }]
 
 id: "release-track--123", modified: "2024-01-10T11:00:00.000Z"
-  version: null  ← DRAFT RELEASE (more development)
+  version: null  ← NEW ROLLING DRAFT AFTER RELEASE 1.0
 
 id: "release-track--123", modified: "2024-01-15T16:20:00.000Z"
   version: "1.1"  ← TAGGED RELEASE (via release operation)
@@ -61,6 +63,9 @@ id: "release-track--123", modified: "2024-01-15T16:20:00.000Z"
     { version: "1.0", tagged_at: "2024-01-05T10:00:00Z", tagged_by: "user@example.com", modified: "2024-01-05T09:15:00.000Z" }
   ]
 ```
+
+The timeline lists the first draft only to illustrate its replacement. Once the
+second draft is durably stored, the first draft is no longer retrievable.
 
 ## The Release Operation
 
@@ -82,6 +87,17 @@ retain that exact revision; staged entries whose `object_modified` value is
 the preview or commit request is handled. Only exact revisions are promoted
 into `members`, so the tagged release never contains a dynamic member
 reference.
+
+Releasing does not automatically create a graph manifest. A tagged snapshot
+may subsequently opt into deterministic member-graph retrieval with:
+
+```http
+POST /api/release-tracks/:id/snapshots/:modified/graph
+```
+
+Deleting that manifest with the corresponding `DELETE` operation returns the
+snapshot to live graph resolution. Candidate and staged export additions are
+always resolved live; the determinism guarantee applies only to `members`.
 
 ### In-Place Tagging Strategy
 

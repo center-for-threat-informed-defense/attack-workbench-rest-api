@@ -99,9 +99,12 @@ Standard STIX bundle format:
 - Self-contained: identities and marking definitions referenced by the
   exported objects are included automatically
 - `LinkById` tags in descriptions are converted to markdown citations
-- If a draft export explicitly includes candidate or staged tiers, dynamic
-  `"latest"` selectors are resolved for that export request. Tagged member
-  contents remain exact.
+- Drafts, graphless tagged snapshots, and every export that includes candidate
+  or staged tiers resolve the bounded graph live. A tagged member-only export
+  is deterministic only after its snapshot opts into a graph manifest.
+- Frontends may describe manifest creation as **caching the bundle**. The
+  cache pins the exact member graph for repeatable export; it is not a general
+  performance cache, and candidate or staged additions remain live.
 - Bundle export is fail-closed for primary content. If any selected exact
   revision no longer exists, the server returns HTTP `409` with every missing
   `(object_ref, object_modified)` pair in `missing_references`; it never emits

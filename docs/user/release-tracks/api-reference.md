@@ -413,8 +413,20 @@ Filtering occurs before pagination, so `pagination.total` is the total number
 of snapshots matching `tagged`, not the total number in the track.
 
 Every summary contains `id`, `type`, `modified`, `version`, `name`,
-`description` (when set), and `members_count`. Count keys then reflect the
-track type:
+`description` (when set), and `members_count`. A tagged snapshot whose
+deterministic member graph has been materialized also contains the opaque
+`graph_manifest_id` and `graph_statistics`; graphless snapshots omit both.
+Graph statistics describe the cached graph at a glance:
+
+- `primary_count`: member objects deliberately selected for the snapshot.
+- `secondary_count`: related objects reached by graph resolution.
+- `relationship_count`: relationships connecting cached graph objects.
+- `supporting_count`: supporting identities and marking definitions.
+- `link_target_count`: objects pinned for deterministic LinkById expansion.
+- `total_count`: all entries across those manifest roles.
+
+The UI groups supporting and LinkById targets together as **Dependencies**.
+Snapshot tier count keys continue to reflect the track type:
 
 - `type: "standard"` adds `staged_count` and `candidates_count`.
 - `type: "virtual"` adds `quarantine_count`.
@@ -429,9 +441,18 @@ Inapplicable count keys are omitted rather than returned as zero.
       "type": "standard",
       "modified": "2024-01-15T16:20:00.000Z",
       "version": "14.1",
+      "graph_manifest_id": "release-track-graph-manifest--01234567-89ab-4cde-8f01-23456789abcd",
       "name": "Enterprise ATT&CK",
       "description": "Enterprise domain release track",
       "members_count": 3247,
+      "graph_statistics": {
+        "primary_count": 3247,
+        "secondary_count": 812,
+        "relationship_count": 6841,
+        "supporting_count": 5,
+        "link_target_count": 17,
+        "total_count": 10922
+      },
       "staged_count": 18,
       "candidates_count": 5
     }
@@ -630,6 +651,27 @@ Bootstraps a new release track from the specified snapshot.
 POST /api/release-tracks/:id/snapshots/:modified/clone
 ```
 
+### Create or Delete a Deterministic Member Graph
+
+```
+POST   /api/release-tracks/:id/snapshots/:modified/graph
+DELETE /api/release-tracks/:id/snapshots/:modified/graph
+```
+
+Only tagged snapshots may have graphs. POST resolves the snapshot's `members`
+into a pointer-only exact-revision manifest and returns `201`; repeating it is
+idempotent and returns `200`. DELETE removes the manifest and returns `204`
+even when no graph exists. Graphless bundles resolve relationships and
+secondary objects live. Requests that include candidates or staged objects
+remain live even if the tagged snapshot has a graph.
+
+User interfaces may present this operation as **caching the bundle**: a cached
+indicator means member-only bundle exports reuse the exact object and
+relationship revisions selected when the cache was created. This is not a
+general response cache and does not make candidate or staged exports
+deterministic.
+
+
 ### Delete Specific Snapshot
 
 ```
@@ -637,9 +679,10 @@ DELETE /api/release-tracks/:id/snapshots/:modified
 ```
 
 Deletes the selected snapshot only when it is both the latest snapshot and an
-untagged draft. Deletion reverts the track to the immediately preceding
-snapshot. Tagged releases and older drafts return `409 Conflict`; they cannot
-be removed or rewritten.
+untagged draft with a predecessor. Deletion reverts the track to that
+predecessor. Standard tracks retain only one rolling draft, so replaced
+untagged timestamps return `404`. Tagged releases and a track's sole snapshot
+return `409 Conflict`.
 
 ---
 
@@ -1348,14 +1391,14 @@ retrieval never recomputes virtual composition. As long as the track does not
 acquire a newer snapshot, `/snapshots/latest` selects the same primary revision
 set, and `/snapshots/:modified` addresses that set explicitly.
 
-The server freezes the bounded `format=bundle` graph when it persists the
-snapshot. Repeated exports reuse exact relationship, secondary, supporting,
-and LinkById dependency revisions rather than discovering the current graph.
-Hard deletes and unsafe in-place edits to those protected revisions return
-`409 Conflict`.
+Virtual snapshot persistence freezes primary membership, not the bounded
+bundle graph. A tagged snapshot may opt into the graph separately through the
+graph endpoint above. Until then, relationships and secondary objects resolve
+live. Hard deletes of graph-pinned revisions return `409 Conflict`; every
+STIX-changing PUT returns `409` regardless of graph state.
 
-A standard draft remains intentionally dynamic only when the request includes
-a candidate or staged entry stored with `object_modified: "latest"`. That
+Candidate and staged exports are intentionally live, including exact-selector
+entries, because determinism is guaranteed only for `members`. A `"latest"`
 selector is resolved at request time until release. Tagged standard members
 and all materialized virtual members are exact.
 

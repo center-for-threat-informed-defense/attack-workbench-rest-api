@@ -34,12 +34,9 @@ function buildTechnique(name) {
   };
 }
 
-// Revision identity (stix.id + stix.modified) is immutable in place: a PUT
-// whose body identity fields differ from the path parameters must be
-// rejected. Release tracks pin revisions by (stix.id, stix.modified) —
-// re-keying a document in place would strand those pins. Re-keying goes
-// through POST (a new revision) instead.
-describe('PUT revision identity guard', function () {
+// Persisted STIX revisions are immutable. Identity mismatches remain malformed
+// requests (400), while a same-identity STIX edit is a conflict (409).
+describe('PUT revision immutability guard', function () {
   let app;
   let passportCookie;
   let technique;
@@ -102,15 +99,21 @@ describe('PUT revision identity guard', function () {
     expect(res.body.stix.modified).toBe(technique.stix.modified);
   });
 
-  it('accepts a PUT whose body identity matches the path parameters', async function () {
+  it('rejects a STIX-changing PUT whose body identity matches the path parameters', async function () {
     const update = buildTechnique('Identity Guard (updated)');
     update.stix.id = technique.stix.id;
     update.stix.created = technique.stix.created;
     update.stix.modified = technique.stix.modified;
 
-    const res = await putTechnique(update).expect(200);
-    expect(res.body.stix.name).toBe('Identity Guard (updated)');
-    expect(res.body.stix.modified).toBe(technique.stix.modified);
+    const res = await putTechnique(update).expect(409);
+    expect(res.body.message).toContain('immutable');
+
+    const stored = await request(app)
+      .get(`/api/techniques/${technique.stix.id}/modified/${technique.stix.modified}`)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
+    expect(stored.body.stix.name).toBe('Identity Guard');
   });
 
   after(async function () {

@@ -962,9 +962,9 @@ quarantined object counts. Use `format=workbench` or `format=bundle` to inspect
 the literal snapshot or publication artifact that would be tagged. The draft
 must have a non-null `composition_resolution`, proving that its members and
 quarantine tiers were materialized from its current composition.
-Bundle preview replays the materialized draft's graph manifest, and release
-retains that same manifest because tagging a virtual snapshot does not alter
-its contents.
+Bundle preview resolves the live graph. Tagging does not implicitly create a
+manifest; determinism is a separate opt-in operation on the tagged snapshot:
+`POST /api/release-tracks/:id/snapshots/:modified/graph`.
 
 ### Retrieve a Materialized Virtual Snapshot
 
@@ -1000,7 +1000,8 @@ object-revision selector.
 
 This guarantee also covers the bounded `format=bundle` object graph.
 Relationship endpoint revisions, secondary objects, supporting objects, and
-LinkById render targets are frozen in the snapshot's graph manifest.
+LinkById render targets are frozen only after a tagged snapshot opts into a
+graph manifest; graphless snapshots resolve them live.
 Repeated exports may use a different bundle-envelope UUID, but replay the same
 snapshot object graph. See
 [Bundle Export](../../developer/release-tracks/bundle-export.md#relationship-and-secondary-object-consistency-boundary).

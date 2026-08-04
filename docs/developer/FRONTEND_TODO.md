@@ -155,14 +155,13 @@ Done when:
 - Tests cover multiple missing references and prove no partial snapshot or
   bundle is rendered.
 
-### [ ] Explain snapshot-graph protection conflicts on object edits and deletes
+### [ ] Explain immutable-revision and snapshot-graph deletion conflicts
 
-Release-track snapshots now freeze the exact relationships and secondary
-objects needed to reproduce their bundle graph. If an object revision is a
-protected dependency of any active or linked-pending snapshot manifest, an
-in-place `PUT`, exact-revision `DELETE`, or full-lineage `DELETE` that would
-invalidate that graph returns
-`409 Conflict`:
+Persisted STIX revisions are globally immutable. Any STIX-changing PUT returns
+`409 Conflict` and should direct the operator to POST a new revision. Separately,
+a tagged snapshot's opt-in graph manifest holds exact revision pointers. If an
+object revision is a protected dependency of an active or linked-pending
+manifest, exact-revision or full-lineage DELETE returns `409 Conflict`:
 
 ```ts
 {
@@ -183,12 +182,11 @@ create a new object revision, or remove the draft snapshots that no longer
 need the old revision. Do not offer a force-delete path; administrator
 authorization does not bypass graph integrity.
 
-A standalone standard-track candidate or staged root remains editable through
-the existing in-place review workflow. It becomes graph-protected only when
-the same revision is also needed as a frozen dependency. Description-only
-relationship corrections are allowed because older snapshots retain the
-relationship payload captured in their manifests; relationship source,
-target, and type changes are rejected as graph changes.
+Candidate and staged workspace metadata remains editable, but STIX content does
+not. Relationship corrections are always new POST revisions; schema-v2 graph
+manifests point to the exact older relationship revision and never rely on a
+frozen clone. Marking definitions remain the narrow frozen-payload exception
+because they are unversioned.
 
 Done when:
 
@@ -1001,19 +999,46 @@ Minimum regression coverage:
 - The frontend never offers standard-only contents/candidate/staged mutations
   on a virtual track.
 
+## Deterministic bundle cache controls
+
+`GET /api/release-tracks/:id/snapshots` includes the opaque
+`graph_manifest_id` on summaries whose tagged snapshot has a materialized
+member graph. The History tab should translate that technical state into a
+user-oriented bundle cache:
+
+- Show **Bundle cached** with a success indicator when `graph_manifest_id` is
+  present.
+- Show **Not cached** with a warning icon otherwise. Explain that member-only
+  bundle exports are not guaranteed to be deterministic until cached.
+- Offer **Cache bundle** only for uncached tagged snapshots and editors. It
+  calls `POST /api/release-tracks/:id/snapshots/:modified/graph`.
+- Use the existing indeterminate Material spinner while a cache operation is
+  in progress. Cached snapshots offer editors a confirmed **Delete cache**
+  action backed by `DELETE /api/release-tracks/:id/snapshots/:modified/graph`.
+- For cached snapshots, render the accompanying `graph_statistics` in a
+  compact **Graph cache** panel: Primary, Secondary, Relationships, and
+  Dependencies. Dependencies is the sum of supporting and LinkById entries;
+  show `total_count` as the overall cached-item count.
+- Refresh snapshot history after cache creation or deletion so server-derived
+  state and statistics are visible immediately.
+- Drafts remain uncached and must be tagged first. Candidate and staged
+  exports remain live even when the member graph is cached.
+- Treat `graph_manifest_id` as an opaque read-only signal; never send or
+  persist a client-authored value.
+
+“Cache” is deliberately presentation language, not an implementation claim
+about HTTP response caching. Tooltips should retain the member-only and
+determinism qualifiers so users do not infer broader guarantees.
+
 ## Backend changes that do not require Angular API changes
 
 The following changes are useful context but should not create extra connector
 work:
 
-- Snapshot bundle exports now include bounded secondary objects and their
-  relationships from a frozen graph manifest. Existing bundle download code
-  receives a more complete and reproducible bundle without changing its
-  request. A standard draft tier explicitly stored as `"latest"` remains
-  dynamic until release.
-- Snapshot responses include an opaque, server-controlled
-  `graph_manifest_id`. The SPA does not need to send, interpret, or persist
-  this field; tolerate it in response models and omit it from request bodies.
+- Snapshot bundle exports include bounded secondary objects and their
+  relationships. Materialized schema-v2 graphs retain exact revision pointers
+  while graphless exports resolve live. A standard draft tier explicitly
+  stored as `"latest"` remains dynamic until release.
 - Release-track object back-references are reconciled when snapshots change.
   Frontend object refreshes will see the updated membership metadata without a
   new endpoint.

@@ -51,6 +51,7 @@ const {
   TrackNotFoundError,
   MemberPinnedRevisionError,
   SnapshotGraphPinnedRevisionError,
+  ImmutableStixRevisionError,
   ObjectHasValidationIssuesError,
 } = require('../exceptions');
 
@@ -148,6 +149,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof VirtualSnapshotNotMaterializedError ||
     err instanceof MemberPinnedRevisionError ||
     err instanceof SnapshotGraphPinnedRevisionError ||
+    err instanceof ImmutableStixRevisionError ||
     err instanceof ObjectHasValidationIssuesError ||
     err instanceof ActiveOrganizationIdentityDeleteError
   ) {

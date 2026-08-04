@@ -39,7 +39,7 @@ components:
         status:
           type: string
           enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed']
-          description: 'Track-scoped workflow status. Members are always reviewed; quarantined entries carry no status.'
+          description: 'Track-scoped workflow status. Members are always reviewed; quarantined entries carry no status. modified-in-place is retained only for legacy data.'
       required:
         - id
         - tier

@@ -32,6 +32,21 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getLatestSnapshotBefore(trackId, modified) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOne({ id: trackId, modified: { $lt: modified } })
+        .sort({ modified: -1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError({ parameterName: 'modified' });
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
   async getLatestSnapshotTierSummary(trackId) {
     try {
       const Model = this._getModel(trackId);
@@ -273,6 +288,7 @@ class ReleaseTrackDynamicRepository {
           type: 1,
           modified: 1,
           version: 1,
+          graph_manifest_id: 1,
           name: 1,
           description: 1,
           scheduled_materialization: 1,
@@ -329,16 +345,21 @@ class ReleaseTrackDynamicRepository {
         Object.assign(setOps, versionData.additionalOps);
       }
 
+      const update = {
+        $set: setOps,
+        $push: { version_history: versionData.versionHistoryEntry },
+      };
+      if (versionData.unsetOps) {
+        update.$unset = versionData.unsetOps;
+      }
+
       const result = await Model.findOneAndUpdate(
         {
           id: trackId,
           modified: modified,
           version: null, // Guard: only tag untagged snapshots
         },
-        {
-          $set: setOps,
-          $push: { version_history: versionData.versionHistoryEntry },
-        },
+        update,
         {
           new: true,
           runValidators: true,
@@ -370,6 +391,56 @@ class ReleaseTrackDynamicRepository {
           details: `Duplicate key conflict while updating snapshot for track '${trackId}'.`,
         });
       }
+      throw new DatabaseError(err);
+    }
+  }
+
+  async attachGraphManifest(trackId, modified, manifestId) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOneAndUpdate(
+        {
+          id: trackId,
+          modified,
+          version: { $type: 'string' },
+          graph_manifest_id: { $exists: false },
+        },
+        { $set: { graph_manifest_id: manifestId } },
+        { new: true, runValidators: true, lean: true },
+      ).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async detachGraphManifest(trackId, modified, manifestId) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOneAndUpdate(
+        {
+          id: trackId,
+          modified,
+          version: { $type: 'string' },
+          graph_manifest_id: manifestId,
+        },
+        { $unset: { graph_manifest_id: '' } },
+        { new: true, runValidators: true, lean: true },
+      ).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async deleteOlderDrafts(trackId, modified) {
+    try {
+      const Model = this._getModel(trackId);
+      const query = { id: trackId, version: null, modified: { $lt: modified } };
+      const snapshots = await Model.find(query).select('modified graph_manifest_id').lean().exec();
+      if (snapshots.length > 0) {
+        await Model.deleteMany({ _id: { $in: snapshots.map((snapshot) => snapshot._id) } }).exec();
+      }
+      return snapshots;
+    } catch (err) {
       throw new DatabaseError(err);
     }
   }

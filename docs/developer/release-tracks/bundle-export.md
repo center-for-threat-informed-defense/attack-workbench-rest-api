@@ -102,19 +102,20 @@ STIX version serialization. The pipeline:
    filter, mirroring the fact that members are inherently reviewed. `state`
    never affects members. `reviewed` is intentionally not a valid `state`
    value for this reason.
-2. **Manifest replay** — the snapshot identifies an active graph manifest, or
-   a complete linked pending manifest recovering from an interrupted
-   activation, created at the same persistence boundary. The manifest records exact
-   primary, relationship, secondary, supporting, and LinkById dependency
-   revisions. Export hydrates those entries and performs no live graph
-   expansion.
-3. **Bounded secondary selection** — replay starts from the requested primary
-   tiers, follows only dependency edges frozen in the manifest, and emits a
-   relationship only when both exact endpoint revisions are selected.
-4. **Supporting objects** — only identities and marking definitions frozen in
-   the manifest and referenced by the selected graph are appended.
-5. **LinkById conversion** — conversion uses only exact render targets frozen
-   in the manifest and never falls back to a current database lookup.
+2. **Graph selection** — a member-only export replays the schema-v2 graph when
+   the tagged snapshot has explicitly opted in. Graphless snapshots resolve a
+   live bounded graph. Any request that includes `staged` or `candidates` is
+   also live; determinism is promised for `members` only.
+3. **Bounded secondary selection** — graph resolution starts from the selected
+   roots and emits a relationship only when both exact endpoint revisions are
+   selected. Persisted schema-v2 manifests store exact-revision pointers, not
+   cloned STIX payloads.
+4. **Supporting objects** — referenced identities and marking definitions are
+   appended. Versioned supporting objects use pointers; unversioned marking
+   definitions retain a frozen payload in persisted graphs.
+5. **LinkById conversion** — deterministic replay uses the exact render target
+   pointer captured in the graph. Live resolution uses the current eligible
+   target.
 6. **Assembly** (Zod transform) — notes are dropped, objects are conformed to
    `stixVersion` via the shared `lib/stix-conformance.js` helpers, and the
    bundle envelope is emitted (with `spec_version: "2.0"` only when
@@ -152,8 +153,8 @@ snapshot export, and ephemeral export observe the same membership.
 
 Because snapshot contents are explicitly curated, primary entries do **not**
 receive the legacy attack-id / deprecated / revoked filters. Secondary graph
-capture retains the established bounded ATT&CK expansion rules and freezes
-the resulting graph at snapshot creation.
+resolution retains the established bounded ATT&CK expansion rules. It is
+frozen only when a tagged snapshot opts into a graph.
 
 #### Relationship and secondary-object consistency boundary
 
@@ -164,7 +165,7 @@ Release-track snapshots distinguish **primary** and **secondary** content:
   and staged entries may instead store `"latest"` and are resolved just in
   time when a draft export includes those tiers.
 - Secondary objects are not snapshot members. They are discovered when the
-  snapshot is created because an exact-pinned SRO connects them to a primary,
+  graph is resolved because an exact-pinned SRO connects them to a primary,
   the bounded ATT&CK rules identify a detection strategy, or the bundle needs
   a supporting identity, marking definition, or LinkById render target.
 
@@ -185,43 +186,43 @@ SRO. They are not emitted because bundle output includes only the `stix`
 object. When an endpoint advances, Workbench creates a new SRO revision with
 updated pins rather than rewriting the older SRO.
 
-Each persisted snapshot references a tier-aware manifest. A pending manifest
-and all of its entries are written before the snapshot is linked to it, then
-activated after persistence succeeds. The snapshot link is the durable commit
-record: replay can use and self-activate a complete linked pending manifest
-after a process interruption.
-A standard release replaces the draft manifest with one built from the
-resolved release plan, so dynamic staged selectors become exact members.
-Materialized virtual snapshots contain exact roots from the outset. Releasing
-a virtual draft does not change those roots, so bundle preview and commit
-reuse its existing manifest. This makes the preview the literal graph that
-will be tagged rather than a second resolution against newer database state.
+Snapshots are graphless by default. After tagging, an editor may call
+`POST /api/release-tracks/:id/snapshots/:modified/graph`. The service builds a
+schema-v2 member graph, writes a pending manifest and decoupled entry rows,
+rehydrates every pointer while those pending rows already protect deletion,
+then atomically attaches the manifest ID to the still-tagged snapshot. Replay
+can self-activate a complete linked pending manifest after an interrupted
+activation. `DELETE` on the same graph resource detaches and removes it.
 
-Active and pending manifests protect their exact dependencies. In-place
-updates and hard deletes that would invalidate a primary or secondary
-revision return `409`; lineage deletion is rejected when any version is
-protected. Relationship source, target, and type changes are rejected.
-Description-only relationship corrections remain allowed because the
-relationship STIX payload used by older snapshots is frozen in the manifest.
-Manifest entries may also freeze complete source payloads for an audited
-operational baseline. The exact database revision pin remains mandatory and
-protected; the frozen payload preserves the reviewed publication
-representation for deterministic replay.
-Deleting a draft snapshot or track removes its manifest and releases
-protection that no other snapshot needs.
+
+Graph creation uses an indexed relationship frontier rather than scanning all
+relationships. It starts with member IDs, queries only current relationship
+lineages touching the frontier, batch-hydrates exact endpoints by STIX type,
+and repeats only when bounded resolution discovers another relevant object
+ID. This retains secondary-to-secondary edges without rebuilding unrelated
+database state. Incremental reuse from a previous snapshot is deliberately
+deferred: an unchanged member set does not prove an unchanged graph because a
+new relationship can connect to an old member.
+
+Active and pending manifests protect every exact versioned dependency from
+hard deletion. Persisted STIX content is globally immutable through PUT,
+whether or not it is graph-pinned; corrections are new POSTed revisions.
+Schema-v2 relationships therefore need no frozen payload or mutation
+exemption. Legacy schema-v1 manifests still replay their frozen relationship
+payloads. Deleting a graph or track releases protection that no other graph or
+tagged membership needs.
 
 Existing data is upgraded by an idempotent migration. Only the latest
 revision of each legacy relationship can be endpoint-pinned truthfully.
 Pre-existing snapshot manifests are labeled `baseline_reconstruction`
 because they describe the graph visible during migration rather than an
-unknowable historical graph.
+unknowable historical graph. They must not be represented as historical truth.
 
-The deliberate exception is a standard draft export that explicitly includes
-a candidate or staged entry stored as `"latest"`. That selector is defined to
-move until release, so the selected draft graph is resolved for that request.
-Release preview and commit resolve it again; a successful commit stores an
-exact manifest. Members, tagged releases, materialized virtual snapshots, and
-exact-selector draft tiers replay deterministically.
+Drafts and tagged snapshots without graphs resolve live. Candidate/staged
+exports also resolve live even when the snapshot has a graph, because those
+tiers are expected to move. Release preview is live and release commit does
+not create a graph. Determinism begins only with the explicit tagged-snapshot
+graph operation and applies only to member exports.
 
 The graph and object payload are reproducible, but the bundle is not promised
 to be byte-for-byte identical: the bundle envelope receives a newly generated

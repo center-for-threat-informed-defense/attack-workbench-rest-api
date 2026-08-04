@@ -55,11 +55,10 @@ const entrySchema = new mongoose.Schema(
     source: { type: exactRevisionSchema },
     target: { type: exactRevisionSchema },
     discovered_from: { type: [exactRevisionSchema], default: undefined },
-    // Relationship payloads are frozen so description-only corrections do
-    // not change older bundles. Marking definitions are not STIX-versioned,
-    // so their complete payload is frozen for the same replay guarantee.
-    // Operational baselines may also freeze an exact source-bundle payload
-    // while retaining the database revision pin as the integrity boundary.
+    // Schema-v2 relationships are exact-revision pointers. Marking
+    // definitions are not STIX-versioned, so their complete payload is frozen
+    // for the same replay guarantee. Schema-v1 relationships retain frozen
+    // payloads for backwards-compatible replay.
     frozen_stix: { type: mongoose.Schema.Types.Mixed },
   },
   { collection: 'releaseTrackGraphManifestEntries' },

@@ -6,6 +6,9 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
+const {
+  ReleaseTrackGraphManifestEntry,
+} = require('../../../models/release-tracks/release-track-graph-manifest-model');
 
 const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 const objectRevisions = [];
@@ -74,6 +77,7 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       ...snapshotBase(standardTrack),
       modified: standardTaggedModified,
       version: '1.0',
+      graph_manifest_id: 'release-track-graph-manifest--snapshot-history',
       members: [memberEntry(0), memberEntry(1)],
       staged: [stagedEntry(2, standardTaggedModified)],
       candidates: [
@@ -82,6 +86,35 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
         candidateEntry(5, standardTaggedModified),
       ],
     });
+    const manifestCommon = {
+      manifest_id: 'release-track-graph-manifest--snapshot-history',
+      track_id: standardTrack.id,
+      snapshot_modified: standardTaggedModified,
+    };
+    const versionedManifestEntry = (index, kind, extra = {}) => ({
+      ...manifestCommon,
+      revision_key: `${objectRevisions[index].id}::${new Date(
+        objectRevisions[index].modified,
+      ).getTime()}`,
+      kind,
+      object_ref: objectRevisions[index].id,
+      object_modified: objectRevisions[index].modified,
+      ...extra,
+    });
+    await ReleaseTrackGraphManifestEntry.insertMany([
+      versionedManifestEntry(0, 'root', { tier: 'members' }),
+      versionedManifestEntry(1, 'root', { tier: 'members' }),
+      versionedManifestEntry(2, 'secondary'),
+      versionedManifestEntry(3, 'secondary'),
+      versionedManifestEntry(4, 'relationship'),
+      {
+        ...manifestCommon,
+        revision_key: `${markingDefinitionId}::unversioned`,
+        kind: 'supporting',
+        object_ref: markingDefinitionId,
+      },
+      versionedManifestEntry(5, 'link_target'),
+    ]);
     await dynamicRepo.saveSnapshot(standardTrack.id, {
       ...snapshotBase(standardTrack),
       modified: standardLatestModified,
@@ -175,12 +208,22 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       candidates_count: 1,
     });
     expect(response.body.data[0]).not.toHaveProperty('quarantine_count');
+    expect(response.body.data[0]).not.toHaveProperty('graph_statistics');
     expect(response.body.data[1]).toMatchObject({
       modified: standardTaggedModified.toISOString(),
       version: '1.0',
+      graph_manifest_id: 'release-track-graph-manifest--snapshot-history',
       members_count: 2,
       staged_count: 1,
       candidates_count: 3,
+      graph_statistics: {
+        primary_count: 2,
+        secondary_count: 2,
+        relationship_count: 1,
+        supporting_count: 1,
+        link_target_count: 1,
+        total_count: 7,
+      },
     });
   });
 

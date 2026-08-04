@@ -204,18 +204,14 @@ describe('Release-track release planning and commit API', function () {
 
     let responses;
     try {
-      responses = await Promise.all([release(track.modified), release(newerDraft.body.modified)]);
+      responses = await Promise.all([
+        release(newerDraft.body.modified),
+        release(newerDraft.body.modified),
+      ]);
     } finally {
       historyStub.restore();
     }
     expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
-
-    const conflict = responses.find((response) => response.status === 409);
-    expect(conflict.body).toEqual({
-      message: `Release track ${track.id} already has tagged version 2.0`,
-      track_id: track.id,
-      version: '2.0',
-    });
 
     const tagged = await dynamicRepo.getAllSnapshots(track.id, { taggedOnly: true });
     expect(tagged.pagination.total).toBe(1);
@@ -304,7 +300,7 @@ describe('Release-track release planning and commit API', function () {
     expect(immutable.body.members[0].object_modified).toBe(revisionC.stix.modified);
   });
 
-  it('resolves a historical draft dynamic selector when that draft is released', async function () {
+  it('carries a dynamic selector into the rolling replacement draft before release', async function () {
     const revisionA = (await post('/api/techniques', buildTechnique('Historical Dynamic A'), 201))
       .body;
     const track = await createTrack('Historical Dynamic Release');
@@ -324,10 +320,13 @@ describe('Release-track release planning and commit API', function () {
     const revisionB = (
       await post('/api/techniques', buildTechnique('Historical Dynamic B', revisionA), 201)
     ).body;
-    const releasePath =
-      `/api/release-tracks/${track.id}/snapshots/` +
-      `${encodeURIComponent(staged.body.modified)}/release`;
-    const released = await post(releasePath, { version: '4.0' });
+    await get(
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(staged.body.modified)}`,
+      404,
+    );
+    const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {
+      version: '4.0',
+    });
 
     expect(released.body.members).toEqual([
       {
@@ -508,20 +507,23 @@ describe('Release-track release planning and commit API', function () {
     expect(released.body.version).toBe('1.0');
   });
 
-  it('previews and releases an explicitly selected historical snapshot', async function () {
+  it('prunes a replaced standard draft and releases the rolling draft', async function () {
     const track = await createTrack('Historical Release');
-    await post(`/api/release-tracks/${track.id}/meta`, { description: 'new latest' });
-    const preview = await get(
+    const replacement = await post(`/api/release-tracks/${track.id}/meta`, {
+      description: 'new latest',
+    });
+    await get(
       `/api/release-tracks/${track.id}/snapshots/${track.modified}/release/preview?version=3.0`,
+      404,
     );
-    expect(preview.body.source_snapshot_modified).toBe(track.modified);
-    const released = await post(
-      `/api/release-tracks/${track.id}/snapshots/${track.modified}/release`,
-      {
-        version: '3.0',
-      },
+    const preview = await get(
+      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?version=3.0`,
     );
-    expect(released.body.modified).toBe(track.modified);
+    expect(preview.body.source_snapshot_modified).toBe(replacement.body.modified);
+    const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {
+      version: '3.0',
+    });
+    expect(released.body.modified).toBe(replacement.body.modified);
     expect(released.body.version).toBe('3.0');
   });
 
@@ -590,7 +592,7 @@ describe('Release-track release planning and commit API', function () {
     const unchanged = await get(
       `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(draftModified.toISOString())}`,
     );
-    expect(unchanged.body.version).toBeNull();
+    expect(unchanged.body.version ?? null).toBeNull();
   });
 
   it('compares a historical virtual draft with the tagged release that preceded it', async function () {

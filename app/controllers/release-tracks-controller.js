@@ -614,6 +614,33 @@ exports.cloneByModified = async function cloneByModified(req, res, next) {
   }
 };
 
+/** POST /api/release-tracks/:id/snapshots/:modified/graph */
+exports.createSnapshotGraph = async function createSnapshotGraph(req, res, next) {
+  try {
+    const result = await releaseTracksService.createSnapshotGraph(
+      req.params.id,
+      req.params.modified,
+    );
+    logger.debug(`Success: Created graph for snapshot ${req.params.modified}`);
+    return res.status(result.created ? 201 : 200).send(result.snapshot);
+  } catch (err) {
+    logger.error('Failed to create snapshot graph: ' + err);
+    return next(err);
+  }
+};
+
+/** DELETE /api/release-tracks/:id/snapshots/:modified/graph */
+exports.deleteSnapshotGraph = async function deleteSnapshotGraph(req, res, next) {
+  try {
+    await releaseTracksService.deleteSnapshotGraph(req.params.id, req.params.modified);
+    logger.debug(`Success: Deleted graph for snapshot ${req.params.modified}`);
+    return res.status(204).end();
+  } catch (err) {
+    logger.error('Failed to delete snapshot graph: ' + err);
+    return next(err);
+  }
+};
+
 /** DELETE /api/release-tracks/:id/snapshots/:modified */
 exports.deleteSnapshotByModified = async function deleteSnapshotByModified(req, res, next) {
   try {

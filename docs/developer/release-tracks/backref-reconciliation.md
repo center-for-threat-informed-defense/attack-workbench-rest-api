@@ -125,10 +125,11 @@ into a *new* revision must not carry the field forward; this is handled in:
 (Clones routed through `create()` — e.g. the relationship *transfer* during
 revoke — are already covered by `stripServerControlledFields`.)
 
-Relatedly, revision identity is immutable in place: `BaseService.updateFull`
-rejects (400) a PUT whose body `stix.id`/`stix.modified` differ from the path
-parameters, so a pinned revision can never be re-keyed out from under a
-track's pin (which would strand the pin and orphan the backref).
+Relatedly, persisted STIX revisions are immutable. `BaseService.updateFull`
+rejects any PUT that changes `stix` content with `409`; corrections use POST to
+create a new revision. A PUT may still update non-exported `workspace`
+metadata. This global rule prevents a revision from being re-keyed or changed
+out from under a track pointer.
 
 New revisions created through `create()` are covered by the strip; if any
 track references the object (members, candidates, or staged), member sync
@@ -145,11 +146,12 @@ backref to the newly latest revision without rewriting the stored selector
   revision is later re-created, its backref is restored on the next
   contents-changed event for that track, not immediately.
 - **Historical snapshots.** Backrefs describe only the *latest* snapshot per
-  track. Object mutation guards do not trust that derived view: they query
-  every registered track's tagged snapshots for the exact revision before an
-  in-place update or delete. Historical tagged membership therefore remains
-  immutable even after the latest draft removes the object or the registry's
-  tagged-release catalogue is stale.
+  track. Delete guards do not trust that derived view: they query every
+  registered track's tagged snapshots and graph manifests for the exact
+  revision. Historical tagged membership and deterministic graph pointers
+  therefore remain valid even after the latest draft removes the object or the
+  registry's tagged-release catalogue is stale. STIX-changing PUTs are already
+  rejected globally.
 - **Crash window before record creation.** Snapshot persistence and the
   central reconciliation record are not in one MongoDB transaction. A hard
   process failure in that narrow interval can leave no pending record.

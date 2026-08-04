@@ -47,6 +47,7 @@ describe('Release Tracks Bundle Export API', function () {
   let organizationIdentityId;
   let trackId;
   let trackUuid;
+  let taggedModified;
   let snapshotModified;
 
   let memberObject;
@@ -247,11 +248,17 @@ describe('Release Tracks Bundle Export API', function () {
 
     // Members enter through the supported candidate → staged → release
     // lifecycle.
-    await releaseExactMembers(app, passportCookie, trackId, [
+    const tagged = await releaseExactMembers(app, passportCookie, trackId, [
       memberObject,
       linkedMemberObject,
       relationshipSource,
     ]);
+    taggedModified = tagged.modified;
+    await postAction(
+      `/api/release-tracks/${trackId}/snapshots/${encodeURIComponent(taggedModified)}/graph`,
+      {},
+      201,
+    );
 
     // Candidates (all start as work-in-progress)
     await postAction(`/api/release-tracks/${trackId}/candidates`, {
@@ -353,9 +360,15 @@ describe('Release Tracks Bundle Export API', function () {
     );
   });
 
-  it('replays frozen relationship payloads and protects graph dependencies', async function () {
+  it('replays exact relationship pointers and protects graph dependencies', async function () {
     const relationshipUpdate = JSON.parse(JSON.stringify(secondaryRelationship));
-    relationshipUpdate.stix.description = 'A later in-place typo correction.';
+    delete relationshipUpdate._id;
+    delete relationshipUpdate.__v;
+    delete relationshipUpdate.__t;
+    relationshipUpdate.stix.modified = new Date(
+      new Date(secondaryRelationship.stix.modified).getTime() + 1000,
+    ).toISOString();
+    relationshipUpdate.stix.description = 'A corrected relationship revision.';
     relationshipUpdate.stix.external_references = [
       {
         source_name: 'deterministic-bundle-test',
@@ -364,22 +377,22 @@ describe('Release Tracks Bundle Export API', function () {
     ];
 
     await request(app)
-      .put(
-        `/api/relationships/${secondaryRelationship.stix.id}/modified/` +
-          encodeURIComponent(secondaryRelationship.stix.modified),
-      )
+      .post('/api/relationships')
       .send(relationshipUpdate)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200);
+      .expect(201);
 
     const bundle = await getBundle(
-      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&includeToc=false`,
+      `/api/release-tracks/${trackId}/snapshots/${encodeURIComponent(
+        taggedModified,
+      )}?format=bundle&includeToc=false`,
     );
-    const frozenRelationship = bundle.objects.find(
+    const pinnedRelationship = bundle.objects.find(
       (object) => object.id === secondaryRelationship.stix.id,
     );
-    expect(frozenRelationship.description).toBe('Frozen relationship description.');
+    expect(pinnedRelationship.modified).toBe(secondaryRelationship.stix.modified);
+    expect(pinnedRelationship.description).toBe('Frozen relationship description.');
 
     await request(app)
       .delete(

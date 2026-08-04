@@ -62,13 +62,15 @@ latest snapshot.
 
 The response identifies both `snapshot_modified` and
 `latest_snapshot_modified`. Refresh the track and continue from the latest
-draft; historical drafts cannot be removed.
+draft. Standard tracks normally return 404 for a replaced draft because only
+their newest untagged snapshot is retained; this exception remains relevant
+to retained virtual drafts.
 
 ### SnapshotGraphPinnedRevisionError
 
-**Thrown when:** An in-place update or hard delete would change an exact
-primary, relationship, secondary, supporting, or LinkById dependency frozen
-in a release-track snapshot graph. Full-lineage and collection
+**Thrown when:** A hard delete would remove an exact primary, relationship,
+secondary, supporting, or LinkById dependency referenced by an opt-in
+release-track snapshot graph. Full-lineage and collection
 `deleteAllContents` operations are preflighted against the same invariant.
 
 **HTTP Status:** 409 Conflict
@@ -76,9 +78,8 @@ in a release-track snapshot graph. Full-lineage and collection
 The response includes `snapshot_graph_pins` entries identifying the track,
 snapshot timestamp, manifest entry kind, and tier where applicable. Create a
 new STIX revision instead. Administrator authorization is not a force-delete
-override. Description-only relationship corrections remain allowed because
-the older relationship payload is frozen inside each existing manifest;
-source, target, and relationship-type changes return 400.
+override. STIX-changing PUTs are rejected globally by
+`ImmutableStixRevisionError`; schema-v2 relationships have no exemption.
 
 ### NotFoundError
 

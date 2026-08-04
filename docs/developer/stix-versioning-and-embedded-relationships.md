@@ -8,7 +8,9 @@ This document explains how STIX versioning works in the ATT&CK Workbench REST AP
 
 ## STIX Versioning: POST vs PUT
 
-The ATT&CK Workbench implements STIX 2.1 versioning semantics with two distinct update mechanisms:
+The ATT&CK Workbench implements STIX 2.1 versioning semantics with immutable
+persisted revisions. POST creates STIX content; PUT is limited to non-exported
+workspace metadata.
 
 ### POST - Creating New Versions (Versioned History)
 
@@ -61,68 +63,37 @@ POST /api/data-components
 
 ---
 
-### PUT - Editing Existing Snapshots (In-Place Modification)
+### PUT - Updating Workspace Metadata
 
 **Endpoint:** `PUT /api/{type}/{id}/modified/{modified}`
 
 **Behavior:**
-- **Updates an existing Mongoose document** in-place
-- Targets a specific version by `stix.id` AND `stix.modified`
-- Uses `_.merge()` to apply changes to the document
-- Increments Mongoose `__v` field (optimistic locking counter)
-- No new document created - modifies the snapshot directly
+- Targets a specific revision by `stix.id` and `stix.modified`
+- Allows changes only to non-exported `workspace` metadata
+- Returns `409 Conflict` if the resulting `stix` differs from the persisted
+  revision
+- Does not emit a STIX updated event or create a release-track snapshot
 
 **Example:**
 ```javascript
-// Update the 2024-01-01 version in-place
+// Update review metadata without changing the STIX revision
 PUT /api/data-components/x-mitre-data-component--123/modified/2024-01-01T00:00:00.000Z
 {
-  stix: {
-    description: "Updated description"
+  workspace: {
+    workflow: { "state": "reviewed" }
   }
 }
 ```
 
-**Result:** The existing document is modified:
-- Same `_id` in MongoDB
-- Same `stix.modified` timestamp
-- `__v` incremented from 0 to 1
-- Content updated via `_.merge(document, data)`
+To correct a description, name, relationship endpoint, or any other STIX field,
+POST a complete new revision with the same `stix.id` and a later
+`stix.modified` timestamp.
 
-**Use Case:**
-- **Rarely used** in practice
-- Useful for fixing typos in historical snapshots
-- Administrative corrections without creating new versions
+**Use Case:** review and other workspace-only state that is not exported.
 
 **Lifecycle Hooks Triggered:**
 - `beforeUpdate`
 - `afterUpdate`
-- `emitUpdatedEvent`
-
-**Important Note on `_.merge()` Behavior:**
-- Lodash `_.merge()` performs a **deep merge**
-- Properties present in the target but **omitted** from the source are **NOT deleted**
-- To remove a property, you must **explicitly set it to `null`**
-
-```javascript
-// This does NOT remove x_mitre_data_source_ref:
-PUT /api/data-components/{id}/modified/{modified}
-{
-  stix: {
-    name: "New Name"
-    // x_mitre_data_source_ref omitted
-  }
-}
-
-// This DOES remove x_mitre_data_source_ref:
-PUT /api/data-components/{id}/modified/{modified}
-{
-  stix: {
-    name: "New Name",
-    x_mitre_data_source_ref: null  // Explicitly set to null
-  }
-}
-```
 
 ---
 
@@ -184,7 +155,7 @@ Embedded relationships are stored **directly on the STIX documents** under `work
 - ❌ `name` - NOT stored (mutable, must be fetched on read)
 
 **Why Not Store Names:**
-- Names are **mutable** - users can change them via PUT/POST operations
+- Names change by creating a new POST revision
 - Storing them would create **data staleness** issues
 - Would require **event propagation** to keep in sync across all references
 - MongoDB warns against **unbounded arrays** with duplicated mutable data
@@ -550,10 +521,10 @@ Only create DS1 snapshots when its `embedded_relationships` actually change.
    - Enables rollback
    - Triggers correct lifecycle hooks
 
-2. **Use PUT sparingly**
-   - Only for administrative corrections
-   - Be aware of `_.merge()` behavior
-   - Explicitly set fields to `null` to remove them
+2. **Use PUT only for workspace metadata**
+   - STIX-changing requests return `409 Conflict`
+   - POST corrections as new revisions
+   - Treat the selected `stix.id` plus `stix.modified` as immutable
 
 3. **Query latest versions by default**
    - `GET /api/data-components/{id}?versions=latest`
@@ -565,9 +536,10 @@ Only create DS1 snapshots when its `embedded_relationships` actually change.
 
 ### For Service Developers
 
-1. **Implement both lifecycle hooks**
+1. **Implement the applicable lifecycle hooks**
    - `beforeCreate` / `afterCreate` for POST operations (versioning)
-   - `beforeUpdate` / `afterUpdate` for PUT operations (in-place edits)
+   - `beforeUpdate` / `afterUpdate` only for workspace-metadata PUT behavior;
+     metadata PUTs do not emit STIX updated events
 
 2. **Detect version changes in `beforeCreate`**
    - Fetch previous latest version

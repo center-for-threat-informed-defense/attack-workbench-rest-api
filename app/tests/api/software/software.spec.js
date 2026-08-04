@@ -212,22 +212,18 @@ describe('Software API', function () {
     );
   });
 
-  it('PUT /api/software updates a software', async function () {
-    software1.stix.description = 'This is an updated software.';
-    const body = software1;
+  it('PUT /api/software rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(software1);
+    body.stix.description = 'This is an updated software.';
     const res = await request(app)
       .put('/api/software/' + software1.stix.id + '/modified/' + software1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated software
-    const software = res.body;
-    expect(software).toBeDefined();
-    expect(software.stix.id).toBe(software1.stix.id);
-    expect(software.stix.modified).toBe(software1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/software does not create a software with the same id and modified date', async function () {

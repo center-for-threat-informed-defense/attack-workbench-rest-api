@@ -201,7 +201,7 @@ paths:
         '404':
           description: 'A tactic with the requested STIX id was not found.'
         '409':
-          description: 'The version is pinned by release-track membership or a snapshot graph manifest and cannot be modified or deleted in place. Create a new revision instead.'
+          description: 'STIX-changing PUTs conflict with revision immutability. Deletes conflict when the revision is pinned by release-track membership or an opt-in snapshot graph. Create a new revision instead.'
 
   /api/software/{stixId}/modified/{modified}:
     get:
@@ -237,7 +237,7 @@ paths:
       summary: 'Update a software object'
       operationId: 'software-update'
       description: |
-        This endpoint updates a single version of a software object in the workspace, identified by its STIX id and modified date.
+        This endpoint updates non-exported workspace metadata for one persisted STIX revision, identified by its STIX id and modified date. STIX content is immutable; create corrections as new POST revisions.
       tags:
         - 'Software'
       parameters:
@@ -272,7 +272,7 @@ paths:
         '404':
           description: 'A software object with the requested STIX id and modified date was not found.'
         '409':
-          description: 'The version is pinned by release-track membership or a snapshot graph manifest and cannot be modified or deleted in place. Create a new revision instead.'
+          description: 'STIX-changing PUTs conflict with revision immutability. Deletes conflict when the revision is pinned by release-track membership or an opt-in snapshot graph. Create a new revision instead.'
     delete:
       summary: 'Delete a software object'
       operationId: 'software-delete'
@@ -300,7 +300,7 @@ paths:
         '404':
           description: 'A software object with the requested STIX id and modified date was not found.'
         '409':
-          description: 'The version is pinned by release-track membership or a snapshot graph manifest and cannot be modified or deleted in place. Create a new revision instead.'
+          description: 'STIX-changing PUTs conflict with revision immutability. Deletes conflict when the revision is pinned by release-track membership or an opt-in snapshot graph. Create a new revision instead.'
 
   /api/software/{stixId}/revoke:
     post:

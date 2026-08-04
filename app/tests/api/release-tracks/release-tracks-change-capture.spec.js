@@ -30,17 +30,16 @@ function buildTechnique(name) {
       object_marking_refs: [staticMarkingDefinitionId],
       kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'persistence' }],
       x_mitre_is_subtechnique: false,
+      x_mitre_domains: ['enterprise-attack'],
       x_mitre_platforms: ['Windows'],
+      x_mitre_version: '1.0',
     },
   };
 }
 
-// Release tracks must never be blind to in-place mutations:
-//   - PUT/DELETE of a members-pinned revision is rejected (409) — released
-//     content is immutable in place; changes go through a new revision.
-//   - PUT of a candidate/staged-pinned revision resets the tier entry for
-//     re-review (staged entries demote back to candidates).
-//   - Revoking a tracked object enrolls/re-pins the revoked revision.
+// Persisted STIX revisions are immutable regardless of tier. Workspace-only
+// PUT remains available and must not masquerade as a content revision.
+// Revoking a tracked object still creates and enrolls a new revision.
 describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
   let app;
   let passportCookie;
@@ -136,7 +135,7 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
         technique,
         buildUpdateBody(technique, 'Capture Member (edited)'),
       ).expect(409);
-      expect(res.text).toContain('members tier');
+      expect(res.text).toContain('Persisted STIX revisions are immutable');
 
       const retrieved = await getTechniqueVersion(technique.stix.id, technique.stix.modified);
       expect(retrieved.stix.name).toBe('Capture Member');
@@ -179,8 +178,8 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
     });
   });
 
-  describe('in-place edits of candidate/staged-pinned revisions', function () {
-    it('marks a reviewed candidate entry modified-in-place on in-place PUT', async function () {
+  describe('candidate/staged revision immutability', function () {
+    it('rejects a candidate STIX edit without changing its pin or review status', async function () {
       const technique = await postObject('/api/techniques', buildTechnique('Capture Candidate'));
       const trackId = await createTrack('Capture Candidate Track');
       await addCandidate(trackId, technique);
@@ -190,137 +189,25 @@ describe('Release Track Change Capture (PUT/DELETE/revoke) API', function () {
         200,
       );
 
-      const res = await putTechnique(
+      await putTechnique(
         technique,
         buildUpdateBody(technique, 'Capture Candidate (edited)'),
-      ).expect(200);
-
-      // The PUT response reflects the marker (read-your-own-writes)
-      expect(entryForTrack(res.body, trackId)).toEqual({
-        id: trackId,
-        type: 'standard',
-        tier: 'candidates',
-        status: 'modified-in-place',
-      });
+      ).expect(409);
 
       const { candidates } = await getJson(`/api/release-tracks/${trackId}/candidates`);
       expect(candidates).toHaveLength(1);
-      expect(candidates[0].object_status).toBe('modified-in-place');
-      expect(candidates[0].object_modified).toBe('latest');
-
-      // The marker is reviewable: modified-in-place → awaiting-review
-      await postObject(
-        `/api/release-tracks/${trackId}/candidates/review`,
-        { from: 'modified-in-place', to: 'awaiting-review' },
-        200,
-      );
-      const after = await getJson(`/api/release-tracks/${trackId}/candidates`);
-      expect(after.candidates[0].object_status).toBe('awaiting-review');
+      expect(candidates[0].object_status).toBe('awaiting-review');
+      expect(new Date(candidates[0].object_modified).toISOString()).toBe(technique.stix.modified);
     });
 
-    it('demotes a staged entry back to candidates on in-place PUT', async function () {
-      const technique = await postObject('/api/techniques', buildTechnique('Capture Staged'));
-      const trackId = await createTrack('Capture Staged Track');
+    it('allows workspace-only PUT without cloning the rolling draft', async function () {
+      const technique = await postObject('/api/techniques', buildTechnique('Capture Workspace'));
+      const trackId = await createTrack('Capture Workspace Track');
       await addCandidate(trackId, technique);
-      await postObject(
-        `/api/release-tracks/${trackId}/candidates/promote`,
-        { object_refs: [technique.stix.id] },
-        200,
-      );
-
-      const res = await putTechnique(
-        technique,
-        buildUpdateBody(technique, 'Capture Staged (edited)'),
-      ).expect(200);
-
-      expect(entryForTrack(res.body, trackId)).toEqual({
-        id: trackId,
-        type: 'standard',
-        tier: 'candidates',
-        status: 'modified-in-place',
-      });
-
-      const snapshot = await getJson(`/api/release-tracks/${trackId}/snapshots/latest`);
-      expect(snapshot.staged).toHaveLength(0);
-      expect(snapshot.candidates).toHaveLength(1);
-    });
-
-    it('keeps a staged entry staged in a permissive track (candidacy threshold codified)', async function () {
-      const technique = await postObject('/api/techniques', buildTechnique('Capture Permissive'));
-      const trackId = await createTrack('Capture Permissive Track');
-      await request(app)
-        .put(`/api/release-tracks/${trackId}/config`)
-        .send({ candidacy_threshold: 'work-in-progress', auto_promote: true })
-        .set('Accept', 'application/json')
-        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-        .expect(200);
-
-      // In a permissive track the fresh candidate auto-promotes immediately
-      await addCandidate(trackId, technique);
-      let snapshot = await getJson(`/api/release-tracks/${trackId}/snapshots/latest`);
-      expect(snapshot.staged).toHaveLength(1);
-
-      // An in-place edit is marked, but the tier is decided by the workflow
-      // gate: modified-in-place meets the work-in-progress threshold, so the
-      // entry stays staged instead of being demoted
-      const res = await putTechnique(
-        technique,
-        buildUpdateBody(technique, 'Capture Permissive (edited)'),
-      ).expect(200);
-
-      expect(entryForTrack(res.body, trackId)).toEqual({
-        id: trackId,
-        type: 'standard',
-        tier: 'staged',
-        status: 'modified-in-place',
-      });
-      snapshot = await getJson(`/api/release-tracks/${trackId}/snapshots/latest`);
-      expect(snapshot.staged).toHaveLength(1);
-      expect(snapshot.staged[0].object_status).toBe('modified-in-place');
-      expect(snapshot.candidates).toHaveLength(0);
-    });
-
-    it('captures in-place deprecation of a reviewed candidate', async function () {
-      const technique = await postObject('/api/techniques', buildTechnique('Capture Deprecate'));
-      const trackId = await createTrack('Capture Deprecate Track');
-      await addCandidate(trackId, technique);
-      await postObject(
-        `/api/release-tracks/${trackId}/candidates/review`,
-        { from: 'work-in-progress', to: 'awaiting-review' },
-        200,
-      );
-
-      const update = buildUpdateBody(technique, 'Capture Deprecate');
-      update.stix.x_mitre_deprecated = true;
-      const res = await putTechnique(technique, update).expect(200);
-
-      expect(res.body.stix.x_mitre_deprecated).toBe(true);
-      // The track saw the deprecation: the entry is marked for re-review
-      expect(entryForTrack(res.body, trackId)).toEqual({
-        id: trackId,
-        type: 'standard',
-        tier: 'candidates',
-        status: 'modified-in-place',
-      });
-    });
-
-    it('does not clone a snapshot when a repeat in-place PUT changes nothing track-visible', async function () {
-      const technique = await postObject('/api/techniques', buildTechnique('Capture Noop'));
-      const trackId = await createTrack('Capture Noop Track');
-      await addCandidate(trackId, technique);
-
-      // First in-place PUT marks the entry modified-in-place (new snapshot)
-      await putTechnique(technique, buildUpdateBody(technique, 'Capture Noop (edited)')).expect(
-        200,
-      );
       const before = await latestSnapshotModified(trackId);
-
-      // Second in-place PUT: the entry is already modified-in-place in the
-      // same tier — no new snapshot should be created
-      await putTechnique(
-        technique,
-        buildUpdateBody(technique, 'Capture Noop (edited again)'),
-      ).expect(200);
+      const workspaceUpdate = JSON.parse(JSON.stringify(technique));
+      workspaceUpdate.workspace.workflow.state = 'awaiting-review';
+      await putTechnique(technique, workspaceUpdate).expect(200);
 
       const after = await latestSnapshotModified(trackId);
       expect(after).toBe(before);

@@ -35,6 +35,7 @@ class BundleGraphResolver {
     options,
     relationships,
     onMissingDependency,
+    prefetchedDocuments = [],
   }) {
     this.attackObjectsRepository = attackObjectsRepository;
     this.detectionStrategiesRepository = detectionStrategiesRepository;
@@ -46,6 +47,12 @@ class BundleGraphResolver {
     this.onMissingDependency = onMissingDependency;
 
     this.attackObjectCache = new Map();
+    for (const document of prefetchedDocuments) {
+      this.attackObjectCache.set(
+        this.revisionKey(document.stix.id, document.stix.modified),
+        _.cloneDeep(document),
+      );
+    }
     this.attackObjectByAttackIdCache = new Map();
     this.domainCache = new Map();
     this.dependencies = new Map();

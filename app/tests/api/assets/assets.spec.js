@@ -193,22 +193,18 @@ describe('Assets API', function () {
     expect(asset.stix.x_mitre_related_assets.length).toBe(2);
   });
 
-  it('PUT /api/assets updates an asset', async function () {
-    asset1.stix.description = 'This is an updated asset.';
-    const body = asset1;
+  it('PUT /api/assets rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(asset1);
+    body.stix.description = 'This is an updated asset.';
     const res = await request(app)
       .put('/api/assets/' + asset1.stix.id + '/modified/' + asset1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated asset
-    const asset = res.body;
-    expect(asset).toBeDefined();
-    expect(asset.stix.id).toBe(asset1.stix.id);
-    expect(asset.stix.modified).toBe(asset1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/assets does not create an asset with the same id and modified date', async function () {

@@ -946,7 +946,10 @@ paths:
         ordered by modified timestamp from newest to oldest. Standard snapshot
         summaries contain members, staged, and candidates counts. Virtual
         snapshot summaries contain members and quarantine counts, plus
-        scheduled_materialization when present.
+        scheduled_materialization when present. Tagged summaries also expose
+        graph_manifest_id when their deterministic member graph has been
+        materialized, together with graph_statistics counts for primary,
+        secondary, relationship, supporting, and LinkById entries.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1255,6 +1258,69 @@ paths:
             application/json:
               schema:
                 $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
+
+  /api/release-tracks/{id}/snapshots/{modified}/graph:
+    post:
+      summary: 'Make a tagged snapshot member graph deterministic'
+      operationId: 'release-tracks-snapshot-graph-create'
+      description: |
+        Resolve the tagged snapshot's members into a deterministic graph and
+        persist exact-revision pointers for its primary objects,
+        relationships, and secondary objects. The referenced revisions are
+        write-protected until the graph is deleted. Draft snapshots cannot
+        have persisted graphs. Repeating this operation for a snapshot that
+        already has a graph is idempotent and returns the existing snapshot.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'The tagged snapshot already had a deterministic graph'
+        '201':
+          description: 'Deterministic member graph created successfully'
+        '404':
+          description: 'Snapshot not found'
+        '409':
+          description: 'The snapshot is untagged, changed concurrently, or references missing revisions'
+
+    delete:
+      summary: 'Remove a tagged snapshot deterministic graph'
+      operationId: 'release-tracks-snapshot-graph-delete'
+      description: |
+        Remove the opt-in deterministic member graph and release its
+        exact-revision deletion protections. Subsequent exports resolve the live
+        graph. This operation is idempotent when no graph exists. Draft
+        snapshots cannot have persisted graphs.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'Deterministic member graph absent after the request'
+        '404':
+          description: 'Snapshot not found'
+        '409':
+          description: 'The snapshot is untagged or its graph changed concurrently'
 
   /api/release-tracks/{id}/snapshots/{modified}/release:
     post:

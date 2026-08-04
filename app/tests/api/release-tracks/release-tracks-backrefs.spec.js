@@ -301,6 +301,11 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
     it('deleting the latest draft reverts its candidate backrefs', async function () {
       const technique = await postObject('/api/techniques', buildTechnique('Backref Contents'));
       const trackId = await createTrack('Backref Contents Track');
+      await postObject(
+        `/api/release-tracks/${trackId}/snapshots/latest/release`,
+        { version: '1.0' },
+        200,
+      );
 
       const candidateSnapshot = await addCandidates(trackId, [technique]);
 
@@ -312,8 +317,8 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         status: 'work-in-progress',
       });
 
-      // Deleting the latest snapshot reverts contents to the previous
-      // (empty) snapshot — the backref disappears
+      // Deleting the latest rolling draft reverts contents to the preceding
+      // empty tagged snapshot — the backref disappears.
       await request(app)
         .delete(`/api/release-tracks/${trackId}/snapshots/${candidateSnapshot.modified}`)
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
@@ -688,10 +693,7 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
       const trackId = await createTrack('Backref Injection Track');
       await addCandidates(trackId, [technique]);
 
-      const update = buildTechnique('Backref Injection Put (updated)');
-      update.stix.id = technique.stix.id;
-      update.stix.created = technique.stix.created;
-      update.stix.modified = technique.stix.modified;
+      const update = JSON.parse(JSON.stringify(technique));
       update.workspace.release_tracks = [
         { id: 'release-track--00000000-0000-4000-8000-000000000000', tier: 'members' },
       ];
@@ -703,14 +705,13 @@ describe('Release Track Backrefs (workspace.release_tracks) API', function () {
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200);
 
-      // The in-place PUT is captured by revision sync: the entry keeps its
-      // pin but is marked modified-in-place; the fake client-supplied entry
-      // is discarded
+      // Workspace-only PUT retains the real server-managed entry and discards
+      // the fake client-supplied one without creating a content revision.
       expect(entryForTrack(res.body, trackId)).toEqual({
         id: trackId,
         type: 'standard',
         tier: 'candidates',
-        status: 'modified-in-place',
+        status: 'work-in-progress',
       });
       expect(trackEntries(res.body)).toHaveLength(1);
     });

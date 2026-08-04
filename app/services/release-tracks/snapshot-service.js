@@ -27,6 +27,7 @@ const {
   NotFoundError,
   TaggedSnapshotDeletionError,
   HistoricalSnapshotDeletionError,
+  ReleaseConflictError,
 } = require('../../exceptions');
 
 // =============================================================================
@@ -104,38 +105,6 @@ async function emitContentsChanged(trackId, snapshot) {
 }
 exports.emitContentsChanged = emitContentsChanged;
 
-/**
- * Persist a snapshot and its graph manifest as one logical operation.
- *
- * Mongo transactions are not available across the dynamically named snapshot
- * collections in every supported deployment. A pending manifest plus
- * compensation keeps partially completed writes invisible to replay and
- * protection queries.
- */
-async function saveSnapshotWithManifest(trackId, snapshotData) {
-  const manifestId = await graphManifestService.prepare(snapshotData);
-  snapshotData.graph_manifest_id = manifestId;
-
-  try {
-    const saved = await dynamicRepo.saveSnapshot(trackId, snapshotData);
-    try {
-      await graphManifestService.activate(manifestId);
-    } catch (err) {
-      // The saved snapshot is already linked to a complete pending manifest.
-      // Replay can safely activate it later, so do not turn a committed
-      // snapshot into an ambiguous client-visible failure.
-      logger.warn(
-        `SnapshotService: Deferred activation for graph manifest "${manifestId}": ${err.message}`,
-      );
-    }
-    return saved;
-  } catch (err) {
-    await graphManifestService.discard(manifestId);
-    throw err;
-  }
-}
-exports.saveSnapshotWithManifest = saveSnapshotWithManifest;
-
 // =============================================================================
 // Track management
 // =============================================================================
@@ -198,7 +167,7 @@ exports.createTrack = async function createTrack(data) {
 
   // Create collection + indexes, then persist the initial snapshot
   await modelFactory.ensureIndexes(trackId);
-  const snapshot = await saveSnapshotWithManifest(trackId, initialSnapshot);
+  const snapshot = await dynamicRepo.saveSnapshot(trackId, initialSnapshot);
 
   // Register in the central registry
   await registryRepo.create({
@@ -226,7 +195,8 @@ exports.createTrack = async function createTrack(data) {
  * List lightweight summaries of a track's snapshots.
  *
  * Standard summaries expose members/staged/candidates counts. Virtual
- * summaries expose members/quarantine counts.
+ * summaries expose members/quarantine counts. Summaries linked to a graph
+ * manifest also expose counts by manifest entry role.
  *
  * @param {string} trackId
  * @param {Object} options - { tagged?, limit, offset }
@@ -240,6 +210,9 @@ exports.listSnapshots = async function listSnapshots(trackId, options) {
   }
 
   const result = await dynamicRepo.getSnapshotSummaries(trackId, options);
+  const graphStatisticsByManifestId = await graphManifestService.getStatisticsByManifestIds(
+    result.data.map((snapshot) => snapshot.graph_manifest_id),
+  );
   return {
     ...result,
     data: result.data.map((snapshot) => {
@@ -248,6 +221,10 @@ exports.listSnapshots = async function listSnapshots(trackId, options) {
         type: snapshot.type,
         modified: snapshot.modified,
         version: snapshot.version,
+        graph_manifest_id: snapshot.graph_manifest_id,
+        graph_statistics: snapshot.graph_manifest_id
+          ? graphStatisticsByManifestId.get(snapshot.graph_manifest_id)
+          : undefined,
         name: snapshot.name,
         description: snapshot.description,
         members_count: snapshot.members_count,
@@ -339,7 +316,15 @@ exports.cloneSnapshot = async function cloneSnapshot(trackId, sourceSnapshot, ov
   }
 
   const normalized = tierRevisionInvariant.normalizeSnapshot(clone);
-  const saved = await saveSnapshotWithManifest(trackId, normalized.snapshot);
+  const saved = await dynamicRepo.saveSnapshot(trackId, normalized.snapshot);
+  if (saved.type === 'standard') {
+    const prunedDrafts = await dynamicRepo.deleteOlderDrafts(trackId, saved.modified);
+    await Promise.all(
+      prunedDrafts
+        .filter((snapshot) => snapshot.graph_manifest_id)
+        .map((snapshot) => graphManifestService.discard(snapshot.graph_manifest_id)),
+    );
+  }
   await syncRegistryCounters(trackId);
 
   // The clone (modified = now) is the track's new latest snapshot
@@ -408,7 +393,7 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
   );
 
   await modelFactory.ensureIndexes(newTrackId);
-  const saved = await saveSnapshotWithManifest(newTrackId, normalized.snapshot);
+  const saved = await dynamicRepo.saveSnapshot(newTrackId, normalized.snapshot);
 
   await registryRepo.create({
     track_id: newTrackId,
@@ -529,6 +514,84 @@ exports.updateConfig = async function updateConfig(trackId, config, _userId) {
 };
 
 // =============================================================================
+// Optional deterministic member graphs
+// =============================================================================
+
+async function createGraph(trackId, modified, prepareManifest, validateExisting) {
+  const snapshot = await dynamicRepo.getSnapshotByModified(trackId, modified);
+  if (!snapshot) {
+    throw new NotFoundError({
+      details: `Snapshot with modified '${modified}' not found for track '${trackId}'`,
+    });
+  }
+  if (snapshot.version == null) {
+    throw new ReleaseConflictError('Only tagged snapshots can be made deterministic', {
+      track_id: trackId,
+      snapshot_modified: new Date(snapshot.modified).toISOString(),
+    });
+  }
+  if (snapshot.graph_manifest_id) {
+    if (validateExisting) await validateExisting(snapshot);
+    return { snapshot, created: false };
+  }
+
+  const manifestId = await prepareManifest(snapshot);
+  const attached = await dynamicRepo.attachGraphManifest(trackId, snapshot.modified, manifestId);
+  if (!attached) {
+    await graphManifestService.discard(manifestId);
+    const current = await dynamicRepo.getSnapshotByModified(trackId, modified);
+    if (current?.graph_manifest_id) return { snapshot: current, created: false };
+    throw new ReleaseConflictError('Snapshot changed while its graph was being created', {
+      track_id: trackId,
+      snapshot_modified: new Date(snapshot.modified).toISOString(),
+    });
+  }
+
+  try {
+    await graphManifestService.activate(manifestId);
+  } catch (err) {
+    logger.warn(
+      `SnapshotService: Deferred activation for graph manifest "${manifestId}": ${err.message}`,
+    );
+  }
+  return { snapshot: attached, created: true };
+}
+
+exports.createGraph = function createLiveGraph(trackId, modified) {
+  return createGraph(trackId, modified, (snapshot) => graphManifestService.prepare(snapshot));
+};
+
+exports.deleteGraph = async function deleteGraph(trackId, modified) {
+  const snapshot = await dynamicRepo.getSnapshotByModified(trackId, modified);
+  if (!snapshot) {
+    throw new NotFoundError({
+      details: `Snapshot with modified '${modified}' not found for track '${trackId}'`,
+    });
+  }
+  if (snapshot.version == null) {
+    throw new ReleaseConflictError('Only tagged snapshots can have deterministic graphs', {
+      track_id: trackId,
+      snapshot_modified: new Date(snapshot.modified).toISOString(),
+    });
+  }
+  if (!snapshot.graph_manifest_id) return false;
+
+  const detached = await dynamicRepo.detachGraphManifest(
+    trackId,
+    snapshot.modified,
+    snapshot.graph_manifest_id,
+  );
+  if (!detached) {
+    throw new ReleaseConflictError('Snapshot graph changed while it was being deleted', {
+      track_id: trackId,
+      snapshot_modified: new Date(snapshot.modified).toISOString(),
+    });
+  }
+  await graphManifestService.discard(snapshot.graph_manifest_id);
+  return true;
+};
+
+// =============================================================================
 // Deletion
 // =============================================================================
 
@@ -582,6 +645,14 @@ exports.deleteSnapshot = async function deleteSnapshot(trackId, modified) {
   const latest = await dynamicRepo.getLatestSnapshot(trackId);
   if (!latest || new Date(latest.modified).getTime() !== new Date(snapshot.modified).getTime()) {
     throw new HistoricalSnapshotDeletionError(snapshot.modified, latest?.modified);
+  }
+
+  const predecessor = await dynamicRepo.getLatestSnapshotBefore(trackId, snapshot.modified);
+  if (!predecessor) {
+    throw new ReleaseConflictError('The only snapshot in a release track cannot be deleted', {
+      track_id: trackId,
+      snapshot_modified: new Date(snapshot.modified).toISOString(),
+    });
   }
 
   await dynamicRepo.deleteSnapshot(trackId, modified);

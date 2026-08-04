@@ -445,13 +445,15 @@ copies the exact member revisions from the selected tagged component
 snapshots, and later component activity cannot change the persisted virtual
 snapshot.
 
-Each snapshot also references an internal, tier-aware graph manifest. It
-freezes the exact relationship endpoint revisions, bounded secondary objects,
-supporting objects, and LinkById render targets needed by `format=bundle`.
-Tagged standard snapshots, materialized virtual snapshots, and draft tiers
-that use exact selectors therefore replay the same graph. A standard draft
-tier explicitly stored as `"latest"` remains intentionally dynamic until the
-release boundary.
+A tagged snapshot may optionally reference an internal schema-v2 member graph
+manifest. `POST /api/release-tracks/:id/snapshots/:modified/graph` resolves the
+bounded graph from `members` and stores exact-revision pointers for primary,
+relationship, secondary, versioned supporting, and LinkById objects. Only
+unversioned supporting objects such as marking definitions retain a frozen
+payload. Drafts are always graphless. A tagged snapshot without a manifest is
+exportable, but graph relationships and secondary objects are resolved live.
+Exports that include `candidates` or `staged` are also live even when the
+tagged snapshot has a member manifest.
 
 The three valid `snapshot_schedule` shapes are:
 

@@ -262,9 +262,9 @@ describe('Detection Strategies API', function () {
     );
   });
 
-  it('PUT /api/detection-strategies updates a detection strategy', async function () {
-    detectionStrategy1.stix.name = 'This is an updated detection strategy.';
-    const body = detectionStrategy1;
+  it('PUT /api/detection-strategies rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(detectionStrategy1);
+    body.stix.name = 'This is an updated detection strategy.';
     const res = await request(app)
       .put(
         '/api/detection-strategies/' +
@@ -275,14 +275,10 @@ describe('Detection Strategies API', function () {
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated detection strategy
-    const detectionStrategy = res.body;
-    expect(detectionStrategy).toBeDefined();
-    expect(detectionStrategy.stix.id).toBe(detectionStrategy1.stix.id);
-    expect(detectionStrategy.stix.modified).toBe(detectionStrategy1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/detection-strategies does not create a detection strategy with the same id and modified date', async function () {

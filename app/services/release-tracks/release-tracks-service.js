@@ -353,6 +353,14 @@ exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
   return snapshotService.deleteSnapshot(trackId, modified);
 };
 
+exports.createSnapshotGraph = function createSnapshotGraph(trackId, modified) {
+  return snapshotService.createGraph(trackId, modified);
+};
+
+exports.deleteSnapshotGraph = function deleteSnapshotGraph(trackId, modified) {
+  return snapshotService.deleteGraph(trackId, modified);
+};
+
 // -----------------------------------------------------------------------------
 // Ephemeral  (Phase 6 → ephemeral-service)
 // -----------------------------------------------------------------------------
@@ -423,10 +431,9 @@ async function renderReleasePlan(plan, options) {
   if (format === 'bundle') {
     return exportService.exportSnapshot(plan.plannedSnapshot, format, {
       ...options,
-      // A virtual release does not alter its members. Replaying the draft's
-      // persisted graph keeps preview output identical to the graph that will
-      // be tagged instead of resolving current database state a second time.
-      captureGraph: plan.sourceSnapshot.type !== 'virtual',
+      // Release previews are intentionally live. Determinism begins only if a
+      // caller explicitly creates a graph after the snapshot is tagged.
+      captureGraph: true,
     });
   }
   return formatWorkbenchSnapshot(plan.plannedSnapshot, options);

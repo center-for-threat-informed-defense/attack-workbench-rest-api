@@ -94,10 +94,12 @@ could each clone a stale snapshot and lose one candidate update.
 
 Before changing data, the migration resolves the complete candidate set from
 persisted canonical collection provenance. A latest domainless target object
-without recognized provenance defaults to `["enterprise-attack"]` so legacy
-or custom content does not block startup. Each fallback is identified as
-`domain_source: "enterprise-default"` in its automation item and counted by
-the run's `enterprise_defaults` counter.
+without recognized provenance is left unchanged; lack of a TOC match cannot
+justify Enterprise membership. The run records a bounded warning sample and
+an `unmapped_skipped` count. Persisted domain-validation bypasses remain while
+any such object exists, so startup can complete without enforcing an
+unsatisfied contract. Failures while repairing mapped objects still fail the
+migration.
 
 The migration deletes database copies of retired `x_mitre_domains` bypass
 rules only after every target object has been repaired. Removing the rules
@@ -229,11 +231,11 @@ a standard component track.
 
 Snapshot retrieval never re-runs composition, so there is no `resolve` query
 parameter or `resolved_content` response wrapper. Workbench retrieval returns
-the persisted primary membership. Bundle export replays a graph manifest
-captured with the snapshot. Relationship revisions carry server-controlled
-exact endpoint pins in `workspace.relationship_endpoints`, and the manifest
-freezes the bounded secondary/supporting graph without emitting those internal
-fields in STIX output.
+the persisted primary membership. Bundle export replays a graph only after a
+tagged snapshot explicitly opts in; otherwise it resolves the current bounded
+graph. Relationship revisions carry server-controlled exact endpoint pins in
+`workspace.relationship_endpoints`, and schema-v2 manifests reference those
+exact revisions without emitting the internal fields in STIX output.
 
 Snapshot schedules use the same strict, mode-discriminated Zod schema at the
 controller and service boundaries. `manual` has no selector field, `cron`
@@ -360,6 +362,14 @@ This omits structurally inapplicable counts instead of making a zero value
 ambiguous. An omitted `tagged` parameter adds no version predicate;
 `tagged=true` matches string versions and `tagged=false` matches null draft
 versions.
+
+For summaries with `graph_manifest_id`, the snapshot service collects all
+manifest IDs from the paginated result and performs one aggregation against
+`releaseTrackGraphManifestEntries`, grouped by `manifest_id` and `kind`. The
+existing `{ manifest_id: 1, kind: 1, tier: 1 }` index supports the match. The
+service fills zero-valued categories for empty graphs and attaches
+`graph_statistics` only to cached snapshots. This keeps history latency to one
+additional bounded query rather than one query per snapshot.
 
 ## Integrating with the Event-Driven Architecture
 

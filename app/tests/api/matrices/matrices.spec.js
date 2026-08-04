@@ -171,23 +171,19 @@ describe('Matrices API', function () {
     expect(matrix.stix.x_mitre_attack_spec_version).toBe(matrix1.stix.x_mitre_attack_spec_version);
   });
 
-  it('PUT /api/matrices updates a matrix', async function () {
-    matrix1.stix.description = 'This is an updated matrix.';
-    const body = matrix1;
+  it('PUT /api/matrices rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(matrix1);
+    body.stix.description = 'This is an updated matrix.';
 
     const res = await request(app)
       .put('/api/matrices/' + matrix1.stix.id + '/modified/' + matrix1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated matrix
-    const matrix = res.body;
-    expect(matrix).toBeDefined();
-    expect(matrix.stix.id).toBe(matrix1.stix.id);
-    expect(matrix.stix.modified).toBe(matrix1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/matrices does not create a matrix with the same id and modified date', async function () {

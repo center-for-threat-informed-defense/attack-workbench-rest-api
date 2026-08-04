@@ -216,6 +216,15 @@ describe('Deterministic snapshot graph migration', function () {
       .exec();
     expect(manifests.length).toBeGreaterThan(0);
     expect(manifests.every((manifest) => manifest.baseline_reconstruction === true)).toBe(true);
+    expect(manifests.every((manifest) => manifest.schema_version === 1)).toBe(true);
+    const legacyRelationshipEntry = await ReleaseTrackGraphManifestEntry.findOne({
+      manifest_id: { $in: manifests.map((manifest) => manifest.manifest_id) },
+      kind: 'relationship',
+      object_ref: relationship.stix.id,
+    })
+      .lean()
+      .exec();
+    expect(legacyRelationshipEntry.frozen_stix.description).toBe(relationship.stix.description);
     const countAfterFirstRun = manifests.length;
 
     await migration.up(mongoose.connection.db);

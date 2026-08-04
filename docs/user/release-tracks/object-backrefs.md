@@ -29,7 +29,7 @@ scanning tracks.
 | `id` | `release-track--<uuid>` | The referencing release track |
 | `type` | `standard`, `virtual` | The type of the referencing release track |
 | `tier` | `members`, `staged`, `candidates`, `quarantine` | Which tier of the track references this revision; values match the snapshot tier array names |
-| `status` | `modified-in-place`, `work-in-progress`, `awaiting-review`, `reviewed` | Track-scoped workflow status (`modified-in-place` is server-assigned when the pinned revision is edited via an in-place PUT) |
+| `status` | `modified-in-place`, `work-in-progress`, `awaiting-review`, `reviewed` | Track-scoped workflow status (`modified-in-place` is retained for legacy data but is no longer produced because STIX revisions are immutable) |
 
 An object referenced by multiple tracks carries one entry per track.
 
@@ -67,52 +67,33 @@ An object referenced by multiple tracks carries one entry per track.
   `workspace.validation`, the field is maintained by the server. Values
   supplied in `POST`/`PUT` bodies are silently ignored, and updates through
   the standard object endpoints cannot remove or alter existing entries.
-- **Read-your-own-writes.** `POST`/`PUT` responses include backrefs produced
-  by the request's own side effects — e.g. when revision sync re-pins a
-  track to the newly created revision, the response body already carries the
-  resulting `workspace.release_tracks` entry.
+- **Read-your-own-writes.** POST responses include backrefs produced when
+  revision sync re-pins a track to the newly created revision. Metadata-only
+  PUT responses retain the existing server-managed backrefs.
 
 ## In-place edits, deletes, and revocations
 
 Release tracks are never blind to changes in the objects they pin:
 
-- **Released and graph-frozen revisions are immutable in place.** `PUT` and
-  `DELETE` against a revision that any track pins in its `members` tier, or
-  that a snapshot needs as a secondary/supporting graph dependency, return
-  `409 Conflict` — released content cannot be changed or destroyed under the
-  track. Make changes by creating a new revision (`POST`); retire an object
-  by creating a new revision with `x_mitre_deprecated: true`. Revision sync
-  captures either one. This guard checks tagged snapshots authoritatively, not
-  only the current `workspace.release_tracks` value. A revision remains
-  protected when it belongs only to a historical tagged release, when a newer
-  draft has removed it, or when a reconciliation failure temporarily omitted
-  its backref.
-- **Standalone candidate/staged roots remain editable.** Merely appearing in
-  a draft workflow tier does not create a graph-protection conflict, so the
-  existing in-place review workflow below still applies. If that same revision
-  is also a frozen secondary dependency of another selected root, graph
-  protection takes precedence and the edit returns `409`.
-- **Candidate/staged-pinned revisions can be edited in place, but the track
-  sees it.** An in-place `PUT` (including one that only sets
-  `x_mitre_deprecated`) marks the pinned entry `modified-in-place`: the
-  content changed, but because in-place edits carry no revision history the
-  track cannot say *what* changed — only that a re-review is required. The
-  entry's tier is decided by the workflow gate against the track's candidacy
-  threshold: in a strict track (threshold `reviewed`, the default) a staged
-  entry demotes back to `candidates`; in a permissive track (threshold
-  `work-in-progress` with `auto_promote`) the entry stays staged, since
-  `modified-in-place` ranks with `work-in-progress`. `manual`-strategy
-  tracks opt out entirely. Repeat edits of an entry already marked
-  `modified-in-place` do not create additional snapshots. Reviewers clear
-  the marker through the normal review endpoint
-  (`from: "modified-in-place"`).
+- **Every persisted STIX revision is immutable.** A PUT whose `stix` payload
+  differs from the stored revision returns `409 Conflict`, regardless of
+  whether the revision is a member, candidate, staged object, or unrelated to
+  a track. Create corrections and deprecations as new POST revisions. PUT is
+  limited to non-exported `workspace` metadata and does not trigger revision
+  sync.
+- **Graph and membership pins protect deletion.** Exact revisions in tagged
+  membership or an active/pending opt-in graph cannot be hard-deleted. The
+  guard checks authoritative tagged snapshots and graph entries rather than
+  relying only on `workspace.release_tracks`. A revision remains protected
+  even if a derived backref is temporarily absent.
 - **Revoking a tracked object queues the revoked revision.** The revoke
   workflow creates one new revision of the revoked object
   (`revoked: true`); revision sync enrolls it as a candidate in tracks where
   the object is a member and moves candidate/staged pins to it. The revoking
   object and the `revoked-by` relationship are not direct track members.
   Snapshot creation captures them as bounded secondary graph dependencies
-  when applicable; later bundle export replays that frozen graph.
+  when applicable; later member-only bundle export replays its exact revision
+  pointers. Unversioned marking definitions are the frozen-payload exception.
 
 ## Lifecycle example
 

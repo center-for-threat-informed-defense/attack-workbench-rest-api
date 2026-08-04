@@ -266,6 +266,19 @@ router
   );
 
 router
+  .route('/release-tracks/:id/snapshots/:modified/graph')
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.createSnapshotGraph,
+  )
+  .delete(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.deleteSnapshotGraph,
+  );
+
+router
   .route('/release-tracks/:id/snapshots/:modified')
   .get(
     authn.authenticate,

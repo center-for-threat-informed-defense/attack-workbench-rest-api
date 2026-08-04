@@ -325,22 +325,18 @@ describe('Identity API', function () {
     );
   });
 
-  it('PUT /api/identities updates an identity', async function () {
-    identity1.stix.description = 'This is an updated identity.';
-    const body = identity1;
+  it('PUT /api/identities rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(identity1);
+    body.stix.description = 'This is an updated identity.';
     const res = await request(app)
       .put('/api/identities/' + identity1.stix.id + '/modified/' + identity1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated identity
-    const identity = res.body;
-    expect(identity).toBeDefined();
-    expect(identity.stix.id).toBe(identity1.stix.id);
-    expect(identity.stix.modified).toBe(identity1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/identities does not create an identity with the same id and modified date', async function () {

@@ -281,55 +281,30 @@ async function planLoadedSnapshot(trackId, snapshot, options) {
 async function commitPlan(plan) {
   if (plan.blockingError) throw plan.blockingError;
 
-  const reuseVirtualManifest =
-    plan.sourceSnapshot.type === 'virtual' && Boolean(plan.sourceSnapshot.graph_manifest_id);
-  const manifestId = reuseVirtualManifest
-    ? plan.sourceSnapshot.graph_manifest_id
-    : await graphManifestService.prepare(plan.plannedSnapshot);
-
-  let tagged;
-  try {
-    tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, plan.sourceSnapshot.modified, {
-      version: plan.version,
-      versionHistoryEntry: plan.versionHistoryEntry,
-      additionalOps: {
-        ...plan.additionalOps,
-        graph_manifest_id: manifestId,
-      },
-    });
-  } catch (err) {
-    if (!reuseVirtualManifest) {
-      await graphManifestService.discard(manifestId);
-    }
-    throw err;
-  }
+  const obsoleteManifestId = plan.sourceSnapshot.graph_manifest_id;
+  const tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, plan.sourceSnapshot.modified, {
+    version: plan.version,
+    versionHistoryEntry: plan.versionHistoryEntry,
+    additionalOps: plan.additionalOps,
+    // Older deployments attached graphs to drafts. Releasing changes the
+    // member set, so that legacy draft graph cannot describe the release.
+    unsetOps: obsoleteManifestId ? { graph_manifest_id: '' } : undefined,
+  });
 
   if (!tagged) {
-    if (!reuseVirtualManifest) {
-      await graphManifestService.discard(manifestId);
-    }
     await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
     throw new AlreadyReleasedError('(concurrent release)');
   }
 
-  // Link the complete pending manifest before activation. The snapshot link
-  // is the durable commit record, and replay can recover a linked pending
-  // manifest if the process stops in this narrow window.
-  if (!reuseVirtualManifest) {
+  if (obsoleteManifestId) {
     try {
-      await graphManifestService.activate(manifestId);
+      await graphManifestService.discard(obsoleteManifestId);
     } catch (err) {
       logger.warn(
-        `VersioningService: Deferred activation for graph manifest "${manifestId}": ${err.message}`,
+        `VersioningService: Deferred cleanup for obsolete graph manifest ` +
+          `"${obsoleteManifestId}": ${err.message}`,
       );
     }
-  }
-
-  if (
-    plan.sourceSnapshot.graph_manifest_id &&
-    plan.sourceSnapshot.graph_manifest_id !== manifestId
-  ) {
-    await graphManifestService.discard(plan.sourceSnapshot.graph_manifest_id);
   }
 
   await releaseHistoryService.reconcileTaggedReleases(plan.trackId);

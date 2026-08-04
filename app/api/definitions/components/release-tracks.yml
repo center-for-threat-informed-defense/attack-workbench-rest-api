@@ -27,8 +27,9 @@ components:
           type: string
           readOnly: true
           description: |
-            Server-controlled identifier for the frozen bundle graph associated
-            with this snapshot. Clients should treat this value as opaque.
+            Server-controlled identifier for an opt-in deterministic member
+            graph on a tagged snapshot. Absent on drafts and graphless tagged
+            snapshots. Clients should treat this value as opaque.
         name:
           type: string
           pattern: '^[a-zA-Z0-9 &]+$'
@@ -104,6 +105,43 @@ components:
           items:
             $ref: '#/components/schemas/version-history-entry'
 
+    graph-statistics:
+      type: object
+      readOnly: true
+      description: 'Counts of exact revision pointers by role in a materialized snapshot graph'
+      required:
+        - primary_count
+        - secondary_count
+        - relationship_count
+        - supporting_count
+        - link_target_count
+        - total_count
+      properties:
+        primary_count:
+          type: integer
+          minimum: 0
+          description: 'Primary member objects selected for the snapshot'
+        secondary_count:
+          type: integer
+          minimum: 0
+          description: 'Related objects reached while resolving the bounded member graph'
+        relationship_count:
+          type: integer
+          minimum: 0
+          description: 'Relationships connecting objects in the resolved graph'
+        supporting_count:
+          type: integer
+          minimum: 0
+          description: 'Supporting identities and marking definitions required by cached objects'
+        link_target_count:
+          type: integer
+          minimum: 0
+          description: 'Objects pinned to resolve LinkById references deterministically'
+        total_count:
+          type: integer
+          minimum: 0
+          description: 'Total entries across all graph manifest roles'
+
     snapshot-summary:
       type: object
       description: 'Lightweight metadata shared by standard and virtual snapshot summaries'
@@ -130,6 +168,17 @@ components:
           type: string
           nullable: true
           description: 'Tagged version, or null for an untagged draft'
+        graph_manifest_id:
+          type: string
+          readOnly: true
+          description: |
+            Opaque identifier for the tagged snapshot's deterministic member
+            graph. Omitted when the snapshot has not been materialized.
+        graph_statistics:
+          $ref: '#/components/schemas/graph-statistics'
+          description: |
+            High-level statistics for the materialized graph. Omitted when the
+            snapshot does not reference a graph manifest.
         name:
           type: string
         description:
@@ -243,7 +292,7 @@ components:
                 - work-in-progress
                 - awaiting-review
                 - reviewed
-              description: 'Workflow status (scoped to this track). modified-in-place is server-assigned when the pinned revision is edited via an in-place PUT and needs re-review.'
+              description: 'Workflow status (scoped to this track). modified-in-place is retained only for legacy data; persisted STIX revisions are now immutable.'
             object_added_at:
               type: string
               format: date-time
@@ -272,7 +321,7 @@ components:
                 - work-in-progress
                 - awaiting-review
                 - reviewed
-              description: 'Workflow status (preserved from candidates). modified-in-place is server-assigned when the pinned revision is edited via an in-place PUT and needs re-review.'
+              description: 'Workflow status (preserved from candidates). modified-in-place is retained only for legacy data; persisted STIX revisions are now immutable.'
             object_staged_at:
               type: string
               format: date-time

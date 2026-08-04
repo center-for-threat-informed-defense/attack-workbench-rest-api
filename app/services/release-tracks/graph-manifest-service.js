@@ -14,8 +14,16 @@ const {
 const { ReleaseContentIntegrityError } = require('../../exceptions');
 const primaryRevisionService = require('./primary-revision-service');
 
-const RESOLVER_VERSION = 'bounded-attack-graph-v1';
+const MANIFEST_SCHEMA_VERSION = 2;
+const RESOLVER_VERSION = 'bounded-member-graph-v2';
 const TIERS = ['members', 'staged', 'candidates', 'quarantine'];
+const STATISTIC_FIELDS_BY_KIND = {
+  root: 'primary_count',
+  secondary: 'secondary_count',
+  relationship: 'relationship_count',
+  supporting: 'supporting_count',
+  link_target: 'link_target_count',
+};
 const MUTATION_PROTECTED_ENTRY_FILTER = {
   $or: [
     { kind: { $ne: 'root' } },
@@ -76,10 +84,103 @@ function endpointFor(relationship, side) {
   };
 }
 
-async function buildManifestEntries(snapshot) {
+async function resolveBoundedGraph(hydratedRoots, allowedDomains, missing) {
+  const rootObjectRefs = new Set(hydratedRoots.entries.map((entry) => entry.object_ref));
+  let frontierObjectRefs = new Set(rootObjectRefs);
+
+  while (true) {
+    const relationships = await relationshipsRepository.retrieveLatestTouchingObjectRefs(
+      [...frontierObjectRefs],
+      { includeRevoked: false, includeDeprecated: false },
+    );
+    const pinnedRelationships = [];
+    for (const relationship of relationships) {
+      const source = endpointFor(relationship, 'source');
+      const target = endpointFor(relationship, 'target');
+      if (!source || !target) {
+        // Legacy relationships outside this snapshot's bounded graph cannot
+        // affect its replay. Fail closed only when an unpinned relationship
+        // touches a primary member by STIX ID.
+        if (
+          rootObjectRefs.has(relationship.stix.source_ref) ||
+          rootObjectRefs.has(relationship.stix.target_ref)
+        ) {
+          missing.push({
+            object_ref: relationship.stix.id,
+            object_modified: new Date(relationship.stix.modified).toISOString(),
+            dependency: 'relationship_endpoints',
+          });
+        }
+        continue;
+      }
+      pinnedRelationships.push({ relationship, source, target });
+    }
+    if (missing.length > 0) {
+      throw new ReleaseContentIntegrityError(missing, {
+        details: 'Snapshot graph capture found relationships without exact endpoint pins.',
+      });
+    }
+
+    // One batched exact-revision hydration per STIX type replaces the
+    // resolver's historical one-query-per-secondary behavior.
+    const hydratedEndpoints = await primaryRevisionService.hydrateEntries(
+      pinnedRelationships.flatMap(({ source, target }) => [source, target]),
+    );
+    const graphResolver = new BundleGraphResolver({
+      attackObjectsRepository,
+      detectionStrategiesRepository,
+      repositoryMap: primaryRevisionService.getRepositoryMap(),
+      policy: {
+        isDeprecatedPattern: bundleRelationships.isDeprecatedPattern,
+        relationshipIsActive: bundleRelationships.relationshipIsActive,
+        secondaryObjectIsValid: (document) => secondaryObjectIsValid(document, allowedDomains),
+      },
+      options: {
+        inferDomains: false,
+        includeRevoked: true,
+        includeDeprecated: true,
+        includeMissingAttackId: true,
+      },
+      relationships: pinnedRelationships.map((candidate) => candidate.relationship),
+      prefetchedDocuments: hydratedEndpoints.documents,
+      onMissingDependency(reference) {
+        missing.push({
+          ...reference,
+          object_modified: new Date(reference.object_modified).toISOString(),
+        });
+      },
+    });
+    const resolvedGraph = await graphResolver.resolve(hydratedRoots.documents);
+    if (missing.length > 0) {
+      const uniqueMissing = [
+        ...new Map(
+          missing.map((reference) => [
+            `${reference.object_ref}::${reference.object_modified}`,
+            reference,
+          ]),
+        ).values(),
+      ];
+      throw new ReleaseContentIntegrityError(uniqueMissing, {
+        details: 'Snapshot graph capture could not hydrate every exact dependency.',
+      });
+    }
+
+    const resolvedObjectRefs = new Set(resolvedGraph.documents.map((document) => document.stix.id));
+    const expanded = [...resolvedObjectRefs].some(
+      (objectRef) => !frontierObjectRefs.has(objectRef),
+    );
+    if (!expanded) {
+      return { graphResolver, resolvedGraph };
+    }
+    frontierObjectRefs = new Set([...frontierObjectRefs, ...resolvedObjectRefs]);
+  }
+}
+
+async function buildManifestEntries(snapshot, options = {}) {
   const allowedDomains = virtualSnapshotDomains(snapshot);
   const rootRequests = [];
-  for (const tier of TIERS) {
+  const rootTiers = options.memberOnly ? ['members'] : TIERS;
+  for (const tier of rootTiers) {
     for (const entry of snapshot[tier] || []) {
       rootRequests.push({ ...entry, tier });
     }
@@ -93,78 +194,12 @@ async function buildManifestEntries(snapshot) {
     ]),
   );
 
-  const rootObjectRefs = new Set(hydratedRoots.entries.map((entry) => entry.object_ref));
-
-  const relationships = await relationshipsRepository.retrieveAllForBundle({
-    includeRevoked: false,
-    includeDeprecated: false,
-  });
   const missing = [];
-  const pinnedRelationships = [];
-  for (const relationship of relationships) {
-    const source = endpointFor(relationship, 'source');
-    const target = endpointFor(relationship, 'target');
-    if (!source || !target) {
-      // Legacy relationships outside this snapshot's bounded graph cannot
-      // affect its replay. Fail closed only when an unpinned relationship
-      // touches a primary member by STIX ID.
-      if (
-        rootObjectRefs.has(relationship.stix.source_ref) ||
-        rootObjectRefs.has(relationship.stix.target_ref)
-      ) {
-        missing.push({
-          object_ref: relationship.stix.id,
-          object_modified: new Date(relationship.stix.modified).toISOString(),
-          dependency: 'relationship_endpoints',
-        });
-      }
-      continue;
-    }
-    pinnedRelationships.push({ relationship, source, target });
-  }
-  if (missing.length > 0) {
-    throw new ReleaseContentIntegrityError(missing, {
-      details: 'Snapshot graph capture found relationships without exact endpoint pins.',
-    });
-  }
-
-  const graphResolver = new BundleGraphResolver({
-    attackObjectsRepository,
-    detectionStrategiesRepository,
-    repositoryMap: primaryRevisionService.getRepositoryMap(),
-    policy: {
-      isDeprecatedPattern: bundleRelationships.isDeprecatedPattern,
-      relationshipIsActive: bundleRelationships.relationshipIsActive,
-      secondaryObjectIsValid: (document) => secondaryObjectIsValid(document, allowedDomains),
-    },
-    options: {
-      inferDomains: false,
-      includeRevoked: true,
-      includeDeprecated: true,
-      includeMissingAttackId: true,
-    },
-    relationships: pinnedRelationships.map((candidate) => candidate.relationship),
-    onMissingDependency(reference) {
-      missing.push({
-        ...reference,
-        object_modified: new Date(reference.object_modified).toISOString(),
-      });
-    },
-  });
-  const resolvedGraph = await graphResolver.resolve(hydratedRoots.documents);
-  if (missing.length > 0) {
-    const uniqueMissing = [
-      ...new Map(
-        missing.map((reference) => [
-          `${reference.object_ref}::${reference.object_modified}`,
-          reference,
-        ]),
-      ).values(),
-    ];
-    throw new ReleaseContentIntegrityError(uniqueMissing, {
-      details: 'Snapshot graph capture could not hydrate every exact dependency.',
-    });
-  }
+  const { graphResolver, resolvedGraph } = await resolveBoundedGraph(
+    hydratedRoots,
+    allowedDomains,
+    missing,
+  );
   const selectedDocuments = new Map(
     resolvedGraph.documents.map((document) => [
       revisionKey(document.stix.id, document.stix.modified),
@@ -202,7 +237,7 @@ async function buildManifestEntries(snapshot) {
       object_status: root?.object_status,
       object_ref: document.stix.id,
       object_modified: document.stix.modified,
-      discovered_from: discoverySources.get(key) || [],
+      discovered_from: options.memberOnly ? undefined : discoverySources.get(key) || [],
     });
   }
   for (const candidate of selectedRelationships) {
@@ -216,7 +251,10 @@ async function buildManifestEntries(snapshot) {
       object_modified: candidate.relationship.stix.modified,
       source: candidate.source,
       target: candidate.target,
-      frozen_stix: candidate.relationship.stix,
+      // Live previews reuse the legacy replay selector, which carries the
+      // request-local relationship payload without persisting it. Persisted
+      // schema-v2 member manifests deliberately omit this field.
+      frozen_stix: options.memberOnly ? undefined : candidate.relationship.stix,
     });
   }
   for (const document of supportingDocuments) {
@@ -245,7 +283,10 @@ async function buildManifestEntries(snapshot) {
 
 async function prepare(snapshot, options = {}) {
   const manifestId = `release-track-graph-manifest--${uuidv4()}`;
-  const entries = await buildManifestEntries(snapshot);
+  const schemaVersion = options.schemaVersion ?? MANIFEST_SCHEMA_VERSION;
+  const memberOnly = schemaVersion >= MANIFEST_SCHEMA_VERSION;
+  const resolverVersion = memberOnly ? RESOLVER_VERSION : 'bounded-attack-graph-v1';
+  const entries = await buildManifestEntries(snapshot, { memberOnly });
   const common = {
     manifest_id: manifestId,
     track_id: snapshot.id,
@@ -255,7 +296,8 @@ async function prepare(snapshot, options = {}) {
   await ReleaseTrackGraphManifest.create({
     ...common,
     state: 'pending',
-    resolver_version: RESOLVER_VERSION,
+    schema_version: schemaVersion,
+    resolver_version: resolverVersion,
     baseline_reconstruction: options.baselineReconstruction === true,
   });
   try {
@@ -264,6 +306,19 @@ async function prepare(snapshot, options = {}) {
         entries.map((entry) => ({ ...common, ...entry })),
       );
     }
+    // The pending manifest now protects every inserted pointer from deletion.
+    // Rehydrate once inside that protection window so a revision deleted
+    // during graph discovery cannot leave an attachable dangling manifest.
+    await replayEntries(
+      entries,
+      {
+        ...common,
+        state: 'pending',
+        schema_version: schemaVersion,
+        resolver_version: resolverVersion,
+      },
+      {},
+    );
   } catch (err) {
     await discard(manifestId);
     throw err;
@@ -323,6 +378,51 @@ async function discardTrack(trackId) {
   ]);
 }
 
+function emptyStatistics() {
+  return {
+    primary_count: 0,
+    secondary_count: 0,
+    relationship_count: 0,
+    supporting_count: 0,
+    link_target_count: 0,
+    total_count: 0,
+  };
+}
+
+/**
+ * Count manifest entries by semantic role for a page of snapshot summaries.
+ * One aggregate covers every requested manifest to avoid a per-snapshot query.
+ *
+ * @param {string[]} manifestIds
+ * @returns {Promise<Map<string, Object>>}
+ */
+async function getStatisticsByManifestIds(manifestIds) {
+  const uniqueManifestIds = [...new Set(manifestIds.filter(Boolean))];
+  const statisticsByManifestId = new Map(
+    uniqueManifestIds.map((manifestId) => [manifestId, emptyStatistics()]),
+  );
+  if (uniqueManifestIds.length === 0) return statisticsByManifestId;
+
+  const counts = await ReleaseTrackGraphManifestEntry.aggregate([
+    { $match: { manifest_id: { $in: uniqueManifestIds } } },
+    {
+      $group: {
+        _id: { manifest_id: '$manifest_id', kind: '$kind' },
+        count: { $sum: 1 },
+      },
+    },
+  ]).exec();
+
+  for (const result of counts) {
+    const statistics = statisticsByManifestId.get(result._id.manifest_id);
+    const field = STATISTIC_FIELDS_BY_KIND[result._id.kind];
+    if (!statistics || !field) continue;
+    statistics[field] = result.count;
+    statistics.total_count += result.count;
+  }
+  return statisticsByManifestId;
+}
+
 function rootIsSelected(entry, options) {
   if (entry.tier === 'members') return true;
   if (!['staged', 'candidates'].includes(entry.tier)) return false;
@@ -332,8 +432,11 @@ function rootIsSelected(entry, options) {
 }
 
 async function replayEntries(entries, manifest, options) {
+  const pointerOnlyMemberGraph = manifest.schema_version >= MANIFEST_SCHEMA_VERSION;
   const versionedEntries = entries.filter(
-    (entry) => entry.object_modified && entry.kind !== 'relationship',
+    (entry) =>
+      entry.object_modified &&
+      (entry.kind !== 'relationship' || (pointerOnlyMemberGraph && !entry.frozen_stix)),
   );
   const hydrated = await primaryRevisionService.assertStoredEntries(
     versionedEntries.map((entry) => ({
@@ -357,7 +460,11 @@ async function replayEntries(entries, manifest, options) {
 
   const selectedRevisionKeys = new Set(
     entries
-      .filter((entry) => entry.kind === 'root' && rootIsSelected(entry, options))
+      .filter((entry) =>
+        pointerOnlyMemberGraph
+          ? ['root', 'secondary'].includes(entry.kind)
+          : entry.kind === 'root' && rootIsSelected(entry, options),
+      )
       .map((entry) => entry.revision_key),
   );
 
@@ -365,26 +472,28 @@ async function replayEntries(entries, manifest, options) {
   // detection strategy discovered through an analytic that was itself a
   // relationship secondary). Replay only follows edges frozen in the
   // manifest; it never asks the live database to expand the graph.
-  let added;
-  do {
-    added = false;
-    for (const entry of entries) {
-      if (
-        !['root', 'secondary'].includes(entry.kind) ||
-        selectedRevisionKeys.has(entry.revision_key)
-      ) {
-        continue;
+  if (!pointerOnlyMemberGraph) {
+    let added;
+    do {
+      added = false;
+      for (const entry of entries) {
+        if (
+          !['root', 'secondary'].includes(entry.kind) ||
+          selectedRevisionKeys.has(entry.revision_key)
+        ) {
+          continue;
+        }
+        if (
+          (entry.discovered_from || []).some((source) =>
+            selectedRevisionKeys.has(revisionKey(source.object_ref, source.object_modified)),
+          )
+        ) {
+          selectedRevisionKeys.add(entry.revision_key);
+          added = true;
+        }
       }
-      if (
-        (entry.discovered_from || []).some((source) =>
-          selectedRevisionKeys.has(revisionKey(source.object_ref, source.object_modified)),
-        )
-      ) {
-        selectedRevisionKeys.add(entry.revision_key);
-        added = true;
-      }
-    }
-  } while (added);
+    } while (added);
+  }
 
   const selectedRelationships = entries.filter(
     (entry) =>
@@ -493,6 +602,7 @@ async function replayPlannedSnapshot(snapshot, options = {}) {
       track_id: snapshot.id,
       snapshot_modified: snapshot.modified,
       state: 'preview',
+      schema_version: 1,
       resolver_version: RESOLVER_VERSION,
     },
     options,
@@ -572,8 +682,10 @@ module.exports = {
   discardTrack,
   replay,
   replayPlannedSnapshot,
+  getStatisticsByManifestIds,
   findPinsForRevision,
   findPinsForObject,
   buildManifestEntries,
+  MANIFEST_SCHEMA_VERSION,
   RESOLVER_VERSION,
 };

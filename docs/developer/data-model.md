@@ -22,7 +22,12 @@ The ATT&CK Workbench database supports the following ATT&CK object types (with t
 
 ## Object Versioning and Updates
 
-Most ATT&CK object types should be updated by creating a new object with a new `modified` timestamp (POST request). The Collection Index is different and should be updated by modifying (overwriting) the current object (PUT request).
+Persisted STIX revisions are immutable. Change STIX content by creating a new
+revision with the same `stix.id` and a newer `stix.modified` timestamp through
+POST. PUT on a versioned STIX endpoint is limited to non-exported `workspace`
+metadata and returns 409 if the submitted `stix` payload differs from the
+stored revision. The Collection Index is not a versioned STIX document and
+continues to use overwrite-style PUT.
 
 ## Canonical Domain Membership
 

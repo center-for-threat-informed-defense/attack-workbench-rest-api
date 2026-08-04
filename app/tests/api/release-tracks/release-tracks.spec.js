@@ -192,27 +192,11 @@ describe('Release Tracks API', function () {
     );
     expectObjectInfo(quarantined, quarantinedObject);
 
-    const historicalRes = await request(app)
+    await request(app)
       .get(`/api/release-tracks/${trackId}/snapshots/${promoteRes.body.modified}`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
-      .expect('Content-Type', /json/);
-
-    const historicalMember = historicalRes.body.members.find(
-      (entry) => entry.object_ref === memberObject.stix.id,
-    );
-    expectObjectInfo(historicalMember, memberObject);
-
-    const historicalCandidate = historicalRes.body.candidates.find(
-      (entry) => entry.object_ref === candidateObject.stix.id,
-    );
-    expectObjectInfo(historicalCandidate, candidateObject);
-
-    const historicalStaged = historicalRes.body.staged.find(
-      (entry) => entry.object_ref === stagedObject.stix.id,
-    );
-    expectObjectInfo(historicalStaged, stagedObject);
+      .expect(404);
 
     await request(app)
       .get(`/api/release-tracks/${trackId}/snapshots/latest?format=snapshot`)

@@ -109,31 +109,21 @@ sync strategy determines what workflow action (if any) to take:
 >   Both workflows save the new revision directly via the repository (no
 >   `::created`/`::updated` fires), so without these subscriptions a track
 >   silently kept exporting the pre-revoke / pre-conversion revision.
-> - In-place `PUT`s of a pinned revision arrive as `::updated` with an
->   unchanged `(stix.id, modified)` key. The entry is marked with the
->   server-assigned **`modified-in-place`** status — the content changed,
->   but with no revision history to diff the track can only signal that a
->   re-review is required. The marker ranks with `work-in-progress` in the
->   candidacy-threshold order and is cleared through the normal review
->   endpoint (`from: "modified-in-place"`).
 > - The gate codifies the candidacy threshold into placement itself: an
 >   entry whose resulting status meets `candidacy_threshold` (with
 >   `auto_promote`) is placed directly in `staged` — one snapshot instead of
->   bouncing through candidates and a post-hoc auto-promotion pass. In a
->   permissive track (threshold `work-in-progress`) an in-place edit of a
->   staged entry therefore keeps its staged tier; in a strict track it
->   demotes to candidates.
+>   bouncing through candidates and a post-hoc auto-promotion pass.
 > - Repeat no-op changes (entry already in the gate-decided tier/status) and
 >   enrollment of already-pinned revisions (e.g. a re-import announcing an
 >   already-released revision) skip snapshot creation.
-> - `members`-pinned revisions never reach the in-place path at all:
->   `BaseService` rejects `PUT`/`DELETE` of a members-pinned revision with
->   409 (`MemberPinnedRevisionError`) — released content is immutable in
->   place.
-> - A candidate or staged revision remains editable unless it is also a
->   secondary/supporting dependency frozen in a snapshot graph manifest. In
->   that case graph integrity takes precedence and the operation returns 409
->   (`SnapshotGraphPinnedRevisionError`).
+>
+> **Behavior evolution (2026-08-03):** every persisted STIX revision is now
+> immutable, not only released content. A PUT that changes `stix` returns 409;
+> authors POST a new revision and member sync handles the resulting `::created`
+> event. Metadata-only PUTs may update `workspace` but do not emit a STIX
+> update event or create a track snapshot. The legacy `modified-in-place`
+> transition remains readable for stored data but is no longer produced by
+> the object update path.
 
 ### Relationship to Existing Features
 
@@ -141,7 +131,7 @@ Member sync strategies integrate with several existing release track features:
 
 - **Candidacy Threshold:** When a new revision is auto-enrolled as a candidate, it may be immediately promoted to `staged` if its status meets the candidacy threshold.
 - **Conflict Resolution Policies:** Member sync resolves overlaps with existing `candidates`/`staged` entries through its own `supplant` config (below). *Manual* candidate adds and demotions instead go through `config.promotion_conflicts.into_candidates` (default `prefer_latest`) — see `release-workflow.md`. The two are deliberately separate: supplant expresses sync intent (replace/queue/ignore), while `into_candidates` uses the same policy vocabulary as the other tier transitions.
-- **Snapshot Creation:** Any change to a release track's object lists (`candidates`, `staged`, `members`) results in a new draft snapshot being created. Member sync follows this convention.
+- **Snapshot Creation:** Any change to a release track's object lists (`candidates`, `staged`, `members`) creates a replacement draft snapshot. Standard tracks retain only the newest untagged draft after it is durably saved; tagged snapshots remain historical. Member sync follows this convention.
 
 ---
 

@@ -16,7 +16,7 @@ beforeX → X → afterX → emitXEvent
 
 For example:
 - `beforeCreate` → `create` → `afterCreate` → `emitCreatedEvent`
-- `beforeUpdate` → `update` → `afterUpdate` → `emitUpdatedEvent`
+- `beforeUpdate` → immutable-STIX check → metadata update → `afterUpdate`
 - `beforeDelete` → `delete` → `afterDelete` → `emitDeletedEvent`
 
 **Execution Order:**
@@ -172,7 +172,7 @@ Where:
 | Event | When Emitted | Payload | Use Cases |
 |-------|--------------|---------|-----------|
 | `{type}::created` | After `afterCreate` hook | `{ stixId, document, type, options }` | Audit logging, notifications |
-| `{type}::updated` | After `afterUpdate` hook | `{ stixId, stixModified, document, previousDocument, type }` | Track changes, propagate updates |
+| `{type}::updated` | Legacy/custom service update paths only | `{ stixId, stixModified, document, previousDocument, type }` | Propagate a service-defined STIX update; generic metadata-only PUT does not emit this event |
 | `{type}::deleted` | After `afterDelete` hook | `{ stixId, document, options }` | Cleanup, cascade deletes |
 
 Where `{type}` is the STIX type (e.g., `attack-pattern`, `x-mitre-analytic`, `x-mitre-detection-strategy`).
@@ -234,45 +234,47 @@ Where `{type}` is the STIX type (e.g., `attack-pattern`, `x-mitre-analytic`, `x-
      - Update analytic's `external_references` with URL: `https://attack.mitre.org/detectionstrategies/DS0001#DA-0001`
      - Save the analytic
 
-### Workflow 2: Update Detection Strategy - Add Analytic
+### Workflow 2: Revise Detection Strategy - Add Analytic
 
-**User Action:** `PUT /api/detection-strategies/{id}/{modified}`
-- Change `x_mitre_analytic_refs` from `[]` to `['x-mitre-analytic--123']`
+**User Action:** `POST /api/detection-strategies`
+- Create a later revision whose `x_mitre_analytic_refs` changes from `[]` to
+  `['x-mitre-analytic--123']`
 
 **Execution Flow:**
 
-1. **DetectionStrategiesService.beforeUpdate(stixId, stixModified, data, existingDocument)**
+1. **DetectionStrategiesService.beforeCreate(data)**
    - Detect change: `oldRefs = []`, `newRefs = ['x-mitre-analytic--123']`
    - Store: `this._addedAnalyticRefs = ['x-mitre-analytic--123']`
    - Rebuild outbound embedded_relationships for new refs
    - Update `data.workspace.embedded_relationships`
 
-2. **BaseService.updateFull()** - Persist document to database
+2. **BaseService.create()** - Persist the new revision
 
-3. **DetectionStrategiesService.afterUpdate(updatedDocument, previousDocument)**
+3. **DetectionStrategiesService.afterCreate(createdDocument)**
    - If `_addedAnalyticRefs` not empty:
      - Emit `x-mitre-detection-strategy::analytics-referenced`
    - Clean up: `delete this._addedAnalyticRefs`
 
-4. **BaseService.emitUpdatedEvent()** - Emit `x-mitre-detection-strategy::updated`
+4. **BaseService.emitCreatedEvent()** - Emit `x-mitre-detection-strategy::created`
 
 5. **AnalyticsService** listener receives event and updates analytics
 
-### Workflow 3: Update Detection Strategy - Remove Analytic
+### Workflow 3: Revise Detection Strategy - Remove Analytic
 
-**User Action:** `PUT /api/detection-strategies/{id}/{modified}`
-- Change `x_mitre_analytic_refs` from `['x-mitre-analytic--123']` to `[]`
+**User Action:** `POST /api/detection-strategies`
+- Create a later revision whose `x_mitre_analytic_refs` changes from
+  `['x-mitre-analytic--123']` to `[]`
 
 **Execution Flow:**
 
-1. **DetectionStrategiesService.beforeUpdate(...)**
+1. **DetectionStrategiesService.beforeCreate(...)**
    - Detect change: `removedRefs = ['x-mitre-analytic--123']`
    - Store: `this._removedAnalyticRefs = ['x-mitre-analytic--123']`
    - Rebuild outbound embedded_relationships (now empty)
 
-2. **BaseService.updateFull()** - Persist document
+2. **BaseService.create()** - Persist the new revision
 
-3. **DetectionStrategiesService.afterUpdate(...)**
+3. **DetectionStrategiesService.afterCreate(...)**
    - If `_removedAnalyticRefs` not empty:
      - Emit `x-mitre-detection-strategy::analytics-removed`
        ```javascript

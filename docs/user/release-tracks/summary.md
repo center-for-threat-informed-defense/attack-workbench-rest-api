@@ -82,6 +82,8 @@ GET  /api/release-tracks/:id/snapshots/:modified
 POST /api/release-tracks/:id/snapshots/:modified/clone
 DELETE /api/release-tracks/:id/snapshots/:modified
 POST /api/release-tracks/:id/snapshots/:modified/release
+POST /api/release-tracks/:id/snapshots/:modified/graph
+DELETE /api/release-tracks/:id/snapshots/:modified/graph
 ```
 
 ### 2. Git-Inspired Versioning
@@ -89,10 +91,10 @@ POST /api/release-tracks/:id/snapshots/:modified/release
 We borrow heavily concepts from git. Snapshots are sort of like commits and tagged releases are like git tags. A release track contains snapshots: delta permutations that can be linearly tracked to deduce how the release track has evolved over time. A snapshot is generated every time a supported draft operation changes state, such as adding or promoting candidates, updating release-track configuration, or renaming the release track.
 
 **Snapshots** (like Git commits)
-- Every modification creates a new snapshot
+- Every supported modification creates a replacement draft snapshot
 - Identified by `stix.modified` timestamp
 - Immutable once created
-- Complete audit trail
+- Standard tracks retain one rolling untagged draft; tagged releases remain historical
 - May be a **draft release** (untagged) or **tagged release** (has version number)
 
 **Tagged Releases** (like Git tags)
@@ -129,12 +131,13 @@ and committing are separate operations, so a newer object revision created
 between them can legitimately produce a different plan; the committed release
 records the revision resolved by the commit itself.
 
-At snapshot persistence, the server also freezes the bounded bundle graph:
-exact relationship endpoint revisions, secondary objects, supporting objects,
-and LinkById render targets. Tagged releases and materialized virtual
-snapshots therefore reproduce the same STIX object graph on later
-`format=bundle` retrievals. The generated bundle-envelope ID itself is not
-stable.
+Snapshots are graphless by default. After tagging, callers may opt into a
+deterministic member graph with `POST .../snapshots/:modified/graph`. The graph
+stores exact-revision pointers for relationships, secondary objects,
+versioned supporting objects, and LinkById targets; unversioned marking
+definitions are frozen by value. `DELETE` on the graph resource returns the
+snapshot to live graph resolution. Candidate/staged bundle additions are
+always live. The generated bundle-envelope ID itself is not stable.
 
 Virtual snapshots are stricter still: they copy only exact member revisions
 from tagged standard component snapshots. They never inherit `track_latest`,

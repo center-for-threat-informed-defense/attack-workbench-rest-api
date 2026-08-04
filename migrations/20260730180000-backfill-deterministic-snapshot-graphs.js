@@ -214,6 +214,9 @@ async function backfillSnapshotManifests(db, options) {
 
       const manifestId = await graphManifestService.prepare(snapshot, {
         baselineReconstruction: true,
+        // Preserve the historical migration's schema-v1 frozen relationship
+        // contract. New opt-in graphs use pointer-only schema v2.
+        schemaVersion: 1,
       });
       try {
         await db

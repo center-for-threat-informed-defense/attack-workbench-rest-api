@@ -19,8 +19,8 @@ write or clear it.
 
 ## Why state-track validation at all?
 
-ADM validation is the gate at the write boundary: every POST and PUT
-runs the composed STIX object through the ADM schemas before
+ADM validation is the gate at the write boundary: every POST and metadata-only
+PUT runs the composed STIX object through the ADM schemas before
 persistence (see [`base.service.js`](../../app/services/meta-classes/base.service.js)
 pipeline stage 5, "VALIDATE WITH ADM"). If validation fails on a write,
 the request throws and nothing is persisted.
@@ -86,7 +86,7 @@ document was either never validated or last passed validation."
 1. `workspace.validation` is **server-controlled.** Clients cannot
    set, modify, or carry forward this field through any write path.
 2. The field is **recomputed (or omitted) on every successful write.**
-   A POST or PUT that passes ADM validation produces a document with
+   A POST or metadata-only PUT that passes ADM validation produces a document with
    no `workspace.validation`. A POST or PUT that fails ADM validation
    throws — nothing is persisted, and the prior document (if any) is
    untouched until a future write or scheduler tick revisits it.
@@ -112,6 +112,8 @@ document was either never validated or last passed validation."
 - `stripServerControlledFields()` removes any client-supplied
   `workspace.validation`.
 - ADM validation runs against the composed object.
+- If the submitted body changes persisted `stix` content, the request returns
+  `409 Conflict`; a content correction must be a new POST revision.
 - If validation fails, the request throws — the existing document is
   untouched.
 - If validation passes:

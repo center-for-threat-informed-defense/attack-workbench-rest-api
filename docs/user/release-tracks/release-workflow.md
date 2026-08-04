@@ -97,7 +97,7 @@ Typical release tracks will use the default candidacy threshold setting of `revi
 
 However, smaller teams operating in purely development or research capacities may prefer a more permissive model. Perhaps they simply want all objects to be included in the release irrespective of object status. In such situations, the candidacy threshold can be lowered to `awaiting-review` or `work-in-progress`.
 
-The threshold is enforced by the **workflow gate** (`app/lib/release-tracks/workflow-gate.js`), the single decision point that places tracked objects into tiers whenever revision sync reacts to a change (new revision, in-place edit, revocation). The server-assigned `modified-in-place` status ranks with `work-in-progress` in the threshold order — so in a permissive track, an in-place edit of a staged object keeps it staged (marked for re-review), while in a strict track it demotes back to candidates.
+The threshold is enforced by the **workflow gate** (`app/lib/release-tracks/workflow-gate.js`), the single decision point that places tracked objects into tiers whenever revision sync reacts to a new revision, revocation, or conversion. Persisted STIX revisions cannot be edited in place; content changes arrive as new POSTed revisions.
 
 ### Option 1: Include Only Reviewed (Default)
 ```javascript

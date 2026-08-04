@@ -199,22 +199,18 @@ describe('Groups API', function () {
     expect(group.stix.x_mitre_attack_spec_version).toBe(group1.stix.x_mitre_attack_spec_version);
   });
 
-  it('PUT /api/groups updates a group', async function () {
-    group1.stix.description = 'This is an updated group. Blue.';
-    const body = group1;
+  it('PUT /api/groups rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(group1);
+    body.stix.description = 'This is an updated group. Blue.';
     const res = await request(app)
       .put('/api/groups/' + group1.stix.id + '/modified/' + group1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated group
-    const group = res.body;
-    expect(group).toBeDefined();
-    expect(group.stix.id).toBe(group1.stix.id);
-    expect(group.stix.modified).toBe(group1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/groups does not create a group with the same id and modified date', async function () {

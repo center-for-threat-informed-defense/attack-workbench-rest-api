@@ -67,7 +67,6 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
 
     const createdA = await createTrack('Releases By Object A');
     trackA = createdA.id;
-    const initialSnapshotModified = createdA.modified;
     await setMembers(trackA, [objectRevisionA]);
     trackATaggedSnapshot = await releaseLatest(trackA);
 
@@ -76,16 +75,6 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     // supported.
     await setMembers(trackA, [otherObject]);
     await releaseLatest(trackA);
-
-    // Retroactively tag the original empty draft. Its embedded history is
-    // stale, so the track-wide version ledger must produce 1.2 rather than 1.0.
-    await post(
-      `/api/release-tracks/${trackA}/snapshots/${initialSnapshotModified}/release`,
-      {
-        increment: 'minor',
-      },
-      200,
-    );
 
     const createdB = await createTrack('Releases By Object B');
     trackB = createdB.id;
@@ -206,24 +195,21 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     expect(response.body.data.every((entry) => entry.tagged_at && entry.tagged_by)).toBe(true);
   });
 
-  it('maintains a reconciled registry catalogue during normal and retroactive tagging', async function () {
+  it('maintains a reconciled registry catalogue during normal tagging', async function () {
     const registry = await ReleaseTrackRegistry.findOne({ track_id: trackA }).lean().exec();
-    expect(registry.tagged_release_count).toBe(3);
-    expect(registry.tagged_releases).toHaveLength(3);
+    expect(registry.tagged_release_count).toBe(2);
+    expect(registry.tagged_releases).toHaveLength(2);
     expect(registry.tagged_releases.map((release) => release.version).sort()).toEqual([
       '1.0',
       '1.1',
-      '1.2',
     ]);
-    expect(registry.latest_tagged_version).toBe('1.2');
+    expect(registry.latest_tagged_version).toBe('1.1');
   });
 
   it('previews the next version from the track-wide release ledger', async function () {
-    // Clone the latest snapshot after the retroactive 1.2 tag. The source
-    // snapshot predates that tag, so its embedded history does not contain it.
     await post(
       `/api/release-tracks/${trackA}/meta`,
-      { description: 'Draft created after a retroactive tag' },
+      { description: 'Draft created after the current release' },
       200,
     );
 
@@ -233,7 +219,7 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     const major = await get(
       `/api/release-tracks/${trackA}/snapshots/latest/release/preview?increment=major`,
     );
-    expect(minor.body.version).toBe('1.3');
+    expect(minor.body.version).toBe('1.2');
     expect(major.body.version).toBe('2.0');
   });
 
@@ -289,9 +275,9 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     await backfillMigration.up(mongoose.connection.db);
 
     const registry = await ReleaseTrackRegistry.findOne({ track_id: trackA }).lean().exec();
-    expect(registry.tagged_releases).toHaveLength(3);
-    expect(registry.tagged_release_count).toBe(3);
-    expect(registry.latest_tagged_version).toBe('1.2');
+    expect(registry.tagged_releases).toHaveLength(2);
+    expect(registry.tagged_release_count).toBe(2);
+    expect(registry.latest_tagged_version).toBe('1.1');
 
     const response = await get(
       `/api/release-tracks/objects/${objectRevisionA.stix.id}/releases?type=standard`,

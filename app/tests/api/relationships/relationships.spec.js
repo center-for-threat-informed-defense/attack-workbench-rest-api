@@ -251,9 +251,9 @@ describe('Relationships API', function () {
     );
   });
 
-  it('PUT /api/relationships updates a relationship', async function () {
-    relationship1a.stix.description = 'This is an updated relationship.';
-    const body = relationship1a;
+  it('PUT /api/relationships rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(relationship1a);
+    body.stix.description = 'This is an updated relationship.';
     const res = await request(app)
       .put(
         '/api/relationships/' +
@@ -264,17 +264,13 @@ describe('Relationships API', function () {
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated relationship
-    const relationship = res.body;
-    expect(relationship).toBeDefined();
-    expect(relationship.stix.id).toBe(relationship1a.stix.id);
-    expect(relationship.stix.modified).toBe(relationship1a.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
-  it('PUT /api/relationships rejects in-place endpoint changes', async function () {
+  it('PUT /api/relationships rejects endpoint changes', async function () {
     const body = structuredClone(relationship1a);
     body.stix.source_ref = sourceRef2;
 

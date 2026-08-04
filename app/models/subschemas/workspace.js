@@ -48,8 +48,8 @@ const releaseTrackRef = {
   },
   // Track-scoped workflow status. Members are inherently 'reviewed';
   // quarantined entries (virtual tracks) carry no status;
-  // 'modified-in-place' marks entries whose pinned revision was changed by
-  // an in-place PUT and needs re-review.
+  // 'modified-in-place' is retained for legacy persisted entries. Generic
+  // STIX-changing PUTs are no longer permitted and do not create new markers.
   status: {
     type: String,
     enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed'],

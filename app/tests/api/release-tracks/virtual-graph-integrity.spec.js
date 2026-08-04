@@ -10,9 +10,6 @@ const login = require('../../shared/login');
 const AttackObject = require('../../../models/attack-object-model');
 const linkById = require('../../../lib/linkById');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
-const {
-  ReleaseTrackGraphManifestEntry,
-} = require('../../../models/release-tracks/release-track-graph-manifest-model');
 const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const staticMarkingDefinitionId = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
@@ -174,47 +171,62 @@ describe('Virtual release-track graph integrity', function () {
     expect(exportedRoot.description).toBe(`See [Active Link Target](${attackReference.url}).`);
   });
 
-  it('reuses the materialized graph for virtual release preview and commit', async function () {
+  it('keeps virtual drafts and releases graphless until a tagged snapshot opts in', async function () {
     const root = await post('/api/techniques', technique('Frozen Virtual Root'));
     const virtual = await createVirtual('Virtual Frozen Release Graph', [root]);
     const draft = await dynamicRepo.getLatestSnapshot(virtual.id);
-    const frozenName = 'Canonical Source-Bundle Name';
-    await ReleaseTrackGraphManifestEntry.updateOne(
-      {
-        manifest_id: draft.graph_manifest_id,
-        kind: 'root',
-        object_ref: root.stix.id,
-      },
-      {
-        $set: {
-          frozen_stix: {
-            ...root.stix,
-            name: frozenName,
-          },
-        },
-      },
-    ).exec();
+    expect(draft.graph_manifest_id).toBeUndefined();
+    await post(
+      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(draft.modified)}/graph`,
+      {},
+      409,
+    );
 
     const preview = await get(
       `/api/release-tracks/${virtual.id}/snapshots/latest/release/preview` +
         '?format=bundle&version=1.0',
     );
-    expect(preview.objects.find((object) => object.id === root.stix.id).name).toBe(frozenName);
+    expect(preview.objects.find((object) => object.id === root.stix.id).name).toBe(root.stix.name);
 
-    await post(
+    const releasedResponse = await post(
       `/api/release-tracks/${virtual.id}/snapshots/latest/release`,
       { version: '1.0' },
       200,
     );
-    const released = await dynamicRepo.getLatestSnapshot(virtual.id);
+    expect(releasedResponse.graph_manifest_id).toBeUndefined();
+
+    const deterministic = await post(
+      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(
+        releasedResponse.modified,
+      )}/graph`,
+      {},
+      201,
+    );
+    expect(deterministic.graph_manifest_id).toBeDefined();
+
     const releasedBundle = await get(
       `/api/release-tracks/${virtual.id}/snapshots/latest?format=bundle`,
     );
-
-    expect(released.graph_manifest_id).toBe(draft.graph_manifest_id);
     expect(releasedBundle.objects.find((object) => object.id === root.stix.id).name).toBe(
-      frozenName,
+      root.stix.name,
     );
+
+    const graphPath = `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(
+      releasedResponse.modified,
+    )}/graph`;
+    await request(app)
+      .delete(graphPath)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(204);
+    await request(app)
+      .delete(graphPath)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(204);
+
+    const graphlessRelease = await dynamicRepo.getLatestSnapshot(virtual.id);
+    expect(graphlessRelease.graph_manifest_id).toBeUndefined();
   });
 
   after(async function () {

@@ -116,15 +116,7 @@ describe('Release-track authoritative tagged-content immutability', function () 
       updated,
       409,
     );
-    expect(putResponse.body.release_tracks).toEqual([track.id]);
-    expect(putResponse.body.tagged_releases).toEqual([
-      expect.objectContaining({
-        track_id: track.id,
-        version: '1.0',
-        object_ref: technique.stix.id,
-        object_modified: technique.stix.modified,
-      }),
-    ]);
+    expect(putResponse.body.message).toMatch(/Persisted STIX revisions are immutable/);
 
     await api(
       'delete',

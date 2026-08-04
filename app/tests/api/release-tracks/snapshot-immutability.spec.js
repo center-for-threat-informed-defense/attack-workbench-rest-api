@@ -51,7 +51,7 @@ describe('Release-track snapshot immutability contract', function () {
     await api('post', `/api/release-tracks/${track.id}/snapshots/${modified}/contents`, {}, 404);
   });
 
-  it('deletes only the latest untagged draft', async function () {
+  it('keeps one rolling standard draft and deletes it only when a tagged predecessor exists', async function () {
     const initial = await post(
       '/api/release-tracks/new',
       { name: 'Latest draft deletion boundary', type: 'standard' },
@@ -64,21 +64,37 @@ describe('Release-track snapshot immutability contract', function () {
       description: 'Latest draft',
     });
 
-    const historicalDelete = await api(
+    await api(
       'delete',
       `/api/release-tracks/${initial.id}/snapshots/${encodeURIComponent(initial.modified)}`,
       undefined,
+      404,
+    );
+    await api(
+      'get',
+      `/api/release-tracks/${initial.id}/snapshots/${encodeURIComponent(middle.modified)}`,
+      undefined,
+      404,
+    );
+
+    const onlyDraftDelete = await api(
+      'delete',
+      `/api/release-tracks/${initial.id}/snapshots/${encodeURIComponent(latest.modified)}`,
+      undefined,
       409,
     );
-    expect(historicalDelete.body).toEqual({
-      message: 'Only the latest untagged snapshot can be deleted',
-      snapshot_modified: initial.modified,
-      latest_snapshot_modified: latest.modified,
+    expect(onlyDraftDelete.body.message).toContain('only snapshot');
+
+    const tagged = await post(`/api/release-tracks/${initial.id}/snapshots/latest/release`, {
+      version: '1.0',
+    });
+    const replacement = await post(`/api/release-tracks/${initial.id}/meta`, {
+      description: 'Post-release rolling draft',
     });
 
     await api(
       'delete',
-      `/api/release-tracks/${initial.id}/snapshots/${encodeURIComponent(latest.modified)}`,
+      `/api/release-tracks/${initial.id}/snapshots/${encodeURIComponent(replacement.modified)}`,
       undefined,
       204,
     );
@@ -88,14 +104,11 @@ describe('Release-track snapshot immutability contract', function () {
       undefined,
       200,
     );
-    expect(reverted.body.modified).toBe(middle.modified);
+    expect(reverted.body.modified).toBe(tagged.modified);
 
-    await post(`/api/release-tracks/${initial.id}/snapshots/latest/release`, {
-      version: '1.0',
-    });
     const taggedDelete = await api(
       'delete',
-      `/api/release-tracks/${initial.id}/snapshots/${encodeURIComponent(middle.modified)}`,
+      `/api/release-tracks/${initial.id}/snapshots/${encodeURIComponent(tagged.modified)}`,
       undefined,
       409,
     );

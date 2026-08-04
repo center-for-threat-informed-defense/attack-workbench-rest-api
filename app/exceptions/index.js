@@ -367,7 +367,7 @@ class MemberPinnedRevisionError extends CustomError {
   constructor(options) {
     super(
       'This revision is pinned in the members tier of a release track and is released content: ' +
-        'it cannot be modified or deleted in place. Create a new revision instead ' +
+        'it cannot be deleted. Create a new revision instead ' +
         '(set x_mitre_deprecated on a new revision to retire the object).',
       options,
     );
@@ -377,8 +377,18 @@ class MemberPinnedRevisionError extends CustomError {
 class SnapshotGraphPinnedRevisionError extends CustomError {
   constructor(options) {
     super(
-      'This revision is frozen in a release-track snapshot graph and cannot be modified or ' +
-        'deleted in place. Create a new revision instead.',
+      'This revision is referenced by a release-track snapshot graph and cannot be deleted. ' +
+        'Create a new revision instead.',
+      options,
+    );
+  }
+}
+
+class ImmutableStixRevisionError extends CustomError {
+  constructor(options) {
+    super(
+      'Persisted STIX revisions are immutable and cannot be modified in place. ' +
+        'Create a new revision with POST instead.',
       options,
     );
   }
@@ -473,6 +483,7 @@ module.exports = {
   TrackNotFoundError,
   MemberPinnedRevisionError,
   SnapshotGraphPinnedRevisionError,
+  ImmutableStixRevisionError,
 
   //** Database-related errors */
   DuplicateIdError,

@@ -167,22 +167,18 @@ describe('Mitigations API', function () {
     expect(mitigation.stix.labels.length).toBe(mitigation1.stix.labels.length);
   });
 
-  it('PUT /api/mitigations updates a mitigation', async function () {
-    mitigation1.stix.description = 'This is an updated mitigation.';
-    const body = mitigation1;
+  it('PUT /api/mitigations rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(mitigation1);
+    body.stix.description = 'This is an updated mitigation.';
     const res = await request(app)
       .put('/api/mitigations/' + mitigation1.stix.id + '/modified/' + mitigation1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated mitigation
-    const mitigation = res.body;
-    expect(mitigation).toBeDefined();
-    expect(mitigation.stix.id).toBe(mitigation1.stix.id);
-    expect(mitigation.stix.modified).toBe(mitigation1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/mitigations does not create a mitigation with the same id and modified date', async function () {
