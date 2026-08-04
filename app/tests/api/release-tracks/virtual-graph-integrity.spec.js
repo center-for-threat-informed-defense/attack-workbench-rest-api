@@ -177,7 +177,9 @@ describe('Virtual release-track graph integrity', function () {
     const draft = await dynamicRepo.getLatestSnapshot(virtual.id);
     expect(draft.graph_manifest_id).toBeUndefined();
     await post(
-      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(draft.modified)}/graph`,
+      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(
+        new Date(draft.modified).toISOString(),
+      )}/graph`,
       {},
       409,
     );
