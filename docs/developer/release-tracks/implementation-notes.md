@@ -237,9 +237,13 @@ Snapshot retrieval never re-runs composition, so there is no `resolve` query
 parameter or `resolved_content` response wrapper. Workbench retrieval returns
 the persisted primary membership. Bundle export replays a graph only after a
 tagged snapshot explicitly opts in; otherwise it resolves the current bounded
-graph. Relationship revisions carry server-controlled exact endpoint pins in
-`workspace.relationship_endpoints`, and schema-v2 manifests reference those
-exact revisions without emitting the internal fields in STIX output.
+graph. Persisted graphs close over exact `members`: relationship revisions
+carry server-controlled exact endpoint pins in
+`workspace.relationship_endpoints` and are included only when both pinned
+revisions are members. Schema-v2 manifests reference those exact revisions
+without emitting the internal fields in STIX output. The preceding tagged
+graph seeds still-valid relationship pointers so source-attested legacy
+provenance can continue into later releases.
 
 Snapshot schedules use the same strict, mode-discriminated Zod schema at the
 controller and service boundaries. `manual` has no selector field, `cron`

@@ -16,7 +16,7 @@ const { ReleaseContentIntegrityError } = require('../../exceptions');
 const primaryRevisionService = require('./primary-revision-service');
 
 const MANIFEST_SCHEMA_VERSION = 2;
-const RESOLVER_VERSION = 'bounded-member-graph-v2';
+const RESOLVER_VERSION = 'closed-member-graph-v3';
 const SOURCE_BUNDLE_RESOLVER_VERSION = 'source-bundle-pointer-v2';
 const TIERS = ['members', 'staged', 'candidates', 'quarantine'];
 const STATISTIC_FIELDS_BY_KIND = {
@@ -178,10 +178,295 @@ async function resolveBoundedGraph(hydratedRoots, allowedDomains, missing) {
   }
 }
 
+function endpointIsSelected(endpoint, membersByObjectRef) {
+  const member = endpoint && membersByObjectRef.get(endpoint.object_ref);
+  return (
+    member &&
+    revisionKey(member.object_ref, member.object_modified) ===
+      revisionKey(endpoint.object_ref, endpoint.object_modified)
+  );
+}
+
+function exactMemberMap(entries) {
+  const membersByObjectRef = new Map();
+  for (const entry of entries) {
+    const existing = membersByObjectRef.get(entry.object_ref);
+    if (
+      existing &&
+      revisionKey(existing.object_ref, existing.object_modified) !==
+        revisionKey(entry.object_ref, entry.object_modified)
+    ) {
+      throw new ReleaseContentIntegrityError(
+        [
+          {
+            object_ref: entry.object_ref,
+            object_modified: new Date(entry.object_modified).toISOString(),
+            dependency: 'unique_member_revision',
+          },
+        ],
+        { details: 'A deterministic snapshot cannot select two revisions of one STIX object.' },
+      );
+    }
+    membersByObjectRef.set(entry.object_ref, entry);
+  }
+  return membersByObjectRef;
+}
+
+async function loadPredecessorRelationshipCandidates(
+  snapshot,
+  predecessorManifestId,
+  membersByObjectRef,
+) {
+  if (!predecessorManifestId) return [];
+
+  const predecessorManifest = await ReleaseTrackGraphManifest.findOne({
+    manifest_id: predecessorManifestId,
+    track_id: snapshot.id,
+    snapshot_modified: { $lt: snapshot.modified },
+    state: { $in: ['pending', 'active'] },
+  })
+    .lean()
+    .exec();
+  if (!predecessorManifest) {
+    throw new ReleaseContentIntegrityError(
+      [{ manifest_id: predecessorManifestId, dependency: 'predecessor_graph_manifest' }],
+      { details: 'The preceding tagged snapshot references a missing graph manifest.' },
+    );
+  }
+
+  const entries = await ReleaseTrackGraphManifestEntry.find({
+    manifest_id: predecessorManifestId,
+    kind: 'relationship',
+  })
+    .lean()
+    .exec();
+  const selectedEntries = entries.filter(
+    (entry) =>
+      endpointIsSelected(entry.source, membersByObjectRef) &&
+      endpointIsSelected(entry.target, membersByObjectRef),
+  );
+  if (selectedEntries.length === 0) return [];
+
+  const hydrated = await primaryRevisionService.assertStoredEntries(selectedEntries);
+  const documentsByRevision = new Map(
+    hydrated.documents.map((document) => [
+      revisionKey(document.stix.id, document.stix.modified),
+      document,
+    ]),
+  );
+  const candidates = [];
+  for (const entry of selectedEntries) {
+    const relationship = documentsByRevision.get(entry.revision_key);
+    if (
+      relationship?.stix.type !== 'relationship' ||
+      relationship.stix.source_ref !== entry.source.object_ref ||
+      relationship.stix.target_ref !== entry.target.object_ref
+    ) {
+      throw new ReleaseContentIntegrityError(
+        [{ object_ref: entry.object_ref, dependency: 'predecessor_relationship_pointer' }],
+        { details: 'A predecessor graph relationship no longer matches its stored endpoints.' },
+      );
+    }
+    candidates.push({ relationship, source: entry.source, target: entry.target });
+  }
+  return candidates;
+}
+
+async function resolveClosedMemberRelationships(snapshot, hydratedRoots, predecessorManifestId) {
+  const membersByObjectRef = exactMemberMap(hydratedRoots.entries);
+  const storedRelationships = await relationshipsRepository.retrieveRevisionsTouchingExactEndpoints(
+    hydratedRoots.entries,
+  );
+  const candidatesByRevision = new Map();
+
+  for (const relationship of storedRelationships) {
+    const source = endpointFor(relationship, 'source');
+    const target = endpointFor(relationship, 'target');
+    if (
+      !endpointIsSelected(source, membersByObjectRef) ||
+      !endpointIsSelected(target, membersByObjectRef)
+    ) {
+      continue;
+    }
+    candidatesByRevision.set(revisionKey(relationship.stix.id, relationship.stix.modified), {
+      relationship,
+      source,
+      target,
+    });
+  }
+
+  const predecessorCandidates = await loadPredecessorRelationshipCandidates(
+    snapshot,
+    predecessorManifestId,
+    membersByObjectRef,
+  );
+  for (const candidate of predecessorCandidates) {
+    const key = revisionKey(candidate.relationship.stix.id, candidate.relationship.stix.modified);
+    if (!candidatesByRevision.has(key)) candidatesByRevision.set(key, candidate);
+  }
+
+  const candidatesByRelationship = new Map();
+  for (const candidate of candidatesByRevision.values()) {
+    const entries = candidatesByRelationship.get(candidate.relationship.stix.id) || [];
+    entries.push(candidate);
+    candidatesByRelationship.set(candidate.relationship.stix.id, entries);
+  }
+
+  const selected = [];
+  for (const [relationshipId, candidates] of candidatesByRelationship) {
+    const endpointPairs = new Set(
+      candidates.map(
+        ({ source, target }) =>
+          `${revisionKey(source.object_ref, source.object_modified)}->${revisionKey(
+            target.object_ref,
+            target.object_modified,
+          )}`,
+      ),
+    );
+    if (endpointPairs.size > 1) {
+      throw new ReleaseContentIntegrityError(
+        [{ object_ref: relationshipId, dependency: 'relationship_lineage_endpoints' }],
+        {
+          details:
+            'One relationship lineage resolves to multiple endpoint pairs in the same member graph.',
+        },
+      );
+    }
+
+    candidates.sort(
+      (left, right) =>
+        new Date(right.relationship.stix.modified).getTime() -
+        new Date(left.relationship.stix.modified).getTime(),
+    );
+    const newest = candidates[0];
+    if (
+      bundleRelationships.relationshipIsActive(newest.relationship) &&
+      !bundleRelationships.isDeprecatedPattern(newest.relationship.stix)
+    ) {
+      selected.push(newest);
+    }
+  }
+  return selected;
+}
+
+async function buildClosedMemberManifestEntries(snapshot, options) {
+  const rootRequests = (snapshot.members || []).map((entry) => ({ ...entry, tier: 'members' }));
+  const hydratedRoots = await primaryRevisionService.assertStoredEntries(rootRequests);
+  exactMemberMap(hydratedRoots.entries);
+
+  const selectedRelationships = await resolveClosedMemberRelationships(
+    snapshot,
+    hydratedRoots,
+    options.predecessorManifestId,
+  );
+  const relationshipDocuments = selectedRelationships.map((candidate) => candidate.relationship);
+  const graphResolver = new BundleGraphResolver({
+    attackObjectsRepository,
+    detectionStrategiesRepository,
+    repositoryMap: primaryRevisionService.getRepositoryMap(),
+    policy: {
+      isDeprecatedPattern: bundleRelationships.isDeprecatedPattern,
+      relationshipIsActive: bundleRelationships.relationshipIsActive,
+      secondaryObjectIsValid: () => false,
+    },
+    options: {
+      inferDomains: false,
+      includeRevoked: true,
+      includeDeprecated: true,
+      includeMissingAttackId: true,
+    },
+    relationships: relationshipDocuments,
+    prefetchedDocuments: hydratedRoots.documents,
+  });
+  const supportingDocuments = await graphResolver.loadSupportingDocuments([
+    ...hydratedRoots.documents.map((document) => document.stix),
+    ...relationshipDocuments.map((document) => document.stix),
+  ]);
+
+  const selectedObjectRefs = new Set(hydratedRoots.entries.map((entry) => entry.object_ref));
+  const rootMetadata = new Map(
+    hydratedRoots.entries.map((entry) => [
+      revisionKey(entry.object_ref, entry.object_modified),
+      entry,
+    ]),
+  );
+  const supportingByObjectRef = new Map();
+  for (const document of supportingDocuments) {
+    if (!selectedObjectRefs.has(document.stix.id)) {
+      supportingByObjectRef.set(document.stix.id, document);
+    }
+  }
+
+  const selectedByAttackId = new Map();
+  for (const document of hydratedRoots.documents) {
+    const attackId = linkById.getAttackId(document.stix);
+    if (attackId) selectedByAttackId.set(attackId, document);
+  }
+  const linkTargets = new Map();
+  for (const document of [...hydratedRoots.documents, ...relationshipDocuments]) {
+    for (const attackId of linkById.extractLinkByIds(document.stix)) {
+      if (selectedByAttackId.has(attackId) || linkTargets.has(attackId)) continue;
+      const target = await linkById.getAttackObjectFromDatabase(attackId);
+      if (target) linkTargets.set(attackId, target);
+    }
+  }
+
+  const entries = hydratedRoots.documents.map((document) => {
+    const key = revisionKey(document.stix.id, document.stix.modified);
+    const root = rootMetadata.get(key);
+    return {
+      revision_key: key,
+      kind: 'root',
+      tier: 'members',
+      object_status: root?.object_status,
+      object_ref: document.stix.id,
+      object_modified: document.stix.modified,
+    };
+  });
+  for (const candidate of selectedRelationships) {
+    entries.push({
+      revision_key: revisionKey(
+        candidate.relationship.stix.id,
+        candidate.relationship.stix.modified,
+      ),
+      kind: 'relationship',
+      object_ref: candidate.relationship.stix.id,
+      object_modified: candidate.relationship.stix.modified,
+      source: candidate.source,
+      target: candidate.target,
+    });
+  }
+  for (const document of supportingByObjectRef.values()) {
+    const isVersioned = Boolean(document.stix.modified);
+    entries.push({
+      revision_key: isVersioned
+        ? revisionKey(document.stix.id, document.stix.modified)
+        : `${document.stix.id}::unversioned`,
+      kind: 'supporting',
+      object_ref: document.stix.id,
+      object_modified: document.stix.modified,
+      frozen_stix: isVersioned ? undefined : document.stix,
+    });
+  }
+  for (const document of linkTargets.values()) {
+    entries.push({
+      revision_key: revisionKey(document.stix.id, document.stix.modified),
+      kind: 'link_target',
+      object_ref: document.stix.id,
+      object_modified: document.stix.modified,
+    });
+  }
+  return entries;
+}
+
 async function buildManifestEntries(snapshot, options = {}) {
+  if (options.memberOnly) {
+    return buildClosedMemberManifestEntries(snapshot, options);
+  }
+
   const allowedDomains = virtualSnapshotDomains(snapshot);
   const rootRequests = [];
-  const rootTiers = options.memberOnly ? ['members'] : TIERS;
+  const rootTiers = TIERS;
   for (const tier of rootTiers) {
     for (const entry of snapshot[tier] || []) {
       rootRequests.push({ ...entry, tier });
@@ -239,7 +524,7 @@ async function buildManifestEntries(snapshot, options = {}) {
       object_status: root?.object_status,
       object_ref: document.stix.id,
       object_modified: document.stix.modified,
-      discovered_from: options.memberOnly ? undefined : discoverySources.get(key) || [],
+      discovered_from: discoverySources.get(key) || [],
     });
   }
   for (const candidate of selectedRelationships) {
@@ -256,7 +541,7 @@ async function buildManifestEntries(snapshot, options = {}) {
       // Live previews reuse the legacy replay selector, which carries the
       // request-local relationship payload without persisting it. Persisted
       // schema-v2 member manifests deliberately omit this field.
-      frozen_stix: options.memberOnly ? undefined : candidate.relationship.stix,
+      frozen_stix: candidate.relationship.stix,
     });
   }
   for (const document of supportingDocuments) {
@@ -288,7 +573,10 @@ async function prepare(snapshot, options = {}) {
   const schemaVersion = options.schemaVersion ?? MANIFEST_SCHEMA_VERSION;
   const memberOnly = schemaVersion >= MANIFEST_SCHEMA_VERSION;
   const resolverVersion = memberOnly ? RESOLVER_VERSION : 'bounded-attack-graph-v1';
-  const entries = await buildManifestEntries(snapshot, { memberOnly });
+  const entries = await buildManifestEntries(snapshot, {
+    memberOnly,
+    predecessorManifestId: options.predecessorManifestId,
+  });
   const common = {
     manifest_id: manifestId,
     track_id: snapshot.id,

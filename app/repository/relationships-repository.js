@@ -155,6 +155,48 @@ class RelationshipsRepository extends BaseRepository {
     }
   }
 
+  /**
+   * Retrieve every relationship revision whose stored source or target pin
+   * exactly matches one of the supplied object revisions.
+   *
+   * The caller deliberately receives inactive and superseded relationship
+   * revisions. Deterministic graph capture must choose the newest revision
+   * for an exact endpoint pair before applying active/deprecated filters, or
+   * an older active revision could be resurrected.
+   */
+  async retrieveRevisionsTouchingExactEndpoints(endpointRevisions, options = {}) {
+    if (!Array.isArray(endpointRevisions) || endpointRevisions.length === 0) return [];
+
+    const batchSize = options.batchSize || 250;
+    const revisionsByKey = new Map();
+    try {
+      for (let offset = 0; offset < endpointRevisions.length; offset += batchSize) {
+        const batch = endpointRevisions.slice(offset, offset + batchSize);
+        const exactEndpointQueries = batch.flatMap((entry) => {
+          const objectModified = new Date(entry.object_modified);
+          return [
+            {
+              'workspace.relationship_endpoints.source.object_ref': entry.object_ref,
+              'workspace.relationship_endpoints.source.object_modified': objectModified,
+            },
+            {
+              'workspace.relationship_endpoints.target.object_ref': entry.object_ref,
+              'workspace.relationship_endpoints.target.object_modified': objectModified,
+            },
+          ];
+        });
+        const relationships = await this.model.find({ $or: exactEndpointQueries }).lean().exec();
+        for (const relationship of relationships) {
+          const key = `${relationship.stix.id}::${new Date(relationship.stix.modified).getTime()}`;
+          revisionsByKey.set(key, relationship);
+        }
+      }
+      return [...revisionsByKey.values()];
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async retrieveAllWithAttackURLInDescription() {
     const aggregation = [
       { $sort: { 'stix.id': 1, 'stix.modified': -1 } },

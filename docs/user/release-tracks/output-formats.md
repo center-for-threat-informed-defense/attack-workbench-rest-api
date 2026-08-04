@@ -40,6 +40,7 @@ shape for snapshot retrieval endpoints and is intended for the Workbench fronten
 ```
 
 **Characteristics:**
+
 - Preserves the release-track snapshot structure
 - Includes `members`, `staged`, `candidates`, and `quarantine` tier arrays when present
 - Member and quarantine `object_modified` values are exact timestamps.
@@ -83,7 +84,7 @@ Standard STIX bundle format:
     {
       "type": "attack-pattern",
       "id": "attack-pattern--aaa",
-      "name": "Technique A",
+      "name": "Technique A"
       // ... STIX properties only, no workflow info
     }
   ]
@@ -91,6 +92,7 @@ Standard STIX bundle format:
 ```
 
 **Characteristics:**
+
 - STIX compliant (2.1 by default; 2.0 via `stixVersion=2.0`). Per the STIX
   specifications, the bundle object carries `spec_version` only for STIX 2.0;
   STIX 2.1 bundles omit it and each object declares its own `spec_version`.
@@ -101,7 +103,9 @@ Standard STIX bundle format:
 - `LinkById` tags in descriptions are converted to markdown citations
 - Drafts, graphless tagged snapshots, and every export that includes candidate
   or staged tiers resolve the bounded graph live. A tagged member-only export
-  is deterministic only after its snapshot opts into a graph manifest.
+  is deterministic only after its snapshot opts into a graph manifest. That
+  manifest is closed over exact members: relationships are included only when
+  both exact endpoint revisions are members, and do not add secondary SDOs.
 - Frontends may describe manifest creation as **caching the bundle**. The
   cache pins the exact member graph for repeatable export; it is not a general
   performance cache, and candidate or staged additions remain live.
@@ -115,12 +119,12 @@ Standard STIX bundle format:
 
 **Bundle query parameters** (apply only when `format=bundle`):
 
-| Parameter | Values | Default | Description |
-|-----------|--------|---------|-------------|
-| `include` | `staged`, `candidates` (comma-separated or repeated) | _(members only)_ | Additional tiers to include in the bundle alongside members |
-| `state` | `work-in-progress`, `awaiting-review` (comma-separated or repeated) | _(no filter)_ | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included, irrespective of this parameter. Members are unaffected. |
-| `stixVersion` | `2.0`, `2.1` | `2.1` | STIX version the emitted bundle conforms to |
-| `includeToc` | `true`, `false` | `true` | Include a table-of-contents object (of type `x-mitre-collection`) as the first object in the bundle |
+| Parameter     | Values                                                              | Default          | Description                                                                                                                                                                            |
+| ------------- | ------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include`     | `staged`, `candidates` (comma-separated or repeated)                | _(members only)_ | Additional tiers to include in the bundle alongside members                                                                                                                            |
+| `state`       | `work-in-progress`, `awaiting-review` (comma-separated or repeated) | _(no filter)_    | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included, irrespective of this parameter. Members are unaffected. |
+| `stixVersion` | `2.0`, `2.1`                                                        | `2.1`            | STIX version the emitted bundle conforms to                                                                                                                                            |
+| `includeToc`  | `true`, `false`                                                     | `true`           | Include a table-of-contents object (of type `x-mitre-collection`) as the first object in the bundle                                                                                    |
 
 Examples:
 
@@ -170,6 +174,7 @@ collection-123/
 ```
 
 **Example Response:**
+
 ```json
 {
   "format": "filesystemstore",
@@ -177,21 +182,24 @@ collection-123/
     "x-mitre-collection": [
       {
         "filename": "x-mitre-collection--123.json",
-        "content": { /* STIX object */ }
+        "content": {
+          /* STIX object */
+        }
       }
     ],
     "attack-pattern": [
       {
         "filename": "attack-pattern--aaa.json",
-        "content": { /* STIX object */ }
+        "content": {
+          /* STIX object */
+        }
       }
     ]
   }
 }
 ```
 
-> **NOTE**: The `filesystemstore` is still a *concept* that will need additional refinement before it can be implemented. We will need to figure out an optimal way to return JSON files to the user. Optionally, we can attempt to generate an archive and serialize it over the wire, though this may be slow and error prone. Additionally, we can allow users to specify an output path via S3, FTP, etc. 
-
+> **NOTE**: The `filesystemstore` is still a _concept_ that will need additional refinement before it can be implemented. We will need to figure out an optimal way to return JSON files to the user. Optionally, we can attempt to generate an archive and serialize it over the wire, though this may be slow and error prone. Additionally, we can allow users to specify an output path via S3, FTP, etc.
 
 ### Format Usage
 

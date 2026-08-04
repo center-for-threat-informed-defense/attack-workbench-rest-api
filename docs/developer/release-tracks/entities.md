@@ -453,14 +453,15 @@ snapshots, and later component activity cannot change the persisted virtual
 snapshot.
 
 A tagged snapshot may optionally reference an internal schema-v2 member graph
-manifest. `POST /api/release-tracks/:id/snapshots/:modified/graph` resolves the
-bounded graph from `members` and stores exact-revision pointers for primary,
-relationship, secondary, versioned supporting, and LinkById objects. Only
-unversioned supporting objects such as marking definitions retain a frozen
-payload. Drafts are always graphless. A tagged snapshot without a manifest is
-exportable, but graph relationships and secondary objects are resolved live.
-Exports that include `candidates` or `staged` are also live even when the
-tagged snapshot has a member manifest.
+manifest. `POST /api/release-tracks/:id/snapshots/:modified/graph` closes the
+graph over exact `members` and stores exact-revision pointers for those roots,
+relationships whose two endpoint revisions are members, versioned supporting
+objects, and LinkById targets. Ordinary graphs contain no relationship-added
+secondary SDOs. Only unversioned supporting objects such as marking definitions
+retain a frozen payload. Drafts are always graphless. A tagged snapshot without
+a manifest is exportable, but graph relationships and secondary objects are
+resolved live. Exports that include `candidates` or `staged` are also live even
+when the tagged snapshot has a member manifest.
 
 The three valid `snapshot_schedule` shapes are:
 

@@ -426,7 +426,9 @@ deterministic member graph has been materialized also contains the opaque
 Graph statistics describe the cached graph at a glance:
 
 - `primary_count`: member objects deliberately selected for the snapshot.
-- `secondary_count`: related objects reached by graph resolution.
+- `secondary_count`: source-attested historical non-member objects. Ordinary
+  deterministic member graphs report zero because relationships do not expand
+  SDO membership.
 - `relationship_count`: relationships connecting cached graph objects.
 - `supporting_count`: supporting identities and marking definitions.
 - `link_target_count`: objects pinned for deterministic LinkById expansion.
@@ -455,11 +457,11 @@ Inapplicable count keys are omitted rather than returned as zero.
       "members_count": 3247,
       "graph_statistics": {
         "primary_count": 3247,
-        "secondary_count": 812,
+        "secondary_count": 0,
         "relationship_count": 6841,
         "supporting_count": 5,
         "link_target_count": 17,
-        "total_count": 10922
+        "total_count": 10110
       },
       "staged_count": 18,
       "candidates_count": 5
@@ -699,9 +701,18 @@ DELETE /api/release-tracks/:id/snapshots/:modified/graph
 Only tagged snapshots may have graphs. POST resolves the snapshot's `members`
 into a pointer-only exact-revision manifest and returns `201`; repeating it is
 idempotent and returns `200`. DELETE removes the manifest and returns `204`
-even when no graph exists. Graphless bundles resolve relationships and
+even when no graph exists. Ordinary graph creation emits only member SDO
+revisions and relationships whose two exact stored endpoint revisions are both
+members. It never follows a relationship to add a secondary SDO or a newer
+revision of an existing member. Graphless bundles resolve relationships and
 secondary objects live. Requests that include candidates or staged objects
 remain live even if the tagged snapshot has a graph.
+
+When the immediately preceding tagged snapshot has a graph, its still-valid
+relationship pointers seed the new graph. Current exact relationship revisions
+are selected through indexed endpoint lookups and take precedence. This lets a
+source-attested historical baseline anchor later releases without preventing
+new relationships between unchanged members from being discovered.
 
 User interfaces may present this operation as **caching the bundle**: a cached
 indicator means member-only bundle exports reuse the exact object and
@@ -1445,11 +1456,12 @@ retrieval never recomputes virtual composition. As long as the track does not
 acquire a newer snapshot, `/snapshots/latest` selects the same primary revision
 set, and `/snapshots/:modified` addresses that set explicitly.
 
-Virtual snapshot persistence freezes primary membership, not the bounded
-bundle graph. A tagged snapshot may opt into the graph separately through the
-graph endpoint above. Until then, relationships and secondary objects resolve
-live. Hard deletes of graph-pinned revisions return `409 Conflict`; every
-STIX-changing PUT returns `409` regardless of graph state.
+Virtual snapshot persistence freezes primary membership, not the bundle graph.
+A tagged snapshot may opt into the graph separately through the graph endpoint
+above. The deterministic graph is closed over those exact members; until it is
+created, relationships and secondary objects resolve live. Hard deletes of
+graph-pinned revisions return `409 Conflict`; every STIX-changing PUT returns
+`409` regardless of graph state.
 
 Candidate and staged exports are intentionally live, including exact-selector
 entries, because determinism is guaranteed only for `members`. A `"latest"`

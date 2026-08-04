@@ -608,7 +608,12 @@ async function createGraph(trackId, modified, prepareManifest, validateExisting)
 }
 
 exports.createGraph = function createLiveGraph(trackId, modified) {
-  return createGraph(trackId, modified, (snapshot) => graphManifestService.prepare(snapshot));
+  return createGraph(trackId, modified, async (snapshot) => {
+    const predecessor = await dynamicRepo.getLatestTaggedSnapshotBefore(trackId, snapshot.modified);
+    return graphManifestService.prepare(snapshot, {
+      predecessorManifestId: predecessor?.graph_manifest_id,
+    });
+  });
 };
 
 exports.reconstructGraph = function reconstructGraph(trackId, modified, plan) {

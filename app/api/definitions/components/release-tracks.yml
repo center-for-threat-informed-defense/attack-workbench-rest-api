@@ -131,7 +131,7 @@ components:
         secondary_count:
           type: integer
           minimum: 0
-          description: 'Related objects reached while resolving the bounded member graph'
+          description: 'Source-attested historical non-member objects; zero for ordinary closed-member graphs'
         relationship_count:
           type: integer
           minimum: 0

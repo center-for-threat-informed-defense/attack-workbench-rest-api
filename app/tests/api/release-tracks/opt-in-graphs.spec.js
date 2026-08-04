@@ -14,6 +14,7 @@ const {
 } = require('../../../models/release-tracks/release-track-graph-manifest-model');
 const relationshipsRepository = require('../../../repository/relationships-repository');
 const AttackObject = require('../../../models/attack-object-model');
+const Relationship = require('../../../models/relationship-model');
 const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const markingDefinitionId = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
@@ -87,7 +88,7 @@ describe('Opt-in deterministic release-track graphs', function () {
     return post('/api/release-tracks/new', { name, type: 'standard' });
   }
 
-  async function sourcePlan(primary, secondary, relationshipRevision) {
+  async function sourcePlan(primary, secondary, relationshipRevision, secondaryKind = 'secondary') {
     const supporting = await AttackObject.find({
       'stix.id': {
         $in: [primary.stix.created_by_ref, markingDefinitionId],
@@ -111,7 +112,7 @@ describe('Opt-in deterministic release-track graphs', function () {
           omitted_optional_defaults: ['revoked'],
         },
         {
-          kind: 'secondary',
+          kind: secondaryKind,
           object_ref: secondary.stix.id,
           object_modified: secondary.stix.modified,
         },
@@ -145,7 +146,7 @@ describe('Opt-in deterministic release-track graphs', function () {
     const secondary = await post('/api/techniques', technique('Opt-in Graph Secondary'));
     const originalRelationship = await post('/api/relationships', relationship(primary, secondary));
     const track = await createTrack('Opt in Graph Track');
-    const released = await releaseExactMembers(app, passportCookie, track.id, [primary]);
+    const released = await releaseExactMembers(app, passportCookie, track.id, [primary, secondary]);
 
     expect(released).not.toHaveProperty('graph_manifest_id');
     expect(await ReleaseTrackGraphManifest.countDocuments({ track_id: track.id })).toBe(0);
@@ -185,7 +186,7 @@ describe('Opt-in deterministic release-track graphs', function () {
           object_modified: expect.any(Date),
         }),
         expect.objectContaining({
-          kind: 'secondary',
+          kind: 'root',
           object_ref: secondary.stix.id,
           object_modified: expect.any(Date),
         }),
@@ -198,7 +199,8 @@ describe('Opt-in deterministic release-track graphs', function () {
     );
     const relationshipEntry = entries.find((entry) => entry.kind === 'relationship');
     expect(relationshipEntry).not.toHaveProperty('frozen_stix');
-    for (const entry of entries.filter((item) => ['root', 'secondary'].includes(item.kind))) {
+    expect(entries.filter((entry) => entry.kind === 'secondary')).toHaveLength(0);
+    for (const entry of entries.filter((item) => item.kind === 'root')) {
       expect(entry.discovered_from).toBeUndefined();
     }
     const markingEntry = entries.find((entry) => entry.object_ref === markingDefinitionId);
@@ -257,6 +259,194 @@ describe('Opt-in deterministic release-track graphs', function () {
     );
     expect(liveRelationship.modified).toBe(correctedRelationship.stix.modified);
     expect(liveRelationship.description).toBe('New relationship revision');
+  });
+
+  it('closes deterministic graphs over exact members without pulling secondary revisions', async function () {
+    const member = await post('/api/techniques', technique('Closed Graph Member'));
+    const outside = await post('/api/techniques', technique('Closed Graph Outside Object'));
+    const excludedRelationship = await post('/api/relationships', relationship(member, outside));
+    const track = await createTrack('Closed Member Graph Track');
+    const released = await releaseExactMembers(app, passportCookie, track.id, [member]);
+
+    const graphSnapshot = await post(
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(released.modified)}/graph`,
+      {},
+    );
+    const entries = await ReleaseTrackGraphManifestEntry.find({
+      manifest_id: graphSnapshot.graph_manifest_id,
+    })
+      .lean()
+      .exec();
+
+    expect(entries.filter((entry) => entry.kind === 'root')).toHaveLength(1);
+    expect(entries.some((entry) => entry.object_ref === outside.stix.id)).toBe(false);
+    expect(entries.some((entry) => entry.object_ref === excludedRelationship.stix.id)).toBe(false);
+    expect(entries.some((entry) => entry.kind === 'secondary')).toBe(false);
+  });
+
+  it('does not leak a newer endpoint revision or its remapped relationship', async function () {
+    const original = await post('/api/techniques', technique('Revision-pinned Graph Member'));
+    const peer = await post('/api/techniques', technique('Revision-pinned Graph Peer'));
+    const originalRelationship = await post('/api/relationships', relationship(original, peer));
+    const track = await createTrack('Pinned Member Graph');
+    const released = await releaseExactMembers(app, passportCookie, track.id, [original, peer]);
+
+    const revisedPayload = structuredClone(original);
+    revisedPayload.stix.modified = new Date(
+      new Date(original.stix.modified).getTime() + 1000,
+    ).toISOString();
+    revisedPayload.stix.description = 'A later revision that is not a snapshot member';
+    const revised = await post('/api/techniques', revisedPayload);
+
+    const advancedRelationship = await Relationship.findOne({
+      'stix.id': originalRelationship.stix.id,
+      'workspace.relationship_endpoints.source.object_modified': revised.stix.modified,
+    })
+      .sort({ 'stix.modified': -1 })
+      .lean()
+      .exec();
+    expect(advancedRelationship).toBeTruthy();
+
+    const graphSnapshot = await post(
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(released.modified)}/graph`,
+      {},
+    );
+    const entries = await ReleaseTrackGraphManifestEntry.find({
+      manifest_id: graphSnapshot.graph_manifest_id,
+    })
+      .lean()
+      .exec();
+    const objectEntries = entries.filter((entry) =>
+      [original.stix.id, peer.stix.id].includes(entry.object_ref),
+    );
+    const relationshipEntries = entries.filter(
+      (entry) => entry.object_ref === originalRelationship.stix.id,
+    );
+
+    expect(objectEntries).toHaveLength(2);
+    expect(objectEntries.every((entry) => entry.kind === 'root')).toBe(true);
+    expect(
+      objectEntries.find((entry) => entry.object_ref === original.stix.id).object_modified,
+    ).toEqual(new Date(original.stix.modified));
+    expect(entries.some((entry) => entry.kind === 'secondary')).toBe(false);
+    expect(relationshipEntries).toHaveLength(1);
+    expect(relationshipEntries[0].object_modified).toEqual(
+      new Date(originalRelationship.stix.modified),
+    );
+
+    const bundle = (
+      await authenticated(
+        request(app).get(
+          `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(
+            released.modified,
+          )}?format=bundle`,
+        ),
+      ).expect(200)
+    ).body;
+    expect(bundle.objects.filter((object) => object.id === original.stix.id)).toEqual([
+      expect.objectContaining({ modified: original.stix.modified }),
+    ]);
+    expect(
+      bundle.objects.some(
+        (object) =>
+          object.id === originalRelationship.stix.id &&
+          object.modified === new Date(advancedRelationship.stix.modified).toISOString(),
+      ),
+    ).toBe(false);
+  });
+
+  it('does not resurrect an older active relationship when the newest exact revision is inactive', async function () {
+    const source = await post('/api/techniques', technique('Inactive Relationship Source'));
+    const target = await post('/api/techniques', technique('Inactive Relationship Target'));
+    const active = await post('/api/relationships', relationship(source, target));
+    const inactivePayload = relationship(source, target, active);
+    inactivePayload.stix.x_mitre_deprecated = true;
+    const inactive = await post('/api/relationships', inactivePayload);
+    const track = await createTrack('Inactive Relationship Graph Track');
+    const released = await releaseExactMembers(app, passportCookie, track.id, [source, target]);
+
+    const graphSnapshot = await post(
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(released.modified)}/graph`,
+      {},
+    );
+    const entries = await ReleaseTrackGraphManifestEntry.find({
+      manifest_id: graphSnapshot.graph_manifest_id,
+      object_ref: active.stix.id,
+    })
+      .lean()
+      .exec();
+
+    expect(inactive.stix.id).toBe(active.stix.id);
+    expect(entries).toHaveLength(0);
+  });
+
+  it('carries source-attested v19.1 relationship pins into the next member graph', async function () {
+    const source = await post('/api/techniques', technique('Predecessor Graph Source'));
+    const target = await post('/api/techniques', technique('Predecessor Graph Target'));
+    const relationshipRevision = await post('/api/relationships', relationship(source, target));
+    const track = await createTrack('Predecessor Manifest Graph Track');
+    const baseline = await releaseExactMembers(app, passportCookie, track.id, [source, target], {
+      version: '1.0',
+    });
+    const plan = await sourcePlan(source, target, relationshipRevision, 'root');
+    await post(
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(
+        baseline.modified,
+      )}/graph/reconstruct`,
+      plan,
+    );
+
+    const storedRelationship = await Relationship.findOne({
+      'stix.id': relationshipRevision.stix.id,
+      'stix.modified': relationshipRevision.stix.modified,
+    })
+      .lean()
+      .exec();
+    await Relationship.collection.updateOne(
+      { _id: storedRelationship._id },
+      { $unset: { 'workspace.relationship_endpoints': '' } },
+    );
+
+    try {
+      await post(`/api/release-tracks/${track.id}/meta`, { description: 'v1.1 draft' }, 200);
+      const next = await post(
+        `/api/release-tracks/${track.id}/snapshots/latest/release`,
+        { version: '1.1' },
+        200,
+      );
+      const graphSnapshot = await post(
+        `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(next.modified)}/graph`,
+        {},
+      );
+      const carried = await ReleaseTrackGraphManifestEntry.findOne({
+        manifest_id: graphSnapshot.graph_manifest_id,
+        object_ref: relationshipRevision.stix.id,
+      })
+        .lean()
+        .exec();
+
+      expect(carried).toMatchObject({
+        kind: 'relationship',
+        source: {
+          object_ref: source.stix.id,
+          object_modified: new Date(source.stix.modified),
+        },
+        target: {
+          object_ref: target.stix.id,
+          object_modified: new Date(target.stix.modified),
+        },
+      });
+      expect(carried.object_modified).toEqual(new Date(relationshipRevision.stix.modified));
+    } finally {
+      await Relationship.collection.updateOne(
+        { _id: storedRelationship._id },
+        {
+          $set: {
+            'workspace.relationship_endpoints': storedRelationship.workspace.relationship_endpoints,
+          },
+        },
+      );
+    }
   });
 
   it('rejects graph creation for an untagged snapshot', async function () {

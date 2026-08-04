@@ -11,8 +11,8 @@
  * Covered behavior:
  *   - Default bundle contains members only, plus referenced identities and
  *     marking definitions (self-contained bundle)
- *   - Active relationships and their bounded secondary objects are frozen in
- *     a snapshot graph manifest
+ *   - A deterministic snapshot graph contains active relationships only when
+ *     both exact endpoint revisions are members
  *   - `include` adds staged and/or candidate tiers (comma-separated or
  *     repeated, singular or plural tier names)
  *   - `state` narrows the included staged/candidate entries by workflow
@@ -205,7 +205,7 @@ describe('Release Tracks Bundle Export API', function () {
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
         name: 'Bundle Secondary Group',
-        description: 'A relationship-discovered secondary object.',
+        description: 'A member endpoint for relationship graph tests.',
         spec_version: '2.1',
         type: 'intrusion-set',
         object_marking_refs: [staticMarkingDefinitionId],
@@ -252,6 +252,7 @@ describe('Release Tracks Bundle Export API', function () {
       memberObject,
       linkedMemberObject,
       relationshipSource,
+      secondaryGroup,
     ]);
     taggedModified = tagged.modified;
     await postAction(
@@ -438,7 +439,7 @@ describe('Release Tracks Bundle Export API', function () {
         created: timestamp,
         modified: timestamp,
         name: 'Graph protection cascade fixture',
-        description: 'Attempts to cascade-delete a protected secondary object.',
+        description: 'Attempts to cascade-delete a protected graph member.',
         x_mitre_version: '1.0',
         x_mitre_contents: [
           {

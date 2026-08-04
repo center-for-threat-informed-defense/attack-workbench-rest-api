@@ -5,6 +5,7 @@
 Virtual release tracks are computed aggregations of standard release tracks. They provide a way to compose releases from multiple source tracks without duplicating object tracking, reducing mental overhead and storage requirements.
 
 **Key Characteristics:**
+
 - Virtual tracks **compute** their contents from component standard tracks
 - Only reference **tagged snapshots** from standard tracks (never drafts)
 - Maintain their own **independent snapshot history and versioning**
@@ -26,6 +27,7 @@ Virtual Track (aggregation):
 ```
 
 **Workflow:**
+
 1. Each standard track releases independently on its own schedule
 2. Enterprise virtual track snapshots twice yearly (Jan 1, July 1)
 3. Each snapshot captures the **latest tagged release** from each component track
@@ -197,6 +199,7 @@ not silently discarded.
 Virtual tracks **only sync from component tracks' `members` tier** (`x_mitre_contents`). This ensures that virtual tracks only aggregate objects that have been officially released in their source tracks.
 
 **Important:**
+
 - Virtual tracks reference **tagged snapshots only** (never drafts)
 - Virtual tracks pull objects from **`members` tier only** (never staged or candidates)
 - This guarantees that virtual track releases are composed of stable, released content
@@ -228,11 +231,12 @@ filter and a Mobile filter, while `["mobile-attack"]` is excluded by an
 Enterprise filter. Objects without `x_mitre_domains` are excluded when a
 domain filter is set.
 
-The domain constraint also bounds the snapshot's publication graph. A
-relationship cannot pull a secondary object with an explicit, nonmatching
-`x_mitre_domains` value into the virtual bundle. Domainless identities,
-marking definitions, and other supporting metadata may still be included
-when referenced by an included object.
+The domain constraint determines the virtual snapshot's exact member set. An
+opt-in deterministic graph is closed over that set, so no relationship can
+pull any secondary SDO into the virtual bundle. Graphless live exports retain
+the compatibility domain check for relationship-discovered secondaries.
+Domainless identities, marking definitions, and other supporting metadata may
+still be included when referenced by an included object.
 
 `x_mitre_domains` is canonical object data. A cross-domain object has one
 revision containing the complete domain union; Workbench does not create or
@@ -275,11 +279,12 @@ Keep the version with the newest `modified` timestamp, regardless of which compo
 
 ```javascript
 deduplication: {
-  strategy: "prioritize_latest_object"
+  strategy: 'prioritize_latest_object';
 }
 ```
 
 **Example:**
+
 ```javascript
 // GroupsMonthly v5.2 has:
 //   intrusion-set--APT1, modified: 2024-02-01T10:00:00Z
@@ -300,11 +305,12 @@ Keep the version from the component track whose resolved snapshot has the newest
 
 ```javascript
 deduplication: {
-  strategy: "prioritize_latest_snapshot"
+  strategy: 'prioritize_latest_snapshot';
 }
 ```
 
 **Example:**
+
 ```javascript
 // GroupsMonthly v5.2
 //   - Snapshot created: 2024-02-15T10:00:00Z
@@ -349,6 +355,7 @@ composition: {
 ```
 
 **Example:**
+
 ```javascript
 // Authoritative track (priority: 1) has:
 //   intrusion-set--APT1, modified: 2024-01-01T10:00:00Z
@@ -377,11 +384,12 @@ entry for each distinct revision rather than one entry per component.
 
 ```javascript
 deduplication: {
-  strategy: "quarantine"
+  strategy: 'quarantine';
 }
 ```
 
 **Example:**
+
 ```javascript
 // GroupsMonthly has: intrusion-set--APT1, modified: 2024-02-01
 // MobileGroups has: intrusion-set--APT1, modified: 2024-01-15
@@ -440,13 +448,13 @@ Unlike standard release tracks (which use a three-tier system: candidates → st
 
 **Comparison to Standard Tracks:**
 
-| Feature | Standard Track | Virtual Track |
-|---------|---------------|---------------|
-| Tiers | candidates, staged, members | quarantine, members |
-| Object management | Direct (add/remove objects) | Indirect (synced from components) |
-| Workflow states | work-in-progress, awaiting-review, reviewed | N/A |
-| Auto-promotion | Based on candidacy threshold | N/A |
-| Manual promotion | candidates → staged → members | quarantine → members |
+| Feature           | Standard Track                              | Virtual Track                     |
+| ----------------- | ------------------------------------------- | --------------------------------- |
+| Tiers             | candidates, staged, members                 | quarantine, members               |
+| Object management | Direct (add/remove objects)                 | Indirect (synced from components) |
+| Workflow states   | work-in-progress, awaiting-review, reviewed | N/A                               |
+| Auto-promotion    | Based on candidacy threshold                | N/A                               |
+| Manual promotion  | candidates → staged → members               | quarantine → members              |
 
 **Why only two tiers?**
 
@@ -465,6 +473,7 @@ POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Request:**
+
 ```json
 {
   "description": "Q1 2024 Enterprise snapshot"
@@ -472,6 +481,7 @@ POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Response:**
+
 ```json
 {
   "id": "release-track--uuid-virtual",
@@ -609,6 +619,7 @@ GET /api/release-tracks/:id/snapshots/:modified?format=workbench&include=all
 ```
 
 **Response includes:**
+
 - All objects that will be in the release
 - Composition resolution details (which component versions were used)
 - The exact persisted members and quarantine tiers
@@ -636,13 +647,15 @@ POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 **Request:**
+
 ```json
 {
-  "increment": "major",  // or "minor", or explicit "version": "14.0"
+  "increment": "major" // or "minor", or explicit "version": "14.0"
 }
 ```
 
 **Response:**
+
 ```json
 {
   "id": "release-track--uuid-virtual",
@@ -680,6 +693,7 @@ produced its frozen contents. Standard release history entries omit this
 virtual-only property.
 
 **Business Logic:**
+
 1. Validate snapshot exists and is a draft (version === null)
 2. Calculate/validate version number
 3. Set version on snapshot (in-place update)
@@ -700,6 +714,7 @@ GET /api/release-tracks/:id/snapshots/:modified?format=bundle&stixVersion=2.0
 ```
 
 **Response:**
+
 ```json
 {
   "type": "bundle",
@@ -717,7 +732,7 @@ GET /api/release-tracks/:id/snapshots/:modified?format=bundle&stixVersion=2.0
         { "object_ref": "attack-pattern--T1234", "object_modified": "2024-01-10T10:00:00Z" }
         // ... all 870 objects
       ]
-    },
+    }
     // ... all 870 actual STIX objects
   ]
 }
@@ -811,13 +826,14 @@ for (const component of composition.component_tracks) {
   if (snapshot.version === null) {
     throw new ValidationError(
       `Component track ${component.track_id} resolved to draft snapshot. ` +
-      `Virtual tracks can only reference tagged snapshots.`
+        `Virtual tracks can only reference tagged snapshots.`,
     );
   }
 }
 ```
 
 **User experience:**
+
 ```bash
 POST /api/release-tracks/release-track--uuid-virtual/virtual/snapshots/create
 
@@ -840,10 +856,10 @@ async function validateComponentsAreStandard(virtualTrack) {
   for (const component of virtualTrack.composition.component_tracks) {
     const track = await getReleaseTrack(component.track_id);
 
-    if (track.type === "virtual") {
+    if (track.type === 'virtual') {
       throw new ValidationError(
         `Virtual tracks can only compose from standard tracks. ` +
-        `Component track ${component.track_id} is a virtual track.`
+          `Component track ${component.track_id} is a virtual track.`,
       );
     }
   }
@@ -859,6 +875,7 @@ POST /api/release-tracks/new
 ```
 
 **Request:**
+
 ```json
 {
   "type": "virtual",
@@ -895,6 +912,7 @@ PUT /api/release-tracks/:id/virtual/composition
 ```
 
 **Request:**
+
 ```json
 {
   "component_tracks": [
@@ -935,6 +953,7 @@ POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Request:**
+
 ```json
 {
   "description": "Q1 2024 snapshot"
@@ -948,6 +967,7 @@ POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 **Request:**
+
 ```json
 {
   "increment": "major"
@@ -978,6 +998,7 @@ GET /api/release-tracks/:id/snapshots/latest?format=workbench&include=all
 ```
 
 **Query params:**
+
 - `format`: `bundle` | `workbench` | `filesystemstore` (`filesystemstore` is not yet implemented and returns HTTP 501)
 - `include`: `members` | `quarantine` | `all`
 
@@ -1003,29 +1024,33 @@ Consequently, while the track does not acquire a newer snapshot,
 `latest` path segment selects the most recent snapshot; it is not a dynamic
 object-revision selector.
 
-This guarantee also covers the bounded `format=bundle` object graph.
-Relationship endpoint revisions, secondary objects, supporting objects, and
-LinkById render targets are frozen only after a tagged snapshot opts into a
-graph manifest; graphless snapshots resolve them live.
+This guarantee also covers `format=bundle` after the tagged snapshot opts into
+a graph manifest. The manifest emits only exact members plus relationships
+whose two exact endpoint revisions are members; supporting objects and LinkById
+render targets are pinned as dependencies. Graphless snapshots resolve the
+legacy bounded graph live.
 Repeated exports may use a different bundle-envelope UUID, but replay the same
 snapshot object graph. See
-[Bundle Export](../../developer/release-tracks/bundle-export.md#relationship-and-secondary-object-consistency-boundary).
+[Bundle Export](../../developer/release-tracks/bundle-export.md#closed-member-relationship-consistency-boundary).
 
 ## Quarantine Management
 
 When using the `quarantine` deduplication strategy, conflicting objects are stored in the virtual track's `quarantine` tier. Users must manually resolve these conflicts:
 
 **View quarantined objects:**
+
 ```bash
 GET /api/release-tracks/:id/snapshots/latest?include=quarantine
 ```
 
 **Manually promote a quarantined object to members:**
+
 ```bash
 POST /api/release-tracks/:id/virtual/quarantine/promote
 ```
 
 **Request:**
+
 ```json
 {
   "object_ref": "intrusion-set--11111111-1111-4111-8111-111111111111",
@@ -1034,6 +1059,7 @@ POST /api/release-tracks/:id/virtual/quarantine/promote
 ```
 
 **Effect:**
+
 - Requires the exact `(object_ref, object_modified)` pair to be quarantined
 - Creates a new draft with the selected revision in `members`
 - Replaces any prior member revision with the same `object_ref`
@@ -1156,7 +1182,7 @@ Resolve component tracks in parallel:
 const resolutions = await Promise.all(
   composition.component_tracks.map(async (component) => {
     return await resolveComponentSnapshot(component);
-  })
+  }),
 );
 ```
 
@@ -1226,10 +1252,10 @@ Add metadata to virtual track for documentation:
 
 ```javascript
 {
-  description: "Enterprise ATT&CK v14.0 includes:\n" +
-    "- Groups Monthly v1.3 (47 Groups)\n" +
-    "- Techniques Quarterly v2.1 (823 Techniques)\n" +
-    "- Software Biannual v1.0 (450 Software)"
+  description: 'Enterprise ATT&CK v14.0 includes:\n' +
+    '- Groups Monthly v1.3 (47 Groups)\n' +
+    '- Techniques Quarterly v2.1 (823 Techniques)\n' +
+    '- Software Biannual v1.0 (450 Software)';
 }
 ```
 

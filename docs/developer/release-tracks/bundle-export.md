@@ -106,10 +106,11 @@ STIX version serialization. The pipeline:
    the tagged snapshot has explicitly opted in. Graphless snapshots resolve a
    live bounded graph. Any request that includes `staged` or `candidates` is
    also live; determinism is promised for `members` only.
-3. **Bounded secondary selection** — graph resolution starts from the selected
-   roots and emits a relationship only when both exact endpoint revisions are
-   selected. Persisted schema-v2 manifests store exact-revision pointers, not
-   cloned STIX payloads.
+3. **Closed member graph** — persisted deterministic graphs emit only exact
+   `members` revisions as graph objects. A relationship is selected only when
+   both of its stored exact endpoint revisions are members; relationships do
+   not pull additional SDOs into the graph. Persisted schema-v2 manifests store
+   exact-revision pointers, not cloned STIX payloads.
 4. **Supporting objects** — referenced identities and marking definitions are
    appended. Versioned supporting objects use pointers; unversioned marking
    definitions retain a frozen payload in persisted graphs.
@@ -154,32 +155,35 @@ persist canonical domains so virtual composition, snapshot export, and
 ephemeral export observe the same membership.
 
 Because snapshot contents are explicitly curated, primary entries do **not**
-receive the legacy attack-id / deprecated / revoked filters. Secondary graph
-resolution retains the established bounded ATT&CK expansion rules. It is
-frozen only when a tagged snapshot opts into a graph.
+receive the legacy attack-id / deprecated / revoked filters. Graphless and
+candidate/staged exports retain the established live bounded ATT&CK expansion
+rules. A persisted deterministic member graph instead closes over `members`
+and never discovers additional SDO revisions through relationships.
 
-#### Relationship and secondary-object consistency boundary
+#### Closed-member relationship consistency boundary
 
-Release-track snapshots distinguish **primary** and **secondary** content:
+Release-track exports distinguish persisted deterministic content from live
+compatibility expansion:
 
 - Primary objects are explicit snapshot tier entries. Members and quarantine
   record exact `(object_ref, object_modified)` revisions. Standard candidates
   and staged entries may instead store `"latest"` and are resolved just in
   time when a draft export includes those tiers.
-- Secondary objects are not snapshot members. They are discovered when the
-  graph is resolved because an exact-pinned SRO connects them to a primary,
-  the bounded ATT&CK rules identify a detection strategy, or the bundle needs
-  a supporting identity, marking definition, or LinkById render target.
+- A persisted deterministic graph contains only `members` as graph objects.
+  Relationships, supporting identities/marking definitions, and non-emitted
+  LinkById targets are dependencies, not implicit membership. A relationship
+  endpoint outside `members` causes that relationship to be omitted.
+- Graphless and candidate/staged exports remain live and may use the legacy
+  secondary-object expansion rules. They carry no determinism guarantee.
 
 Tagged standard membership is deterministic because release planning resolves
 staged selectors before promoting them to members. Virtual materialization
 likewise copies exact member revisions from tagged component snapshots and
 never follows a component's later `track_latest` candidate movement.
-When a virtual component declares `filters.domains`, the same allowed-domain
-set bounds relationship-discovered secondary objects during graph capture.
-An explicitly domain-bearing secondary object from another domain is not
-included merely because it has a relationship to an included primary root.
-Domainless supporting metadata remains eligible.
+When a virtual component declares `filters.domains`, virtual materialization
+uses those filters to choose exact primary members. Deterministic graph capture
+does not perform a second domain-inference pass: the materialized member set is
+the complete SDO boundary. Domainless supporting metadata remains eligible.
 
 Every relationship revision stores server-controlled exact source and target
 pins under `workspace.relationship_endpoints`. These fields identify the
@@ -190,11 +194,13 @@ updated pins rather than rewriting the older SRO.
 
 Snapshots are graphless by default. After tagging, an editor may call
 `POST /api/release-tracks/:id/snapshots/:modified/graph`. The service builds a
-schema-v2 member graph, writes a pending manifest and decoupled entry rows,
-rehydrates every pointer while those pending rows already protect deletion,
-then atomically attaches the manifest ID to the still-tagged snapshot. Replay
-can self-activate a complete linked pending manifest after an interrupted
-activation. `DELETE` on the same graph resource detaches and removes it.
+schema-v2 closed-member graph. It rejects duplicate member revisions for one
+STIX ID, selects relationship revisions only when both exact endpoint pins are
+members, writes a pending manifest and decoupled entry rows, rehydrates every
+pointer while those pending rows already protect deletion, then atomically
+attaches the manifest ID to the still-tagged snapshot. Replay can self-activate
+a complete linked pending manifest after an interrupted activation. `DELETE`
+on the same graph resource detaches and removes it.
 
 Historical baselines whose relationships predate endpoint-pin capture require
 a different, admin-only path:
@@ -230,14 +236,32 @@ those false values and retain them. True values and every other payload
 difference remain significant. Ordinary release-track exports retain their
 existing serialization.
 
-Graph creation uses an indexed relationship frontier rather than scanning all
-relationships. It starts with member IDs, queries only current relationship
-lineages touching the frontier, batch-hydrates exact endpoints by STIX type,
-and repeats only when bounded resolution discovers another relevant object
-ID. This retains secondary-to-secondary edges without rebuilding unrelated
-database state. Incremental reuse from a previous snapshot is deliberately
-deferred: an unchanged member set does not prove an unchanged graph because a
-new relationship can connect to an old member.
+Ordinary graph creation uses the compound indexes on
+`workspace.relationship_endpoints.{source,target}` rather than scanning all
+relationships. Exact member revisions are queried in bounded batches. A
+candidate survives only when both exact endpoint pairs occur in `members`.
+Candidates are then grouped by relationship lineage and exact endpoint pair;
+the newest revision wins before revoked, deprecated, and obsolete-pattern
+filters run, so an older active revision cannot be resurrected by a newer
+inactive revision.
+
+The immediately preceding tagged graph also seeds relationship candidates
+whose exact endpoints remain members. This creates a provenance chain from a
+source-attested v19.1 baseline, including legacy relationships whose current
+`workspace.relationship_endpoints` metadata cannot be reconstructed
+truthfully. The indexed database query is still performed on every graph so a
+new relationship connecting unchanged members is discovered. Current exact
+relationship revisions override carried history; removed or revised member
+endpoints naturally drop predecessor edges.
+
+Ordinary manifests created by this algorithm use resolver version
+`closed-member-graph-v3`. Existing `bounded-member-graph-v2` manifests are not
+rewritten in place. To repair an affected post-v19.1 graph, preserve the
+source-attested v1.0 baseline, DELETE only the affected later snapshot's graph,
+then POST that graph again. If the tagged snapshot's member pins are already
+correct, deleting the snapshot itself is unnecessary; the recreated graph uses
+v1.0 (or the immediately preceding tagged graph) as its predecessor. Published
+artifacts produced from the removed graph must be regenerated.
 
 Active and pending manifests protect every exact versioned dependency from
 hard deletion. Persisted STIX content is globally immutable through PUT,

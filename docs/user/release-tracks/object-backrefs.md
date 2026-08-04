@@ -24,11 +24,11 @@ scanning tracks.
 }
 ```
 
-| Field | Values | Meaning |
-|-------|--------|---------|
-| `id` | `release-track--<uuid>` | The referencing release track |
-| `type` | `standard`, `virtual` | The type of the referencing release track |
-| `tier` | `members`, `staged`, `candidates`, `quarantine` | Which tier of the track references this revision; values match the snapshot tier array names |
+| Field    | Values                                                                 | Meaning                                                                                                                                       |
+| -------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`     | `release-track--<uuid>`                                                | The referencing release track                                                                                                                 |
+| `type`   | `standard`, `virtual`                                                  | The type of the referencing release track                                                                                                     |
+| `tier`   | `members`, `staged`, `candidates`, `quarantine`                        | Which tier of the track references this revision; values match the snapshot tier array names                                                  |
 | `status` | `modified-in-place`, `work-in-progress`, `awaiting-review`, `reviewed` | Track-scoped workflow status (`modified-in-place` is retained for legacy data but is no longer produced because STIX revisions are immutable) |
 
 An object referenced by multiple tracks carries one entry per track.
@@ -54,7 +54,7 @@ An object referenced by multiple tracks carries one entry per track.
   is, while an explicitly chosen `"latest"` selector still follows the newest
   revision because that behavior is inherent in the selector; use
   `?versions=all` to see membership across revisions.
-- **Reflects the latest snapshot.** Backrefs mirror the track's *current*
+- **Reflects the latest snapshot.** Backrefs mirror the track's _current_
   (most recent) snapshot. Deleting the latest snapshot reverts backrefs to the
   previous snapshot's membership; deleting a track removes all of its entries.
   Entries written before the `type` field existed are backfilled
@@ -91,9 +91,11 @@ Release tracks are never blind to changes in the objects they pin:
   (`revoked: true`); revision sync enrolls it as a candidate in tracks where
   the object is a member and moves candidate/staged pins to it. The revoking
   object and the `revoked-by` relationship are not direct track members.
-  Snapshot creation captures them as bounded secondary graph dependencies
-  when applicable; later member-only bundle export replays its exact revision
-  pointers. Unversioned marking definitions are the frozen-payload exception.
+  Live graphless exports may discover them through compatibility expansion.
+  An opt-in deterministic graph includes the relationship only when both
+  exact endpoint revisions are direct members; it never promotes an endpoint
+  to secondary membership. Unversioned marking definitions are the
+  frozen-payload exception.
 
 ## Lifecycle example
 

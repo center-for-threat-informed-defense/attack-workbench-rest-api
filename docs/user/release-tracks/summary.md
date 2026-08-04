@@ -23,12 +23,14 @@ The existing Collections API has five major issues:
 The Release Tracks API supports two types of release tracks:
 
 **Standard Release Tracks** - Direct object lifecycle management (the traditional model)
+
 - Manage objects through the candidate → staged → released workflow
 - Source of truth for specific object types or content domains
 - Create snapshots when objects are added/removed or configuration changes
 - Examples: "GroupsMonthly", "TechniquesQuarterly", "SoftwareBiannual"
 
 **Virtual Release Tracks** - Computed aggregations of other release tracks (NEW)
+
 - Compose content from multiple standard tracks; virtual-track nesting is not
   supported
 - No duplicate object tracking - objects managed in source tracks only
@@ -46,6 +48,7 @@ See [virtual-tracks.md](./virtual-tracks.md) for complete virtual track document
 ### 1. Unified API Structure
 
 **Old API:**
+
 ```
 GET  /api/stix-bundles              (ephemeral bundles)
 GET  /api/collection-bundles         (export)
@@ -58,6 +61,7 @@ GET  /api/collections/:id            (retrieve)
 **New API V2 (partial preview):**
 
 The new API is still a work in progress. The source of truth is located in [api-reference.md](./api-reference.md). The following is a preview. If there are any discrepencies between what is shown here and what is shown in [api-reference.md](./api-reference.md), defer to the latter.
+
 ```
 # Ephemeral bundles (stateless)
 GET  /api/release-tracks/ephemeral/:domain
@@ -92,6 +96,7 @@ DELETE /api/release-tracks/:id/snapshots/:modified/graph
 We borrow heavily concepts from git. Snapshots are sort of like commits and tagged releases are like git tags. A release track contains snapshots: delta permutations that can be linearly tracked to deduce how the release track has evolved over time. A snapshot is generated every time a supported draft operation changes state, such as adding or promoting candidates, updating release-track configuration, or renaming the release track.
 
 **Snapshots** (like Git commits)
+
 - Every supported modification creates a replacement draft snapshot
 - Identified by `stix.modified` timestamp
 - Immutable once created
@@ -99,6 +104,7 @@ We borrow heavily concepts from git. Snapshots are sort of like commits and tagg
 - May be a **draft release** (untagged) or **tagged release** (has version number)
 
 **Tagged Releases** (like Git tags)
+
 - Snapshots are tagged with `version`, which when exported/retrieved as a STIX bundle, will be expressed as `x_mitre_version`. Draft snapshots are denoted by the fact that their `version` key is set to `null`.
 - Uses MAJOR.MINOR versioning (not MAJOR.MINOR.PATCH), as specified by the [`x_mitre_version` ADM schema](https://github.com/mitre-attack/attack-data-model/blob/f249442b3588de9cca84b819d480306b106d2c1f/src/schemas/common/property-schemas/attack-versioning.ts#L21:L26)
 - Snapshots are tagged in-place (no duplicate data)
@@ -110,11 +116,12 @@ We borrow heavily concepts from git. Snapshots are sort of like commits and tagg
 We use the preexisting object workflow statuses, `work-in-progress`, `awaiting-review`, and `reviewed`, to control each object's "standing" in a release track.
 
 There are three types of membership "standings":
-  1. **Candidate**: When an object is first added to a release track, is it considered a candidate. It does not have full membership yet; if the snapshot were to be tagged and released right now, candidates would not be included.
-  2. **Staged**: Once a candidate's workflow status meets the release track's ["candidacy threshold"](./release-workflow.md#candidacy-threshold-configuration) criteria, it will automatically become staged. Once the snapshot is tagged/released, staged objects will be included in the resultant bundle's `x_mitre_contents`.
-  3. **Member**: Objects are considered "members" if they are "cooked" into the `x_mitre_contents` array of the current snapshot. These are considered already released.
 
-This presents a tenable solution to the classic "STIX freeze" dilemma wherein editors cannot begin working on the next-*next* (e.g., v20) release until all objects in the next (e.g., v19) release have been released. Staged objects are locked in for the imminent release, but editors are free to continue iterating on future object changes and can queue them up as candidates without affecting the permutation that has already been staged for the imminent release.
+1. **Candidate**: When an object is first added to a release track, is it considered a candidate. It does not have full membership yet; if the snapshot were to be tagged and released right now, candidates would not be included.
+2. **Staged**: Once a candidate's workflow status meets the release track's ["candidacy threshold"](./release-workflow.md#candidacy-threshold-configuration) criteria, it will automatically become staged. Once the snapshot is tagged/released, staged objects will be included in the resultant bundle's `x_mitre_contents`.
+3. **Member**: Objects are considered "members" if they are "cooked" into the `x_mitre_contents` array of the current snapshot. These are considered already released.
+
+This presents a tenable solution to the classic "STIX freeze" dilemma wherein editors cannot begin working on the next-_next_ (e.g., v20) release until all objects in the next (e.g., v19) release have been released. Staged objects are locked in for the imminent release, but editors are free to continue iterating on future object changes and can queue them up as candidates without affecting the permutation that has already been staged for the imminent release.
 
 Candidate requests may use `modified: "latest"` (or omit it) to create a
 dynamic workflow reference. That selector remains `"latest"` while the entry
@@ -134,9 +141,13 @@ records the revision resolved by the commit itself.
 
 Snapshots are graphless by default. After tagging, callers may opt into a
 deterministic member graph with `POST .../snapshots/:modified/graph`. The graph
-stores exact-revision pointers for relationships, secondary objects,
-versioned supporting objects, and LinkById targets; unversioned marking
-definitions are frozen by value. `DELETE` on the graph resource returns the
+stores the exact `members` revisions plus pointer-only relationships whose two
+exact endpoint revisions are both members. Relationships never pull secondary
+SDOs or newer revisions into a deterministic graph. Versioned supporting
+objects and LinkById targets are also pointers; unversioned marking definitions
+are frozen by value. A new graph carries still-valid relationship pointers
+from the preceding tagged graph, allowing a source-attested historical
+baseline to anchor later releases. `DELETE` on the graph resource returns the
 snapshot to live graph resolution. Candidate/staged bundle additions are
 always live. The generated bundle-envelope ID itself is not stable.
 
@@ -178,9 +189,9 @@ Snapshot tagged
 Each release track can set its own candidacy threshold:
 
 ```javascript
-workspace.config.candidacy_threshold = "reviewed"  // Default
-workspace.config.candidacy_threshold = "awaiting-review"  // Permissive
-workspace.config.candidacy_threshold = "work-in-progress"  // Very permissive
+workspace.config.candidacy_threshold = 'reviewed'; // Default
+workspace.config.candidacy_threshold = 'awaiting-review'; // Permissive
+workspace.config.candidacy_threshold = 'work-in-progress'; // Very permissive
 ```
 
 ### Multiple Output Formats
@@ -192,17 +203,20 @@ workspace.config.candidacy_threshold = "work-in-progress"  // Very permissive
 ### Release previews
 
 The default format provides a before/after summary:
+
 ```
 GET /api/release-tracks/:id/snapshots/latest/release/preview
   ?format=summary
   &increment=minor
 ```
+
 `format=filesystemstore` is reserved for future FileSystemStore export support and currently returns HTTP 501.
 
 Use `format=workbench` for the literal would-be snapshot or `format=bundle`
 for its publication representation. Previewing never persists.
 
 Commit whichever snapshot is latest when the release request is handled:
+
 ```
 POST /api/release-tracks/:id/snapshots/latest/release
 {
