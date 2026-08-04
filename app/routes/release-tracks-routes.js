@@ -266,6 +266,14 @@ router
   );
 
 router
+  .route('/release-tracks/:id/snapshots/:modified/graph/reconstruct')
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.admin),
+    releaseTracksController.reconstructSnapshotGraph,
+  );
+
+router
   .route('/release-tracks/:id/snapshots/:modified/graph')
   .post(
     authn.authenticate,

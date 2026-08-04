@@ -1,5 +1,296 @@
 # Release Track TODOs
 
+## Frontend graph cache lifecycle controls
+
+- [x] Replace the static cache-materialization hourglass with the existing
+      Angular Material indeterminate spinner.
+- [x] Add an editor-only, confirmed delete action for cached snapshot graphs,
+      including progress and success/error feedback.
+- [x] Add connector/component regressions, update frontend behavior notes, and
+      run focused plus complete frontend verification.
+
+Verification (2026-08-03):
+
+- Focused Angular connector/component regressions pass: 68 tests. The complete
+  frontend suite passes: 162 files and 366 tests.
+- Targeted ESLint and Prettier checks pass. The production Angular build passes
+  with the local persistent cache temporarily disabled to avoid the documented
+  environment-specific native crash; `angular.json` was restored afterward.
+- Proposed frontend commit: `feat(release-tracks): manage snapshot bundle
+  caches`.
+
+## Source-attested v19.1 graph reconstruction
+
+- [x] Add fail-closed regressions for canonical-domain migration when exact
+      collection TOC provenance is unavailable; never infer Enterprise from
+      missing evidence.
+- [x] Add an administrator-only schema-v2 source reconstruction endpoint that
+      validates a closed pointer plan against tagged snapshot members and
+      persisted exact revisions.
+- [x] Build v19.1 source plans without importing bundles, inferring legacy SRO
+      endpoint revisions from the unique objects emitted in each source bundle.
+- [x] Validate the complete source plan against MongoDB before tagging, then
+      attach it atomically and require a final bundle comparison.
+- [x] Update OpenAPI, Bruno, operator/developer documentation, and bootstrap
+      recovery guidance.
+- [x] Run focused migration, reconstruction, and bootstrap regressions; then
+      lint and the complete `npm test` suite.
+
+Verification (2026-08-03):
+
+- Canonical-domain migration regressions pass: 9 cases. Unmapped domainless
+  objects remain unchanged, are reported, and keep the legacy bypasses active.
+- Source reconstruction regressions pass: 5 cases. They prove exact historical
+  relationship and endpoint revisions replay after their live lineages advance,
+  reject incomplete pointer plans, and enforce source-attestation idempotence.
+- Bootstrap regressions pass: 33 cases. Source bundles are never imported;
+  30,649 emitted-object pointers and 54 non-emitted LinkById dependency
+  pointers are hydrated from MongoDB before tagging. The largest
+  reconstruction request remains below the 50 MiB API request limit and
+  outside the 16 MiB per-document BSON limit.
+- The clean complete REST suite passes: OpenAPI 2, config 21, API 995,
+  middleware 29, and scheduler 10. Four roaming harness failures in the first
+  run passed independently (13, 24, 25, and 4 cases) before the clean rerun.
+- Repository ESLint, Python Ruff, Python bytecode compilation, and diff
+  whitespace validation pass.
+- Proposed commit: `fix(release-tracks): attest v19.1 snapshot graphs`.
+
+### Historical relationship hydration follow-up
+
+- [x] Reproduce the 21,025 missing Enterprise revisions against the restored
+      production-shaped database and classify payload differences.
+- [x] Hydrate relationship pointers from the dedicated MongoDB collection and
+      render LinkById fields through the same deterministic export semantics.
+- [x] Add regressions that fail on relationship content drift while accepting
+      exact persisted timestamps and export-only LinkById rendering.
+- [x] Update bootstrap documentation and run focused plus complete verification.
+
+Verification (2026-08-03):
+
+- The 21,025 failures are exactly the Enterprise relationship count. Every
+  sampled exact timestamp exists in MongoDB's dedicated `relationships`
+  collection; the bootstrap had incorrectly queried `attackObjects` for all
+  pointer kinds.
+- All 24,552 v19.1 relationships were audited read-only. Of those, 5,624 raw
+  payloads already match exactly and 18,928 differ only because exports render
+  persisted `(LinkById: ...)` tags as Markdown links.
+- A production-shaped preflight reconstructs Enterprise (25,851 graph entries),
+  ICS (2,201), and Mobile (2,651) with zero missing, changed, or additional
+  emitted objects. The 54 entries beyond the 30,649 emitted objects are exact,
+  non-emitted cross-domain LinkById dependencies.
+- Bootstrap regressions pass: 33 cases. Focused source-graph regressions pass:
+  5 cases. The clean complete REST suite passes: OpenAPI 2, config 21, API 995,
+  middleware 29, and scheduler 10.
+- A separate test-only correction serializes a Mongoose snapshot date before
+  placing it in a graph URL; its isolated virtual-graph-integrity spec passes:
+  3 cases.
+- Proposed implementation commit: `fix(release-tracks): hydrate historical
+  relationship graphs`. Proposed test-only commit: `test(release-tracks):
+  serialize snapshot timestamps in graph URLs`.
+
+## Snapshot-history graph cache statistics
+
+- [x] Add regression coverage for exact manifest-kind counts on cached
+      snapshot summaries and omission on uncached snapshots.
+- [x] Aggregate graph cache statistics for every manifest on a history page in
+      one indexed query and expose the typed summary through OpenAPI.
+- [x] Show CTI-oriented Primary, Secondary, Relationships, and Dependencies
+      statistics for cached snapshots in the frontend History tab.
+- [x] Update release-track user/developer documentation and run focused plus
+      complete backend/frontend verification.
+
+Verification (2026-08-03):
+
+- Focused snapshot-history regressions pass: 7 REST cases and 65 Angular
+  connector/component cases. OpenAPI validation passes.
+- The complete frontend suite passes: 162 files and 363 tests. The Angular
+  build passes with the local persistent cache temporarily disabled to avoid
+  the environment-specific native cache crash; `angular.json` was restored.
+- The complete REST suite passes: OpenAPI 2, config 21, API 994, middleware 29,
+  and scheduler 10. A documented roaming backref setup flake passed all 24
+  cases in isolation before the clean complete rerun.
+- REST lint and targeted frontend ESLint/Prettier checks pass. The performance
+  audit is `PERFORMANT`: one indexed aggregate covers every manifest on the
+  bounded history page, with no per-snapshot query.
+- Proposed REST commit: `feat(release-tracks): expose graph cache statistics`.
+- Proposed frontend commit: `feat(release-tracks): show graph cache statistics`.
+
+## v19.1 bootstrap graph lifecycle and canonical-domain correction
+
+- [x] Add regressions proving canonical domains come from exact collection TOC
+      membership, not secondary bundle appearance or projected payload fields.
+- [x] Correct the startup canonical-domain backfill and add a forward migration
+      for already-created domain-only successor revisions.
+- [x] Replace the bootstrap's custom schema-v1 draft manifest writes with the
+      supported tagged-snapshot schema-v2 graph endpoint.
+- [x] Make bootstrap resume and final verification require a persisted graph
+      and a post-graph v19.1 bundle comparison with no drift override.
+- [x] Update the bootstrap runbook and canonical-domain documentation with the
+      corrected provenance contract and recovery behavior.
+- [x] Run focused migration/bootstrap/release-track regressions, then lint and
+      the complete `npm test` suite.
+
+Verification (2026-08-03):
+
+- The local official v19.1 source audit finds exactly nine payload/TOC domain
+  mismatches, all campaigns; corrected virtual membership is Enterprise 4,815,
+  ICS 503, and Mobile 743.
+- Canonical-domain migration regressions pass: 9 cases. Bootstrap regressions
+  pass: 29 cases, including pointer-only graph validation and semantic drift
+  rejection for relationships advanced by domain repairs.
+- The complete `npm test` suite, repository ESLint, targeted migration ESLint,
+  Python Ruff, Python bytecode compilation, and diff whitespace checks pass.
+- Proposed commit: `fix(release-tracks): correct v19.1 bootstrap provenance`.
+
+## Opt-in deterministic member graphs and rolling drafts
+
+- [x] Add regressions for immutable versioned STIX payloads, pointer-only
+      relationship manifests, and legacy frozen-manifest replay.
+- [x] Add tagged-snapshot graph create/delete endpoints and make graphless
+      bundle exports resolve live while persisted graphs cover members only.
+- [x] Stop automatic graph generation during snapshot cloning and release;
+      retain only the latest standard-track draft after a durable replacement.
+- [x] Bound graph construction to relationship lineages that touch the
+      selected member frontier and batch exact-revision hydration.
+- [x] Update OpenAPI, user/developer documentation, and Bruno requests for the
+      opt-in determinism and immutable-revision contracts.
+- [x] Run focused regression specs, then the complete `npm test` suite and
+      review the final performance/architecture diff.
+
+Verification (2026-08-03):
+
+- Opt-in graph regressions pass: graphless release, tagged-only graph
+  creation/deletion, schema-v2 pointers, frozen marking definitions,
+  correction by POST, live graphless replay, and rolling-draft truncation.
+- Release-track regressions pass: 176 cases. Immutable CRUD regressions pass:
+  378 cases. The migration regression preserves schema-v1 frozen replay.
+- The complete `npm test` suite passes: OpenAPI 2, config 21, API 993,
+  middleware 29, and scheduler 10.
+- Repository lint and diff whitespace validation pass.
+- Proposed commit: `feat(release-tracks): make deterministic graphs opt in`.
+
+### Frontend deterministic bundle cache controls
+
+- [x] Expose `graph_manifest_id` in lightweight snapshot-history summaries so
+      the UI can render cache state without per-snapshot requests.
+- [x] Add the frontend connector and History-tab cache state, warning
+      tooltips, editor action, progress state, and success/error feedback.
+- [x] Add focused REST and Angular regressions for summary propagation,
+      connector routing, cache-state mapping, and materialization.
+- [x] Run formatting, lint, builds, and the complete frontend/backend suites;
+      record the final verification and proposed commits.
+
+Verification (2026-08-03):
+
+- Focused Angular connector/component regressions pass: 65 tests. The focused
+  REST snapshot-history regression passes: 7 tests.
+- The complete frontend suite passes: 162 files and 363 tests. The Angular
+  build passes with the local persistent cache temporarily disabled to avoid
+  an environment-specific native `lmdb` crash; no cache setting was committed.
+- The complete REST suite passes: OpenAPI 2, config 21, API 993, middleware 29,
+  and scheduler 10. REST lint passes.
+- Changed frontend sources pass Prettier, targeted ESLint, and diff whitespace
+  checks. Repository-wide frontend lint remains red on 254 pre-existing
+  errors; the shared release-track API type retains one pre-existing
+  index-signature violation.
+- Proposed frontend commit: `feat(release-tracks): add deterministic bundle
+  cache controls`.
+
+## Frontend canonical-domain preservation
+
+- [x] Inventory every frontend model and object view corresponding to the
+      canonical-domain migration's `TARGET_TYPES`.
+- [x] Add a regression contract proving every target type preserves
+      `x_mitre_domains` through deserialize/serialize.
+- [x] Add domain model support and editable domain fields to the missing
+      campaign, intrusion-set, detection-strategy, and matrix views.
+- [x] Document the frontend domain-editing contract and run focused tests,
+      lint/format checks, and the complete frontend test suite.
+
+Verification (2026-08-03):
+
+- Canonical-domain model and view contracts pass: 25 cases covering every
+  migration target type.
+- Complete frontend suite passes: 158 files and 323 tests.
+- Angular build and targeted ESLint/Prettier checks for every changed source
+  file pass.
+- Repository-wide lint remains red on 256 pre-existing errors outside this
+  change; no new lint errors remain in the hotfix files.
+- Proposed frontend commit: `fix(stix): preserve canonical domains in
+  editors`.
+
+## C0028 campaign revision / released virtual-snapshot investigation
+
+- [x] Trace the submitted campaign payload through REST create handling and ADM
+      citation validation against the authoritative ADM source.
+- [x] Reproduce the reported 400 response and isolate whether the defect is in
+      the payload, frontend transformation, REST API, or ADM.
+- [x] Document the supported repair path and, as a fallback, enumerate every
+      database invariant/provenance record a manual repair would have to keep
+      consistent.
+- [x] Record evidence, recommended regressions/fix scope, and a proposed
+      conventional commit message without mutating production data.
+
+Investigation (2026-08-03):
+
+- The reported request cites `Booz Allen Hamilton` in both campaign temporal
+  citation fields but sends only the `mitre-attack` external reference. ADM
+  4.11.7 correctly reports both missing-reference refinements. Adding the
+  released Booz Allen reference makes the composed campaign pass the WIP ADM
+  schema.
+- The Angular `Campaign` model does not deserialize or serialize
+  `x_mitre_domains`, and the campaign view exposes no domain editor. The
+  reported request consequently also omits the intended canonical-domain
+  correction. This is a frontend payload defect, not an ADM defect.
+- The supplied database record is a `releaseTrackGraphManifestEntries` root
+  with an operationally frozen payload, not the authoritative campaign entity
+  in `attackObjects`. Editing it would rewrite an immutable released artifact
+  while retaining the old revision key and object timestamp.
+- Supported hotfix: dry-run and then POST a new C0028 revision containing the
+  Booz Allen external reference and
+  `x_mitre_domains: ["enterprise-attack", "ics-attack"]`; let created-event
+  relationship advancement and standard-track member sync create the next
+  candidate/draft, then release the component track and materialize/tag a new
+  virtual snapshot. Do not alter the already-tagged virtual snapshot.
+- Recommended regressions: frontend campaign/group round-trip coverage for
+  canonical domains; campaign save coverage that retains temporal citation
+  references; backend campaign regression proving a missing cited source is
+  rejected and the corrected revision succeeds with ADM validation enabled.
+- Proposed implementation commit: `fix(campaigns): preserve domains and cited
+  references in revisions`.
+
+Verification (2026-08-03):
+
+- Direct ADM schema reproduction returns the two production error paths for
+  the reported composed STIX object and succeeds after adding the cited
+  reference and canonical domains in work-in-progress, awaiting-review, and
+  reviewed states.
+- Existing campaign API regression passes: 21 cases. Its placeholder
+  organization identity causes an earlier suppressible ADM issue, so it does
+  not currently exercise the citation refinement and needs the targeted
+  regression above.
+
+Follow-up frontend citation-loss investigation (2026-08-03):
+
+- REST `BaseService.create()` removes only ATT&CK-owned external references,
+  preserves every submitted user reference, regenerates the canonical ATT&CK
+  reference, and validates that composed object. It deliberately does not
+  merge omitted user references from the previous revision.
+- Angular initially retains the C0028 `Booz Allen Hamilton` reference when it
+  deserializes the GET response. `StixObject.base_validate()` first sends a
+  valid dry-run payload, then calls the mutating `ExternalReferences.validate()`
+  with only `description` and `aliases` as campaign citation fields.
+- That incomplete field list treats the temporal citation reference as unused
+  and removes it before the real save POST. Commit `4f04ac70` added server
+  dry-run validation and explicitly removed `first_seen_citation` and
+  `last_seen_citation` from this field list, creating a time-of-check/time-of-use
+  mismatch. `ExternalReferences.parseObjectCitations()` still has the correct
+  campaign field list.
+- Minimum repair: restore both temporal citation fields to campaign reference
+  validation. Durable repair: centralize the field list and complete all
+  reference synchronization before the server dry run so validation and save
+  serialize the same object state.
+
 ## STIX 2.0 virtual snapshot bundles
 
 - [x] Add a virtual-track regression proving materialized snapshots emit STIX

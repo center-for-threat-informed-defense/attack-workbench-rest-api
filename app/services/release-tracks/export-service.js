@@ -79,6 +79,20 @@ function requiresLiveGraph(snapshot, options) {
   );
 }
 
+function normalizeSourceBundleDefaults(documents, graph) {
+  if (graph.manifest?.resolver_version !== 'source-bundle-pointer-v2') return documents;
+
+  return documents.map((document) => {
+    const normalized = { ...document, stix: { ...document.stix } };
+    // Apply only source-attested shape hints. Most v19.1 objects explicitly
+    // emitted false and must retain it; a small minority omitted the default.
+    for (const field of graph.sourceOmittedDefaults?.get(document.stix.id) || []) {
+      if (normalized.stix[field] === false) delete normalized.stix[field];
+    }
+    return normalized;
+  });
+}
+
 // =============================================================================
 // Format helpers (delegating to Zod transform schemas)
 // =============================================================================
@@ -157,7 +171,7 @@ exports.exportSnapshot = async function exportSnapshot(snapshot, format, options
     const graph = requiresLiveGraph(snapshot, options)
       ? await graphManifestService.replayPlannedSnapshot(snapshot, options)
       : await graphManifestService.replay(snapshot, options);
-    const allObjects = graph.documents;
+    const allObjects = normalizeSourceBundleDefaults(graph.documents, graph);
     await convertLinkByIdTags(allObjects, graph.linkTargetDocuments);
 
     return exports.formatAsBundle(snapshot, allObjects, {

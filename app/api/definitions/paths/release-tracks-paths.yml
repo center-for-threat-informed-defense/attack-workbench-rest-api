@@ -1322,6 +1322,51 @@ paths:
         '409':
           description: 'The snapshot is untagged or its graph changed concurrently'
 
+  /api/release-tracks/{id}/snapshots/{modified}/graph/reconstruct:
+    post:
+      summary: 'Reconstruct a historical deterministic graph from source-bundle pointers'
+      operationId: 'release-tracks-snapshot-graph-reconstruct'
+      description: |
+        Administrative recovery operation for a tagged historical snapshot.
+        The caller derives exact revision pointers from an externally verified
+        source bundle; the bundle itself is not imported. The server verifies
+        that every pointer exists, roots exactly match snapshot members,
+        relationship endpoint pins match the stored relationship, and all
+        referenced endpoint and supporting objects are present. Versioned
+        objects remain pointer-only; only unversioned marking definitions may
+        carry a frozen payload. Repeating the same attestation is idempotent;
+        an ordinary graph or a different attestation is rejected.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/release-tracks.yml#/components/schemas/source-graph-reconstruction'
+      responses:
+        '200':
+          description: 'The tagged snapshot already had a deterministic graph'
+        '201':
+          description: 'Source-attested deterministic graph created successfully'
+        '400':
+          description: 'Malformed reconstruction plan'
+        '404':
+          description: 'Snapshot or exact object revision not found'
+        '409':
+          description: 'The snapshot is untagged or the source plan violates graph integrity'
+
   /api/release-tracks/{id}/snapshots/{modified}/release:
     post:
       summary: 'Release a specific snapshot'

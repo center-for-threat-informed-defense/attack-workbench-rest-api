@@ -561,6 +561,16 @@ exports.createGraph = function createLiveGraph(trackId, modified) {
   return createGraph(trackId, modified, (snapshot) => graphManifestService.prepare(snapshot));
 };
 
+exports.reconstructGraph = function reconstructGraph(trackId, modified, plan) {
+  return createGraph(
+    trackId,
+    modified,
+    (snapshot) => graphManifestService.prepareSourceReconstruction(snapshot, plan),
+    (snapshot) =>
+      graphManifestService.assertSourceReconstruction(snapshot, plan.source_attestation),
+  );
+};
+
 exports.deleteGraph = async function deleteGraph(trackId, modified) {
   const snapshot = await dynamicRepo.getSnapshotByModified(trackId, modified);
   if (!snapshot) {

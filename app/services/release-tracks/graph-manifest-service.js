@@ -1,5 +1,6 @@
 'use strict';
 
+const { isDeepStrictEqual } = require('node:util');
 const { v4: uuidv4 } = require('uuid');
 const linkById = require('../../lib/linkById');
 const bundleRelationships = require('../../lib/stix-bundle-relationships');
@@ -16,6 +17,7 @@ const primaryRevisionService = require('./primary-revision-service');
 
 const MANIFEST_SCHEMA_VERSION = 2;
 const RESOLVER_VERSION = 'bounded-member-graph-v2';
+const SOURCE_BUNDLE_RESOLVER_VERSION = 'source-bundle-pointer-v2';
 const TIERS = ['members', 'staged', 'candidates', 'quarantine'];
 const STATISTIC_FIELDS_BY_KIND = {
   root: 'primary_count',
@@ -326,6 +328,208 @@ async function prepare(snapshot, options = {}) {
   return manifestId;
 }
 
+function sourcePlanIntegrityError(details, references = []) {
+  return new ReleaseContentIntegrityError(references, { details });
+}
+
+async function buildSourceManifestEntries(snapshot, plan) {
+  const seenObjectRefs = new Set();
+  const planned = [];
+
+  for (const input of plan.entries) {
+    if (seenObjectRefs.has(input.object_ref)) {
+      throw sourcePlanIntegrityError(
+        `Source bundle contains more than one revision for '${input.object_ref}'.`,
+        [{ object_ref: input.object_ref, dependency: 'unique_source_revision' }],
+      );
+    }
+    seenObjectRefs.add(input.object_ref);
+
+    const isVersioned = input.object_modified != null;
+    if (isVersioned && input.frozen_stix) {
+      throw sourcePlanIntegrityError(
+        'Versioned source-bundle entries must be exact database pointers, not frozen payloads.',
+        [{ object_ref: input.object_ref, dependency: 'pointer_only_manifest' }],
+      );
+    }
+    if (!isVersioned) {
+      if (
+        input.kind !== 'supporting' ||
+        input.frozen_stix?.type !== 'marking-definition' ||
+        input.frozen_stix?.id !== input.object_ref ||
+        input.frozen_stix?.modified != null
+      ) {
+        throw sourcePlanIntegrityError(
+          'Only unversioned marking definitions may be frozen in a schema-v2 manifest.',
+          [{ object_ref: input.object_ref, dependency: 'unversioned_supporting_object' }],
+        );
+      }
+    }
+    if (input.kind === 'relationship') {
+      if (!input.source || !input.target || !isVersioned) {
+        throw sourcePlanIntegrityError(
+          'Relationship entries require an exact relationship pointer and exact endpoint pins.',
+          [{ object_ref: input.object_ref, dependency: 'relationship_endpoints' }],
+        );
+      }
+    } else if (input.source || input.target) {
+      throw sourcePlanIntegrityError(
+        'Only relationship entries may declare source and target endpoint pins.',
+        [{ object_ref: input.object_ref, dependency: 'relationship_endpoints' }],
+      );
+    }
+
+    planned.push({
+      ...input,
+      object_modified: isVersioned ? new Date(input.object_modified) : undefined,
+      source: input.source
+        ? { ...input.source, object_modified: new Date(input.source.object_modified) }
+        : undefined,
+      target: input.target
+        ? { ...input.target, object_modified: new Date(input.target.object_modified) }
+        : undefined,
+      revision_key: isVersioned
+        ? revisionKey(input.object_ref, input.object_modified)
+        : `${input.object_ref}::unversioned`,
+    });
+  }
+
+  const expectedRoots = new Map(
+    (snapshot.members || []).map((entry) => [
+      revisionKey(entry.object_ref, entry.object_modified),
+      entry,
+    ]),
+  );
+  const suppliedRoots = planned.filter((entry) => entry.kind === 'root');
+  const suppliedRootKeys = new Set(suppliedRoots.map((entry) => entry.revision_key));
+  if (
+    suppliedRoots.length !== expectedRoots.size ||
+    [...expectedRoots.keys()].some((key) => !suppliedRootKeys.has(key))
+  ) {
+    throw sourcePlanIntegrityError(
+      'Source bundle root pointers must exactly equal the tagged snapshot members.',
+      [{ track_id: snapshot.id, dependency: 'snapshot_members' }],
+    );
+  }
+
+  const versioned = planned.filter((entry) => entry.object_modified);
+  const hydrated = await primaryRevisionService.assertStoredEntries(versioned);
+  const documentsByRevision = new Map(
+    hydrated.documents.map((document) => [
+      revisionKey(document.stix.id, document.stix.modified),
+      document,
+    ]),
+  );
+  const selectableKeys = new Set(
+    planned
+      .filter((entry) => ['root', 'secondary'].includes(entry.kind))
+      .map((entry) => entry.revision_key),
+  );
+
+  for (const entry of planned) {
+    if (!entry.object_modified) continue;
+    const document = documentsByRevision.get(entry.revision_key);
+    if (entry.kind === 'relationship') {
+      if (document.stix.type !== 'relationship') {
+        throw sourcePlanIntegrityError(`'${entry.object_ref}' is not a relationship revision.`, [
+          { object_ref: entry.object_ref, dependency: 'relationship_type' },
+        ]);
+      }
+      for (const side of ['source', 'target']) {
+        const endpoint = entry[side];
+        if (document.stix[`${side}_ref`] !== endpoint.object_ref) {
+          throw sourcePlanIntegrityError(
+            `Relationship '${entry.object_ref}' has a mismatched ${side} pointer.`,
+            [{ object_ref: entry.object_ref, dependency: `${side}_ref` }],
+          );
+        }
+        if (!selectableKeys.has(revisionKey(endpoint.object_ref, endpoint.object_modified))) {
+          throw sourcePlanIntegrityError(
+            `Relationship '${entry.object_ref}' references an endpoint revision absent from the source graph.`,
+            [{ ...endpoint, dependency: `${side}_revision` }],
+          );
+        }
+      }
+    } else if (document.stix.type === 'relationship') {
+      throw sourcePlanIntegrityError(
+        `Relationship revision '${entry.object_ref}' must use kind 'relationship'.`,
+        [{ object_ref: entry.object_ref, dependency: 'entry_kind' }],
+      );
+    }
+  }
+
+  const includedObjectRefs = new Set(planned.map((entry) => entry.object_ref));
+  for (const document of hydrated.documents) {
+    const supportingRefs = [
+      document.stix.created_by_ref,
+      ...(document.stix.object_marking_refs || []),
+    ].filter(Boolean);
+    const missingRef = supportingRefs.find((objectRef) => !includedObjectRefs.has(objectRef));
+    if (missingRef) {
+      throw sourcePlanIntegrityError(`Source graph omits supporting object '${missingRef}'.`, [
+        { object_ref: missingRef, dependency: 'supporting_object' },
+      ]);
+    }
+  }
+
+  return planned.map((entry) => {
+    if (entry.kind !== 'root') return entry;
+    const root = expectedRoots.get(entry.revision_key);
+    return { ...entry, tier: 'members', object_status: root.object_status };
+  });
+}
+
+async function prepareSourceReconstruction(snapshot, plan) {
+  const manifestId = `release-track-graph-manifest--${uuidv4()}`;
+  const entries = await buildSourceManifestEntries(snapshot, plan);
+  const common = {
+    manifest_id: manifestId,
+    track_id: snapshot.id,
+    snapshot_modified: snapshot.modified,
+  };
+  const manifest = {
+    ...common,
+    state: 'pending',
+    schema_version: MANIFEST_SCHEMA_VERSION,
+    resolver_version: SOURCE_BUNDLE_RESOLVER_VERSION,
+    baseline_reconstruction: true,
+    source_attestation: plan.source_attestation,
+  };
+
+  await ReleaseTrackGraphManifest.create(manifest);
+  try {
+    await ReleaseTrackGraphManifestEntry.insertMany(
+      entries.map((entry) => ({ ...common, ...entry })),
+    );
+    await replayEntries(entries, manifest, {});
+  } catch (err) {
+    await discard(manifestId);
+    throw err;
+  }
+  return manifestId;
+}
+
+async function assertSourceReconstruction(snapshot, sourceAttestation) {
+  const manifest = await ReleaseTrackGraphManifest.findOne({
+    manifest_id: snapshot.graph_manifest_id,
+    track_id: snapshot.id,
+    snapshot_modified: snapshot.modified,
+    state: { $in: ['pending', 'active'] },
+  })
+    .lean()
+    .exec();
+  if (
+    !manifest ||
+    manifest.resolver_version !== SOURCE_BUNDLE_RESOLVER_VERSION ||
+    !isDeepStrictEqual(manifest.source_attestation, sourceAttestation)
+  ) {
+    throw sourcePlanIntegrityError(
+      'Snapshot already has a graph that was not reconstructed from the same source bundle.',
+      [{ manifest_id: snapshot.graph_manifest_id, dependency: 'source_attestation' }],
+    );
+  }
+}
+
 async function activate(manifestId) {
   await ReleaseTrackGraphManifest.updateOne(
     { manifest_id: manifestId, state: 'pending' },
@@ -532,6 +736,11 @@ async function replayEntries(entries, manifest, options) {
     .filter((entry) => entry.kind === 'link_target')
     .map((entry) => documentsByRevision.get(entry.revision_key))
     .filter(Boolean);
+  const sourceOmittedDefaults = new Map(
+    entries
+      .filter((entry) => entry.omitted_optional_defaults?.length)
+      .map((entry) => [entry.object_ref, entry.omitted_optional_defaults]),
+  );
 
   const emittedByRevision = new Map();
   for (const document of [...selectedDocuments, ...supportingDocuments]) {
@@ -544,6 +753,7 @@ async function replayEntries(entries, manifest, options) {
   return {
     documents: [...emittedByRevision.values()],
     linkTargetDocuments,
+    sourceOmittedDefaults,
     manifest,
   };
 }
@@ -676,6 +886,8 @@ async function findPinsForObject(objectRef) {
 
 module.exports = {
   prepare,
+  prepareSourceReconstruction,
+  assertSourceReconstruction,
   activate,
   discard,
   discardSnapshot,
@@ -688,4 +900,5 @@ module.exports = {
   buildManifestEntries,
   MANIFEST_SCHEMA_VERSION,
   RESOLVER_VERSION,
+  SOURCE_BUNDLE_RESOLVER_VERSION,
 };

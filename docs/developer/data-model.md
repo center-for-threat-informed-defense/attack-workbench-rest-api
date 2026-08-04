@@ -37,13 +37,21 @@ union, such as `["enterprise-attack", "mobile-attack"]`; Workbench does not
 store separate domain-narrowed copies of that revision.
 
 ADM validation requires the property before a domain-bearing object leaves the
-partial `work-in-progress` workflow. Workbench does not suppress the
-missing-domain error for any domain-bearing ATT&CK type.
+partial `work-in-progress` workflow. New installations do not seed a
+missing-domain bypass. A legacy persisted bypass may remain temporarily when
+the migration finds domainless content with no authoritative TOC provenance.
 Migration
 `20260730230000-backfill-canonical-x-mitre-domains.js` creates replacement
 latest revisions for all domainless lineages without rewriting historical
 revisions. Domain unions come from persisted canonical collection provenance;
-unmappable content defaults to Enterprise. See the
+specifically, exact `(object_ref, object_modified)` membership in canonical
+collection `x_mitre_contents` TOCs. Broad `workspace.collections` appearance
+backrefs are not authoritative because legacy imports also attached them to
+secondary graph objects. Unmappable content is left unchanged and reported;
+the migration retains legacy validation bypasses rather than fabricate
+Enterprise membership. Forward
+migration `20260803190000-correct-canonical-x-mitre-domains.js` corrects
+domain-only successors created by the older inference. See the
 [operator guide](../admin/canonical-domain-migration.md).
 
 ## Database Structure

@@ -50,6 +50,7 @@ const {
   updateCompositionBodySchema,
   createVirtualSnapshotBodySchema,
   promoteQuarantinedObjectBodySchema,
+  reconstructSnapshotGraphBodySchema,
   xMitreVersionSchema,
 } = require('../lib/release-tracks/release-track-schemas');
 
@@ -625,6 +626,31 @@ exports.createSnapshotGraph = async function createSnapshotGraph(req, res, next)
     return res.status(result.created ? 201 : 200).send(result.snapshot);
   } catch (err) {
     logger.error('Failed to create snapshot graph: ' + err);
+    return next(err);
+  }
+};
+
+/** POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct */
+exports.reconstructSnapshotGraph = async function reconstructSnapshotGraph(req, res, next) {
+  try {
+    const bodyResult = reconstructSnapshotGraphBodySchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid source graph reconstruction request',
+          details: bodyResult.error.errors,
+        }),
+      );
+    }
+    const result = await releaseTracksService.reconstructSnapshotGraph(
+      req.params.id,
+      req.params.modified,
+      bodyResult.data,
+    );
+    logger.debug(`Success: Reconstructed graph for snapshot ${req.params.modified}`);
+    return res.status(result.created ? 201 : 200).send(result.snapshot);
+  } catch (err) {
+    logger.error('Failed to reconstruct snapshot graph: ' + err);
     return next(err);
   }
 };

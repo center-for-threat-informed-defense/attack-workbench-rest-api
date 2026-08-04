@@ -357,6 +357,10 @@ exports.createSnapshotGraph = function createSnapshotGraph(trackId, modified) {
   return snapshotService.createGraph(trackId, modified);
 };
 
+exports.reconstructSnapshotGraph = function reconstructSnapshotGraph(trackId, modified, plan) {
+  return snapshotService.reconstructGraph(trackId, modified, plan);
+};
+
 exports.deleteSnapshotGraph = function deleteSnapshotGraph(trackId, modified) {
   return snapshotService.deleteGraph(trackId, modified);
 };

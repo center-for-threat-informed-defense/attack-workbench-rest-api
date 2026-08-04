@@ -83,6 +83,7 @@ POST /api/release-tracks/:id/snapshots/:modified/clone
 DELETE /api/release-tracks/:id/snapshots/:modified
 POST /api/release-tracks/:id/snapshots/:modified/release
 POST /api/release-tracks/:id/snapshots/:modified/graph
+POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct # admin recovery
 DELETE /api/release-tracks/:id/snapshots/:modified/graph
 ```
 

@@ -1,14 +1,17 @@
 'use strict';
 
 /**
- * Backfill canonical x_mitre_domains values for every latest domain-bearing
- * ATT&CK object, then retire the validation bypasses that historically
- * allowed domainless objects.
+ * Backfill canonical x_mitre_domains values where exact collection TOC
+ * provenance exists, then retire the historical validation bypasses only when
+ * no domainless objects remain.
  *
- * Domain membership is inferred from the canonical ATT&CK collection
- * provenance already persisted on each object revision. This keeps the
- * migration release-agnostic while preserving multi-domain unions. Objects
- * without mappable provenance default to Enterprise.
+ * Domain membership is inferred from exact object pins in canonical ATT&CK
+ * collection TOCs. `workspace.collections` is deliberately not authoritative:
+ * legacy imports attached it to secondary graph objects as well as primary
+ * collection members. This keeps the migration release-agnostic while
+ * preserving real multi-domain unions. Objects without mappable TOC
+ * provenance are left unchanged: absence of evidence is not evidence of
+ * Enterprise membership.
  *
  * Active latest revisions use the ordinary POST/create service pipeline so
  * validation, lifecycle hooks, events, release-track member sync, and audit
@@ -24,6 +27,7 @@
  */
 
 const mongoose = require('mongoose');
+const _ = require('lodash');
 const config = require('../app/config/config');
 const {
   createAutomationRunRecorder,
@@ -50,7 +54,6 @@ const TARGET_TYPES = [
   'x-mitre-tactic',
 ];
 const TARGET_TYPE_SET = new Set(TARGET_TYPES);
-const DEFAULT_DOMAINS = ['enterprise-attack'];
 const BATCH_SIZE = 50;
 const ACTIVE_CONCURRENCY = 4;
 const SERIAL_ACTIVE_TYPES = new Set([
@@ -111,13 +114,39 @@ function hasCanonicalDomains(document) {
   return Array.isArray(document?.stix?.x_mitre_domains) && document.stix.x_mitre_domains.length > 0;
 }
 
-function domainsFromCollectionProvenance(document) {
-  const collectionRefs = new Set(
-    (document?.workspace?.collections || []).map((collection) => collection?.collection_ref),
+function canonicalRevisionKey(stixId, modified) {
+  return `${stixId}\0${new Date(modified).toISOString()}`;
+}
+
+async function buildCanonicalTocDomainIndex(db) {
+  const collectionDocuments = await db
+    .collection('attackObjects')
+    .find({
+      'stix.id': { $in: [...CANONICAL_COLLECTION_DOMAINS.keys()] },
+      'stix.type': 'x-mitre-collection',
+    })
+    .project({ 'stix.id': 1, 'stix.x_mitre_contents': 1 })
+    .toArray();
+  const domainsByRevision = new Map();
+
+  for (const collection of collectionDocuments) {
+    const domain = CANONICAL_COLLECTION_DOMAINS.get(collection.stix.id);
+    for (const entry of collection.stix.x_mitre_contents || []) {
+      if (!entry?.object_ref || !entry?.object_modified) continue;
+      const key = canonicalRevisionKey(entry.object_ref, entry.object_modified);
+      const domains = domainsByRevision.get(key) || new Set();
+      domains.add(domain);
+      domainsByRevision.set(key, domains);
+    }
+  }
+
+  return new Map([...domainsByRevision].map(([key, domains]) => [key, [...domains].sort()]));
+}
+
+function domainsFromCanonicalToc(document, domainsByRevision) {
+  return (
+    domainsByRevision.get(canonicalRevisionKey(document.stix.id, document.stix.modified)) || []
   );
-  return [...CANONICAL_COLLECTION_DOMAINS]
-    .filter(([collectionRef]) => collectionRefs.has(collectionRef))
-    .map(([, domain]) => domain);
 }
 
 function isInactive(document) {
@@ -148,7 +177,7 @@ async function latestDomainlessTargetDocuments(db) {
   return documents.filter((document) => !hasCanonicalDomains(document));
 }
 
-function resolveCandidates(documents) {
+function resolveCandidates(documents, domainsByRevision = new Map()) {
   const candidates = [];
 
   for (const document of documents) {
@@ -158,16 +187,80 @@ function resolveCandidates(documents) {
       throw new Error(`Unsupported canonical-domain migration type: ${stixType}`);
     }
 
-    const provenanceDomains = domainsFromCollectionProvenance(document);
-    const hasProvenanceMapping = provenanceDomains.length > 0;
+    const provenanceDomains = domainsFromCanonicalToc(document, domainsByRevision);
+    if (provenanceDomains.length === 0) continue;
     candidates.push({
       document,
-      domains: hasProvenanceMapping ? provenanceDomains : [...DEFAULT_DOMAINS],
-      domainSource: hasProvenanceMapping ? 'collection-provenance' : 'enterprise-default',
+      domains: provenanceDomains,
+      domainSource: 'canonical-collection-toc',
       lifecycle: isInactive(document) ? 'inactive' : 'active',
     });
   }
 
+  return candidates;
+}
+
+function normalizedRepairStix(stix) {
+  const normalized = JSON.parse(JSON.stringify(stix));
+  delete normalized.modified;
+  delete normalized.x_mitre_domains;
+  delete normalized.x_mitre_attack_spec_version;
+  delete normalized.x_mitre_modified_by_ref;
+  if (normalized.revoked === false) delete normalized.revoked;
+  return normalized;
+}
+
+function isDomainOnlySuccessor(document, predecessor) {
+  return _.isEqual(normalizedRepairStix(document.stix), normalizedRepairStix(predecessor.stix));
+}
+
+function normalizedDomains(value) {
+  return Array.isArray(value) ? [...new Set(value)].sort() : [];
+}
+
+async function latestIncorrectTargetDocuments(db, domainsByRevision) {
+  const latestDocuments = await db
+    .collection('attackObjects')
+    .aggregate(latestTargetDocumentsPipeline())
+    .toArray();
+  const revisions = await db
+    .collection('attackObjects')
+    .find({ 'stix.id': { $in: latestDocuments.map((document) => document.stix.id) } })
+    .sort({ 'stix.id': 1, 'stix.modified': -1 })
+    .toArray();
+  const revisionsById = new Map();
+  for (const revision of revisions) {
+    const lineage = revisionsById.get(revision.stix.id) || [];
+    lineage.push(revision);
+    revisionsById.set(revision.stix.id, lineage);
+  }
+
+  const candidates = [];
+  for (const document of latestDocuments) {
+    let domains = domainsFromCanonicalToc(document, domainsByRevision);
+    let domainSource = 'canonical-collection-toc';
+
+    if (domains.length === 0) {
+      const predecessor = (revisionsById.get(document.stix.id) || [])
+        .slice(1)
+        .find(
+          (revision) =>
+            domainsFromCanonicalToc(revision, domainsByRevision).length > 0 &&
+            isDomainOnlySuccessor(document, revision),
+        );
+      if (!predecessor) continue;
+      domains = domainsFromCanonicalToc(predecessor, domainsByRevision);
+      domainSource = 'canonical-collection-toc-predecessor';
+    }
+
+    if (_.isEqual(normalizedDomains(document.stix.x_mitre_domains), domains)) continue;
+    candidates.push({
+      document,
+      domains,
+      domainSource,
+      lifecycle: isInactive(document) ? 'inactive' : 'active',
+    });
+  }
   return candidates;
 }
 
@@ -249,7 +342,7 @@ function removeResolvedDomainValidation(workspace) {
   return replacement;
 }
 
-async function repostActive(candidate, recorder) {
+async function repostActive(candidate, recorder, migrationName = MIGRATION_NAME) {
   const { document, domains } = candidate;
   const service = serviceFor(document.stix.type);
   const modified = nextModifiedTimestamp(document.stix.modified);
@@ -257,7 +350,7 @@ async function repostActive(candidate, recorder) {
   const created = await service.create(repost, {
     import: false,
     automationContext: {
-      automationName: MIGRATION_NAME,
+      automationName: migrationName,
       runId: recorder.runId,
     },
   });
@@ -291,7 +384,7 @@ function prepareInactiveClone(candidate) {
   };
 }
 
-async function syncInactiveClone(candidate, result, recorder) {
+async function syncInactiveClone(candidate, result, recorder, migrationName = MIGRATION_NAME) {
   const { document } = candidate;
   // The direct clone is intentionally not presented as a generic create. It
   // still advances any standard track that references this object, matching
@@ -302,18 +395,23 @@ async function syncInactiveClone(candidate, result, recorder) {
     modifiedBy: 'system',
     trigger: document.stix.revoked === true ? 'revocation' : 'new-revision',
     automationContext: {
-      automationName: MIGRATION_NAME,
+      automationName: migrationName,
       runId: recorder.runId,
     },
   });
 }
 
-async function processActiveBatch(candidates, recorder, concurrency) {
+async function processActiveBatch(
+  candidates,
+  recorder,
+  concurrency,
+  migrationName = MIGRATION_NAME,
+) {
   return mapWithConcurrency(candidates, concurrency, async (candidate) => {
     try {
       return {
         candidate,
-        result: await repostActive(candidate, recorder),
+        result: await repostActive(candidate, recorder, migrationName),
       };
     } catch (error) {
       return { candidate, error };
@@ -321,7 +419,7 @@ async function processActiveBatch(candidates, recorder, concurrency) {
   });
 }
 
-async function processInactiveBatch(db, candidates, recorder) {
+async function processInactiveBatch(db, candidates, recorder, migrationName = MIGRATION_NAME) {
   return mapWithConcurrency(candidates, ACTIVE_CONCURRENCY, async (candidate) => {
     try {
       const result = prepareInactiveClone(candidate);
@@ -330,7 +428,7 @@ async function processInactiveBatch(db, candidates, recorder) {
       // the native driver performing the insert create its own ObjectId.
       const insertResult = await db.collection('attackObjects').insertOne(result.document);
       result.document._id = insertResult.insertedId;
-      await syncInactiveClone(candidate, result, recorder);
+      await syncInactiveClone(candidate, result, recorder, migrationName);
       return { candidate, result };
     } catch (error) {
       return { candidate, error };
@@ -494,7 +592,6 @@ async function finalizeBatch(db, processed, recorder, counts, failures) {
     counts.updated++;
     if (lifecycle === 'active') counts.active_reposts++;
     else counts.inactive_clones++;
-    if (domainSource === 'enterprise-default') counts.enterprise_defaults++;
     if (document.stix.revoked === true) counts.revoked++;
     if (document.stix.x_mitre_deprecated === true) counts.deprecated++;
     auditItems.push(changedAuditItem(entry));
@@ -505,6 +602,11 @@ async function finalizeBatch(db, processed, recorder, counts, failures) {
 
 async function countRemainingDomainlessTargets(db) {
   return (await latestDomainlessTargetDocuments(db)).length;
+}
+
+async function countRemainingIncorrectTargets(db) {
+  const domainsByRevision = await buildCanonicalTocDomainIndex(db);
+  return (await latestIncorrectTargetDocuments(db, domainsByRevision)).length;
 }
 
 async function countStaleDomainBypasses(db) {
@@ -523,12 +625,33 @@ async function removeStaleDomainBypasses(db) {
   });
 }
 
-async function run(db, client) {
-  const domainlessDocuments = await latestDomainlessTargetDocuments(db);
+async function run(db, client, options = {}) {
+  const migrationName = options.migrationName || MIGRATION_NAME;
+  const correctIncorrect = options.correctIncorrect === true;
+  const domainsByRevision = await buildCanonicalTocDomainIndex(db);
+  const domainlessDocuments = correctIncorrect ? [] : await latestDomainlessTargetDocuments(db);
+  const incorrectCandidates = await latestIncorrectTargetDocuments(db, domainsByRevision);
+  const incorrectIds = new Set(incorrectCandidates.map((candidate) => candidate.document.stix.id));
+  const unresolvedDomainless = correctIncorrect
+    ? []
+    : domainlessDocuments.filter(
+        (document) =>
+          !incorrectIds.has(document.stix.id) &&
+          domainsFromCanonicalToc(document, domainsByRevision).length === 0,
+      );
+  const candidates = [
+    ...incorrectCandidates,
+    ...(correctIncorrect
+      ? []
+      : resolveCandidates(
+          domainlessDocuments.filter((document) => !incorrectIds.has(document.stix.id)),
+          domainsByRevision,
+        )),
+  ];
 
   const recorder = await createAutomationRunRecorder(db, {
     automationType: 'migration',
-    name: MIGRATION_NAME,
+    name: migrationName,
     trigger: { source: 'startup', runner: 'migrate-mongo' },
     scope: {
       collections: ['attackObjects', 'validationbypassrules'],
@@ -536,25 +659,26 @@ async function run(db, client) {
       target_types: TARGET_TYPES,
     },
     metadata: {
-      domain_source: 'persisted-canonical-collection-provenance',
+      domain_source: 'exact-canonical-collection-toc-membership',
       canonical_collection_domains: Object.fromEntries(CANONICAL_COLLECTION_DOMAINS),
-      unmapped_default_domains: DEFAULT_DOMAINS,
+      unmapped_policy: 'leave-unchanged-and-retain-validation-bypasses',
+      correct_incorrect_successors: correctIncorrect,
       active_method: 'service-create',
       inactive_method: 'immutable-direct-clone',
       batch_size: BATCH_SIZE,
       active_concurrency: ACTIVE_CONCURRENCY,
       serialized_active_types: [...SERIAL_ACTIVE_TYPES],
-      latest_domainless_objects_discovered: domainlessDocuments.length,
+      candidates_discovered: candidates.length,
     },
   });
 
   const counts = {
-    scanned_candidates: domainlessDocuments.length,
+    scanned_candidates: candidates.length,
     active_reposts: 0,
     inactive_clones: 0,
     active_batches: 0,
     inactive_batches: 0,
-    enterprise_defaults: 0,
+    unmapped_skipped: unresolvedDomainless.length,
     revoked: 0,
     deprecated: 0,
     bypasses_removed: 0,
@@ -566,9 +690,8 @@ async function run(db, client) {
 
   try {
     // Resolve the complete plan before deleting bypasses or creating object
-    // revisions. Persisted canonical collection provenance is authoritative
-    // when available; custom/unmapped content defaults to Enterprise.
-    const candidates = resolveCandidates(domainlessDocuments);
+    // revisions. Exact canonical collection TOC membership is authoritative;
+    // broad legacy collection-appearance backrefs are intentionally ignored.
     if (candidates.some((candidate) => candidate.lifecycle === 'active')) {
       ensureMongooseUsesClient(client);
       await assertOrganizationIdentityConfigured();
@@ -591,7 +714,12 @@ async function run(db, client) {
         size: batch.length,
         concurrency: ACTIVE_CONCURRENCY,
       });
-      const processed = await processActiveBatch(batch, recorder, ACTIVE_CONCURRENCY);
+      const processed = await processActiveBatch(
+        batch,
+        recorder,
+        ACTIVE_CONCURRENCY,
+        migrationName,
+      );
       await finalizeBatch(db, processed, recorder, counts, failures);
     }
 
@@ -606,7 +734,7 @@ async function run(db, client) {
         concurrency: 1,
         stix_types: [...new Set(batch.map((candidate) => candidate.document.stix.type))],
       });
-      const processed = await processActiveBatch(batch, recorder, 1);
+      const processed = await processActiveBatch(batch, recorder, 1, migrationName);
       await finalizeBatch(db, processed, recorder, counts, failures);
     }
 
@@ -617,19 +745,21 @@ async function run(db, client) {
         size: batch.length,
         concurrency: ACTIVE_CONCURRENCY,
       });
-      const processed = await processInactiveBatch(db, batch, recorder);
+      const processed = await processInactiveBatch(db, batch, recorder, migrationName);
       await finalizeBatch(db, processed, recorder, counts, failures);
     }
 
     const remainingDomainless = await countRemainingDomainlessTargets(db);
-    if (failures.length > 0 || remainingDomainless > 0) {
+    const remainingIncorrect = await countRemainingIncorrectTargets(db);
+    const remainingCandidates = remainingIncorrect;
+    if (failures.length > 0 || remainingCandidates > 0) {
       const failureSample = failures
         .slice(0, 5)
         .map((failure) => `${failure.stix_id}: ${failure.error}`)
         .join('; ');
       throw new Error(
         `Canonical-domain object repair is incomplete: ${failures.length} failed item(s), ` +
-          `${remainingDomainless} latest domainless target object(s). Validation bypasses ` +
+          `${remainingCandidates} remaining target object(s). Validation bypasses ` +
           `were retained.${failureSample ? ` Failures: ${failureSample}` : ''}`,
       );
     }
@@ -637,25 +767,40 @@ async function run(db, client) {
     // Enforcement is the final step. Leaving persisted bypasses in place until
     // every object is repaired prevents a partial run from activating a
     // stricter contract against data the same migration has not yet fixed.
-    const bypassResult = await removeStaleDomainBypasses(db);
-    counts.bypasses_removed = bypassResult.deletedCount;
+    if (remainingDomainless === 0) {
+      const bypassResult = await removeStaleDomainBypasses(db);
+      counts.bypasses_removed = bypassResult.deletedCount;
+    }
 
     verification = {
       remaining_latest_domainless_target_objects: remainingDomainless,
+      remaining_latest_incorrect_domain_objects: remainingIncorrect,
       remaining_domain_validation_bypasses: await countStaleDomainBypasses(db),
     };
 
-    if (verification.remaining_domain_validation_bypasses > 0) {
+    if (remainingDomainless === 0 && verification.remaining_domain_validation_bypasses > 0) {
       throw new Error(
         `Canonical-domain enforcement is incomplete: ` +
           `${verification.remaining_domain_validation_bypasses} stale bypass(es).`,
       );
     }
 
+    const warnings =
+      unresolvedDomainless.length === 0
+        ? {}
+        : {
+            unmapped_domainless_objects: {
+              count: unresolvedDomainless.length,
+              sample: unresolvedDomainless.slice(0, 20).map((document) => document.stix.id),
+              message:
+                'No exact canonical collection TOC membership was found; objects were left unchanged and domain validation bypasses were retained.',
+            },
+          };
+
     await recorder.finish({
       status: 'completed',
       counts,
-      warnings: {},
+      warnings,
       verification,
       summary: {
         message:
@@ -665,13 +810,16 @@ async function run(db, client) {
       errorSummary: null,
     });
 
-    return { counts, verification };
+    return { counts, warnings, verification };
   } catch (error) {
     verification = {
       ...verification,
       remaining_latest_domainless_target_objects:
         verification.remaining_latest_domainless_target_objects ??
         (await countRemainingDomainlessTargets(db).catch(() => null)),
+      remaining_latest_incorrect_domain_objects:
+        verification.remaining_latest_incorrect_domain_objects ??
+        (await countRemainingIncorrectTargets(db).catch(() => null)),
       remaining_domain_validation_bypasses:
         verification.remaining_domain_validation_bypasses ??
         (await countStaleDomainBypasses(db).catch(() => null)),
@@ -709,11 +857,14 @@ module.exports = {
     TARGET_TYPES,
     chunkItems,
     countRemainingDomainlessTargets,
+    countRemainingIncorrectTargets,
     countStaleDomainBypasses,
-    domainsFromCollectionProvenance,
+    buildCanonicalTocDomainIndex,
+    domainsFromCanonicalToc,
     hasCanonicalDomains,
     isInactive,
     latestDomainlessTargetDocuments,
+    latestIncorrectTargetDocuments,
     mapWithConcurrency,
     nextModifiedTimestamp,
     prepareInactiveClone,

@@ -24,6 +24,7 @@ const manifestSchema = new mongoose.Schema(
     schema_version: { type: Number, required: true, default: 1 },
     resolver_version: { type: String, required: true },
     baseline_reconstruction: { type: Boolean, required: true, default: false },
+    source_attestation: { type: mongoose.Schema.Types.Mixed },
     created_at: { type: Date, required: true, default: Date.now },
   },
   { collection: 'releaseTrackGraphManifests' },
@@ -54,6 +55,11 @@ const entrySchema = new mongoose.Schema(
     object_modified: { type: Date },
     source: { type: exactRevisionSchema },
     target: { type: exactRevisionSchema },
+    omitted_optional_defaults: {
+      type: [String],
+      enum: ['revoked', 'x_mitre_remote_support'],
+      default: undefined,
+    },
     discovered_from: { type: [exactRevisionSchema], default: undefined },
     // Schema-v2 relationships are exact-revision pointers. Marking
     // definitions are not STIX-versioned, so their complete payload is frozen

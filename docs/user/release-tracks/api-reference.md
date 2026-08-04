@@ -655,6 +655,7 @@ POST /api/release-tracks/:id/snapshots/:modified/clone
 
 ```
 POST   /api/release-tracks/:id/snapshots/:modified/graph
+POST   /api/release-tracks/:id/snapshots/:modified/graph/reconstruct
 DELETE /api/release-tracks/:id/snapshots/:modified/graph
 ```
 
@@ -671,6 +672,22 @@ relationship revisions selected when the cache was created. This is not a
 general response cache and does not make candidate or staged exports
 deterministic.
 
+Administrators may use the separate `/graph/reconstruct` POST for a historical
+baseline backed by an independently verified source bundle. The request sends
+the bundle's SHA-256/collection/release/domain attestation plus exact graph
+pointers; it does not import source STIX payloads. The server rejects plans
+whose roots differ from `members`, whose revisions are missing, or whose
+relationship endpoints are inconsistent. This recovery endpoint exists for
+controlled bootstrap tooling and is not a replacement for ordinary graph
+creation. A retry is idempotent only when the attached graph has the same
+source attestation.
+
+Pointer roles may also include `link_target`: an exact, non-emitted dependency
+used only to render historical `(LinkById: ...)` fields deterministically.
+An entry may carry `omitted_optional_defaults` containing `revoked` and/or
+`x_mitre_remote_support` when the attested publication omitted those
+false-valued defaults. This is a serialization-shape hint, not frozen STIX
+content; all other fields still come from the exact persisted revision.
 
 ### Delete Specific Snapshot
 

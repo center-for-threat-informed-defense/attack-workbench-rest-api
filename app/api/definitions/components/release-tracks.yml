@@ -775,6 +775,88 @@ components:
           items:
             $ref: '#/components/schemas/object-revision-reference'
 
+    source-graph-reconstruction:
+      type: object
+      additionalProperties: false
+      required:
+        - source_attestation
+        - entries
+      properties:
+        source_attestation:
+          type: object
+          additionalProperties: false
+          required:
+            - kind
+            - bundle_sha256
+            - collection_id
+            - release
+            - domain
+          properties:
+            kind:
+              type: string
+              enum:
+                - source-bundle
+            bundle_sha256:
+              type: string
+              pattern: '^[a-f0-9]{64}$'
+            collection_id:
+              type: string
+            release:
+              type: string
+            domain:
+              type: string
+              enum:
+                - enterprise-attack
+                - ics-attack
+                - mobile-attack
+        entries:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/source-graph-entry'
+
+    source-graph-entry:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - object_ref
+        - object_modified
+      properties:
+        kind:
+          type: string
+          enum:
+            - root
+            - relationship
+            - secondary
+            - supporting
+            - link_target
+        object_ref:
+          type: string
+        object_modified:
+          type: string
+          format: date-time
+          nullable: true
+        source:
+          $ref: '#/components/schemas/object-revision-reference'
+        target:
+          $ref: '#/components/schemas/object-revision-reference'
+        omitted_optional_defaults:
+          type: array
+          maxItems: 2
+          uniqueItems: true
+          description: >-
+            Optional false-valued fields omitted by the attested source
+            publication; valid only as deterministic serialization hints.
+          items:
+            type: string
+            enum:
+              - revoked
+              - x_mitre_remote_support
+        frozen_stix:
+          type: object
+          description: 'Allowed only for unversioned marking definitions'
+
     release-track-reconciliation-error:
       type: object
       required:

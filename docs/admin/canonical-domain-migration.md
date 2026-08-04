@@ -22,16 +22,21 @@ are enabled.
 ## Domain source
 
 Startup does not access GitHub or another network service, and the migration
-is not coupled to a particular ATT&CK release manifest. Workbench records the
-canonical ATT&CK collections containing each exact object revision in
-`workspace.collections`. The migration maps those persisted Enterprise, ICS,
-and Mobile collection references back to their domains.
+is not coupled to a particular ATT&CK release manifest. It reads the persisted
+Enterprise, ICS, and Mobile `x-mitre-collection` revisions and indexes their
+exact `x_mitre_contents` pins.
 
-Domain membership is inferred from an exact revision's collection provenance:
+Domain membership is inferred from exact collection TOC membership:
 
-- one canonical collection reference produces one domain;
-- multiple canonical collection references produce the complete domain union;
-- unrelated collection references are ignored.
+- one canonical collection TOC containing an exact revision produces one domain;
+- multiple canonical TOCs containing the exact revision produce the complete union;
+- bundle appearance and `workspace.collections` backrefs are ignored.
+
+That distinction is essential. Legacy imports recorded `workspace.collections`
+for every imported bundle object, including campaigns and groups discovered as
+secondary relationship content. Legacy bundle rendering could also project a
+primary target's domains onto those secondary payload copies. Neither signal
+proves that the secondary object was a primary member of that domain.
 
 The migration examines the latest revision of every domain-bearing ATT&CK
 lineage: techniques, campaigns, mitigations, groups, malware, tools,
@@ -73,21 +78,38 @@ automation audit records are inserted together with stable sequence numbers.
 
 The old revision is never updated or deleted in either path.
 
-## Unmapped-object fallback
+### Forward correction for earlier deployments
+
+Migration `20260803190000-correct-canonical-x-mitre-domains.js` repairs
+deployments that already ran the earlier collection-appearance inference. It
+only selects a latest revision when:
+
+- an exact historical predecessor is present in a canonical collection TOC;
+- the latest revision is substantively identical to that predecessor after
+  ignoring the fields controlled by a domain repair; and
+- the latest domain array differs from the predecessor's exact TOC union.
+
+This recognizes migration/bootstrap-generated domain-only successors without
+overwriting a later operator-authored revision that changed substantive STIX
+content. The correction creates another immutable revision through the same
+active/inactive paths described above.
+
+## Unmapped-object handling
 
 Before creating any object revision, the migration resolves the complete
-latest domainless candidate set from persisted collection provenance. If an
-object has no recognized canonical collection reference, the migration assigns
-`["enterprise-attack"]`. This permits legacy custom content to satisfy the
-stricter contract without blocking startup. The fallback is explicit in the
-per-object audit record as `domain_source: "enterprise-default"` and increments
-the run's `enterprise_defaults` counter.
+latest domainless candidate set from exact collection TOC membership. If an
+object has no recognized canonical TOC pin, the migration leaves it unchanged.
+Neither legacy `workspace.collections` appearances nor the absence of a TOC
+match proves Enterprise membership. A completed run records these objects in
+`warnings.unmapped_domainless_objects`, increments `unmapped_skipped`, and
+does not create per-object repair audit items for them.
 
 Persisted missing-domain validation bypasses are deleted only after all object
-repairs succeed and verification finds no remaining latest domainless target.
-A partial repair therefore leaves enforcement unchanged and fails startup. On
-restart, already repaired lineages are skipped and only the remaining work is
-retried.
+repairs succeed **and** verification finds no remaining latest domainless
+target. When unmapped objects remain, the bypasses are retained so startup can
+complete without activating a contract the database does not yet satisfy. A
+failed mapped repair still fails startup. On restart, already repaired
+lineages are skipped and only the remaining mapped work is retried.
 
 ## Verification and audit
 
@@ -106,17 +128,21 @@ Important counters are:
 - `inactive_clones`
 - `active_batches`
 - `inactive_batches`
-- `enterprise_defaults`
+- `unmapped_skipped`
 - `revoked`
 - `deprecated`
 - `bypasses_removed`
 - `failed`
 
-A completed run reports both verification values as zero:
+A completed run with complete canonical provenance reports all verification
+values as zero. A completed run with unmapped objects may instead report
+nonzero domainless-object and bypass counts alongside the warning described
+above:
 
 ```javascript
 {
   remaining_latest_domainless_target_objects: 0,
+  remaining_latest_incorrect_domain_objects: 0,
   remaining_domain_validation_bypasses: 0
 }
 ```

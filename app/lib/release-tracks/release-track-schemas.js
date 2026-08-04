@@ -530,6 +530,44 @@ const promoteQuarantinedObjectBodySchema = z
   })
   .strict();
 
+const exactGraphRevisionSchema = z
+  .object({
+    object_ref: stixIdentifierSchema,
+    object_modified: z.iso.datetime(),
+  })
+  .strict();
+
+const sourceGraphEntrySchema = z
+  .object({
+    kind: z.enum(['root', 'relationship', 'secondary', 'supporting', 'link_target']),
+    object_ref: stixIdentifierSchema,
+    object_modified: z.iso.datetime().nullable(),
+    source: exactGraphRevisionSchema.optional(),
+    target: exactGraphRevisionSchema.optional(),
+    omitted_optional_defaults: z
+      .array(z.enum(['revoked', 'x_mitre_remote_support']))
+      .max(2)
+      .optional(),
+    frozen_stix: z.object({}).passthrough().optional(),
+  })
+  .strict();
+
+/** Administrative recovery of a historical graph from an external source bundle. */
+const reconstructSnapshotGraphBodySchema = z
+  .object({
+    source_attestation: z
+      .object({
+        kind: z.literal('source-bundle'),
+        bundle_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+        collection_id: createStixIdValidator('x-mitre-collection'),
+        release: xMitreVersionSchema,
+        domain: z.enum(['enterprise-attack', 'ics-attack', 'mobile-attack']),
+      })
+      .strict(),
+    entries: z.array(sourceGraphEntrySchema).min(1),
+  })
+  .strict();
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -593,6 +631,7 @@ module.exports = {
   updateCompositionBodySchema,
   createVirtualSnapshotBodySchema,
   promoteQuarantinedObjectBodySchema,
+  reconstructSnapshotGraphBodySchema,
 
   // Reusable sub-schemas
   componentTrackSchema,

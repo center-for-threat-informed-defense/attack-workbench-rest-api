@@ -146,10 +146,12 @@ The legacy and ephemeral graph renderer now preserves every nonempty
 compatibility fallback for exact historical domainless revisions pinned
 before canonical-domain enforcement, including historical matrix revisions.
 The fallback affects the rendered copy and does not update the stored
-revision. The release-agnostic startup migration creates canonical replacement
-revisions for the latest domainless object in every domain-bearing chain; all
-subsequent content must persist canonical domains so virtual composition,
-snapshot export, and ephemeral export observe the same membership.
+revision. The release-agnostic startup migration creates a canonical
+replacement only when an exact collection TOC entry proves the object's
+domain. Unmapped legacy objects remain unchanged, are reported for follow-up,
+and keep the temporary validation bypasses active. All subsequent content must
+persist canonical domains so virtual composition, snapshot export, and
+ephemeral export observe the same membership.
 
 Because snapshot contents are explicitly curated, primary entries do **not**
 receive the legacy attack-id / deprecated / revoked filters. Secondary graph
@@ -194,6 +196,39 @@ then atomically attaches the manifest ID to the still-tagged snapshot. Replay
 can self-activate a complete linked pending manifest after an interrupted
 activation. `DELETE` on the same graph resource detaches and removes it.
 
+Historical baselines whose relationships predate endpoint-pin capture require
+a different, admin-only path:
+`POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct`. Its body
+contains a source-bundle attestation and a decoupled pointer plan, not the
+bundle payload. The caller must independently verify the named bundle and its
+SHA-256 digest. The server then verifies that roots exactly equal tagged
+members, every exact revision exists, each relationship's STIX refs agree with
+the supplied endpoint IDs, the endpoint revisions are included, and required
+supporting objects are present. Versioned entries are always pointers; only an
+unversioned marking definition may be frozen by value. The resulting manifest
+uses resolver version `source-bundle-pointer-v2`, records the attestation, and
+sets `baseline_reconstruction: true`.
+
+Source plans may contain `link_target` pointers for objects outside the emitted
+domain bundle. They are hydrated for LinkById conversion but are not emitted.
+Active ATT&CK-ID targets are preferred; a unique inactive historical target is
+accepted only when no active v19.1 target exists.
+
+The v19.1 production bootstrap uses this path without importing the published
+bundles. Because each official domain bundle contains one revision per STIX
+ID, it can infer legacy SRO endpoint revisions by joining `source_ref` and
+`target_ref` to those unique objects. Before tagging, the script batch-hydrates
+the entire pointer plan from Workbench and compares its STIX object set with
+the source bundle. This is the missing provenance that live database traversal
+cannot recover after endpoint lineages have advanced. The bootstrap routes
+entity pointers to `attackObjects` and relationship pointers to the dedicated
+`relationships` collection. Its pre-tag comparison mirrors export-time
+LinkById rendering. A pointer may carry a narrow serialization hint when the
+attested source omitted a persisted optional `revoked: false` or
+`x_mitre_remote_support: false` default. Most source objects explicitly emit
+those false values and retain them. True values and every other payload
+difference remain significant. Ordinary release-track exports retain their
+existing serialization.
 
 Graph creation uses an indexed relationship frontier rather than scanning all
 relationships. It starts with member IDs, queries only current relationship
@@ -217,6 +252,9 @@ revision of each legacy relationship can be endpoint-pinned truthfully.
 Pre-existing snapshot manifests are labeled `baseline_reconstruction`
 because they describe the graph visible during migration rather than an
 unknowable historical graph. They must not be represented as historical truth.
+A verified external bundle can reconstruct a historical graph through the
+admin operation above; without such an artifact, exact legacy endpoint
+selection remains unknowable.
 
 Drafts and tagged snapshots without graphs resolve live. Candidate/staged
 exports also resolve live even when the snapshot has a graph, because those

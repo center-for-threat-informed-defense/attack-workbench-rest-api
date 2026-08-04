@@ -43,8 +43,11 @@ const objectFixtures = [
     type: 'campaign',
     name: 'Active migration campaign',
     lifecycle: 'active',
+    // Legacy collection appearance says ICS because the campaign was pulled
+    // into an ICS graph as secondary content. Only exact TOC membership is
+    // authoritative, and this campaign is an Enterprise primary.
     collectionRefs: [collectionIds.ics],
-    expectedDomains: ['ics-attack'],
+    expectedDomains: ['enterprise-attack'],
   },
   {
     path: '/api/mitigations',
@@ -214,6 +217,36 @@ describe('Canonical ATT&CK domain migration', function () {
       expect(provenanceResult.matchedCount).toBe(1);
     }
 
+    const fixturesByDomain = new Map([
+      ['enterprise-attack', []],
+      ['ics-attack', []],
+      ['mobile-attack', []],
+    ]);
+    for (const fixture of objectFixtures) {
+      const document = created.get(fixture.id);
+      for (const domain of fixture.expectedDomains) {
+        fixturesByDomain.get(domain).push({
+          object_ref: document.stix.id,
+          object_modified: new Date(document.stix.modified),
+        });
+      }
+    }
+    await mongoose.connection.db.collection('attackObjects').insertMany(
+      Object.entries(collectionIds).map(([domainName, collectionId]) => ({
+        __t: 'Collection',
+        workspace: { workflow: { state: 'reviewed' } },
+        stix: {
+          id: collectionId,
+          type: 'x-mitre-collection',
+          spec_version: '2.1',
+          created: new Date('2026-01-01T00:00:00.000Z'),
+          modified: new Date('2026-01-01T00:00:00.000Z'),
+          name: `${domainName} canonical collection`,
+          x_mitre_contents: fixturesByDomain.get(`${domainName}-attack`),
+        },
+      })),
+    );
+
     const revokedFixture = objectFixtures.find((fixture) => fixture.lifecycle === 'revoked');
     await mongoose.connection.db.collection('attackObjects').updateOne(
       { 'stix.id': revokedFixture.id },
@@ -325,7 +358,7 @@ describe('Canonical ATT&CK domain migration', function () {
     expect(retiredRules).toEqual([]);
   });
 
-  it('covers every domain-bearing ATT&CK object type and infers domain unions from provenance', function () {
+  it('covers every domain-bearing type and ignores secondary collection appearances', async function () {
     expect(migration._private.TARGET_TYPES).toEqual([
       'attack-pattern',
       'campaign',
@@ -342,17 +375,22 @@ describe('Canonical ATT&CK domain migration', function () {
       'x-mitre-tactic',
     ]);
 
+    const domainsByRevision = await migration._private.buildCanonicalTocDomainIndex(migrationDb);
+    const campaign = created.get(campaignFixture.id);
     expect(
-      migration._private.domainsFromCollectionProvenance({
-        workspace: {
-          collections: [
-            { collection_ref: collectionIds.mobile },
-            { collection_ref: collectionIds.enterprise },
-            { collection_ref: 'x-mitre-collection--ffffffff-ffff-4fff-8fff-ffffffffffff' },
-          ],
+      migration._private.domainsFromCanonicalToc(
+        {
+          stix: {
+            id: campaign.stix.id,
+            modified: campaign.stix.modified,
+          },
+          workspace: {
+            collections: [{ collection_ref: collectionIds.ics }],
+          },
         },
-      }),
-    ).toEqual(['enterprise-attack', 'mobile-attack']);
+        domainsByRevision,
+      ),
+    ).toEqual(['enterprise-attack']);
   });
 
   it('leaves inactive clone ids to the native database driver', async function () {
@@ -419,6 +457,7 @@ describe('Canonical ATT&CK domain migration', function () {
     });
     expect(report.verification).toEqual({
       remaining_latest_domainless_target_objects: 0,
+      remaining_latest_incorrect_domain_objects: 0,
       remaining_domain_validation_bypasses: 0,
     });
 
@@ -487,6 +526,35 @@ describe('Canonical ATT&CK domain migration', function () {
     );
   });
 
+  it('corrects a previously generated domain-only successor from its exact TOC predecessor', async function () {
+    const latest = await mongoose.connection.db
+      .collection('attackObjects')
+      .findOne({ 'stix.id': campaignFixture.id }, { sort: { 'stix.modified': -1 } });
+    const incorrect = structuredClone(latest);
+    delete incorrect._id;
+    incorrect.stix.modified = new Date(new Date(latest.stix.modified).getTime() + 1);
+    incorrect.stix.x_mitre_domains = ['enterprise-attack', 'ics-attack'];
+    incorrect.stix.x_mitre_modified_by_ref = 'identity--ffffffff-ffff-4fff-8fff-ffffffffffff';
+    await mongoose.connection.db.collection('attackObjects').insertOne(incorrect);
+
+    const report = await migration._private.run(migrationDb, migrationClient, {
+      migrationName: 'test-correct-canonical-x-mitre-domains',
+      correctIncorrect: true,
+    });
+    expect(report.counts).toMatchObject({
+      scanned_candidates: 1,
+      active_reposts: 1,
+      updated: 1,
+      failed: 0,
+    });
+    expect(report.verification.remaining_latest_incorrect_domain_objects).toBe(0);
+
+    const corrected = await mongoose.connection.db
+      .collection('attackObjects')
+      .findOne({ 'stix.id': campaignFixture.id }, { sort: { 'stix.modified': -1 } });
+    expect(corrected.stix.x_mitre_domains).toEqual(['enterprise-attack']);
+  });
+
   it('is idempotent after canonical revisions and bypass removal are complete', async function () {
     const report = await migration._private.run(migrationDb, migrationClient);
     expect(report.counts.scanned_candidates).toBe(0);
@@ -495,7 +563,7 @@ describe('Canonical ATT&CK domain migration', function () {
     expect(await migration._private.countRemainingDomainlessTargets(migrationDb)).toBe(0);
   });
 
-  it('defaults unmapped active and inactive domainless objects to Enterprise', async function () {
+  it('leaves unmapped domainless objects unchanged and retains enforcement bypasses', async function () {
     const unknownActiveId = 'intrusion-set--ffffffff-ffff-4fff-8fff-ffffffffffff';
     const unknownInactiveId = 'campaign--eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
     const now = new Date();
@@ -538,14 +606,13 @@ describe('Canonical ATT&CK domain migration', function () {
 
     const report = await migration._private.run(migrationDb, migrationClient);
     expect(report.counts).toMatchObject({
-      scanned_candidates: 2,
-      active_reposts: 1,
-      inactive_clones: 1,
-      enterprise_defaults: 2,
-      deprecated: 1,
-      updated: 2,
+      scanned_candidates: 0,
+      unmapped_skipped: 2,
+      active_reposts: 0,
+      inactive_clones: 0,
+      updated: 0,
       failed: 0,
-      bypasses_removed: 1,
+      bypasses_removed: 0,
     });
 
     for (const stixId of [unknownActiveId, unknownInactiveId]) {
@@ -554,11 +621,10 @@ describe('Canonical ATT&CK domain migration', function () {
         .find({ 'stix.id': stixId })
         .sort({ 'stix.modified': -1 })
         .toArray();
-      expect(revisions).toHaveLength(2);
-      expect(revisions[0].stix.x_mitre_domains).toEqual(['enterprise-attack']);
-      expect(revisions[1].stix.x_mitre_domains).toBeUndefined();
+      expect(revisions).toHaveLength(1);
+      expect(revisions[0].stix.x_mitre_domains).toBeUndefined();
     }
-    expect(await migration._private.countStaleDomainBypasses(migrationDb)).toBe(0);
+    expect(await migration._private.countStaleDomainBypasses(migrationDb)).toBe(1);
 
     const completedRun = await mongoose.connection.db
       .collection('automationRuns')
@@ -567,17 +633,17 @@ describe('Canonical ATT&CK domain migration', function () {
         { sort: { started_at: -1 } },
       );
     expect(completedRun.status).toBe('completed');
-    expect(completedRun.counts.enterprise_defaults).toBe(2);
+    expect(completedRun.counts.unmapped_skipped).toBe(2);
+    expect(completedRun.warnings.unmapped_domainless_objects.count).toBe(2);
+    expect(completedRun.warnings.unmapped_domainless_objects.sample).toEqual(
+      expect.arrayContaining([unknownActiveId, unknownInactiveId]),
+    );
 
     const fallbackItems = await mongoose.connection.db
       .collection('automationRunItems')
       .find({ run_id: completedRun.run_id })
       .toArray();
-    expect(fallbackItems).toHaveLength(2);
-    expect(fallbackItems.map((item) => item.details.domain_source)).toEqual([
-      'enterprise-default',
-      'enterprise-default',
-    ]);
+    expect(fallbackItems).toHaveLength(0);
   });
 
   after(async function () {
