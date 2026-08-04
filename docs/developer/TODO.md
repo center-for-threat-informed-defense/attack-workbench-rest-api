@@ -1,5 +1,40 @@
 # Release Track TODOs
 
+## Snapshot collection descriptions and bounded release versions
+
+- [x] Map each snapshot's user-authored description onto emitted
+      `x-mitre-collection.description` while preserving the track description
+      as the fallback for snapshots without notes.
+- [x] Add backend regressions for bundle and graph-backed bundle exports using
+      snapshot descriptions.
+- [x] Calculate relative and explicit release versions between the nearest
+      earlier and later tagged snapshots, with exclusive chronological bounds.
+- [x] Add regression coverage for mixed explicit/relative tags, retroactive
+      releases, invalid boundary values, and exact-version uniqueness.
+- [x] Wire exact `MAJOR.MINOR` release selection into the Angular release
+      preview dialog and connector flow with component/page tests.
+- [x] Update OpenAPI, user/developer docs, and Bruno release requests.
+- [x] Run focused backend and frontend tests, then the complete backend
+      `npm test` suite and the relevant frontend verification commands.
+- [x] Propose conventional commit messages for both repositories.
+
+Verification (2026-08-04):
+
+- Focused backend release and bundle specs pass (23 and 18 cases), including
+  mixed explicit/relative tags, retroactive bounds, concurrent release locking,
+  and snapshot-description export.
+- Backend lint, OpenAPI/config validation, middleware (29 cases), scheduler
+  (10 cases), and every isolated full-suite failure pass. Four complete
+  `npm test` attempts reached 1007-1008 passing API cases before the documented
+  shared-server flake roamed to a different unrelated spec on each run; the
+  isolated targets pass under both Node 22 and Node 24.
+- The complete frontend suite passes (163 files, 376 tests), targeted ESLint and
+  Prettier checks pass, and the production build succeeds with existing budget
+  warnings.
+- Proposed backend commit: `feat(release-tracks): bound snapshot publication
+  versions`. Proposed frontend commit: `feat(release-tracks): tag snapshots
+  with exact versions`.
+
 ## Frontend graph cache lifecycle controls
 
 - [x] Replace the static cache-materialization hourglass with the existing

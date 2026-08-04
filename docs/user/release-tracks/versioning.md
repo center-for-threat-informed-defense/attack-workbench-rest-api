@@ -16,6 +16,7 @@ This approach allows continuous development while providing stable, versioned re
 ### Snapshots
 
 A **snapshot** is an immutable state of a release track at a specific point in time, identified by:
+
 - `id` - The release track's STIX identifier (constant across all snapshots)
 - `modified` - ISO 8601 timestamp when the snapshot was created (unique per snapshot)
 
@@ -30,6 +31,7 @@ A snapshot may be either a **draft release** (untagged) or a **tagged release** 
 A **draft release** is a snapshot without a version number (`version === null`). It represents work-in-progress.
 
 A **tagged release** is a snapshot that has been marked as production-ready for publication, identified by:
+
 - `version` - Version string in MAJOR.MINOR format (e.g., "1.0")
 
 **Note:** ATT&CK release tracks use a two-part versioning scheme (MAJOR.MINOR), not the three-part semver format (MAJOR.MINOR.PATCH). The patch component is not tracked in `version`.
@@ -37,6 +39,7 @@ A **tagged release** is a snapshot that has been marked as production-ready for 
 Not all snapshots are tagged releases. Only snapshots explicitly tagged via the **release** operation become tagged releases.
 
 **Example Timeline with Tagged Releases (standard track):**
+
 ```
 id: "release-track--123", modified: "2024-01-01T10:00:00.000Z"
   version: null  ← FIRST ROLLING DRAFT
@@ -77,6 +80,7 @@ a new snapshot. `release` is the command; `tagged` describes the resulting
 snapshot state.
 
 This is analogous to Git's tagging system:
+
 - Git commits = release track snapshots (identified by `modified` key)
 - Git tags = tagged releases (identified by `version` key)
 
@@ -109,6 +113,7 @@ When you release a snapshot:
 4. The `modified` timestamp **does not change**
 
 **Why in-place?**
+
 - Avoids duplicate data (no need to copy the entire release track)
 - Clear semantics: tagging is metadata, not a content change
 - Snapshots remain immutable except for the version tag
@@ -117,6 +122,7 @@ When you release a snapshot:
 ### Tagging Endpoints
 
 #### Release Latest Snapshot
+
 ```
 POST /api/release-tracks/:id/snapshots/latest/release
 ```
@@ -124,6 +130,7 @@ POST /api/release-tracks/:id/snapshots/latest/release
 Releases the most recent snapshot (highest `modified`) as a tagged release.
 
 **Request Body:**
+
 ```json
 {
   "increment": "major"
@@ -141,6 +148,7 @@ Callers that need to pin the operation to one snapshot should use the
 **Examples:**
 
 1. **Automatic version calculation:**
+
 ```bash
 # Current latest tagged release: 1.2
 # Tag as: 1.3 (minor increment)
@@ -151,6 +159,7 @@ POST /api/release-tracks/release--123/snapshots/latest/release
 ```
 
 1. **Major version increment:**
+
 ```bash
 # Current latest tagged release: 1.2
 # Tag as: 2.0 (major increment)
@@ -161,8 +170,9 @@ POST /api/release-tracks/release--123/snapshots/latest/release
 ```
 
 1. **Explicit version:**
+
 ```bash
-# Set specific version (must be greater than previous)
+# Set a specific version within the selected snapshot's chronological bounds
 POST /api/release-tracks/release--123/snapshots/latest/release
 {
   "version": "2.0"
@@ -170,6 +180,7 @@ POST /api/release-tracks/release--123/snapshots/latest/release
 ```
 
 1. **Default version selection:**
+
 ```bash
 # Defaults to minor increment
 POST /api/release-tracks/release--123/snapshots/latest/release
@@ -177,6 +188,7 @@ POST /api/release-tracks/release--123/snapshots/latest/release
 ```
 
 #### Release Specific Snapshot
+
 ```
 POST /api/release-tracks/:id/snapshots/:modified/release
 ```
@@ -184,11 +196,15 @@ POST /api/release-tracks/:id/snapshots/:modified/release
 Tags a specific snapshot as a tagged release. Can tag retroactively, (i.e., a non-latest snapshot can be tagged), granted no [versioning rules](#versioning-rules) are violated.
 
 **Use Cases:**
+
 - You want to tag snapshot 3, then later also tag snapshot 5
 - You forgot to tag a snapshot and want to mark it retroactively
 - You want to create multiple tagged releases from different development branches
 
-**Constraint:** The version must be greater than any previously tagged version (no semver regression).
+**Constraint:** The version must be greater than the nearest earlier tagged
+snapshot and less than the nearest later tagged snapshot. Both bounds are
+exclusive. This allows a forgotten historical draft to be tagged without
+breaking the version order of the timeline.
 
 ## Versioning Rules
 
@@ -203,7 +219,9 @@ Collections use a **two-part versioning scheme** (MAJOR.MINOR), inspired by sema
 
 ### Version Constraints
 
-1. **Monotonically increasing** - New versions must always be greater than previous versions
+1. **Chronologically increasing** - Tagged versions increase with snapshot
+   `modified` time. A retroactive tag is exclusively lower- and upper-bounded
+   by its adjacent tagged snapshots.
 2. **Immutable once set** - Once a snapshot has `version` assigned, it cannot be changed
 3. **Cannot re-tag** - A snapshot can only be tagged once (throws `AlreadyReleasedError` if attempted)
 4. **Valid version format** - Must match `/^\d+\.\d+$/` (MAJOR.MINOR only, no patch component)
@@ -212,8 +230,15 @@ Collections use a **two-part versioning scheme** (MAJOR.MINOR), inspired by sema
    succeeds and the other receives `409 Conflict` with the conflicting
    `track_id` and `version`.
 
+Relative `minor` and `major` increments are calculated from the nearest
+earlier tagged snapshot, not from the numerically highest tag elsewhere in the
+track. For example, a draft after explicit v19.1 previews as v19.2 for `minor`
+and v20.0 for `major`. A historical draft between v1.0 and v3.0 previews as
+v1.1 or v2.0 and may use any explicit version strictly inside that interval.
+
 ### First Tagged Release
 
 For release tracks with no prior tagged releases:
+
 - The first tag sets `version: "1.0"` (regardless of increment type)
 - Or you can specify an explicit version like `"0.1"`

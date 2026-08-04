@@ -2,13 +2,11 @@
 
 const request = require('supertest');
 const { expect } = require('expect');
-const sinon = require('sinon');
 
 const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
-const releaseHistoryService = require('../../../services/release-tracks/release-history-service');
 const versioningService = require('../../../services/release-tracks/versioning-service');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 const { releaseExactMembers } = require('./release-track-test-helpers');
@@ -174,27 +172,19 @@ describe('Release-track release planning and commit API', function () {
     expect(released.body.version_history.at(-1)).not.toHaveProperty('component_versions');
   });
 
-  it('allows only one concurrent release to claim a version', async function () {
+  it('preserves not-found semantics when acquiring a release lock', async function () {
+    await post(
+      '/api/release-tracks/release-track--00000000-0000-4000-8000-000000000099/snapshots/latest/release',
+      {},
+      404,
+    );
+  });
+
+  it('serializes concurrent release operations for one track', async function () {
     const track = await createTrack('Concurrent Release Version');
     const newerDraft = await post(`/api/release-tracks/${track.id}/meta`, {
       description: 'A distinct draft racing for the same release version',
     });
-    const originalHistoryLookup = releaseHistoryService.getTrackWideVersionHistory;
-    let waiting = 0;
-    let releaseBarrier;
-    const bothPlanned = new Promise((resolve) => {
-      releaseBarrier = resolve;
-    });
-    const historyStub = sinon
-      .stub(releaseHistoryService, 'getTrackWideVersionHistory')
-      .callsFake(async (...args) => {
-        const history = await originalHistoryLookup(...args);
-        waiting += 1;
-        if (waiting === 2) releaseBarrier();
-        await bothPlanned;
-        return history;
-      });
-
     const release = (modified) =>
       request(app)
         .post(`/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(modified)}/release`)
@@ -202,15 +192,10 @@ describe('Release-track release planning and commit API', function () {
         .set('Accept', 'application/json')
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`);
 
-    let responses;
-    try {
-      responses = await Promise.all([
-        release(newerDraft.body.modified),
-        release(newerDraft.body.modified),
-      ]);
-    } finally {
-      historyStub.restore();
-    }
+    const responses = await Promise.all([
+      release(newerDraft.body.modified),
+      release(newerDraft.body.modified),
+    ]);
     expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
 
     const tagged = await dynamicRepo.getAllSnapshots(track.id, { taggedOnly: true });
@@ -527,6 +512,87 @@ describe('Release-track release planning and commit API', function () {
     expect(released.body.version).toBe('3.0');
   });
 
+  it('bases relative bumps on an explicitly tagged preceding release', async function () {
+    const track = await createTrack('Mixed Explicit Relative Versions');
+    await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {
+      version: '19.1',
+    });
+    const draft = await post(`/api/release-tracks/${track.id}/meta`, {
+      description: 'Draft after the explicit v19.1 release',
+    });
+
+    const minor = await get(
+      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?increment=minor`,
+    );
+    const major = await get(
+      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?increment=major`,
+    );
+
+    expect(minor.body).toMatchObject({
+      source_snapshot_modified: draft.body.modified,
+      version: '19.2',
+      version_bounds: {
+        lower: { version: '19.1' },
+        upper: null,
+      },
+    });
+    expect(major.body.version).toBe('20.0');
+
+    const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {
+      increment: 'minor',
+    });
+    expect(released.body.version).toBe('19.2');
+  });
+
+  it('bounds a retroactive release between its adjacent tagged snapshots', async function () {
+    const track = await createTrack('Chronological Version Bounds', 'virtual');
+    const created = new Date(track.modified);
+    const firstTaggedModified = new Date(created.getTime() + 1000);
+    const historicalDraftModified = new Date(created.getTime() + 3000);
+    const laterTaggedModified = new Date(created.getTime() + 5000);
+
+    await dynamicRepo.saveSnapshot(track.id, {
+      ...snapshotBase(track),
+      modified: firstTaggedModified,
+      version: '1.0',
+    });
+    await dynamicRepo.saveSnapshot(track.id, {
+      ...snapshotBase(track),
+      modified: historicalDraftModified,
+      version: null,
+      composition_resolution: compositionResolution(historicalDraftModified),
+    });
+    await dynamicRepo.saveSnapshot(track.id, {
+      ...snapshotBase(track),
+      modified: laterTaggedModified,
+      version: '3.0',
+    });
+
+    const releasePath =
+      `/api/release-tracks/${track.id}/snapshots/` +
+      `${encodeURIComponent(historicalDraftModified.toISOString())}/release`;
+    const minor = await get(`${releasePath}/preview?increment=minor`);
+    const major = await get(`${releasePath}/preview?increment=major`);
+    const explicit = await get(`${releasePath}/preview?version=2.7`);
+
+    expect(minor.body).toMatchObject({
+      version: '1.1',
+      version_bounds: {
+        lower: { version: '1.0', modified: firstTaggedModified.toISOString() },
+        upper: { version: '3.0', modified: laterTaggedModified.toISOString() },
+      },
+    });
+    expect(major.body.version).toBe('2.0');
+    expect(explicit.body.version).toBe('2.7');
+
+    await get(`${releasePath}/preview?version=1.0`, 400);
+    await get(`${releasePath}/preview?version=3.0`, 400);
+    await get(`${releasePath}/preview?version=3.1`, 400);
+
+    const released = await post(releasePath, { increment: 'minor' });
+    expect(released.body.version).toBe('1.1');
+  });
+
   it('compares the latest virtual draft with its preceding tagged release', async function () {
     const updatedOld = (
       await post('/api/techniques', buildTechnique('Virtual Preview Updated Old'), 201)
@@ -636,8 +702,12 @@ describe('Release-track release planning and commit API', function () {
     });
 
     const preview = await get(
-      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(historicalDraftModified.toISOString())}/release/preview?version=3.0`,
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(historicalDraftModified.toISOString())}/release/preview?version=1.5`,
     );
+    expect(preview.body.version_bounds).toEqual({
+      lower: { version: '1.0', modified: firstTaggedModified.toISOString() },
+      upper: { version: '2.0', modified: laterTaggedModified.toISOString() },
+    });
     expect(preview.body.previous_release).toEqual({
       version: '1.0',
       modified: firstTaggedModified.toISOString(),

@@ -128,8 +128,9 @@ STIX version serialization. The pipeline:
    TOC is derived from the release track itself:
    - `id`: `x-mitre-collection--<track uuid>` — stable across exports of the
      same track
-   - `name`/`description`/`created_by_ref`/`object_marking_refs`: from the
-     snapshot metadata
+   - `name`/`created_by_ref`/`object_marking_refs`: from the snapshot metadata
+   - `description`: from `snapshot_description` when present, otherwise the
+     snapshot's long-lived track `description`
    - `x_mitre_version`: the snapshot's tagged version, or `0.1` for drafts
    - `modified`: the snapshot's `modified` timestamp
    - `x_mitre_contents`: every bundle object except marking definitions

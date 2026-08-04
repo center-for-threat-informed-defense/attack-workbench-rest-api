@@ -392,6 +392,10 @@ paths:
         (`major` or `minor`) or an explicit `version` in `MAJOR.MINOR` form,
         but never both. Omitting both defaults to a minor increment. An
         optional `description` is stored as snapshot-local release notes.
+        Relative increments use the nearest earlier tagged snapshot. The
+        selected version must be strictly between the nearest earlier and
+        later tagged snapshots; the later bound is relevant to retroactive
+        releases.
       tags:
         - 'Release Tracks'
       parameters:
@@ -418,7 +422,7 @@ paths:
         '400':
           description: 'Invalid release request'
         '409':
-          description: 'Already released, conflicting snapshot, or missing persisted primary revisions'
+          description: 'Already released, another release is in progress, conflicting snapshot, or missing persisted primary revisions'
         '500':
           description: 'The release may be tagged, but durable membership-protection reconciliation failed'
           content:
@@ -439,6 +443,8 @@ paths:
         compare the persisted draft with its chronologically preceding tagged
         release; composition is never recomputed. A virtual draft whose
         composition has not been materialized returns 409.
+        Summary responses include the exclusive lower and upper tagged
+        snapshot version_bounds used by release planning.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1448,6 +1454,9 @@ paths:
         references are resolved to exact object revisions when this release
         request is handled, including when the selected snapshot is historical.
         An optional `description` is stored as snapshot-local release notes.
+        Relative increments use the nearest earlier tagged snapshot, and the
+        selected version must be strictly below the nearest later tagged
+        snapshot when one exists.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1479,7 +1488,7 @@ paths:
         '400':
           description: 'Invalid release request'
         '409':
-          description: 'Already released, conflicting snapshot, or missing persisted primary revisions'
+          description: 'Already released, another release is in progress, conflicting snapshot, or missing persisted primary revisions'
         '500':
           description: 'The release may be tagged, but durable membership-protection reconciliation failed'
           content:
@@ -1498,6 +1507,8 @@ paths:
         timestamp precedes this selected snapshot; never recompute composition.
         An unmaterialized virtual draft returns 409. Standard previews resolve
         dynamic staged references exactly as the corresponding release would.
+        Summary responses include the exclusive lower and upper tagged
+        snapshot version_bounds used by release planning.
       tags:
         - 'Release Tracks'
       parameters:

@@ -564,6 +564,9 @@ to set the tagged snapshot's notes in the same operation:
   `400 Bad Request` rather than choosing one
 - If both are omitted, defaults to a minor release
 - If this is the first release, the version will be `1.0`
+- Relative increments use the nearest chronologically earlier tagged snapshot.
+  The result, or an explicit version, must also be lower than the nearest later
+  tagged snapshot when retroactively releasing a historical draft.
 
 ```
 POST /api/release-tracks/:id/snapshots/latest/release
@@ -1026,6 +1029,10 @@ GET /api/release-tracks/:id/snapshots/latest/release/preview
   "type": "standard",
   "source_snapshot_modified": "2024-01-15T16:20:00.000Z",
   "version": "1.2",
+  "version_bounds": {
+    "lower": { "version": "1.1", "modified": "2024-01-01T12:00:00.000Z" },
+    "upper": null
+  },
   "releasable": true,
   "before": { "members_count": 10, "staged_count": 2, "candidates_count": 1 },
   "after": { "members_count": 12, "staged_count": 0, "candidates_count": 1 },
@@ -1033,6 +1040,10 @@ GET /api/release-tracks/:id/snapshots/latest/release/preview
   "conflicts": []
 }
 ```
+
+`version_bounds` reports the exclusive adjacent tagged releases used by both
+relative and explicit selection. A historical draft can have both a `lower`
+and an `upper` bound.
 
 `format=workbench` returns the complete would-be persisted snapshot.
 `format=bundle` returns its publication-ready STIX bundle. Thus “dry run” is

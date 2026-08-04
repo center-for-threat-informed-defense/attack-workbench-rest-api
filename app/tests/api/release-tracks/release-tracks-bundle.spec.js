@@ -231,6 +231,7 @@ describe('Release Tracks Bundle Export API', function () {
       {
         name: 'Bundle Test Track',
         description: 'Release track bundle export test',
+        snapshot_description: 'Virtual snapshot',
         type: 'standard',
       },
       201,
@@ -329,6 +330,9 @@ describe('Release Tracks Bundle Export API', function () {
     expect(toc.type).toBe('x-mitre-collection');
     expect(toc.id).toBe(`x-mitre-collection--${trackUuid}`);
     expect(toc.name).toBe('Bundle Test Track');
+    // This rolling draft belongs to the next release cycle, so it has no
+    // snapshot-local description and falls back to the track description.
+    expect(toc.description).toBe('Release track bundle export test');
     // Draft snapshots (version: null) fall back to '0.1'
     expect(toc.x_mitre_version).toBe('0.1');
     expect(toc.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
@@ -422,6 +426,19 @@ describe('Release Tracks Bundle Export API', function () {
       )
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(409);
+  });
+
+  it('maps a graph-backed snapshot description onto the collection TOC', async function () {
+    const bundle = await getBundle(
+      `/api/release-tracks/${trackId}/snapshots/${encodeURIComponent(
+        taggedModified,
+      )}?format=bundle`,
+    );
+
+    expect(bundle.objects[0]).toMatchObject({
+      type: 'x-mitre-collection',
+      description: 'Virtual snapshot',
+    });
   });
 
   it('protects graph dependencies from collection cascade deletion', async function () {

@@ -50,10 +50,17 @@ supported deployments.
   `version`, never both. Controller validation returns 400 at the HTTP boundary,
   and `version-utils.calculateNextVersion` repeats the invariant so internal
   release-planning callers cannot silently choose one selector.
+- Release versions are ordered by snapshot time. Relative increments use the
+  nearest earlier tagged snapshot; explicit and calculated values must be
+  greater than that lower bound and less than the nearest later tag. Version
+  uniqueness remains track-wide. Commits acquire a per-track registry lock so
+  separate API processes cannot validate and write incompatible tags from the
+  same stale bounds; abandoned locks become reclaimable after 15 minutes.
 - Snapshot descriptions are bounded to 4000 characters and are the narrow
   mutable-metadata exception to snapshot content immutability. They are stored
   as `snapshot_description` on the selected document and never update the
-  registry or the track-level `description`.
+  registry or the track-level `description`. Bundle exports map the local value
+  to `x-mitre-collection.description`, falling back to the track description.
 
 ### ATT&CK canonical-domain migration
 

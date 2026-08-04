@@ -61,6 +61,8 @@ class ReleaseTrackRegistryRepository {
         });
       }
 
+      aggregation.push({ $project: { release_lock: 0 } });
+
       // Total count before pagination
       const totalCountResult = await this.model.aggregate(aggregation).count('totalCount').exec();
       const totalCount = totalCountResult[0]?.totalCount || 0;
@@ -134,6 +136,39 @@ class ReleaseTrackRegistryRepository {
             },
           },
           { new: true, runValidators: true, lean: true },
+        )
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async acquireReleaseLock(trackId, token, acquiredAt, staleBefore) {
+    try {
+      return await this.model
+        .findOneAndUpdate(
+          {
+            track_id: trackId,
+            $or: [
+              { release_lock: { $exists: false } },
+              { 'release_lock.acquired_at': { $lt: staleBefore } },
+            ],
+          },
+          { $set: { release_lock: { token, acquired_at: acquiredAt } } },
+          { new: true, runValidators: true, lean: true },
+        )
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async releaseReleaseLock(trackId, token) {
+    try {
+      return await this.model
+        .updateOne(
+          { track_id: trackId, 'release_lock.token': token },
+          { $unset: { release_lock: '' } },
         )
         .exec();
     } catch (err) {

@@ -60,7 +60,10 @@ async function mapWithConcurrency(items, concurrency, mapper) {
 
 exports.getTrackWideVersionHistory = async function getTrackWideVersionHistory(trackId) {
   const snapshots = await dynamicRepo.getTaggedSnapshotMetadata(trackId);
-  return snapshots.map((snapshot) => ({ version: snapshot.version }));
+  return snapshots.map((snapshot) => ({
+    version: snapshot.version,
+    modified: snapshot.modified,
+  }));
 };
 
 exports.reconcileTaggedReleases = async function reconcileTaggedReleases(trackId) {

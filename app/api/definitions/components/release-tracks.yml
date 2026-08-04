@@ -36,7 +36,9 @@ components:
           description: |
             User-authored, snapshot-local notes. Editors may change this
             workspace annotation without changing the snapshot identity,
-            release tag, contents, or deterministic graph.
+            release tag, contents, or deterministic graph. Bundle exports map
+            it to x-mitre-collection.description, falling back to the track
+            description when it is absent.
         name:
           type: string
           pattern: '^[a-zA-Z0-9 &]+$'
@@ -189,7 +191,9 @@ components:
         snapshot_description:
           type: string
           maxLength: 4000
-          description: 'User-authored notes attached only to this snapshot'
+          description: |
+            User-authored notes attached only to this snapshot and mapped to
+            x-mitre-collection.description during bundle export.
         name:
           type: string
         description:

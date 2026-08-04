@@ -75,6 +75,7 @@ Standard STIX bundle format:
       "type": "x-mitre-collection",
       "id": "x-mitre-collection--123",
       "name": "ATT&CK Enterprise",
+      "description": "Q1 publication snapshot",
       "x_mitre_version": "1.1",
       "x_mitre_contents": [
         { "object_ref": "attack-pattern--aaa", "object_modified": "2024-01-10T10:00:00.000Z" }
@@ -114,7 +115,9 @@ Standard STIX bundle format:
   `(object_ref, object_modified)` pair in `missing_references`; it never emits
   a partial bundle. A repository/database failure is returned as a server
   error rather than being mistaken for missing content.
-- Notes are never included (notes are Workbench-native objects, not STIX objects)
+- Workbench note objects are never included. The snapshot's own
+  `snapshot_description` is publication metadata and becomes the TOC
+  `description`.
 - Suitable for external publication
 
 **Bundle query parameters** (apply only when `format=bundle`):
@@ -148,7 +151,9 @@ By default, bundles begin with an `x-mitre-collection` object that acts as a
 table of contents. It is derived from the release-track metadata:
 
 - `id` — stable per track (reuses the track UUID)
-- `name` / `description` — from the release track
+- `name` — from the release track snapshot
+- `description` — from the snapshot's `snapshot_description`; falls back to
+  the long-lived track `description` when no snapshot-local value is set
 - `x_mitre_version` — the snapshot's tagged version, or `0.1` for draft snapshots
 - `modified` — the snapshot's modified timestamp
 - `x_mitre_attack_spec_version` — the deployment's default ATT&CK spec version

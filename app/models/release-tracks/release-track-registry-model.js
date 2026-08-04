@@ -36,6 +36,13 @@ const taggedReleaseDefinition = {
   tagged_by: { type: String, required: true },
 };
 const taggedReleaseSchema = new mongoose.Schema(taggedReleaseDefinition, { _id: false });
+const releaseLockSchema = new mongoose.Schema(
+  {
+    token: { type: String, required: true },
+    acquired_at: { type: Date, required: true },
+  },
+  { _id: false },
+);
 
 // --- Registry document definition ---
 
@@ -68,6 +75,7 @@ const releaseTrackRegistryDefinition = {
   snapshot_count: { type: Number, default: 0 },
   tagged_release_count: { type: Number, default: 0 },
   tagged_releases: { type: [taggedReleaseSchema], default: [] },
+  release_lock: { type: releaseLockSchema, default: undefined },
 
   // Virtual tracks only
   snapshot_schedule: {

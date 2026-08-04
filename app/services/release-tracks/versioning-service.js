@@ -13,12 +13,17 @@ const revisionReference = require('../../lib/release-tracks/revision-reference')
 const releaseHistoryService = require('./release-history-service');
 const primaryRevisionService = require('./primary-revision-service');
 const graphManifestService = require('./graph-manifest-service');
+const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
+const uuid = require('uuid');
 const logger = require('../../lib/logger');
 const {
   AlreadyReleasedError,
   ReleaseConflictError,
+  TrackNotFoundError,
   VirtualSnapshotNotMaterializedError,
 } = require('../../exceptions');
+
+const RELEASE_LOCK_TIMEOUT_MS = 15 * 60 * 1000;
 
 function iso(value) {
   return new Date(value).toISOString();
@@ -140,8 +145,10 @@ function planRelease(
     versionHistory,
     options.increment,
     options.version,
+    sourceSnapshot.modified,
   );
-  versionUtils.validateVersionProgression(version, versionHistory);
+  versionUtils.validateVersionProgression(version, versionHistory, sourceSnapshot.modified);
+  const versionBounds = versionUtils.findVersionBounds(versionHistory, sourceSnapshot.modified);
 
   const isVirtual = snapshot.type === 'virtual';
   const before = isVirtual
@@ -237,6 +244,20 @@ function planRelease(
       type: snapshot.type,
       source_snapshot_modified: iso(sourceSnapshot.modified),
       version,
+      version_bounds: {
+        lower: versionBounds.lower
+          ? {
+              version: versionBounds.lower.version,
+              modified: iso(versionBounds.lower.modified),
+            }
+          : null,
+        upper: versionBounds.upper
+          ? {
+              version: versionBounds.upper.version,
+              modified: iso(versionBounds.upper.modified),
+            }
+          : null,
+      },
       releasable: !blockingError,
       ...(isVirtual
         ? {
@@ -339,6 +360,33 @@ async function commitPlan(plan) {
   return tagged;
 }
 
+async function withReleaseLock(trackId, operation) {
+  const token = uuid.v4();
+  const acquiredAt = new Date();
+  const staleBefore = new Date(acquiredAt.getTime() - RELEASE_LOCK_TIMEOUT_MS);
+  const lock = await registryRepo.acquireReleaseLock(trackId, token, acquiredAt, staleBefore);
+  if (!lock) {
+    if (!(await registryRepo.findByTrackId(trackId))) {
+      throw new TrackNotFoundError(trackId);
+    }
+    throw new ReleaseConflictError('Another release operation is already in progress', {
+      track_id: trackId,
+    });
+  }
+
+  try {
+    return await operation();
+  } finally {
+    try {
+      await registryRepo.releaseReleaseLock(trackId, token);
+    } catch (err) {
+      logger.error(
+        `VersioningService: Failed to release version lock for "${trackId}": ${err.message}`,
+      );
+    }
+  }
+}
+
 exports.planRelease = planRelease;
 exports._private = {
   memberRevisions,
@@ -362,9 +410,13 @@ exports.planReleaseByModified = async function planReleaseByModified(
 };
 
 exports.releaseLatest = async function releaseLatest(trackId, options = {}) {
-  return commitPlan(await exports.planLatestRelease(trackId, options));
+  return withReleaseLock(trackId, async () =>
+    commitPlan(await exports.planLatestRelease(trackId, options)),
+  );
 };
 
 exports.releaseByModified = async function releaseByModified(trackId, modified, options = {}) {
-  return commitPlan(await exports.planReleaseByModified(trackId, modified, options));
+  return withReleaseLock(trackId, async () =>
+    commitPlan(await exports.planReleaseByModified(trackId, modified, options)),
+  );
 };
