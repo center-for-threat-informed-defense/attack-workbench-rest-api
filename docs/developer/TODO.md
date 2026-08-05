@@ -1,5 +1,33 @@
 # Release Track TODOs
 
+## Deterministic graph collection identity repair
+
+- [x] Reproduce the incorrect graph collection creator, STIX 2.0 TOC
+      inclusion, and persisted cross-manifest collection-ID drift.
+- [x] Resolve graph collection `created_by_ref` from the configured
+      organization identity and enforce one collection ID per release track.
+- [x] Exclude `x-mitre-collection` from STIX 2.0 snapshot bundles and hashes.
+- [x] Add a rerunnable forward migration that repairs existing graph
+      collection entries and recomputes tagged-snapshot bundle hashes.
+- [x] Update release-track user, developer, and administrator documentation.
+- [x] Run focused regression specs.
+- [x] Complete an all-green `npm test` run without the documented roaming
+      in-memory MongoDB/server flake.
+- [x] Propose a conventional commit message without committing unless asked.
+
+Verification (2026-08-05):
+
+- Focused graph, migration, snapshot, ephemeral, virtual, and legacy bundle
+  specs pass, including exact SHA-256 comparisons against downloaded bundles
+  and a rerun proving the repair migration is idempotent.
+- ESLint and `git diff --check` pass.
+- Full-suite attempts reached 1009 passing/3 failures, 1000/5, and repeatedly
+  1011/1. Each failure roamed to an unrelated spec as a transient 400/404,
+  `ECONNRESET`, or socket hangup; every affected spec passes in isolation,
+  including under the repository-pinned Node 22.14.0 runtime.
+- The developer subsequently confirmed a complete all-green test run.
+- Proposed commit: `fix(release-tracks): repair deterministic bundle integrity`.
+
 ## Snapshot collection descriptions and bounded release versions
 
 - [x] Map each snapshot's user-authored description onto emitted

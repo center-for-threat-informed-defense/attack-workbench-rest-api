@@ -22,6 +22,7 @@ const logger = require('../../lib/logger');
 const linkById = require('../../lib/linkById');
 const primaryRevisionService = require('./primary-revision-service');
 const graphManifestService = require('./graph-manifest-service');
+const systemConfigurationService = require('../system/system-configuration-service');
 const {
   bundleTransformSchema,
   workbenchTransformSchema,
@@ -178,12 +179,18 @@ exports.exportSnapshot = async function exportSnapshot(snapshot, format, options
       : await graphManifestService.replay(snapshot, options);
     const allObjects = normalizeSourceBundleDefaults(graph.documents, graph);
     await convertLinkByIdTags(allObjects, graph.linkTargetDocuments);
+    let createdByRef;
+    if (options.stixVersion !== '2.0' && options.includeToc !== false && !graph.collectionObject) {
+      const organizationIdentity = await systemConfigurationService.retrieveOrganizationIdentity();
+      createdByRef = organizationIdentity.stix.id;
+    }
 
     return exports.formatAsBundle(snapshot, allObjects, {
       stixVersion: options.stixVersion,
       includeToc: options.includeToc,
       attackSpecVersion: config.app.attackSpecVersion,
       collectionObject: graph.collectionObject,
+      createdByRef,
       bundleId: bundleIdForManifest(graph.manifest),
     });
   }

@@ -127,7 +127,7 @@ Standard STIX bundle format:
 | `include`     | `staged`, `candidates` (comma-separated or repeated)                | _(members only)_ | Additional tiers to include in the bundle alongside members                                                                                                                            |
 | `state`       | `work-in-progress`, `awaiting-review` (comma-separated or repeated) | _(no filter)_    | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included, irrespective of this parameter. Members are unaffected. |
 | `stixVersion` | `2.0`, `2.1`                                                        | `2.1`            | STIX version the emitted bundle conforms to                                                                                                                                            |
-| `includeToc`  | `true`, `false`                                                     | `true`           | Include a table-of-contents object (of type `x-mitre-collection`) as the first object in the bundle                                                                                    |
+| `includeToc`  | `true`, `false`                                                     | `true`           | Include a table-of-contents object (of type `x-mitre-collection`) as the first object in STIX 2.1 bundles. STIX 2.0 bundles never include it.                                          |
 
 Examples:
 
@@ -141,16 +141,19 @@ GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=staged
 # Members + candidates and staged objects that are work-in-progress or reviewed
 GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged&state=work-in-progress
 
-# STIX 2.0 bundle without a table of contents
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&stixVersion=2.0&includeToc=false
+# STIX 2.0 bundle (the table of contents is always omitted)
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&stixVersion=2.0
 ```
 
 **The table of contents (TOC) object**
 
-By default, bundles begin with an `x-mitre-collection` object that acts as a
-table of contents. It is derived from the release-track metadata:
+By default, STIX 2.1 bundles begin with an `x-mitre-collection` object that
+acts as a table of contents. STIX 2.0 bundles omit this ATT&CK extension object
+regardless of `includeToc`. The STIX 2.1 object is derived from the
+release-track metadata:
 
 - `id` — stable per track (reuses the track UUID)
+- `created_by_ref` — the deployment's configured organization identity
 - `name` — from the release track snapshot
 - `description` — from the snapshot's `snapshot_description`; falls back to
   the long-lived track `description` when no snapshot-local value is set

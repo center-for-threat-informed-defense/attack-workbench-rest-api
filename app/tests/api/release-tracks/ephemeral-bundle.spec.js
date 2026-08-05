@@ -342,6 +342,7 @@ describe('Ephemeral Bundle API', function () {
     const bundle = await getEphemeral('?stixVersion=2.0');
 
     expect(bundle.spec_version).toBe('2.0');
+    expect(bundle.objects.some((object) => object.type === 'x-mitre-collection')).toBe(false);
     const technique = bundle.objects.find((o) => o.id === enterpriseTechnique.stix.id);
     expect(technique.spec_version).toBeUndefined();
   });

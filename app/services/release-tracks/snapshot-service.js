@@ -11,7 +11,6 @@
 // clone or read snapshots.
 // =============================================================================
 
-const crypto = require('node:crypto');
 const { v4: uuidv4 } = require('uuid');
 
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
@@ -23,7 +22,7 @@ const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-in
 const primaryRevisionService = require('./primary-revision-service');
 const reconciliationService = require('./reconciliation-service');
 const graphManifestService = require('./graph-manifest-service');
-const exportService = require('./export-service');
+const bundleHashService = require('./bundle-hash-service');
 const {
   TrackNotFoundError,
   NotFoundError,
@@ -54,25 +53,6 @@ function normalizeTierSummary(summary) {
     members_count: summary?.members_count ?? 0,
     staged_count: summary?.staged_count ?? 0,
     candidates_count: summary?.candidates_count ?? 0,
-  };
-}
-
-function hashDownloadPayload(payload) {
-  return crypto
-    .createHash('sha256')
-    .update(JSON.stringify(payload, null, 4), 'utf8')
-    .digest('hex');
-}
-
-async function generateBundleHashes(snapshot) {
-  const [stix20Bundle, stix21Bundle] = await Promise.all([
-    exportService.exportSnapshot(snapshot, 'bundle', { stixVersion: '2.0' }),
-    exportService.exportSnapshot(snapshot, 'bundle', { stixVersion: '2.1' }),
-  ]);
-  return {
-    manifest_id: snapshot.graph_manifest_id,
-    stix_2_0: hashDownloadPayload(stix20Bundle),
-    stix_2_1: hashDownloadPayload(stix21Bundle),
   };
 }
 
@@ -637,7 +617,7 @@ async function createGraph(trackId, modified, prepareManifest, validateExisting)
     );
   }
   try {
-    const bundleHashes = await generateBundleHashes(attached);
+    const bundleHashes = await bundleHashService.generateBundleHashes(attached);
     const hashed = await dynamicRepo.attachBundleHashes(
       trackId,
       snapshot.modified,

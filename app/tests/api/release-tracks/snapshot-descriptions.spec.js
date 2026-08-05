@@ -175,7 +175,12 @@ describe('Release-track snapshot descriptions', function () {
         .update(JSON.stringify(bundle, null, 4), 'utf8')
         .digest('hex');
       expect(hash).toBe(originalHashes[`stix_2_${stixVersion.split('.')[1]}`]);
-      expect(bundle.objects[0].description).toBe('Initial cached notes.');
+      const collection = bundle.objects.find((object) => object.type === 'x-mitre-collection');
+      if (stixVersion === '2.0') {
+        expect(collection).toBeUndefined();
+      } else {
+        expect(collection.description).toBe('Initial cached notes.');
+      }
     }
 
     await api(

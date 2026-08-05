@@ -71,7 +71,7 @@ surface was simplified
 | `stixVersion` | **Preserved** (default changed to `2.1`) |
 | `includeRevoked` / `includeDeprecated` | **Preserved** (default `false`) |
 | `includeMissingAttackId` | **Renamed** to `includeObjectsWithMissingAttackId` (default `false`) |
-| `includeCollectionObject` | **Renamed** to `includeToc` (default `true`). "TOC" (table of contents) describes what the `x-mitre-collection` object actually is, and avoids overloading the term "collection". |
+| `includeCollectionObject` | **Renamed** to `includeToc` (default `true`). "TOC" (table of contents) describes what the `x-mitre-collection` object actually is, and avoids overloading the term "collection". It applies only to STIX 2.1; STIX 2.0 always omits the object. |
 | `collectionObjectVersion` | **Removed** — fixed at `0.1`, signifying an ephemerally generated collection not connected to a release track |
 | `collectionObjectModified` | **Removed** — fixed at the current timestamp |
 | `collectionAttackSpecVersion` | **Removed** — fixed at the global default (`config.app.attackSpecVersion`) |
@@ -122,13 +122,15 @@ STIX version serialization. The pipeline:
    bundle envelope is emitted (with `spec_version: "2.0"` only when
    `stixVersion=2.0` — STIX 2.1 removed `spec_version` from the bundle
    object).
-7. **TOC** — unless `includeToc=false`, an `x-mitre-collection` object is
-   prepended. Graphless exports derive it from live snapshot metadata. Graph
-   creation instead freezes it as a `collection` manifest entry and every
-   member-only replay uses that stored value:
+7. **TOC** — for STIX 2.1, unless `includeToc=false`, an
+   `x-mitre-collection` object is prepended. STIX 2.0 always omits this ATT&CK
+   extension object. Graphless 2.1 exports derive it from live snapshot
+   metadata. Graph creation freezes it as a `collection` manifest entry and
+   every member-only 2.1 replay uses that stored value:
    - `id`: `x-mitre-collection--<track uuid>` — stable across exports of the
      same track
-   - `name`/`created_by_ref`/`object_marking_refs`: from the snapshot metadata
+   - `created_by_ref`: the configured organization identity's STIX ID
+   - `name`/`object_marking_refs`: from the snapshot metadata
    - `description`: from `snapshot_description` when present, otherwise the
      snapshot's long-lived track `description`
    - `x_mitre_version`: the snapshot's tagged version, or `0.1` for drafts
@@ -145,6 +147,13 @@ STIX version serialization. The pipeline:
    form one immutable cache boundary. Snapshot-note edits return `409 Conflict`
    until the graph is deleted; callers then edit the notes and regenerate the
    graph and hashes.
+
+The `20260805150000-repair-release-track-bundle-integrity` forward migration
+applies these invariants to existing graph manifests. It creates or rewrites
+each frozen collection entry with the track-derived ID and current configured
+organization identity, then recomputes both hashes for every linked tagged
+snapshot. Historical draft graphs remain live exports and therefore do not
+retain deterministic hashes.
 
 ### Canonical domains and the legacy graph renderer
 

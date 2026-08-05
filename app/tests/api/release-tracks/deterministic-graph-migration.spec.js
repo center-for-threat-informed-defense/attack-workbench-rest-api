@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const mongoose = require('mongoose');
 const request = require('supertest');
 const { expect } = require('expect');
@@ -9,6 +10,7 @@ const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const migration = require('../../../../migrations/20260730180000-backfill-deterministic-snapshot-graphs');
+const bundleIntegrityMigration = require('../../../../migrations/20260805150000-repair-release-track-bundle-integrity');
 const Relationship = require('../../../models/relationship-model');
 const {
   ReleaseTrackGraphManifest,
@@ -240,6 +242,113 @@ describe('Deterministic snapshot graph migration', function () {
     expect(objectIds).toContain(technique.stix.id);
     expect(objectIds).toContain(group.stix.id);
     expect(objectIds).toContain(relationship.stix.id);
+  });
+
+  it('repairs graph collection identities and recomputes tagged bundle hashes', async function () {
+    const organizationIdentity = (
+      await request(app)
+        .get('/api/config/organization-identity')
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200)
+    ).body;
+    const manifests = await ReleaseTrackGraphManifest.find({ track_id: trackId })
+      .sort({ created_at: 1 })
+      .lean()
+      .exec();
+    const collectionEntries = await ReleaseTrackGraphManifestEntry.find({
+      manifest_id: { $in: manifests.map((manifest) => manifest.manifest_id) },
+      kind: 'collection',
+    })
+      .sort({ snapshot_modified: 1 })
+      .lean()
+      .exec();
+
+    for (const [index, entry] of collectionEntries.entries()) {
+      const badId = `x-mitre-collection--00000000-0000-4000-8000-${String(index).padStart(
+        12,
+        '0',
+      )}`;
+      await ReleaseTrackGraphManifestEntry.updateOne(
+        { _id: entry._id },
+        {
+          $set: {
+            object_ref: badId,
+            revision_key: `${badId}::collection`,
+            'frozen_stix.id': badId,
+            'frozen_stix.created_by_ref': 'identity--00000000-0000-4000-8000-000000000000',
+          },
+        },
+      ).exec();
+    }
+    await mongoose.connection.db.collection(trackId).updateMany(
+      { graph_manifest_id: { $in: manifests.map((manifest) => manifest.manifest_id) } },
+      {
+        $set: {
+          bundle_hashes: {
+            manifest_id: manifests[0].manifest_id,
+            stix_2_0: '0'.repeat(64),
+            stix_2_1: '0'.repeat(64),
+          },
+        },
+      },
+    );
+
+    const preview = await bundleIntegrityMigration._private.run(mongoose.connection.db, null, {
+      dryRun: true,
+    });
+    expect(preview.collection_entries_repaired).toBe(collectionEntries.length);
+    expect(preview.bundle_hashes_recomputed).toBeGreaterThan(0);
+
+    const report = await bundleIntegrityMigration._private.run(mongoose.connection.db);
+    expect(report.collection_entries_repaired).toBe(collectionEntries.length);
+    expect(report.bundle_hashes_recomputed).toBeGreaterThan(0);
+
+    const repairedEntries = await ReleaseTrackGraphManifestEntry.find({
+      manifest_id: { $in: manifests.map((manifest) => manifest.manifest_id) },
+      kind: 'collection',
+    })
+      .lean()
+      .exec();
+    const expectedCollectionId = `x-mitre-collection--${trackId.split('--')[1]}`;
+    expect(new Set(repairedEntries.map((entry) => entry.frozen_stix.id))).toEqual(
+      new Set([expectedCollectionId]),
+    );
+    expect(
+      repairedEntries.every(
+        (entry) => entry.frozen_stix.created_by_ref === organizationIdentity.stix.id,
+      ),
+    ).toBe(true);
+
+    const taggedSnapshots = await mongoose.connection.db
+      .collection(trackId)
+      .find({ graph_manifest_id: { $exists: true }, version: { $type: 'string' } })
+      .toArray();
+    for (const snapshot of taggedSnapshots) {
+      for (const stixVersion of ['2.0', '2.1']) {
+        const bundle = (
+          await request(app)
+            .get(
+              `/api/release-tracks/${trackId}/snapshots/${encodeURIComponent(
+                snapshot.modified.toISOString(),
+              )}?format=bundle&stixVersion=${stixVersion}`,
+            )
+            .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+            .expect(200)
+        ).body;
+        if (stixVersion === '2.0') {
+          expect(bundle.objects.some((object) => object.type === 'x-mitre-collection')).toBe(false);
+        }
+        const hash = crypto
+          .createHash('sha256')
+          .update(JSON.stringify(bundle, null, 4), 'utf8')
+          .digest('hex');
+        expect(hash).toBe(snapshot.bundle_hashes?.[`stix_2_${stixVersion.split('.')[1]}`]);
+      }
+    }
+
+    const rerun = await bundleIntegrityMigration._private.run(mongoose.connection.db);
+    expect(rerun.collection_entries_repaired).toBe(0);
+    expect(rerun.bundle_hashes_recomputed).toBe(0);
   });
 
   it('replays and activates a complete linked pending manifest after interruption', async function () {

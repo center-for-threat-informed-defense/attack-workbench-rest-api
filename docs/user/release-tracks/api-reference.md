@@ -146,7 +146,7 @@ self-contained.
 | ----------------------------------- | -------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `format`                            | `bundle` \| `workbench` \| `filesystemstore` | `bundle` | Output format (`filesystemstore` is not yet implemented)                                                                                                                                                                                                                              |
 | `stixVersion`                       | `2.0` \| `2.1`                               | `2.1`    | STIX version the emitted bundle conforms to (bundle format only)                                                                                                                                                                                                                      |
-| `includeToc`                        | `true` \| `false`                            | `true`   | Include a table-of-contents object (of type `x-mitre-collection`) in the bundle. The TOC is generated with `x_mitre_version: "0.1"` (signifying an ephemeral, non-release-track collection), a `modified` of the current timestamp, and the deployment's default ATT&CK spec version. |
+| `includeToc`                        | `true` \| `false`                            | `true`   | Include a table-of-contents object (of type `x-mitre-collection`) in STIX 2.1. STIX 2.0 always omits it. The TOC uses `x_mitre_version: "0.1"`, the current timestamp, and the deployment's default ATT&CK spec version. |
 | `includeObjectsWithMissingAttackId` | `true` \| `false`                            | `false`  | Include objects that should have an ATT&CK ID set but do not                                                                                                                                                                                                                          |
 | `includeDeprecated`                 | `true` \| `false`                            | `false`  | Include objects with `x_mitre_deprecated: true` (this also governs deprecated Data Sources)                                                                                                                                                                                           |
 | `includeRevoked`                    | `true` \| `false`                            | `false`  | Include objects with `revoked: true`                                                                                                                                                                                                                                                  |
@@ -368,7 +368,7 @@ Workbench responses return the release-track snapshot shape. Entries in the `mem
 | `include`     | `staged` and/or `candidates` (comma-separated or repeated)                | Additional tiers to include in the bundle alongside members. If omitted, only members are included. (Note the different semantics from `workbench` responses.) |
 | `state`       | `work-in-progress` and/or `awaiting-review` (comma-separated or repeated) | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included. Members are unaffected.         |
 | `stixVersion` | `2.0` \| `2.1`                                                            | STIX version the emitted bundle conforms to (default: `2.1`)                                                                                                   |
-| `includeToc`  | `true` \| `false`                                                         | Include a table-of-contents object (of type `x-mitre-collection`) derived from the release-track metadata (default: `true`)                                    |
+| `includeToc`  | `true` \| `false`                                                         | Include a table-of-contents object (of type `x-mitre-collection`) in STIX 2.1, derived from release-track metadata (default: `true`). STIX 2.0 always omits it. |
 
 See [Output Formats](output-formats.md) for details on the bundle structure.
 
@@ -732,10 +732,12 @@ deterministic.
 
 Graph creation also stores one stateful `x-mitre-collection` manifest entry.
 Its ID is stable for the release track, `created` comes from the track's first
-cached collection object, and `modified` is the current manifest creation time.
-The graph-backed bundle envelope uses the manifest UUID, so repeated STIX 2.0
-or STIX 2.1 downloads are byte-for-byte stable. The graph-creation response and
-snapshot history expose SHA-256 hashes for both exact download files.
+cached collection object, `created_by_ref` is the configured organization
+identity's STIX ID, and `modified` is the current manifest creation time. The
+collection object is emitted only in STIX 2.1. The graph-backed bundle envelope
+uses the manifest UUID, so repeated STIX 2.0 or STIX 2.1 downloads are
+byte-for-byte stable. The graph-creation response and snapshot history expose
+SHA-256 hashes for both exact download files.
 
 Administrators may use the separate `/graph/reconstruct` POST for a historical
 baseline backed by an independently verified source bundle. The request sends

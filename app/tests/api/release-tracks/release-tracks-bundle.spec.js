@@ -337,6 +337,7 @@ describe('Release Tracks Bundle Export API', function () {
     expect(toc.x_mitre_version).toBe('0.1');
     expect(toc.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
     expect(toc.spec_version).toBe('2.1');
+    expect(toc.created_by_ref).toBe(organizationIdentityId);
 
     // Marking definitions are tracked in object_marking_refs, everything else
     // in x_mitre_contents
@@ -581,6 +582,7 @@ describe('Release Tracks Bundle Export API', function () {
     );
 
     expect(bundle.spec_version).toBe('2.0');
+    expect(bundle.objects.some((object) => object.type === 'x-mitre-collection')).toBe(false);
     const member = bundle.objects.find((o) => o.id === memberObject.stix.id);
     expect(member.spec_version).toBeUndefined();
   });

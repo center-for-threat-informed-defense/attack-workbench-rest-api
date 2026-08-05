@@ -58,6 +58,8 @@ const exportOptionsSchema = z
     includeToc: z.boolean().default(true),
     attackSpecVersion: z.string().optional(),
     collectionObject: z.looseObject({}).optional(),
+    collectionId: z.string().optional(),
+    createdByRef: z.string().optional(),
     bundleId: z.string().optional(),
   })
   .optional()
@@ -109,12 +111,12 @@ function buildTocObject(snapshot, bundleObjects, options) {
 
   const tocObject = {
     type: 'x-mitre-collection',
-    id: `x-mitre-collection--${trackUuid}`,
+    id: options.collectionId || `x-mitre-collection--${trackUuid}`,
     x_mitre_attack_spec_version: options.attackSpecVersion,
     name: snapshot.name,
     x_mitre_version: snapshot.version || '0.1',
     description: snapshot.snapshot_description ?? snapshot.description,
-    created_by_ref: snapshot.created_by_ref || '',
+    created_by_ref: options.createdByRef || snapshot.created_by_ref || '',
     created: options.created || snapshot.created || snapshot.modified,
     modified: options.modified || snapshot.modified,
     x_mitre_contents: [],
@@ -154,7 +156,7 @@ function buildTocObject(snapshot, bundleObjects, options) {
 //     only for STIX 2.0 — the STIX 2.1 specification removed spec_version
 //     from the bundle object (objects declare their own spec_version).
 //   - includeToc (default true): prepend an x-mitre-collection object derived
-//     from the snapshot metadata
+//     from the snapshot metadata for STIX 2.1; STIX 2.0 always omits it
 //   - attackSpecVersion: x_mitre_attack_spec_version for the TOC object
 //
 // Notes are Workbench-native objects, not STIX objects, so they are never
@@ -162,7 +164,15 @@ function buildTocObject(snapshot, bundleObjects, options) {
 // -----------------------------------------------------------------------------
 
 const bundleTransformSchema = exportInputSchema.transform((input) => {
-  const { stixVersion, includeToc, attackSpecVersion, collectionObject, bundleId } = input.options;
+  const {
+    stixVersion,
+    includeToc,
+    attackSpecVersion,
+    collectionObject,
+    collectionId,
+    createdByRef,
+    bundleId,
+  } = input.options;
 
   const objects = input.hydratedObjects
     .map((doc) => doc.stix)
@@ -172,10 +182,17 @@ const bundleTransformSchema = exportInputSchema.transform((input) => {
     conformToStixVersion(stixObject, stixVersion);
   }
 
-  if (includeToc) {
+  // x-mitre-collection is a STIX 2.1 ATT&CK extension object. It must never be
+  // emitted in a STIX 2.0 bundle, even when includeToc retains its default.
+  if (includeToc && stixVersion === '2.1') {
     const tocObject = collectionObject
       ? structuredClone(collectionObject)
-      : buildTocObject(input.snapshot, objects, { stixVersion, attackSpecVersion });
+      : buildTocObject(input.snapshot, objects, {
+          stixVersion,
+          attackSpecVersion,
+          collectionId,
+          createdByRef,
+        });
     conformToStixVersion(tocObject, stixVersion);
     objects.unshift(tocObject);
   }

@@ -125,6 +125,7 @@ describe('Virtual Release Track Bundle Export API', function () {
 
     expect(bundle.type).toBe('bundle');
     expect(bundle.spec_version).toBe('2.0');
+    expect(bundle.objects.some((object) => object.type === 'x-mitre-collection')).toBe(false);
     expect(bundle.objects.every((object) => object.spec_version === undefined)).toBe(true);
 
     const exportedMalware = bundle.objects.find((object) => object.id === malware.stix.id);

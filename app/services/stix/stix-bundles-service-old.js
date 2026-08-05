@@ -597,7 +597,7 @@ class StixBundlesService extends BaseService {
       StixBundlesService.conformToStixVersion(stixObject, options.stixVersion);
     }
 
-    if (options.includeCollectionObject) {
+    if (options.includeCollectionObject && options.stixVersion === '2.1') {
       StixBundlesService.addCollectionObject(bundle, options);
     }
     return bundle;

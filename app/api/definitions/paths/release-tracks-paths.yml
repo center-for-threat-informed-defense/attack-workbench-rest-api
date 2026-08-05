@@ -48,7 +48,7 @@ paths:
           in: query
           description: |
             Whether to include a table-of-contents object (of type `x-mitre-collection`)
-            in the bundle (bundle format only).
+            in STIX 2.1 bundles (bundle format only). STIX 2.0 always omits it.
           schema:
             type: boolean
             default: true
@@ -500,6 +500,7 @@ paths:
             enum: ['2.0', '2.1']
         - name: includeToc
           in: query
+          description: 'Include the x-mitre-collection TOC in STIX 2.1 bundle previews; STIX 2.0 always omits it'
           schema:
             type: boolean
       responses:
@@ -1107,7 +1108,7 @@ paths:
             default: '2.1'
         - name: includeToc
           in: query
-          description: 'Include the x-mitre-collection TOC in bundle responses'
+          description: 'Include the x-mitre-collection TOC in STIX 2.1 bundle responses; STIX 2.0 bundles never include it'
           schema:
             type: boolean
             default: true
@@ -1208,6 +1209,7 @@ paths:
           description: |
             Whether to include a table-of-contents object (of type `x-mitre-collection`)
             derived from the release-track metadata (bundle format only).
+            This applies only to STIX 2.1; STIX 2.0 bundles never include it.
           schema:
             type: boolean
             default: true
@@ -1565,6 +1567,7 @@ paths:
             enum: ['2.0', '2.1']
         - name: includeToc
           in: query
+          description: 'Include the x-mitre-collection TOC in STIX 2.1 bundle previews; STIX 2.0 always omits it'
           schema:
             type: boolean
       responses:

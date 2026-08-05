@@ -15,6 +15,7 @@ const {
 } = require('../../models/release-tracks/release-track-graph-manifest-model');
 const { ReleaseContentIntegrityError } = require('../../exceptions');
 const { buildTocObject } = require('../../lib/release-tracks/export-schemas');
+const systemConfigurationService = require('../system/system-configuration-service');
 const primaryRevisionService = require('./primary-revision-service');
 
 const MANIFEST_SCHEMA_VERSION = 2;
@@ -81,37 +82,57 @@ async function getFirstCollectionCreated(trackId, fallback) {
     track_id: trackId,
     kind: 'collection',
   })
-    .sort({ _id: 1 })
+    .sort({ 'frozen_stix.created': 1, _id: 1 })
     .select('frozen_stix.created')
     .lean()
     .exec();
   return firstCollection?.frozen_stix?.created || fallback;
 }
 
-async function appendCollectionEntry(snapshot, entries, manifest) {
+function collectionIdForTrack(trackId) {
+  return `x-mitre-collection--${trackId.split('--')[1]}`;
+}
+
+async function organizationIdentityRef() {
+  const organizationIdentity = await systemConfigurationService.retrieveOrganizationIdentity();
+  return organizationIdentity.stix.id;
+}
+
+async function upsertCollectionEntry(snapshot, entries, manifest) {
   const graph = await replayEntries(entries, manifest, {});
-  const created = await getFirstCollectionCreated(snapshot.id, manifest.created_at);
+  const created = await getFirstCollectionCreated(manifest.track_id, manifest.created_at);
+  const createdByRef = await organizationIdentityRef();
+  const collectionId = collectionIdForTrack(manifest.track_id);
   const collectionObject = buildTocObject(
     snapshot,
     graph.documents.map((document) => document.stix),
     {
       stixVersion: '2.1',
       attackSpecVersion: config.app.attackSpecVersion,
+      collectionId,
+      createdByRef,
       created,
       modified: manifest.created_at,
     },
   );
   const entry = {
     manifest_id: manifest.manifest_id,
-    track_id: snapshot.id,
+    track_id: manifest.track_id,
     snapshot_modified: snapshot.modified,
     revision_key: `${collectionObject.id}::collection`,
     kind: 'collection',
     object_ref: collectionObject.id,
     frozen_stix: collectionObject,
   };
-  await ReleaseTrackGraphManifestEntry.create(entry);
-  entries.push(entry);
+  const storedEntry = await ReleaseTrackGraphManifestEntry.findOneAndUpdate(
+    { manifest_id: manifest.manifest_id, kind: 'collection' },
+    { $set: entry },
+    { new: true, upsert: true, runValidators: true, lean: true },
+  ).exec();
+  const existingIndex = entries.findIndex((candidate) => candidate.kind === 'collection');
+  if (existingIndex === -1) entries.push(storedEntry);
+  else entries[existingIndex] = storedEntry;
+  return storedEntry;
 }
 
 function endpointFor(relationship, side) {
@@ -641,7 +662,7 @@ async function prepare(snapshot, options = {}) {
     // The pending manifest now protects every inserted pointer from deletion.
     // Rehydrate once inside that protection window so a revision deleted
     // during graph discovery cannot leave an attachable dangling manifest.
-    await appendCollectionEntry(snapshot, entries, manifest);
+    await upsertCollectionEntry(snapshot, entries, manifest);
   } catch (err) {
     await discard(manifestId);
     throw err;
@@ -823,7 +844,7 @@ async function prepareSourceReconstruction(snapshot, plan) {
     await ReleaseTrackGraphManifestEntry.insertMany(
       entries.map((entry) => ({ ...common, ...entry })),
     );
-    await appendCollectionEntry(snapshot, entries, manifest);
+    await upsertCollectionEntry(snapshot, entries, manifest);
   } catch (err) {
     await discard(manifestId);
     throw err;
@@ -1144,6 +1165,16 @@ async function replayPlannedSnapshot(snapshot, options = {}) {
   );
 }
 
+async function refreshCollectionEntry(snapshot, manifest) {
+  const entries = await ReleaseTrackGraphManifestEntry.find({
+    manifest_id: manifest.manifest_id,
+  })
+    .sort({ _id: 1 })
+    .lean()
+    .exec();
+  return upsertCollectionEntry(snapshot, entries, manifest);
+}
+
 async function findPinsForRevision(objectRef, objectModified) {
   const entries = await ReleaseTrackGraphManifestEntry.find({
     object_ref: objectRef,
@@ -1219,6 +1250,8 @@ module.exports = {
   discardTrack,
   replay,
   replayPlannedSnapshot,
+  refreshCollectionEntry,
+  collectionIdForTrack,
   getStatisticsByManifestIds,
   findPinsForRevision,
   findPinsForObject,

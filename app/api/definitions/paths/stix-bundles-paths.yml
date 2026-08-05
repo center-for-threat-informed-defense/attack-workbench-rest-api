@@ -88,7 +88,8 @@ paths:
         - name: includeCollectionObject
           in: query
           description: |
-            Whether to create an object of type `x-mitre-collection` for objects in the bundle.
+            Whether to create an object of type `x-mitre-collection` for
+            objects in a STIX 2.1 bundle. STIX 2.0 always omits it.
           schema:
             type: boolean
             default: false

@@ -212,6 +212,9 @@ describe('Opt-in deterministic release-track graphs', function () {
     const markingEntry = entries.find((entry) => entry.object_ref === markingDefinitionId);
     expect(markingEntry.frozen_stix).toBeDefined();
     const collectionEntry = entries.find((entry) => entry.kind === 'collection');
+    const organizationIdentity = (
+      await authenticated(request(app).get('/api/config/organization-identity')).expect(200)
+    ).body;
     expect(collectionEntry).toMatchObject({
       manifest_id: graphSnapshot.graph_manifest_id,
       track_id: track.id,
@@ -219,6 +222,7 @@ describe('Opt-in deterministic release-track graphs', function () {
       frozen_stix: {
         type: 'x-mitre-collection',
         id: `x-mitre-collection--${track.id.split('--')[1]}`,
+        created_by_ref: organizationIdentity.stix.id,
         description: '',
         created: manifest.created_at,
         modified: manifest.created_at,
@@ -243,13 +247,18 @@ describe('Opt-in deterministic release-track graphs', function () {
       expect(bundle.id).toBe(
         graphSnapshot.graph_manifest_id.replace('release-track-graph-manifest--', 'bundle--'),
       );
-      expect(bundle.objects[0]).toEqual(
-        expect.objectContaining({
-          id: collectionEntry.frozen_stix.id,
-          created: collectionEntry.frozen_stix.created.toISOString(),
-          modified: collectionEntry.frozen_stix.modified.toISOString(),
-        }),
-      );
+      if (stixVersion === '2.0') {
+        expect(bundle.objects.some((object) => object.type === 'x-mitre-collection')).toBe(false);
+      } else {
+        expect(bundle.objects[0]).toEqual(
+          expect.objectContaining({
+            id: collectionEntry.frozen_stix.id,
+            created_by_ref: organizationIdentity.stix.id,
+            created: collectionEntry.frozen_stix.created.toISOString(),
+            modified: collectionEntry.frozen_stix.modified.toISOString(),
+          }),
+        );
+      }
     }
 
     const correctedRelationship = await post(
