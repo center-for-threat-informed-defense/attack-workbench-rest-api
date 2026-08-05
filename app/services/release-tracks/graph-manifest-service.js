@@ -2,6 +2,7 @@
 
 const { isDeepStrictEqual } = require('node:util');
 const { v4: uuidv4 } = require('uuid');
+const config = require('../../config/config');
 const linkById = require('../../lib/linkById');
 const bundleRelationships = require('../../lib/stix-bundle-relationships');
 const attackObjectsRepository = require('../../repository/attack-objects-repository');
@@ -13,6 +14,7 @@ const {
   ReleaseTrackGraphManifestEntry,
 } = require('../../models/release-tracks/release-track-graph-manifest-model');
 const { ReleaseContentIntegrityError } = require('../../exceptions');
+const { buildTocObject } = require('../../lib/release-tracks/export-schemas');
 const primaryRevisionService = require('./primary-revision-service');
 
 const MANIFEST_SCHEMA_VERSION = 2;
@@ -72,6 +74,44 @@ function secondaryObjectIsValid(document, allowedDomains) {
 
 function revisionKey(objectRef, objectModified) {
   return `${objectRef}::${new Date(objectModified).getTime()}`;
+}
+
+async function getFirstCollectionCreated(trackId, fallback) {
+  const firstCollection = await ReleaseTrackGraphManifestEntry.findOne({
+    track_id: trackId,
+    kind: 'collection',
+  })
+    .sort({ _id: 1 })
+    .select('frozen_stix.created')
+    .lean()
+    .exec();
+  return firstCollection?.frozen_stix?.created || fallback;
+}
+
+async function appendCollectionEntry(snapshot, entries, manifest) {
+  const graph = await replayEntries(entries, manifest, {});
+  const created = await getFirstCollectionCreated(snapshot.id, manifest.created_at);
+  const collectionObject = buildTocObject(
+    snapshot,
+    graph.documents.map((document) => document.stix),
+    {
+      stixVersion: '2.1',
+      attackSpecVersion: config.app.attackSpecVersion,
+      created,
+      modified: manifest.created_at,
+    },
+  );
+  const entry = {
+    manifest_id: manifest.manifest_id,
+    track_id: snapshot.id,
+    snapshot_modified: snapshot.modified,
+    revision_key: `${collectionObject.id}::collection`,
+    kind: 'collection',
+    object_ref: collectionObject.id,
+    frozen_stix: collectionObject,
+  };
+  await ReleaseTrackGraphManifestEntry.create(entry);
+  entries.push(entry);
 }
 
 function endpointFor(relationship, side) {
@@ -583,13 +623,15 @@ async function prepare(snapshot, options = {}) {
     snapshot_modified: snapshot.modified,
   };
 
-  await ReleaseTrackGraphManifest.create({
+  const manifest = {
     ...common,
     state: 'pending',
     schema_version: schemaVersion,
     resolver_version: resolverVersion,
     baseline_reconstruction: options.baselineReconstruction === true,
-  });
+    created_at: new Date(),
+  };
+  await ReleaseTrackGraphManifest.create(manifest);
   try {
     if (entries.length > 0) {
       await ReleaseTrackGraphManifestEntry.insertMany(
@@ -599,16 +641,7 @@ async function prepare(snapshot, options = {}) {
     // The pending manifest now protects every inserted pointer from deletion.
     // Rehydrate once inside that protection window so a revision deleted
     // during graph discovery cannot leave an attachable dangling manifest.
-    await replayEntries(
-      entries,
-      {
-        ...common,
-        state: 'pending',
-        schema_version: schemaVersion,
-        resolver_version: resolverVersion,
-      },
-      {},
-    );
+    await appendCollectionEntry(snapshot, entries, manifest);
   } catch (err) {
     await discard(manifestId);
     throw err;
@@ -782,6 +815,7 @@ async function prepareSourceReconstruction(snapshot, plan) {
     resolver_version: SOURCE_BUNDLE_RESOLVER_VERSION,
     baseline_reconstruction: true,
     source_attestation: plan.source_attestation,
+    created_at: new Date(),
   };
 
   await ReleaseTrackGraphManifest.create(manifest);
@@ -789,7 +823,7 @@ async function prepareSourceReconstruction(snapshot, plan) {
     await ReleaseTrackGraphManifestEntry.insertMany(
       entries.map((entry) => ({ ...common, ...entry })),
     );
-    await replayEntries(entries, manifest, {});
+    await appendCollectionEntry(snapshot, entries, manifest);
   } catch (err) {
     await discard(manifestId);
     throw err;
@@ -1029,6 +1063,7 @@ async function replayEntries(entries, manifest, options) {
       .filter((entry) => entry.omitted_optional_defaults?.length)
       .map((entry) => [entry.object_ref, entry.omitted_optional_defaults]),
   );
+  const collectionObject = entries.find((entry) => entry.kind === 'collection')?.frozen_stix;
 
   const emittedByRevision = new Map();
   for (const document of [...selectedDocuments, ...supportingDocuments]) {
@@ -1042,6 +1077,7 @@ async function replayEntries(entries, manifest, options) {
     documents: [...emittedByRevision.values()],
     linkTargetDocuments,
     sourceOmittedDefaults,
+    collectionObject,
     manifest,
   };
 }
@@ -1086,6 +1122,7 @@ async function replay(snapshot, options = {}) {
   const entries = await ReleaseTrackGraphManifestEntry.find({
     manifest_id: manifest.manifest_id,
   })
+    .sort({ _id: 1 })
     .lean()
     .exec();
   return replayEntries(entries, manifest, options);

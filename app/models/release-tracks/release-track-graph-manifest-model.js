@@ -43,7 +43,7 @@ const entrySchema = new mongoose.Schema(
     revision_key: { type: String, required: true },
     kind: {
       type: String,
-      enum: ['root', 'relationship', 'secondary', 'supporting', 'link_target'],
+      enum: ['root', 'relationship', 'secondary', 'supporting', 'link_target', 'collection'],
       required: true,
     },
     tier: {

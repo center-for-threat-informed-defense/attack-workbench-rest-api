@@ -1292,8 +1292,9 @@ paths:
         Replace the user-authored notes on one draft or tagged snapshot.
         Whitespace is trimmed; an empty string clears the notes. This mutable
         workspace annotation does not change the snapshot modified timestamp,
-        semantic version, tier contents, graph manifest, or release-track
-        metadata.
+        semantic version, tier contents, or release-track metadata. A snapshot
+        with a graph manifest is immutable and returns 409 until its bundle
+        cache is deleted.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1332,6 +1333,8 @@ paths:
           description: 'Invalid description payload'
         '404':
           description: 'Snapshot not found'
+        '409':
+          description: 'Delete the snapshot bundle cache before editing its notes'
 
   /api/release-tracks/{id}/snapshots/{modified}/graph:
     post:

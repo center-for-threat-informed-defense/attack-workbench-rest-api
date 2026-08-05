@@ -422,7 +422,10 @@ Every summary contains `id`, `type`, `modified`, `version`, `name`, the
 track-level `description` (when set), `snapshot_description` (when the snapshot
 has user-authored notes), and `members_count`. A tagged snapshot whose
 deterministic member graph has been materialized also contains the opaque
-`graph_manifest_id` and `graph_statistics`; graphless snapshots omit both.
+`graph_manifest_id`, `graph_statistics`, and `bundle_hashes`; graphless
+snapshots omit all three. `bundle_hashes` contains the manifest ID plus the
+SHA-256 digests in `stix_2_0` and `stix_2_1` for the exact four-space-indented
+UTF-8 JSON files downloaded by the browser.
 Graph statistics describe the cached graph at a glance:
 
 - `primary_count`: member objects deliberately selected for the snapshot.
@@ -432,7 +435,8 @@ Graph statistics describe the cached graph at a glance:
 - `relationship_count`: relationships connecting cached graph objects.
 - `supporting_count`: supporting identities and marking definitions.
 - `link_target_count`: objects pinned for deterministic LinkById expansion.
-- `total_count`: all entries across those manifest roles.
+- `total_count`: all emitted dependency entries across those manifest roles;
+  the collection metadata entry is excluded.
 
 The UI groups supporting and LinkById targets together as **Dependencies**.
 Snapshot tier count keys continue to reflect the track type:
@@ -505,7 +509,10 @@ PUT /api/release-tracks/:id/snapshots/:modified/description
 The value is trimmed and limited to 4000 characters. Send an empty string to
 clear it. The API returns the updated snapshot as `snapshot_description` and
 does not change the snapshot's `modified` timestamp, semantic version, tier
-contents, graph cache, or the release track's long-lived description.
+contents, or the release track's long-lived description. Cached snapshots are
+immutable: this endpoint returns `409 Conflict` while a graph manifest exists.
+Delete the bundle cache, edit the notes, and cache the bundle again to generate
+a new frozen collection object and matching hashes.
 
 ### Update Metadata
 
@@ -722,6 +729,13 @@ indicator means member-only bundle exports reuse the exact object and
 relationship revisions selected when the cache was created. This is not a
 general response cache and does not make candidate or staged exports
 deterministic.
+
+Graph creation also stores one stateful `x-mitre-collection` manifest entry.
+Its ID is stable for the release track, `created` comes from the track's first
+cached collection object, and `modified` is the current manifest creation time.
+The graph-backed bundle envelope uses the manifest UUID, so repeated STIX 2.0
+or STIX 2.1 downloads are byte-for-byte stable. The graph-creation response and
+snapshot history expose SHA-256 hashes for both exact download files.
 
 Administrators may use the separate `/graph/reconstruct` POST for a historical
 baseline backed by an independently verified source bundle. The request sends

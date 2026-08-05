@@ -340,6 +340,15 @@ const versionHistoryEntrySchema = new mongoose.Schema(versionHistoryEntryDefinit
   _id: false,
 });
 
+const bundleHashesSchema = new mongoose.Schema(
+  {
+    manifest_id: { type: String, required: true },
+    stix_2_0: { type: String, required: true, match: /^[a-f0-9]{64}$/ },
+    stix_2_1: { type: String, required: true, match: /^[a-f0-9]{64}$/ },
+  },
+  { _id: false },
+);
+
 // =============================================================================
 // Main snapshot schema
 // =============================================================================
@@ -365,6 +374,7 @@ const releaseTrackSnapshotDefinition = {
     validate: validateVersion,
   },
   graph_manifest_id: { type: String },
+  bundle_hashes: { type: bundleHashesSchema },
   snapshot_description: {
     type: String,
     maxlength: [4000, 'Snapshot description cannot exceed 4000 characters'],

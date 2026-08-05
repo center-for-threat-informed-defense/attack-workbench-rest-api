@@ -315,7 +315,10 @@ async function commitPlan(plan) {
 
   const obsoleteManifestId = plan.sourceSnapshot.graph_manifest_id;
   const unsetOps = {};
-  if (obsoleteManifestId) unsetOps.graph_manifest_id = '';
+  if (obsoleteManifestId) {
+    unsetOps.graph_manifest_id = '';
+    unsetOps.bundle_hashes = '';
+  }
   if (plan.clearSnapshotDescription) unsetOps.snapshot_description = '';
   const tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, plan.sourceSnapshot.modified, {
     version: plan.version,

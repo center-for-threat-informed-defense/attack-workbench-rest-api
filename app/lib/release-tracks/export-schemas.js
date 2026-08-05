@@ -57,6 +57,8 @@ const exportOptionsSchema = z
     stixVersion: z.enum(['2.0', '2.1']).default('2.1'),
     includeToc: z.boolean().default(true),
     attackSpecVersion: z.string().optional(),
+    collectionObject: z.looseObject({}).optional(),
+    bundleId: z.string().optional(),
   })
   .optional()
   .default({});
@@ -113,8 +115,8 @@ function buildTocObject(snapshot, bundleObjects, options) {
     x_mitre_version: snapshot.version || '0.1',
     description: snapshot.snapshot_description ?? snapshot.description,
     created_by_ref: snapshot.created_by_ref || '',
-    created: snapshot.created || snapshot.modified,
-    modified: snapshot.modified,
+    created: options.created || snapshot.created || snapshot.modified,
+    modified: options.modified || snapshot.modified,
     x_mitre_contents: [],
     object_marking_refs: [],
   };
@@ -160,7 +162,7 @@ function buildTocObject(snapshot, bundleObjects, options) {
 // -----------------------------------------------------------------------------
 
 const bundleTransformSchema = exportInputSchema.transform((input) => {
-  const { stixVersion, includeToc, attackSpecVersion } = input.options;
+  const { stixVersion, includeToc, attackSpecVersion, collectionObject, bundleId } = input.options;
 
   const objects = input.hydratedObjects
     .map((doc) => doc.stix)
@@ -171,12 +173,16 @@ const bundleTransformSchema = exportInputSchema.transform((input) => {
   }
 
   if (includeToc) {
-    objects.unshift(buildTocObject(input.snapshot, objects, { stixVersion, attackSpecVersion }));
+    const tocObject = collectionObject
+      ? structuredClone(collectionObject)
+      : buildTocObject(input.snapshot, objects, { stixVersion, attackSpecVersion });
+    conformToStixVersion(tocObject, stixVersion);
+    objects.unshift(tocObject);
   }
 
   return {
     type: 'bundle',
-    id: `bundle--${uuid.v4()}`,
+    id: bundleId || `bundle--${uuid.v4()}`,
     // STIX 2.0 bundles must declare spec_version; STIX 2.1 bundles must not
     ...(stixVersion === '2.0' ? { spec_version: '2.0' } : {}),
     objects,

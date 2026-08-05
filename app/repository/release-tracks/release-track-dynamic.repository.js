@@ -289,6 +289,7 @@ class ReleaseTrackDynamicRepository {
           modified: 1,
           version: 1,
           graph_manifest_id: 1,
+          bundle_hashes: 1,
           snapshot_description: 1,
           name: 1,
           description: 1,
@@ -424,7 +425,25 @@ class ReleaseTrackDynamicRepository {
           version: { $type: 'string' },
           graph_manifest_id: manifestId,
         },
-        { $unset: { graph_manifest_id: '' } },
+        { $unset: { graph_manifest_id: '', bundle_hashes: '' } },
+        { new: true, runValidators: true, lean: true },
+      ).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async attachBundleHashes(trackId, modified, manifestId, bundleHashes) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOneAndUpdate(
+        {
+          id: trackId,
+          modified,
+          version: { $type: 'string' },
+          graph_manifest_id: manifestId,
+        },
+        { $set: { bundle_hashes: bundleHashes } },
         { new: true, runValidators: true, lean: true },
       ).exec();
     } catch (err) {

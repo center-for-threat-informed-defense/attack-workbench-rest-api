@@ -123,18 +123,28 @@ STIX version serialization. The pipeline:
    `stixVersion=2.0` — STIX 2.1 removed `spec_version` from the bundle
    object).
 7. **TOC** — unless `includeToc=false`, an `x-mitre-collection` object is
-   prepended. Unlike the legacy exporter (which hardcoded per-domain
-   metadata) and the ephemeral endpoint (which uses ephemeral defaults), the
-   TOC is derived from the release track itself:
+   prepended. Graphless exports derive it from live snapshot metadata. Graph
+   creation instead freezes it as a `collection` manifest entry and every
+   member-only replay uses that stored value:
    - `id`: `x-mitre-collection--<track uuid>` — stable across exports of the
      same track
    - `name`/`created_by_ref`/`object_marking_refs`: from the snapshot metadata
    - `description`: from `snapshot_description` when present, otherwise the
      snapshot's long-lived track `description`
    - `x_mitre_version`: the snapshot's tagged version, or `0.1` for drafts
-   - `modified`: the snapshot's `modified` timestamp
+   - `created`: the first cached collection object's creation timestamp for
+     the release track
+   - `modified`: the current graph manifest's creation timestamp
    - `x_mitre_contents`: every bundle object except marking definitions
      (which are recorded in `object_marking_refs`), sorted by `object_ref`
+8. **Deterministic file identity** — graph-backed member-only bundles use the
+   graph manifest UUID for the bundle envelope ID. After graph creation, the
+   server serializes each STIX version with `JSON.stringify(bundle, null, 4)`,
+   hashes those exact UTF-8 bytes with SHA-256, and stores both digests on the
+   snapshot as `bundle_hashes`. The graph, collection object, notes, and hashes
+   form one immutable cache boundary. Snapshot-note edits return `409 Conflict`
+   until the graph is deleted; callers then edit the notes and regenerate the
+   graph and hashes.
 
 ### Canonical domains and the legacy graph renderer
 
@@ -201,7 +211,10 @@ members, writes a pending manifest and decoupled entry rows, rehydrates every
 pointer while those pending rows already protect deletion, then atomically
 attaches the manifest ID to the still-tagged snapshot. Replay can self-activate
 a complete linked pending manifest after an interrupted activation. `DELETE`
-on the same graph resource detaches and removes it.
+on the same graph resource detaches and removes it. Each manifest also owns one
+frozen `x-mitre-collection` entry. The attached snapshot records SHA-256 values
+for the exact STIX 2.0 and STIX 2.1 browser-download serialization, bound to the
+same manifest ID.
 
 Historical baselines whose relationships predate endpoint-pin capture require
 a different, admin-only path:

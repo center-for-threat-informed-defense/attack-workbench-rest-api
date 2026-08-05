@@ -93,6 +93,11 @@ function normalizeSourceBundleDefaults(documents, graph) {
   });
 }
 
+function bundleIdForManifest(manifest) {
+  const uuid = manifest?.manifest_id?.split('--')[1];
+  return uuid ? `bundle--${uuid}` : undefined;
+}
+
 // =============================================================================
 // Format helpers (delegating to Zod transform schemas)
 // =============================================================================
@@ -178,6 +183,8 @@ exports.exportSnapshot = async function exportSnapshot(snapshot, format, options
       stixVersion: options.stixVersion,
       includeToc: options.includeToc,
       attackSpecVersion: config.app.attackSpecVersion,
+      collectionObject: graph.collectionObject,
+      bundleId: bundleIdForManifest(graph.manifest),
     });
   }
 

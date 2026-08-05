@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const request = require('supertest');
 const { expect } = require('expect');
 
@@ -165,6 +166,11 @@ describe('Opt-in deterministic release-track graphs', function () {
       relationshipsRepository.retrieveAllForBundle = globalRelationshipScan;
     }
     expect(graphSnapshot.graph_manifest_id).toBeDefined();
+    expect(graphSnapshot.bundle_hashes).toEqual({
+      manifest_id: graphSnapshot.graph_manifest_id,
+      stix_2_0: expect.stringMatching(/^[a-f0-9]{64}$/),
+      stix_2_1: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
 
     const manifest = await ReleaseTrackGraphManifest.findOne({
       manifest_id: graphSnapshot.graph_manifest_id,
@@ -205,6 +211,46 @@ describe('Opt-in deterministic release-track graphs', function () {
     }
     const markingEntry = entries.find((entry) => entry.object_ref === markingDefinitionId);
     expect(markingEntry.frozen_stix).toBeDefined();
+    const collectionEntry = entries.find((entry) => entry.kind === 'collection');
+    expect(collectionEntry).toMatchObject({
+      manifest_id: graphSnapshot.graph_manifest_id,
+      track_id: track.id,
+      object_ref: `x-mitre-collection--${track.id.split('--')[1]}`,
+      frozen_stix: {
+        type: 'x-mitre-collection',
+        id: `x-mitre-collection--${track.id.split('--')[1]}`,
+        description: '',
+        created: manifest.created_at,
+        modified: manifest.created_at,
+      },
+    });
+
+    for (const stixVersion of ['2.0', '2.1']) {
+      const bundle = (
+        await authenticated(
+          request(app).get(
+            `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(
+              released.modified,
+            )}?format=bundle&stixVersion=${stixVersion}`,
+          ),
+        ).expect(200)
+      ).body;
+      const hash = crypto
+        .createHash('sha256')
+        .update(JSON.stringify(bundle, null, 4), 'utf8')
+        .digest('hex');
+      expect(hash).toBe(graphSnapshot.bundle_hashes[`stix_2_${stixVersion.split('.')[1]}`]);
+      expect(bundle.id).toBe(
+        graphSnapshot.graph_manifest_id.replace('release-track-graph-manifest--', 'bundle--'),
+      );
+      expect(bundle.objects[0]).toEqual(
+        expect.objectContaining({
+          id: collectionEntry.frozen_stix.id,
+          created: collectionEntry.frozen_stix.created.toISOString(),
+          modified: collectionEntry.frozen_stix.modified.toISOString(),
+        }),
+      );
+    }
 
     const correctedRelationship = await post(
       '/api/relationships',
@@ -233,6 +279,33 @@ describe('Opt-in deterministic release-track graphs', function () {
       200,
     );
     expect(idempotent.graph_manifest_id).toBe(graphSnapshot.graph_manifest_id);
+    expect(idempotent.bundle_hashes).toEqual(graphSnapshot.bundle_hashes);
+
+    await post(`/api/release-tracks/${track.id}/meta`, { name: 'Opt in Graph Track Next' }, 200);
+    const nextRelease = await post(
+      `/api/release-tracks/${track.id}/snapshots/latest/release`,
+      { version: '2.0' },
+      200,
+    );
+    const nextGraph = await post(
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(nextRelease.modified)}/graph`,
+      {},
+    );
+    const nextManifest = await ReleaseTrackGraphManifest.findOne({
+      manifest_id: nextGraph.graph_manifest_id,
+    })
+      .lean()
+      .exec();
+    const nextCollection = await ReleaseTrackGraphManifestEntry.findOne({
+      manifest_id: nextGraph.graph_manifest_id,
+      kind: 'collection',
+    })
+      .lean()
+      .exec();
+    expect(nextCollection.frozen_stix.id).toBe(collectionEntry.frozen_stix.id);
+    expect(nextCollection.frozen_stix.created).toEqual(collectionEntry.frozen_stix.created);
+    expect(nextCollection.frozen_stix.modified).toEqual(nextManifest.created_at);
+    expect(nextCollection.frozen_stix.modified).not.toEqual(collectionEntry.frozen_stix.modified);
 
     await authenticated(
       request(app).delete(

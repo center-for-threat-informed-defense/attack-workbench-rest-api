@@ -78,6 +78,11 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       modified: standardTaggedModified,
       version: '1.0',
       graph_manifest_id: 'release-track-graph-manifest--snapshot-history',
+      bundle_hashes: {
+        manifest_id: 'release-track-graph-manifest--snapshot-history',
+        stix_2_0: 'a'.repeat(64),
+        stix_2_1: 'b'.repeat(64),
+      },
       members: [memberEntry(0), memberEntry(1)],
       staged: [stagedEntry(2, standardTaggedModified)],
       candidates: [
@@ -213,6 +218,11 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       modified: standardTaggedModified.toISOString(),
       version: '1.0',
       graph_manifest_id: 'release-track-graph-manifest--snapshot-history',
+      bundle_hashes: {
+        manifest_id: 'release-track-graph-manifest--snapshot-history',
+        stix_2_0: 'a'.repeat(64),
+        stix_2_1: 'b'.repeat(64),
+      },
       members_count: 2,
       staged_count: 1,
       candidates_count: 3,

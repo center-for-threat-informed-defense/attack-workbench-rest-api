@@ -11,6 +11,7 @@
 // clone or read snapshots.
 // =============================================================================
 
+const crypto = require('node:crypto');
 const { v4: uuidv4 } = require('uuid');
 
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
@@ -22,6 +23,7 @@ const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-in
 const primaryRevisionService = require('./primary-revision-service');
 const reconciliationService = require('./reconciliation-service');
 const graphManifestService = require('./graph-manifest-service');
+const exportService = require('./export-service');
 const {
   TrackNotFoundError,
   NotFoundError,
@@ -52,6 +54,25 @@ function normalizeTierSummary(summary) {
     members_count: summary?.members_count ?? 0,
     staged_count: summary?.staged_count ?? 0,
     candidates_count: summary?.candidates_count ?? 0,
+  };
+}
+
+function hashDownloadPayload(payload) {
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify(payload, null, 4), 'utf8')
+    .digest('hex');
+}
+
+async function generateBundleHashes(snapshot) {
+  const [stix20Bundle, stix21Bundle] = await Promise.all([
+    exportService.exportSnapshot(snapshot, 'bundle', { stixVersion: '2.0' }),
+    exportService.exportSnapshot(snapshot, 'bundle', { stixVersion: '2.1' }),
+  ]);
+  return {
+    manifest_id: snapshot.graph_manifest_id,
+    stix_2_0: hashDownloadPayload(stix20Bundle),
+    stix_2_1: hashDownloadPayload(stix21Bundle),
   };
 }
 
@@ -223,6 +244,7 @@ exports.listSnapshots = async function listSnapshots(trackId, options) {
         modified: snapshot.modified,
         version: snapshot.version,
         graph_manifest_id: snapshot.graph_manifest_id,
+        bundle_hashes: snapshot.bundle_hashes,
         snapshot_description: snapshot.snapshot_description,
         graph_statistics: snapshot.graph_manifest_id
           ? graphStatisticsByManifestId.get(snapshot.graph_manifest_id)
@@ -308,6 +330,7 @@ exports.cloneSnapshot = async function cloneSnapshot(trackId, sourceSnapshot, ov
     'snapshot_description',
   );
   delete clone.graph_manifest_id;
+  delete clone.bundle_hashes;
   clone.modified = new Date();
   clone.version = null; // clones are always drafts
   delete clone.scheduled_materialization;
@@ -395,6 +418,7 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
 
   const clone = deepClone(sourceSnapshot);
   delete clone.graph_manifest_id;
+  delete clone.bundle_hashes;
   clone.id = newTrackId;
   clone.modified = now;
   clone.version = null;
@@ -475,9 +499,9 @@ exports.updateMetadata = async function updateMetadata(trackId, updates, _userId
  * Set or clear a snapshot-local description without changing its identity,
  * release tag, members, or release-track registry metadata.
  *
- * Snapshot descriptions are editable workspace annotations rather than
- * versioned publication content, so tagged and draft snapshots are both valid
- * targets.
+ * Snapshot descriptions are editable workspace annotations until a graph
+ * manifest freezes the bundle content. Cached snapshots must have their graph
+ * deleted before their description can change.
  *
  * @param {string} trackId
  * @param {string|Date} modified
@@ -489,7 +513,15 @@ exports.updateSnapshotDescription = async function updateSnapshotDescription(
   modified,
   description,
 ) {
-  await exports.getSnapshotByModified(trackId, modified);
+  const snapshot = await exports.getSnapshotByModified(trackId, modified);
+  if (snapshot.graph_manifest_id) {
+    throw new ReleaseConflictError('Delete the bundle cache before editing snapshot notes.', {
+      track_id: trackId,
+      snapshot_modified: new Date(snapshot.modified).toISOString(),
+      graph_manifest_id: snapshot.graph_manifest_id,
+    });
+  }
+
   const update = description
     ? { $set: { snapshot_description: description } }
     : { $unset: { snapshot_description: '' } };
@@ -604,7 +636,26 @@ async function createGraph(trackId, modified, prepareManifest, validateExisting)
       `SnapshotService: Deferred activation for graph manifest "${manifestId}": ${err.message}`,
     );
   }
-  return { snapshot: attached, created: true };
+  try {
+    const bundleHashes = await generateBundleHashes(attached);
+    const hashed = await dynamicRepo.attachBundleHashes(
+      trackId,
+      snapshot.modified,
+      manifestId,
+      bundleHashes,
+    );
+    if (!hashed) {
+      throw new ReleaseConflictError('Snapshot graph changed while its hashes were generated', {
+        track_id: trackId,
+        snapshot_modified: new Date(snapshot.modified).toISOString(),
+      });
+    }
+    return { snapshot: hashed, created: true };
+  } catch (err) {
+    await dynamicRepo.detachGraphManifest(trackId, snapshot.modified, manifestId);
+    await graphManifestService.discard(manifestId);
+    throw err;
+  }
 }
 
 exports.createGraph = function createLiveGraph(trackId, modified) {

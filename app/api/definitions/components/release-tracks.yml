@@ -30,15 +30,17 @@ components:
             Server-controlled identifier for an opt-in deterministic member
             graph on a tagged snapshot. Absent on drafts and graphless tagged
             snapshots. Clients should treat this value as opaque.
+        bundle_hashes:
+          $ref: '#/components/schemas/bundle-hashes'
         snapshot_description:
           type: string
           maxLength: 4000
           description: |
             User-authored, snapshot-local notes. Editors may change this
-            workspace annotation without changing the snapshot identity,
-            release tag, contents, or deterministic graph. Bundle exports map
-            it to x-mitre-collection.description, falling back to the track
-            description when it is absent.
+            workspace annotation without changing the snapshot identity or
+            release tag while no pinned member graph exists. Cached snapshots
+            reject note edits until their graph is deleted and regenerated;
+            graphless exports fall back to the track description when absent.
         name:
           type: string
           pattern: '^[a-zA-Z0-9 &]+$'
@@ -149,7 +151,28 @@ components:
         total_count:
           type: integer
           minimum: 0
-          description: 'Total entries across all graph manifest roles'
+          description: 'Total emitted graph dependencies, excluding the collection metadata entry'
+
+    bundle-hashes:
+      type: object
+      readOnly: true
+      description: |
+        SHA-256 digests of the exact UTF-8, four-space-indented JSON files
+        downloaded for a deterministic snapshot. The manifest ID binds the
+        digests to the cached graph that produced them.
+      required:
+        - manifest_id
+        - stix_2_0
+        - stix_2_1
+      properties:
+        manifest_id:
+          type: string
+        stix_2_0:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+        stix_2_1:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
 
     snapshot-summary:
       type: object
@@ -183,6 +206,8 @@ components:
           description: |
             Opaque identifier for the tagged snapshot's deterministic member
             graph. Omitted when the snapshot has not been materialized.
+        bundle_hashes:
+          $ref: '#/components/schemas/bundle-hashes'
         graph_statistics:
           $ref: '#/components/schemas/graph-statistics'
           description: |
@@ -193,7 +218,8 @@ components:
           maxLength: 4000
           description: |
             User-authored notes attached only to this snapshot and mapped to
-            x-mitre-collection.description during bundle export.
+            x-mitre-collection.description during bundle export. Notes cannot
+            be changed while the snapshot has a deterministic graph cache.
         name:
           type: string
         description:
