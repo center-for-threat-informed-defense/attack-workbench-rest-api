@@ -17,6 +17,7 @@ const {
   xMitreVersionSchema,
   createStixIdValidator,
 } = require('@mitre-attack/attack-data-model');
+const types = require('../types');
 
 // -----------------------------------------------------------------------------
 // Custom STIX identifier
@@ -68,9 +69,11 @@ const releaseTrackIdSchema = createCustomStixIdValidator('release-track');
 const trackNameSchema = z
   .string()
   .min(1, { message: 'Release track name must not be empty' })
-  .regex(/^[a-zA-Z0-9 ]+$/, {
-    message: 'Release track name may only contain alphanumeric characters and spaces',
+  .regex(/^[a-zA-Z0-9 &]+$/, {
+    message: 'Release track name may only contain alphanumeric characters, spaces, and ampersands',
   });
+
+const snapshotDescriptionSchema = z.string().trim().max(4000);
 
 // -----------------------------------------------------------------------------
 // Cron expression
@@ -151,14 +154,73 @@ const cronSchema = z
 const domainParamSchema = z.enum(['enterprise', 'ics', 'mobile']);
 
 const formatQuerySchema = z.enum(['bundle', 'filesystemstore', 'workbench']);
+const releasePreviewFormatSchema = z.enum(['summary', 'bundle', 'filesystemstore', 'workbench']);
 
 const includeQuerySchema = z.enum(['members', 'staged', 'candidates', 'quarantine', 'all']);
 
+/**
+ * Normalize a query-string value that represents a list. Accepts a repeated
+ * parameter (array), a comma-separated string, or a single value, and returns
+ * an array of trimmed strings.
+ */
+function normalizeQueryArray(value) {
+  const rawValues = Array.isArray(value) ? value : [value];
+  return rawValues
+    .flatMap((entry) => String(entry).split(','))
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+// `include` for format=bundle: which non-member tiers to add to the bundle.
+// Accepts singular or plural tier names; normalized to the plural tier names.
+const bundleIncludeQuerySchema = z.preprocess(
+  (value) =>
+    normalizeQueryArray(value).map((entry) => (entry === 'candidate' ? 'candidates' : entry)),
+  z.array(z.enum(['candidates', 'staged'])).min(1),
+);
+
+// `state` for format=bundle: workflow-status filter applied to the tiers
+// selected via `include`. 'reviewed' is intentionally not a valid filter
+// value — reviewed objects are always included.
+const bundleStateQuerySchema = z.preprocess(
+  (value) => normalizeQueryArray(value),
+  z.array(z.enum(['modified-in-place', 'work-in-progress', 'awaiting-review'])).min(1),
+);
+
+const stixVersionQuerySchema = z.enum(['2.0', '2.1']);
+
+// Boolean query parameters arrive as strings ('true'/'false') unless the
+// OpenAPI validator has already coerced them to booleans.
+const booleanQuerySchema = z.union([z.boolean(), z.stringbool()]);
+
+const snapshotTaggedQuerySchema = z.union([
+  z.boolean(),
+  z.enum(['true', 'false']).transform((value) => value === 'true'),
+]);
+
 const trackTypeQuerySchema = z.enum(['standard', 'virtual']);
 
-const bumpTypeSchema = z.enum(['major', 'minor']);
+const releaseOrderQuerySchema = z.enum(['asc', 'desc']);
+
+const releaseLimitQuerySchema = z.coerce.number().int().min(1).max(200);
+
+const releaseOffsetQuerySchema = z.coerce.number().int().min(0);
+
+const releaseIncrementSchema = z.enum(['major', 'minor']);
 
 const workflowStatusSchema = z.enum(['work-in-progress', 'awaiting-review', 'reviewed']);
+
+// Track-entry statuses include the server-assigned 'modified-in-place'
+// marker (set by the workflow gate when a pinned revision is edited via an
+// in-place PUT). Valid wherever an existing entry's status is read or
+// matched (review `from`, status filters) — but not settable as a review
+// target, and not a valid candidacy threshold.
+const trackEntryStatusSchema = z.enum([
+  'modified-in-place',
+  'work-in-progress',
+  'awaiting-review',
+  'reviewed',
+]);
 
 const candidacyThresholdSchema = z.enum(['work-in-progress', 'awaiting-review', 'reviewed']);
 
@@ -193,48 +255,170 @@ const memberSyncConfigSchema = z.object({
   supplant: memberSyncSupplantSchema.optional(),
 });
 
+const promotionConflictsSchema = z.object({
+  into_candidates: conflictPolicySchema.optional(),
+  candidates_to_staged: conflictPolicySchema.exclude(['abort']).optional(),
+  staged_to_members: conflictPolicySchema.optional(),
+});
+
+const updateConfigBodySchema = z.object({
+  candidacy_threshold: candidacyThresholdSchema.optional(),
+  auto_promote: z.boolean().optional(),
+  promotion_conflicts: promotionConflictsSchema.optional(),
+  member_sync: memberSyncConfigSchema.optional(),
+});
+
 // =============================================================================
 // Request body schemas (used inline by controller handlers)
 // =============================================================================
 
 /** POST /release-tracks/new */
-const snapshotScheduleSchema = z.object({
-  mode: z.enum(['manual', 'cron', 'dates']),
-  cron: cronSchema.optional(),
-  dates: z.array(z.iso.datetime()).optional(),
-});
-
-const componentTrackSchema = z.object({
-  track_id: releaseTrackIdSchema,
-  resolution_strategy: resolutionStrategySchema,
-  priority: z.number().int().min(0).optional(),
-  version: xMitreVersionSchema.optional(),
-  snapshot: z.iso.datetime().optional(),
-  filters: z
+const snapshotScheduleSchema = z.discriminatedUnion('mode', [
+  z
     .object({
-      object_types: z.array(z.string()).optional(),
-      domains: z.array(z.string()).optional(),
+      mode: z.literal('manual'),
     })
-    .optional(),
-});
+    .strict(),
+  z
+    .object({
+      mode: z.literal('cron'),
+      cron: cronSchema,
+    })
+    .strict(),
+  z
+    .object({
+      mode: z.literal('dates'),
+      dates: z.array(z.iso.datetime()).min(1),
+    })
+    .strict(),
+]);
 
-const compositionSchema = z.object({
+const scheduledMaterializationSchema = z
+  .object({
+    schedule_mode: z.enum(['cron', 'dates']),
+    scheduled_for: z.iso.datetime(),
+  })
+  .strict();
+
+const releaseTrackObjectTypes = Object.freeze(Object.values(types));
+const releaseTrackObjectTypeSchema = z.enum(releaseTrackObjectTypes);
+const objectTypesFilterSchema = z
+  .array(releaseTrackObjectTypeSchema)
+  .min(1)
+  .superRefine((objectTypes, context) => {
+    if (new Set(objectTypes).size !== objectTypes.length) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Object type filters must not contain duplicate values',
+      });
+    }
+  });
+
+const componentTrackFiltersSchema = z
+  .object({
+    object_types: objectTypesFilterSchema.optional(),
+    domains: z.array(z.string()).optional(),
+  })
+  .strict();
+
+const componentTrackBaseShape = {
+  track_id: releaseTrackIdSchema,
+  priority: z.number().int().min(0),
+  filters: componentTrackFiltersSchema.optional(),
+};
+
+const componentTrackSchema = z.discriminatedUnion('resolution_strategy', [
+  z
+    .object({
+      ...componentTrackBaseShape,
+      resolution_strategy: z.literal('latest_tagged'),
+    })
+    .strict(),
+  z
+    .object({
+      ...componentTrackBaseShape,
+      resolution_strategy: z.literal('specific_version'),
+      version: xMitreVersionSchema,
+    })
+    .strict(),
+  z
+    .object({
+      ...componentTrackBaseShape,
+      resolution_strategy: z.literal('specific_snapshot'),
+      snapshot: z.iso.datetime(),
+    })
+    .strict(),
+]);
+
+const compositionShape = {
   component_tracks: z.array(componentTrackSchema).min(1),
   deduplication: z
     .object({
       strategy: deduplicationStrategySchema,
     })
+    .strict()
     .optional(),
-});
+};
 
-const createTrackBodySchema = z.object({
-  name: trackNameSchema,
-  description: z.string().optional(),
-  type: trackTypeQuerySchema.default('standard'),
-  object_marking_refs: z.array(stixIdentifierSchema).optional(),
-  composition: compositionSchema.optional(),
-  snapshot_schedule: snapshotScheduleSchema.optional(),
-});
+function validateCompositionUniqueness(composition, context) {
+  const trackIds = new Set();
+  const priorities = new Set();
+
+  composition.component_tracks.forEach((component, index) => {
+    if (trackIds.has(component.track_id)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['component_tracks', index, 'track_id'],
+        message: 'Each component track must reference a unique track',
+      });
+    }
+    trackIds.add(component.track_id);
+
+    if (priorities.has(component.priority)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['component_tracks', index, 'priority'],
+        message: 'Each component track must have a unique priority value',
+      });
+    }
+    priorities.add(component.priority);
+  });
+}
+
+const compositionSchema = z
+  .object(compositionShape)
+  .strict()
+  .superRefine(validateCompositionUniqueness);
+
+const createTrackBodySchema = z
+  .object({
+    name: trackNameSchema,
+    description: z.string().optional(),
+    snapshot_description: snapshotDescriptionSchema.optional(),
+    type: trackTypeQuerySchema.default('standard'),
+    object_marking_refs: z.array(stixIdentifierSchema).optional(),
+    composition: compositionSchema.optional(),
+    snapshot_schedule: snapshotScheduleSchema.optional(),
+    scheduled_materialization: scheduledMaterializationSchema.optional(),
+    config: updateConfigBodySchema.optional(),
+  })
+  .strict()
+  .superRefine((track, context) => {
+    if (track.type !== 'virtual' && track.snapshot_schedule !== undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['snapshot_schedule'],
+        message: 'Snapshot schedules are only available for virtual tracks',
+      });
+    }
+    if (track.type !== 'virtual' && track.scheduled_materialization !== undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['scheduled_materialization'],
+        message: 'Scheduled materialization is only available for virtual tracks',
+      });
+    }
+  });
 
 /** POST /release-tracks/new-from-bundle */
 const createFromBundleBodySchema = z.object({
@@ -250,24 +434,34 @@ const updateMetadataBodySchema = z.object({
   object_marking_refs: z.array(stixIdentifierSchema).optional(),
 });
 
-/** POST /release-tracks/:id/contents */
-const updateContentsBodySchema = z.object({
-  x_mitre_contents: z
-    .array(
-      z.object({
-        obj_ref: stixIdentifierSchema,
-        obj_modified: z.iso.datetime().or(z.literal('latest')),
-      }),
-    )
-    .min(1),
-});
+/** PUT /release-tracks/:id/snapshots/:modified/description */
+const updateSnapshotDescriptionBodySchema = z
+  .object({
+    description: snapshotDescriptionSchema,
+  })
+  .strict();
 
-/** POST /release-tracks/:id/bump */
-const bumpBodySchema = z.object({
-  type: bumpTypeSchema.optional(),
-  version: xMitreVersionSchema.optional(),
-  dry_run: z.boolean().optional(),
-});
+const releaseVersionSelectionSchema = z
+  .object({
+    increment: releaseIncrementSchema.optional(),
+    version: xMitreVersionSchema.optional(),
+  })
+  .strict()
+  .refine((value) => !(value.increment && value.version), {
+    message: 'increment and version are mutually exclusive',
+  });
+
+/** POST /release-tracks/:id/snapshots/{target}/release */
+const releaseBodySchema = z
+  .object({
+    increment: releaseIncrementSchema.optional(),
+    version: xMitreVersionSchema.optional(),
+    description: snapshotDescriptionSchema.optional(),
+  })
+  .strict()
+  .refine((value) => !(value.increment && value.version), {
+    message: 'increment and version are mutually exclusive',
+  });
 
 /** POST /release-tracks/:id/clone */
 const cloneBodySchema = z
@@ -291,7 +485,7 @@ const addCandidatesBodySchema = z.object({
 
 /** POST /release-tracks/:id/candidates/review */
 const reviewCandidatesBodySchema = z.object({
-  from: workflowStatusSchema,
+  from: trackEntryStatusSchema,
   to: workflowStatusSchema,
   object_refs: z
     .array(
@@ -299,7 +493,7 @@ const reviewCandidatesBodySchema = z.object({
         stixIdentifierSchema,
         z.object({
           id: stixIdentifierSchema,
-          modified: z.iso.datetime().optional(),
+          modified: z.iso.datetime().or(z.literal('latest')).optional(),
         }),
       ]),
     )
@@ -317,7 +511,7 @@ const demoteStagedBodySchema = z.object({
     .array(
       z.object({
         id: stixIdentifierSchema,
-        modified: z.iso.datetime(),
+        modified: z.iso.datetime().or(z.literal('latest')),
       }),
     )
     .min(1),
@@ -325,32 +519,73 @@ const demoteStagedBodySchema = z.object({
 
 /** POST /release-tracks/:id/candidates/:objectRef/update-version */
 const updateCandidateVersionBodySchema = z.object({
-  old_modified: z.iso.datetime(),
-  new_modified: z.iso.datetime(),
+  old_modified: z.iso.datetime().or(z.literal('latest')),
+  new_modified: z.iso.datetime().or(z.literal('latest')),
 });
 
-/** PUT /release-tracks/:id/config */
-const promotionConflictsSchema = z.object({
-  candidates_to_staged: conflictPolicySchema.exclude(['abort']).optional(),
-  staged_to_members: conflictPolicySchema.optional(),
-});
+/** PUT /release-tracks/:id/virtual/composition */
+const updateCompositionBodySchema = z
+  .object({
+    ...compositionShape,
+    scheduled_materialization: scheduledMaterializationSchema.optional(),
+  })
+  .strict()
+  .superRefine(validateCompositionUniqueness);
 
-const updateConfigBodySchema = z.object({
-  candidacy_threshold: candidacyThresholdSchema.optional(),
-  auto_promote: z.boolean().optional(),
-  promotion_conflicts: promotionConflictsSchema.optional(),
-  member_sync: memberSyncConfigSchema.optional(),
-});
-
-/** PUT /release-tracks/:id/composition */
-const updateCompositionBodySchema = compositionSchema;
-
-/** POST /release-tracks/:id/snapshots/create */
+/** POST /release-tracks/:id/virtual/snapshots/create */
 const createVirtualSnapshotBodySchema = z
   .object({
-    description: z.string().optional(),
+    description: snapshotDescriptionSchema.optional(),
+    scheduled_materialization: scheduledMaterializationSchema.optional(),
   })
+  .strict()
   .optional();
+
+/** POST /release-tracks/:id/virtual/quarantine/promote */
+const promoteQuarantinedObjectBodySchema = z
+  .object({
+    object_ref: stixIdentifierSchema,
+    object_modified: z.iso.datetime(),
+  })
+  .strict();
+
+const exactGraphRevisionSchema = z
+  .object({
+    object_ref: stixIdentifierSchema,
+    object_modified: z.iso.datetime(),
+  })
+  .strict();
+
+const sourceGraphEntrySchema = z
+  .object({
+    kind: z.enum(['root', 'relationship', 'secondary', 'supporting', 'link_target']),
+    object_ref: stixIdentifierSchema,
+    object_modified: z.iso.datetime().nullable(),
+    source: exactGraphRevisionSchema.optional(),
+    target: exactGraphRevisionSchema.optional(),
+    omitted_optional_defaults: z
+      .array(z.enum(['revoked', 'x_mitre_remote_support']))
+      .max(2)
+      .optional(),
+    frozen_stix: z.object({}).passthrough().optional(),
+  })
+  .strict();
+
+/** Administrative recovery of a historical graph from an external source bundle. */
+const reconstructSnapshotGraphBodySchema = z
+  .object({
+    source_attestation: z
+      .object({
+        kind: z.literal('source-bundle'),
+        bundle_sha256: z.string().regex(/^[a-f0-9]{64}$/),
+        collection_id: createStixIdValidator('x-mitre-collection'),
+        release: xMitreVersionSchema,
+        domain: z.enum(['enterprise-attack', 'ics-attack', 'mobile-attack']),
+      })
+      .strict(),
+    entries: z.array(sourceGraphEntrySchema).min(1),
+  })
+  .strict();
 
 // =============================================================================
 // Exports
@@ -365,6 +600,9 @@ module.exports = {
   // Domain schemas
   trackNameSchema,
   cronSchema,
+  releaseTrackObjectTypes,
+  releaseTrackObjectTypeSchema,
+  objectTypesFilterSchema,
 
   // Re-exports from @mitre-attack/attack-data-model
   stixIdentifierSchema,
@@ -374,10 +612,21 @@ module.exports = {
   // Query parameter schemas
   domainParamSchema,
   formatQuerySchema,
+  releasePreviewFormatSchema,
   includeQuerySchema,
+  bundleIncludeQuerySchema,
+  bundleStateQuerySchema,
+  stixVersionQuerySchema,
+  booleanQuerySchema,
+  snapshotTaggedQuerySchema,
   trackTypeQuerySchema,
-  bumpTypeSchema,
+  releaseOrderQuerySchema,
+  releaseLimitQuerySchema,
+  releaseOffsetQuerySchema,
+  releaseIncrementSchema,
+  releaseVersionSelectionSchema,
   workflowStatusSchema,
+  trackEntryStatusSchema,
   candidacyThresholdSchema,
   deduplicationStrategySchema,
   resolutionStrategySchema,
@@ -390,8 +639,8 @@ module.exports = {
   createTrackBodySchema,
   createFromBundleBodySchema,
   updateMetadataBodySchema,
-  updateContentsBodySchema,
-  bumpBodySchema,
+  updateSnapshotDescriptionBodySchema,
+  releaseBodySchema,
   cloneBodySchema,
   addCandidatesBodySchema,
   reviewCandidatesBodySchema,
@@ -401,11 +650,14 @@ module.exports = {
   updateConfigBodySchema,
   updateCompositionBodySchema,
   createVirtualSnapshotBodySchema,
+  promoteQuarantinedObjectBodySchema,
+  reconstructSnapshotGraphBodySchema,
 
   // Reusable sub-schemas
   componentTrackSchema,
   compositionSchema,
   snapshotScheduleSchema,
+  scheduledMaterializationSchema,
   objectRefEntrySchema,
   promotionConflictsSchema,
   memberSyncConfigSchema,

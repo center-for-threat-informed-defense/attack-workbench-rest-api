@@ -1,5 +1,7 @@
 const request = require('supertest');
 const { expect } = require('expect');
+const sinon = require('sinon');
+const superagent = require('superagent');
 
 const logger = require('../../lib/logger');
 logger.level = 'debug';
@@ -7,7 +9,12 @@ logger.level = 'debug';
 const database = require('../../lib/database-in-memory');
 const databaseConfiguration = require('../../lib/database-configuration');
 const login = require('../shared/login');
-const scheduler = require('../../scheduler/scheduler');
+const config = require('../../config/config');
+
+// This spec exercises the collection-index synchronization task directly.
+// Prevent the task module from registering a background job when it is loaded.
+config.scheduler.enableScheduler = false;
+const collectionIndexTask = require('../../scheduler/sync-collection-indexes-task');
 
 // modified and created properties will be set before calling REST API
 const initialObjectData = {
@@ -505,6 +512,7 @@ const initialObjectData = {
 describe('Scheduler', function () {
   let app;
   let passportCookie;
+  let remoteRequestStub;
 
   before(async function () {
     // Establish the database connection
@@ -523,6 +531,16 @@ describe('Scheduler', function () {
     const timestamp = new Date().toISOString();
     initialObjectData.collection_index.created = timestamp;
     initialObjectData.collection_index.modified = timestamp;
+    initialObjectData.workspace.update_policy.subscriptions = [];
+
+    const remoteCollectionIndex = JSON.parse(JSON.stringify(initialObjectData.collection_index));
+    remoteCollectionIndex.modified = new Date(Date.now() + 1000).toISOString();
+    remoteRequestStub = sinon.stub(superagent, 'get').returns({
+      accept: sinon.stub().resolves({
+        text: JSON.stringify(remoteCollectionIndex),
+      }),
+    });
+
     const body = initialObjectData;
     await request(app)
       .post('/api/collection-indexes')
@@ -532,16 +550,19 @@ describe('Scheduler', function () {
   });
 
   it('Scheduled job runs when initiated manually', async function () {
-    const updatedCollections = await scheduler.runCheckCollectionIndexes();
+    const updatedCollections = await collectionIndexTask.runCheckCollectionIndexes();
     expect(updatedCollections).toHaveLength(1);
+    expect(remoteRequestStub.calledOnce).toBe(true);
   });
 
   it('Scheduled job is skipped when initiated manually again', async function () {
-    const updatedCollections = await scheduler.runCheckCollectionIndexes();
+    const updatedCollections = await collectionIndexTask.runCheckCollectionIndexes();
     expect(updatedCollections).toHaveLength(0);
+    expect(remoteRequestStub.calledOnce).toBe(true);
   });
 
   after(async function () {
+    sinon.restore();
     await database.closeConnection();
   });
 });

@@ -199,25 +199,18 @@ describe('Techniques Basic API', function () {
     expect(technique.created_by_user_account).toBeDefined();
   });
 
-  it('PUT /api/techniques updates a technique', async function () {
-    const originalModified = technique1.stix.modified;
-    const timestamp = new Date().toISOString();
-    technique1.stix.modified = timestamp;
-    technique1.stix.description = 'This is an updated technique.';
+  it('PUT /api/techniques rejects STIX changes to a persisted revision', async function () {
     const body = cloneForCreate(technique1);
+    body.stix.description = 'This is an updated technique.';
     const res = await request(app)
-      .put('/api/techniques/' + technique1.stix.id + '/modified/' + originalModified)
+      .put('/api/techniques/' + technique1.stix.id + '/modified/' + technique1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated technique
-    const technique = res.body;
-    expect(technique).toBeDefined();
-    expect(technique.stix.id).toBe(technique1.stix.id);
-    expect(technique.stix.modified).toBe(technique1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/techniques does not create a technique with the same id and modified date', async function () {

@@ -191,7 +191,7 @@ exports.create = async function (req, res) {
   }
 };
 
-exports.delete = async function (req, res) {
+exports.delete = async function (req, res, next) {
   try {
     const removedCollections = await collectionsService.delete(
       req.params.stixId,
@@ -205,11 +205,11 @@ exports.delete = async function (req, res) {
     }
   } catch (error) {
     logger.error('Delete collections failed. ' + error);
-    return res.status(500).send('Unable to delete collections. Server error.');
+    return next(error);
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const removedCollection = await collectionsService.deleteVersionById(
       req.params.stixId,
@@ -224,6 +224,6 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (error) {
     logger.error('Delete collection failed. ' + error);
-    return res.status(500).send('Unable to delete collection. Server error.');
+    return next(error);
   }
 };

@@ -22,14 +22,25 @@ const {
 const {
   domainParamSchema,
   formatQuerySchema,
+  releasePreviewFormatSchema,
   includeQuerySchema,
+  bundleIncludeQuerySchema,
+  bundleStateQuerySchema,
+  stixVersionQuerySchema,
+  booleanQuerySchema,
+  snapshotTaggedQuerySchema,
   trackTypeQuerySchema,
-  workflowStatusSchema,
+  releaseOrderQuerySchema,
+  releaseLimitQuerySchema,
+  releaseOffsetQuerySchema,
+  stixIdentifierSchema,
+  trackEntryStatusSchema,
   createTrackBodySchema,
   createFromBundleBodySchema,
   updateMetadataBodySchema,
-  updateContentsBodySchema,
-  bumpBodySchema,
+  updateSnapshotDescriptionBodySchema,
+  releaseBodySchema,
+  releaseVersionSelectionSchema,
   cloneBodySchema,
   addCandidatesBodySchema,
   reviewCandidatesBodySchema,
@@ -39,6 +50,8 @@ const {
   updateConfigBodySchema,
   updateCompositionBodySchema,
   createVirtualSnapshotBodySchema,
+  promoteQuarantinedObjectBodySchema,
+  reconstructSnapshotGraphBodySchema,
   xMitreVersionSchema,
 } = require('../lib/release-tracks/release-track-schemas');
 
@@ -67,6 +80,25 @@ function parseOptionalQueryStrict(value, schema, defaultValue, parameterName) {
   });
 }
 
+function requireDestructiveConfirmation(req) {
+  if (req.query.confirm_track_id !== req.params.id) {
+    throw new BadRequestError({
+      message: 'Destructive release-track confirmation is required',
+      details: `Set confirm_track_id to the exact target track ID '${req.params.id}'.`,
+      parameter_name: 'confirm_track_id',
+      expected_track_id: req.params.id,
+    });
+  }
+}
+
+function destructiveActor(req) {
+  return {
+    user_account_id: req.user?.userAccountId,
+    role: req.user?.role,
+    authentication_strategy: req.user?.strategy,
+  };
+}
+
 function rejectFilesystemStoreFormat(format, methodName) {
   if (format !== 'filesystemstore') return null;
 
@@ -77,17 +109,110 @@ function rejectFilesystemStoreFormat(format, methodName) {
 
 /**
  * Parse common query parameters shared across GET snapshot endpoints.
+ *
+ * The `include` parameter is format-sensitive:
+ *   - format=workbench: single tier name ('members' | 'staged' | 'candidates'
+ *     | 'quarantine' | 'all') controlling which tier arrays are returned
+ *   - format=bundle: list of additional tiers ('staged' and/or 'candidates')
+ *     to hydrate into the bundle alongside members. Omitted → members only.
+ *
+ * The `state`, `stixVersion`, and `includeToc` parameters only apply to
+ * format=bundle.
  */
 function parseSnapshotQueryParams(query) {
-  return {
-    format: parseOptionalQueryStrict(query.format, formatQuerySchema, 'workbench', 'format'),
-    include: parseOptionalQuery(query.include, includeQuerySchema, undefined),
+  const format = parseOptionalQueryStrict(query.format, formatQuerySchema, 'workbench', 'format');
+
+  const common = {
+    format,
     releases: query.releases === 'only' ? 'only' : undefined,
     version: parseOptionalQuery(query.version, xMitreVersionSchema, undefined),
     versions: query.versions === 'all' ? 'all' : undefined,
     limit: query.limit ? parseInt(query.limit, 10) : undefined,
     offset: query.offset ? parseInt(query.offset, 10) : undefined,
   };
+
+  if (format === 'bundle') {
+    return {
+      ...common,
+      include: parseOptionalQueryStrict(
+        query.include,
+        bundleIncludeQuerySchema,
+        undefined,
+        'include',
+      ),
+      state: parseOptionalQueryStrict(query.state, bundleStateQuerySchema, undefined, 'state'),
+      stixVersion: parseOptionalQueryStrict(
+        query.stixVersion,
+        stixVersionQuerySchema,
+        '2.1',
+        'stixVersion',
+      ),
+      includeToc: parseOptionalQueryStrict(
+        query.includeToc,
+        booleanQuerySchema,
+        true,
+        'includeToc',
+      ),
+    };
+  }
+
+  return {
+    ...common,
+    include: parseOptionalQueryStrict(query.include, includeQuerySchema, undefined, 'include'),
+  };
+}
+
+function parseReleasePreviewQueryParams(query) {
+  const format = parseOptionalQueryStrict(
+    query.format,
+    releasePreviewFormatSchema,
+    'summary',
+    'format',
+  );
+  const versionSelection = releaseVersionSelectionSchema.safeParse({
+    increment: query.increment,
+    version: query.version,
+  });
+  if (!versionSelection.success) {
+    throw new InvalidQueryStringParameterError({
+      parameterName: 'increment,version',
+      message: 'Invalid release version selection',
+      details: versionSelection.error.errors,
+    });
+  }
+
+  const options = { format, ...versionSelection.data };
+  if (format === 'bundle') {
+    return {
+      ...options,
+      include: parseOptionalQueryStrict(
+        query.include,
+        bundleIncludeQuerySchema,
+        undefined,
+        'include',
+      ),
+      state: parseOptionalQueryStrict(query.state, bundleStateQuerySchema, undefined, 'state'),
+      stixVersion: parseOptionalQueryStrict(
+        query.stixVersion,
+        stixVersionQuerySchema,
+        '2.1',
+        'stixVersion',
+      ),
+      includeToc: parseOptionalQueryStrict(
+        query.includeToc,
+        booleanQuerySchema,
+        true,
+        'includeToc',
+      ),
+    };
+  }
+  if (format === 'workbench') {
+    return {
+      ...options,
+      include: parseOptionalQueryStrict(query.include, includeQuerySchema, undefined, 'include'),
+    };
+  }
+  return options;
 }
 
 // =============================================================================
@@ -118,7 +243,41 @@ exports.retrieveEphemeralByDomain = async function retrieveEphemeralByDomain(req
       return next(formatError);
     }
 
-    const result = await releaseTracksService.getEphemeralBundle(domainResult.data, format);
+    const options = {
+      format,
+      stixVersion: parseOptionalQueryStrict(
+        req.query.stixVersion,
+        stixVersionQuerySchema,
+        '2.1',
+        'stixVersion',
+      ),
+      includeToc: parseOptionalQueryStrict(
+        req.query.includeToc,
+        booleanQuerySchema,
+        true,
+        'includeToc',
+      ),
+      includeObjectsWithMissingAttackId: parseOptionalQueryStrict(
+        req.query.includeObjectsWithMissingAttackId,
+        booleanQuerySchema,
+        false,
+        'includeObjectsWithMissingAttackId',
+      ),
+      includeDeprecated: parseOptionalQueryStrict(
+        req.query.includeDeprecated,
+        booleanQuerySchema,
+        false,
+        'includeDeprecated',
+      ),
+      includeRevoked: parseOptionalQueryStrict(
+        req.query.includeRevoked,
+        booleanQuerySchema,
+        false,
+        'includeRevoked',
+      ),
+    };
+
+    const result = await releaseTracksService.getEphemeralBundle(domainResult.data, options);
     logger.debug(`Success: Retrieved ephemeral ${domainResult.data} bundle`);
     return res.status(200).send(result);
   } catch (err) {
@@ -147,6 +306,35 @@ exports.listReleaseTracks = async function listReleaseTracks(req, res, next) {
     return res.status(200).send(result);
   } catch (err) {
     logger.error('Failed to list release tracks: ' + err);
+    return next(err);
+  }
+};
+
+/** GET /api/release-tracks/objects/:objectRef/releases */
+exports.getReleasesByObject = async function getReleasesByObject(req, res, next) {
+  try {
+    const objectRefResult = stixIdentifierSchema.safeParse(req.params.objectRef);
+    if (!objectRefResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid STIX object reference',
+          details: objectRefResult.error.errors,
+        }),
+      );
+    }
+
+    const options = {
+      type: parseOptionalQueryStrict(req.query.type, trackTypeQuerySchema, undefined, 'type'),
+      order: parseOptionalQueryStrict(req.query.order, releaseOrderQuerySchema, 'asc', 'order'),
+      limit: parseOptionalQueryStrict(req.query.limit, releaseLimitQuerySchema, 50, 'limit'),
+      offset: parseOptionalQueryStrict(req.query.offset, releaseOffsetQuerySchema, 0, 'offset'),
+    };
+
+    const result = await releaseTracksService.getReleasesByObject(objectRefResult.data, options);
+    logger.debug(`Success: Retrieved tagged releases for object ${objectRefResult.data}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to retrieve tagged releases by object: ' + err);
     return next(err);
   }
 };
@@ -207,7 +395,7 @@ exports.importReleaseTrack = async function importReleaseTrack(_req, _res, next)
   );
 };
 
-/** GET /api/release-tracks/:id */
+/** GET /api/release-tracks/:id/snapshots/latest */
 exports.retrieveLatestSnapshot = async function retrieveLatestSnapshot(req, res, next) {
   try {
     const queryOptions = parseSnapshotQueryParams(req.query);
@@ -221,6 +409,29 @@ exports.retrieveLatestSnapshot = async function retrieveLatestSnapshot(req, res,
     return res.status(200).send(result);
   } catch (err) {
     logger.error('Failed to retrieve latest snapshot: ' + err);
+    return next(err);
+  }
+};
+
+/** GET /api/release-tracks/:id/snapshots */
+exports.listSnapshots = async function listSnapshots(req, res, next) {
+  try {
+    const options = {
+      tagged: parseOptionalQueryStrict(
+        req.query.tagged,
+        snapshotTaggedQuerySchema,
+        undefined,
+        'tagged',
+      ),
+      limit: parseOptionalQueryStrict(req.query.limit, releaseLimitQuerySchema, 50, 'limit'),
+      offset: parseOptionalQueryStrict(req.query.offset, releaseOffsetQuerySchema, 0, 'offset'),
+    };
+
+    const result = await releaseTracksService.listSnapshots(req.params.id, options);
+    logger.debug(`Success: Retrieved snapshots for track ${req.params.id}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to retrieve snapshots: ' + err);
     return next(err);
   }
 };
@@ -251,53 +462,55 @@ exports.updateMetadataByLatest = async function updateMetadataByLatest(req, res,
   }
 };
 
-/** POST /api/release-tracks/:id/contents */
-exports.updateContentsByLatest = async function updateContentsByLatest(req, res, next) {
+/** PUT /api/release-tracks/:id/snapshots/:modified/description */
+exports.updateSnapshotDescription = async function updateSnapshotDescription(req, res, next) {
   try {
-    const bodyResult = updateContentsBodySchema.safeParse(req.body);
+    const bodyResult = updateSnapshotDescriptionBodySchema.safeParse(req.body);
     if (!bodyResult.success) {
       return next(
         new BadRequestError({
-          message: 'Invalid contents update',
+          message: 'Invalid snapshot description update',
           details: bodyResult.error.errors,
         }),
       );
     }
 
-    const result = await releaseTracksService.updateContents(
+    const result = await releaseTracksService.updateSnapshotDescription(
       req.params.id,
-      bodyResult.data,
-      req.user?.userAccountId,
+      req.params.modified,
+      bodyResult.data.description,
     );
-    logger.debug(`Success: Updated contents for track ${req.params.id}`);
+    logger.debug(
+      `Success: Updated description for snapshot ${req.params.modified} in track ${req.params.id}`,
+    );
     return res.status(200).send(result);
   } catch (err) {
-    logger.error('Failed to update track contents: ' + err);
+    logger.error('Failed to update snapshot description: ' + err);
     return next(err);
   }
 };
 
-/** POST /api/release-tracks/:id/bump */
-exports.bumpByLatest = async function bumpByLatest(req, res, next) {
+/** POST /api/release-tracks/:id/snapshots/latest/release */
+exports.releaseLatest = async function releaseLatest(req, res, next) {
   try {
-    const bodyResult = bumpBodySchema.safeParse(req.body || {});
+    const bodyResult = releaseBodySchema.safeParse(req.body || {});
     if (!bodyResult.success) {
       return next(
         new BadRequestError({
-          message: 'Invalid bump request',
+          message: 'Invalid release request',
           details: bodyResult.error.errors,
         }),
       );
     }
 
-    const result = await releaseTracksService.bumpLatest(req.params.id, {
+    const result = await releaseTracksService.releaseLatest(req.params.id, {
       ...bodyResult.data,
       userAccountId: req.user?.userAccountId,
     });
-    logger.debug(`Success: Bumped version for track ${req.params.id}`);
+    logger.debug(`Success: Released latest snapshot for track ${req.params.id}`);
     return res.status(200).send(result);
   } catch (err) {
-    logger.error('Failed to bump track version: ' + err);
+    logger.error('Failed to release latest snapshot: ' + err);
     return next(err);
   }
 };
@@ -330,7 +543,12 @@ exports.cloneByLatest = async function cloneByLatest(req, res, next) {
 /** DELETE /api/release-tracks/:id */
 exports.deleteReleaseTrack = async function deleteReleaseTrack(req, res, next) {
   try {
-    await releaseTracksService.deleteTrack(req.params.id);
+    requireDestructiveConfirmation(req);
+    await releaseTracksService.deleteTrack(
+      req.params.id,
+      destructiveActor(req),
+      req.query.confirm_track_id,
+    );
     logger.debug(`Success: Deleted track ${req.params.id}`);
     return res.status(204).end();
   } catch (err) {
@@ -368,81 +586,31 @@ exports.retrieveSnapshotByModified = async function retrieveSnapshotByModified(r
   }
 };
 
-/** POST /api/release-tracks/:id/snapshots/:modified/meta */
-exports.updateMetadataByModified = async function updateMetadataByModified(req, res, next) {
+/** POST /api/release-tracks/:id/snapshots/:modified/release */
+exports.releaseByModified = async function releaseByModified(req, res, next) {
   try {
-    const bodyResult = updateMetadataBodySchema.safeParse(req.body);
+    const bodyResult = releaseBodySchema.safeParse(req.body || {});
     if (!bodyResult.success) {
       return next(
         new BadRequestError({
-          message: 'Invalid metadata update',
+          message: 'Invalid release request',
           details: bodyResult.error.errors,
         }),
       );
     }
 
-    const result = await releaseTracksService.updateMetadataByModified(
+    const result = await releaseTracksService.releaseByModified(
       req.params.id,
       req.params.modified,
-      bodyResult.data,
-      req.user?.userAccountId,
+      {
+        ...bodyResult.data,
+        userAccountId: req.user?.userAccountId,
+      },
     );
-    logger.debug(`Success: Updated metadata for snapshot ${req.params.modified}`);
+    logger.debug(`Success: Released snapshot ${req.params.modified}`);
     return res.status(200).send(result);
   } catch (err) {
-    logger.error('Failed to update snapshot metadata: ' + err);
-    return next(err);
-  }
-};
-
-/** POST /api/release-tracks/:id/snapshots/:modified/contents */
-exports.updateContentsByModified = async function updateContentsByModified(req, res, next) {
-  try {
-    const bodyResult = updateContentsBodySchema.safeParse(req.body);
-    if (!bodyResult.success) {
-      return next(
-        new BadRequestError({
-          message: 'Invalid contents update',
-          details: bodyResult.error.errors,
-        }),
-      );
-    }
-
-    const result = await releaseTracksService.updateContentsByModified(
-      req.params.id,
-      req.params.modified,
-      bodyResult.data,
-      req.user?.userAccountId,
-    );
-    logger.debug(`Success: Updated contents for snapshot ${req.params.modified}`);
-    return res.status(200).send(result);
-  } catch (err) {
-    logger.error('Failed to update snapshot contents: ' + err);
-    return next(err);
-  }
-};
-
-/** POST /api/release-tracks/:id/snapshots/:modified/bump */
-exports.bumpByModified = async function bumpByModified(req, res, next) {
-  try {
-    const bodyResult = bumpBodySchema.safeParse(req.body || {});
-    if (!bodyResult.success) {
-      return next(
-        new BadRequestError({
-          message: 'Invalid bump request',
-          details: bodyResult.error.errors,
-        }),
-      );
-    }
-
-    const result = await releaseTracksService.bumpByModified(req.params.id, req.params.modified, {
-      ...bodyResult.data,
-      userAccountId: req.user?.userAccountId,
-    });
-    logger.debug(`Success: Bumped version for snapshot ${req.params.modified}`);
-    return res.status(200).send(result);
-  } catch (err) {
-    logger.error('Failed to bump snapshot version: ' + err);
+    logger.error('Failed to release snapshot: ' + err);
     return next(err);
   }
 };
@@ -472,6 +640,58 @@ exports.cloneByModified = async function cloneByModified(req, res, next) {
     return res.status(201).send(result);
   } catch (err) {
     logger.error('Failed to clone from snapshot: ' + err);
+    return next(err);
+  }
+};
+
+/** POST /api/release-tracks/:id/snapshots/:modified/graph */
+exports.createSnapshotGraph = async function createSnapshotGraph(req, res, next) {
+  try {
+    const result = await releaseTracksService.createSnapshotGraph(
+      req.params.id,
+      req.params.modified,
+    );
+    logger.debug(`Success: Created graph for snapshot ${req.params.modified}`);
+    return res.status(result.created ? 201 : 200).send(result.snapshot);
+  } catch (err) {
+    logger.error('Failed to create snapshot graph: ' + err);
+    return next(err);
+  }
+};
+
+/** POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct */
+exports.reconstructSnapshotGraph = async function reconstructSnapshotGraph(req, res, next) {
+  try {
+    const bodyResult = reconstructSnapshotGraphBodySchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid source graph reconstruction request',
+          details: bodyResult.error.errors,
+        }),
+      );
+    }
+    const result = await releaseTracksService.reconstructSnapshotGraph(
+      req.params.id,
+      req.params.modified,
+      bodyResult.data,
+    );
+    logger.debug(`Success: Reconstructed graph for snapshot ${req.params.modified}`);
+    return res.status(result.created ? 201 : 200).send(result.snapshot);
+  } catch (err) {
+    logger.error('Failed to reconstruct snapshot graph: ' + err);
+    return next(err);
+  }
+};
+
+/** DELETE /api/release-tracks/:id/snapshots/:modified/graph */
+exports.deleteSnapshotGraph = async function deleteSnapshotGraph(req, res, next) {
+  try {
+    await releaseTracksService.deleteSnapshotGraph(req.params.id, req.params.modified);
+    logger.debug(`Success: Deleted graph for snapshot ${req.params.modified}`);
+    return res.status(204).end();
+  } catch (err) {
+    logger.error('Failed to delete snapshot graph: ' + err);
     return next(err);
   }
 };
@@ -522,7 +742,7 @@ exports.addCandidates = async function addCandidates(req, res, next) {
 exports.listCandidates = async function listCandidates(req, res, next) {
   try {
     const options = {
-      status: parseOptionalQuery(req.query.status, workflowStatusSchema, undefined),
+      status: parseOptionalQuery(req.query.status, trackEntryStatusSchema, undefined),
       limit: req.query.limit ? parseInt(req.query.limit, 10) : undefined,
       offset: req.query.offset ? parseInt(req.query.offset, 10) : undefined,
     };
@@ -711,28 +931,45 @@ exports.updateConfig = async function updateConfig(req, res, next) {
 };
 
 // =============================================================================
-// Preview & dry run
+// Release previews
 // =============================================================================
 
-/** GET /api/release-tracks/:id/bump/preview */
-exports.previewBump = async function previewBump(req, res, next) {
+/** GET /api/release-tracks/:id/snapshots/latest/release/preview */
+exports.previewLatestRelease = async function previewLatestRelease(req, res, next) {
   try {
-    const format = parseOptionalQueryStrict(
-      req.query.format,
-      formatQuerySchema,
-      'workbench',
-      'format',
-    );
-    const formatError = rejectFilesystemStoreFormat(format, 'previewBump');
+    const options = parseReleasePreviewQueryParams(req.query);
+    const formatError = rejectFilesystemStoreFormat(options.format, 'previewLatestRelease');
     if (formatError) {
       return next(formatError);
     }
 
-    const result = await releaseTracksService.previewBump(req.params.id, format);
-    logger.debug(`Success: Generated bump preview for track ${req.params.id}`);
+    const result = await releaseTracksService.previewLatestRelease(req.params.id, options);
+    logger.debug(`Success: Previewed release for track ${req.params.id}`);
     return res.status(200).send(result);
   } catch (err) {
-    logger.error('Failed to preview bump: ' + err);
+    logger.error('Failed to preview latest release: ' + err);
+    return next(err);
+  }
+};
+
+/** GET /api/release-tracks/:id/snapshots/:modified/release/preview */
+exports.previewReleaseByModified = async function previewReleaseByModified(req, res, next) {
+  try {
+    const options = parseReleasePreviewQueryParams(req.query);
+    const formatError = rejectFilesystemStoreFormat(options.format, 'previewReleaseByModified');
+    if (formatError) {
+      return next(formatError);
+    }
+
+    const result = await releaseTracksService.previewReleaseByModified(
+      req.params.id,
+      req.params.modified,
+      options,
+    );
+    logger.debug(`Success: Previewed release for snapshot ${req.params.modified}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to preview snapshot release: ' + err);
     return next(err);
   }
 };
@@ -760,7 +997,7 @@ exports.listObjectVersions = async function listObjectVersions(req, res, next) {
 // Virtual track operations
 // =============================================================================
 
-/** PUT /api/release-tracks/:id/composition */
+/** PUT /api/release-tracks/:id/virtual/composition */
 exports.updateComposition = async function updateComposition(req, res, next) {
   try {
     const bodyResult = updateCompositionBodySchema.safeParse(req.body);
@@ -786,7 +1023,7 @@ exports.updateComposition = async function updateComposition(req, res, next) {
   }
 };
 
-/** POST /api/release-tracks/:id/snapshots/create */
+/** POST /api/release-tracks/:id/virtual/snapshots/create */
 exports.createVirtualSnapshot = async function createVirtualSnapshot(req, res, next) {
   try {
     const bodyResult = createVirtualSnapshotBodySchema.safeParse(req.body || {});
@@ -799,8 +1036,11 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(req, res, n
       );
     }
 
+    const { scheduled_materialization: scheduledMaterialization, ...snapshotOptions } =
+      bodyResult.data || {};
     const result = await releaseTracksService.createVirtualSnapshot(req.params.id, {
-      ...(bodyResult.data || {}),
+      ...snapshotOptions,
+      scheduledMaterialization,
       userAccountId: req.user?.userAccountId,
     });
     logger.debug(`Success: Created virtual snapshot for track ${req.params.id}`);
@@ -811,14 +1051,27 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(req, res, n
   }
 };
 
-/** GET /api/release-tracks/:id/snapshots/preview */
-exports.previewVirtualSnapshot = async function previewVirtualSnapshot(req, res, next) {
+/** POST /api/release-tracks/:id/virtual/quarantine/promote */
+exports.promoteQuarantinedObject = async function promoteQuarantinedObject(req, res, next) {
   try {
-    const result = await releaseTracksService.previewVirtualSnapshot(req.params.id);
-    logger.debug(`Success: Generated virtual snapshot preview for track ${req.params.id}`);
+    const bodyResult = promoteQuarantinedObjectBodySchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid quarantine promotion request',
+          details: bodyResult.error.errors,
+        }),
+      );
+    }
+
+    const result = await releaseTracksService.promoteQuarantinedObject(
+      req.params.id,
+      bodyResult.data,
+    );
+    logger.debug(`Success: Promoted quarantined object for track ${req.params.id}`);
     return res.status(200).send(result);
   } catch (err) {
-    logger.error('Failed to preview virtual snapshot: ' + err);
+    logger.error('Failed to promote quarantined object: ' + err);
     return next(err);
   }
 };

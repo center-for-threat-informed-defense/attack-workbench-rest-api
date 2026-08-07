@@ -217,25 +217,18 @@ describe('Campaigns API', function () {
     );
   });
 
-  it('PUT /api/campaigns updates a campaign', async function () {
-    const originalModified = campaign1.stix.modified;
-    const timestamp = new Date().toISOString();
-    campaign1.stix.modified = timestamp;
-    campaign1.stix.description = 'This is an updated campaign. Blue.';
-    const body = campaign1;
+  it('PUT /api/campaigns rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(campaign1);
+    body.stix.description = 'This is an updated campaign. Blue.';
     const res = await request(app)
-      .put('/api/campaigns/' + campaign1.stix.id + '/modified/' + originalModified)
+      .put('/api/campaigns/' + campaign1.stix.id + '/modified/' + campaign1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated campaign
-    const campaign = res.body;
-    expect(campaign).toBeDefined();
-    expect(campaign.stix.id).toBe(campaign1.stix.id);
-    expect(campaign.stix.modified).toBe(campaign1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/campaigns does not create a campaign with the same id and modified date', async function () {

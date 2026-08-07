@@ -9,6 +9,7 @@ This directory contains supplementary technical documentation for the ATT&CK Wor
 
 Guides for consumers of the REST API — endpoints, workflows, and terminology.
 
+- [Build Information](user/build-information.md): Inspect the running REST API release and build provenance
 - [Revoke Workflow](user/revoke-workflow.md): How to revoke ATT&CK objects via the API
 
 ### Release Tracks
@@ -21,11 +22,14 @@ Guides for consumers of the REST API — endpoints, workflows, and terminology.
 - [Release Workflow](user/release-tracks/release-workflow.md): Workflow integration and candidacy
 - [Output Formats](user/release-tracks/output-formats.md): Output format specifications
 - [Workflow Examples](user/release-tracks/workflow-examples.md): End-to-end workflow examples
+- [Object Backrefs](user/release-tracks/object-backrefs.md): Release-track membership pointers on object documents (`workspace.release_tracks`)
+- [Releases By Object](user/release-tracks/releases-by-object.md): Find tagged releases that directly contain a STIX object
 
 ## Developer Documentation
 
 Architecture, patterns, and implementation details for contributors.
 
+- [Build Information](developer/build-information.md): Build metadata provenance, runtime configuration, and frontend integration
 - [Data Model](developer/data-model.md): Database schema and STIX object structure
 - [Event Bus Architecture](developer/event-bus-architecture.md): Event-driven architecture for cross-document dependencies
 - [Lifecycle Hooks Guide](developer/lifecycle-hooks-guide.md): Service lifecycle hooks pattern
@@ -38,10 +42,17 @@ Architecture, patterns, and implementation details for contributors.
 
 ### Release Tracks (Internals)
 
+- [Implementation Backlog](developer/TODO.md): Active release-track work and
+  completed implementation records
+- [Frontend Handoff](developer/FRONTEND_TODO.md): Backend contract changes
+  requiring downstream Angular updates
 - [Entities](developer/release-tracks/entities.md): Database schemas and data models
+- [Backref Reconciliation](developer/release-tracks/backref-reconciliation.md): How `workspace.release_tracks` backrefs stay in sync with snapshots
 - [Member Sync Strategies](developer/release-tracks/member-sync-strategies.md): Automatic tracking of member object revisions
 - [Error Handling](developer/release-tracks/error-handling.md): Error handling patterns
 - [Implementation Notes](developer/release-tracks/implementation-notes.md): Implementation notes and decisions
+- [Releases By Object](developer/release-tracks/releases-by-object.md): Registry catalogue, fan-out query, and indexing design
+- [Authorization](developer/release-tracks/authorization.md): Role matrix, destructive confirmation, and audit contract
 
 ## Admin Documentation
 
@@ -49,6 +60,12 @@ Configuration, deployment, and identity provider setup.
 
 - [Configuration](admin/configuration.md): Complete configuration guide (environment variables, JSON files)
 - [Automation Run Audit Trail](admin/automation-runs.md): How to inspect migration and scheduler audit records
+- [Virtual Track Schedules](admin/virtual-track-schedules.md): UTC execution, restart recovery, retries, and observability
+- [Release-Track Membership Reconciliation](admin/release-track-reconciliation.md): Inspect and repair durable object-backref protection failures
+- [Release-Track Destructive Audit Events](admin/release-track-audit.md): Inspect administrator track-deletion attempts
+- [Release-Track Deterministic Graph Migration](admin/release-track-graph-migration.md): Preview and operate the relationship-pin and snapshot-manifest backfill
+- [Release-Track Bundle Integrity Migration](admin/release-track-bundle-integrity-migration.md): Repair frozen collection identities and deterministic bundle hashes
+- [ATT&CK Canonical-Domain Migration](admin/canonical-domain-migration.md): Understand the release-agnostic startup repair, inactive-revision handling, strict validation, and verification procedure
 
 ### Authentication
 

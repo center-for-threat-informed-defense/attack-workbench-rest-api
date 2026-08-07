@@ -293,7 +293,7 @@ describe('Techniques Revoke API', function () {
     expect(res.body.stix.revoked).not.toBe(true);
   });
 
-  it('PUT /api/techniques strips revoked from update requests', async function () {
+  it('PUT /api/techniques rejects STIX edits even when revoked is stripped', async function () {
     const updateData = cloneForCreate(techniqueB);
     updateData.stix.revoked = true;
     updateData.stix.description = 'Trying to sneak in revoked via update.';
@@ -303,12 +303,10 @@ describe('Techniques Revoke API', function () {
       .send(updateData)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // The revoked flag should have been stripped, description updated
-    expect(res.body.stix.revoked).not.toBe(true);
-    expect(res.body.stix.description).toBe('Trying to sneak in revoked via update.');
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/techniques/:stixId/revoke with preserveRelationships transfers relationships', async function () {

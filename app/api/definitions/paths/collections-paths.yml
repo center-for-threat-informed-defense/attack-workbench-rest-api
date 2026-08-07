@@ -199,6 +199,8 @@ paths:
           description: 'The collections were successfully deleted.'
         '404':
           description: 'A collection with the requested STIX id was not found.'
+        '409':
+          description: 'The collection revision or a requested cascade-delete target is pinned by release-track membership or a snapshot graph manifest and cannot be deleted.'
 
   /api/collections/{stixId}/modified/{modified}:
     get:
@@ -277,3 +279,5 @@ paths:
           description: 'The collection was successfully deleted.'
         '404':
           description: 'A collection with the requested STIX id was not found.'
+        '409':
+          description: 'The collection revision or a requested cascade-delete target is pinned by release-track membership or a snapshot graph manifest and cannot be deleted.'

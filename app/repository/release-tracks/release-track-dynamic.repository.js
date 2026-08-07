@@ -4,6 +4,7 @@ const modelFactory = require('../../models/release-tracks/model-factory');
 const {
   DatabaseError,
   DuplicateIdError,
+  DuplicateReleaseVersionError,
   BadlyFormattedParameterError,
 } = require('../../exceptions');
 const logger = require('../../lib/logger');
@@ -31,6 +32,21 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getLatestSnapshotBefore(trackId, modified) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOne({ id: trackId, modified: { $lt: modified } })
+        .sort({ modified: -1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError({ parameterName: 'modified' });
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
   async getLatestSnapshotTierSummary(trackId) {
     try {
       const Model = this._getModel(trackId);
@@ -41,6 +57,7 @@ class ReleaseTrackDynamicRepository {
         {
           $project: {
             _id: 0,
+            scheduled_materialization: 1,
             members_count: { $size: { $ifNull: ['$members', []] } },
             staged_count: { $size: { $ifNull: ['$staged', []] } },
             candidates_count: { $size: { $ifNull: ['$candidates', []] } },
@@ -81,10 +98,123 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getLatestTaggedSnapshotBefore(trackId, modified) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOne({
+        id: trackId,
+        version: { $type: 'string' },
+        modified: { $lt: modified },
+      })
+        .sort({ modified: -1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      if (err.name === 'CastError') {
+        throw new BadlyFormattedParameterError({ parameterName: 'modified' });
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
   async getSnapshotByVersion(trackId, version) {
     try {
       const Model = this._getModel(trackId);
       return await Model.findOne({ id: trackId, version }).lean().exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async getSnapshotByScheduledMaterialization(trackId, scheduledFor) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOne({
+        id: trackId,
+        'scheduled_materialization.scheduled_for': scheduledFor,
+      })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async getTaggedSnapshotMetadata(trackId) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.find({ id: trackId, version: { $type: 'string' } })
+        .select('modified version version_history')
+        .sort({ modified: 1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async findTaggedSnapshotsContainingObject(trackId, snapshotModifiedValues, objectRef) {
+    if (!snapshotModifiedValues || snapshotModifiedValues.length === 0) {
+      return [];
+    }
+
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.find(
+        {
+          id: trackId,
+          modified: { $in: snapshotModifiedValues },
+          version: { $type: 'string' },
+          'members.object_ref': objectRef,
+        },
+        {
+          id: 1,
+          type: 1,
+          name: 1,
+          modified: 1,
+          version: 1,
+          members: { $elemMatch: { object_ref: objectRef } },
+        },
+      )
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
+   * Find tagged snapshots whose members tier contains an object revision.
+   * Omitting objectModified matches every released revision for the STIX ID.
+   * This query reads the tagged snapshots themselves rather than relying on
+   * denormalized object backrefs or registry release metadata.
+   */
+  async findTaggedSnapshotsContainingRevision(trackId, objectRef, objectModified) {
+    try {
+      const Model = this._getModel(trackId);
+      const memberMatch = { object_ref: objectRef };
+      if (objectModified !== undefined) {
+        memberMatch.object_modified = new Date(objectModified);
+      }
+
+      return await Model.find(
+        {
+          id: trackId,
+          version: { $type: 'string' },
+          members: { $elemMatch: memberMatch },
+        },
+        {
+          id: 1,
+          type: 1,
+          name: 1,
+          modified: 1,
+          version: 1,
+          members: { $elemMatch: memberMatch },
+        },
+      )
+        .sort({ modified: 1 })
+        .lean()
+        .exec();
     } catch (err) {
       throw new DatabaseError(err);
     }
@@ -129,6 +259,63 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getSnapshotSummaries(trackId, options = {}) {
+    try {
+      const Model = this._getModel(trackId);
+      const query = { id: trackId };
+
+      if (options.tagged === true) {
+        query.version = { $type: 'string' };
+      } else if (options.tagged === false) {
+        query.version = null;
+      }
+
+      const totalCount = await Model.countDocuments(query).exec();
+      const aggregation = [
+        { $match: query },
+        { $sort: { modified: -1 } },
+        { $skip: options.offset || 0 },
+      ];
+
+      if (options.limit) {
+        aggregation.push({ $limit: options.limit });
+      }
+
+      aggregation.push({
+        $project: {
+          _id: 0,
+          id: 1,
+          type: 1,
+          modified: 1,
+          version: 1,
+          graph_manifest_id: 1,
+          bundle_hashes: 1,
+          snapshot_description: 1,
+          name: 1,
+          description: 1,
+          scheduled_materialization: 1,
+          members_count: { $size: { $ifNull: ['$members', []] } },
+          staged_count: { $size: { $ifNull: ['$staged', []] } },
+          candidates_count: { $size: { $ifNull: ['$candidates', []] } },
+          quarantine_count: { $size: { $ifNull: ['$quarantine', []] } },
+        },
+      });
+
+      const documents = await Model.aggregate(aggregation).exec();
+
+      return {
+        data: documents,
+        pagination: {
+          total: totalCount,
+          offset: options.offset || 0,
+          limit: options.limit || 0,
+        },
+      };
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async saveSnapshot(trackId, snapshotData) {
     try {
       const Model = this._getModel(trackId);
@@ -137,8 +324,12 @@ class ReleaseTrackDynamicRepository {
       return saved.toObject();
     } catch (err) {
       if (err.name === 'MongoServerError' && err.code === 11000) {
+        if (err.keyPattern?.version && typeof snapshotData.version === 'string') {
+          throw new DuplicateReleaseVersionError(trackId, snapshotData.version, { cause: err });
+        }
         throw new DuplicateIdError({
           details: `Snapshot with modified '${snapshotData.modified}' already exists for track '${trackId}'.`,
+          cause: err,
         });
       }
       throw new DatabaseError(err);
@@ -156,16 +347,21 @@ class ReleaseTrackDynamicRepository {
         Object.assign(setOps, versionData.additionalOps);
       }
 
+      const update = {
+        $set: setOps,
+        $push: { version_history: versionData.versionHistoryEntry },
+      };
+      if (versionData.unsetOps) {
+        update.$unset = versionData.unsetOps;
+      }
+
       const result = await Model.findOneAndUpdate(
         {
           id: trackId,
           modified: modified,
           version: null, // Guard: only tag untagged snapshots
         },
-        {
-          $set: setOps,
-          $push: { version_history: versionData.versionHistoryEntry },
-        },
+        update,
         {
           new: true,
           runValidators: true,
@@ -176,9 +372,7 @@ class ReleaseTrackDynamicRepository {
       return result;
     } catch (err) {
       if (err.name === 'MongoServerError' && err.code === 11000) {
-        throw new DuplicateIdError({
-          details: `Version conflict while tagging snapshot for track '${trackId}'.`,
-        });
+        throw new DuplicateReleaseVersionError(trackId, versionData.version, { cause: err });
       }
       throw new DatabaseError(err);
     }
@@ -199,6 +393,74 @@ class ReleaseTrackDynamicRepository {
           details: `Duplicate key conflict while updating snapshot for track '${trackId}'.`,
         });
       }
+      throw new DatabaseError(err);
+    }
+  }
+
+  async attachGraphManifest(trackId, modified, manifestId) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOneAndUpdate(
+        {
+          id: trackId,
+          modified,
+          version: { $type: 'string' },
+          graph_manifest_id: { $exists: false },
+        },
+        { $set: { graph_manifest_id: manifestId } },
+        { new: true, runValidators: true, lean: true },
+      ).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async detachGraphManifest(trackId, modified, manifestId) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOneAndUpdate(
+        {
+          id: trackId,
+          modified,
+          version: { $type: 'string' },
+          graph_manifest_id: manifestId,
+        },
+        { $unset: { graph_manifest_id: '', bundle_hashes: '' } },
+        { new: true, runValidators: true, lean: true },
+      ).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async attachBundleHashes(trackId, modified, manifestId, bundleHashes) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOneAndUpdate(
+        {
+          id: trackId,
+          modified,
+          version: { $type: 'string' },
+          graph_manifest_id: manifestId,
+        },
+        { $set: { bundle_hashes: bundleHashes } },
+        { new: true, runValidators: true, lean: true },
+      ).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async deleteOlderDrafts(trackId, modified) {
+    try {
+      const Model = this._getModel(trackId);
+      const query = { id: trackId, version: null, modified: { $lt: modified } };
+      const snapshots = await Model.find(query).select('modified graph_manifest_id').lean().exec();
+      if (snapshots.length > 0) {
+        await Model.deleteMany({ _id: { $in: snapshots.map((snapshot) => snapshot._id) } }).exec();
+      }
+      return snapshots;
+    } catch (err) {
       throw new DatabaseError(err);
     }
   }

@@ -148,7 +148,7 @@ The **tagging operation** marks an existing snapshot as a tagged release by assi
 **Characteristics:**
 - Version must be greater than all previous tagged releases (monotonically increasing)
 - Cannot tag a snapshot that is already tagged (throws `AlreadyReleasedError`)
-- Supports automatic version calculation (MAJOR/MINOR bump) or explicit version
+- Supports automatic version calculation (MAJOR/MINOR release) or explicit version
 
 **Examples:**
 - "Tag the latest snapshot as v1.5"
@@ -173,16 +173,17 @@ Standard release tracks use three tiers to manage the object lifecycle from deve
 
 **Characteristics:**
 - When an object is first added to a release track, is it considered a candidate. It does not have full membership yet; if the snapshot were to be tagged and released right now, candidates would not be included.
-- Each entry can either be statically pinned to a specific version (via its `object_modified` timestamp), or dynamically pinned to the latest version.
+- Each entry can either use an exact `object_modified` timestamp or the
+  dynamic selector `"latest"`.
 - Each entry has a collection-scoped status: `work-in-progress`, `awaiting-review`, or `reviewed`
 - Objects in this tier are NOT included in published STIX bundles by default
 - Automatically promoted to staged tier when status reaches the candidacy threshold
 
 **Duplicate Rules:**
-- Cannot contain exact duplicates (same `object_ref` + `object_modified` pair)
-- **CAN** contain multiple versions of the same object (same `object_ref`, different `object_modified` timestamps)
-  - Example: Can have `attack-pattern--T1234, modified: 2024-01-15` AND `attack-pattern--T1234, modified: 2024-02-20` simultaneously
-  - However, only one version of a given object can be promoted to the `staged` tier and `members` tier
+- Cannot contain identical selectors (same `object_ref` +
+  `object_modified` pair)
+- Different selectors for the same object are governed by the configured
+  `into_candidates` conflict policy
 
 **Examples:**
 - "Add these 10 techniques as candidate objects"
@@ -200,13 +201,18 @@ Standard release tracks use three tiers to manage the object lifecycle from deve
  
 When the release is exported as a `bundle`, all `members` will be included in the resultant bundle's `x_mitre_contents` array.
 
-- Each `staged` entry includes a version pin (`object_modified` timestamp), which can either equal an ISO 8601 timestamp (designating a specific object version) or `"latest"` (designating a dynamic reference to the latest permutation of the relevant object)
+- Each `staged` entry includes a revision selector (`object_modified`), which
+  can be an ISO 8601 timestamp (a specific object revision) or `"latest"` (a
+  dynamic reference)
 - Auto-promoted from candidates when objects meet the [candidacy threshold](./release-workflow.md#candidacy-threshold-configuration)
 - Moved to member objects tier (`members`) when the snapshot is tagged
+- A `"latest"` selector is resolved during release planning; the resulting
+  member stores the exact `stix.modified` timestamp selected by that operation
 - NOT included in published STIX bundles until the snapshot is tagged
 
 **Duplicate Rules:**
-- Cannot contain exact duplicates (same `object_ref` + `object_modified` pair)
+- Cannot contain identical selectors (same `object_ref` +
+  `object_modified` pair)
 - **CANNOT** contain multiple versions of the same object
 - If a promotion would create a duplicate (different version of same object already in staged), conflict resolution policy applies
 
@@ -223,7 +229,9 @@ When the release is exported as a `bundle`, all `members` will be included in th
 
 **Characteristics:**
 - Objects are considered "members" if they are contained in the `x_mitre_contents` array of the current snapshot. These are considered *already* released.
-- Each entry is a version-pinned reference (`object_ref` + `object_modified`). Dynamic references (`object_modified: "latest"`) are not supported on member objects.
+- Each entry is an exact revision pin (`object_ref` + timestamp-valued
+  `object_modified`). Dynamic references (`object_modified: "latest"`) are
+  not supported on member objects.
 - These objects are included in published STIX bundles
 - Represents the production-ready, published content
 - Only updated when a snapshot is tagged (staged objects are promoted to members)
@@ -290,11 +298,12 @@ A **virtual release track** is a special type of release track that computes its
 
 **Characteristics:**
 - Does NOT manage objects through candidate/staged/released workflow
-- Aggregates content from **component tracks** (standard or other virtual tracks)
+- Aggregates content only from **standard component tracks**
 - Only references **tagged snapshots** from component tracks (never drafts)
 - Creates snapshots **manually** or **on schedule** (*never* event-driven; see [Types of Release Tracks](#types-of-release-tracks) for explanation)
 - All snapshots start as drafts and must be explicitly tagged
-- Can optionally have **native objects** in addition to composed content (hybrid model)
+- Is purely compositional and cannot own native objects; place additional
+  content in a standard component track
 
 **Examples:**
 - "EnterpriseTwiceAnnual" virtual track aggregates:
@@ -309,17 +318,18 @@ A **virtual release track** is a special type of release track that computes its
 
 ### Component Track
 
-A **component track** is a release track (standard or virtual) that is referenced by a virtual release track.
+A **component track** is a standard release track that is referenced by a virtual release track.
 
 **Technical Definition:**
 - A component track is specified in a virtual track's `composition.component_tracks` array
 - Each component defines a `resolution_strategy` (how to select which snapshot to use)
+- Each component defines a unique, non-negative integer `priority`
 - Each component can optionally specify `filters` (which objects to include)
 
 **Characteristics:**
 - Component tracks are independent - they don't know they're being referenced
 - Virtual tracks "pull" content from components via composition rules
-- Components can be standard tracks (manage objects) or virtual tracks (aggregate)
+- Components must be standard tracks; virtual-track nesting is rejected
 - Components must have at least one tagged snapshot for virtual track to resolve
 
 **Examples:**
@@ -349,11 +359,12 @@ A **component track** is a release track (standard or virtual) that is reference
     {
       track_id: "GroupsMonthly--uuid",
       resolution_strategy: "latest_tagged",
+      priority: 0,
       filters: { object_types: ["intrusion-set"] }
     }
   ],
   deduplication: {
-    strategy: "prefer_latest_modified"
+    strategy: "prioritize_latest_object"
   }
 }
 ```
@@ -402,9 +413,9 @@ A **resolution strategy** determines which snapshot from a component track to us
 3. **specific_snapshot** - Use a specific snapshot by timestamp
 
 **Examples:**
-- `{ resolution_strategy: "latest_tagged" }` → Always gets latest
-- `{ resolution_strategy: "specific_version", version: "5.0" }` → Always uses v5.0
-- `{ resolution_strategy: "specific_snapshot", snapshot: "2024-02-01T10:00:00Z" }` → Always uses that exact snapshot
+- `{ resolution_strategy: "latest_tagged", priority: 0 }` → Always gets latest
+- `{ resolution_strategy: "specific_version", version: "5.0", priority: 0 }` → Always uses v5.0
+- `{ resolution_strategy: "specific_snapshot", snapshot: "2024-02-01T10:00:00Z", priority: 0 }` → Always uses that exact snapshot
 
 ---
 

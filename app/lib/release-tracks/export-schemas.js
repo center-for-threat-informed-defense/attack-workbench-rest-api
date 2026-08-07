@@ -16,6 +16,7 @@
 
 const { z } = require('zod');
 const uuid = require('uuid');
+const { conformToStixVersion } = require('../stix-conformance');
 
 // -----------------------------------------------------------------------------
 // Shared sub-schemas
@@ -33,6 +34,11 @@ const snapshotSchema = z.looseObject({
   id: z.string(),
   version: z.string().nullable().optional(),
   name: z.string(),
+  description: z.string().optional(),
+  snapshot_description: z.string().optional(),
+  created: z.date().or(z.string()).optional(),
+  created_by_ref: z.string().optional(),
+  object_marking_refs: z.array(z.string()).optional(),
   modified: z.date().or(z.string()),
   members: z.array(tierEntrySchema).default([]),
   staged: z.array(tierEntrySchema).optional(),
@@ -45,8 +51,16 @@ const hydratedObjectSchema = z.looseObject({
 });
 
 const exportOptionsSchema = z
-  .object({
-    include: z.enum(['staged', 'candidates', 'all']).optional(),
+  .looseObject({
+    include: z.array(z.enum(['staged', 'candidates'])).optional(),
+    state: z.array(z.enum(['work-in-progress', 'awaiting-review'])).optional(),
+    stixVersion: z.enum(['2.0', '2.1']).default('2.1'),
+    includeToc: z.boolean().default(true),
+    attackSpecVersion: z.string().optional(),
+    collectionObject: z.looseObject({}).optional(),
+    collectionId: z.string().optional(),
+    createdByRef: z.string().optional(),
+    bundleId: z.string().optional(),
   })
   .optional()
   .default({});
@@ -80,17 +94,117 @@ function buildTierLookup(snapshot) {
 }
 
 // -----------------------------------------------------------------------------
-// Bundle Transform Schema
+// Helper: Build the x-mitre-collection table-of-contents (TOC) object
 //
-// Standard STIX 2.1 bundle format. Only includes `stix` properties - no
-// workspace data or workflow metadata. Suitable for external publication.
+// The x-mitre-collection object is effectively a table of contents for the
+// bundle. For release-track exports it is derived from the track/snapshot
+// metadata rather than from user-supplied query parameters:
+//   - id: stable per track (reuses the track UUID)
+//   - x_mitre_version: the snapshot's tagged version, or '0.1' for drafts
+//   - modified: the snapshot's modified timestamp
+//   - x_mitre_contents: every bundle object except marking definitions,
+//     which are recorded in object_marking_refs instead
 // -----------------------------------------------------------------------------
 
-const bundleTransformSchema = exportInputSchema.transform((input) => ({
-  type: 'bundle',
-  id: `bundle--${uuid.v4()}`,
-  objects: input.hydratedObjects.map((doc) => doc.stix),
-}));
+function buildTocObject(snapshot, bundleObjects, options) {
+  const trackUuid = snapshot.id.split('--')[1];
+
+  const tocObject = {
+    type: 'x-mitre-collection',
+    id: options.collectionId || `x-mitre-collection--${trackUuid}`,
+    x_mitre_attack_spec_version: options.attackSpecVersion,
+    name: snapshot.name,
+    x_mitre_version: snapshot.version || '0.1',
+    description: snapshot.snapshot_description ?? snapshot.description,
+    created_by_ref: options.createdByRef || snapshot.created_by_ref || '',
+    created: options.created || snapshot.created || snapshot.modified,
+    modified: options.modified || snapshot.modified,
+    x_mitre_contents: [],
+    object_marking_refs: [],
+  };
+
+  for (const bundleObject of bundleObjects) {
+    if (bundleObject.type === 'marking-definition') {
+      tocObject.object_marking_refs.push(bundleObject.id);
+    } else {
+      tocObject.x_mitre_contents.push({
+        object_ref: bundleObject.id,
+        object_modified: bundleObject.modified,
+      });
+    }
+  }
+
+  if (options.stixVersion === '2.1') {
+    tocObject.spec_version = '2.1';
+  }
+
+  // Sort x_mitre_contents by id for deterministic output
+  tocObject.x_mitre_contents.sort((x, y) => x.object_ref.localeCompare(y.object_ref));
+
+  return tocObject;
+}
+
+// -----------------------------------------------------------------------------
+// Bundle Transform Schema
+//
+// Standard STIX bundle format. Only includes `stix` properties - no workspace
+// data or workflow metadata. Suitable for external publication.
+//
+// Options:
+//   - stixVersion ('2.0' | '2.1', default '2.1'): each object is conformed to
+//     the requested STIX version. The bundle envelope carries spec_version
+//     only for STIX 2.0 — the STIX 2.1 specification removed spec_version
+//     from the bundle object (objects declare their own spec_version).
+//   - includeToc (default true): prepend an x-mitre-collection object derived
+//     from the snapshot metadata for STIX 2.1; STIX 2.0 always omits it
+//   - attackSpecVersion: x_mitre_attack_spec_version for the TOC object
+//
+// Notes are Workbench-native objects, not STIX objects, so they are never
+// included in emitted bundles.
+// -----------------------------------------------------------------------------
+
+const bundleTransformSchema = exportInputSchema.transform((input) => {
+  const {
+    stixVersion,
+    includeToc,
+    attackSpecVersion,
+    collectionObject,
+    collectionId,
+    createdByRef,
+    bundleId,
+  } = input.options;
+
+  const objects = input.hydratedObjects
+    .map((doc) => doc.stix)
+    .filter((stixObject) => stixObject.type !== 'note');
+
+  for (const stixObject of objects) {
+    conformToStixVersion(stixObject, stixVersion);
+  }
+
+  // x-mitre-collection is a STIX 2.1 ATT&CK extension object. It must never be
+  // emitted in a STIX 2.0 bundle, even when includeToc retains its default.
+  if (includeToc && stixVersion === '2.1') {
+    const tocObject = collectionObject
+      ? structuredClone(collectionObject)
+      : buildTocObject(input.snapshot, objects, {
+          stixVersion,
+          attackSpecVersion,
+          collectionId,
+          createdByRef,
+        });
+    conformToStixVersion(tocObject, stixVersion);
+    objects.unshift(tocObject);
+  }
+
+  return {
+    type: 'bundle',
+    id: bundleId || `bundle--${uuid.v4()}`,
+    // STIX 2.0 bundles must declare spec_version; STIX 2.1 bundles must not
+    ...(stixVersion === '2.0' ? { spec_version: '2.0' } : {}),
+    objects,
+  };
+});
 
 // -----------------------------------------------------------------------------
 // Workbench Transform Schema
@@ -126,7 +240,7 @@ const workbenchTransformSchema = exportInputSchema.transform((input) => {
     summary: {
       released_count: (input.snapshot.members || []).length,
       staged_count: (input.snapshot.staged || []).length,
-      candidate_count: (input.snapshot.candidates || []).length,
+      candidates_count: (input.snapshot.candidates || []).length,
     },
   };
 });
@@ -174,6 +288,7 @@ module.exports = {
   workbenchTransformSchema,
   filesystemStoreTransformSchema,
 
-  // Helper (exported for testing)
+  // Helpers (exported for testing)
   buildTierLookup,
+  buildTocObject,
 };

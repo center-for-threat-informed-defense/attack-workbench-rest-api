@@ -297,6 +297,103 @@ class AlreadyReleasedError extends CustomError {
   }
 }
 
+class DuplicateReleaseVersionError extends CustomError {
+  constructor(trackId, version, options = {}) {
+    super(`Release track ${trackId} already has tagged version ${version}`, {
+      ...options,
+      track_id: trackId,
+      version,
+    });
+  }
+}
+
+class InvalidObjectRevisionError extends CustomError {
+  constructor(missingReferences, options = {}) {
+    super('One or more object revisions do not exist', {
+      ...options,
+      missing_references: missingReferences,
+    });
+  }
+}
+
+class ReleaseContentIntegrityError extends CustomError {
+  constructor(missingReferences, options = {}) {
+    super('Release-track primary content is incomplete', {
+      ...options,
+      missing_references: missingReferences,
+    });
+  }
+}
+
+class ReleaseTrackReconciliationError extends CustomError {
+  constructor(trackId, reconciliationId, options = {}) {
+    super('Release-track membership protection could not be reconciled', {
+      ...options,
+      track_id: trackId,
+      reconciliation_id: reconciliationId,
+    });
+  }
+}
+
+class ReleaseTrackAuditError extends CustomError {
+  constructor(trackId, auditEventId, options = {}) {
+    super('Release-track audit recording could not be finalized', {
+      ...options,
+      track_id: trackId,
+      audit_event_id: auditEventId,
+    });
+  }
+}
+
+class TaggedSnapshotDeletionError extends CustomError {
+  constructor(version, options) {
+    super(`Tagged snapshot version ${version} cannot be deleted`, options);
+  }
+}
+
+class HistoricalSnapshotDeletionError extends CustomError {
+  constructor(snapshotModified, latestSnapshotModified, options = {}) {
+    super('Only the latest untagged snapshot can be deleted', {
+      ...options,
+      snapshot_modified: new Date(snapshotModified).toISOString(),
+      latest_snapshot_modified: latestSnapshotModified
+        ? new Date(latestSnapshotModified).toISOString()
+        : null,
+    });
+  }
+}
+
+class MemberPinnedRevisionError extends CustomError {
+  constructor(options) {
+    super(
+      'This revision is pinned in the members tier of a release track and is released content: ' +
+        'it cannot be deleted. Create a new revision instead ' +
+        '(set x_mitre_deprecated on a new revision to retire the object).',
+      options,
+    );
+  }
+}
+
+class SnapshotGraphPinnedRevisionError extends CustomError {
+  constructor(options) {
+    super(
+      'This revision is referenced by a release-track snapshot graph and cannot be deleted. ' +
+        'Create a new revision instead.',
+      options,
+    );
+  }
+}
+
+class ImmutableStixRevisionError extends CustomError {
+  constructor(options) {
+    super(
+      'Persisted STIX revisions are immutable and cannot be modified in place. ' +
+        'Create a new revision with POST instead.',
+      options,
+    );
+  }
+}
+
 class InvalidVersionError extends CustomError {
   constructor(message, options) {
     super(message || 'Invalid version', options);
@@ -319,6 +416,15 @@ class InvalidComponentTypeError extends CustomError {
   constructor(trackId, options) {
     super(
       `Component track ${trackId} must be a standard track (virtual nesting is not allowed)`,
+      options,
+    );
+  }
+}
+
+class VirtualSnapshotNotMaterializedError extends CustomError {
+  constructor(trackId, options) {
+    super(
+      `Virtual release track ${trackId} has not been materialized from its composition`,
       options,
     );
   }
@@ -360,13 +466,24 @@ module.exports = {
 
   //** Version control errors */
   AlreadyReleasedError,
+  DuplicateReleaseVersionError,
+  InvalidObjectRevisionError,
+  TaggedSnapshotDeletionError,
+  HistoricalSnapshotDeletionError,
   InvalidVersionError,
 
   //** Release track errors */
   ReleaseConflictError,
+  ReleaseContentIntegrityError,
+  ReleaseTrackReconciliationError,
+  ReleaseTrackAuditError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
+  VirtualSnapshotNotMaterializedError,
   TrackNotFoundError,
+  MemberPinnedRevisionError,
+  SnapshotGraphPinnedRevisionError,
+  ImmutableStixRevisionError,
 
   //** Database-related errors */
   DuplicateIdError,

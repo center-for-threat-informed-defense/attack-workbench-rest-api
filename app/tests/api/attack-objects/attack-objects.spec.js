@@ -141,8 +141,10 @@ describe('ATT&CK Objects API', function () {
     const markingDefinitions = attackObjects.filter((x) => x.stix.type === 'marking-definition');
     expect(markingDefinitions.length).toBe(5);
 
-    // Placeholder identity, 4 TLP marking definitions, 18 collection contents, 2 collection objects
-    expect(attackObjects.length).toBe(1 + 4 + 18 + 2);
+    // Placeholder identity, 4 TLP marking definitions, 18 imported collection contents,
+    // 2 collection objects, and the propagated relationship revision pinned to the
+    // second bundle's newer target revision.
+    expect(attackObjects.length).toBe(1 + 4 + 18 + 2 + 1);
   });
 
   it('GET /api/attack-objects returns zero objects with an ATT&CK ID that does not exist', async function () {

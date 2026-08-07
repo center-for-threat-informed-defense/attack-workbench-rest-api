@@ -81,17 +81,31 @@ class AutomationRunRecorder {
   }
 
   async recordItem(item) {
-    this.sequence += 1;
+    await this.recordItems([item]);
+  }
 
-    await this.itemsCollection.insertOne({
+  /**
+   * Persist multiple audit items in one database operation while retaining
+   * the same stable, monotonically increasing sequence contract as
+   * recordItem().
+   *
+   * @param {Array<object>} items
+   */
+  async recordItems(items) {
+    if (!Array.isArray(items) || items.length === 0) return;
+
+    const recordedAt = new Date();
+    const documents = items.map((item) => ({
       schema_version: AUTOMATION_RUN_SCHEMA_VERSION,
       run_id: this.runId,
       automation_type: this.automationType,
       name: this.name,
-      recorded_at: new Date(),
-      sequence: this.sequence,
+      recorded_at: recordedAt,
+      sequence: ++this.sequence,
       ...item,
-    });
+    }));
+
+    await this.itemsCollection.insertMany(documents, { ordered: true });
   }
 
   async finish({ status, counts, warnings, verification, summary, errorSummary }) {

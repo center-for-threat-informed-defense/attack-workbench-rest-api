@@ -6,6 +6,7 @@ const {
   validateTrackName,
   validateVersion,
   validateCron,
+  validateSnapshotSchedule,
 } = require('../../lib/release-tracks/release-track-validators');
 
 // --- Sub-schemas ---
@@ -23,6 +24,25 @@ const snapshotScheduleDefinition = {
   dates: { type: [Date], default: undefined },
 };
 const snapshotScheduleSchema = new mongoose.Schema(snapshotScheduleDefinition, { _id: false });
+
+const taggedReleaseDefinition = {
+  snapshot_modified: { type: Date, required: true },
+  version: {
+    type: String,
+    required: true,
+    validate: validateVersion,
+  },
+  tagged_at: { type: Date, required: true },
+  tagged_by: { type: String, required: true },
+};
+const taggedReleaseSchema = new mongoose.Schema(taggedReleaseDefinition, { _id: false });
+const releaseLockSchema = new mongoose.Schema(
+  {
+    token: { type: String, required: true },
+    acquired_at: { type: Date, required: true },
+  },
+  { _id: false },
+);
 
 // --- Registry document definition ---
 
@@ -54,9 +74,24 @@ const releaseTrackRegistryDefinition = {
   },
   snapshot_count: { type: Number, default: 0 },
   tagged_release_count: { type: Number, default: 0 },
+  tagged_releases: { type: [taggedReleaseSchema], default: [] },
+  release_lock: { type: releaseLockSchema, default: undefined },
 
   // Virtual tracks only
-  snapshot_schedule: { type: snapshotScheduleSchema, default: undefined },
+  snapshot_schedule: {
+    type: snapshotScheduleSchema,
+    default: undefined,
+    validate: {
+      validator: function validateRegistrySnapshotSchedule(value) {
+        return (
+          value === undefined ||
+          (this.type === 'virtual' && validateSnapshotSchedule.validator(value))
+        );
+      },
+      message:
+        'Snapshot schedule is only valid for virtual tracks and its fields must match its mode',
+    },
+  },
 
   created_at: { type: Date, required: true },
   updated_at: { type: Date, required: true },

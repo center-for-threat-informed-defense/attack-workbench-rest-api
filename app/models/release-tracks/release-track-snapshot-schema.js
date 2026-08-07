@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 const {
   validateTrackId,
   validateTrackName,
@@ -8,6 +9,7 @@ const {
   validateIdentityRef,
   validateMarkingDefRefs,
   validateVersion,
+  validateObjectTypesFilter,
 } = require('../../lib/release-tracks/release-track-validators');
 
 // =============================================================================
@@ -26,16 +28,31 @@ const memberEntryDefinition = {
 };
 const memberEntrySchema = new mongoose.Schema(memberEntryDefinition, { _id: false });
 
+const workflowRevisionDefinition = {
+  type: mongoose.Schema.Types.Mixed,
+  required: true,
+  validate: {
+    validator(value) {
+      return (
+        revisionReference.isLatest(value) ||
+        (value instanceof Date && !Number.isNaN(value.getTime())) ||
+        (typeof value === 'string' && !Number.isNaN(new Date(value).getTime()))
+      );
+    },
+    message: 'object_modified must be an exact Date or "latest"',
+  },
+};
+
 const stagedEntryDefinition = {
   object_ref: {
     type: String,
     required: true,
     validate: validateStixId,
   },
-  object_modified: { type: Date, required: true },
+  object_modified: workflowRevisionDefinition,
   object_status: {
     type: String,
-    enum: ['work-in-progress', 'awaiting-review', 'reviewed'],
+    enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed'],
     required: true,
   },
   object_staged_at: { type: Date, required: true },
@@ -49,10 +66,10 @@ const candidateEntryDefinition = {
     required: true,
     validate: validateStixId,
   },
-  object_modified: { type: Date, required: true },
+  object_modified: workflowRevisionDefinition,
   object_status: {
     type: String,
-    enum: ['work-in-progress', 'awaiting-review', 'reviewed'],
+    enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed'],
     required: true,
   },
   object_added_at: { type: Date, required: true },
@@ -84,7 +101,11 @@ const quarantineEntrySchema = new mongoose.Schema(quarantineEntryDefinition, { _
 // --- Composition sub-schemas (virtual tracks) ---
 
 const componentTrackFiltersDefinition = {
-  object_types: { type: [String], default: undefined },
+  object_types: {
+    type: [String],
+    default: undefined,
+    validate: validateObjectTypesFilter,
+  },
   domains: { type: [String], default: undefined },
 };
 const componentTrackFiltersSchema = new mongoose.Schema(componentTrackFiltersDefinition, {
@@ -102,7 +123,15 @@ const componentTrackDefinition = {
     enum: ['latest_tagged', 'specific_version', 'specific_snapshot'],
     required: true,
   },
-  priority: { type: Number, required: true },
+  priority: {
+    type: Number,
+    required: true,
+    min: 0,
+    validate: {
+      validator: Number.isInteger,
+      message: 'Component priority must be an integer',
+    },
+  },
   version: {
     type: String,
     validate: validateVersion,
@@ -141,6 +170,7 @@ const componentSnapshotResolutionDefinition = {
   resolved_snapshot_id: { type: Date, required: true },
   resolved_version: {
     type: String,
+    required: true,
     validate: validateVersion,
   },
   strategy_used: { type: String, required: true },
@@ -174,9 +204,28 @@ const compositionResolutionSchema = new mongoose.Schema(compositionResolutionDef
   _id: false,
 });
 
+const scheduledMaterializationDefinition = {
+  schedule_mode: {
+    type: String,
+    enum: ['cron', 'dates'],
+    required: true,
+  },
+  scheduled_for: { type: Date, required: true },
+};
+const scheduledMaterializationSchema = new mongoose.Schema(scheduledMaterializationDefinition, {
+  _id: false,
+});
+
 // --- Config sub-schemas ---
 
 const promotionConflictsDefinition = {
+  // Applies when an entry enters the candidates tier (manual add, demote)
+  // and the object_ref is already pinned at a different revision.
+  into_candidates: {
+    type: String,
+    enum: ['always_overwrite', 'always_reject', 'prefer_latest', 'abort'],
+    default: 'prefer_latest',
+  },
   candidates_to_staged: {
     type: String,
     enum: ['always_overwrite', 'always_reject', 'prefer_latest'],
@@ -265,14 +314,40 @@ const versionHistoryEntryDefinition = {
     members_count: { type: Number },
     promoted_count: { type: Number },
     staged_count: { type: Number },
-    candidate_count: { type: Number },
+    candidates_count: { type: Number },
+    quarantine_count: { type: Number },
   },
-  // Virtual tracks only: records which component versions were included
-  component_versions: { type: mongoose.Schema.Types.Mixed, default: undefined },
+  // Virtual tracks only: immutable component track ID → tagged version.
+  component_versions: {
+    type: Map,
+    of: {
+      type: String,
+      required: true,
+      validate: validateVersion,
+    },
+    default: undefined,
+    validate: {
+      validator: (value) => {
+        if (value == null) return true;
+        const keys = value instanceof Map ? value.keys() : Object.keys(value);
+        return Array.from(keys).every((key) => validateTrackId.validator(key));
+      },
+      message: 'Component version keys must be valid release track IDs',
+    },
+  },
 };
 const versionHistoryEntrySchema = new mongoose.Schema(versionHistoryEntryDefinition, {
   _id: false,
 });
+
+const bundleHashesSchema = new mongoose.Schema(
+  {
+    manifest_id: { type: String, required: true },
+    stix_2_0: { type: String, required: true, match: /^[a-f0-9]{64}$/ },
+    stix_2_1: { type: String, required: true, match: /^[a-f0-9]{64}$/ },
+  },
+  { _id: false },
+);
 
 // =============================================================================
 // Main snapshot schema
@@ -297,6 +372,12 @@ const releaseTrackSnapshotDefinition = {
     type: String,
     default: null,
     validate: validateVersion,
+  },
+  graph_manifest_id: { type: String },
+  bundle_hashes: { type: bundleHashesSchema },
+  snapshot_description: {
+    type: String,
+    maxlength: [4000, 'Snapshot description cannot exceed 4000 characters'],
   },
 
   // Release track metadata
@@ -328,6 +409,16 @@ const releaseTrackSnapshotDefinition = {
   // --- Virtual track composition ---
   composition: { type: compositionSchema, default: undefined },
   composition_resolution: { type: compositionResolutionSchema, default: undefined },
+  scheduled_materialization: {
+    type: scheduledMaterializationSchema,
+    default: undefined,
+    validate: {
+      validator: function validateScheduledMaterialization(value) {
+        return value === undefined || this.type === 'virtual';
+      },
+      message: 'Scheduled materialization is only valid for virtual tracks',
+    },
+  },
 
   // --- Shared ---
   config: { type: configSchema, default: () => ({}) },
@@ -343,8 +434,39 @@ const releaseTrackSnapshotSchema = new mongoose.Schema(releaseTrackSnapshotDefin
 // Primary lookup: find snapshot by track id + modified timestamp
 releaseTrackSnapshotSchema.index({ id: 1, modified: -1 }, { unique: true });
 
-// Find the latest tagged version
-releaseTrackSnapshotSchema.index({ id: 1, version: 1 });
+// A tagged version identifies exactly one snapshot within a release track.
+// Drafts are excluded so any number of snapshots may retain version: null.
+releaseTrackSnapshotSchema.index(
+  { id: 1, version: 1 },
+  {
+    name: 'unique_tagged_version',
+    unique: true,
+    partialFilterExpression: { version: { $type: 'string' } },
+  },
+);
+
+// A scheduled occurrence may materialize at most one snapshot, including
+// after restart recovery or duplicate delivery by multiple scheduler nodes.
+releaseTrackSnapshotSchema.index(
+  { 'scheduled_materialization.scheduled_for': 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      'scheduled_materialization.scheduled_for': { $type: 'date' },
+    },
+  },
+);
+
+// Historical releases-by-object lookup. Draft snapshots are deliberately
+// excluded because they are numerous, mutable through cloning, and never
+// eligible for the endpoint.
+releaseTrackSnapshotSchema.index(
+  { 'members.object_ref': 1, modified: -1 },
+  {
+    name: 'tagged_members_object_ref',
+    partialFilterExpression: { version: { $type: 'string' } },
+  },
+);
 
 // =============================================================================
 // Exports
@@ -359,6 +481,7 @@ module.exports = {
   quarantineEntrySchema,
   compositionSchema,
   compositionResolutionSchema,
+  scheduledMaterializationSchema,
   configSchema,
   versionHistoryEntrySchema,
 };

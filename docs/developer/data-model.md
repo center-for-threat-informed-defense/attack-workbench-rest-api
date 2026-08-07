@@ -22,7 +22,37 @@ The ATT&CK Workbench database supports the following ATT&CK object types (with t
 
 ## Object Versioning and Updates
 
-Most ATT&CK object types should be updated by creating a new object with a new `modified` timestamp (POST request). The Collection Index is different and should be updated by modifying (overwriting) the current object (PUT request).
+Persisted STIX revisions are immutable. Change STIX content by creating a new
+revision with the same `stix.id` and a newer `stix.modified` timestamp through
+POST. PUT on a versioned STIX endpoint is limited to non-exported `workspace`
+metadata and returns 409 if the submitted `stix` payload differs from the
+stored revision. The Collection Index is not a versioned STIX document and
+continues to use overwrite-style PUT.
+
+## Canonical Domain Membership
+
+`stix.x_mitre_domains` is authoritative object data for domain-bearing ATT&CK
+objects. Cross-domain content has one revision containing the complete domain
+union, such as `["enterprise-attack", "mobile-attack"]`; Workbench does not
+store separate domain-narrowed copies of that revision.
+
+ADM validation requires the property before a domain-bearing object leaves the
+partial `work-in-progress` workflow. New installations do not seed a
+missing-domain bypass. A legacy persisted bypass may remain temporarily when
+the migration finds domainless content with no authoritative TOC provenance.
+Migration
+`20260730230000-backfill-canonical-x-mitre-domains.js` creates replacement
+latest revisions for all domainless lineages without rewriting historical
+revisions. Domain unions come from persisted canonical collection provenance;
+specifically, exact `(object_ref, object_modified)` membership in canonical
+collection `x_mitre_contents` TOCs. Broad `workspace.collections` appearance
+backrefs are not authoritative because legacy imports also attached them to
+secondary graph objects. Unmappable content is left unchanged and reported;
+the migration retains legacy validation bypasses rather than fabricate
+Enterprise membership. Forward
+migration `20260803190000-correct-canonical-x-mitre-domains.js` corrects
+domain-only successors created by the older inference. See the
+[operator guide](../admin/canonical-domain-migration.md).
 
 ## Database Structure
 
@@ -133,6 +163,7 @@ The REST API supports linking between objects using a reference mechanism called
 When one object references another, it uses the format `(LinkById: ref)` where `ref` is the external ID of the referenced object. This is stored in the database as part of the object's text properties (typically the description).
 
 Additionally, an external reference is added to the object with:
+
 - `source_name`: the external ID of the referenced object
 - `url`: the URL of the referenced object
 - `description`: the name of the referenced object

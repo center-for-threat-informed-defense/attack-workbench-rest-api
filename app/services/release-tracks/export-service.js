@@ -5,7 +5,7 @@
 //
 // Hydrates STIX object refs (from snapshot members/staged/candidates tiers)
 // into full STIX documents, then formats the output as one of:
-//   - bundle:          Standard STIX 2.1 bundle
+//   - bundle:          Standard STIX 2.0 or 2.1 bundle
 //   - workbench:       Custom format with workflow metadata
 //   - filesystemstore: Directory structure organized by STIX type
 //
@@ -17,51 +17,17 @@
 // app/lib/release-tracks/export-schemas.js for schema definitions.
 // =============================================================================
 
-const types = require('../../lib/types');
+const config = require('../../config/config');
 const logger = require('../../lib/logger');
+const linkById = require('../../lib/linkById');
+const primaryRevisionService = require('./primary-revision-service');
+const graphManifestService = require('./graph-manifest-service');
+const systemConfigurationService = require('../system/system-configuration-service');
 const {
   bundleTransformSchema,
   workbenchTransformSchema,
   filesystemStoreTransformSchema,
 } = require('../../lib/release-tracks/export-schemas');
-
-// ---------------------------------------------------------------------------
-// Repository map — lazy-loaded to avoid circular dependency issues at startup.
-//
-// Maps STIX type prefixes to their corresponding repositories so we can
-// batch-query each repository's `findManyByIdAndModified` in parallel.
-// ---------------------------------------------------------------------------
-
-let _repoMap = null;
-
-function getRepositoryMap() {
-  if (_repoMap) return _repoMap;
-
-  _repoMap = {
-    [types.Technique]: require('../../repository/techniques-repository'),
-    [types.Tactic]: require('../../repository/tactics-repository'),
-    [types.Group]: require('../../repository/groups-repository'),
-    [types.Campaign]: require('../../repository/campaigns-repository'),
-    [types.Mitigation]: require('../../repository/mitigations-repository'),
-    [types.Matrix]: require('../../repository/matrix-repository'),
-    [types.Relationship]: require('../../repository/relationships-repository'),
-    [types.MarkingDefinition]: require('../../repository/marking-definitions-repository'),
-    [types.Identity]: require('../../repository/identities-repository'),
-    [types.Note]: require('../../repository/notes-repository'),
-    [types.DataSource]: require('../../repository/data-sources-repository'),
-    [types.DataComponent]: require('../../repository/data-components-repository'),
-    [types.Asset]: require('../../repository/assets-repository'),
-    [types.Analytic]: require('../../repository/analytics-repository'),
-    [types.DetectionStrategy]: require('../../repository/detection-strategies-repository'),
-  };
-
-  // Software types share a single repository
-  const softwareRepo = require('../../repository/software-repository');
-  _repoMap[types.Malware] = softwareRepo;
-  _repoMap[types.Tool] = softwareRepo;
-
-  return _repoMap;
-}
 
 // =============================================================================
 // Hydration
@@ -77,52 +43,78 @@ function getRepositoryMap() {
  * @returns {Promise<Array<Object>>} Full Mongoose lean documents ({ stix, workspace, ... })
  */
 exports.hydrateMembers = async function hydrateMembers(entries) {
-  if (!entries || entries.length === 0) return [];
+  return (await primaryRevisionService.assertStoredEntries(entries)).documents;
+};
 
-  // Group entries by STIX type prefix
-  const byType = {};
-  for (const entry of entries) {
-    const type = entry.object_ref.split('--')[0];
-    if (!byType[type]) byType[type] = [];
-    byType[type].push(entry);
+// =============================================================================
+// Bundle assembly helpers
+// =============================================================================
+
+/**
+ * Convert LinkById tags (e.g. "(LinkById: T1234)") in descriptions to
+ * markdown citations using only object revisions supplied by the resolved
+ * live or persisted graph.
+ *
+ * @param {Array<Object>} documents - Hydrated lean documents ({ stix, ... })
+ */
+async function convertLinkByIdTags(documents, linkTargetDocuments) {
+  const byAttackId = new Map();
+  for (const doc of [...documents, ...linkTargetDocuments]) {
+    const attackId = linkById.getAttackId(doc.stix);
+    if (attackId) byAttackId.set(attackId, doc);
   }
 
-  const repoMap = getRepositoryMap();
-  const hydrated = [];
+  const getAttackObject = async (attackId) => byAttackId.get(attackId);
 
-  await Promise.all(
-    Object.entries(byType).map(async ([type, refs]) => {
-      const repo = repoMap[type];
-      if (!repo) {
-        logger.warn(
-          `ExportService: No repository for type "${type}", skipping ${refs.length} object(s)`,
-        );
-        return;
-      }
-      try {
-        const docs = await repo.findManyByIdAndModified(refs);
-        hydrated.push(...docs);
-      } catch (err) {
-        logger.error(`ExportService: Failed to hydrate ${refs.length} "${type}" object(s):`, err);
-      }
-    }),
+  for (const doc of documents) {
+    await linkById.convertLinkByIdTags(doc.stix, getAttackObject);
+  }
+}
+
+function requiresLiveGraph(snapshot, options) {
+  return (
+    options.captureGraph ||
+    snapshot.version == null ||
+    !snapshot.graph_manifest_id ||
+    (options.include || []).some((tier) => ['staged', 'candidates'].includes(tier))
   );
+}
 
-  return hydrated;
-};
+function normalizeSourceBundleDefaults(documents, graph) {
+  if (graph.manifest?.resolver_version !== 'source-bundle-pointer-v2') return documents;
+
+  return documents.map((document) => {
+    const normalized = { ...document, stix: { ...document.stix } };
+    // Apply only source-attested shape hints. Most v19.1 objects explicitly
+    // emitted false and must retain it; a small minority omitted the default.
+    for (const field of graph.sourceOmittedDefaults?.get(document.stix.id) || []) {
+      if (normalized.stix[field] === false) delete normalized.stix[field];
+    }
+    return normalized;
+  });
+}
+
+function bundleIdForManifest(manifest) {
+  const uuid = manifest?.manifest_id?.split('--')[1];
+  return uuid ? `bundle--${uuid}` : undefined;
+}
 
 // =============================================================================
 // Format helpers (delegating to Zod transform schemas)
 // =============================================================================
 
 /**
- * Format as a standard STIX 2.1 bundle.
+ * Format as a standard STIX bundle.
  *
  * Only includes `stix` properties — no workspace data or workflow metadata.
  * Transformation logic is defined in export-schemas.js.
+ *
+ * @param {Object} snapshot - The raw snapshot document
+ * @param {Array<Object>} hydratedObjects - Hydrated lean documents
+ * @param {Object} [options] - { stixVersion?, includeToc?, attackSpecVersion? }
  */
-exports.formatAsBundle = function formatAsBundle(snapshot, hydratedObjects) {
-  return bundleTransformSchema.parse({ snapshot, hydratedObjects });
+exports.formatAsBundle = function formatAsBundle(snapshot, hydratedObjects, options) {
+  return bundleTransformSchema.parse({ snapshot, hydratedObjects, options });
 };
 
 /**
@@ -156,22 +148,55 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
  * Workbench snapshot retrieval is handled by release-tracks-service because it
  * returns the release-track snapshot shape with UI-friendly tier entry details.
  *
+ * Bundle exports (see docs/developer/release-tracks/bundle-export.md):
+ *   - The same pipeline applies to standard snapshots and materialized virtual
+ *     snapshots because both persist exact member revisions.
+ *   1. Select tier entries — members always; staged/candidates via
+ *      options.include, narrowed by options.state
+ *   2. Hydrate entries into full documents
+ *   3. Resolve live relationships or replay exact persisted graph pointers
+ *   4. Append referenced identities and marking definitions
+ *   5. Convert LinkById tags to markdown citations
+ *   6. Assemble the bundle (STIX version conformance + optional TOC) via the
+ *      Zod transform schema
+ *
  * @param {Object} snapshot - The raw snapshot document from the dynamic repo
  * @param {string} format - One of: 'bundle', 'filesystemstore'
  * @param {Object} [options] - Additional options
+ * @param {Array<string>} [options.include] - Extra tiers to include in bundles ('staged', 'candidates')
+ * @param {Array<string>} [options.state] - Workflow status filter for included staged/candidates
+ * @param {string} [options.stixVersion] - '2.0' or '2.1' (default '2.1')
+ * @param {boolean} [options.includeToc] - Include the x-mitre-collection TOC object (default true)
  * @returns {Promise<Object>} The formatted export
  */
-// eslint-disable-next-line no-unused-vars
 exports.exportSnapshot = async function exportSnapshot(snapshot, format, options = {}) {
-  const members = snapshot.members || [];
-
   if (format === 'bundle') {
-    const hydratedMembers = await exports.hydrateMembers(members);
-    return exports.formatAsBundle(snapshot, hydratedMembers);
+    // A persisted graph is an opt-in guarantee for members only. Graphless
+    // snapshots and exports that add mutable draft tiers resolve the current
+    // relationship frontier instead of implying determinism they do not have.
+    const graph = requiresLiveGraph(snapshot, options)
+      ? await graphManifestService.replayPlannedSnapshot(snapshot, options)
+      : await graphManifestService.replay(snapshot, options);
+    const allObjects = normalizeSourceBundleDefaults(graph.documents, graph);
+    await convertLinkByIdTags(allObjects, graph.linkTargetDocuments);
+    let createdByRef;
+    if (options.stixVersion !== '2.0' && options.includeToc !== false && !graph.collectionObject) {
+      const organizationIdentity = await systemConfigurationService.retrieveOrganizationIdentity();
+      createdByRef = organizationIdentity.stix.id;
+    }
+
+    return exports.formatAsBundle(snapshot, allObjects, {
+      stixVersion: options.stixVersion,
+      includeToc: options.includeToc,
+      attackSpecVersion: config.app.attackSpecVersion,
+      collectionObject: graph.collectionObject,
+      createdByRef,
+      bundleId: bundleIdForManifest(graph.manifest),
+    });
   }
 
   if (format === 'filesystemstore') {
-    const hydratedMembers = await exports.hydrateMembers(members);
+    const hydratedMembers = await exports.hydrateMembers(snapshot.members || []);
     return exports.formatAsFilesystemStore(snapshot, hydratedMembers);
   }
 

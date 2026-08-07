@@ -1,257 +1,425 @@
 'use strict';
 
-// =============================================================================
-// Versioning Service
-//
-// Manages the bump/tag lifecycle for release track snapshots:
-//   - Calculate and assign version numbers (MAJOR.MINOR)
-//   - Promote staged entries to members atomically with tagging
-//   - Preview upcoming bumps without persisting
-//
-// Tagging is the ONLY in-place mutation on a snapshot. All other changes
-// produce new snapshot clones via snapshot-service.
-//
-// See docs/COLLECTIONS_V2/03_VERSIONING.md for versioning rules.
-// =============================================================================
+// Plans and commits immutable releases from release-track snapshots. Planning
+// is side-effect free; persistence, reconciliation, and events occur only in
+// the commit path.
 
 const snapshotService = require('./snapshot-service');
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
-const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
 const versionUtils = require('../../lib/release-tracks/version-utils');
 const conflictResolution = require('../../lib/release-tracks/conflict-resolution');
+const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
+const releaseHistoryService = require('./release-history-service');
+const primaryRevisionService = require('./primary-revision-service');
+const graphManifestService = require('./graph-manifest-service');
+const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
+const uuid = require('uuid');
 const logger = require('../../lib/logger');
-const { AlreadyReleasedError } = require('../../exceptions');
+const {
+  AlreadyReleasedError,
+  ReleaseConflictError,
+  TrackNotFoundError,
+  VirtualSnapshotNotMaterializedError,
+} = require('../../exceptions');
 
-// =============================================================================
-// Internal helpers
-// =============================================================================
+const RELEASE_LOCK_TIMEOUT_MS = 15 * 60 * 1000;
+
+function iso(value) {
+  return new Date(value).toISOString();
+}
+
+function tierCounts(snapshot) {
+  if (snapshot.type === 'virtual') {
+    return {
+      members_count: (snapshot.members || []).length,
+      quarantine_count: (snapshot.quarantine || []).length,
+    };
+  }
+
+  return {
+    members_count: (snapshot.members || []).length,
+    staged_count: (snapshot.staged || []).length,
+    candidates_count: (snapshot.candidates || []).length,
+  };
+}
+
+function memberRevisions(snapshot) {
+  const revisionsByObject = new Map();
+  for (const member of snapshot?.members || []) {
+    const revisions = revisionsByObject.get(member.object_ref) || new Set();
+    revisions.add(iso(member.object_modified));
+    revisionsByObject.set(member.object_ref, revisions);
+  }
+  return revisionsByObject;
+}
+
+function sameRevisions(left, right) {
+  if (left.size !== right.size) return false;
+  for (const revision of left) {
+    if (!right.has(revision)) return false;
+  }
+  return true;
+}
+
+function virtualReleaseChanges(previousSnapshot, draftSnapshot) {
+  const previous = memberRevisions(previousSnapshot);
+  const draft = memberRevisions(draftSnapshot);
+  let newCount = 0;
+  let updatedCount = 0;
+  let removedCount = 0;
+
+  for (const [objectRef, revisions] of draft) {
+    const previousRevisions = previous.get(objectRef);
+    if (!previousRevisions) {
+      newCount++;
+    } else if (!sameRevisions(revisions, previousRevisions)) {
+      updatedCount++;
+    }
+  }
+
+  for (const objectRef of previous.keys()) {
+    if (!draft.has(objectRef)) removedCount++;
+  }
+
+  return {
+    new_count: newCount,
+    updated_count: updatedCount,
+    removed_count: removedCount,
+    quarantined_count: (draftSnapshot.quarantine || []).length,
+  };
+}
 
 /**
- * Core bump logic shared by bumpLatest and bumpByModified.
+ * Capture the tagged component versions frozen into a materialized virtual
+ * draft. Track IDs are stable provenance keys; component names are descriptive
+ * metadata and may change or collide.
+ */
+function virtualComponentVersions(snapshot) {
+  return Object.fromEntries(
+    (snapshot.composition_resolution?.component_snapshots || []).map((component) => [
+      component.track_id,
+      component.resolved_version,
+    ]),
+  );
+}
+
+/**
+ * Build the complete release plan without reading or writing external state.
  *
  * @param {string} trackId
- * @param {Object} snapshot - The snapshot to tag
- * @param {Object} options - { type?, version?, dry_run?, userAccountId }
- * @returns {Promise<Object>} The tagged snapshot (or preview if dry_run)
+ * @param {Object} sourceSnapshot
+ * @param {Array<Object>} versionHistory
+ * @param {Object} options
+ * @param {Date} now
+ * @param {Object|null} previousTaggedSnapshot
+ * @returns {Object}
  */
-async function _doBump(trackId, snapshot, options) {
-  // Guard: cannot re-tag an already-tagged snapshot
-  if (snapshot.version != null) {
-    throw new AlreadyReleasedError(snapshot.version);
+function planRelease(
+  trackId,
+  sourceSnapshot,
+  versionHistory,
+  options = {},
+  now = new Date(),
+  previousTaggedSnapshot = null,
+) {
+  if (sourceSnapshot.version != null) {
+    throw new AlreadyReleasedError(sourceSnapshot.version);
+  }
+  if (sourceSnapshot.type === 'virtual' && sourceSnapshot.composition_resolution == null) {
+    throw new VirtualSnapshotNotMaterializedError(trackId, {
+      details:
+        'Create a persisted draft with POST /api/release-tracks/:id/virtual/snapshots/create before previewing or releasing it',
+    });
+  }
+  if (
+    sourceSnapshot.type === 'standard' &&
+    (sourceSnapshot.staged || []).some((entry) => revisionReference.isLatest(entry.object_modified))
+  ) {
+    throw new TypeError('Standard release planning requires resolved staged revisions');
   }
 
-  const versionHistory = snapshot.version_history || [];
+  const normalized = tierRevisionInvariant.normalizeSnapshot(sourceSnapshot);
+  const snapshot = normalized.snapshot;
+  const version = versionUtils.calculateNextVersion(
+    versionHistory,
+    options.increment,
+    options.version,
+    sourceSnapshot.modified,
+  );
+  versionUtils.validateVersionProgression(version, versionHistory, sourceSnapshot.modified);
+  const versionBounds = versionUtils.findVersionBounds(versionHistory, sourceSnapshot.modified);
 
-  // Calculate version
-  const version = versionUtils.calculateNextVersion(versionHistory, options.type, options.version);
-
-  // Validate monotonic progression
-  versionUtils.validateVersionProgression(version, versionHistory);
-
-  // Promote staged → members (standard tracks only)
-  const staged = snapshot.staged || [];
+  const isVirtual = snapshot.type === 'virtual';
+  const before = isVirtual
+    ? previousTaggedSnapshot
+      ? tierCounts(previousTaggedSnapshot)
+      : { members_count: 0, quarantine_count: 0 }
+    : tierCounts(snapshot);
+  const staged = snapshot.type === 'standard' ? snapshot.staged || [] : [];
   const existingMembers = snapshot.members || [];
   let mergedMembers = existingMembers;
-  let promotedCount = 0;
+  let blockingError;
 
   if (staged.length > 0) {
-    // Convert staged entries to member entries (strip staged-specific fields)
-    const stagedAsMembers = staged.map((s) => ({
-      object_ref: s.object_ref,
-      object_modified: s.object_modified,
+    const incoming = staged.map(({ object_ref, object_modified }) => ({
+      object_ref,
+      object_modified,
     }));
+    const policy = snapshot.config?.promotion_conflicts?.staged_to_members || 'abort';
 
-    const policy =
-      (snapshot.config &&
-        snapshot.config.promotion_conflicts &&
-        snapshot.config.promotion_conflicts.staged_to_members) ||
-      'abort';
-
-    const { merged } = conflictResolution.applyConflictPolicy(
-      existingMembers,
-      stagedAsMembers,
-      policy,
-    );
-
-    mergedMembers = merged;
-    promotedCount = staged.length;
+    try {
+      mergedMembers = conflictResolution.applyConflictPolicy(
+        existingMembers,
+        incoming,
+        policy,
+      ).merged;
+    } catch (err) {
+      if (!(err instanceof ReleaseConflictError)) throw err;
+      blockingError = err;
+    }
   }
 
-  const now = new Date();
+  const additionalOps = {};
+  for (const tier of normalized.changedTiers) {
+    additionalOps[tier] = snapshot[tier];
+  }
+  if (staged.length > 0 && !blockingError) {
+    additionalOps.members = mergedMembers;
+    additionalOps.staged = [];
+  }
+  const updatesSnapshotDescription = options.description !== undefined;
+  if (updatesSnapshotDescription && options.description) {
+    additionalOps.snapshot_description = options.description;
+  }
 
-  // Build version history entry
+  const afterSnapshot = {
+    ...snapshot,
+    version,
+    members: mergedMembers,
+    ...(updatesSnapshotDescription && options.description
+      ? { snapshot_description: options.description }
+      : {}),
+    ...(snapshot.type === 'standard' ? { staged: [] } : {}),
+  };
+  if (updatesSnapshotDescription && !options.description) {
+    delete afterSnapshot.snapshot_description;
+  }
+  const after = tierCounts(afterSnapshot);
+  const changes = isVirtual
+    ? virtualReleaseChanges(previousTaggedSnapshot, afterSnapshot)
+    : {
+        promoted_count: blockingError ? 0 : staged.length,
+      };
   const versionHistoryEntry = {
     version,
     tagged_at: now,
     tagged_by: options.userAccountId || 'system',
-    snapshot_id: snapshot.modified,
+    snapshot_id: sourceSnapshot.modified,
     summary: {
-      members_count: mergedMembers.length,
-      promoted_count: promotedCount,
-      staged_count: staged.length,
-      candidate_count: (snapshot.candidates || []).length,
+      ...after,
+      promoted_count: blockingError ? 0 : staged.length,
     },
+    component_versions: isVirtual ? virtualComponentVersions(snapshot) : undefined,
   };
+  const plannedSnapshot = blockingError
+    ? null
+    : {
+        ...afterSnapshot,
+        version_history: [...(snapshot.version_history || []), versionHistoryEntry],
+      };
 
-  // Dry-run: return preview without persisting
-  if (options.dry_run) {
-    return {
-      dry_run: true,
-      track_id: trackId,
-      snapshot_modified: snapshot.modified,
-      version,
-      staged_to_promote: staged.length,
-      members_after: mergedMembers.length,
-      version_history_entry: versionHistoryEntry,
-    };
-  }
-
-  // Build additional atomic ops for the tag update
-  const additionalOps = {};
-  if (staged.length > 0) {
-    additionalOps.members = mergedMembers;
-    additionalOps.staged = [];
-  }
-
-  // Atomic tag + promotion
-  const tagged = await dynamicRepo.tagSnapshotInPlace(trackId, snapshot.modified, {
+  return {
+    trackId,
+    sourceSnapshot,
+    plannedSnapshot,
     version,
     versionHistoryEntry,
-    additionalOps: Object.keys(additionalOps).length > 0 ? additionalOps : undefined,
+    additionalOps,
+    clearSnapshotDescription: updatesSnapshotDescription && !options.description,
+    normalizedRemoved: normalized.removed,
+    blockingError,
+    summary: {
+      track_id: trackId,
+      type: snapshot.type,
+      source_snapshot_modified: iso(sourceSnapshot.modified),
+      version,
+      version_bounds: {
+        lower: versionBounds.lower
+          ? {
+              version: versionBounds.lower.version,
+              modified: iso(versionBounds.lower.modified),
+            }
+          : null,
+        upper: versionBounds.upper
+          ? {
+              version: versionBounds.upper.version,
+              modified: iso(versionBounds.upper.modified),
+            }
+          : null,
+      },
+      releasable: !blockingError,
+      ...(isVirtual
+        ? {
+            previous_release: previousTaggedSnapshot
+              ? {
+                  version: previousTaggedSnapshot.version,
+                  modified: iso(previousTaggedSnapshot.modified),
+                }
+              : null,
+          }
+        : {}),
+      before,
+      after: blockingError ? before : after,
+      changes,
+      conflicts: blockingError?.conflicts || [],
+    },
+  };
+}
+
+async function planLoadedSnapshot(trackId, snapshot, options) {
+  const [versionHistory, previousTaggedSnapshot, resolvedStaged] = await Promise.all([
+    releaseHistoryService.getTrackWideVersionHistory(trackId),
+    snapshot.type === 'virtual'
+      ? dynamicRepo.getLatestTaggedSnapshotBefore(trackId, snapshot.modified)
+      : Promise.resolve(null),
+    snapshot.type === 'standard'
+      ? revisionReference.resolveEntries(snapshot.staged || [])
+      : Promise.resolve(snapshot.staged || []),
+  ]);
+  const releaseInput =
+    snapshot.type === 'standard'
+      ? {
+          ...snapshot,
+          staged: resolvedStaged,
+        }
+      : snapshot;
+
+  await primaryRevisionService.assertStoredEntries([
+    ...(releaseInput.members || []),
+    ...(releaseInput.staged || []),
+  ]);
+
+  return planRelease(
+    trackId,
+    releaseInput,
+    versionHistory,
+    options,
+    new Date(),
+    previousTaggedSnapshot,
+  );
+}
+
+async function commitPlan(plan) {
+  if (plan.blockingError) throw plan.blockingError;
+
+  const obsoleteManifestId = plan.sourceSnapshot.graph_manifest_id;
+  const unsetOps = {};
+  if (obsoleteManifestId) {
+    unsetOps.graph_manifest_id = '';
+    unsetOps.bundle_hashes = '';
+  }
+  if (plan.clearSnapshotDescription) unsetOps.snapshot_description = '';
+  const tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, plan.sourceSnapshot.modified, {
+    version: plan.version,
+    versionHistoryEntry: plan.versionHistoryEntry,
+    additionalOps: plan.additionalOps,
+    // Older deployments attached graphs to drafts. Releasing changes the
+    // member set, so that legacy draft graph cannot describe the release.
+    unsetOps: Object.keys(unsetOps).length ? unsetOps : undefined,
   });
 
   if (!tagged) {
-    // Race condition: snapshot was already tagged between our read and update
-    throw new AlreadyReleasedError('(concurrent tag)');
+    await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
+    throw new AlreadyReleasedError('(concurrent release)');
   }
 
-  // Update registry counters
-  await registryRepo.updateByTrackId(trackId, {
-    latest_tagged_version: version,
-    tagged_release_count: versionHistory.length + 1,
-    updated_at: now,
-  });
+  if (obsoleteManifestId) {
+    try {
+      await graphManifestService.discard(obsoleteManifestId);
+    } catch (err) {
+      logger.warn(
+        `VersioningService: Deferred cleanup for obsolete graph manifest ` +
+          `"${obsoleteManifestId}": ${err.message}`,
+      );
+    }
+  }
+
+  await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
+  const latest = await dynamicRepo.getLatestSnapshot(plan.trackId);
+  await snapshotService.emitContentsChanged(plan.trackId, latest);
 
   logger.verbose(
-    `VersioningService: Tagged track "${trackId}" as v${version} ` +
-      `(promoted ${promotedCount} staged → members)`,
+    `VersioningService: Released track "${plan.trackId}" as v${plan.version} ` +
+      `(promoted ${plan.summary.changes.promoted_count} staged → members)`,
   );
+  if (plan.normalizedRemoved.length > 0) {
+    logger.warn(
+      `VersioningService: Removed ${plan.normalizedRemoved.length} exact cross-tier revision ` +
+        `duplicate(s) while releasing track "${plan.trackId}"`,
+    );
+  }
 
   return tagged;
 }
 
-// =============================================================================
-// Public API
-// =============================================================================
-
-/**
- * Tag the latest snapshot of a track as a versioned release.
- *
- * - Calculates the next version (or uses explicit version from options)
- * - Promotes all staged entries to members atomically
- * - Records the version in version_history
- * - Updates registry counters
- *
- * @param {string} trackId
- * @param {Object} options - { type?: 'major'|'minor', version?: string, dry_run?: boolean, userAccountId?: string }
- * @returns {Promise<Object>} The tagged snapshot (or preview object if dry_run)
- */
-exports.bumpLatest = async function bumpLatest(trackId, options = {}) {
-  const snapshot = await snapshotService.getLatestSnapshot(trackId);
-  return _doBump(trackId, snapshot, options);
-};
-
-/**
- * Tag a specific snapshot (by modified timestamp) as a versioned release.
- *
- * Same semantics as bumpLatest but targets a specific snapshot.
- *
- * @param {string} trackId
- * @param {string|Date} modified - The snapshot's modified timestamp
- * @param {Object} options - { type?: 'major'|'minor', version?: string, dry_run?: boolean, userAccountId?: string }
- * @returns {Promise<Object>} The tagged snapshot (or preview object if dry_run)
- */
-exports.bumpByModified = async function bumpByModified(trackId, modified, options = {}) {
-  const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
-  return _doBump(trackId, snapshot, options);
-};
-
-/**
- * Preview what a bump on the latest snapshot would produce without persisting.
- *
- * Returns the calculated version, staged-to-members diff, and summary stats.
- *
- * @param {string} trackId
- * @param {string} [_format] - Reserved for future export format support
- * @returns {Promise<Object>} Preview object
- */
-// eslint-disable-next-line no-unused-vars
-exports.previewBump = async function previewBump(trackId, _format) {
-  const snapshot = await snapshotService.getLatestSnapshot(trackId);
-
-  const versionHistory = snapshot.version_history || [];
-  const staged = snapshot.staged || [];
-  const existingMembers = snapshot.members || [];
-
-  // Calculate what the next version would be (default minor bump)
-  const isAlreadyTagged = snapshot.version != null;
-  const nextMinor = isAlreadyTagged
-    ? null
-    : versionUtils.calculateNextVersion(versionHistory, 'minor');
-  const nextMajor = isAlreadyTagged
-    ? null
-    : versionUtils.calculateNextVersion(versionHistory, 'major');
-
-  // Preview staged → members merge
-  let mergedMembersCount = existingMembers.length;
-  if (staged.length > 0 && !isAlreadyTagged) {
-    const stagedAsMembers = staged.map((s) => ({
-      object_ref: s.object_ref,
-      object_modified: s.object_modified,
-    }));
-
-    const policy =
-      (snapshot.config &&
-        snapshot.config.promotion_conflicts &&
-        snapshot.config.promotion_conflicts.staged_to_members) ||
-      'abort';
-
-    try {
-      const { merged } = conflictResolution.applyConflictPolicy(
-        existingMembers,
-        stagedAsMembers,
-        policy,
-      );
-      mergedMembersCount = merged.length;
-    } catch (err) {
-      // If policy is 'abort' and conflicts exist, report it in the preview
-      return {
-        track_id: trackId,
-        snapshot_modified: snapshot.modified,
-        is_already_tagged: isAlreadyTagged,
-        current_version: snapshot.version,
-        next_version_minor: nextMinor,
-        next_version_major: nextMajor,
-        staged_count: staged.length,
-        members_count: existingMembers.length,
-        candidates_count: (snapshot.candidates || []).length,
-        conflicts: err.conflicts || [], // Include full conflicts array
-      };
+async function withReleaseLock(trackId, operation) {
+  const token = uuid.v4();
+  const acquiredAt = new Date();
+  const staleBefore = new Date(acquiredAt.getTime() - RELEASE_LOCK_TIMEOUT_MS);
+  const lock = await registryRepo.acquireReleaseLock(trackId, token, acquiredAt, staleBefore);
+  if (!lock) {
+    if (!(await registryRepo.findByTrackId(trackId))) {
+      throw new TrackNotFoundError(trackId);
     }
+    throw new ReleaseConflictError('Another release operation is already in progress', {
+      track_id: trackId,
+    });
   }
 
-  return {
-    track_id: trackId,
-    snapshot_modified: snapshot.modified,
-    is_already_tagged: isAlreadyTagged,
-    current_version: snapshot.version,
-    next_version_minor: nextMinor,
-    next_version_major: nextMajor,
-    staged_count: staged.length,
-    staged_to_promote: isAlreadyTagged ? 0 : staged.length,
-    members_count: existingMembers.length,
-    members_after_promotion: isAlreadyTagged ? existingMembers.length : mergedMembersCount,
-    candidates_count: (snapshot.candidates || []).length,
-    version_history: versionHistory,
-  };
+  try {
+    return await operation();
+  } finally {
+    try {
+      await registryRepo.releaseReleaseLock(trackId, token);
+    } catch (err) {
+      logger.error(
+        `VersioningService: Failed to release version lock for "${trackId}": ${err.message}`,
+      );
+    }
+  }
+}
+
+exports.planRelease = planRelease;
+exports._private = {
+  memberRevisions,
+  sameRevisions,
+  virtualComponentVersions,
+  virtualReleaseChanges,
+};
+
+exports.planLatestRelease = async function planLatestRelease(trackId, options = {}) {
+  const snapshot = await snapshotService.getLatestSnapshot(trackId);
+  return planLoadedSnapshot(trackId, snapshot, options);
+};
+
+exports.planReleaseByModified = async function planReleaseByModified(
+  trackId,
+  modified,
+  options = {},
+) {
+  const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
+  return planLoadedSnapshot(trackId, snapshot, options);
+};
+
+exports.releaseLatest = async function releaseLatest(trackId, options = {}) {
+  return withReleaseLock(trackId, async () =>
+    commitPlan(await exports.planLatestRelease(trackId, options)),
+  );
+};
+
+exports.releaseByModified = async function releaseByModified(trackId, modified, options = {}) {
+  return withReleaseLock(trackId, async () =>
+    commitPlan(await exports.planReleaseByModified(trackId, modified, options)),
+  );
 };

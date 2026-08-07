@@ -247,25 +247,18 @@ describe('Data Sources API', function () {
     expect(dataSource.dataComponents.length).toBe(5);
   });
 
-  it('PUT /api/data-sources updates a data source', async function () {
-    const originalModified = dataSource1.stix.modified;
-    const timestamp = new Date().toISOString();
-    dataSource1.stix.modified = timestamp;
-    dataSource1.stix.description = 'This is an updated data source.';
+  it('PUT /api/data-sources rejects STIX changes to a persisted revision', async function () {
     const body = cloneForCreate(dataSource1);
+    body.stix.description = 'This is an updated data source.';
     const res = await request(app)
-      .put('/api/data-sources/' + dataSource1.stix.id + '/modified/' + originalModified)
+      .put('/api/data-sources/' + dataSource1.stix.id + '/modified/' + dataSource1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated data source
-    const dataSource = res.body;
-    expect(dataSource).toBeDefined();
-    expect(dataSource.stix.id).toBe(dataSource1.stix.id);
-    expect(dataSource.stix.modified).toBe(dataSource1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/data-sources does not create a data source with the same id and modified date', async function () {

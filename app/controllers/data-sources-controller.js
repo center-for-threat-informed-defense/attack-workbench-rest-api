@@ -145,7 +145,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const dataSource = await dataSourcesService.deleteVersionById(
       req.params.stixId,
@@ -159,11 +159,11 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete data source failed. ' + err);
-    return res.status(500).send('Unable to delete data source. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const dataSources = await dataSourcesService.deleteById(req.params.stixId);
     if (dataSources.deletedCount === 0) {
@@ -174,7 +174,7 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete data source failed. ' + err);
-    return res.status(500).send('Unable to delete data source. Server error.');
+    return next(err);
   }
 };
 

@@ -1,6 +1,8 @@
 const relationshipsService = require('../../../services/stix/relationships-service');
 const PaginationTests = require('../../shared/pagination');
 const config = require('../../../config/config');
+const Software = require('../../../models/software-model');
+const Technique = require('../../../models/technique-model');
 
 config.validateRequests.withOpenApi = true;
 
@@ -33,8 +35,39 @@ const options = {
   label: 'Relationships',
   validateWithAdm: true,
 };
+let endpointsCreated = false;
 const relationshipsPaginationService = {
   async create(data, options) {
+    if (!endpointsCreated) {
+      const endpointModified = new Date();
+      await Promise.all([
+        Software.create({
+          workspace: { workflow: { state: 'work-in-progress' } },
+          stix: {
+            type: 'malware',
+            spec_version: '2.1',
+            id: sourceRef1,
+            created: endpointModified,
+            modified: endpointModified,
+            name: 'Pagination relationship source',
+            is_family: false,
+          },
+        }),
+        Technique.create({
+          workspace: { workflow: { state: 'work-in-progress' } },
+          stix: {
+            type: 'attack-pattern',
+            spec_version: '2.1',
+            id: targetRef1,
+            created: endpointModified,
+            modified: endpointModified,
+            name: 'Pagination relationship target',
+            x_mitre_is_subtechnique: false,
+          },
+        }),
+      ]);
+      endpointsCreated = true;
+    }
     delete data.stix.name;
     return relationshipsService.create(data, options);
   },

@@ -17,13 +17,14 @@ const { cloneForCreate } = require('../shared/clone-for-create');
  * Smoke tests for ATT&CK Data Model (ADM) validation middleware.
  *
  * These tests verify that the ADM validation middleware correctly validates
- * POST and PUT requests using the Zod-based schemas from the ADM library.
+ * POST and metadata-only PUT requests using the Zod-based schemas from the ADM library.
  *
  * Test Coverage:
  * - POST operations with work-in-progress workflow state (partial validation)
  * - POST operations with reviewed workflow state (full validation)
- * - PUT operations with work-in-progress workflow state (partial validation)
- * - PUT operations with reviewed workflow state (full validation)
+ * - Metadata-only PUT operations with work-in-progress workflow state (partial validation)
+ * - Metadata-only PUT operations with reviewed workflow state (full validation)
+ * - STIX-changing PUT operations rejected before validation
  * - True positives: valid data should pass
  * - True negatives: invalid data should fail with proper errors
  * - Validation toggle (enabled/disabled)
@@ -360,7 +361,7 @@ describe('ADM Validation Middleware', function () {
     });
   });
 
-  describe('PUT operations - work-in-progress (partial validation)', function () {
+  describe('metadata-only PUT operations - work-in-progress (partial validation)', function () {
     let createdObject;
 
     beforeEach(async function () {
@@ -390,68 +391,41 @@ describe('ADM Validation Middleware', function () {
       createdObject = createRes.body;
     });
 
-    it('should accept valid updates in work-in-progress state', async function () {
+    it('should accept valid workspace updates in work-in-progress state', async function () {
       let updateBody = {
-        type: 'attack-pattern',
-        status: 'work-in-progress',
         workspace: {
           workflow: {
             state: 'work-in-progress',
           },
         },
-        stix: {
-          ...createdObject.stix,
-          name: 'Updated Technique Name',
-          description: 'Updated description',
-        },
+        stix: createdObject.stix,
       };
 
       updateBody = cloneForCreate(updateBody);
 
       // Remove server-managed field (server adds this automatically)
       delete updateBody.stix.x_mitre_attack_spec_version;
-      // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
-
       const res = await request(app)
         .put(`${endpoint}/${createdObject.stix.id}/modified/${createdObject.stix.modified}`)
         .send(updateBody)
         .set('Accept', 'application/json')
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`);
 
-      if (res.status !== 200) {
-        logger.debug('=== REQUEST FAILED ===');
-        logger.debug('Status:', res.status);
-        logger.debug('Errors:', JSON.stringify(res.body, null, 2));
-      }
-
       expect(res.status).toBe(200);
-      expect(res.body.stix.name).toBe('Updated Technique Name');
+      expect(res.body.stix.name).toBe(createdObject.stix.name);
     });
 
-    it('should accept updates with missing optional fields in work-in-progress state', async function () {
+    it('should accept workspace-only bodies without optional wrapper fields', async function () {
       let updateBody = {
-        type: 'attack-pattern',
-        status: 'work-in-progress',
         workspace: {
           workflow: {
             state: 'work-in-progress',
           },
         },
-        stix: {
-          ...createdObject.stix,
-          name: 'Updated Name',
-        },
+        stix: createdObject.stix,
       };
 
       updateBody = cloneForCreate(updateBody);
-
-      // Remove optional fields to test partial validation
-      delete updateBody.stix.description;
-      delete updateBody.stix.x_mitre_platforms;
-
-      // Remove server-managed field
-      delete updateBody.stix.x_mitre_attack_spec_version;
-      // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
 
       const res = await request(app)
         .put(`${endpoint}/${createdObject.stix.id}/modified/${createdObject.stix.modified}`)
@@ -462,7 +436,7 @@ describe('ADM Validation Middleware', function () {
       expect(res.status).toBe(200);
     });
 
-    it('should reject updates with invalid field values in work-in-progress state', async function () {
+    it('should reject STIX changes before ADM validation', async function () {
       const updateBody = {
         workspace: {
           workflow: {
@@ -471,26 +445,24 @@ describe('ADM Validation Middleware', function () {
         },
         stix: {
           ...createdObject.stix,
-          description: true, // <-- should trigger validation error (should be string)
+          description: true,
         },
       };
 
       // Remove server-managed field
       delete updateBody.stix.x_mitre_attack_spec_version;
-      // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
-
       const res = await request(app)
         .put(`${endpoint}/${createdObject.stix.id}/modified/${createdObject.stix.modified}`)
         .send(updateBody)
         .set('Accept', 'application/json')
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`);
 
-      expect(res.status).toBe(400);
-      expect(res.body.message).toBeDefined();
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('immutable');
     });
   });
 
-  describe('PUT operations - reviewed (full validation)', function () {
+  describe('metadata-only PUT operations - reviewed (full validation)', function () {
     let createdObject;
 
     beforeEach(async function () {
@@ -518,17 +490,14 @@ describe('ADM Validation Middleware', function () {
       createdObject = createRes.body;
     });
 
-    it('should accept valid complete updates in reviewed state', async function () {
+    it('should accept a reviewed workflow transition for valid complete STIX', async function () {
       let updateBody = {
         workspace: {
           workflow: {
             state: 'reviewed',
           },
         },
-        stix: {
-          ...createdObject.stix,
-          name: 'Reviewed Technique Name',
-        },
+        stix: createdObject.stix,
       };
 
       updateBody = cloneForCreate(updateBody);
@@ -544,35 +513,47 @@ describe('ADM Validation Middleware', function () {
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.stix.name).toBe('Reviewed Technique Name');
+      expect(res.body.stix.name).toBe(createdObject.stix.name);
+      expect(res.body.workspace.workflow.state).toBe('reviewed');
     });
 
-    it('should reject updates missing required fields in reviewed state', async function () {
-      const updateBody = {
+    it('should reject a reviewed transition when persisted STIX is incomplete', async function () {
+      const partialStix = createSyntheticStix(stixType);
+      // Domains are required by the full ATT&CK technique schema but remain
+      // optional in the Mongoose document shape and the WIP partial schema.
+      delete partialStix.x_mitre_domains;
+      let partialCreateBody = {
+        workspace: { workflow: { state: 'work-in-progress' } },
+        stix: partialStix,
+      };
+      partialCreateBody = cloneForCreate(partialCreateBody);
+      const partialCreateRes = await request(app)
+        .post(endpoint)
+        .send(partialCreateBody)
+        .set('Accept', 'application/json')
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(201);
+
+      let updateBody = {
         workspace: {
           workflow: {
             state: 'reviewed',
           },
         },
-        stix: {
-          ...createdObject.stix,
-        },
+        stix: partialCreateRes.body.stix,
       };
-
-      // Remove required field
-      delete updateBody.stix.name;
-      // Remove server-managed field
-      delete updateBody.stix.x_mitre_attack_spec_version;
-      // Note: We keep id, created, modified because ADM schemas validate the full STIX structure
+      updateBody = cloneForCreate(updateBody);
 
       const res = await request(app)
-        .put(`${endpoint}/${createdObject.stix.id}/modified/${createdObject.stix.modified}`)
+        .put(
+          `${endpoint}/${partialCreateRes.body.stix.id}/modified/${partialCreateRes.body.stix.modified}`,
+        )
         .send(updateBody)
         .set('Accept', 'application/json')
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`);
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toBeDefined();
+      expect(res.body.message).toBe('ADM validation failed');
     });
   });
 
@@ -775,7 +756,7 @@ describe('ADM Validation Middleware', function () {
       expect(res.body.message).toBe('ADM validation failed');
     });
 
-    it('should return composed object without persisting on PUT with dryRun=true', async function () {
+    it('should return workspace metadata without persisting on PUT with dryRun=true', async function () {
       // First, create an object to update
       const syntheticStix = createSyntheticStix(stixType);
 
@@ -799,17 +780,14 @@ describe('ADM Validation Middleware', function () {
 
       const createdObject = createRes.body;
 
-      // Now do a dry-run update
+      // Now do a dry-run metadata update
       let updateBody = {
         workspace: {
           workflow: {
-            state: 'work-in-progress',
+            state: 'awaiting-review',
           },
         },
-        stix: {
-          ...createdObject.stix,
-          name: 'Dry Run Updated Name',
-        },
+        stix: createdObject.stix,
       };
 
       updateBody = cloneForCreate(updateBody);
@@ -824,7 +802,8 @@ describe('ADM Validation Middleware', function () {
 
       expect(res.status).toBe(200);
       expect(res.body.stix).toBeDefined();
-      expect(res.body.stix.name).toBe('Dry Run Updated Name');
+      expect(res.body.stix.name).toBe(createdObject.stix.name);
+      expect(res.body.workspace.workflow.state).toBe('awaiting-review');
       // Mongoose internals should not be exposed
       expect(res.body._id).toBeUndefined();
       expect(res.body.__v).toBeUndefined();
@@ -837,8 +816,7 @@ describe('ADM Validation Middleware', function () {
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`);
 
       expect(getRes.status).toBe(200);
-      // Original name should be unchanged
-      expect(getRes.body.stix.name).not.toBe('Dry Run Updated Name');
+      expect(getRes.body.workspace.workflow.state).toBe('work-in-progress');
     });
   });
 

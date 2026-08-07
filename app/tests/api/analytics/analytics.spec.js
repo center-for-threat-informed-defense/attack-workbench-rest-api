@@ -184,25 +184,18 @@ describe('Analytics API', function () {
     );
   });
 
-  it('PUT /api/analytics updates a analytic', async function () {
-    const originalModified = analytic1.stix.modified;
-    const timestamp = new Date().toISOString();
-    analytic1.stix.modified = timestamp;
-    analytic1.stix.description = 'This is an updated analytic.';
-    const body = analytic1;
+  it('PUT /api/analytics rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(analytic1);
+    body.stix.description = 'This is an updated analytic.';
     const res = await request(app)
-      .put('/api/analytics/' + analytic1.stix.id + '/modified/' + originalModified)
+      .put('/api/analytics/' + analytic1.stix.id + '/modified/' + analytic1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated analytic
-    const analytic = res.body;
-    expect(analytic).toBeDefined();
-    expect(analytic.stix.id).toBe(analytic1.stix.id);
-    expect(analytic.stix.modified).toBe(analytic1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/analytics does not create a analytic with the same id and modified date', async function () {

@@ -159,25 +159,18 @@ describe('Tactics API', function () {
     expect(tactic.stix.x_mitre_deprecated).toBe(false);
   });
 
-  it('PUT /api/tactics updates a tactic', async function () {
-    const originalModified = tactic1.stix.modified;
-    const timestamp = new Date().toISOString();
-    tactic1.stix.modified = timestamp;
-    tactic1.stix.description = 'This is an updated tactic.';
-    const body = tactic1;
+  it('PUT /api/tactics rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(tactic1);
+    body.stix.description = 'This is an updated tactic.';
     const res = await request(app)
-      .put('/api/tactics/' + tactic1.stix.id + '/modified/' + originalModified)
+      .put('/api/tactics/' + tactic1.stix.id + '/modified/' + tactic1.stix.modified)
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated tactic
-    const tactic = res.body;
-    expect(tactic).toBeDefined();
-    expect(tactic.stix.id).toBe(tactic1.stix.id);
-    expect(tactic.stix.modified).toBe(tactic1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/tactics does not create a tactic with the same id and modified date', async function () {

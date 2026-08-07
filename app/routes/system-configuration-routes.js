@@ -8,13 +8,7 @@ const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
-router
-  .route('/config/system-version')
-  .get(
-    authn.authenticate,
-    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-    systemConfigurationController.retrieveSystemVersion,
-  );
+router.route('/config/system-version').get(systemConfigurationController.retrieveSystemVersion);
 
 router
   .route('/config/allowed-values')

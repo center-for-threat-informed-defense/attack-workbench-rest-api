@@ -30,6 +30,33 @@ const validationIssue = {
 };
 const validationIssueSchema = new mongoose.Schema(validationIssue, { _id: false });
 
+const releaseTrackRef = {
+  id: { type: String, required: true },
+  // The type of the referencing release track. Optional in the schema to
+  // tolerate entries written before the field existed (the reconciler
+  // backfills on the track's next contents change) but always set on write.
+  type: {
+    type: String,
+    enum: ['standard', 'virtual'],
+  },
+  // Which tier of the track references this revision; values match the
+  // snapshot tier array names.
+  tier: {
+    type: String,
+    enum: ['members', 'staged', 'candidates', 'quarantine'],
+    required: true,
+  },
+  // Track-scoped workflow status. Members are inherently 'reviewed';
+  // quarantined entries (virtual tracks) carry no status;
+  // 'modified-in-place' is retained for legacy persisted entries. Generic
+  // STIX-changing PUTs are no longer permitted and do not create new markers.
+  status: {
+    type: String,
+    enum: ['modified-in-place', 'work-in-progress', 'awaiting-review', 'reviewed'],
+  },
+};
+const releaseTrackRefSchema = new mongoose.Schema(releaseTrackRef, { _id: false });
+
 /**
  * Workspace property definition for most object types
  */
@@ -43,6 +70,7 @@ module.exports.common = {
   },
   attack_id: String,
   collections: [collectionVersionSchema],
+  release_tracks: { type: [releaseTrackRefSchema], default: undefined },
   embedded_relationships: { type: [embeddedRelationshipSchema], default: undefined },
   validation: {
     errors: { type: [validationIssueSchema], default: undefined },

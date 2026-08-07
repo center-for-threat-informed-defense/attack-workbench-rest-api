@@ -5,6 +5,7 @@
 Virtual release tracks are computed aggregations of standard release tracks. They provide a way to compose releases from multiple source tracks without duplicating object tracking, reducing mental overhead and storage requirements.
 
 **Key Characteristics:**
+
 - Virtual tracks **compute** their contents from component standard tracks
 - Only reference **tagged snapshots** from standard tracks (never drafts)
 - Maintain their own **independent snapshot history and versioning**
@@ -26,6 +27,7 @@ Virtual Track (aggregation):
 ```
 
 **Workflow:**
+
 1. Each standard track releases independently on its own schedule
 2. Enterprise virtual track snapshots twice yearly (Jan 1, July 1)
 3. Each snapshot captures the **latest tagged release** from each component track
@@ -85,7 +87,7 @@ Virtual tracks are identified by `stix.type = "virtual"` in their schema.
       {
         track_id: "release-track--uuid-1",
         resolution_strategy: "latest_tagged",
-        priority: 1,  // Used with prioritize_higher_priority strategy (lower number = higher priority)
+        priority: 1,  // Required and unique; lower number = higher priority
         filters: {
           object_types: ["intrusion-set"],
           // Additional filters...
@@ -108,9 +110,7 @@ Virtual tracks are identified by `stix.type = "virtual"` in their schema.
 
   // Snapshot schedule configuration
   snapshot_schedule: {
-    mode: "manual",  // "manual" | "cron" | "dates"
-    cron: "0 0 1 1,7 *",  // Jan 1 and July 1 at midnight
-    dates: ["2024-01-01T00:00:00Z", "2024-07-01T00:00:00Z"]
+    mode: "manual"  // "manual" | "cron" | "dates"
   },
 
   // Configuration
@@ -134,7 +134,8 @@ Always resolves to the most recent **tagged snapshot** from the component track.
 ```javascript
 {
   track_id: "release-track--uuid-1",
-  resolution_strategy: "latest_tagged"
+  resolution_strategy: "latest_tagged",
+  priority: 0
 }
 
 // At virtual snapshot time (e.g., March 1, 2024):
@@ -154,7 +155,8 @@ Resolves to a specific semantic version from the component track.
 {
   track_id: "release-track--uuid-1",
   resolution_strategy: "specific_version",
-  version: "5.0"
+  version: "5.0",
+  priority: 0
 }
 
 // At virtual snapshot time:
@@ -172,7 +174,8 @@ Resolves to a specific snapshot by its `modified` timestamp.
 {
   track_id: "release-track--uuid-1",
   resolution_strategy: "specific_snapshot",
-  snapshot: "2024-02-01T10:00:00Z"
+  snapshot: "2024-02-01T10:00:00Z",
+  priority: 0
 }
 
 // At virtual snapshot time:
@@ -182,11 +185,21 @@ Resolves to a specific snapshot by its `modified` timestamp.
 
 **Use case:** "Lock to exact snapshot for reproducibility"
 
+Component selectors are strict and strategy-specific:
+
+- `latest_tagged` rejects both `version` and `snapshot`.
+- `specific_version` requires `version` and rejects `snapshot`.
+- `specific_snapshot` requires `snapshot` and rejects `version`.
+
+Unknown component properties are rejected with `400 Bad Request`; they are
+not silently discarded.
+
 ### Component Track Sync Rules
 
 Virtual tracks **only sync from component tracks' `members` tier** (`x_mitre_contents`). This ensures that virtual tracks only aggregate objects that have been officially released in their source tracks.
 
 **Important:**
+
 - Virtual tracks reference **tagged snapshots only** (never drafts)
 - Virtual tracks pull objects from **`members` tier only** (never staged or candidates)
 - This guarantees that virtual track releases are composed of stable, released content
@@ -202,19 +215,63 @@ filters: {
   // Only include specific object types
   object_types: ["intrusion-set", "malware"],
 
-  // Only include objects with specific domains (if applicable)
-  domains: ["enterprise", "mobile"],
-
-  // Only include objects matching STIX filter pattern (advanced)
-  stix_pattern: {
-    "x_mitre_platforms": { "$in": ["Windows", "macOS"] }
-  }
+  // Match the pinned revision's x_mitre_domains values. Both public names
+  // ("enterprise") and STIX names ("enterprise-attack") are accepted.
+  domains: ["enterprise", "mobile"]
 }
 ```
 
+Domain filters hydrate the exact revisions pinned by the component's tagged
+snapshot; they do not inspect the latest database revision. Matching uses
+inclusive **any-match** semantics, not exact-array equality: an object is
+included when at least one value in its canonical `x_mitre_domains` array
+matches at least one configured domain. For example,
+`["enterprise-attack", "mobile-attack"]` is included by both an Enterprise
+filter and a Mobile filter, while `["mobile-attack"]` is excluded by an
+Enterprise filter. Objects without `x_mitre_domains` are excluded when a
+domain filter is set.
+
+The domain constraint determines the virtual snapshot's exact member set. An
+opt-in deterministic graph is closed over that set, so no relationship can
+pull any secondary SDO into the virtual bundle. Graphless live exports retain
+the compatibility domain check for relationship-discovered secondaries.
+Domainless identities, marking definitions, and other supporting metadata may
+still be included when referenced by an included object.
+
+`x_mitre_domains` is canonical object data. A cross-domain object has one
+revision containing the complete domain union; Workbench does not create or
+emit separate domain-narrowed revisions of that object. Consequently, the
+same exact `(object_ref, object_modified)` member can appear in multiple
+domain-filtered virtual snapshots.
+Current matrix revisions follow the same canonical-domain requirement. For
+exact historical matrix revisions created before enforcement, virtual
+filtering retains a compatibility fallback to the domain in
+`external_references[].external_id`.
+
+`object_types` values are case-sensitive canonical Workbench STIX type names.
+When the property is present, it must contain at least one value and cannot
+contain duplicates. Omit `object_types` to include every type. The filter reads
+the type prefix from each resolved member's `object_ref`, so a newer database
+revision cannot replace the exact revision pinned by the component release.
+Unsupported values return `400 Bad Request`.
+
+`stix_pattern` is not part of the current request schema and is not
+implemented. Filter objects are strict, so misspelled or unsupported keys such
+as `domain` fail with `400 Bad Request`; use the plural `domains`.
+
 ### Deduplication Strategies
 
-When multiple component tracks contain the same object (same `stix.id`), a conflict occurs during the sync operation. The virtual track's deduplication strategy determines how to resolve the conflict. Four strategies are available:
+When multiple component tracks contain the same object (same `stix.id`), the
+materialization records one duplicate object. Contributions with the same
+`modified` timestamp are the same exact revision, so they collapse to one
+member and do not constitute a conflict. The configured strategy is applied
+only when multiple distinct revisions remain. Four strategies are available:
+
+Each surviving member is attributed to one component. The active strategy
+selects that source where applicable, with the component's required unique
+priority providing a stable tie-breaker. As a result, the sum of
+`component_snapshots[].objects_contributed` equals
+`composition_resolution.summary.total_objects`.
 
 #### 1. `prioritize_latest_object`
 
@@ -222,11 +279,12 @@ Keep the version with the newest `modified` timestamp, regardless of which compo
 
 ```javascript
 deduplication: {
-  strategy: "prioritize_latest_object"
+  strategy: 'prioritize_latest_object';
 }
 ```
 
 **Example:**
+
 ```javascript
 // GroupsMonthly v5.2 has:
 //   intrusion-set--APT1, modified: 2024-02-01T10:00:00Z
@@ -247,11 +305,12 @@ Keep the version from the component track whose resolved snapshot has the newest
 
 ```javascript
 deduplication: {
-  strategy: "prioritize_latest_snapshot"
+  strategy: 'prioritize_latest_snapshot';
 }
 ```
 
 **Example:**
+
 ```javascript
 // GroupsMonthly v5.2
 //   - Snapshot created: 2024-02-15T10:00:00Z
@@ -271,7 +330,7 @@ deduplication: {
 
 #### 3. `prioritize_higher_priority`
 
-Keep the version from the component track with the higher priority (lower priority number). Each component track must have a unique priority value.
+Keep the version from the component track with the higher priority (lower priority number). Every component track requires a unique, non-negative integer priority.
 
 ```javascript
 composition: {
@@ -296,6 +355,7 @@ composition: {
 ```
 
 **Example:**
+
 ```javascript
 // Authoritative track (priority: 1) has:
 //   intrusion-set--APT1, modified: 2024-01-01T10:00:00Z
@@ -317,13 +377,19 @@ composition: {
 
 Don't automatically choose a version. Instead, store **both** versions in the virtual track's `quarantine` tier for manual review and resolution.
 
+Only distinct revisions are quarantined. If several components contribute the
+same exact revision, it remains one ordinary member. If two distinct revisions
+are present and either is contributed repeatedly, quarantine contains one
+entry for each distinct revision rather than one entry per component.
+
 ```javascript
 deduplication: {
-  strategy: "quarantine"
+  strategy: 'quarantine';
 }
 ```
 
 **Example:**
+
 ```javascript
 // GroupsMonthly has: intrusion-set--APT1, modified: 2024-02-01
 // MobileGroups has: intrusion-set--APT1, modified: 2024-01-15
@@ -357,7 +423,10 @@ deduplication: {
 
 **Use case:** "Conflicts require human review; don't automatically choose a version"
 
-**Follow-up workflow:** Users review the quarantined objects and manually promote one version to `members` during a future snapshot update. The quarantined objects remain in the virtual track until manual intervention occurs.
+**Follow-up workflow:** Users review the quarantined objects and manually
+promote one exact version to `members`. Promotion creates a new draft and
+removes every quarantined alternative for that object. Other quarantined
+objects remain until separately resolved.
 
 ### Virtual Track Two-Tier System
 
@@ -379,13 +448,13 @@ Unlike standard release tracks (which use a three-tier system: candidates → st
 
 **Comparison to Standard Tracks:**
 
-| Feature | Standard Track | Virtual Track |
-|---------|---------------|---------------|
-| Tiers | candidates, staged, members | quarantine, members |
-| Object management | Direct (add/remove objects) | Indirect (synced from components) |
-| Workflow states | work-in-progress, awaiting-review, reviewed | N/A |
-| Auto-promotion | Based on candidacy threshold | N/A |
-| Manual promotion | candidates → staged → members | quarantine → members |
+| Feature           | Standard Track                              | Virtual Track                     |
+| ----------------- | ------------------------------------------- | --------------------------------- |
+| Tiers             | candidates, staged, members                 | quarantine, members               |
+| Object management | Direct (add/remove objects)                 | Indirect (synced from components) |
+| Workflow states   | work-in-progress, awaiting-review, reviewed | N/A                               |
+| Auto-promotion    | Based on candidacy threshold                | N/A                               |
+| Manual promotion  | candidates → staged → members               | quarantine → members              |
 
 **Why only two tiers?**
 
@@ -400,10 +469,11 @@ Virtual track snapshots are created either **manually** or **on schedule**.
 #### Manual Snapshot
 
 ```bash
-POST /api/release-tracks/:id/snapshots/create
+POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Request:**
+
 ```json
 {
   "description": "Q1 2024 Enterprise snapshot"
@@ -411,6 +481,7 @@ POST /api/release-tracks/:id/snapshots/create
 ```
 
 **Response:**
+
 ```json
 {
   "id": "release-track--uuid-virtual",
@@ -420,6 +491,7 @@ POST /api/release-tracks/:id/snapshots/create
   "version": null,
   "name": "Enterprise ATT&CK",
   "description": "Virtual aggregation of Enterprise content",
+  "snapshot_description": "Q1 2024 Enterprise snapshot",
 
   "composition_resolution": {
     "resolved_at": "2024-03-01T10:00:00Z",
@@ -461,6 +533,10 @@ POST /api/release-tracks/:id/snapshots/create
 ```
 
 **Business Logic:**
+The request `description` is stored as the snapshot-local
+`snapshot_description`; it never replaces the virtual track's long-lived
+description.
+
 1. For each component track in `composition.component_tracks`:
    - Resolve snapshot based on `resolution_strategy`
    - **Validate that resolved snapshot is tagged** (version !== null)
@@ -468,9 +544,11 @@ POST /api/release-tracks/:id/snapshots/create
    - Apply `filters` to get subset of objects
    - Collect all object references with source metadata
 2. Apply deduplication rules across all components:
-   - If no conflicts: objects go to virtual track's `members`
+   - Collapse identical `(object_ref, object_modified)` contributions
+   - If no distinct-revision conflicts remain: objects go to virtual track's `members`
    - If conflicts + `quarantine` strategy: both versions go to `quarantine`
    - If conflicts + other strategies: winning version goes to `members`
+   - Attribute every surviving member to one deterministic source component
 3. Create new virtual track snapshot with:
    - New `snapshot_id` and `modified` timestamp
    - `version = null` (always starts as draft)
@@ -490,26 +568,47 @@ snapshot_schedule: {
 }
 ```
 
-**Scheduler integration:**
-```javascript
-scheduler.register({
-  type: "virtual-track-snapshot",
-  trackId: "release-track--uuid-virtual",
-  schedule: "0 0 1 1,7 *",
-  handler: async (trackId) => {
-    await virtualTrackService.createSnapshot(trackId, {
-      description: `Scheduled snapshot ${new Date().toISOString()}`
-    });
+Schedule payloads are strict and mode-specific:
 
-    // Optionally notify team
-    await notificationService.send({
-      to: "enterprise-team@example.com",
-      subject: "Enterprise ATT&CK snapshot created",
-      body: "A new draft snapshot is ready for review and tagging"
-    });
+- `manual` accepts only `{ mode: "manual" }`.
+- `cron` requires `cron` and rejects `dates`.
+- `dates` requires a nonempty `dates` array and rejects `cron`.
+
+Unknown schedule fields return `400 Bad Request`. Standard tracks do not
+support `snapshot_schedule`.
+
+The global scheduler must be enabled. Five-field cron expressions and dates
+are interpreted in UTC. Each cron occurrence creates a draft while the server
+is running; missed cron occurrences are not backfilled. Due dates are durable:
+the scheduler recovers them after a restart and persists exactly one draft per
+configured timestamp. A failed occurrence is audited and retried once per
+scheduler reconciliation interval.
+
+Scheduled drafts follow the same composition resolution, deduplication,
+validation, and persistence path as
+`POST /api/release-tracks/:id/virtual/snapshots/create`. They also include:
+
+```json
+{
+  "scheduled_materialization": {
+    "schedule_mode": "cron",
+    "scheduled_for": "2027-01-01T00:00:00.000Z"
   }
-});
+}
 ```
+
+Clients may attach the same strict object to the initial virtual snapshot with
+`POST /api/release-tracks/new`, or to the pending draft created by
+`PUT /api/release-tracks/:id/virtual/composition`, or to an explicitly
+materialized draft with
+`POST /api/release-tracks/:id/virtual/snapshots/create`. `schedule_mode` must
+be `cron` or `dates`, `scheduled_for` must be an ISO timestamp, and unknown
+keys are rejected. Standard tracks cannot set this property.
+
+The persisted value is observable through `GET /api/release-tracks`, snapshot
+history, latest-snapshot retrieval, and timestamp-selected snapshot retrieval.
+It belongs to one immutable snapshot occurrence; later snapshot clones omit it
+unless the write creating that snapshot supplies a new value.
 
 ### 2. Snapshot Review
 
@@ -520,26 +619,43 @@ GET /api/release-tracks/:id/snapshots/:modified?format=workbench&include=all
 ```
 
 **Response includes:**
+
 - All objects that will be in the release
 - Composition resolution details (which component versions were used)
-- Statistics and diff from previous tagged release
+- The exact persisted members and quarantine tiers
 
-### 3. Snapshot Tagging
+### 3. Release Preview
+
+Preview the selected draft against its preceding tagged release:
+
+```bash
+GET /api/release-tracks/:id/snapshots/:modified/release/preview
+```
+
+The summary reports the next version, previous tagged release, type-oriented
+before/after counts, and new, updated, removed, and quarantined object counts.
+Use `format=workbench` for the literal would-be tagged snapshot or
+`format=bundle` for its publication artifact. Previewing does not persist and
+never re-resolves composition.
+
+### 4. Snapshot Tagging
 
 Once reviewed, explicitly tag the draft snapshot:
 
 ```bash
-POST /api/release-tracks/:id/snapshots/:modified/bump
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 **Request:**
+
 ```json
 {
-  "type": "major",  // or "minor", or explicit "version": "14.0"
+  "increment": "major" // or "minor", or explicit "version": "14.0"
 }
 ```
 
 **Response:**
+
 ```json
 {
   "id": "release-track--uuid-virtual",
@@ -561,30 +677,44 @@ POST /api/release-tracks/:id/snapshots/:modified/bump
       "tagged_by": "admin@example.com",
       "snapshot_id": "2024-03-01T10:00:00.000Z",
       "component_versions": {
-        "Groups Monthly": "5.2",
-        "Techniques Quarterly": "2.1"
+        "release-track--groups-monthly": "5.2",
+        "release-track--techniques-quarterly": "2.1"
       }
     }
   ]
 }
 ```
 
+`component_versions` is keyed by immutable component track ID. Its values come
+from the selected draft's `composition_resolution`, not from the component
+tracks' current releases. If a component advances after this virtual draft was
+materialized, the virtual release still records the version that actually
+produced its frozen contents. Standard release history entries omit this
+virtual-only property.
+
 **Business Logic:**
+
 1. Validate snapshot exists and is a draft (version === null)
 2. Calculate/validate version number
 3. Set version on snapshot (in-place update)
-4. Add entry to version_history
-5. Snapshot is now immutable
+4. Copy resolved component versions into the virtual release-history entry
+5. Add entry to version_history
+6. Snapshot is now immutable
 
-### 4. Snapshot Export
+### 5. Snapshot Export
 
 Export virtual track snapshot as STIX bundle:
 
 ```bash
+# STIX 2.1 (default)
 GET /api/release-tracks/:id/snapshots/:modified?format=bundle
+
+# STIX 2.0
+GET /api/release-tracks/:id/snapshots/:modified?format=bundle&stixVersion=2.0
 ```
 
 **Response:**
+
 ```json
 {
   "type": "bundle",
@@ -602,11 +732,18 @@ GET /api/release-tracks/:id/snapshots/:modified?format=bundle
         { "object_ref": "attack-pattern--T1234", "object_modified": "2024-01-10T10:00:00Z" }
         // ... all 870 objects
       ]
-    },
+    }
     // ... all 870 actual STIX objects
   ]
 }
 ```
+
+The default is STIX 2.1. Set `stixVersion=2.0` to serialize the same exact
+materialized revision set under the STIX 2.0 rules used by the legacy bundle
+exporter. A STIX 2.0 bundle carries `spec_version: "2.0"` on its envelope and
+omits `spec_version` from its objects; a STIX 2.1 bundle omits the envelope
+property and declares `spec_version: "2.1"` on each object. Version-specific
+object conversion also applies, including malware/tool label handling.
 
 **Note:** The exported bundle is **materialized** - it contains concrete object references, not composition metadata. Consumers see a standard STIX bundle, unaware it came from a virtual track.
 
@@ -660,13 +797,6 @@ Each virtual track snapshot stores metadata about how it was composed:
       conflicts_resolved: []
     },
 
-    // Native objects (if any)
-    native_objects: {
-      candidates_count: 0,
-      staged_count: 0,
-      members_count: 0
-    },
-
     // Final statistics
     summary: {
       total_objects: 870,
@@ -696,15 +826,16 @@ for (const component of composition.component_tracks) {
   if (snapshot.version === null) {
     throw new ValidationError(
       `Component track ${component.track_id} resolved to draft snapshot. ` +
-      `Virtual tracks can only reference tagged snapshots.`
+        `Virtual tracks can only reference tagged snapshots.`,
     );
   }
 }
 ```
 
 **User experience:**
+
 ```bash
-POST /api/release-tracks/release-track--uuid-virtual/snapshots/create
+POST /api/release-tracks/release-track--uuid-virtual/virtual/snapshots/create
 
 # Error response:
 {
@@ -725,10 +856,10 @@ async function validateComponentsAreStandard(virtualTrack) {
   for (const component of virtualTrack.composition.component_tracks) {
     const track = await getReleaseTrack(component.track_id);
 
-    if (track.type === "virtual") {
+    if (track.type === 'virtual') {
       throw new ValidationError(
         `Virtual tracks can only compose from standard tracks. ` +
-        `Component track ${component.track_id} is a virtual track.`
+          `Component track ${component.track_id} is a virtual track.`,
       );
     }
   }
@@ -744,6 +875,7 @@ POST /api/release-tracks/new
 ```
 
 **Request:**
+
 ```json
 {
   "type": "virtual",
@@ -755,15 +887,14 @@ POST /api/release-tracks/new
       {
         "track_id": "release-track--uuid-1",
         "resolution_strategy": "latest_tagged",
+        "priority": 0,
         "filters": {
           "object_types": ["intrusion-set"]
         }
       }
     ],
     "deduplication": {
-      "strategy": "prefer_latest_modified",
-      "tier_resolution": "highest_tier",
-      "status_resolution": "highest_status"
+      "strategy": "prioritize_latest_object"
     }
   },
 
@@ -777,193 +908,183 @@ POST /api/release-tracks/new
 ### Update Composition
 
 ```bash
-PUT /api/release-tracks/:id/composition
+PUT /api/release-tracks/:id/virtual/composition
 ```
 
 **Request:**
+
 ```json
 {
   "component_tracks": [
     {
       "track_id": "release-track--uuid-1",
-      "resolution_strategy": "latest_tagged"
+      "resolution_strategy": "latest_tagged",
+      "priority": 0
     },
     {
       "track_id": "release-track--uuid-2",
       "resolution_strategy": "specific_version",
-      "version": "2.0"
+      "version": "2.0",
+      "priority": 1
     }
   ]
 }
 ```
 
-**Note:** Updating composition creates a new draft snapshot with the new composition rules.
+Composition requests are strict at every nested level. Unknown composition,
+component, filter, or deduplication properties return `400 Bad Request`.
+Selector fields must match `resolution_strategy`: `latest_tagged` accepts
+neither selector, `specific_version` requires only `version`, and
+`specific_snapshot` requires only `snapshot`.
+Every component also requires a unique, non-negative integer `priority`.
+Referenced tracks must exist and must be standard tracks; these rules are
+checked during initial virtual-track creation as well as composition updates.
+
+**Note:** Updating composition creates a pending draft with the new rules and
+invalidates any previously materialized contents. The draft has empty
+`members` and `quarantine` arrays and `composition_resolution: null`. Run the
+virtual snapshot creation operation before attempting release preview or
+tagging; those release operations return `409 Conflict` for a pending draft.
 
 ### Create Virtual Snapshot
 
 ```bash
-POST /api/release-tracks/:id/snapshots/create
+POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Request:**
+
 ```json
 {
   "description": "Q1 2024 snapshot"
 }
 ```
 
-### Preview Virtual Snapshot
-
-Preview what a snapshot would contain without creating it:
-
-```bash
-GET /api/release-tracks/:id/snapshots/preview
-```
-
-**Response:**
-```json
-{
-  "preview": {
-    "would_resolve_to": {
-      "component_snapshots": [...],
-      "total_objects": 870
-    },
-    "comparison_to_latest_tagged": {
-      "current_version": "13.1",
-      "new_objects": 12,
-      "updated_objects": 45,
-      "removed_objects": 3
-    }
-  }
-}
-```
-
 ### Tag Virtual Snapshot
 
 ```bash
-POST /api/release-tracks/:id/snapshots/:modified/bump
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 **Request:**
+
 ```json
 {
-  "type": "major"
+  "increment": "major"
 }
 ```
 
-### Get Virtual Track with Resolved Content
+Release preview uses the same shared path as standard tracks:
 
 ```bash
-GET /api/release-tracks/:id?format=workbench&include=all
+GET /api/release-tracks/:id/snapshots/:modified/release/preview
+```
+
+Virtual composition is not recomputed during preview or release. The summary
+compares the selected persisted draft with the tagged release that immediately
+preceded it, reporting members/quarantine counts and new, updated, removed, and
+quarantined object counts. Use `format=workbench` or `format=bundle` to inspect
+the literal snapshot or publication artifact that would be tagged. The draft
+must have a non-null `composition_resolution`, proving that its members and
+quarantine tiers were materialized from its current composition.
+Bundle preview resolves the live graph. Tagging does not implicitly create a
+manifest; determinism is a separate opt-in operation on the tagged snapshot:
+`POST /api/release-tracks/:id/snapshots/:modified/graph`.
+
+### Retrieve a Materialized Virtual Snapshot
+
+```bash
+GET /api/release-tracks/:id/snapshots/latest?format=workbench&include=all
 ```
 
 **Query params:**
+
 - `format`: `bundle` | `workbench` | `filesystemstore` (`filesystemstore` is not yet implemented and returns HTTP 501)
 - `include`: `members` | `quarantine` | `all`
-- `resolve`: `true` (default) | `false` - Whether to resolve composition
 
-**Response when `resolve=true`:**
-```json
-{
-  "id": "release-track--uuid-virtual",
-  "type": "virtual",
-  "snapshot_id": "2024-03-05T10:00:00.000Z",
-  "modified": "2024-03-05T10:00:00Z",
-  "version": null,
-  "name": "Enterprise ATT&CK",
+There is no `resolve` query parameter and no `resolved_content` response
+property. Composition is resolved eagerly when the virtual draft is created.
+The concrete `members`, `quarantine`, and `composition_resolution` fields are
+stored directly on that snapshot and are returned without consulting the
+component tracks again.
 
-  "resolved_content": {
-    "members": [
-      {
-        "object_ref": "intrusion-set--APT1",
-        "object_modified": "2024-02-01T10:00:00Z",
-        "source_track": "release-track--uuid-1",
-        "source_version": "5.2"
-      }
-      // ... all resolved objects
-    ],
-    "quarantine": []
-  },
+Every member and quarantined entry contains an exact
+`(object_ref, object_modified)` pair. Standard candidate and staged entries may
+persist the dynamic selector `"latest"`, but standard release planning resolves
+it before promoting those entries into members. Direct standard member
+replacement likewise resolves `"latest"` before persistence. A component
+track's `track_latest` member-sync policy can create or move dynamic workflow
+selectors in newer component drafts, but it cannot change the exact members
+already present in a tagged component snapshot or in an existing virtual
+snapshot.
 
-  "composition_resolution": {
-    "resolved_at": "2024-03-05T10:00:00Z",
-    "component_snapshots": [...]
-  }
-}
-```
+Consequently, while the track does not acquire a newer snapshot,
+`GET /snapshots/latest` returns the same primary member revision set.
+`GET /snapshots/:modified` identifies that persisted set directly. The
+`latest` path segment selects the most recent snapshot; it is not a dynamic
+object-revision selector.
+
+This guarantee also covers `format=bundle` after the tagged snapshot opts into
+a graph manifest. The manifest emits only exact members plus relationships
+whose two exact endpoint revisions are members; supporting objects and LinkById
+render targets are pinned as dependencies. Graphless snapshots resolve the
+legacy bounded graph live.
+Repeated exports may use a different bundle-envelope UUID, but replay the same
+snapshot object graph. See
+[Bundle Export](../../developer/release-tracks/bundle-export.md#closed-member-relationship-consistency-boundary).
 
 ## Quarantine Management
 
 When using the `quarantine` deduplication strategy, conflicting objects are stored in the virtual track's `quarantine` tier. Users must manually resolve these conflicts:
 
 **View quarantined objects:**
+
 ```bash
-GET /api/release-tracks/:id?include=quarantine
+GET /api/release-tracks/:id/snapshots/latest?include=quarantine
 ```
 
 **Manually promote a quarantined object to members:**
+
 ```bash
-POST /api/release-tracks/:id/quarantine/promote
+POST /api/release-tracks/:id/virtual/quarantine/promote
 ```
 
 **Request:**
+
 ```json
 {
-  "object_ref": "intrusion-set--APT1",
+  "object_ref": "intrusion-set--11111111-1111-4111-8111-111111111111",
   "object_modified": "2024-02-01T10:00:00Z"
 }
 ```
 
 **Effect:**
-- Moves the specified version from `quarantine` to `members`
-- Removes other versions of the same object from `quarantine`
-- Next snapshot tagging will include this object in the release
 
-## Hybrid Model: Virtual Track + Native Objects
+- Requires the exact `(object_ref, object_modified)` pair to be quarantined
+- Creates a new draft with the selected revision in `members`
+- Replaces any prior member revision with the same `object_ref`
+- Removes every version of the same object from `quarantine`
+- Leaves the materialized source snapshot and its composition-resolution
+  provenance unchanged
+- Reconciles object back-references to the new latest snapshot
+- Allows the next snapshot tagging operation to include the selected revision
 
-Virtual tracks can optionally have **native objects** in addition to composed content. This is an advanced use case where a virtual track needs to include objects that don't exist in any component track:
+Malformed requests and attempts against standard tracks return `400 Bad
+Request`. Selecting a revision that is not quarantined returns `404 Not Found`
+without creating a snapshot.
 
-```javascript
-{
-  id: "release-track--uuid-virtual",
-  type: "virtual",
+## Pure Composition
 
-  // Composed from standard tracks
-  composition: {
-    component_tracks: [
-      { track_id: "release-track--uuid-1", priority: 1 },
-      { track_id: "release-track--uuid-2", priority: 2 }
-    ],
-    deduplication: {
-      strategy: "prioritize_latest_object"
-    }
-  },
+Virtual tracks do not own native members and cannot compose other virtual
+tracks. Every member must originate from a tagged snapshot of a standard
+component track. This keeps one authoritative object lifecycle and one
+membership authority for every contributed object.
 
-  // PLUS virtual track's own native members
-  native_members: [
-    {
-      object_ref: "marking-definition--enterprise-only",
-      object_modified: "2024-01-01T10:00:00Z"
-    }
-  ],
-
-  // Final result after sync
-  members: [
-    // ... objects from component tracks
-    // ... plus native_members
-  ],
-  quarantine: []
-}
-```
-
-**Use case:** Enterprise track includes Groups and Techniques from standard tracks, PLUS Enterprise-specific marking definitions or custom objects that don't belong in any component track.
-
-**When virtual snapshot is created:**
-1. Resolve composed content from component tracks (goes to `members` or `quarantine`)
-2. Merge with virtual track's `native_members` (goes to `members`)
-3. If any `native_members` conflict with composed objects, apply deduplication strategy
-
-**Note:** This is an advanced feature. Most virtual tracks should only use composition without native members.
+If an aggregate needs content that does not belong in its existing component
+tracks, create a dedicated standard track for that content and add it to the
+virtual composition. Requests containing unsupported properties such as
+`native_members`, or composition entries that reference a virtual track,
+return `400 Bad Request`.
 
 ## Migration Strategy
 
@@ -984,7 +1105,7 @@ POST /api/release-tracks/release-track--uuid-1/candidates
 }
 
 # Tag initial release
-POST /api/release-tracks/release-track--uuid-1/bump
+POST /api/release-tracks/release-track--uuid-1/snapshots/latest/release
 { "version": "1.0" }
 ```
 
@@ -999,11 +1120,13 @@ POST /api/release-tracks/new
     "component_tracks": [
       {
         "track_id": "release-track--uuid-1",
-        "resolution_strategy": "latest_tagged"
+        "resolution_strategy": "latest_tagged",
+        "priority": 0
       },
       {
         "track_id": "release-track--uuid-2",
-        "resolution_strategy": "latest_tagged"
+        "resolution_strategy": "latest_tagged",
+        "priority": 1
       }
     ]
   },
@@ -1018,13 +1141,13 @@ POST /api/release-tracks/new
 
 ```bash
 # Manually trigger first snapshot
-POST /api/release-tracks/release-track--uuid-virtual/snapshots/create
+POST /api/release-tracks/release-track--uuid-virtual/virtual/snapshots/create
 
 # Review draft snapshot
 GET /api/release-tracks/release-track--uuid-virtual/snapshots/:modified
 
 # Tag as Enterprise v14.0
-POST /api/release-tracks/release-track--uuid-virtual/snapshots/:modified/bump
+POST /api/release-tracks/release-track--uuid-virtual/snapshots/:modified/release
 { "version": "14.0" }
 ```
 
@@ -1046,47 +1169,12 @@ July 1: Enterprise scheduled snapshot triggers
 July 5: Team reviews draft, tags as Enterprise v14.1
 ```
 
-## Performance Optimizations
+## Implementation Characteristics
 
-### 1. Snapshot Caching
+### 1. Eager, Parallel Component Resolution
 
-Since virtual snapshots are immutable once created, cache resolved content:
-
-```javascript
-const cacheKey = `virtual-snapshot:${trackId}:${modified}:resolved`;
-
-const cached = await cache.get(cacheKey);
-if (cached) return cached;
-
-const resolved = await resolveVirtualSnapshot(trackId, modified);
-await cache.set(cacheKey, resolved, { ttl: 3600 });  // 1 hour cache
-```
-
-### 2. Lazy Resolution
-
-For `GET /api/release-tracks/:id` (latest snapshot), only resolve if:
-- Query param `resolve=true` is specified
-- Format requires resolution (e.g., `format=bundle`)
-
-Otherwise, return composition metadata without resolving:
-
-```javascript
-if (!query.resolve && query.format === 'workbench') {
-  // Return composition config without resolving
-  return {
-    id: snapshot.id,
-    type: snapshot.type,
-    snapshot_id: snapshot.snapshot_id,
-    modified: snapshot.modified,
-    version: snapshot.version,
-    name: snapshot.name,
-    composition: snapshot.composition,
-    composition_resolution: snapshot.composition_resolution  // Pre-computed
-  };
-}
-```
-
-### 3. Parallel Component Resolution
+Virtual composition is resolved only during explicit or scheduled snapshot
+creation. Component snapshots are fetched in parallel:
 
 Resolve component tracks in parallel:
 
@@ -1094,11 +1182,11 @@ Resolve component tracks in parallel:
 const resolutions = await Promise.all(
   composition.component_tracks.map(async (component) => {
     return await resolveComponentSnapshot(component);
-  })
+  }),
 );
 ```
 
-### 4. Deduplication Optimization
+### 2. Deduplication
 
 Use Set for O(1) duplicate detection:
 
@@ -1115,6 +1203,11 @@ for (const obj of allObjects) {
 }
 ```
 
+The persisted snapshot is already the reusable composition result. No
+cross-request snapshot cache is implemented. Caching should be considered only
+if measured bundle-rendering latency or database load justifies the additional
+invalidation and multi-instance consistency work.
+
 ## Best Practices
 
 ### 1. Snapshot Before Tagging
@@ -1123,17 +1216,20 @@ Always create snapshot, review, then tag:
 
 ```bash
 # Create draft
-POST /api/release-tracks/:id/snapshots/create
+POST /api/release-tracks/:id/virtual/snapshots/create
 
 # Review
 GET /api/release-tracks/:id/snapshots/:modified?format=workbench
 
-# Preview export
-GET /api/release-tracks/:id/snapshots/:modified?format=bundle
+# Preview release artifact
+GET /api/release-tracks/:id/snapshots/:modified/release/preview?format=bundle
 
 # Tag only when satisfied
-POST /api/release-tracks/:id/snapshots/:modified/bump
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
+
+If composition changes after materialization, repeat the create step. Direct
+member replacement is not supported.
 
 ### 2. Use Scheduled Snapshots for Consistency
 
@@ -1156,32 +1252,11 @@ Add metadata to virtual track for documentation:
 
 ```javascript
 {
-  description: "Enterprise ATT&CK v14.0 includes:\n" +
-    "- Groups Monthly v1.3 (47 Groups)\n" +
-    "- Techniques Quarterly v2.1 (823 Techniques)\n" +
-    "- Software Biannual v1.0 (450 Software)"
+  description: 'Enterprise ATT&CK v14.0 includes:\n' +
+    '- Groups Monthly v1.3 (47 Groups)\n' +
+    '- Techniques Quarterly v2.1 (823 Techniques)\n' +
+    '- Software Biannual v1.0 (450 Software)';
 }
-```
-
-### 4. Monitor Component Track Releases
-
-Set up alerts when component tracks release:
-
-```javascript
-eventBus.on('release-track:released', async (event) => {
-  // Find virtual tracks that reference this standard track
-  const virtualTracks = await findVirtualTracksByComponent(event.collectionId);
-
-  // Notify virtual track owners
-  for (const vt of virtualTracks) {
-    await notificationService.send({
-      to: vt.owner_email,
-      subject: `Component track ${event.collectionName} released v${event.version}`,
-      body: `Your virtual track "${vt.name}" references this component. ` +
-        `Consider creating a new snapshot to include the latest release.`
-    });
-  }
-});
 ```
 
 ## Limitations
@@ -1192,7 +1267,10 @@ Virtual tracks do NOT automatically snapshot when component tracks release.
 
 **Rationale:** Prevents snapshot explosion when many component tracks release frequently.
 
-**Alternative:** Use notifications + manual snapshots, or scheduled snapshots.
+**Alternative:** Create snapshots manually or configure a cron/date schedule.
+Component-release notifications are not implemented; they require an approved
+operator workflow defining recipients, delivery channel, deduplication, and
+the expected follow-up action.
 
 ### 2. No Workflow on Composed Objects
 

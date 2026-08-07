@@ -6,31 +6,66 @@
 // Orchestrator that delegates to domain-specific sub-services. This is the
 // single entry point consumed by the controller layer.
 //
-// Phase 1: Track management, snapshot CRUD, config → snapshot-service
+// Phase 1: Track management, snapshot lifecycle, config → snapshot-service
 // Phase 2: Candidates, staged, object versions    → standard-track-service
 // Phase 3: Auto-promotion, workflow               → workflow-service
-// Phase 4: Bump/tag, versioning                   → versioning-service
+// Phase 4: Release planning and versioning        → versioning-service
 // Phase 5: Virtual track composition              → virtual-track-service
 // Phase 6: Export, ephemeral, bundle import        → export-service, ephemeral-service, bundle-import-service
 // =============================================================================
 
-const { NotImplementedError } = require('../../exceptions');
+const { BadRequestError, NotImplementedError } = require('../../exceptions');
+const {
+  compositionSchema,
+  snapshotScheduleSchema,
+  scheduledMaterializationSchema,
+} = require('../../lib/release-tracks/release-track-schemas');
 const snapshotService = require('./snapshot-service');
 const standardTrackService = require('./standard-track-service');
 const versioningService = require('./versioning-service');
 const virtualTrackService = require('./virtual-track-service');
 const exportService = require('./export-service');
+const primaryRevisionService = require('./primary-revision-service');
 const ephemeralService = require('./ephemeral-service');
 const bundleImportService = require('./bundle-import-service');
 const memberSyncService = require('./member-sync-service');
+const releaseHistoryService = require('./release-history-service');
+const destructiveAuditService = require('./destructive-audit-service');
 const attackObjectsService = require('../stix/attack-objects-service');
 const userAccountsService = require('../system/user-accounts-service');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 
 const MODULE = 'release-tracks-service';
 const TIER_NAMES = ['members', 'staged', 'candidates', 'quarantine'];
 
 function notImplemented(methodName) {
   throw new NotImplementedError(MODULE, methodName);
+}
+
+function validateScheduledMaterialization(value) {
+  const scheduledFor = value?.scheduled_for;
+  const normalizedValue =
+    scheduledFor instanceof Date && !Number.isNaN(scheduledFor.getTime())
+      ? { ...value, scheduled_for: scheduledFor.toISOString() }
+      : value;
+  const result = scheduledMaterializationSchema.safeParse(normalizedValue);
+  if (!result.success) {
+    throw new BadRequestError({
+      message: 'Invalid scheduled materialization',
+      details: result.error.errors,
+    });
+  }
+  return result.data;
+}
+
+function destructiveIdentity(trackId, actor, confirmation) {
+  return {
+    actor: actor || {
+      kind: 'system',
+      name: 'internal-service',
+    },
+    confirmation: confirmation || trackId,
+  };
 }
 
 function rejectFilesystemStoreFormat(format, methodName) {
@@ -80,8 +115,15 @@ async function getUsersById(userIds) {
   return usersById;
 }
 
-function addObjectInfo(entry, objectsByVersion, usersById) {
-  const object = objectsByVersion.get(versionKey(entry.object_ref, entry.object_modified));
+function selectorKey(entry) {
+  return `${entry.object_ref}:${revisionReference.modifiedKey(entry.object_modified)}`;
+}
+
+function addObjectInfo(entry, resolvedModifiedBySelector, objectsByVersion, usersById) {
+  const resolvedModified = resolvedModifiedBySelector.get(selectorKey(entry));
+  const object = resolvedModified
+    ? objectsByVersion.get(versionKey(entry.object_ref, resolvedModified))
+    : undefined;
   const entryWithObjectInfo = {
     ...entry,
   };
@@ -110,9 +152,17 @@ async function addObjectInfoToSnapshot(snapshot) {
     return snapshot;
   }
 
+  const resolvedEntries = await revisionReference.resolveEntries(tierEntries);
+  const resolvedModifiedBySelector = new Map();
   const uniqueEntriesByVersion = new Map();
-  for (const entry of tierEntries) {
-    uniqueEntriesByVersion.set(versionKey(entry.object_ref, entry.object_modified), entry);
+  for (let index = 0; index < tierEntries.length; index++) {
+    const entry = tierEntries[index];
+    const resolvedEntry = resolvedEntries[index];
+    resolvedModifiedBySelector.set(selectorKey(entry), resolvedEntry.object_modified);
+    uniqueEntriesByVersion.set(
+      versionKey(resolvedEntry.object_ref, resolvedEntry.object_modified),
+      resolvedEntry,
+    );
   }
 
   const objects = await attackObjectsService.getBulkByIdAndModified([
@@ -128,7 +178,7 @@ async function addObjectInfoToSnapshot(snapshot) {
   for (const tierName of TIER_NAMES) {
     if (snapshot[tierName]) {
       snapshotWithObjectInfo[tierName] = snapshot[tierName].map((entry) =>
-        addObjectInfo(entry, objectsByVersion, usersById),
+        addObjectInfo(entry, resolvedModifiedBySelector, objectsByVersion, usersById),
       );
     }
   }
@@ -152,6 +202,12 @@ function filterSnapshotTiers(snapshot, include) {
 }
 
 async function formatWorkbenchSnapshot(snapshot, options) {
+  const include = options?.include;
+  const selectedTiers =
+    !include || include === 'all' ? TIER_NAMES : [...new Set(['members', include])];
+  await primaryRevisionService.assertStoredEntries(
+    selectedTiers.flatMap((tierName) => snapshot[tierName] || []),
+  );
   const enriched = await addObjectInfoToSnapshot(snapshot);
   return filterSnapshotTiers(enriched, options?.include);
 }
@@ -164,13 +220,77 @@ exports.listTracks = function listTracks(options) {
   return snapshotService.listTracks(options);
 };
 
-exports.createTrack = function createTrack(data) {
-  return snapshotService.createTrack(data);
+exports.getReleasesByObject = function getReleasesByObject(objectRef, options) {
+  return releaseHistoryService.getReleasesByObject(objectRef, options);
+};
+
+exports.createTrack = async function createTrack(data) {
+  let validatedData = data;
+
+  if (data.scheduled_materialization !== undefined) {
+    if (data.type !== 'virtual') {
+      throw new BadRequestError({
+        message: 'Scheduled materialization is only available for virtual release tracks',
+      });
+    }
+
+    const materializationResult = scheduledMaterializationSchema.safeParse(
+      data.scheduled_materialization,
+    );
+    if (!materializationResult.success) {
+      throw new BadRequestError({
+        message: 'Invalid scheduled materialization',
+        details: materializationResult.error.errors,
+      });
+    }
+    validatedData = {
+      ...validatedData,
+      scheduled_materialization: materializationResult.data,
+    };
+  }
+
+  if (data.snapshot_schedule !== undefined) {
+    if (data.type !== 'virtual') {
+      throw new BadRequestError({
+        message: 'Snapshot schedules are only available for virtual release tracks',
+      });
+    }
+
+    const scheduleResult = snapshotScheduleSchema.safeParse(data.snapshot_schedule);
+    if (!scheduleResult.success) {
+      throw new BadRequestError({
+        message: 'Invalid snapshot schedule',
+        details: scheduleResult.error.errors,
+      });
+    }
+    validatedData = { ...data, snapshot_schedule: scheduleResult.data };
+  }
+
+  if (validatedData.composition !== undefined) {
+    const compositionResult = compositionSchema.safeParse(validatedData.composition);
+    if (!compositionResult.success) {
+      throw new BadRequestError({
+        message: 'Invalid virtual track composition',
+        details: compositionResult.error.errors,
+      });
+    }
+    validatedData = { ...validatedData, composition: compositionResult.data };
+  }
+
+  if (validatedData.type === 'virtual' && validatedData.composition) {
+    await virtualTrackService.validateComposition(validatedData.composition);
+  }
+
+  return snapshotService.createTrack(validatedData);
 };
 
 // Phase 6 → bundle-import-service
 exports.createTrackFromBundle = function createTrackFromBundle(bundleData) {
   return bundleImportService.createTrackFromBundle(bundleData);
+};
+
+exports.listSnapshots = function listSnapshots(trackId, options) {
+  return snapshotService.listSnapshots(trackId, options);
 };
 
 // eslint-disable-next-line no-unused-vars
@@ -208,26 +328,12 @@ exports.updateMetadata = function updateMetadata(trackId, updates, userId) {
   return snapshotService.updateMetadata(trackId, updates, userId);
 };
 
-exports.updateMetadataByModified = function updateMetadataByModified(
+exports.updateSnapshotDescription = function updateSnapshotDescription(
   trackId,
   modified,
-  updates,
-  userId,
+  description,
 ) {
-  return snapshotService.updateMetadataByModified(trackId, modified, updates, userId);
-};
-
-exports.updateContents = function updateContents(trackId, contents, userId) {
-  return snapshotService.updateContents(trackId, contents, userId);
-};
-
-exports.updateContentsByModified = function updateContentsByModified(
-  trackId,
-  modified,
-  contents,
-  userId,
-) {
-  return snapshotService.updateContentsByModified(trackId, modified, contents, userId);
+  return snapshotService.updateSnapshotDescription(trackId, modified, description);
 };
 
 exports.cloneTrack = function cloneTrack(trackId, options) {
@@ -238,21 +344,42 @@ exports.cloneFromSnapshot = function cloneFromSnapshot(trackId, modified, option
   return snapshotService.cloneFromSnapshot(trackId, modified, options);
 };
 
-exports.deleteTrack = function deleteTrack(trackId) {
-  return snapshotService.deleteTrack(trackId);
+exports.deleteTrack = function deleteTrack(trackId, actor, confirmation) {
+  return destructiveAuditService.execute(
+    {
+      action: 'delete_track',
+      trackId,
+      ...destructiveIdentity(trackId, actor, confirmation),
+      request: {},
+      result: () => ({ deleted: true }),
+    },
+    () => snapshotService.deleteTrack(trackId),
+  );
 };
 
 exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
   return snapshotService.deleteSnapshot(trackId, modified);
 };
 
+exports.createSnapshotGraph = function createSnapshotGraph(trackId, modified) {
+  return snapshotService.createGraph(trackId, modified);
+};
+
+exports.reconstructSnapshotGraph = function reconstructSnapshotGraph(trackId, modified, plan) {
+  return snapshotService.reconstructGraph(trackId, modified, plan);
+};
+
+exports.deleteSnapshotGraph = function deleteSnapshotGraph(trackId, modified) {
+  return snapshotService.deleteGraph(trackId, modified);
+};
+
 // -----------------------------------------------------------------------------
 // Ephemeral  (Phase 6 → ephemeral-service)
 // -----------------------------------------------------------------------------
 
-exports.getEphemeralBundle = function getEphemeralBundle(domain, format) {
-  rejectFilesystemStoreFormat(format, 'getEphemeralBundle');
-  return ephemeralService.getEphemeralBundle(domain, format);
+exports.getEphemeralBundle = function getEphemeralBundle(domain, options) {
+  rejectFilesystemStoreFormat(options?.format, 'getEphemeralBundle');
+  return ephemeralService.getEphemeralBundle(domain, options);
 };
 
 // -----------------------------------------------------------------------------
@@ -299,17 +426,43 @@ exports.demoteStaged = function demoteStaged(trackId, objectRefs, userId) {
 // Versioning  (Phase 4 → versioning-service)
 // -----------------------------------------------------------------------------
 
-exports.bumpLatest = function bumpLatest(trackId, options) {
-  return versioningService.bumpLatest(trackId, options);
+exports.releaseLatest = function releaseLatest(trackId, options) {
+  return versioningService.releaseLatest(trackId, options);
 };
 
-exports.bumpByModified = function bumpByModified(trackId, modified, options) {
-  return versioningService.bumpByModified(trackId, modified, options);
+exports.releaseByModified = function releaseByModified(trackId, modified, options) {
+  return versioningService.releaseByModified(trackId, modified, options);
 };
 
-exports.previewBump = function previewBump(trackId, format) {
-  rejectFilesystemStoreFormat(format, 'previewBump');
-  return versioningService.previewBump(trackId, format);
+async function renderReleasePlan(plan, options) {
+  const format = options.format || 'summary';
+  rejectFilesystemStoreFormat(format, 'previewRelease');
+
+  if (format === 'summary') return plan.summary;
+  if (plan.blockingError) throw plan.blockingError;
+  if (format === 'bundle') {
+    return exportService.exportSnapshot(plan.plannedSnapshot, format, {
+      ...options,
+      // Release previews are intentionally live. Determinism begins only if a
+      // caller explicitly creates a graph after the snapshot is tagged.
+      captureGraph: true,
+    });
+  }
+  return formatWorkbenchSnapshot(plan.plannedSnapshot, options);
+}
+
+exports.previewLatestRelease = async function previewLatestRelease(trackId, options) {
+  const plan = await versioningService.planLatestRelease(trackId, options);
+  return renderReleasePlan(plan, options);
+};
+
+exports.previewReleaseByModified = async function previewReleaseByModified(
+  trackId,
+  modified,
+  options,
+) {
+  const plan = await versioningService.planReleaseByModified(trackId, modified, options);
+  return renderReleasePlan(plan, options);
 };
 
 // -----------------------------------------------------------------------------
@@ -329,15 +482,37 @@ exports.updateConfig = function updateConfig(trackId, config, userId) {
 // -----------------------------------------------------------------------------
 
 exports.updateComposition = function updateComposition(trackId, composition, userId) {
-  return virtualTrackService.updateComposition(trackId, composition, userId);
+  const { scheduled_materialization: scheduledMaterialization, ...compositionData } =
+    composition || {};
+  let validatedScheduledMaterialization = scheduledMaterialization;
+  const compositionResult = compositionSchema.safeParse(compositionData);
+  if (!compositionResult.success) {
+    throw new BadRequestError({
+      message: 'Invalid virtual track composition',
+      details: compositionResult.error.errors,
+    });
+  }
+  if (scheduledMaterialization !== undefined) {
+    validatedScheduledMaterialization = validateScheduledMaterialization(scheduledMaterialization);
+  }
+  return virtualTrackService.updateComposition(trackId, compositionResult.data, userId, {
+    scheduledMaterialization: validatedScheduledMaterialization,
+  });
 };
 
 exports.createVirtualSnapshot = function createVirtualSnapshot(trackId, options) {
-  return virtualTrackService.createVirtualSnapshot(trackId, options);
+  let validatedOptions = options;
+  if (options?.scheduledMaterialization !== undefined) {
+    validatedOptions = {
+      ...options,
+      scheduledMaterialization: validateScheduledMaterialization(options.scheduledMaterialization),
+    };
+  }
+  return virtualTrackService.createVirtualSnapshot(trackId, validatedOptions);
 };
 
-exports.previewVirtualSnapshot = function previewVirtualSnapshot(trackId) {
-  return virtualTrackService.previewVirtualSnapshot(trackId);
+exports.promoteQuarantinedObject = function promoteQuarantinedObject(trackId, selection) {
+  return virtualTrackService.promoteQuarantinedObject(trackId, selection);
 };
 
 // -----------------------------------------------------------------------------

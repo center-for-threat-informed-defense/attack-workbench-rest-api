@@ -143,7 +143,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const assets = await assetsService.deleteById(req.params.stixId);
 
@@ -155,11 +155,11 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete asset failed. ' + err);
-    return res.status(500).send('Unable to delete asset. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const asset = await assetsService.deleteVersionById(req.params.stixId, req.params.modified);
     if (!asset) {
@@ -170,7 +170,7 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete asset failed. ' + err);
-    return res.status(500).send('Unable to delete asset. Server error.');
+    return next(err);
   }
 };
 

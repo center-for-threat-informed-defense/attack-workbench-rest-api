@@ -140,7 +140,7 @@ exports.updateFull = async function (req, res, next) {
   }
 };
 
-exports.deleteVersionById = async function (req, res) {
+exports.deleteVersionById = async function (req, res, next) {
   try {
     const mitigation = await mitigationsService.deleteVersionById(
       req.params.stixId,
@@ -154,11 +154,11 @@ exports.deleteVersionById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete mitigation failed. ' + err);
-    return res.status(500).send('Unable to delete mitigation. Server error.');
+    return next(err);
   }
 };
 
-exports.deleteById = async function (req, res) {
+exports.deleteById = async function (req, res, next) {
   try {
     const mitigations = await mitigationsService.deleteById(req.params.stixId);
     if (mitigations.deletedCount === 0) {
@@ -169,7 +169,7 @@ exports.deleteById = async function (req, res) {
     }
   } catch (err) {
     logger.error('Delete mitigation failed. ' + err);
-    return res.status(500).send('Unable to delete mitigation. Server error.');
+    return next(err);
   }
 };
 

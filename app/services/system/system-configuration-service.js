@@ -32,7 +32,10 @@ class SystemConfigurationService extends BaseService {
    */
   static retrieveSystemVersion() {
     return {
+      name: config.app.name,
       version: config.app.version,
+      gitCommit: config.app.gitCommit,
+      buildDate: config.app.buildDate,
       attackSpecVersion: config.app.attackSpecVersion,
     };
   }

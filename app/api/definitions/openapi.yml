@@ -334,6 +334,9 @@ paths:
   /api/release-tracks:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks'
 
+  /api/release-tracks/objects/{objectRef}/releases:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1objects~1{objectRef}~1releases'
+
   /api/release-tracks/new:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1new'
 
@@ -349,17 +352,8 @@ paths:
   /api/release-tracks/{id}/meta:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1meta'
 
-  /api/release-tracks/{id}/contents:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1contents'
-
   /api/release-tracks/{id}/clone:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1clone'
-
-  /api/release-tracks/{id}/bump:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1bump'
-
-  /api/release-tracks/{id}/bump/preview:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1bump~1preview'
 
   /api/release-tracks/{id}/candidates:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1candidates'
@@ -388,29 +382,47 @@ paths:
   /api/release-tracks/{id}/objects/{objectRef}/versions:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1objects~1{objectRef}~1versions'
 
-  /api/release-tracks/{id}/composition:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1composition'
+  /api/release-tracks/{id}/virtual/composition:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1composition'
 
-  /api/release-tracks/{id}/snapshots/create:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1create'
+  /api/release-tracks/{id}/virtual/snapshots/create:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1snapshots~1create'
 
-  /api/release-tracks/{id}/snapshots/preview:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1preview'
+  /api/release-tracks/{id}/virtual/quarantine/promote:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1quarantine~1promote'
+
+  /api/release-tracks/{id}/snapshots:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots'
+
+  /api/release-tracks/{id}/snapshots/latest:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1latest'
+
+  /api/release-tracks/{id}/snapshots/latest/release:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1latest~1release'
+
+  /api/release-tracks/{id}/snapshots/latest/release/preview:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1latest~1release~1preview'
 
   /api/release-tracks/{id}/snapshots/{modified}:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}'
 
-  /api/release-tracks/{id}/snapshots/{modified}/meta:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1meta'
-
-  /api/release-tracks/{id}/snapshots/{modified}/contents:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1contents'
-
   /api/release-tracks/{id}/snapshots/{modified}/clone:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1clone'
 
-  /api/release-tracks/{id}/snapshots/{modified}/bump:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1bump'
+  /api/release-tracks/{id}/snapshots/{modified}/description:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1description'
+
+  /api/release-tracks/{id}/snapshots/{modified}/graph:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1graph'
+
+  /api/release-tracks/{id}/snapshots/{modified}/graph/reconstruct:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1graph~1reconstruct'
+
+  /api/release-tracks/{id}/snapshots/{modified}/release:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1release'
+
+  /api/release-tracks/{id}/snapshots/{modified}/release/preview:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1release~1preview'
 
   # System Configuration
   /api/config/system-version:

@@ -1,0 +1,379 @@
+'use strict';
+
+const crypto = require('node:crypto');
+const mongoose = require('mongoose');
+const request = require('supertest');
+const { expect } = require('expect');
+
+const config = require('../../../config/config');
+const database = require('../../../lib/database-in-memory');
+const databaseConfiguration = require('../../../lib/database-configuration');
+const login = require('../../shared/login');
+const migration = require('../../../../migrations/20260730180000-backfill-deterministic-snapshot-graphs');
+const bundleIntegrityMigration = require('../../../../migrations/20260805150000-repair-release-track-bundle-integrity');
+const Relationship = require('../../../models/relationship-model');
+const {
+  ReleaseTrackGraphManifest,
+  ReleaseTrackGraphManifestEntry,
+} = require('../../../models/release-tracks/release-track-graph-manifest-model');
+const { releaseExactMembers } = require('./release-track-test-helpers');
+
+const markingDefinitionId = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
+
+describe('Deterministic snapshot graph migration', function () {
+  let app;
+  let passportCookie;
+  let technique;
+  let group;
+  let relationship;
+  let trackId;
+  const deprecatedDanglingRelationshipId = 'relationship--f7a41277-6599-49df-9567-82c9227fb8b5';
+  const activeDanglingRelationshipId = 'relationship--932fabf0-2868-46ed-9453-41e33dab7f39';
+  const missingEndpointId = 'campaign--5f4e747c-11d7-49ae-a947-a0f436879d62';
+
+  before(async function () {
+    await database.initializeConnection();
+    await databaseConfiguration.checkSystemConfiguration();
+    config.validateRequests.withAttackDataModel = true;
+    config.validateRequests.withOpenApi = true;
+    app = await require('../../../index').initializeApp();
+    passportCookie = await login.loginAnonymous(app);
+  });
+
+  async function post(path, body, status = 201) {
+    const response = await request(app)
+      .post(path)
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(status);
+    return response.body;
+  }
+
+  before('create and then downgrade representative legacy data', async function () {
+    const timestamp = new Date().toISOString();
+    technique = await post('/api/techniques', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        type: 'attack-pattern',
+        spec_version: '2.1',
+        created: timestamp,
+        modified: timestamp,
+        name: 'Migration graph technique',
+        description: 'A primary migration fixture.',
+        kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'execution' }],
+        x_mitre_is_subtechnique: false,
+        x_mitre_domains: ['enterprise-attack'],
+        x_mitre_platforms: ['Windows'],
+        object_marking_refs: [markingDefinitionId],
+      },
+    });
+    group = await post('/api/groups', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        type: 'intrusion-set',
+        spec_version: '2.1',
+        created: timestamp,
+        modified: timestamp,
+        name: 'Migration graph secondary',
+        description: 'A secondary migration fixture.',
+        object_marking_refs: [markingDefinitionId],
+      },
+    });
+    relationship = await post('/api/relationships', {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        type: 'relationship',
+        spec_version: '2.1',
+        created: timestamp,
+        modified: timestamp,
+        relationship_type: 'uses',
+        source_ref: group.stix.id,
+        target_ref: technique.stix.id,
+        object_marking_refs: [markingDefinitionId],
+      },
+    });
+    const track = await post(
+      '/api/release-tracks/new',
+      { name: 'Legacy migration track', type: 'standard' },
+      201,
+    );
+    trackId = track.id;
+    await releaseExactMembers(app, passportCookie, trackId, [technique]);
+
+    await Relationship.updateOne(
+      {
+        'stix.id': relationship.stix.id,
+        'stix.modified': relationship.stix.modified,
+      },
+      { $unset: { 'workspace.relationship_endpoints': '' } },
+    );
+    await mongoose.connection.db
+      .collection(trackId)
+      .updateMany({}, { $unset: { graph_manifest_id: '' } });
+    await Promise.all([
+      ReleaseTrackGraphManifest.deleteMany({ track_id: trackId }),
+      ReleaseTrackGraphManifestEntry.deleteMany({ track_id: trackId }),
+    ]);
+    await mongoose.connection.db.collection('relationships').insertOne({
+      workspace: {},
+      stix: {
+        type: 'relationship',
+        spec_version: '2.1',
+        id: deprecatedDanglingRelationshipId,
+        created: new Date(timestamp),
+        modified: new Date(timestamp),
+        relationship_type: 'uses',
+        source_ref: missingEndpointId,
+        target_ref: technique.stix.id,
+        revoked: false,
+        x_mitre_deprecated: true,
+        object_marking_refs: [markingDefinitionId],
+      },
+    });
+  });
+
+  it('fails closed when an active latest relationship has a dangling endpoint', async function () {
+    const timestamp = new Date();
+    await mongoose.connection.db.collection('relationships').insertOne({
+      workspace: {},
+      stix: {
+        type: 'relationship',
+        spec_version: '2.1',
+        id: activeDanglingRelationshipId,
+        created: timestamp,
+        modified: timestamp,
+        relationship_type: 'uses',
+        source_ref: group.stix.id,
+        target_ref: missingEndpointId,
+        revoked: false,
+        x_mitre_deprecated: false,
+        object_marking_refs: [markingDefinitionId],
+      },
+    });
+
+    try {
+      await expect(
+        migration._private.run(mongoose.connection.db, {
+          dryRun: true,
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining(activeDanglingRelationshipId),
+        missing_relationship_endpoints: [
+          expect.objectContaining({
+            relationship_ref: activeDanglingRelationshipId,
+            missing_endpoints: [missingEndpointId],
+          }),
+        ],
+      });
+    } finally {
+      await mongoose.connection.db
+        .collection('relationships')
+        .deleteOne({ 'stix.id': activeDanglingRelationshipId });
+    }
+  });
+
+  it('supports a non-mutating dry run with unrelated deprecated dangling data', async function () {
+    const report = await migration._private.run(mongoose.connection.db, {
+      dryRun: true,
+    });
+
+    expect(report.dry_run).toBe(true);
+    expect(report.relationship_pins_written).toBeGreaterThan(0);
+    expect(report.manifests_created).toBeGreaterThan(0);
+    const storedRelationship = await Relationship.findOne({
+      'stix.id': relationship.stix.id,
+    })
+      .lean()
+      .exec();
+    expect(storedRelationship.workspace.relationship_endpoints).toBeUndefined();
+    expect(await ReleaseTrackGraphManifest.countDocuments({ track_id: trackId })).toBe(0);
+  });
+
+  it('pins latest relationships and rerunnably backfills baseline manifests', async function () {
+    await migration.up(mongoose.connection.db);
+
+    const storedRelationship = await Relationship.findOne({
+      'stix.id': relationship.stix.id,
+    })
+      .lean()
+      .exec();
+    expect(storedRelationship.workspace.relationship_endpoints.source).toEqual({
+      object_ref: group.stix.id,
+      object_modified: new Date(group.stix.modified),
+    });
+    expect(storedRelationship.workspace.relationship_endpoints.target).toEqual({
+      object_ref: technique.stix.id,
+      object_modified: new Date(technique.stix.modified),
+    });
+    const deprecatedDanglingRelationship = await mongoose.connection.db
+      .collection('relationships')
+      .findOne({ 'stix.id': deprecatedDanglingRelationshipId });
+    expect(deprecatedDanglingRelationship.workspace.relationship_endpoints).toBeUndefined();
+
+    const manifests = await ReleaseTrackGraphManifest.find({
+      track_id: trackId,
+    })
+      .lean()
+      .exec();
+    expect(manifests.length).toBeGreaterThan(0);
+    expect(manifests.every((manifest) => manifest.baseline_reconstruction === true)).toBe(true);
+    expect(manifests.every((manifest) => manifest.schema_version === 1)).toBe(true);
+    const legacyRelationshipEntry = await ReleaseTrackGraphManifestEntry.findOne({
+      manifest_id: { $in: manifests.map((manifest) => manifest.manifest_id) },
+      kind: 'relationship',
+      object_ref: relationship.stix.id,
+    })
+      .lean()
+      .exec();
+    expect(legacyRelationshipEntry.frozen_stix.description).toBe(relationship.stix.description);
+    const countAfterFirstRun = manifests.length;
+
+    await migration.up(mongoose.connection.db);
+    expect(await ReleaseTrackGraphManifest.countDocuments({ track_id: trackId })).toBe(
+      countAfterFirstRun,
+    );
+
+    const response = await request(app)
+      .get(`/api/release-tracks/${trackId}/snapshots/latest?format=bundle&includeToc=false`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
+    const objectIds = response.body.objects.map((object) => object.id);
+    expect(objectIds).toContain(technique.stix.id);
+    expect(objectIds).toContain(group.stix.id);
+    expect(objectIds).toContain(relationship.stix.id);
+  });
+
+  it('repairs graph collection identities and recomputes tagged bundle hashes', async function () {
+    const organizationIdentity = (
+      await request(app)
+        .get('/api/config/organization-identity')
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200)
+    ).body;
+    const manifests = await ReleaseTrackGraphManifest.find({ track_id: trackId })
+      .sort({ created_at: 1 })
+      .lean()
+      .exec();
+    const collectionEntries = await ReleaseTrackGraphManifestEntry.find({
+      manifest_id: { $in: manifests.map((manifest) => manifest.manifest_id) },
+      kind: 'collection',
+    })
+      .sort({ snapshot_modified: 1 })
+      .lean()
+      .exec();
+
+    for (const [index, entry] of collectionEntries.entries()) {
+      const badId = `x-mitre-collection--00000000-0000-4000-8000-${String(index).padStart(
+        12,
+        '0',
+      )}`;
+      await ReleaseTrackGraphManifestEntry.updateOne(
+        { _id: entry._id },
+        {
+          $set: {
+            object_ref: badId,
+            revision_key: `${badId}::collection`,
+            'frozen_stix.id': badId,
+            'frozen_stix.created_by_ref': 'identity--00000000-0000-4000-8000-000000000000',
+          },
+        },
+      ).exec();
+    }
+    await mongoose.connection.db.collection(trackId).updateMany(
+      { graph_manifest_id: { $in: manifests.map((manifest) => manifest.manifest_id) } },
+      {
+        $set: {
+          bundle_hashes: {
+            manifest_id: manifests[0].manifest_id,
+            stix_2_0: '0'.repeat(64),
+            stix_2_1: '0'.repeat(64),
+          },
+        },
+      },
+    );
+
+    const preview = await bundleIntegrityMigration._private.run(mongoose.connection.db, null, {
+      dryRun: true,
+    });
+    expect(preview.collection_entries_repaired).toBe(collectionEntries.length);
+    expect(preview.bundle_hashes_recomputed).toBeGreaterThan(0);
+
+    const report = await bundleIntegrityMigration._private.run(mongoose.connection.db);
+    expect(report.collection_entries_repaired).toBe(collectionEntries.length);
+    expect(report.bundle_hashes_recomputed).toBeGreaterThan(0);
+
+    const repairedEntries = await ReleaseTrackGraphManifestEntry.find({
+      manifest_id: { $in: manifests.map((manifest) => manifest.manifest_id) },
+      kind: 'collection',
+    })
+      .lean()
+      .exec();
+    const expectedCollectionId = `x-mitre-collection--${trackId.split('--')[1]}`;
+    expect(new Set(repairedEntries.map((entry) => entry.frozen_stix.id))).toEqual(
+      new Set([expectedCollectionId]),
+    );
+    expect(
+      repairedEntries.every(
+        (entry) => entry.frozen_stix.created_by_ref === organizationIdentity.stix.id,
+      ),
+    ).toBe(true);
+
+    const taggedSnapshots = await mongoose.connection.db
+      .collection(trackId)
+      .find({ graph_manifest_id: { $exists: true }, version: { $type: 'string' } })
+      .toArray();
+    for (const snapshot of taggedSnapshots) {
+      for (const stixVersion of ['2.0', '2.1']) {
+        const bundle = (
+          await request(app)
+            .get(
+              `/api/release-tracks/${trackId}/snapshots/${encodeURIComponent(
+                snapshot.modified.toISOString(),
+              )}?format=bundle&stixVersion=${stixVersion}`,
+            )
+            .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+            .expect(200)
+        ).body;
+        if (stixVersion === '2.0') {
+          expect(bundle.objects.some((object) => object.type === 'x-mitre-collection')).toBe(false);
+        }
+        const hash = crypto
+          .createHash('sha256')
+          .update(JSON.stringify(bundle, null, 4), 'utf8')
+          .digest('hex');
+        expect(hash).toBe(snapshot.bundle_hashes?.[`stix_2_${stixVersion.split('.')[1]}`]);
+      }
+    }
+
+    const rerun = await bundleIntegrityMigration._private.run(mongoose.connection.db);
+    expect(rerun.collection_entries_repaired).toBe(0);
+    expect(rerun.bundle_hashes_recomputed).toBe(0);
+  });
+
+  it('replays and activates a complete linked pending manifest after interruption', async function () {
+    const snapshot = await mongoose.connection.db
+      .collection(trackId)
+      .findOne({}, { sort: { modified: -1 } });
+    await ReleaseTrackGraphManifest.updateOne(
+      { manifest_id: snapshot.graph_manifest_id },
+      { $set: { state: 'pending' } },
+    ).exec();
+
+    await request(app)
+      .get(`/api/release-tracks/${trackId}/snapshots/latest?format=bundle&includeToc=false`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
+
+    const manifest = await ReleaseTrackGraphManifest.findOne({
+      manifest_id: snapshot.graph_manifest_id,
+    })
+      .lean()
+      .exec();
+    expect(manifest.state).toBe('active');
+  });
+
+  after(async function () {
+    await database.closeConnection();
+  });
+});

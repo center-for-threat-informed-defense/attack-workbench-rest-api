@@ -1,6 +1,7 @@
 'use strict';
 
 const uuid = require('uuid');
+const _ = require('lodash');
 const logger = require('../../lib/logger');
 const config = require('../../config/config');
 const attackIdGenerator = require('../../lib/attack-id-generator');
@@ -22,6 +23,9 @@ const {
   NotFoundError,
   AlreadyRevokedError,
   SelfRevocationError,
+  MemberPinnedRevisionError,
+  SnapshotGraphPinnedRevisionError,
+  ImmutableStixRevisionError,
 } = require('../../exceptions');
 const { getSchema } = require('../../lib/validation-schemas');
 const { deepFreezeStix } = require('../../lib/import-safety');
@@ -370,8 +374,15 @@ class BaseService extends ServiceWithHooks {
 
     // Strip workspace.validation — server-controlled; recomputed on every
     // create/update so a stale entry from a prior GET cannot ride along.
+    // Strip workspace.release_tracks — server-controlled; maintained by
+    // release-track backref reconciliation, and pinned to specific revisions,
+    // so a copy from a prior GET must not ride along onto a new version.
+    // Strip workspace.relationship_endpoints — relationship services resolve
+    // these exact endpoint pins from authoritative object revisions.
     if (data.workspace) {
       delete data.workspace.validation;
+      delete data.workspace.release_tracks;
+      delete data.workspace.relationship_endpoints;
     }
 
     if (!options.preserveAttackId) {
@@ -694,7 +705,134 @@ class BaseService extends ServiceWithHooks {
 
     const result = createdDocument.toObject ? createdDocument.toObject() : createdDocument;
     result.warnings = warnings;
+    await this._refreshReleaseTrackBackrefs(result);
     return result;
+  }
+
+  /**
+   * Reject in-place mutation (PUT/DELETE) of a revision that any release
+   * track pins in its members tier. Members are released content: mutating
+   * or deleting the pinned document would silently change or break what the
+   * track ships. Changes go through a new revision (POST) — which revision
+   * sync captures — including retirement via x_mitre_deprecated.
+   *
+   * @param {Object} document - The stored document ({ workspace, stix })
+   * @param {string} operation - Verb for the error message ('updated'|'deleted')
+   */
+  static async assertNotMemberPinned(document, operation) {
+    const currentMemberPins = (document.workspace?.release_tracks || []).filter(
+      (entry) => entry.tier === 'members',
+    );
+    const taggedMembershipService = require('../release-tracks/tagged-membership-service');
+    const taggedPins = await taggedMembershipService.findPinsForRevision(
+      document.stix.id,
+      document.stix.modified,
+    );
+
+    if (currentMemberPins.length > 0 || taggedPins.length > 0) {
+      const trackIds = [
+        ...new Set([
+          ...currentMemberPins.map((entry) => entry.id),
+          ...taggedPins.map((entry) => entry.track_id),
+        ]),
+      ];
+      throw new MemberPinnedRevisionError({
+        details:
+          `Revision ${document.stix.id} (modified ` +
+          `${new Date(document.stix.modified).toISOString()}) is pinned in the members tier of ` +
+          `release track(s) ${trackIds.join(', ')} and cannot be ` +
+          `${operation} in place. Create a new revision instead (set x_mitre_deprecated on a ` +
+          `new revision to retire the object).`,
+        release_tracks: trackIds,
+        tagged_releases: taggedPins,
+      });
+    }
+  }
+
+  static async assertNoMemberPinnedVersions(stixId, currentMemberPinned, operation) {
+    const taggedMembershipService = require('../release-tracks/tagged-membership-service');
+    const taggedPins = await taggedMembershipService.findPinsForObject(stixId);
+    const currentTrackIds = currentMemberPinned.flatMap((document) =>
+      (document.workspace?.release_tracks || [])
+        .filter((entry) => entry.tier === 'members')
+        .map((entry) => entry.id),
+    );
+    const trackIds = [
+      ...new Set([...currentTrackIds, ...taggedPins.map((entry) => entry.track_id)]),
+    ];
+
+    if (trackIds.length > 0) {
+      throw new MemberPinnedRevisionError({
+        details:
+          `Object ${stixId} has revision(s) pinned in the members tier of release track(s) ` +
+          `${trackIds.join(', ')} and cannot be ${operation}. Create a new revision instead ` +
+          `(set x_mitre_deprecated on a new revision to retire the object).`,
+        release_tracks: trackIds,
+        tagged_releases: taggedPins,
+      });
+    }
+  }
+
+  /**
+   * Protect every exact revision captured by an active or in-progress graph
+   * manifest. Pointer-only manifests hydrate relationships by exact revision
+   * just like primary and secondary objects, so no versioned STIX payload is
+   * exempt from this guard.
+   */
+  static async assertNotGraphPinned(document, operation) {
+    const graphManifestService = require('../release-tracks/graph-manifest-service');
+    const pins = await graphManifestService.findPinsForRevision(
+      document.stix.id,
+      document.stix.modified,
+    );
+    if (pins.length === 0) return;
+
+    throw new SnapshotGraphPinnedRevisionError({
+      details:
+        `Revision ${document.stix.id} (modified ` +
+        `${new Date(document.stix.modified).toISOString()}) is referenced by ` +
+        `${pins.length} release-track snapshot graph manifest(s) and cannot be ${operation} ` +
+        'in place.',
+      snapshot_graph_pins: pins,
+    });
+  }
+
+  static async assertNoGraphPinnedVersions(stixId, operation) {
+    const graphManifestService = require('../release-tracks/graph-manifest-service');
+    const pins = await graphManifestService.findPinsForObject(stixId);
+    if (pins.length === 0) return;
+
+    throw new SnapshotGraphPinnedRevisionError({
+      details:
+        `Object ${stixId} has revision(s) frozen in ${pins.length} release-track snapshot ` +
+        `graph manifest(s) and cannot be ${operation}.`,
+      snapshot_graph_pins: pins,
+    });
+  }
+
+  /**
+   * Refresh workspace.release_tracks on a response object after domain
+   * events have run. The created/updated event is awaited, and its listeners
+   * (member sync → backref reconciliation) may stamp release-track backrefs
+   * onto the persisted document after the in-memory copy was composed —
+   * without this, the response would hide backrefs the request itself
+   * produced.
+   *
+   * @param {Object} result - The plain response object ({ workspace, stix })
+   * @private
+   */
+  async _refreshReleaseTrackBackrefs(result) {
+    if (!result?.stix?.id || !result?.stix?.modified) {
+      return;
+    }
+    const backrefs = await this.repository.retrieveBackrefsByVersionLean(
+      result.stix.id,
+      result.stix.modified,
+    );
+    if (backrefs) {
+      result.workspace = result.workspace || {};
+      result.workspace.release_tracks = backrefs;
+    }
   }
 
   /**
@@ -776,8 +914,12 @@ class BaseService extends ServiceWithHooks {
   async composeForImport(data, options) {
     // Strip workspace.validation — server-controlled; the fail-open block
     // below is the only legitimate writer of this field on the import path.
+    // Strip workspace.release_tracks — server-controlled (see
+    // stripServerControlledFields); imported objects must not claim membership.
     if (data.workspace) {
       delete data.workspace.validation;
+      delete data.workspace.release_tracks;
+      delete data.workspace.relationship_endpoints;
     }
 
     // Extract ATT&CK ID from external_references and propagate to workspace.attack_id
@@ -830,15 +972,15 @@ class BaseService extends ServiceWithHooks {
   }
 
   /**
-   * Updates an existing STIX object version in-place.
+   * Updates non-exported workspace metadata on an existing STIX revision.
    *
    * Pipeline stages:
    *   1. ANALYZE REQUEST — retrieve existing document by stixId + modified
    *   2. COMPOSE OBJECT — strip server-controlled fields, compose from existing document
    *   3. SET SERVER-CONTROLLED FIELDS — (future: bump modified timestamp)
    *   4. LIFECYCLE HOOKS — subclass data transformations (beforeUpdate)
-   *   5. VALIDATE WITH ADM — full schema validation on the composed object
-   *   6. PERSIST — merge and save document, run afterUpdate hook, emit event (skip if dryRun)
+   *   5. IMMUTABILITY + ADM VALIDATION — reject STIX changes, validate the composed object
+   *   6. PERSIST — merge and save document, run afterUpdate hook (skip if dryRun)
    *
    * @param {string} stixId - The STIX ID of the object to update
    * @param {string} stixModified - The modified timestamp identifying the specific version
@@ -860,12 +1002,30 @@ class BaseService extends ServiceWithHooks {
       throw new MissingParameterError('modified');
     }
 
+    // Revision identity is immutable in place: a PUT may not re-key the
+    // document (release tracks pin revisions by stix.id + stix.modified;
+    // re-keying would strand those pins). Re-keying must go through POST,
+    // which creates a new revision that revision sync captures.
+    if (data.stix?.id && data.stix.id !== stixId) {
+      throw new BadRequestError({
+        details: `Body stix.id (${data.stix.id}) must match the stixId path parameter (${stixId})`,
+      });
+    }
+    if (
+      data.stix?.modified &&
+      new Date(data.stix.modified).getTime() !== new Date(stixModified).getTime()
+    ) {
+      throw new BadRequestError({
+        details:
+          `Body stix.modified (${data.stix.modified}) must match the modified path parameter ` +
+          `(${stixModified}) — revision identity cannot be changed by an in-place update`,
+      });
+    }
+
     const document = await this.repository.retrieveOneByVersion(stixId, stixModified);
     if (!document) {
       return null;
     }
-    // TODO: diff analysis — detect field-level changes vs document
-    // TODO: if no changes detected, short-circuit (no-op)
 
     // ──────────────────────────────────────────────
     // 2. COMPOSE OBJECT
@@ -925,6 +1085,19 @@ class BaseService extends ServiceWithHooks {
     // ──────────────────────────────────────────────
     await this.beforeUpdate(stixId, stixModified, data, document, options);
 
+    // A STIX revision is identified by (stix.id, stix.modified). Mutating its
+    // exportable payload in place makes every persisted reference to that
+    // revision ambiguous. PUT therefore remains available only for workspace
+    // metadata; STIX corrections must be posted as a new revision.
+    const persistedStix = JSON.parse(JSON.stringify(document.stix));
+    const proposedStix = JSON.parse(JSON.stringify(data.stix));
+    if (!_.isEqual(persistedStix, proposedStix)) {
+      throw new ImmutableStixRevisionError({
+        stix_id: document.stix.id,
+        stix_modified: new Date(document.stix.modified).toISOString(),
+      });
+    }
+
     // ──────────────────────────────────────────────
     // 5. VALIDATE WITH ADM
     // ──────────────────────────────────────────────
@@ -954,9 +1127,12 @@ class BaseService extends ServiceWithHooks {
       }
 
       await this.afterUpdate(newDocument, document);
-      await this.emitUpdatedEvent(newDocument, document);
+      // PUT can now change workspace metadata only. STIX-domain update events
+      // drive relationship advancement and release-track revision sync, so
+      // emitting one here would misclassify metadata edits as new content.
       const result = newDocument.toObject ? newDocument.toObject() : newDocument;
       result.warnings = warnings;
+      await this._refreshReleaseTrackBackrefs(result);
       return result;
     } else {
       throw new DatabaseError({
@@ -977,6 +1153,15 @@ class BaseService extends ServiceWithHooks {
     }
 
     await this.beforeDeleteVersionById(stixId, stixModified);
+
+    // Members-pinned revisions are released content — they must never be
+    // deleted (the track's member entry would silently dangle).
+    const existing = await this.repository.retrieveOneByVersion(stixId, stixModified);
+    if (!existing) {
+      return null;
+    }
+    await BaseService.assertNotMemberPinned(existing, 'deleted');
+    await BaseService.assertNotGraphPinned(existing, 'deleted');
 
     const document = await this.repository.findOneAndDelete(stixId, stixModified);
 
@@ -1081,6 +1266,11 @@ class BaseService extends ServiceWithHooks {
     delete objectAData.__t;
     objectAData.stix.revoked = true;
     objectAData.stix.modified = new Date().toISOString();
+    // Release-track backrefs are pinned to specific revisions — the new
+    // revoked revision is not referenced by any track.
+    if (objectAData.workspace) {
+      delete objectAData.workspace.release_tracks;
+    }
     if (options.userAccountId) {
       objectAData.workspace = objectAData.workspace || {};
       objectAData.workspace.workflow = objectAData.workspace.workflow || {};
@@ -1258,6 +1448,11 @@ class BaseService extends ServiceWithHooks {
     });
     result.mergeEventResults(eventResults);
 
+    // Revision sync (listening on the revoked event) may have enrolled or
+    // re-pinned the revoked revision in its tracks — refresh so the response
+    // carries the resulting backrefs.
+    await this._refreshReleaseTrackBackrefs(revokedDocument);
+
     // ──────────────────────────────────────────────
     // 9. RETURN RESULT
     // ──────────────────────────────────────────────
@@ -1270,6 +1465,12 @@ class BaseService extends ServiceWithHooks {
       throw new MissingParameterError('stixId');
     }
     await this.beforeDeleteById(stixId);
+
+    // Deleting all versions must not destroy a members-pinned revision
+    const memberPinned = await this.repository.retrieveMemberPinnedVersionsLean(stixId);
+    await BaseService.assertNoMemberPinnedVersions(stixId, memberPinned, 'deleted');
+    await BaseService.assertNoGraphPinnedVersions(stixId, 'deleted');
+
     const result = await this.repository.deleteMany(stixId);
     if (result.deletedCount > 0) {
       await this.afterDeleteById(stixId, result);

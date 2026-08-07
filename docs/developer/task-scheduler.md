@@ -38,6 +38,32 @@ if (config.scheduler.enableScheduler) { // <-- make sure to condition the task t
   - Future tasks must follow a similar pattern:
     - Add the task file
 
+## Persisted virtual release-track schedules
+
+`virtual-track-snapshots-task.js` is different from the static maintenance
+tasks because each virtual track supplies its own schedule. A global
+reconciliation job runs on `VIRTUAL_TRACK_SCHEDULES_CRON` and:
+
+1. registers or refreshes one UTC cron job per cron-configured virtual track;
+2. turns every due explicit date into a durable schedule occurrence;
+3. atomically claims pending, failed, or stale occurrences; and
+4. retries failures after their retry timestamp.
+
+`virtualTrackScheduleOccurrences` is the durable delivery and retry ledger.
+The materialized snapshot also stores the occurrence timestamp under a unique
+track-local index. The ledger prevents concurrent workers from doing the same
+work, while the snapshot index is the final idempotency guard after crashes or
+duplicate delivery.
+
+The snapshot is authoritative if persistence succeeds before the worker can
+complete the occurrence ledger. Reconciliation detects that persisted result,
+marks the reclaimed occurrence complete, and does not recompute virtual
+composition. This matters because component tracks may change or be removed
+after the scheduled snapshot was already created.
+
+Do not put release-track composition logic in the scheduler task. It delegates
+to `virtual-track-service`, which is also used by the explicit HTTP operation.
+
 ## TODO
 
 - [ ] Add robust documentation to `USAGE.md` explaining how task scheduling works and how to create new tasks

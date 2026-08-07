@@ -36,11 +36,22 @@ const {
   AlreadyRevokedError,
   SelfRevocationError,
   AlreadyReleasedError,
+  DuplicateReleaseVersionError,
+  InvalidObjectRevisionError,
+  TaggedSnapshotDeletionError,
+  HistoricalSnapshotDeletionError,
   InvalidVersionError,
   ReleaseConflictError,
+  ReleaseContentIntegrityError,
+  ReleaseTrackReconciliationError,
+  ReleaseTrackAuditError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
+  VirtualSnapshotNotMaterializedError,
   TrackNotFoundError,
+  MemberPinnedRevisionError,
+  SnapshotGraphPinnedRevisionError,
+  ImmutableStixRevisionError,
   ObjectHasValidationIssuesError,
 } = require('../exceptions');
 
@@ -102,6 +113,7 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof ValidationError ||
     err instanceof MitreIdentityWriteError ||
     err instanceof InvalidVersionError ||
+    err instanceof InvalidObjectRevisionError ||
     err instanceof NoTaggedSnapshotsError ||
     err instanceof InvalidComponentTypeError
   ) {
@@ -129,7 +141,15 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof DuplicateNameError ||
     err instanceof AlreadyRevokedError ||
     err instanceof AlreadyReleasedError ||
+    err instanceof DuplicateReleaseVersionError ||
+    err instanceof TaggedSnapshotDeletionError ||
+    err instanceof HistoricalSnapshotDeletionError ||
     err instanceof ReleaseConflictError ||
+    err instanceof ReleaseContentIntegrityError ||
+    err instanceof VirtualSnapshotNotMaterializedError ||
+    err instanceof MemberPinnedRevisionError ||
+    err instanceof SnapshotGraphPinnedRevisionError ||
+    err instanceof ImmutableStixRevisionError ||
     err instanceof ObjectHasValidationIssuesError ||
     err instanceof ActiveOrganizationIdentityDeleteError
   ) {
@@ -143,7 +163,9 @@ exports.serviceExceptions = function (err, req, res, next) {
     err instanceof TechniquesServiceError ||
     err instanceof TacticsServiceError ||
     err instanceof GenericServiceError ||
-    err instanceof DatabaseError
+    err instanceof DatabaseError ||
+    err instanceof ReleaseTrackReconciliationError ||
+    err instanceof ReleaseTrackAuditError
   ) {
     logger.error('Service error: %s', JSON.stringify(buildErrorResponse(err)));
     return res.status(500).send(buildErrorResponse(err));

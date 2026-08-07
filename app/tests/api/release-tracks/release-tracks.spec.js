@@ -7,6 +7,7 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const AttackObject = require('../../../models/attack-object-model');
 const snapshotService = require('../../../services/release-tracks/snapshot-service');
+const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -28,9 +29,9 @@ function buildTechnique(name, description) {
       type: 'attack-pattern',
       object_marking_refs: ['marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168'],
       created_by_ref: 'identity--c78cb6e5-0c4b-4611-8297-d1b8b55e40b5',
-      kill_chain_phases: [{ kill_chain_name: 'kill-chain-name-1', phase_name: 'phase-1' }],
+      kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'persistence' }],
       x_mitre_is_subtechnique: false,
-      x_mitre_platforms: ['platform-1'],
+      x_mitre_platforms: ['Windows'],
     },
   };
 }
@@ -43,7 +44,7 @@ describe('Release Tracks API', function () {
     await database.initializeConnection();
     await databaseConfiguration.checkSystemConfiguration();
 
-    config.validateRequests.withAttackDataModel = false;
+    config.validateRequests.withAttackDataModel = true;
     config.validateRequests.withOpenApi = true;
 
     app = await require('../../../index').initializeApp();
@@ -107,20 +108,7 @@ describe('Release Tracks API', function () {
 
     const trackId = createRes.body.id;
 
-    await request(app)
-      .post(`/api/release-tracks/${trackId}/contents`)
-      .send({
-        x_mitre_contents: [
-          {
-            obj_ref: memberObject.stix.id,
-            obj_modified: memberObject.stix.modified,
-          },
-        ],
-      })
-      .set('Accept', 'application/json')
-      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
-      .expect('Content-Type', /json/);
+    await releaseExactMembers(app, passportCookie, trackId, [memberObject]);
 
     await request(app)
       .post(`/api/release-tracks/${trackId}/candidates`)
@@ -180,7 +168,7 @@ describe('Release Tracks API', function () {
     });
 
     const latestRes = await request(app)
-      .get(`/api/release-tracks/${trackId}`)
+      .get(`/api/release-tracks/${trackId}/snapshots/latest`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
@@ -204,36 +192,20 @@ describe('Release Tracks API', function () {
     );
     expectObjectInfo(quarantined, quarantinedObject);
 
-    const historicalRes = await request(app)
+    await request(app)
       .get(`/api/release-tracks/${trackId}/snapshots/${promoteRes.body.modified}`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
-      .expect('Content-Type', /json/);
-
-    const historicalMember = historicalRes.body.members.find(
-      (entry) => entry.object_ref === memberObject.stix.id,
-    );
-    expectObjectInfo(historicalMember, memberObject);
-
-    const historicalCandidate = historicalRes.body.candidates.find(
-      (entry) => entry.object_ref === candidateObject.stix.id,
-    );
-    expectObjectInfo(historicalCandidate, candidateObject);
-
-    const historicalStaged = historicalRes.body.staged.find(
-      (entry) => entry.object_ref === stagedObject.stix.id,
-    );
-    expectObjectInfo(historicalStaged, stagedObject);
+      .expect(404);
 
     await request(app)
-      .get(`/api/release-tracks/${trackId}?format=snapshot`)
+      .get(`/api/release-tracks/${trackId}/snapshots/latest?format=snapshot`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(400);
 
     await request(app)
-      .get(`/api/release-tracks/${trackId}?format=filesystemstore`)
+      .get(`/api/release-tracks/${trackId}/snapshots/latest?format=filesystemstore`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(501);
@@ -245,6 +217,62 @@ describe('Release Tracks API', function () {
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(501);
+  });
+
+  it('accepts ATT&CK branding in release-track names', async function () {
+    const response = await request(app)
+      .post('/api/release-tracks/new')
+      .send({
+        name: 'Enterprise ATT&CK',
+        description: 'Aggregate Enterprise ATT&CK release track.',
+        type: 'virtual',
+        snapshot_schedule: { mode: 'manual' },
+      })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201)
+      .expect('Content-Type', /json/);
+
+    expect(response.body).toMatchObject({
+      name: 'Enterprise ATT&CK',
+      type: 'virtual',
+    });
+  });
+
+  it('creates a release track with caller-supplied config', async function () {
+    const suppliedConfig = {
+      candidacy_threshold: 'awaiting-review',
+      auto_promote: false,
+      promotion_conflicts: {
+        into_candidates: 'always_reject',
+        candidates_to_staged: 'always_overwrite',
+        staged_to_members: 'prefer_latest',
+      },
+      member_sync: {
+        strategy: 'manual',
+        supplant: {
+          behavior: 'queue',
+          status_policy: 'preserve',
+        },
+      },
+    };
+
+    const response = await request(app)
+      .post('/api/release-tracks/new')
+      .send({
+        name: 'Custom Config Track',
+        type: 'standard',
+        config: suppliedConfig,
+      })
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201)
+      .expect('Content-Type', /json/);
+
+    expect(response.body.config).toEqual(suppliedConfig);
+
+    const persistedSnapshot = await snapshotService.getLatestSnapshot(response.body.id);
+    expect(persistedSnapshot.config).toEqual(suppliedConfig);
   });
 
   after(async function () {

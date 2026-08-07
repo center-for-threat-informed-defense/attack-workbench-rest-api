@@ -33,6 +33,23 @@ describe('App Configuration', function () {
     done();
   });
 
+  it('loads build information from runtime environment variables', function () {
+    process.env.APP_VERSION = '4.20.0-beta.23';
+    process.env.GIT_COMMIT = 'c2c017c146fae040caba559333b35536bfbd1189';
+    process.env.BUILD_DATE = '2026-08-05T15:13:49.915Z';
+
+    config.reloadConfig();
+
+    expect(config.app.version).toBe(process.env.APP_VERSION);
+    expect(config.app.gitCommit).toBe(process.env.GIT_COMMIT);
+    expect(config.app.buildDate).toBe(process.env.BUILD_DATE);
+
+    delete process.env.APP_VERSION;
+    delete process.env.GIT_COMMIT;
+    delete process.env.BUILD_DATE;
+    config.reloadConfig();
+  });
+
   describe('CORS Configuration', function () {
     it('should accept wildcard origin', function () {
       expect(() => config.reloadConfig()).not.toThrow();

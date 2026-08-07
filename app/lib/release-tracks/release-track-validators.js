@@ -14,6 +14,8 @@ const {
   releaseTrackIdSchema,
   trackNameSchema,
   cronSchema,
+  snapshotScheduleSchema,
+  objectTypesFilterSchema,
   stixIdentifierSchema,
   xMitreVersionSchema,
   createStixIdValidator,
@@ -32,7 +34,8 @@ const validateTrackId = {
 const validateTrackName = {
   validator: (v) => trackNameSchema.safeParse(v).success,
   message: (props) =>
-    `"${props.value}" is not a valid release track name (only alphanumeric characters and spaces allowed)`,
+    `"${props.value}" is not a valid release track name ` +
+    '(only alphanumeric characters, spaces, and ampersands allowed)',
 };
 
 const validateStixId = {
@@ -64,6 +67,31 @@ const validateCron = {
   message: (props) => `"${props.value}" is not a valid cron expression (expected 5 fields)`,
 };
 
+const validateSnapshotSchedule = {
+  validator: (value) => {
+    if (value === undefined || value === null) return true;
+
+    const schedule = typeof value.toObject === 'function' ? value.toObject() : value;
+    const normalized = {
+      ...schedule,
+      dates: schedule.dates?.map((date) => (date instanceof Date ? date.toISOString() : date)),
+    };
+    if (normalized.dates === undefined) delete normalized.dates;
+
+    return snapshotScheduleSchema.safeParse(normalized).success;
+  },
+  message:
+    'Snapshot schedule fields must match mode: manual has no selector, cron requires cron, and dates requires at least one date',
+};
+
+const validateObjectTypesFilter = {
+  validator: (value) =>
+    value === undefined ||
+    (Array.isArray(value) && objectTypesFilterSchema.safeParse(value).success),
+  message:
+    'Object type filters must be a non-empty, duplicate-free list of supported Workbench STIX types',
+};
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -76,4 +104,6 @@ module.exports = {
   validateMarkingDefRefs,
   validateVersion,
   validateCron,
+  validateSnapshotSchedule,
+  validateObjectTypesFilter,
 };

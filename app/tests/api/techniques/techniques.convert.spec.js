@@ -462,7 +462,7 @@ describe('Techniques Convert API', function () {
       expect(technique.stix.x_mitre_is_subtechnique).toBe(false);
     });
 
-    it('update ignores attempt to change x_mitre_is_subtechnique', async function () {
+    it('rejects another STIX edit when an attempted subtechnique change is stripped', async function () {
       const updateBody = {
         ...technique,
         stix: {
@@ -477,12 +477,9 @@ describe('Techniques Convert API', function () {
         .send(updateBody)
         .set('Accept', 'application/json')
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-        .expect(200);
+        .expect(409);
 
-      // The field should remain false
-      expect(res.body.stix.x_mitre_is_subtechnique).toBe(false);
-      // But the description should have been updated
-      expect(res.body.stix.description).toBe('Updated description');
+      expect(res.body.message).toContain('immutable');
     });
   });
 

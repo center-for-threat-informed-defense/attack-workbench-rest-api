@@ -52,15 +52,16 @@ describe('System Configuration API', function () {
     const res = await request(app)
       .get('/api/config/system-version')
       .set('Accept', 'application/json')
-      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200)
       .expect('Content-Type', /json/);
 
-    // We expect to get the system version info
-    const systemVersionInfo = res.body;
-    expect(systemVersionInfo).toBeDefined();
-    expect(systemVersionInfo.version).toBeDefined();
-    expect(systemVersionInfo.attackSpecVersion).toBeDefined();
+    expect(res.body).toEqual({
+      name: config.app.name,
+      version: config.app.version,
+      gitCommit: config.app.gitCommit,
+      buildDate: config.app.buildDate,
+      attackSpecVersion: config.app.attackSpecVersion,
+    });
   });
 
   it('GET /api/config/allowed-values returns the allowed values', async function () {

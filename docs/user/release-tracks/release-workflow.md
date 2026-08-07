@@ -4,7 +4,7 @@
 
 This document describes how object workflow states integrate with the release track versioning and release system. It addresses the critical challenge of managing thousands of objects being developed in parallel by multiple users while maintaining clean, production-ready tagged releases.
 
-**Key Design Decision:** This system uses **release track-centric status with version pinning** to solve the "STIX freeze" problem. Each release track tracks its own workflow status for objects and pins to specific object versions, allowing the same object to be in different states across different release tracks and enabling work on future releases while current releases are frozen.
+**Key Design Decision:** This system uses **release track-centric status with revision selection** to solve the "STIX freeze" problem. Each release track tracks its own workflow status for objects and may follow the latest revision or pin an exact revision while work is in flight. Release operations always freeze exact member revisions, allowing the same object to be in different states across tracks while completed releases remain immutable.
 
 **Note on Terminology:** We use **release track** instead of "collection" to avoid confusion with TAXII collections, MongoDB collections, STIX bundles, and `x-mitre-collection` SDOs. See [terminology.md](./terminology.md) for the complete terminology guide.
 
@@ -27,14 +27,16 @@ The three workflow states tracked per release track:
 
 ### Version Pinning
 
-Each tier entry includes **version pinning** via the `object_modified` timestamp:
-- Release tracks track a reference to a **specific version** of an object (identified by its `stix.modified` timestamp)
+Each tier entry includes a revision selector in `object_modified`:
+- Candidate and staged entries may use an exact `stix.modified` timestamp or
+  the dynamic selector `"latest"`
+- Member entries always identify a **specific version** of an object
 - Different release tracks can pin to different versions of the same object
 - This enables working on future object versions while a tagged release containing an earlier version is frozen
 
 ### Release Track Membership Tiers
 
-Release tracks maintain objects in three distinct tiers, with each entry pinning to a specific object version:
+Release tracks maintain objects in three distinct tiers:
 
 1. **Candidates** (`candidates`) - Objects being worked on with track-scoped status
 2. **Staged** (`staged`) - Reviewed objects (in this release track) ready for the next tagged release
@@ -45,16 +47,29 @@ Release tracks maintain objects in three distinct tiers, with each entry pinning
 ```
 Object version added to release track
   ↓
-Track-scoped status: work-in-progress → Added to candidates with version pin
+Track-scoped status: work-in-progress → Added to candidates with exact or dynamic selector
   ↓
 Track-scoped status: awaiting-review → Remains in candidates
   ↓
 Track-scoped status: reviewed → Automatically promoted to staged
   ↓
-Snapshot tagged → staged entries moved to members
+Snapshot tagged → dynamic staged selectors resolved and exact revisions moved to members
   ↓
 Snapshot exported → members reflected in stix.x_mitre_contents of the output bundle
 ```
+
+Immediately before previewing or committing a release, the server hydrates
+every resulting exact member revision. If persisted track content points to a
+revision that no longer exists, the operation returns HTTP `409` with
+`missing_references` and does not tag the snapshot. This check protects both
+standard and virtual releases from publishing incomplete primary membership.
+
+After tagging, the server reconciles the member protections stored on object
+documents. A successful response means both object collections were updated.
+HTTP `500` with a `reconciliation_id` means the release may already be tagged,
+but one or more protection writes failed. Do not repeat the release request
+without checking the selected snapshot first; an administrator can safely
+replay the idempotent reconciliation using that durable record.
 
 ### STIX Freeze Solution
 
@@ -80,7 +95,9 @@ Release tracks can be configured with different thresholds for what workflow sta
 
 Typical release tracks will use the default candidacy threshold setting of `reviewed`, which requires that the object(s) status be `reviewed` in order for the object to become staged.
 
-However, smaller teams operating in purely developmenet or research capacities may prefer a more permissive model. Perhaps they simply want all objects to be included in the release irrespective of object status. In such situations, the candidacy threshold can be lowered to `awaiting-review` or `work-in-progress`.
+However, smaller teams operating in purely development or research capacities may prefer a more permissive model. Perhaps they simply want all objects to be included in the release irrespective of object status. In such situations, the candidacy threshold can be lowered to `awaiting-review` or `work-in-progress`.
+
+The threshold is enforced by the **workflow gate** (`app/lib/release-tracks/workflow-gate.js`), the single decision point that places tracked objects into tiers whenever revision sync reacts to a new revision, revocation, or conversion. Persisted STIX revisions cannot be edited in place; content changes arrive as new POSTed revisions.
 
 ### Option 1: Include Only Reviewed (Default)
 ```javascript
@@ -147,7 +164,7 @@ POST /api/release-tracks/:id/candidates
     },
     {
       "object_ref": "attack-pattern--fff",
-      "object_modified": "2024-01-13T14:00:00Z",
+      "object_modified": "latest",
       "status": "work-in-progress",
       "added_to": "staged"  // Auto-promoted if meets threshold
     }
@@ -157,14 +174,20 @@ POST /api/release-tracks/:id/candidates
 ```
 
 **Business Logic:**
-1. Validate all object_refs exist
-2. Resolve `object_modified` timestamp:
-   - If provided: validate that specific version exists
-   - If omitted: use latest version (highest `stix.modified`)
+1. Validate that every selected exact revision exists. A missing exact pin, or
+   a `"latest"` selector for an object with no current revision, returns HTTP
+   `400` with `missing_references`; no snapshot is created.
+2. Establish the `object_modified` selector:
+   - If an ISO timestamp is provided: retain that exact revision pin
+   - If `"latest"` is provided or `modified` is omitted: persist the dynamic
+     `"latest"` selector
 3. Set initial track-scoped status (defaults to "work-in-progress")
-4. Add to `workspace.candidates` with version pin
+4. Add to `workspace.candidates` with the exact or dynamic selector
 5. If status meets `candidacy_threshold`, auto-promote to `workspace.staged`
 6. Update object's `workspace.referenced_by` array
+
+The same existence check applies when changing a candidate version pin and
+when replacing a standard snapshot's member contents directly.
 
 Importantly, candidate removal/deletion must occur separately using the `DELETE` operation:
 ```bash
@@ -251,26 +274,48 @@ POST /api/release-tracks/:id/candidates/promote
 When promoting objects between tiers, conflicts can occur if multiple versions of the same object (same `stix.id`, different `stix.modified` timestamps) exist. Release tracks use **conflict resolution policies** to determine how to handle these situations.
 
 **When do conflicts occur?**
+- Adding an object to `candidates` (manual add or demotion) when a different version of the object is already pinned in `candidates`
 - Promoting from `candidates` to `staged` when a different version of the object already exists in `staged`
 - Promoting from `staged` to `members` (during tagging/release) when a different version already exists in `members`
 
-**Promotions can happen via:**
+**Transitions can happen via:**
+- **Manual candidate adds** via REST API endpoint (e.g., `POST /api/release-tracks/:id/candidates`) — adding without `modified` creates a dynamic `"latest"` selector
+- **Demotion** back to candidates (`POST /api/release-tracks/:id/staged/demote`)
 - **Manual promotion** via REST API endpoint (e.g., `POST /api/release-tracks/:id/candidates/promote`)
 - **Auto-promotion** based on candidacy threshold (e.g., object status changes to `awaiting-review`)
-- **Tagging/release operations** (e.g., `POST /api/release-tracks/:id/bump`)
+- **Tagging/release operations** (e.g., `POST /api/release-tracks/:id/snapshots/latest/release`)
+
+Note: revision-sync enrollment (`config.member_sync`, strategy `track_latest`) resolves its overlaps through the `supplant` config rather than these policies — see [member-sync-strategies.md](../../developer/release-tracks/member-sync-strategies.md).
 
 #### Conflict Resolution Policies
 
-Release tracks can be configured with different policies for handling promotion conflicts:
+Release tracks can be configured with different policies for handling tier-transition conflicts:
 
 ```javascript
 config: {
   promotion_conflicts: {
+    into_candidates: "prefer_latest",          // Manual adds / demotions into Candidates
     candidates_to_staged: "prefer_latest",     // Candidates → Staged promotions
     staged_to_members: "abort"                 // Staged → Members promotions (during release)
   }
 }
 ```
+
+Exact duplicates (same `stix.id` *and* same `stix.modified`) are never
+conflicts. A precise revision can occupy only one tier in a release-track
+snapshot:
+
+- Re-adding a revision that is already in `members`, `staged`, `candidates`,
+  or `quarantine` is idempotent and skipped.
+- Moving a revision into a tier that already contains that exact revision
+  removes the source-tier occurrence and retains the destination occurrence.
+- Conflict policies apply only when the same `stix.id` is pinned to
+  **different** `stix.modified` values.
+
+Different revisions of the same object remain valid across tiers—for example,
+the released revision in `members` and a newer revision in `candidates`.
+Snapshots created from legacy invalid state are normalized with the
+authoritative tier order `members` → `staged` → `candidates` → `quarantine`.
 
 #### Policy Options
 
@@ -348,7 +393,7 @@ Keep whichever version has the newer `modified` timestamp.
 [](./release-workflow.md#4-abort-taggingrelease-operations-only)
 **Only available for `staged_to_members` during tagging/release operations.**
 
-If a conflict occurs during a tagging/release operation (`POST /api/release-tracks/:id/bump`), reject and abort the entire release. The snapshot will NOT be tagged, and no immutable snapshot will be created.
+If a conflict occurs during a tagging/release operation (`POST /api/release-tracks/:id/snapshots/latest/release`), reject and abort the entire release. The snapshot will NOT be tagged, and no immutable snapshot will be created.
 
 **The error response will include ALL conflicting objects**, not just the first one encountered. This allows editors to see the full scope of conflicts that must be resolved before the release can proceed.
 
@@ -359,8 +404,8 @@ If a conflict occurs during a tagging/release operation (`POST /api/release-trac
 // - staged: attack-pattern--T1234, modified: 2024-02-20
 
 // Tagging request:
-POST /api/release-tracks/release-track--123/bump
-{ "type": "minor" }
+POST /api/release-tracks/release-track--123/snapshots/latest/release
+{ "increment": "minor" }
 
 // Result with abort:
 // ERROR Response:
@@ -387,8 +432,8 @@ POST /api/release-tracks/release-track--123/bump
 // - staged: attack-pattern--T9999, modified: 2024-02-22 (no conflict)
 
 // Tagging request:
-POST /api/release-tracks/release-track--123/bump
-{ "type": "minor" }
+POST /api/release-tracks/release-track--123/snapshots/latest/release
+{ "increment": "minor" }
 
 // Result with abort - shows ALL conflicts:
 // ERROR Response:
@@ -422,6 +467,10 @@ POST /api/release-tracks/release-track--123/bump
 
 **Why report all conflicts:** When multiple conflicts exist, reporting all of them in a single error response allows editors to address all issues at once, rather than discovering them one at a time through repeated release attempts. This significantly improves the workflow efficiency when dealing with complex release scenarios.
 
+An exact staged/member duplicate does not trigger `abort`: it is the same
+revision, not a competing revision. The redundant staged occurrence is
+removed when the snapshot is tagged.
+
 #### Configuring Conflict Resolution Policies
 
 **Update release track configuration:**
@@ -433,6 +482,7 @@ PUT /api/release-tracks/:id/config
 ```json
 {
   "promotion_conflicts": {
+    "into_candidates": "prefer_latest",
     "candidates_to_staged": "prefer_latest",
     "staged_to_members": "abort"
   }
@@ -440,6 +490,7 @@ PUT /api/release-tracks/:id/config
 ```
 
 **Default values:**
+- `into_candidates`: `"prefer_latest"`
 - `candidates_to_staged`: `"prefer_latest"`
 - `staged_to_members`: `"abort"`
 
@@ -447,7 +498,7 @@ PUT /api/release-tracks/:id/config
 
 1. **Production tracks**: Use `abort` for `staged_to_members` to prevent accidental overwrites during releases
 2. **Development tracks**: Use `always_overwrite` or `prefer_latest` for faster iteration
-3. **Review conflicts before releasing**: Always run `GET /api/release-tracks/:id/bump/preview` to identify potential conflicts
+3. **Review conflicts before releasing**: Always run `GET /api/release-tracks/:id/snapshots/latest/release/preview` to identify potential conflicts
 4. **Manual resolution**: When `abort` triggers, manually resolve conflicts before retrying the release
 
 ### 5. Viewing Latest Snapshot with All Tiers
@@ -456,7 +507,7 @@ Workbench snapshot responses include all tier arrays by default. Set the
 `include` query parameter to `members`, `staged`, `candidates`, `quarantine`,
 or `all` to view a narrower subset of a given snapshot.
 ```
-GET /api/release-tracks/:id?include=all
+GET /api/release-tracks/:id/snapshots/latest?include=all
 ```
 
 **Response:**
@@ -493,7 +544,7 @@ GET /api/release-tracks/:id?include=all
   "summary": {
     "members_count": 2,
     "staged_count": 1,
-    "candidate_count": 1,
+    "candidates_count": 1,
     "total_count": 4
   }
 }
@@ -504,49 +555,21 @@ GET /api/release-tracks/:id?include=all
 Compute a release preview, which outputs a verbose diff of what will change in the next release. **This endpoint will detect and report all conflicts** that would prevent the release from proceeding, allowing editors to resolve issues before attempting to tag.
 
 ```
-GET /api/release-tracks/:id/bump/preview
+GET /api/release-tracks/:id/snapshots/latest/release/preview
 ```
 
 **Response (success - no conflicts):**
 ```json
 {
-  "current_version": "1.1",
-  "next_version": "1.2",
-  "release_preview": {
-    "will_include": [
-      {
-        "ref": "attack-pattern--aaa",
-        "modified": "2024-01-10T10:00:00Z",
-        "object_type": "attack-pattern",
-        "name": "Technique A",
-        "status": "reviewed",
-        "source": "members"
-      },
-      {
-        "ref": "attack-pattern--ddd",
-        "modified": "2024-01-14T10:00:00Z",
-        "object_type": "attack-pattern",
-        "name": "New Technique XYZ",
-        "status": "reviewed",
-        "source": "staged"
-      }
-    ],
-    "will_exclude": [
-      {
-        "ref": "attack-pattern--eee",
-        "modified": "2024-01-12T09:00:00Z",
-        "object_type": "attack-pattern",
-        "name": "WIP Technique",
-        "status": "work-in-progress",
-        "reason": "Object is work-in-progress, not meeting candidacy threshold"
-      }
-    ]
-  },
-  "statistics": {
-    "total_objects": 3,
-    "included_objects": 2,
-    "excluded_objects": 1
-  }
+  "track_id": "release-track--123",
+  "type": "standard",
+  "source_snapshot_modified": "2024-01-15T16:20:00.000Z",
+  "version": "1.2",
+  "releasable": true,
+  "before": { "members_count": 2, "staged_count": 3, "candidates_count": 1 },
+  "after": { "members_count": 5, "staged_count": 0, "candidates_count": 1 },
+  "changes": { "promoted_count": 3 },
+  "conflicts": []
 }
 ```
 
@@ -554,14 +577,13 @@ GET /api/release-tracks/:id/bump/preview
 ```json
 {
   "track_id": "release-track--123",
-  "snapshot_modified": "2024-01-15T16:20:00.000Z",
-  "is_already_tagged": false,
-  "current_version": null,
-  "next_version_minor": "1.2",
-  "next_version_major": "2.0",
-  "staged_count": 3,
-  "members_count": 2,
-  "candidates_count": 1,
+  "type": "standard",
+  "source_snapshot_modified": "2024-01-15T16:20:00.000Z",
+  "version": "1.2",
+  "releasable": false,
+  "before": { "members_count": 2, "staged_count": 3, "candidates_count": 1 },
+  "after": { "members_count": 2, "staged_count": 3, "candidates_count": 1 },
+  "changes": { "promoted_count": 0 },
   "conflicts": [
     {
       "object_ref": "attack-pattern--T1234",
@@ -579,17 +601,16 @@ GET /api/release-tracks/:id/bump/preview
 
 **Note:** When the `staged_to_members` conflict policy is set to `abort` and conflicts are detected, the preview will include a `conflicts` array listing **all** conflicting objects, not just the first one encountered.
 
-### 7. Bump with Staging
+### 7. Release with Staging
 
 ```
-POST /api/collections/:id/bump
+POST /api/release-tracks/:id/snapshots/latest/release
 ```
 
 **Request:**
 ```json
 {
-  "type": "minor",
-  "dry_run": false // <-- optionally perform a dry run to preview the next release4
+  "increment": "minor"
 }
 ```
 
@@ -638,13 +659,19 @@ POST /api/collections/:id/bump
 **Business Logic:**
 1. Validate no `AlreadyReleasedError`
 2. Calculate next version
-3. Move all entries from `staged` to `members` (preserving version pins)
+3. Resolve every staged `"latest"` selector to the actual latest
+   `stix.modified` timestamp, then move exact entries into `members`
 4. Update object documents: change tier in `workspace.referenced_by` from "staged" → "members"
 5. Set `version` on release track
 6. Add entry to `version_history`
 7. Return summary showing what was promoted
 
-**Note on Version Pins:** The `modified` timestamps are preserved during promotion. Released objects remain pinned to the specific version that was reviewed and staged.
+**Note on Revision Selectors:** Explicit timestamps are preserved during
+promotion. Dynamic staged selectors are frozen during release planning.
+Released objects always contain exact timestamps; `"latest"` is never
+persisted in `members`. A preview and a later commit each resolve independently,
+so the commit may select a newer revision if the object changes between those
+requests.
 
 ## Solving the STIX Freeze Problem
 
@@ -696,9 +723,9 @@ POST /api/collections/collection--enterprise/candidates/review
 }
 # → Promoted to staged tier
 
-# 5. Bump collection to v1.5
-POST /api/collections/collection--enterprise/bump
-{ "type": "minor" }
+# 5. Release collection to v1.5
+POST /api/collections/collection--enterprise/snapshots/latest/release
+{ "increment": "minor" }
 # → Release track now at v1.5
 # → Released tier: attack-pattern--T1234, modified: 2024-02-01T14:00:00Z
 
@@ -822,12 +849,12 @@ POST /api/collections/collection--123/candidates/review
 # → auto-promoted to workspace.staged
 
 # 5. Preview the release
-GET /api/release-tracks/collection--123/bump/preview
+GET /api/release-tracks/collection--123/snapshots/latest/release/preview
 # → Shows attack-pattern--new1 will be included
 
-# 6. Bump the collection
-POST /api/collections/collection--123/bump
-{ "type": "minor" }
+# 6. Release the collection
+POST /api/collections/collection--123/snapshots/latest/release
+{ "increment": "minor" }
 # → attack-pattern--new1 moved to x_mitre_contents
 # → attack-pattern--new2 remains in candidates (still WIP)
 ```
@@ -851,12 +878,12 @@ POST /api/collections/collection--123/candidates/review
 # → All 50 auto-promoted to staged
 
 # Preview release
-GET /api/release-tracks/collection--123/bump/preview
+GET /api/release-tracks/collection--123/snapshots/latest/release/preview
 # → Shows all 50 will be included
 
 # Release
-POST /api/collections/collection--123/bump
-{ "type": "major" }
+POST /api/collections/collection--123/snapshots/latest/release
+{ "increment": "major" }
 # → All 50 moved to x_mitre_contents
 ```
 
@@ -881,9 +908,9 @@ POST /api/collections/collection--123/candidates/review
   "to": "reviewed"
 }
 
-# January 25: Bump to v1.5 (freeze begins for v1.5 release)
-POST /api/collections/collection--123/bump
-{ "type": "minor" }
+# January 25: Release to v1.5 (freeze begins for v1.5 release)
+POST /api/collections/collection--123/snapshots/latest/release
+{ "increment": "minor" }
 # v1.5 now released with:
 # - attack-pattern--A, modified: 2024-01-15T10:00:00Z
 # - attack-pattern--B, modified: 2024-01-15T11:00:00Z
@@ -921,9 +948,9 @@ POST /api/collections/collection--123/candidates/attack-pattern--A/update-versio
 # - members (v1.5): attack-pattern--A, modified: 2024-01-15 (still frozen)
 # - candidates: attack-pattern--A, modified: 2024-02-10 (already in review)
 
-# March 5: Bump to v1.6
-POST /api/collections/collection--123/bump
-{ "type": "minor" }
+# March 5: Release to v1.6
+POST /api/collections/collection--123/snapshots/latest/release
+{ "increment": "minor" }
 # No bottleneck - work continued throughout v1.5 freeze
 ```
 
@@ -942,9 +969,9 @@ POST /api/collections/collection--dev/candidates
 { "object_refs": ["attack-pattern--exp1"] }
 # → Immediately promoted to staged (meets threshold)
 
-# Bump immediately
-POST /api/collections/collection--dev/bump
-{ "type": "minor" }
+# Release immediately
+POST /api/collections/collection--dev/snapshots/latest/release
+{ "increment": "minor" }
 # → WIP objects included in release
 ```
 
@@ -956,11 +983,11 @@ POST /api/collections/collection--dev/bump
 - **Team preview collections**: `candidacy_threshold: "awaiting-review"`
 - **Development collections**: `candidacy_threshold: "work-in-progress"`
 
-### 2. Leverage Dry Run
+### 2. Leverage release preview
 
-Always preview releases before bumping:
+Always preview releases before releasing:
 ```bash
-GET /api/release-tracks/:id/bump/preview?format=workbench
+GET /api/release-tracks/:id/snapshots/latest/release/preview?format=workbench
 ```
 
 ### 3. Bulk Operations for Efficiency
@@ -978,7 +1005,7 @@ POST /api/release-tracks/:id/candidates/review
 
 Regularly check candidate status:
 ```bash
-GET /api/release-tracks/:id?include=all
+GET /api/release-tracks/:id/snapshots/latest?include=all
 ```
 
 ### 5. Use Events for Automation
@@ -1012,11 +1039,12 @@ See [virtual-tracks.md](virtual-tracks.md) for complete virtual track documentat
 3. Virtual track snapshot creation (manual or scheduled)
    - Resolves latest (or pinned) version from each component
    - Creates draft snapshot with resolved composition
-   - Team receives notification to review
+   - Team coordinates review through its established operator workflow
 
-4. Review and tag
+4. Review, preview, and tag
    - Team reviews which component versions were included
    - Verifies object counts and composition
+   - Previews the draft against its preceding tagged release
    - Tags snapshot when satisfied
 ```
 
@@ -1033,11 +1061,13 @@ POST /api/release-tracks/new
     "component_tracks": [
       {
         "track_id": "GroupsMonthly--uuid",
-        "resolution_strategy": "latest_tagged"
+        "resolution_strategy": "latest_tagged",
+        "priority": 0
       },
       {
         "track_id": "TechniquesQuarterly--uuid",
-        "resolution_strategy": "latest_tagged"
+        "resolution_strategy": "latest_tagged",
+        "priority": 1
       }
     ]
   },
@@ -1067,6 +1097,7 @@ July 15 (scheduled):
 July 16 (manual):
   - Team reviews draft
   - Verifies composition
+  - Previews the release delta and publication artifact
   - Tags as Enterprise v14.0
 ```
 

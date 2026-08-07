@@ -61,6 +61,8 @@ class ReleaseTrackRegistryRepository {
         });
       }
 
+      aggregation.push({ $project: { release_lock: 0 } });
+
       // Total count before pagination
       const totalCountResult = await this.model.aggregate(aggregation).count('totalCount').exec();
       const totalCount = totalCountResult[0]?.totalCount || 0;
@@ -81,6 +83,94 @@ class ReleaseTrackRegistryRepository {
           limit: options.limit || 0,
         },
       };
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async findWithTaggedReleases(options = {}) {
+    try {
+      const query = { 'tagged_releases.0': { $exists: true } };
+      if (options.type) {
+        query.type = options.type;
+      }
+
+      return await this.model
+        .find(query)
+        .select('track_id type name tagged_releases')
+        .sort({ track_id: 1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async findScheduledVirtualTracks() {
+    try {
+      return await this.model
+        .find({
+          type: 'virtual',
+          'snapshot_schedule.mode': { $in: ['cron', 'dates'] },
+        })
+        .select('track_id name snapshot_schedule')
+        .sort({ track_id: 1 })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async replaceTaggedReleases(trackId, taggedReleases, latestTaggedVersion) {
+    try {
+      return await this.model
+        .findOneAndUpdate(
+          { track_id: trackId },
+          {
+            $set: {
+              tagged_releases: taggedReleases,
+              tagged_release_count: taggedReleases.length,
+              latest_tagged_version: latestTaggedVersion,
+              updated_at: new Date(),
+            },
+          },
+          { new: true, runValidators: true, lean: true },
+        )
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async acquireReleaseLock(trackId, token, acquiredAt, staleBefore) {
+    try {
+      return await this.model
+        .findOneAndUpdate(
+          {
+            track_id: trackId,
+            $or: [
+              { release_lock: { $exists: false } },
+              { 'release_lock.acquired_at': { $lt: staleBefore } },
+            ],
+          },
+          { $set: { release_lock: { token, acquired_at: acquiredAt } } },
+          { new: true, runValidators: true, lean: true },
+        )
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async releaseReleaseLock(trackId, token) {
+    try {
+      return await this.model
+        .updateOne(
+          { track_id: trackId, 'release_lock.token': token },
+          { $unset: { release_lock: '' } },
+        )
+        .exec();
     } catch (err) {
       throw new DatabaseError(err);
     }

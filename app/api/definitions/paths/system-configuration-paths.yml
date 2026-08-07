@@ -1,15 +1,18 @@
 paths:
   /api/config/system-version:
     get:
-      summary: 'Get the system version info'
+      summary: 'Get the REST API build information'
       operationId: 'config-get-system-version'
       description: |
-        This endpoint gets the system version info from the package.json file.
+        This public endpoint returns the REST API release version, Git commit,
+        build date, and supported ATT&CK specification version. Container images
+        source the build fields from the same values used for their OCI labels;
+        non-container deployments use configured or package defaults.
       tags:
         - 'System Configuration'
       responses:
         '200':
-          description: 'System version info'
+          description: 'REST API build information'
           content:
             application/json:
               schema:

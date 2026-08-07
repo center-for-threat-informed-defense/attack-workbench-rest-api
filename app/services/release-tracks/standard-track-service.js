@@ -13,8 +13,10 @@
 // =============================================================================
 
 const snapshotService = require('./snapshot-service');
-const objectResolver = require('../../lib/release-tracks/object-resolver');
+const primaryRevisionService = require('./primary-revision-service');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 const conflictResolution = require('../../lib/release-tracks/conflict-resolution');
+const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-invariant');
 const logger = require('../../lib/logger');
 const { NotFoundError, BadRequestError } = require('../../exceptions');
 
@@ -73,8 +75,9 @@ function normalizeObjectRef(entry) {
  * Add one or more objects as candidates on the latest snapshot.
  *
  * For each entry:
- *   - If `modified` is "latest" or omitted, resolve via the STIX service layer.
- *   - Skip duplicates (same object_ref + object_modified already in candidates).
+ *   - If `modified` is "latest" or omitted, validate the object exists and
+ *     preserve a dynamic selector through the candidate/staged workflow.
+ *   - Skip duplicates (same object_ref + object_modified already in any tier).
  *   - New candidates start as "work-in-progress".
  *
  * @param {string} trackId
@@ -85,44 +88,71 @@ function normalizeObjectRef(entry) {
 exports.addCandidates = async function addCandidates(trackId, objectRefs, userId) {
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertStandardTrack(source);
+  const normalizedSource = tierRevisionInvariant.normalizeSnapshot(source);
+  const workingSource = normalizedSource.snapshot;
 
   const now = new Date();
-  const existingCandidates = source.candidates || [];
+  const existingCandidates = workingSource.candidates || [];
+  const existingRevisionKeys = new Set(
+    tierRevisionInvariant.TIER_PRECEDENCE.flatMap((tier) => workingSource[tier] || []).map(
+      tierRevisionInvariant.revisionKey,
+    ),
+  );
   const newEntries = [];
 
   for (const raw of objectRefs) {
     const entry = normalizeObjectRef(raw);
 
-    // Resolve modified timestamp
-    let modified;
-    if (!entry.modified || entry.modified === 'latest') {
-      modified = await objectResolver.resolveLatestModified(entry.id);
-    } else {
-      modified = new Date(entry.modified);
-    }
+    // `latest` remains dynamic through the candidate/staged workflow. The
+    // shared primary-revision boundary resolves it only for existence
+    // validation and does not mutate the persisted selector.
+    const modified =
+      !entry.modified || entry.modified === 'latest'
+        ? revisionReference.LATEST
+        : new Date(entry.modified);
 
-    // Skip if this exact (object_ref + object_modified) already exists in candidates
-    const isDuplicate = existingCandidates.some(
-      (c) =>
-        c.object_ref === entry.id && new Date(c.object_modified).getTime() === modified.getTime(),
-    );
+    const revision = { object_ref: entry.id, object_modified: modified };
+    const revisionKey = tierRevisionInvariant.revisionKey(revision);
+    const isDuplicate = existingRevisionKeys.has(revisionKey);
     if (isDuplicate) {
       logger.verbose(
-        `StandardTrackService: Skipping duplicate candidate ${entry.id} @ ${modified.toISOString()}`,
+        `StandardTrackService: Skipping already-pinned candidate ${entry.id} @ ` +
+          `${revisionReference.isLatest(modified) ? modified : modified.toISOString()}`,
       );
       continue;
     }
 
     newEntries.push({
-      object_ref: entry.id,
-      object_modified: modified,
+      ...revision,
       object_status: 'work-in-progress',
       object_added_at: now,
       object_added_by: userId,
     });
+    existingRevisionKeys.add(revisionKey);
   }
 
-  const mergedCandidates = [...existingCandidates, ...newEntries];
+  if (newEntries.length === 0) {
+    return normalizedSource.removed.length > 0
+      ? snapshotService.cloneSnapshot(trackId, source)
+      : source;
+  }
+
+  await primaryRevisionService.assertRequestEntries(newEntries);
+
+  // Same-object conflicts (the object_ref is already pinned in candidates at
+  // a different revision) are resolved by the into_candidates policy.
+  const conflictPolicy = source.config?.promotion_conflicts?.into_candidates || 'prefer_latest';
+  const { merged: mergedCandidates, rejected } = conflictResolution.applyConflictPolicy(
+    existingCandidates,
+    newEntries,
+    conflictPolicy,
+  );
+  if (rejected.length > 0) {
+    logger.verbose(
+      `StandardTrackService: into_candidates policy "${conflictPolicy}" rejected ` +
+        `${rejected.length} candidate(s) for track "${trackId}"`,
+    );
+  }
 
   let snapshot = await snapshotService.cloneSnapshot(trackId, source, {
     candidates: mergedCandidates,
@@ -348,20 +378,21 @@ exports.updateCandidateVersion = async function updateCandidateVersion(trackId, 
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertStandardTrack(source);
 
-  const oldTime = new Date(data.old_modified).getTime();
   const existingCandidates = source.candidates || [];
 
   let found = false;
+  let updatedEntry;
   const updatedCandidates = existingCandidates.map((candidate) => {
     if (
       candidate.object_ref === objectRef &&
-      new Date(candidate.object_modified).getTime() === oldTime
+      revisionReference.sameModified(candidate.object_modified, data.old_modified)
     ) {
       found = true;
-      return {
+      updatedEntry = {
         ...candidate,
-        object_modified: new Date(data.new_modified),
+        object_modified: revisionReference.normalize(data.new_modified),
       };
+      return updatedEntry;
     }
     return candidate;
   });
@@ -373,6 +404,8 @@ exports.updateCandidateVersion = async function updateCandidateVersion(trackId, 
         `not found in track "${trackId}"`,
     });
   }
+
+  await primaryRevisionService.assertRequestEntries([updatedEntry]);
 
   const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
     candidates: updatedCandidates,
@@ -421,13 +454,15 @@ exports.demoteStaged = async function demoteStaged(trackId, objectRefs, userId) 
   const existingCandidates = source.candidates || [];
 
   // Build a lookup key for the refs to demote
-  const demoteKeys = new Set(objectRefs.map((r) => `${r.id}::${new Date(r.modified).getTime()}`));
+  const demoteKeys = new Set(
+    objectRefs.map((r) => `${r.id}::${revisionReference.modifiedKey(r.modified)}`),
+  );
 
   const remainingStaged = [];
   const demotedEntries = [];
 
   for (const staged of existingStaged) {
-    const key = `${staged.object_ref}::${new Date(staged.object_modified).getTime()}`;
+    const key = `${staged.object_ref}::` + revisionReference.modifiedKey(staged.object_modified);
     if (demoteKeys.has(key)) {
       // Convert back to a candidate entry, preserving workflow status
       demotedEntries.push({
@@ -448,9 +483,24 @@ exports.demoteStaged = async function demoteStaged(trackId, objectRefs, userId) 
     });
   }
 
+  // Demoted entries re-enter candidates through the same conflict policy as
+  // manual adds.
+  const conflictPolicy = source.config?.promotion_conflicts?.into_candidates || 'prefer_latest';
+  const { merged: mergedCandidates, rejected } = conflictResolution.applyConflictPolicy(
+    existingCandidates,
+    demotedEntries,
+    conflictPolicy,
+  );
+  if (rejected.length > 0) {
+    logger.verbose(
+      `StandardTrackService: into_candidates policy "${conflictPolicy}" rejected ` +
+        `${rejected.length} demoted entry/entries for track "${trackId}"`,
+    );
+  }
+
   const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
     staged: remainingStaged,
-    candidates: [...existingCandidates, ...demotedEntries],
+    candidates: mergedCandidates,
   });
 
   logger.verbose(

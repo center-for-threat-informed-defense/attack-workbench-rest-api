@@ -7,6 +7,8 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const config = require('../../../config/config');
 const login = require('../../shared/login');
 const { cloneForCreate } = require('../../shared/clone-for-create');
+const Software = require('../../../models/software-model');
+const Technique = require('../../../models/technique-model');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -27,6 +29,16 @@ const initialObjectData = {
     workflow: {
       state: 'work-in-progress',
     },
+    relationship_endpoints: {
+      source: {
+        object_ref: 'malware--00000000-0000-4000-8000-000000000000',
+        object_modified: '2000-01-01T00:00:00.000Z',
+      },
+      target: {
+        object_ref: 'attack-pattern--00000000-0000-4000-8000-000000000000',
+        object_modified: '2000-01-01T00:00:00.000Z',
+      },
+    },
   },
   stix: {
     spec_version: '2.1',
@@ -44,6 +56,7 @@ const initialObjectData = {
 describe('Relationships API', function () {
   let app;
   let passportCookie;
+  let endpointModified;
 
   before(async function () {
     // Establish the database connection
@@ -62,6 +75,37 @@ describe('Relationships API', function () {
 
     // Log into the app
     passportCookie = await login.loginAnonymous(app);
+
+    endpointModified = new Date();
+    const endpointCreated = new Date(endpointModified);
+    await Software.create(
+      [sourceRef1, sourceRef2].map((id, index) => ({
+        workspace: { workflow: { state: 'work-in-progress' } },
+        stix: {
+          type: 'malware',
+          spec_version: '2.1',
+          id,
+          created: endpointCreated,
+          modified: endpointModified,
+          name: `Relationship source ${index + 1}`,
+          is_family: false,
+        },
+      })),
+    );
+    await Technique.create(
+      [targetRef1, targetRef2].map((id, index) => ({
+        workspace: { workflow: { state: 'work-in-progress' } },
+        stix: {
+          type: 'attack-pattern',
+          spec_version: '2.1',
+          id,
+          created: endpointCreated,
+          modified: endpointModified,
+          name: `Relationship target ${index + 1}`,
+          x_mitre_is_subtechnique: false,
+        },
+      })),
+    );
   });
 
   it('GET /api/relationships returns an empty array of relationships', async function () {
@@ -110,6 +154,47 @@ describe('Relationships API', function () {
     expect(relationship1a.stix.created).toBeDefined();
     expect(relationship1a.stix.modified).toBeDefined();
     expect(relationship1a.stix.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
+    expect(relationship1a.workspace.relationship_endpoints).toEqual({
+      source: {
+        object_ref: sourceRef1,
+        object_modified: endpointModified.toISOString(),
+      },
+      target: {
+        object_ref: targetRef1,
+        object_modified: endpointModified.toISOString(),
+      },
+    });
+  });
+
+  it('POST /api/relationships rejects endpoints that cannot be revision-pinned', async function () {
+    const timestamp = new Date().toISOString();
+    const body = {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: {
+        type: 'relationship',
+        spec_version: '2.1',
+        created: timestamp,
+        modified: timestamp,
+        relationship_type: 'uses',
+        source_ref: sourceRef1,
+        target_ref: targetRef3,
+      },
+    };
+
+    const res = await request(app)
+      .post('/api/relationships')
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(400);
+
+    expect(res.body.missing_references).toEqual([
+      {
+        endpoint: 'target',
+        object_ref: targetRef3,
+        object_modified: 'latest',
+      },
+    ]);
   });
 
   it('GET /api/relationships returns the added relationship', async function () {
@@ -166,25 +251,42 @@ describe('Relationships API', function () {
     );
   });
 
-  it('PUT /api/relationships updates a relationship', async function () {
-    const originalModified = relationship1a.stix.modified;
-    const timestamp = new Date().toISOString();
-    relationship1a.stix.modified = timestamp;
-    relationship1a.stix.description = 'This is an updated relationship.';
-    const body = relationship1a;
+  it('PUT /api/relationships rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(relationship1a);
+    body.stix.description = 'This is an updated relationship.';
     const res = await request(app)
-      .put('/api/relationships/' + relationship1a.stix.id + '/modified/' + originalModified)
+      .put(
+        '/api/relationships/' +
+          relationship1a.stix.id +
+          '/modified/' +
+          relationship1a.stix.modified,
+      )
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated relationship
-    const relationship = res.body;
-    expect(relationship).toBeDefined();
-    expect(relationship.stix.id).toBe(relationship1a.stix.id);
-    expect(relationship.stix.modified).toBe(relationship1a.stix.modified);
+    expect(res.body.message).toContain('immutable');
+  });
+
+  it('PUT /api/relationships rejects endpoint changes', async function () {
+    const body = structuredClone(relationship1a);
+    body.stix.source_ref = sourceRef2;
+
+    const res = await request(app)
+      .put(
+        '/api/relationships/' +
+          relationship1a.stix.id +
+          '/modified/' +
+          relationship1a.stix.modified,
+      )
+      .send(body)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(400);
+
+    expect(res.body.immutable_property).toBe('source_ref');
   });
 
   it('POST /api/relationships does not create a relationship with the same id and modified date', async function () {

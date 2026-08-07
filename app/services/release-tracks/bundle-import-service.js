@@ -20,6 +20,7 @@
 const types = require('../../lib/types');
 const logger = require('../../lib/logger');
 const snapshotService = require('./snapshot-service');
+const primaryRevisionService = require('./primary-revision-service');
 const { BadRequestError, DuplicateIdError } = require('../../exceptions');
 
 // ---------------------------------------------------------------------------
@@ -134,18 +135,24 @@ function sortByDependencyOrder(objects) {
 async function importObject(stixObj, serviceMap) {
   const service = serviceMap[stixObj.type];
   if (!service) {
-    logger.warn(
-      `BundleImportService: No service for type "${stixObj.type}", skipping "${stixObj.id}"`,
-    );
-    return { imported: false, ref: null };
+    throw new BadRequestError({
+      message: 'Bundle contains an unsupported primary object type',
+      details: {
+        object_ref: stixObj.id,
+        type: stixObj.type,
+      },
+    });
   }
 
   // Validate required fields
   if (!stixObj.id || !stixObj.modified) {
-    logger.warn(
-      `BundleImportService: Object missing id or modified, skipping: ${JSON.stringify({ id: stixObj.id, type: stixObj.type })}`,
-    );
-    return { imported: false, ref: null };
+    throw new BadRequestError({
+      message: 'Bundle primary object is missing an exact revision identifier',
+      details: {
+        object_ref: stixObj.id,
+        type: stixObj.type,
+      },
+    });
   }
 
   const ref = {
@@ -189,9 +196,18 @@ async function importObject(stixObj, serviceMap) {
       return { imported: false, ref };
     }
 
-    // Non-duplicate errors are logged but don't abort the entire import
+    // A track must never retain a primary reference whose object failed to
+    // import. Previously this path logged the failure and returned the ref.
     logger.error(`BundleImportService: Failed to import "${stixObj.id}":`, err);
-    return { imported: false, ref };
+    throw new BadRequestError({
+      message: 'Failed to import a bundle primary object',
+      details: {
+        object_ref: stixObj.id,
+        object_modified: stixObj.modified,
+        type: stixObj.type,
+      },
+      cause: err,
+    });
   }
 }
 
@@ -279,6 +295,12 @@ exports.createTrackFromBundle = async function createTrackFromBundle(bundleData)
       `BundleImportService: Using imported objects as members (${memberEntries.length} entries)`,
     );
   }
+
+  // Validate the authoritative member list before creating the dynamic track
+  // collection or registry entry. Successfully imported standalone objects
+  // remain available if a later primary is invalid, but no partial track is
+  // persisted.
+  memberEntries = (await primaryRevisionService.assertRequestEntries(memberEntries)).entries;
 
   // ------------------------------------------------------------------
   // Step 4: Create the release track

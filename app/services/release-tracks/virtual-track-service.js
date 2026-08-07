@@ -9,7 +9,7 @@
 // Virtual tracks aggregate content from multiple standard tracks by:
 //   1. Resolving each component track to a specific tagged snapshot
 //   2. Collecting members from each resolved snapshot
-//   3. Applying per-component filters (object_types)
+//   3. Applying per-component filters (object_types and domains)
 //   4. Deduplicating across all components
 //   5. Persisting the result as a new draft snapshot
 //
@@ -17,15 +17,21 @@
 // =============================================================================
 
 const snapshotService = require('./snapshot-service');
+const primaryRevisionService = require('./primary-revision-service');
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
 const deduplicationStrategies = require('../../lib/release-tracks/deduplication-strategies');
+const objectResolver = require('../../lib/release-tracks/object-resolver');
+const EventBus = require('../../lib/event-bus');
+const Events = require('../../lib/event-constants');
 const logger = require('../../lib/logger');
 const {
   BadRequestError,
+  DuplicateIdError,
   TrackNotFoundError,
   NoTaggedSnapshotsError,
   InvalidComponentTypeError,
+  NotFoundError,
 } = require('../../exceptions');
 
 // =============================================================================
@@ -60,6 +66,16 @@ async function validateComponentTracks(componentTracks) {
     });
   }
 
+  const invalidPriority = componentTracks.find(
+    (component) => !Number.isInteger(component.priority) || component.priority < 0,
+  );
+  if (invalidPriority) {
+    throw new BadRequestError({
+      message: 'Invalid component priority',
+      details: 'Each component track must have a non-negative integer priority',
+    });
+  }
+
   // Check for duplicate track_ids
   const trackIds = componentTracks.map((c) => c.track_id);
   const uniqueTrackIds = new Set(trackIds);
@@ -87,7 +103,7 @@ async function validateComponentTracks(componentTracks) {
     if (!registry) {
       throw new TrackNotFoundError(component.track_id);
     }
-    if (registry.type === 'virtual') {
+    if (registry.type !== 'standard') {
       throw new InvalidComponentTypeError(component.track_id);
     }
     registryMap.set(component.track_id, registry);
@@ -95,6 +111,18 @@ async function validateComponentTracks(componentTracks) {
 
   return registryMap;
 }
+
+/**
+ * Validate component identities and types without resolving their snapshots.
+ * Used before initial virtual-track persistence as well as by virtual
+ * operations that replace or materialize composition.
+ *
+ * @param {Object} composition
+ * @returns {Promise<Map<string, Object>>}
+ */
+exports.validateComposition = async function validateComposition(composition) {
+  return validateComponentTracks(composition.component_tracks);
+};
 
 /**
  * Resolve a component track to a specific tagged snapshot based on its
@@ -139,15 +167,46 @@ async function resolveComponentSnapshot(component) {
 }
 
 /**
- * Apply object_types filter to a list of member entries.
+ * Normalize public domain filter names to their STIX x_mitre_domains values.
+ *
+ * @param {string} domain
+ * @returns {string}
+ */
+function normalizeDomain(domain) {
+  return domain.endsWith('-attack') ? domain : `${domain}-attack`;
+}
+
+/**
+ * Read explicit domains, with the established matrix fallback used by the
+ * legacy bundle exporter. Primary matrices identify their domain through the
+ * ATT&CK external reference rather than x_mitre_domains.
+ *
+ * @param {Object} stixObject
+ * @returns {Array<string>}
+ */
+function getObjectDomains(stixObject) {
+  if (Array.isArray(stixObject.x_mitre_domains)) {
+    return stixObject.x_mitre_domains;
+  }
+  if (stixObject.type === 'x-mitre-matrix') {
+    return (stixObject.external_references || [])
+      .map((reference) => reference.external_id)
+      .filter((externalId) => typeof externalId === 'string' && externalId.endsWith('-attack'));
+  }
+  return [];
+}
+
+/**
+ * Apply object type and domain filters to a list of member entries.
  * Filters by extracting the STIX type prefix from the object_ref
  * (e.g., "attack-pattern" from "attack-pattern--uuid").
  *
  * @param {Array<Object>} members - Member entries with object_ref
  * @param {Object} [filters] - { object_types?: string[], domains?: string[] }
+ * @param {Map<string, Array<string>>} domainsByVersion - Exact revision key → domains
  * @returns {Array<Object>} Filtered members
  */
-function applyFilters(members, filters) {
+function applyFilters(members, filters, domainsByVersion) {
   if (!filters) return members;
 
   let filtered = members;
@@ -160,21 +219,106 @@ function applyFilters(members, filters) {
     });
   }
 
-  // Note: domains filtering requires fetching full STIX objects, which is
-  // deferred to Phase 6 (export-service). For now, domains filter is a no-op
-  // logged as a warning.
   if (filters.domains && filters.domains.length > 0) {
-    logger.warn(
-      'VirtualTrackService: domains filter is not yet implemented (requires Phase 6 export infrastructure)',
-    );
+    const allowedDomains = new Set(filters.domains.map(normalizeDomain));
+    filtered = filtered.filter((member) => {
+      const key = `${member.object_ref}::${new Date(member.object_modified).getTime()}`;
+      const objectDomains = domainsByVersion.get(key) || [];
+      return objectDomains.some((domain) => allowedDomains.has(normalizeDomain(domain)));
+    });
   }
 
   return filtered;
 }
 
 /**
- * Core composition resolution logic shared by createVirtualSnapshot and
- * previewVirtualSnapshot.
+ * Hydrate domains for the exact pinned revisions needed by domain filters.
+ *
+ * @param {Array<Object>} componentTracks
+ * @param {Array<Object>} resolutions
+ * @returns {Promise<Map<string, Array<string>>>}
+ */
+async function hydrateDomains(componentTracks, resolutions) {
+  const entries = [];
+  const seen = new Set();
+
+  for (let i = 0; i < componentTracks.length; i++) {
+    if (!componentTracks[i].filters?.domains?.length) continue;
+
+    for (const member of resolutions[i].members || []) {
+      const key = `${member.object_ref}::${new Date(member.object_modified).getTime()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      entries.push(member);
+    }
+  }
+
+  if (entries.length === 0) return new Map();
+
+  const results = await EventBus.emit(Events.ATTACK_OBJECT_REVISIONS_REQUESTED, { entries });
+  const documents = results?.[0];
+  if (!documents) {
+    throw new Error('Unable to hydrate ATT&CK object revisions for virtual domain filtering');
+  }
+
+  return new Map(
+    documents.map((document) => [
+      `${document.stix.id}::${new Date(document.stix.modified).getTime()}`,
+      getObjectDomains(document.stix),
+    ]),
+  );
+}
+
+/**
+ * Lock every component member to an exact revision before filtering and
+ * deduplication. Current snapshots already store Date-valued pins; resolving
+ * missing or `latest` values is a defensive compatibility boundary for legacy
+ * component data. The virtual snapshot itself never persists a moving ref.
+ *
+ * @param {Array<Object>} resolutions
+ * @returns {Promise<Array<Object>>}
+ */
+async function lockComponentMemberRevisions(resolutions) {
+  const latestByObjectRef = new Map();
+
+  const resolveLatest = (objectRef) => {
+    if (!latestByObjectRef.has(objectRef)) {
+      latestByObjectRef.set(objectRef, objectResolver.resolveLatestModified(objectRef));
+    }
+    return latestByObjectRef.get(objectRef);
+  };
+
+  return Promise.all(
+    resolutions.map(async (snapshot) => ({
+      ...snapshot,
+      members: await Promise.all(
+        (snapshot.members || []).map(async (member) => {
+          const unresolved = member.object_modified == null || member.object_modified === 'latest';
+          const objectModified = unresolved
+            ? await resolveLatest(member.object_ref)
+            : new Date(member.object_modified);
+
+          if (Number.isNaN(objectModified.getTime())) {
+            throw new BadRequestError({
+              message: 'Component snapshot contains an invalid member revision',
+              details:
+                `Component ${snapshot.id} member ${member.object_ref} must identify ` +
+                'an exact object_modified revision',
+            });
+          }
+
+          return {
+            ...member,
+            object_modified: objectModified,
+          };
+        }),
+      ),
+    })),
+  );
+}
+
+/**
+ * Resolve the current virtual composition into concrete member revisions.
  *
  * @param {Object} snapshot - The current virtual track snapshot
  * @param {Map<string, Object>} registryMap - track_id → registry entry
@@ -191,9 +335,11 @@ async function resolveComposition(snapshot, registryMap) {
   const allAnnotatedMembers = [];
 
   // Resolve each component track in parallel
-  const resolutions = await Promise.all(
+  const resolvedComponentSnapshots = await Promise.all(
     componentTracks.map((component) => resolveComponentSnapshot(component)),
   );
+  const resolutions = await lockComponentMemberRevisions(resolvedComponentSnapshots);
+  const domainsByVersion = await hydrateDomains(componentTracks, resolutions);
 
   for (let i = 0; i < componentTracks.length; i++) {
     const component = componentTracks[i];
@@ -205,7 +351,7 @@ async function resolveComposition(snapshot, registryMap) {
     const totalObjectsInSource = sourceMembers.length;
 
     // Apply filters
-    const filteredMembers = applyFilters(sourceMembers, component.filters);
+    const filteredMembers = applyFilters(sourceMembers, component.filters, domainsByVersion);
     const objectsAfterFilter = filteredMembers.length;
 
     // Annotate each member with source metadata for deduplication
@@ -237,25 +383,17 @@ async function resolveComposition(snapshot, registryMap) {
   }
 
   // Deduplicate across all components
-  const { members, quarantined, report } = deduplicationStrategies.deduplicate(
+  const { members, quarantined, contributions, report } = deduplicationStrategies.deduplicate(
     allAnnotatedMembers,
     strategy,
   );
 
-  // Update objects_contributed per component by counting how many of each
-  // component's members survived deduplication
+  // Each surviving member is explicitly attributed to one source component
+  // by deduplication, including exact revisions supplied by multiple tracks.
   const survivorSources = new Map();
-  for (const annotated of allAnnotatedMembers) {
-    // Check if this specific entry survived deduplication
-    const survived = members.some(
-      (m) =>
-        m.object_ref === annotated.object_ref &&
-        new Date(m.object_modified).getTime() === new Date(annotated.object_modified).getTime(),
-    );
-    if (survived) {
-      const count = survivorSources.get(annotated._source_track_id) || 0;
-      survivorSources.set(annotated._source_track_id, count + 1);
-    }
+  for (const contribution of contributions) {
+    const count = survivorSources.get(contribution.source_track_id) || 0;
+    survivorSources.set(contribution.source_track_id, count + 1);
   }
 
   for (const meta of componentSnapshotsMeta) {
@@ -288,18 +426,30 @@ async function resolveComposition(snapshot, registryMap) {
  *
  * @param {string} trackId
  * @param {Object} composition - The new composition configuration
- * @param {string} [userId]
+ * @param {string} [_userId]
+ * @param {Object} [options]
+ * @param {Object} [options.scheduledMaterialization]
  * @returns {Promise<Object>} The new snapshot
  */
-// eslint-disable-next-line no-unused-vars
-exports.updateComposition = async function updateComposition(trackId, composition, userId) {
+exports.updateComposition = async function updateComposition(
+  trackId,
+  composition,
+  _userId,
+  options = {},
+) {
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertVirtualTrack(source);
 
   // Validate all component tracks
   await validateComponentTracks(composition.component_tracks);
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, { composition });
+  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
+    composition,
+    members: [],
+    quarantine: [],
+    composition_resolution: null,
+    scheduled_materialization: options.scheduledMaterialization,
+  });
 
   logger.verbose(
     `VirtualTrackService: Updated composition for track "${trackId}" ` +
@@ -321,6 +471,12 @@ exports.updateComposition = async function updateComposition(trackId, compositio
  * @returns {Promise<Object>} The new snapshot with composition_resolution metadata
  */
 exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, options = {}) {
+  const scheduledFor = options.scheduledMaterialization?.scheduled_for;
+  if (scheduledFor) {
+    const existing = await dynamicRepo.getSnapshotByScheduledMaterialization(trackId, scheduledFor);
+    if (existing) return existing;
+  }
+
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertVirtualTrack(source);
 
@@ -340,19 +496,27 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
     source,
     registryMap,
   );
+  await primaryRevisionService.assertStoredEntries([...members, ...quarantined]);
 
   // Build overrides for the new snapshot
   const overrides = {
     members,
     quarantine: quarantined,
     composition_resolution: compositionResolution,
+    scheduled_materialization: options.scheduledMaterialization,
+    snapshot_description: options.description,
   };
 
-  if (options.description !== undefined) {
-    overrides.description = options.description;
-  }
+  let snapshot;
+  try {
+    snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides);
+  } catch (err) {
+    if (!scheduledFor || !(err instanceof DuplicateIdError)) throw err;
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides);
+    const existing = await dynamicRepo.getSnapshotByScheduledMaterialization(trackId, scheduledFor);
+    if (!existing) throw err;
+    snapshot = existing;
+  }
 
   logger.verbose(
     `VirtualTrackService: Created virtual snapshot for track "${trackId}" ` +
@@ -362,59 +526,55 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
 };
 
 /**
- * Preview what a virtual snapshot would contain without persisting.
+ * Resolve one quarantined object by selecting its exact revision.
  *
- * Runs the same resolution and deduplication logic as createVirtualSnapshot
- * but returns the results without saving a new snapshot.
+ * The latest virtual snapshot is cloned into a new draft. The selected
+ * revision becomes the sole member entry for its object_ref, and every
+ * quarantined alternative for that object_ref is removed. The original
+ * composition_resolution remains unchanged as materialization provenance.
  *
  * @param {string} trackId
- * @returns {Promise<Object>} Preview object with resolution details
+ * @param {Object} selection - { object_ref, object_modified }
+ * @returns {Promise<Object>} The new draft snapshot
  */
-exports.previewVirtualSnapshot = async function previewVirtualSnapshot(trackId) {
+exports.promoteQuarantinedObject = async function promoteQuarantinedObject(trackId, selection) {
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertVirtualTrack(source);
 
-  const composition = source.composition;
-  if (!composition || !composition.component_tracks || composition.component_tracks.length === 0) {
-    throw new BadRequestError({
-      message: 'Cannot preview virtual snapshot: no component tracks configured',
-      details: 'Update the composition before previewing a snapshot',
+  const selectedTime = new Date(selection.object_modified).getTime();
+  const selected = (source.quarantine || []).find(
+    (entry) =>
+      entry.object_ref === selection.object_ref &&
+      new Date(entry.object_modified).getTime() === selectedTime,
+  );
+
+  if (!selected) {
+    throw new NotFoundError({
+      details:
+        `Revision '${selection.object_modified}' of '${selection.object_ref}' ` +
+        `was not found in the latest snapshot's quarantine tier`,
     });
   }
 
-  // Validate component tracks
-  const registryMap = await validateComponentTracks(composition.component_tracks);
-
-  // Resolve composition (same logic, but we don't persist)
-  const { members, quarantined, compositionResolution } = await resolveComposition(
-    source,
-    registryMap,
+  const members = (source.members || [])
+    .filter((entry) => entry.object_ref !== selected.object_ref)
+    .concat({
+      object_ref: selected.object_ref,
+      object_modified: selected.object_modified,
+    });
+  const quarantine = (source.quarantine || []).filter(
+    (entry) => entry.object_ref !== selected.object_ref,
   );
+  await primaryRevisionService.assertStoredEntries([...members, ...quarantine]);
 
-  // Build comparison to the latest tagged version (if any)
-  const existingMembers = source.members || [];
-  const existingMemberRefs = new Set(existingMembers.map((m) => m.object_ref));
-  const newMemberRefs = new Set(members.map((m) => m.object_ref));
-
-  const newObjects = members.filter((m) => !existingMemberRefs.has(m.object_ref));
-  const removedObjects = existingMembers.filter((m) => !newMemberRefs.has(m.object_ref));
-  const updatedObjects = members.filter((m) => {
-    const existing = existingMembers.find((e) => e.object_ref === m.object_ref);
-    if (!existing) return false;
-    return new Date(m.object_modified).getTime() !== new Date(existing.object_modified).getTime();
+  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
+    members,
+    quarantine,
   });
 
-  return {
-    track_id: trackId,
-    preview: true,
-    composition_resolution: compositionResolution,
-    members_count: members.length,
-    quarantined_count: quarantined.length,
-    comparison_to_current: {
-      current_members_count: existingMembers.length,
-      new_objects: newObjects.length,
-      updated_objects: updatedObjects.length,
-      removed_objects: removedObjects.length,
-    },
-  };
+  logger.verbose(
+    `VirtualTrackService: Promoted quarantined revision "${selected.object_ref}" ` +
+      `at ${new Date(selected.object_modified).toISOString()} in track "${trackId}"`,
+  );
+  return snapshot;
 };

@@ -33,6 +33,14 @@ router
   );
 
 router
+  .route('/release-tracks/objects/:objectRef/releases')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    releaseTracksController.getReleasesByObject,
+  );
+
+router
   .route('/release-tracks/new')
   .post(
     authn.authenticate,
@@ -60,42 +68,12 @@ router
 // Latest snapshot operations (parameterised by :id)
 // =============================================================================
 
-/** Bump preview must be registered before :id/bump to avoid param conflict */
-router
-  .route('/release-tracks/:id/bump/preview')
-  .get(
-    authn.authenticate,
-    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-    releaseTracksController.previewBump,
-  );
-
 router
   .route('/release-tracks/:id/meta')
   .post(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
     releaseTracksController.updateMetadataByLatest,
-  );
-
-/**
- * !!IMPORTANT
- * The following endpoint is considered dangerous. It is intended for retroactive hotfixes only. Thus, only admins may use it.
- * The main workflow for enrolling new member objects into members is through the candidate-staging promotion cycle.
- */
-router
-  .route('/release-tracks/:id/contents')
-  .post(
-    authn.authenticate,
-    authz.requireRole(authz.admin),
-    releaseTracksController.updateContentsByLatest,
-  );
-
-router
-  .route('/release-tracks/:id/bump')
-  .post(
-    authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.bumpByLatest,
   );
 
 router
@@ -205,51 +183,86 @@ router
   );
 
 // =============================================================================
-// Virtual track operations (static snapshot sub-paths before :modified param)
+// Snapshot collection and static sub-paths (before :modified param)
 // =============================================================================
 
 router
-  .route('/release-tracks/:id/snapshots/preview')
+  .route('/release-tracks/:id/snapshots')
   .get(
     authn.authenticate,
     authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-    releaseTracksController.previewVirtualSnapshot,
+    releaseTracksController.listSnapshots,
   );
 
 router
-  .route('/release-tracks/:id/snapshots/create')
+  .route('/release-tracks/:id/snapshots/latest')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, [
+      authz.serviceRoles.readOnly,
+      authz.serviceRoles.stixExport,
+    ]),
+    releaseTracksController.retrieveLatestSnapshot,
+  );
+
+router
+  .route('/release-tracks/:id/snapshots/latest/release/preview')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    releaseTracksController.previewLatestRelease,
+  );
+
+router
+  .route('/release-tracks/:id/snapshots/latest/release')
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.releaseLatest,
+  );
+
+router
+  .route('/release-tracks/:id/virtual/snapshots/create')
   .post(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
     releaseTracksController.createVirtualSnapshot,
   );
 
-// =============================================================================
-// Snapshot-specific operations (parameterised by :modified)
-// =============================================================================
-
 router
-  .route('/release-tracks/:id/snapshots/:modified/meta')
+  .route('/release-tracks/:id/virtual/quarantine/promote')
   .post(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.updateMetadataByModified,
+    releaseTracksController.promoteQuarantinedObject,
+  );
+
+// =============================================================================
+// Snapshot-specific read, release, clone, and deletion operations
+// =============================================================================
+
+router
+  .route('/release-tracks/:id/snapshots/:modified/description')
+  .put(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.updateSnapshotDescription,
   );
 
 router
-  .route('/release-tracks/:id/snapshots/:modified/contents')
-  .post(
+  .route('/release-tracks/:id/snapshots/:modified/release/preview')
+  .get(
     authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.updateContentsByModified,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    releaseTracksController.previewReleaseByModified,
   );
 
 router
-  .route('/release-tracks/:id/snapshots/:modified/bump')
+  .route('/release-tracks/:id/snapshots/:modified/release')
   .post(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.bumpByModified,
+    releaseTracksController.releaseByModified,
   );
 
 router
@@ -258,6 +271,27 @@ router
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
     releaseTracksController.cloneByModified,
+  );
+
+router
+  .route('/release-tracks/:id/snapshots/:modified/graph/reconstruct')
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.admin),
+    releaseTracksController.reconstructSnapshotGraph,
+  );
+
+router
+  .route('/release-tracks/:id/snapshots/:modified/graph')
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.createSnapshotGraph,
+  )
+  .delete(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.deleteSnapshotGraph,
   );
 
 router
@@ -278,7 +312,7 @@ router
 // =============================================================================
 
 router
-  .route('/release-tracks/:id/composition')
+  .route('/release-tracks/:id/virtual/composition')
   .put(
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
@@ -286,19 +320,14 @@ router
   );
 
 // =============================================================================
-// Retrieve / delete release track (must be last -- :id is a catch-all param)
+// Delete release track (must be last -- :id is a catch-all param)
 // =============================================================================
 
 router
   .route('/release-tracks/:id')
-  .get(
-    authn.authenticate,
-    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
-    releaseTracksController.retrieveLatestSnapshot,
-  )
   .delete(
     authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
+    authz.requireRole(authz.admin),
     releaseTracksController.deleteReleaseTrack,
   );
 

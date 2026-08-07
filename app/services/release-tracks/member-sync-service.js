@@ -3,16 +3,21 @@
 // =============================================================================
 // Member Sync Service
 //
-// Handles automatic enrollment of new object revisions as candidates when
-// the object is already a member of a release track. This service implements
-// the "Member Sync Strategies" feature documented in 08_MEMBER_SYNC_STRATEGIES.md.
+// Keeps release tracks in sync with new object revisions under the
+// track_latest strategy (see member-sync-strategies.md):
+//   - Objects in `members`: new revisions are auto-enrolled as candidates.
+//   - Objects pinned in `candidates`/`staged`: the pin follows the new
+//     revision per the supplant config — otherwise the pin silently goes
+//     stale while the author keeps editing, and the release would ship an
+//     old revision (the object's latest view would also lose its
+//     workspace.release_tracks backref).
 //
 // Core functionality:
 //   - Listens for STIX object modification events via EventBus
-//   - Identifies release tracks where the modified object is a member
+//   - Identifies release tracks that reference the modified object
 //   - Applies the configured member sync strategy (track_latest vs manual)
 //   - Handles supplant behavior (replace/queue/ignore)
-//   - Creates new draft snapshots with auto-enrolled candidates
+//   - Creates new draft snapshots with the updated tiers
 //
 // This service is event-driven and operates independently of the main
 // release track workflow. It integrates with workflow-service for
@@ -21,16 +26,43 @@
 // Event Integration:
 //   Subscribes to BaseService CRUD events ({type}::created, {type}::updated)
 //   via the EventBus. When a STIX object is created or updated, this service
-//   checks if it's a member of any release track and auto-enrolls if configured.
+//   checks whether any release track references it and syncs if configured.
+//   Relationships are deliberately not subscribed: bundle export pulls
+//   active relationships dynamically.
 // =============================================================================
 
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
 const dynamicRepo = require('../../repository/release-tracks/release-track-dynamic.repository');
 const snapshotService = require('./snapshot-service');
-const workflowService = require('./workflow-service');
+const workflowGate = require('../../lib/release-tracks/workflow-gate');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 const logger = require('../../lib/logger');
 const EventBus = require('../../lib/event-bus');
 const EventConstants = require('../../lib/event-constants');
+
+// Concurrent object creates can affect the same standard track. Snapshot
+// updates are read-modify-write operations, so serialize them per track while
+// still allowing unrelated tracks to progress concurrently.
+const trackLocks = new Map();
+
+async function withTrackLock(trackId, operation) {
+  const previous = trackLocks.get(trackId) || Promise.resolve();
+  let release;
+  const current = new Promise((resolve) => {
+    release = resolve;
+  });
+  trackLocks.set(trackId, current);
+
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (trackLocks.get(trackId) === current) {
+      trackLocks.delete(trackId);
+    }
+  }
+}
 
 // =============================================================================
 // Main entry point
@@ -50,28 +82,44 @@ const EventConstants = require('../../lib/event-constants');
  * @returns {Promise<Object[]>} Array of affected release track snapshots
  */
 exports.handleObjectModified = async function handleObjectModified(event) {
-  const { objectRef, newModified, modifiedBy } = event;
+  const { objectRef, newModified, modifiedBy, trigger } = event;
 
-  // 1. Find all release tracks where this object is in members
-  const affectedTracks = await findTracksWithObjectInMembers(objectRef);
+  // 1. Find all release tracks that reference this object (members,
+  //    candidates, or staged)
+  const affectedTracks = await findTracksReferencingObject(objectRef);
 
   if (affectedTracks.length === 0) {
-    logger.debug(`[member-sync] No release tracks contain ${objectRef} in members`);
+    logger.debug(`[member-sync] No release tracks reference ${objectRef}`);
     return [];
   }
 
-  logger.debug(
-    `[member-sync] Found ${affectedTracks.length} track(s) with ${objectRef} in members`,
-  );
+  logger.debug(`[member-sync] Found ${affectedTracks.length} track(s) referencing ${objectRef}`);
 
   // 2. Process each track according to its member_sync config
   const results = [];
   for (const trackInfo of affectedTracks) {
     try {
-      const result = await processMemberSync(trackInfo.trackId, trackInfo.snapshot, {
-        objectRef,
-        newModified,
-        modifiedBy,
+      const result = await withTrackLock(trackInfo.trackId, async () => {
+        // Discovery may have happened while another object was cloning this
+        // track. Refresh inside the lock so this mutation always builds on the
+        // authoritative latest snapshot instead of overwriting its peer.
+        const snapshot = await dynamicRepo.getLatestSnapshot(trackInfo.trackId);
+        if (!snapshot) return null;
+
+        const isMember = (snapshot.members || []).some((entry) => entry.object_ref === objectRef);
+        const isTracked =
+          isMember ||
+          (snapshot.candidates || []).some((entry) => entry.object_ref === objectRef) ||
+          (snapshot.staged || []).some((entry) => entry.object_ref === objectRef);
+        if (!isTracked) return null;
+
+        return processMemberSync(trackInfo.trackId, snapshot, {
+          objectRef,
+          newModified,
+          modifiedBy,
+          trigger,
+          isMember,
+        });
       });
       if (result) results.push(result);
     } catch (err) {
@@ -88,12 +136,18 @@ exports.handleObjectModified = async function handleObjectModified(event) {
 // =============================================================================
 
 /**
- * Find all release tracks where the given object is in the members array.
+ * Find all release tracks whose latest snapshot references the given object
+ * in the members, candidates, or staged tiers.
+ *
+ * Members enroll new revisions as candidates; candidate/staged pins follow
+ * new revisions per the supplant config — otherwise a pin silently goes
+ * stale while the author keeps editing, and the release would ship an old
+ * revision.
  *
  * @param {string} objectRef - The STIX ID to search for
- * @returns {Promise<Array<{trackId: string, snapshot: Object}>>}
+ * @returns {Promise<Array<{trackId: string, snapshot: Object, isMember: boolean}>>}
  */
-async function findTracksWithObjectInMembers(objectRef) {
+async function findTracksReferencingObject(objectRef) {
   // Get all track IDs from registry
   const allTracks = await registryRepo.findAll({ limit: 10000 });
   const results = [];
@@ -105,12 +159,17 @@ async function findTracksWithObjectInMembers(objectRef) {
     const snapshot = await dynamicRepo.getLatestSnapshot(trackInfo.track_id);
     if (!snapshot) continue;
 
-    // Check if object is in members
-    const memberEntry = snapshot.members?.find((m) => m.object_ref === objectRef);
-    if (memberEntry) {
+    const isMember = (snapshot.members || []).some((m) => m.object_ref === objectRef);
+    const isTracked =
+      isMember ||
+      (snapshot.candidates || []).some((c) => c.object_ref === objectRef) ||
+      (snapshot.staged || []).some((s) => s.object_ref === objectRef);
+
+    if (isTracked) {
       results.push({
         trackId: trackInfo.track_id,
         snapshot,
+        isMember,
       });
     }
   }
@@ -134,16 +193,23 @@ async function findTracksWithObjectInMembers(objectRef) {
  * @param {string} event.objectRef - STIX ID of the modified object
  * @param {Date|string} event.newModified - New modified timestamp
  * @param {string} [event.modifiedBy] - User who made the modification
+ * @param {string} [event.trigger] - 'new-revision' | 'in-place-update' | 'revocation'
  * @returns {Promise<Object|null>} New snapshot if changes made, null otherwise
  */
 async function processMemberSync(trackId, snapshot, event) {
-  const { objectRef, newModified, modifiedBy } = event;
+  const { objectRef, newModified, modifiedBy, isMember, trigger = 'new-revision' } = event;
 
   // Get member sync config with defaults
   const config = getMemberSyncConfig(snapshot);
+  const dynamicWorkflowEntry = [...(snapshot.candidates || []), ...(snapshot.staged || [])].find(
+    (entry) => entry.object_ref === objectRef && revisionReference.isLatest(entry.object_modified),
+  );
 
   // Check strategy
   if (config.strategy === 'manual') {
+    if (dynamicWorkflowEntry && trigger !== 'in-place-update') {
+      await snapshotService.emitContentsChanged(trackId, snapshot);
+    }
     logger.debug(`[member-sync] Track ${trackId} uses manual strategy, skipping auto-enrollment`);
     return null;
   }
@@ -155,26 +221,44 @@ async function processMemberSync(trackId, snapshot, event) {
   const existingEntry = existingInStaged || existingInCandidates;
   const existingTier = existingInStaged ? 'staged' : existingInCandidates ? 'candidates' : null;
 
-  // Determine action based on supplant.behavior
-  let action = null;
-  if (!existingEntry) {
-    // No existing entry → simple enrollment
-    action = { type: 'enroll', tier: 'candidates' };
+  // Determine how the entry enters the tier arrays
+  let mode;
+  if (trigger === 'in-place-update') {
+    // In-place edits mutate the pinned content itself; supplant behavior
+    // (which governs how *new revisions* relate to existing pins) does not
+    // apply — the pinned entry is always re-marked, even under queue.
+    if (!existingEntry) {
+      // The edited revision is not pinned by this track (e.g. an unpinned
+      // older revision of a member object) — nothing the track ships changed.
+      return null;
+    }
+    mode = 'move-pin';
+  } else if (!existingEntry) {
+    // No candidate/staged entry. Only members enroll new revisions from
+    // scratch; a non-member object can only be here via a pin that has
+    // since disappeared (snapshot changed between discovery and processing).
+    if (!isMember) return null;
+    mode = 'enroll';
   } else {
-    // Existing entry → apply supplant behavior
     switch (config.supplant.behavior) {
       case 'replace':
-        action = {
-          type: 'replace',
-          removeTier: existingTier,
-          removeEntry: existingEntry,
-          targetTier: config.supplant.status_policy === 'preserve' ? existingTier : 'candidates',
-        };
+        mode = 'move-pin';
         break;
       case 'queue':
-        action = { type: 'enroll', tier: 'candidates' };
+        mode = 'queue';
         break;
       case 'ignore':
+      default:
+        if (
+          existingEntry &&
+          revisionReference.isLatest(existingEntry.object_modified) &&
+          trigger !== 'in-place-update'
+        ) {
+          // The persisted selector already follows this revision even though
+          // the supplant policy requests no workflow mutation. Reconcile
+          // backrefs so the newly-latest object document reflects that fact.
+          await snapshotService.emitContentsChanged(trackId, snapshot);
+        }
         logger.debug(
           `[member-sync] Track ${trackId}: ignoring ${objectRef} (existing entry in ${existingTier})`,
         );
@@ -182,61 +266,111 @@ async function processMemberSync(trackId, snapshot, event) {
     }
   }
 
-  if (!action) return null;
+  // A dynamic selector already follows the newly-created revision. Queueing a
+  // second `latest` entry would create an indistinguishable cross-tier
+  // duplicate, so retain the existing workflow entry and move its backref.
+  if (
+    mode === 'queue' &&
+    existingEntry &&
+    revisionReference.isLatest(existingEntry.object_modified)
+  ) {
+    await snapshotService.emitContentsChanged(trackId, snapshot);
+    return null;
+  }
 
-  // Build the new candidate/staged entry
+  // Workflow gate: the single decision point for the entry's tier and
+  // status given all priors — including the candidacy threshold, so
+  // auto-promotion is decided here in one step instead of bouncing the
+  // entry through candidates and a second snapshot.
+  const placement = workflowGate.decidePlacement({
+    trigger,
+    mode,
+    previousEntry: existingEntry
+      ? { tier: existingTier, status: existingEntry.object_status }
+      : null,
+    statusPolicy: config.supplant.status_policy,
+    candidacyThreshold: snapshot.config?.candidacy_threshold || 'reviewed',
+    autoPromote: snapshot.config?.auto_promote === true,
+  });
+
+  const targetModified = revisionReference.LATEST;
+
+  if (mode === 'enroll' || mode === 'queue') {
+    // Skip if this exact revision is already pinned in any tier — enrolling
+    // a dynamic selector for the same revision would create a redundant
+    // cross-tier reference (e.g. a re-import announcing an already-released
+    // revision).
+    const alreadyPinned = ['members', 'staged', 'candidates'].some((tier) =>
+      (snapshot[tier] || []).some(
+        (e) =>
+          e.object_ref === objectRef &&
+          revisionReference.sameModified(e.object_modified, newModified),
+      ),
+    );
+    if (alreadyPinned) {
+      logger.debug(
+        `[member-sync] Track ${trackId}: revision ${objectRef} @ ` +
+          `${new Date(newModified).toISOString()} is already pinned, skipping enrollment`,
+      );
+      return null;
+    }
+  }
+
+  if (mode === 'move-pin') {
+    // Skip no-op moves: same pin key, same tier, same status (e.g. a second
+    // in-place edit of an entry already marked modified-in-place).
+    const currentStatus = existingEntry.object_status || 'work-in-progress';
+    if (
+      revisionReference.sameModified(existingEntry.object_modified, targetModified) &&
+      placement.tier === existingTier &&
+      placement.status === currentStatus
+    ) {
+      if (trigger !== 'in-place-update') {
+        await snapshotService.emitContentsChanged(trackId, snapshot);
+      }
+      logger.debug(
+        `[member-sync] Track ${trackId}: change to ${objectRef} leaves the pinned entry ` +
+          `unchanged, skipping`,
+      );
+      return null;
+    }
+  }
+
+  // Build the new tier entry
   const now = new Date();
   const newEntry = {
     object_ref: objectRef,
-    object_modified: new Date(newModified),
-    object_added_at: now,
-    object_added_by: modifiedBy || 'system',
+    object_modified: targetModified,
+    object_status: placement.status,
   };
-
-  // Determine status and tier placement
-  const targetTier = action.targetTier || action.tier;
-
-  if (action.type === 'replace' && config.supplant.status_policy === 'preserve') {
-    // Preserve status from old entry
-    newEntry.object_status = action.removeEntry.object_status;
-    if (targetTier === 'staged') {
-      newEntry.object_staged_at = now;
-      newEntry.object_staged_by = modifiedBy || 'system';
-    }
+  if (placement.tier === 'staged') {
+    newEntry.object_staged_at = now;
+    newEntry.object_staged_by = modifiedBy || 'system';
   } else {
-    // Reset status to work-in-progress
-    newEntry.object_status = 'work-in-progress';
+    newEntry.object_added_at = now;
+    newEntry.object_added_by = modifiedBy || 'system';
   }
 
   // Build updated tier arrays
   let newCandidates = [...(snapshot.candidates || [])];
   let newStaged = [...(snapshot.staged || [])];
 
-  // Remove old entry if replacing
-  if (action.type === 'replace') {
-    if (action.removeTier === 'candidates') {
-      newCandidates = newCandidates.filter(
-        (c) =>
-          !(
-            c.object_ref === objectRef &&
-            new Date(c.object_modified).getTime() ===
-              new Date(action.removeEntry.object_modified).getTime()
-          ),
+  // Remove the previous entry when moving the pin
+  if (mode === 'move-pin') {
+    const keep = (e) =>
+      !(
+        e.object_ref === objectRef &&
+        revisionReference.sameModified(e.object_modified, existingEntry.object_modified)
       );
-    } else if (action.removeTier === 'staged') {
-      newStaged = newStaged.filter(
-        (s) =>
-          !(
-            s.object_ref === objectRef &&
-            new Date(s.object_modified).getTime() ===
-              new Date(action.removeEntry.object_modified).getTime()
-          ),
-      );
+    if (existingTier === 'candidates') {
+      newCandidates = newCandidates.filter(keep);
+    } else {
+      newStaged = newStaged.filter(keep);
     }
   }
 
-  // Add new entry to target tier
-  if (targetTier === 'staged') {
+  // Add the new entry to the tier the gate selected
+  if (placement.tier === 'staged') {
     newStaged.push(newEntry);
   } else {
     newCandidates.push(newEntry);
@@ -248,16 +382,10 @@ async function processMemberSync(trackId, snapshot, event) {
     staged: newStaged,
   });
 
-  logger.info(`[member-sync] Track ${trackId}: ${action.type} ${objectRef} → ${targetTier}`);
-
-  // Check if auto-promotion should occur (new entry in candidates that meets threshold)
-  if (targetTier === 'candidates' && snapshot.config?.auto_promote) {
-    const promoted = await workflowService.evaluateAutoPromotion(trackId, newSnapshot);
-    if (promoted) {
-      logger.info(`[member-sync] Track ${trackId}: auto-promoted ${objectRef} to staged`);
-      return promoted;
-    }
-  }
+  logger.info(
+    `[member-sync] Track ${trackId}: ${trigger} (${mode}) ${objectRef} → ` +
+      `${placement.tier}/${placement.status}`,
+  );
 
   return newSnapshot;
 }
@@ -341,11 +469,14 @@ const STIX_OBJECT_EVENTS = [
 async function handleStixObjectEvent(payload) {
   const { stixId, document, previousDocument, options } = payload;
 
-  // Transform to member sync event format
+  // Transform to member sync event format. PUT revision identity is
+  // immutable, so an updated event (previousDocument present) is always an
+  // in-place edit of the same revision; a created event is a new revision.
   const event = {
     objectRef: stixId,
     newModified: document.stix?.modified,
     oldModified: previousDocument?.stix?.modified,
+    trigger: previousDocument ? 'in-place-update' : 'new-revision',
     // Try to get user from options (create) or from document workflow metadata
     modifiedBy:
       options?.userAccountId || document.workspace?.workflow?.created_by_user_account || 'system',
@@ -359,18 +490,127 @@ async function handleStixObjectEvent(payload) {
 }
 
 /**
+ * All STIX object revoked events. The revoke workflow saves the revoked
+ * revision directly via the repository (no ::created/::updated fires), so
+ * without this subscription a track would silently keep exporting the
+ * pre-revoke revision.
+ */
+const STIX_OBJECT_REVOKED_EVENTS = [
+  EventConstants.ATTACK_PATTERN_REVOKED,
+  EventConstants.TACTIC_REVOKED,
+  EventConstants.COURSE_OF_ACTION_REVOKED,
+  EventConstants.INTRUSION_SET_REVOKED,
+  EventConstants.MALWARE_REVOKED,
+  EventConstants.TOOL_REVOKED,
+  EventConstants.CAMPAIGN_REVOKED,
+  EventConstants.DATA_SOURCE_REVOKED,
+  EventConstants.DATA_COMPONENT_REVOKED,
+  EventConstants.MATRIX_REVOKED,
+  EventConstants.ASSET_REVOKED,
+];
+
+/**
+ * Handle a STIX object revoked event from BaseService.revoke().
+ *
+ * The revoked payload shape differs from created/updated: the new revision
+ * (revoked: true) arrives as payload.revokedDocument. Treat it like any
+ * other new revision — enroll it in member tracks, move candidate/staged
+ * pins per the supplant config.
+ *
+ * @param {Object} payload - Event payload from BaseService.revoke()
+ * @param {string} payload.stixId - The STIX ID of the revoked object
+ * @param {Object} payload.revokedDocument - The new revoked revision
+ * @param {Object} [payload.options] - Revocation options
+ */
+async function handleStixObjectRevokedEvent(payload) {
+  const { stixId, revokedDocument, options } = payload;
+
+  const event = {
+    objectRef: stixId,
+    newModified: revokedDocument?.stix?.modified,
+    trigger: 'revocation',
+    modifiedBy:
+      options?.userAccountId ||
+      revokedDocument?.workspace?.workflow?.created_by_user_account ||
+      'system',
+  };
+
+  try {
+    await exports.handleObjectModified(event);
+  } catch (err) {
+    logger.error(`[member-sync] Error handling object revocation: ${err.message}`, err);
+  }
+}
+
+/**
+ * Technique/subtechnique conversion events. Conversions save the new
+ * revision directly via the repository (no ::created/::updated fires), so
+ * without this subscription a track pinning the converted object would keep
+ * pinning the pre-conversion revision with no capture.
+ */
+const STIX_OBJECT_CONVERTED_EVENTS = [
+  EventConstants.TECHNIQUE_CONVERTED_TO_SUBTECHNIQUE,
+  EventConstants.SUBTECHNIQUE_CONVERTED_TO_TECHNIQUE,
+];
+
+/**
+ * Handle a technique/subtechnique conversion event.
+ *
+ * The conversion produces a new revision (payload.document) — treat it like
+ * any other new revision: enroll it in member tracks, move candidate/staged
+ * pins per the supplant config.
+ *
+ * @param {Object} payload - Event payload from TechniquesService
+ * @param {string} payload.stixId - The STIX ID of the converted object
+ * @param {Object} payload.document - The new converted revision
+ * @param {string} [payload.userAccountId] - The acting user
+ */
+async function handleStixObjectConvertedEvent(payload) {
+  const { stixId, document, userAccountId } = payload;
+
+  if (!document?.stix?.modified) {
+    logger.warn(`[member-sync] Conversion event for ${stixId} carried no document, skipping`);
+    return;
+  }
+
+  const event = {
+    objectRef: stixId,
+    newModified: document.stix.modified,
+    trigger: 'new-revision',
+    modifiedBy: userAccountId || document.workspace?.workflow?.created_by_user_account || 'system',
+  };
+
+  try {
+    await exports.handleObjectModified(event);
+  } catch (err) {
+    logger.error(`[member-sync] Error handling object conversion: ${err.message}`, err);
+  }
+}
+
+/**
  * Initialize event listeners for member sync.
  *
- * Subscribes to all STIX object created/updated events via the EventBus.
- * Called automatically when this module is loaded.
+ * Subscribes to all STIX object created/updated/revoked/converted events via
+ * the EventBus. Called automatically when this module is loaded.
  */
 function initializeEventListeners() {
   for (const eventName of STIX_OBJECT_EVENTS) {
     EventBus.on(eventName, handleStixObjectEvent);
   }
+  for (const eventName of STIX_OBJECT_REVOKED_EVENTS) {
+    EventBus.on(eventName, handleStixObjectRevokedEvent);
+  }
+  for (const eventName of STIX_OBJECT_CONVERTED_EVENTS) {
+    EventBus.on(eventName, handleStixObjectConvertedEvent);
+  }
 
   logger.info(
-    `[member-sync] Member sync service initialized, listening to ${STIX_OBJECT_EVENTS.length} event types`,
+    `[member-sync] Member sync service initialized, listening to ` +
+      `${
+        STIX_OBJECT_EVENTS.length +
+        STIX_OBJECT_REVOKED_EVENTS.length +
+        STIX_OBJECT_CONVERTED_EVENTS.length
+      } event types`,
   );
 }
 
@@ -383,9 +623,14 @@ initializeEventListeners();
 
 // Expose internal functions for unit testing
 exports._internal = {
-  findTracksWithObjectInMembers,
+  findTracksReferencingObject,
   processMemberSync,
+  withTrackLock,
   getMemberSyncConfig,
   handleStixObjectEvent,
+  handleStixObjectRevokedEvent,
+  handleStixObjectConvertedEvent,
   STIX_OBJECT_EVENTS,
+  STIX_OBJECT_REVOKED_EVENTS,
+  STIX_OBJECT_CONVERTED_EVENTS,
 };

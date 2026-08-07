@@ -169,17 +169,13 @@ class ValidationBypassesService {
       triggerEvent: Events.SYSTEM_CONFIGURATION_NAMESPACE_CHANGED,
     }));
 
+    let created = 0;
     for (const rule of rules) {
-      try {
-        await this.repository.save(rule);
-      } catch (err) {
-        // Skip duplicates — rule may already exist
-        if (err.name === 'DuplicateIdError') continue;
-        throw err;
-      }
+      const result = await this.repository.upsertRule(rule);
+      if (result.created) created++;
     }
 
-    logger.info(`Created ${rules.length} namespace validation bypass rules`);
+    logger.info(`Created ${created} of ${rules.length} namespace validation bypass rules`);
   }
 
   /**
@@ -199,17 +195,13 @@ class ValidationBypassesService {
       triggerEvent,
     }));
 
+    let created = 0;
     for (const rule of rules) {
-      try {
-        await this.repository.save(rule);
-      } catch (err) {
-        // Skip duplicates — rule may already exist
-        if (err.name === 'DuplicateIdError') continue;
-        throw err;
-      }
+      const result = await this.repository.upsertRule(rule);
+      if (result.created) created++;
     }
 
-    logger.info(`Created ${rules.length} identity validation bypass rules`);
+    logger.info(`Created ${created} of ${rules.length} identity validation bypass rules`);
   }
 
   /**
@@ -267,16 +259,9 @@ class ValidationBypassesService {
         autoCreatedReason: BypassRuleReasons.STATIC,
       };
 
-      try {
-        await this.repository.save(bypassRule);
-        created++;
-      } catch (err) {
-        if (err.name === 'DuplicateIdError') {
-          skipped++;
-          continue;
-        }
-        throw err;
-      }
+      const result = await this.repository.upsertRule(bypassRule);
+      if (result.created) created++;
+      else skipped++;
     }
 
     logger.info(

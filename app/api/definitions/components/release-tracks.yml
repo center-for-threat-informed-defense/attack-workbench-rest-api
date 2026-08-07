@@ -23,9 +23,28 @@ components:
           nullable: true
           description: 'Semantic version (e.g., "1.0", "2.1") if tagged, null for draft snapshots'
           example: '1.0'
+        graph_manifest_id:
+          type: string
+          readOnly: true
+          description: |
+            Server-controlled identifier for an opt-in deterministic member
+            graph on a tagged snapshot. Absent on drafts and graphless tagged
+            snapshots. Clients should treat this value as opaque.
+        bundle_hashes:
+          $ref: '#/components/schemas/bundle-hashes'
+        snapshot_description:
+          type: string
+          maxLength: 4000
+          description: |
+            User-authored, snapshot-local notes. Editors may change this
+            workspace annotation without changing the snapshot identity or
+            release tag while no pinned member graph exists. Cached snapshots
+            reject note edits until their graph is deleted and regenerated;
+            graphless exports fall back to the track description when absent.
         name:
           type: string
-          description: 'Human-readable track name'
+          pattern: '^[a-zA-Z0-9 &]+$'
+          description: 'Human-readable track name containing alphanumeric characters, spaces, and ampersands'
           example: 'Enterprise ATT&CK'
         description:
           type: string
@@ -70,6 +89,25 @@ components:
           nullable: true
           description: 'Component track references (virtual tracks only)'
           $ref: '#/components/schemas/composition'
+        composition_resolution:
+          type: object
+          nullable: true
+          description: |
+            Immutable component-resolution provenance for a materialized virtual
+            draft. Null or absent means the virtual composition is configured
+            but has not been materialized and therefore cannot be previewed or
+            released. Duplicate counts include STIX IDs contributed by more than
+            one component, while conflicts include only IDs with genuinely
+            different revisions. Each surviving member is attributed to exactly
+            one component in objects_contributed.
+        scheduled_materialization:
+          nullable: true
+          description: |
+            Immutable per-snapshot materialization metadata for virtual
+            tracks. Clients may set it during virtual-track creation or
+            composition update; the scheduler sets the same shape on drafts
+            that it creates.
+          $ref: '#/components/schemas/scheduled-materialization'
         config:
           $ref: '#/components/schemas/track-config'
         version_history:
@@ -78,18 +116,165 @@ components:
           items:
             $ref: '#/components/schemas/version-history-entry'
 
-    tier-entry:
+    graph-statistics:
       type: object
-      description: 'A reference to a specific version of a STIX object'
+      readOnly: true
+      description: 'Counts of exact revision pointers by role in a materialized snapshot graph'
+      required:
+        - primary_count
+        - secondary_count
+        - relationship_count
+        - supporting_count
+        - link_target_count
+        - total_count
+      properties:
+        primary_count:
+          type: integer
+          minimum: 0
+          description: 'Primary member objects selected for the snapshot'
+        secondary_count:
+          type: integer
+          minimum: 0
+          description: 'Source-attested historical non-member objects; zero for ordinary closed-member graphs'
+        relationship_count:
+          type: integer
+          minimum: 0
+          description: 'Relationships connecting objects in the resolved graph'
+        supporting_count:
+          type: integer
+          minimum: 0
+          description: 'Supporting identities and marking definitions required by cached objects'
+        link_target_count:
+          type: integer
+          minimum: 0
+          description: 'Objects pinned to resolve LinkById references deterministically'
+        total_count:
+          type: integer
+          minimum: 0
+          description: 'Total emitted graph dependencies, excluding the collection metadata entry'
+
+    bundle-hashes:
+      type: object
+      readOnly: true
+      description: |
+        SHA-256 digests of the exact UTF-8, four-space-indented JSON files
+        downloaded for a deterministic snapshot. The manifest ID binds the
+        digests to the cached graph that produced them.
+      required:
+        - manifest_id
+        - stix_2_0
+        - stix_2_1
+      properties:
+        manifest_id:
+          type: string
+        stix_2_0:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+        stix_2_1:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+
+    snapshot-summary:
+      type: object
+      description: 'Lightweight metadata shared by standard and virtual snapshot summaries'
+      required:
+        - id
+        - type
+        - modified
+        - version
+        - name
+        - members_count
+      properties:
+        id:
+          type: string
+          description: 'Release track ID'
+        type:
+          type: string
+          enum:
+            - standard
+            - virtual
+        modified:
+          type: string
+          format: date-time
+        version:
+          type: string
+          nullable: true
+          description: 'Tagged version, or null for an untagged draft'
+        graph_manifest_id:
+          type: string
+          readOnly: true
+          description: |
+            Opaque identifier for the tagged snapshot's deterministic member
+            graph. Omitted when the snapshot has not been materialized.
+        bundle_hashes:
+          $ref: '#/components/schemas/bundle-hashes'
+        graph_statistics:
+          $ref: '#/components/schemas/graph-statistics'
+          description: |
+            High-level statistics for the materialized graph. Omitted when the
+            snapshot does not reference a graph manifest.
+        snapshot_description:
+          type: string
+          maxLength: 4000
+          description: |
+            User-authored notes attached only to this snapshot and mapped to
+            x-mitre-collection.description during bundle export. Notes cannot
+            be changed while the snapshot has a deterministic graph cache.
+        name:
+          type: string
+        description:
+          type: string
+        members_count:
+          type: integer
+          minimum: 0
+
+    standard-snapshot-summary:
+      allOf:
+        - $ref: '#/components/schemas/snapshot-summary'
+        - type: object
+          description: 'Snapshot summary for a standard release track'
+          required:
+            - staged_count
+            - candidates_count
+          properties:
+            type:
+              type: string
+              enum:
+                - standard
+            staged_count:
+              type: integer
+              minimum: 0
+            candidates_count:
+              type: integer
+              minimum: 0
+
+    virtual-snapshot-summary:
+      allOf:
+        - $ref: '#/components/schemas/snapshot-summary'
+        - type: object
+          description: 'Snapshot summary for a virtual release track'
+          required:
+            - quarantine_count
+          properties:
+            type:
+              type: string
+              enum:
+                - virtual
+            scheduled_materialization:
+              nullable: true
+              $ref: '#/components/schemas/scheduled-materialization'
+            quarantine_count:
+              type: integer
+              minimum: 0
+
+    tier-entry-base:
+      type: object
+      description: 'Shared fields for a release-track object reference'
       properties:
         object_ref:
           type: string
           description: 'STIX ID of the object'
           example: 'attack-pattern--12345678-1234-1234-1234-123456789012'
-        object_modified:
-          type: string
-          format: date-time
-          description: 'Version pin: the modified timestamp of this object version'
         attack_id:
           type: string
           description: 'ATT&CK ID, if found'
@@ -117,18 +302,38 @@ components:
               type: string
               description: 'Display name, or username if display name is missing'
 
+    tier-entry:
+      allOf:
+        - $ref: '#/components/schemas/tier-entry-base'
+        - type: object
+          description: 'An immutable reference to a specific STIX object revision'
+          properties:
+            object_modified:
+              type: string
+              format: date-time
+              description: 'Exact modified timestamp of this object revision'
+
     candidate-entry:
       allOf:
-        - $ref: '#/components/schemas/tier-entry'
+        - $ref: '#/components/schemas/tier-entry-base'
         - type: object
           properties:
+            object_modified:
+              description: 'An exact revision timestamp or the dynamic selector "latest"'
+              oneOf:
+                - type: string
+                  format: date-time
+                - type: string
+                  enum:
+                    - latest
             object_status:
               type: string
               enum:
+                - modified-in-place
                 - work-in-progress
                 - awaiting-review
                 - reviewed
-              description: 'Workflow status (scoped to this track)'
+              description: 'Workflow status (scoped to this track). modified-in-place is retained only for legacy data; persisted STIX revisions are now immutable.'
             object_added_at:
               type: string
               format: date-time
@@ -139,16 +344,25 @@ components:
 
     staged-entry:
       allOf:
-        - $ref: '#/components/schemas/tier-entry'
+        - $ref: '#/components/schemas/tier-entry-base'
         - type: object
           properties:
+            object_modified:
+              description: 'An exact revision timestamp or the dynamic selector "latest"'
+              oneOf:
+                - type: string
+                  format: date-time
+                - type: string
+                  enum:
+                    - latest
             object_status:
               type: string
               enum:
+                - modified-in-place
                 - work-in-progress
                 - awaiting-review
                 - reviewed
-              description: 'Workflow status (preserved from candidates)'
+              description: 'Workflow status (preserved from candidates). modified-in-place is retained only for legacy data; persisted STIX revisions are now immutable.'
             object_staged_at:
               type: string
               format: date-time
@@ -175,8 +389,17 @@ components:
           default: 'reviewed'
         promotion_conflicts:
           type: object
-          description: 'Conflict resolution policies for tier promotions'
+          description: 'Conflict resolution policies for tier transitions'
           properties:
+            into_candidates:
+              type: string
+              enum:
+                - always_overwrite
+                - always_reject
+                - prefer_latest
+                - abort
+              description: 'How to handle conflicts when a manually added or demoted entry targets an object_ref already pinned in candidates at a different revision'
+              default: 'prefer_latest'
             candidates_to_staged:
               type: string
               enum:
@@ -199,32 +422,52 @@ components:
     composition:
       type: object
       description: 'Virtual track composition (references to component standard tracks)'
+      additionalProperties: false
+      required:
+        - component_tracks
       properties:
         component_tracks:
           type: array
+          minItems: 1
           items:
             $ref: '#/components/schemas/component-track'
-        deduplication_strategy:
-          type: string
-          enum:
-            - prioritize_latest_object
-            - prioritize_latest_snapshot
-            - prioritize_higher_priority
-            - quarantine
-          description: 'How to resolve duplicate objects across components'
-          default: 'prioritize_latest_object'
+        deduplication:
+          type: object
+          additionalProperties: false
+          required:
+            - strategy
+          properties:
+            strategy:
+              type: string
+              enum:
+                - prioritize_latest_object
+                - prioritize_latest_snapshot
+                - prioritize_higher_priority
+                - quarantine
+              description: 'How to resolve duplicate objects across components'
+              default: 'prioritize_latest_object'
 
     component-track:
       type: object
-      description: 'Reference to a component track in a virtual track composition'
+      description: |
+        Reference to a component standard track. Selector fields are determined
+        by resolution_strategy: latest_tagged rejects version and snapshot;
+        specific_version requires only version; specific_snapshot requires only
+        snapshot. Unknown properties are rejected.
+      additionalProperties: false
+      required:
+        - track_id
+        - resolution_strategy
+        - priority
       properties:
         track_id:
           type: string
           description: 'The release track ID of the component'
           example: 'release-track--a1b2c3d4-e5f6-7890-abcd-ef1234567890'
         priority:
-          type: number
-          description: 'Priority for deduplication (higher wins)'
+          type: integer
+          minimum: 0
+          description: 'Required unique component priority; lower numbers have higher priority'
         resolution_strategy:
           type: string
           enum:
@@ -235,27 +478,79 @@ components:
           default: 'latest_tagged'
         version:
           type: string
-          nullable: true
           description: 'Specific version to pin to (when resolution_strategy is specific_version)'
-        snapshot_modified:
+        snapshot:
           type: string
           format: date-time
-          nullable: true
           description: 'Specific snapshot to pin to (when resolution_strategy is specific_snapshot)'
         filters:
           type: object
           description: 'Optional filters to apply to component members'
+          additionalProperties: false
           properties:
             object_types:
               type: array
+              minItems: 1
+              uniqueItems: true
               items:
                 type: string
-              description: 'Only include these STIX types'
+                enum:
+                  - 'x-mitre-asset'
+                  - 'campaign'
+                  - 'x-mitre-collection'
+                  - 'intrusion-set'
+                  - 'course-of-action'
+                  - 'tool'
+                  - 'x-mitre-tactic'
+                  - 'malware'
+                  - 'x-mitre-matrix'
+                  - 'relationship'
+                  - 'marking-definition'
+                  - 'identity'
+                  - 'note'
+                  - 'x-mitre-data-source'
+                  - 'x-mitre-data-component'
+                  - 'attack-pattern'
+                  - 'x-mitre-analytic'
+                  - 'x-mitre-detection-strategy'
+              description: 'Only include members whose object_ref uses one of these canonical Workbench STIX type prefixes; omit the property to include all types'
             domains:
               type: array
               items:
                 type: string
-              description: 'Only include objects from these ATT&CK domains'
+              description: 'Only include exact pinned object revisions whose x_mitre_domains intersects these ATT&CK domains. Primary matrices fall back to external_references.external_id. Accepts enterprise/mobile/ics and their -attack forms.'
+      oneOf:
+        - title: 'Latest tagged release'
+          properties:
+            resolution_strategy:
+              enum:
+                - latest_tagged
+          not:
+            anyOf:
+              - required:
+                  - version
+              - required:
+                  - snapshot
+        - title: 'Specific release version'
+          required:
+            - version
+          properties:
+            resolution_strategy:
+              enum:
+                - specific_version
+          not:
+            required:
+              - snapshot
+        - title: 'Specific tagged snapshot'
+          required:
+            - snapshot
+          properties:
+            resolution_strategy:
+              enum:
+                - specific_snapshot
+          not:
+            required:
+              - version
 
     version-history-entry:
       type: object
@@ -289,9 +584,24 @@ components:
             staged_count:
               type: number
               description: 'Objects remaining in staged after release'
-            candidate_count:
+            candidates_count:
               type: number
               description: 'Objects in candidates at time of release'
+            quarantine_count:
+              type: number
+              description: 'Objects in quarantine at time of a virtual release'
+        component_versions:
+          type: object
+          description: |
+            Virtual releases only. Immutable provenance keyed by component
+            release-track ID; each value is the tagged component version frozen
+            in the released draft's composition_resolution. Standard release
+            history entries omit this property.
+          additionalProperties:
+            type: string
+            pattern: '^\d+\.\d+$'
+          example:
+            release-track--a1b2c3d4-e5f6-7890-abcd-ef1234567890: '5.2'
 
     release-track-registry:
       type: object
@@ -309,7 +619,8 @@ components:
           description: 'Track type'
         name:
           type: string
-          description: 'Track name'
+          pattern: '^[a-zA-Z0-9 &]+$'
+          description: 'Track name containing alphanumeric characters, spaces, and ampersands'
         description:
           type: string
           description: 'Track description'
@@ -328,6 +639,11 @@ components:
         tagged_release_count:
           type: number
           description: 'Number of tagged releases'
+        tagged_releases:
+          type: array
+          description: 'Compact references to every tagged snapshot in this track'
+          items:
+            $ref: '#/components/schemas/tagged-release-reference'
         summary:
           type: object
           description: 'Counts of objects in each release track tier for the latest snapshot'
@@ -351,28 +667,275 @@ components:
           description: 'When the track metadata was last updated'
         snapshot_schedule:
           nullable: true
-          description: 'Automated snapshot schedule (virtual tracks only)'
+          description: 'Snapshot creation schedule for virtual tracks'
           $ref: '#/components/schemas/snapshot-schedule'
+        scheduled_materialization:
+          nullable: true
+          description: 'Materialization metadata from the latest virtual snapshot'
+          $ref: '#/components/schemas/scheduled-materialization'
 
-    snapshot-schedule:
+    tagged-release-reference:
       type: object
-      description: 'Schedule for automated virtual track snapshot creation'
+      description: 'Registry reference to a tagged snapshot'
       properties:
-        mode:
+        snapshot_modified:
+          type: string
+          format: date-time
+          description: 'The tagged snapshot modified timestamp'
+        version:
+          type: string
+          description: 'The tagged MAJOR.MINOR version'
+        tagged_at:
+          type: string
+          format: date-time
+          description: 'When the snapshot was tagged'
+        tagged_by:
+          type: string
+          description: 'User account that tagged the snapshot'
+
+    release-by-object-entry:
+      type: object
+      description: 'One tagged release that directly contains the requested STIX object'
+      properties:
+        track_id:
+          type: string
+        track_type:
           type: string
           enum:
-            - interval
+            - standard
+            - virtual
+        track_name:
+          type: string
+        version:
+          type: string
+        snapshot_modified:
+          type: string
+          format: date-time
+        tagged_at:
+          type: string
+          format: date-time
+        tagged_by:
+          type: string
+        object_modified:
+          type: string
+          format: date-time
+
+    snapshot-schedule:
+      description: |
+        Virtual snapshot-creation schedule. Cron and explicit dates are
+        interpreted in UTC and execute only when the global scheduler is enabled.
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required:
+            - mode
+          properties:
+            mode:
+              type: string
+              enum:
+                - manual
+              description: 'Snapshots are created explicitly'
+        - type: object
+          additionalProperties: false
+          required:
+            - mode
+            - cron
+          properties:
+            mode:
+              type: string
+              enum:
+                - cron
+            cron:
+              type: string
+              description: 'Five-field UTC cron expression'
+              example: '0 0 1 1,7 *'
+        - type: object
+          additionalProperties: false
+          required:
+            - mode
             - dates
-            - disabled
-          description: 'Scheduling mode'
-        interval_days:
-          type: number
-          nullable: true
-          description: 'Days between snapshots (when mode is interval)'
-        dates:
+          properties:
+            mode:
+              type: string
+              enum:
+                - dates
+            dates:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                format: date-time
+              description: 'Explicit UTC dates for snapshot creation'
+
+    scheduled-materialization:
+      type: object
+      additionalProperties: false
+      description: |
+        Immutable materialization occurrence attached to one virtual snapshot.
+        It may be supplied by a client write or by the virtual-track scheduler.
+      required:
+        - schedule_mode
+        - scheduled_for
+      properties:
+        schedule_mode:
+          type: string
+          enum:
+            - cron
+            - dates
+        scheduled_for:
+          type: string
+          format: date-time
+          description: 'UTC occurrence timestamp; also serves as the idempotency key'
+
+    object-revision-reference:
+      type: object
+      required:
+        - object_ref
+        - object_modified
+      properties:
+        object_ref:
+          type: string
+          description: 'STIX object ID'
+        object_modified:
+          type: string
+          format: date-time
+          description: 'Exact STIX revision timestamp'
+
+    object-revision-error:
+      type: object
+      required:
+        - message
+        - missing_references
+      properties:
+        message:
+          type: string
+          description: 'Whether request input or persisted primary content failed validation'
+        missing_references:
           type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/object-revision-reference'
+
+    source-graph-reconstruction:
+      type: object
+      additionalProperties: false
+      required:
+        - source_attestation
+        - entries
+      properties:
+        source_attestation:
+          type: object
+          additionalProperties: false
+          required:
+            - kind
+            - bundle_sha256
+            - collection_id
+            - release
+            - domain
+          properties:
+            kind:
+              type: string
+              enum:
+                - source-bundle
+            bundle_sha256:
+              type: string
+              pattern: '^[a-f0-9]{64}$'
+            collection_id:
+              type: string
+            release:
+              type: string
+            domain:
+              type: string
+              enum:
+                - enterprise-attack
+                - ics-attack
+                - mobile-attack
+        entries:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/source-graph-entry'
+
+    source-graph-entry:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - object_ref
+        - object_modified
+      properties:
+        kind:
+          type: string
+          enum:
+            - root
+            - relationship
+            - secondary
+            - supporting
+            - link_target
+        object_ref:
+          type: string
+        object_modified:
+          type: string
+          format: date-time
           nullable: true
+        source:
+          $ref: '#/components/schemas/object-revision-reference'
+        target:
+          $ref: '#/components/schemas/object-revision-reference'
+        omitted_optional_defaults:
+          type: array
+          maxItems: 2
+          uniqueItems: true
+          description: >-
+            Optional false-valued fields omitted by the attested source
+            publication; valid only as deterministic serialization hints.
           items:
             type: string
-            format: date-time
-          description: 'Specific dates for snapshots (when mode is dates)'
+            enum:
+              - revoked
+              - x_mitre_remote_support
+        frozen_stix:
+          type: object
+          description: 'Allowed only for unversioned marking definitions'
+
+    release-track-reconciliation-error:
+      type: object
+      required:
+        - message
+        - track_id
+        - reconciliation_id
+      properties:
+        message:
+          type: string
+          enum:
+            - 'Release-track membership protection could not be reconciled'
+        details:
+          type: string
+          description: 'Operator guidance; the track mutation may already be persisted'
+        track_id:
+          type: string
+          description: 'Release track whose object backrefs require repair'
+        reconciliation_id:
+          type: string
+          format: uuid
+          description: 'Durable reconciliation record to inspect or repair'
+
+    release-track-audit-error:
+      type: object
+      required:
+        - message
+        - track_id
+        - audit_event_id
+      properties:
+        message:
+          type: string
+          enum:
+            - 'Release-track audit recording could not be finalized'
+        details:
+          type: string
+          description: 'Operator guidance; the destructive operation may already be persisted'
+        track_id:
+          type: string
+        audit_event_id:
+          type: string
+          format: uuid

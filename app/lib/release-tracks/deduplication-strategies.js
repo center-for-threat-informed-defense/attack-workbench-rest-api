@@ -24,7 +24,8 @@
  *   Each entry: { object_ref, object_modified, _source_track_id, _source_track_name,
  *                 _source_snapshot_modified, _source_snapshot_version, _source_priority }
  * @param {string} strategy - One of the four deduplication strategies
- * @returns {{ members: Array<Object>, quarantined: Array<Object>, report: Object }}
+ * @returns {{ members: Array<Object>, quarantined: Array<Object>,
+ *   contributions: Array<Object>, report: Object }}
  */
 exports.deduplicate = function deduplicate(allMembers, strategy) {
   // Group entries by object_ref to identify duplicates
@@ -39,31 +40,56 @@ exports.deduplicate = function deduplicate(allMembers, strategy) {
 
   const members = [];
   const quarantined = [];
+  const contributions = [];
   const conflictsResolved = [];
+  let duplicatesFound = 0;
 
   for (const [objectRef, entries] of groups) {
-    if (entries.length === 1) {
-      // No conflict — single source
-      members.push(_stripSourceMeta(entries[0]));
+    if (entries.length > 1) {
+      duplicatesFound += 1;
+    }
+
+    const distinctRevisions = _collapseExactRevisions(entries, strategy);
+    if (distinctRevisions.length === 1) {
+      // No conflict — one distinct revision with one selected source
+      _addMember(distinctRevisions[0], members, contributions);
       continue;
     }
 
-    // Conflict: same object_ref from multiple component tracks
+    // Conflict: same object_ref with genuinely different revisions
     switch (strategy) {
       case 'prioritize_latest_object':
-        _resolveByLatestObject(objectRef, entries, members, conflictsResolved);
+        _resolveByLatestObject(
+          objectRef,
+          distinctRevisions,
+          members,
+          contributions,
+          conflictsResolved,
+        );
         break;
 
       case 'prioritize_latest_snapshot':
-        _resolveByLatestSnapshot(objectRef, entries, members, conflictsResolved);
+        _resolveByLatestSnapshot(
+          objectRef,
+          distinctRevisions,
+          members,
+          contributions,
+          conflictsResolved,
+        );
         break;
 
       case 'prioritize_higher_priority':
-        _resolveByHigherPriority(objectRef, entries, members, conflictsResolved);
+        _resolveByHigherPriority(
+          objectRef,
+          distinctRevisions,
+          members,
+          contributions,
+          conflictsResolved,
+        );
         break;
 
       case 'quarantine':
-        _resolveByQuarantine(objectRef, entries, quarantined, conflictsResolved);
+        _resolveByQuarantine(objectRef, distinctRevisions, quarantined, conflictsResolved);
         break;
 
       default:
@@ -74,11 +100,11 @@ exports.deduplicate = function deduplicate(allMembers, strategy) {
   const report = {
     total_objects_before: allMembers.length,
     total_objects_after: members.length,
-    duplicates_found: conflictsResolved.length,
+    duplicates_found: duplicatesFound,
     conflicts_resolved: conflictsResolved,
   };
 
-  return { members, quarantined, report };
+  return { members, quarantined, contributions, report };
 };
 
 // =============================================================================
@@ -88,7 +114,7 @@ exports.deduplicate = function deduplicate(allMembers, strategy) {
 /**
  * Keep the entry with the most recent object_modified timestamp.
  */
-function _resolveByLatestObject(objectRef, entries, members, conflictsResolved) {
+function _resolveByLatestObject(objectRef, entries, members, contributions, conflictsResolved) {
   let winner = entries[0];
   for (let i = 1; i < entries.length; i++) {
     if (
@@ -98,7 +124,7 @@ function _resolveByLatestObject(objectRef, entries, members, conflictsResolved) 
     }
   }
 
-  members.push(_stripSourceMeta(winner));
+  _addMember(winner, members, contributions);
   conflictsResolved.push({
     object_ref: objectRef,
     strategy: 'prioritize_latest_object',
@@ -112,17 +138,15 @@ function _resolveByLatestObject(objectRef, entries, members, conflictsResolved) 
  * Keep the entry from the component track whose resolved snapshot has the
  * most recent modified timestamp.
  */
-function _resolveByLatestSnapshot(objectRef, entries, members, conflictsResolved) {
+function _resolveByLatestSnapshot(objectRef, entries, members, contributions, conflictsResolved) {
   let winner = entries[0];
   for (let i = 1; i < entries.length; i++) {
-    const entrySnapshotTime = new Date(entries[i]._source_snapshot_modified).getTime();
-    const winnerSnapshotTime = new Date(winner._source_snapshot_modified).getTime();
-    if (entrySnapshotTime > winnerSnapshotTime) {
+    if (_preferLatestSnapshot(entries[i], winner)) {
       winner = entries[i];
     }
   }
 
-  members.push(_stripSourceMeta(winner));
+  _addMember(winner, members, contributions);
   conflictsResolved.push({
     object_ref: objectRef,
     strategy: 'prioritize_latest_snapshot',
@@ -136,15 +160,15 @@ function _resolveByLatestSnapshot(objectRef, entries, members, conflictsResolved
  * Keep the entry from the component track with the highest priority
  * (lowest priority number).
  */
-function _resolveByHigherPriority(objectRef, entries, members, conflictsResolved) {
+function _resolveByHigherPriority(objectRef, entries, members, contributions, conflictsResolved) {
   let winner = entries[0];
   for (let i = 1; i < entries.length; i++) {
-    if (entries[i]._source_priority < winner._source_priority) {
+    if (_preferHigherPriority(entries[i], winner)) {
       winner = entries[i];
     }
   }
 
-  members.push(_stripSourceMeta(winner));
+  _addMember(winner, members, contributions);
   conflictsResolved.push({
     object_ref: objectRef,
     strategy: 'prioritize_higher_priority',
@@ -190,4 +214,52 @@ function _stripSourceMeta(entry) {
     object_ref: entry.object_ref,
     object_modified: entry.object_modified,
   };
+}
+
+/**
+ * Collapse repeated contributions of an exact object revision to one source.
+ * Source ownership follows the active strategy where it can distinguish the
+ * sources, then falls back to the required unique component priority.
+ */
+function _collapseExactRevisions(entries, strategy) {
+  const revisions = new Map();
+
+  for (const entry of entries) {
+    const revisionKey = new Date(entry.object_modified).getTime();
+    const current = revisions.get(revisionKey);
+    if (!current || _preferSource(entry, current, strategy)) {
+      revisions.set(revisionKey, entry);
+    }
+  }
+
+  return Array.from(revisions.values());
+}
+
+function _preferSource(candidate, current, strategy) {
+  if (strategy === 'prioritize_latest_snapshot') {
+    return _preferLatestSnapshot(candidate, current);
+  }
+  return _preferHigherPriority(candidate, current);
+}
+
+function _preferLatestSnapshot(candidate, current) {
+  const candidateTime = new Date(candidate._source_snapshot_modified).getTime();
+  const currentTime = new Date(current._source_snapshot_modified).getTime();
+  if (candidateTime !== currentTime) {
+    return candidateTime > currentTime;
+  }
+  return _preferHigherPriority(candidate, current);
+}
+
+function _preferHigherPriority(candidate, current) {
+  return candidate._source_priority < current._source_priority;
+}
+
+function _addMember(entry, members, contributions) {
+  members.push(_stripSourceMeta(entry));
+  contributions.push({
+    object_ref: entry.object_ref,
+    object_modified: entry.object_modified,
+    source_track_id: entry._source_track_id,
+  });
 }

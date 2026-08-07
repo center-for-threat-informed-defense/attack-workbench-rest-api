@@ -5,6 +5,7 @@
 This document provides the complete API reference for Release Tracks V2 (formerly "Collections V2").
 
 **Related Documentation:**
+
 - [summary.md](./summary.md) - High-level design summary and problem statement
 - [terminology.md](./terminology.md) - Complete terminology guide
 - [versioning.md](./versioning.md) - Versioning and release process
@@ -15,51 +16,56 @@ This document provides the complete API reference for Release Tracks V2 (formerl
 - [member-sync-strategies.md](../../developer/release-tracks/member-sync-strategies.md) - Automatic tracking of member object revisions
 
 **Quick Navigation:**
+
 - [Ephemeral Release Tracks](#ephemeral-release-tracks)
 - [Release Track Management](#release-track-management)
 - [Snapshot-Specific Operations](#snapshot-specific-operations)
 - [Candidate Management](#candidate-management)
 - [Staged Objects](#staged-objects)
 - [Configuration](#configuration)
-- [Preview & Dry Run](#preview--dry-run)
+- [Release Previews](#release-previews)
 - [Version Pin Management](#version-pin-management)
 - [Virtual Release Tracks](#virtual-release-tracks)
 - [Query Variations](#query-variations)
 - [Output Formats](#output-formats)
 - [Error Responses](#error-responses)
 
-
 ## Complete Endpoint List
 
 ### Ephemeral Release Tracks
+
 ```
 GET    /api/release-tracks/ephemeral/:domain
 ```
 
 ### Release Track Management
+
 ```
 GET    /api/release-tracks
+GET    /api/release-tracks/objects/:objectRef/releases
 POST   /api/release-tracks/new
 POST   /api/release-tracks/new-from-bundle
 POST   /api/release-tracks/import
-GET    /api/release-tracks/:id
 POST   /api/release-tracks/:id/meta
-POST   /api/release-tracks/:id/contents
-POST   /api/release-tracks/:id/bump
+POST   /api/release-tracks/:id/snapshots/latest/release
 POST   /api/release-tracks/:id/clone
-DELETE /api/release-tracks/:id
+DELETE /api/release-tracks/:id?confirm_track_id=:id
 ```
 
 ### Snapshot Operations
+
 ```
+GET    /api/release-tracks/:id/snapshots
+GET    /api/release-tracks/:id/snapshots/latest
 GET    /api/release-tracks/:id/snapshots/:modified
-POST   /api/release-tracks/:id/snapshots/:modified/meta
-POST   /api/release-tracks/:id/snapshots/:modified/bump
+POST   /api/release-tracks/:id/snapshots/:modified/release
 POST   /api/release-tracks/:id/snapshots/:modified/clone
+PUT    /api/release-tracks/:id/snapshots/:modified/description
 DELETE /api/release-tracks/:id/snapshots/:modified
 ```
 
 ### Candidate Management
+
 ```
 POST   /api/release-tracks/:id/candidates
 GET    /api/release-tracks/:id/candidates
@@ -70,32 +76,37 @@ POST   /api/release-tracks/:id/candidates/:objectRef/update-version
 ```
 
 ### Staged Objects
+
 ```
 GET    /api/release-tracks/:id/staged
 POST   /api/release-tracks/:id/staged/demote
 ```
 
 ### Configuration
+
 ```
 GET    /api/release-tracks/:id/config
 PUT    /api/release-tracks/:id/config
 ```
 
-### Preview & Dry Run
+### Release Previews
+
 ```
-GET    /api/release-tracks/:id/bump/preview
+GET    /api/release-tracks/:id/snapshots/latest/release/preview
 ```
 
 ### Version Management
+
 ```
 GET    /api/release-tracks/:id/objects/:objectRef/versions
 ```
 
 ### Virtual Release Tracks (Additional)
+
 ```
-PUT    /api/release-tracks/:id/composition
-POST   /api/release-tracks/:id/snapshots/create
-GET    /api/release-tracks/:id/snapshots/preview
+PUT  /api/release-tracks/:id/virtual/composition
+POST /api/release-tracks/:id/virtual/snapshots/create
+POST /api/release-tracks/:id/virtual/quarantine/promote
 ```
 
 ---
@@ -105,11 +116,12 @@ GET    /api/release-tracks/:id/snapshots/preview
 "Ephemeral" release tracks refer to unmanaged, stateless release track snapshots. Upon request, a STIX bundle will be generated containing the latest copy of all objects contained within the respective domain as defined by the `:domain` path parameter.
 
 Three options are supported in the `:domain` path parameter:
+
 - `enterprise`
 - `ics`
 - `mobile`
 
-These refer to all objects delineated by ATT&CK domain membership as reflected by the objects' `x_mitre_domains` property. 
+These refer to all objects delineated by ATT&CK domain membership as reflected by the objects' `x_mitre_domains` property.
 
 ### Get Ephemeral Bundle
 
@@ -117,11 +129,32 @@ These refer to all objects delineated by ATT&CK domain membership as reflected b
 GET /api/release-tracks/ephemeral/:domain
 ```
 
+This endpoint supplants the deprecated `GET /api/stix-bundles` endpoint. The
+generated bundle preserves the legacy object-selection behavior: primary
+objects are retrieved by domain, secondary objects (groups, campaigns,
+detection strategies) are discovered through relationships, and referenced
+identities and marking definitions are included so the bundle is
+self-contained.
+
 **Path Parameters:**
+
 - `:domain` - `enterprise` | `ics` | `mobile`
 
 **Query Parameters:**
-- `format` - `bundle` | `filesystemstore` | `workbench` (default: `bundle`; `filesystemstore` is not yet implemented)
+
+| Parameter                           | Values                                       | Default  | Description                                                                                                                                                                                                                                                                           |
+| ----------------------------------- | -------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format`                            | `bundle` \| `workbench` \| `filesystemstore` | `bundle` | Output format (`filesystemstore` is not yet implemented)                                                                                                                                                                                                                              |
+| `stixVersion`                       | `2.0` \| `2.1`                               | `2.1`    | STIX version the emitted bundle conforms to (bundle format only)                                                                                                                                                                                                                      |
+| `includeToc`                        | `true` \| `false`                            | `true`   | Include a table-of-contents object (of type `x-mitre-collection`) in STIX 2.1. STIX 2.0 always omits it. The TOC uses `x_mitre_version: "0.1"`, the current timestamp, and the deployment's default ATT&CK spec version. |
+| `includeObjectsWithMissingAttackId` | `true` \| `false`                            | `false`  | Include objects that should have an ATT&CK ID set but do not                                                                                                                                                                                                                          |
+| `includeDeprecated`                 | `true` \| `false`                            | `false`  | Include objects with `x_mitre_deprecated: true` (this also governs deprecated Data Sources)                                                                                                                                                                                           |
+| `includeRevoked`                    | `true` \| `false`                            | `false`  | Include objects with `revoked: true`                                                                                                                                                                                                                                                  |
+
+> [!Note]
+> The ephemeral endpoint does not support the `include` or `state` tier
+> filters because it does not read from a persisted release-track snapshot —
+> it includes all objects in the domain.
 
 ---
 
@@ -136,12 +169,14 @@ GET /api/release-tracks
 ```
 
 **Query Parameters:**
+
 - `releases` - `only` (filter to show only release tracks that have at least one tagged release)
 - `type` - `standard` | `virtual` (filter by track type)
 - `limit` - Number of results (pagination)
 - `offset` - Pagination offset
 
 **Response Example:**
+
 ```json
 {
   "release_tracks": [
@@ -154,6 +189,14 @@ GET /api/release-tracks
       "latest_modified": "2024-01-15T16:20:00Z",
       "snapshot_count": 47,
       "tagged_release_count": 12,
+      "tagged_releases": [
+        {
+          "snapshot_modified": "2024-01-15T16:20:00Z",
+          "version": "14.1",
+          "tagged_at": "2024-01-15T17:00:00Z",
+          "tagged_by": "user-id"
+        }
+      ],
       "summary": {
         "members_count": 3247,
         "staged_count": 18,
@@ -189,14 +232,41 @@ POST /api/release-tracks/new
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "Release Track Name",
   "description": "Description",
-  "external_references": [],
-  "object_marking_refs": []
+  "snapshot_description": "Context for the initial draft",
+  "type": "standard",
+  "object_marking_refs": [],
+  "config": {
+    "candidacy_threshold": "awaiting-review",
+    "auto_promote": false,
+    "promotion_conflicts": {
+      "into_candidates": "always_reject",
+      "candidates_to_staged": "prefer_latest",
+      "staged_to_members": "abort"
+    },
+    "member_sync": {
+      "strategy": "manual",
+      "supplant": {
+        "behavior": "queue",
+        "status_policy": "preserve"
+      }
+    }
+  }
 }
 ```
+
+`config` is optional. When supplied, it uses the same fields and validation
+rules as [Update Configuration](#update-configuration), and the validated
+values are persisted on the initial draft snapshot. Omitted config fields use
+their model defaults.
+
+`description` is long-lived track metadata. `snapshot_description` is an
+optional, snapshot-local annotation for the initial draft and is limited to
+4000 characters.
 
 ### Bootstrap Release Track From Bundle
 
@@ -207,6 +277,7 @@ POST /api/release-tracks/new-from-bundle
 ```
 
 **Request Body:**
+
 ```json
 {
   "type": "bundle",
@@ -227,6 +298,7 @@ POST /api/release-tracks/new-from-bundle
 ```
 
 **Response:**
+
 ```json
 {
   "release_track_id": "release-track--new-uuid",
@@ -237,6 +309,12 @@ POST /api/release-tracks/new-from-bundle
 ```
 
 **Note:** All objects are added directly to the `members` tier. To add objects as candidates instead, use the standard [Create New Release Track](#create-new-release-track) endpoint followed by [Add Candidates](#add-candidates).
+
+Bundle bootstrap is fail-closed. Unsupported primary object types, invalid
+objects, and primary revisions that cannot be persisted cause HTTP `400`, and
+the release track is not created. Objects successfully persisted before a
+later object fails may remain available in Workbench, but no partial track or
+snapshot is registered.
 
 ### Import Release Track (Not Implemented)
 
@@ -259,8 +337,12 @@ POST /api/release-tracks/import
 Retrieves the most recent snapshot from the release track (by `modified` timestamp).
 
 ```
-GET /api/release-tracks/:id
+GET /api/release-tracks/:id/snapshots/latest
 ```
+
+`GET /api/release-tracks/:id` is not supported. That resource path is reserved
+for operations such as deleting the track; use `/snapshots/latest` whenever the
+full latest snapshot is required.
 
 Workbench responses return the release-track snapshot shape. Entries in the `members`,
 `staged`, `candidates`, and `quarantine` tiers include UI-friendly object details:
@@ -272,41 +354,173 @@ Workbench responses return the release-track snapshot shape. Entries in the `mem
 
 **Query Parameters:**
 
-| Parameter | Values | Description |
-|-----------|--------|-------------|
-| `format` | `workbench` \| `bundle` \| `filesystemstore` | Output format (default: `workbench`; `filesystemstore` is not yet implemented) |
-| `include` | `members` \| `staged` \| `candidates` \| `quarantine` \| `all` | Which tier arrays to include in `workbench` responses (default: all tiers) |
-| `releases` | `only` | Return only the latest tagged release instead of latest snapshot |
-| `version` | `X.Y` | Return specific version (e.g., `14.1`) |
-| `versions` | `all` | List all snapshots with metadata |
+| Parameter  | Values                                                         | Description                                                                    |
+| ---------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `format`   | `workbench` \| `bundle` \| `filesystemstore`                   | Output format (default: `workbench`; `filesystemstore` is not yet implemented) |
+| `include`  | `members` \| `staged` \| `candidates` \| `quarantine` \| `all` | Which tier arrays to include in `workbench` responses (default: all tiers)     |
+| `releases` | `only`                                                         | Return only the latest tagged release instead of latest snapshot               |
+| `version`  | `X.Y`                                                          | Return specific version (e.g., `14.1`)                                         |
+
+**Additional query parameters for `format=bundle`:**
+
+| Parameter     | Values                                                                    | Description                                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `include`     | `staged` and/or `candidates` (comma-separated or repeated)                | Additional tiers to include in the bundle alongside members. If omitted, only members are included. (Note the different semantics from `workbench` responses.) |
+| `state`       | `work-in-progress` and/or `awaiting-review` (comma-separated or repeated) | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included. Members are unaffected.         |
+| `stixVersion` | `2.0` \| `2.1`                                                            | STIX version the emitted bundle conforms to (default: `2.1`)                                                                                                   |
+| `includeToc`  | `true` \| `false`                                                         | Include a table-of-contents object (of type `x-mitre-collection`) in STIX 2.1, derived from release-track metadata (default: `true`). STIX 2.0 always omits it. |
+
+See [Output Formats](output-formats.md) for details on the bundle structure.
 
 **Examples:**
 
 ```bash
 # Get latest snapshot for the Workbench UI
-GET /api/release-tracks/:id
+GET /api/release-tracks/:id/snapshots/latest
 
 # Get latest snapshot as STIX bundle (members only)
-GET /api/release-tracks/:id?format=bundle
+GET /api/release-tracks/:id/snapshots/latest?format=bundle
+
+# Get latest snapshot as STIX bundle with staged and candidate objects
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged
+
+# Get latest snapshot as STIX bundle with candidates awaiting review
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates&state=awaiting-review
 
 # Get latest snapshot with members and quarantine only
-GET /api/release-tracks/:id?include=quarantine
+GET /api/release-tracks/:id/snapshots/latest?include=quarantine
 
 # Get latest tagged release (not draft)
-GET /api/release-tracks/:id?releases=only
+GET /api/release-tracks/:id/snapshots/latest?releases=only
 
 # Get specific version
-GET /api/release-tracks/:id?version=14.1
-
-# List all snapshots
-GET /api/release-tracks/:id?versions=all
+GET /api/release-tracks/:id/snapshots/latest?version=14.1
 ```
+
+### List Snapshots
+
+Returns a paginated history of lightweight snapshot summaries, ordered by
+`modified` from newest to oldest. Omitting `tagged` applies no tagged-state
+filter.
+
+```
+GET /api/release-tracks/:id/snapshots
+```
+
+**Query Parameters:**
+
+| Parameter | Values          | Default | Description                                      |
+| --------- | --------------- | ------- | ------------------------------------------------ |
+| `tagged`  | `true`\|`false` | omitted | Include only tagged snapshots or untagged drafts |
+| `limit`   | `1`–`200`       | `50`    | Maximum summaries to return                      |
+| `offset`  | integer ≥ `0`   | `0`     | Matching summaries to skip                       |
+
+Filtering occurs before pagination, so `pagination.total` is the total number
+of snapshots matching `tagged`, not the total number in the track.
+
+Every summary contains `id`, `type`, `modified`, `version`, `name`, the
+track-level `description` (when set), `snapshot_description` (when the snapshot
+has user-authored notes), and `members_count`. A tagged snapshot whose
+deterministic member graph has been materialized also contains the opaque
+`graph_manifest_id`, `graph_statistics`, and `bundle_hashes`; graphless
+snapshots omit all three. `bundle_hashes` contains the manifest ID plus the
+SHA-256 digests in `stix_2_0` and `stix_2_1` for the exact four-space-indented
+UTF-8 JSON files downloaded by the browser.
+Graph statistics describe the cached graph at a glance:
+
+- `primary_count`: member objects deliberately selected for the snapshot.
+- `secondary_count`: source-attested historical non-member objects. Ordinary
+  deterministic member graphs report zero because relationships do not expand
+  SDO membership.
+- `relationship_count`: relationships connecting cached graph objects.
+- `supporting_count`: supporting identities and marking definitions.
+- `link_target_count`: objects pinned for deterministic LinkById expansion.
+- `total_count`: all emitted dependency entries across those manifest roles;
+  the collection metadata entry is excluded.
+
+The UI groups supporting and LinkById targets together as **Dependencies**.
+Snapshot tier count keys continue to reflect the track type:
+
+- `type: "standard"` adds `staged_count` and `candidates_count`.
+- `type: "virtual"` adds `quarantine_count`.
+
+Inapplicable count keys are omitted rather than returned as zero.
+
+```json
+{
+  "data": [
+    {
+      "id": "release-track--a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "type": "standard",
+      "modified": "2024-01-15T16:20:00.000Z",
+      "version": "14.1",
+      "graph_manifest_id": "release-track-graph-manifest--01234567-89ab-4cde-8f01-23456789abcd",
+      "name": "Enterprise ATT&CK",
+      "description": "Enterprise domain release track",
+      "snapshot_description": "Reviewed publication for the Q1 threat model.",
+      "members_count": 3247,
+      "graph_statistics": {
+        "primary_count": 3247,
+        "secondary_count": 0,
+        "relationship_count": 6841,
+        "supporting_count": 5,
+        "link_target_count": 17,
+        "total_count": 10110
+      },
+      "staged_count": 18,
+      "candidates_count": 5
+    }
+  ],
+  "pagination": {
+    "total": 47,
+    "limit": 50,
+    "offset": 0
+  }
+}
+```
+
+**Examples:**
+
+```bash
+# All tagged and untagged snapshots
+GET /api/release-tracks/:id/snapshots
+
+# Tagged releases only
+GET /api/release-tracks/:id/snapshots?tagged=true
+
+# Untagged drafts only, second page
+GET /api/release-tracks/:id/snapshots?tagged=false&limit=25&offset=25
+```
+
+### Update Snapshot Description
+
+Editors can attach or replace notes on any draft or tagged snapshot:
+
+```
+PUT /api/release-tracks/:id/snapshots/:modified/description
+```
+
+```json
+{
+  "description": "Reviewed publication for the Q1 threat model."
+}
+```
+
+The value is trimmed and limited to 4000 characters. Send an empty string to
+clear it. The API returns the updated snapshot as `snapshot_description` and
+does not change the snapshot's `modified` timestamp, semantic version, tier
+contents, or the release track's long-lived description. Cached snapshots are
+immutable: this endpoint returns `409 Conflict` while a graph manifest exists.
+Delete the bundle cache, edit the notes, and cache the bundle again to generate
+a new frozen collection object and matching hashes.
 
 ### Update Metadata
 
 A user or team may wish to:
+
 - rename a release (e.g., fix a typo like `"Entrprise"` to `"Enterprise"`) or shift the scope/purpose of an existing release track without losing its history (though [cloning](#clone-latest-snapshot) is preferred in this scenario)
 - update metadata (which at present consists of a `description` field, `object_marking_references` (typically only includes the global marking definition) and the author (`created_by_ref`).
+
 ```
 POST /api/release-tracks/:id/meta
 ```
@@ -314,6 +528,7 @@ POST /api/release-tracks/:id/meta
 Creates new snapshot with updated metadata.
 
 **Request Body:**
+
 ```json
 {
   "name": "Updated Name",
@@ -323,51 +538,93 @@ Creates new snapshot with updated metadata.
 }
 ```
 
-### Update Contents
+### Snapshot content is append-only
 
-```
-POST /api/release-tracks/:id/contents
-```
+There is no endpoint for replacing a persisted snapshot's `members` tier.
+Standard tracks add or revise content through candidates, promote those
+objects to staged, and freeze them into members during release. Virtual tracks
+derive members only when a composition is materialized.
 
-Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.** The main workflow for enrolling new member objects into `x_mitre_contents` is through the candidate-staging promotion cycle described in [versioning.md](./versioning.md). 
+If an operator makes an unwanted draft, delete it while it is still the latest
+untagged snapshot or continue with a newer corrective draft. Historical drafts
+and tagged releases remain part of the immutable track history. Bootstrapping a
+new track from a bundle is the supported way to start with an existing member
+set.
 
-**Request Body:**
-```json
-{
-  "x_mitre_contents": ["attack-pattern--uuid1", "malware--uuid2"]
-}
-```
-
-### Bump/Tag Latest Snapshot
+### Release Latest Snapshot
 
 Converts the latest draft snapshot to a tagged release. Tags the snapshot in-place (does not create new snapshot). Dynamically sets `x_mitre_version` based on the request body options.
 
-- If `version` is provided, uses that exact version (must be `X.Y` format)
-- If `type` is provided, calculates next version based on bump type
-- If omitted, defaults to minor bump
-- If this is the first release, the version will be `1.0`
+The request may also include an optional `description` (up to 4000 characters)
+to set the tagged snapshot's notes in the same operation:
 
-```
-POST /api/release-tracks/:id/bump
-```
-
-**Request Body (optional):**
 ```json
 {
-  "type": "major" | "minor",  // Defaults to "minor" if omitted
-  "version": "X.Y",           // Alternative: explicit version
-  "dry_run": true             // Optional: preview without persisting
+  "increment": "minor",
+  "description": "Initial production release for the Q1 threat model."
 }
 ```
+
+- If `version` is provided, uses that exact version (must be `X.Y` format)
+- If `increment` is provided, calculates the next `major` or `minor` version
+- `increment` and `version` are mutually exclusive; supplying both returns
+  `400 Bad Request` rather than choosing one
+- If both are omitted, defaults to a minor release
+- If this is the first release, the version will be `1.0`
+- Relative increments use the nearest chronologically earlier tagged snapshot.
+  The result, or an explicit version, must also be lower than the nearest later
+  tagged snapshot when retroactively releasing a historical draft.
+
+```
+POST /api/release-tracks/:id/snapshots/latest/release
+```
+
+**Request Body:**
+
+```json
+{
+  "increment": "major"
+}
+```
+
+Use `"version": "2.4"` instead of `increment` to select an explicit
+`MAJOR.MINOR` version. The `latest` selector is resolved when the request is
+handled. Use the `:modified` release endpoint when a caller needs to pin the
+operation to a specific snapshot.
+
+For virtual tracks, the selected draft must have a non-null
+`composition_resolution`. An initial or composition-update draft is pending
+until the virtual snapshot creation endpoint materializes it; preview and
+release return `409 Conflict` before then.
+
+The virtual release response records the materialized component provenance in
+`version_history[].component_versions`:
+
+```json
+{
+  "component_versions": {
+    "release-track--groups-monthly": "5.2",
+    "release-track--techniques-quarterly": "2.1"
+  }
+}
+```
+
+Keys are immutable component track IDs and values are the tagged versions
+stored in the selected draft's `composition_resolution`. The server does not
+look up the components' current releases, so advancing a component after
+materialization does not rewrite the virtual release's provenance. Standard
+release history entries omit `component_versions`.
 
 ### Clone Release Track From Latest
 
 Bootstraps a new `release-track` instance from an existing snapshot.
+
 ```
 POST /api/release-tracks/:id/clone
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "Cloned Release Track" // optional
@@ -377,11 +634,13 @@ POST /api/release-tracks/:id/clone
 ### Delete Release Track
 
 ```
-DELETE /api/release-tracks/:id
+DELETE /api/release-tracks/:id?confirm_track_id=:id
 ```
 
-**Query Parameters:**
-- `versions` - `latest` (delete only latest, default: all)
+This irreversible operation requires the administrator role and removes the
+track's complete snapshot history. `confirm_track_id` must exactly equal the
+`:id` path parameter. Every accepted attempt is recorded in the durable
+release-track destructive audit trail.
 
 ---
 
@@ -398,64 +657,116 @@ GET /api/release-tracks/:id/snapshots/:modified
 ```
 
 **Path Parameters:**
+
 - `:modified` - ISO 8601 timestamp (e.g., `2024-01-15T16:20:00.000Z`)
 
 **Query Parameters:**
+
 - `format` - `workbench` | `bundle` | `filesystemstore` (default: `workbench`; `filesystemstore` is not yet implemented)
 - `include` - `members` | `staged` | `candidates` | `quarantine` | `all` (default: all tiers)
 
+For `format=bundle`, the same additional parameters as
+[Get Latest Snapshot](#get-latest-snapshot) apply: `include` (bundle
+semantics), `state`, `stixVersion`, and `includeToc`.
+
 **Example:**
+
 ```bash
 # Get snapshot from January 15, 2024 for the Workbench UI
 GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z
 
 # Get snapshot from January 15, 2024 as STIX bundle
 GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle
+
+# Historical snapshot as a bundle including staged objects
+GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle&include=staged
 ```
 
-### Update Metadata (Specific Snapshot)
-
-```
-POST /api/release-tracks/:id/snapshots/:modified/meta
-```
-
-Creates new snapshot with updated metadata.
-
-**Request Body:** Same as [Update Metadata](#update-metadata) for latest snapshot.
-
-### Update Contents (Specific Snapshot)
-
-```
-POST /api/release-tracks/:id/snapshots/:modified/contents
-```
-
-Creates new snapshot with updated member objects. **This is intended for retroactive hotfixes only.**
-
-**Request Body:** Same as [Update Contents](#update-contents) for latest snapshot.
-
-### Bump/Tag Specific Snapshot
+### Release/Tag Specific Snapshot
 
 Converts a specific draft snapshot to a tagged release. Tags snapshot in-place (does not create new snapshot).
 
 ```
-POST /api/release-tracks/:id/snapshots/:modified/bump
+POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
-**Request Body:** Same as [Bump/Tag Latest Snapshot](#bumptag-latest-snapshot).
+**Request Body:** Same as [Release Latest Snapshot](#release-latest-snapshot).
 
 ### Clone Specific Snapshot
 
 Bootstraps a new release track from the specified snapshot.
+
 ```
 POST /api/release-tracks/:id/snapshots/:modified/clone
 ```
 
+### Create or Delete a Deterministic Member Graph
+
+```
+POST   /api/release-tracks/:id/snapshots/:modified/graph
+POST   /api/release-tracks/:id/snapshots/:modified/graph/reconstruct
+DELETE /api/release-tracks/:id/snapshots/:modified/graph
+```
+
+Only tagged snapshots may have graphs. POST resolves the snapshot's `members`
+into a pointer-only exact-revision manifest and returns `201`; repeating it is
+idempotent and returns `200`. DELETE removes the manifest and returns `204`
+even when no graph exists. Ordinary graph creation emits only member SDO
+revisions and relationships whose two exact stored endpoint revisions are both
+members. It never follows a relationship to add a secondary SDO or a newer
+revision of an existing member. Graphless bundles resolve relationships and
+secondary objects live. Requests that include candidates or staged objects
+remain live even if the tagged snapshot has a graph.
+
+When the immediately preceding tagged snapshot has a graph, its still-valid
+relationship pointers seed the new graph. Current exact relationship revisions
+are selected through indexed endpoint lookups and take precedence. This lets a
+source-attested historical baseline anchor later releases without preventing
+new relationships between unchanged members from being discovered.
+
+User interfaces may present this operation as **caching the bundle**: a cached
+indicator means member-only bundle exports reuse the exact object and
+relationship revisions selected when the cache was created. This is not a
+general response cache and does not make candidate or staged exports
+deterministic.
+
+Graph creation also stores one stateful `x-mitre-collection` manifest entry.
+Its ID is stable for the release track, `created` comes from the track's first
+cached collection object, `created_by_ref` is the configured organization
+identity's STIX ID, and `modified` is the current manifest creation time. The
+collection object is emitted only in STIX 2.1. The graph-backed bundle envelope
+uses the manifest UUID, so repeated STIX 2.0 or STIX 2.1 downloads are
+byte-for-byte stable. The graph-creation response and snapshot history expose
+SHA-256 hashes for both exact download files.
+
+Administrators may use the separate `/graph/reconstruct` POST for a historical
+baseline backed by an independently verified source bundle. The request sends
+the bundle's SHA-256/collection/release/domain attestation plus exact graph
+pointers; it does not import source STIX payloads. The server rejects plans
+whose roots differ from `members`, whose revisions are missing, or whose
+relationship endpoints are inconsistent. This recovery endpoint exists for
+controlled bootstrap tooling and is not a replacement for ordinary graph
+creation. A retry is idempotent only when the attached graph has the same
+source attestation.
+
+Pointer roles may also include `link_target`: an exact, non-emitted dependency
+used only to render historical `(LinkById: ...)` fields deterministically.
+An entry may carry `omitted_optional_defaults` containing `revoked` and/or
+`x_mitre_remote_support` when the attested publication omitted those
+false-valued defaults. This is a serialization-shape hint, not frozen STIX
+content; all other fields still come from the exact persisted revision.
+
 ### Delete Specific Snapshot
 
-**TODO**: further consideration needs to be given here. We need to be careful to avoid breaking contextual continuity between snapshots.
 ```
 DELETE /api/release-tracks/:id/snapshots/:modified
 ```
+
+Deletes the selected snapshot only when it is both the latest snapshot and an
+untagged draft with a predecessor. Deletion reverts the track to that
+predecessor. Standard tracks retain only one rolling draft, so replaced
+untagged timestamps return `404`. Tagged releases and a track's sole snapshot
+return `409 Conflict`.
 
 ---
 
@@ -463,23 +774,31 @@ DELETE /api/release-tracks/:id/snapshots/:modified
 
 ### Add Candidates
 
-Adds STIX objects as candidates to the latest draft snapshot. Each object is identified by its `stix.id` field, as well as (optionally) its `stix.modified` field. If `stix.modified` is omitted, the latest permutation of the relevant STIX object will be added. The candidacy reference will follow the latest version of the object until the moment the draft is converted to a release, at which point the reference will become locked to the specific permutation of the object that was considered "latest" at the time the release bump occurred.
+Adds STIX objects as candidates to the latest draft snapshot. Each object is identified by its `stix.id` field, as well as (optionally) its `stix.modified` field. If `stix.modified` is omitted, the latest permutation of the relevant STIX object will be added. The candidacy reference will follow the latest version of the object until the moment the draft is converted to a release, at which point the reference will become locked to the specific permutation of the object that was considered "latest" at the time the release occurred.
+
+If the same selector is already present in any tier of the snapshot, the add
+is idempotently skipped. Thus, a second omitted/`"latest"` request does not
+create another dynamic entry. An exact revision and a dynamic selector are
+different workflow references, and an older or newer exact revision of an
+object already in `members` can still be added as a candidate.
 
 ```
 POST /api/release-tracks/:id/candidates
 ```
 
 **Request Body:**
+
 ```json
 {
   "object_refs": [
-    {"id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z"}, // pinned to specific version
-    {"id": "malware--uuid"} // follows latest version while marked as candidate
+    { "id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z" }, // pinned to specific version
+    { "id": "malware--uuid" } // follows latest version while marked as candidate
   ]
 }
 ```
 
 Simplified (uses latest versions):
+
 ```json
 {
   "object_refs": ["attack-pattern--uuid", "malware--uuid"]
@@ -495,9 +814,11 @@ GET /api/release-tracks/:id/candidates
 ```
 
 **Query Parameters:**
+
 - `status` - Filter by workflow status: `work-in-progress` | `awaiting-review` | `reviewed`
 
 **Response Example:**
+
 ```json
 {
   "candidates": [
@@ -512,7 +833,7 @@ GET /api/release-tracks/:id/candidates
     },
     {
       "object_ref": "malware--fff",
-      "object_modified": "2024-01-13T14:00:00Z",
+      "object_modified": "latest",
       "object_name": "New Malware ABC",
       "object_type": "malware",
       "status": "awaiting-review",
@@ -527,33 +848,40 @@ GET /api/release-tracks/:id/candidates
 ### Remove Candidate
 
 Remove an object from the latest snapshot's candidates list (`workspace.candidates`).
+
 ```
 DELETE /api/release-tracks/:id/candidates/:objectRef
 ```
 
 ### Bulk Object Status Transition
 
-Bulk transition candidate objects currently in the latest snapshot from workflow status `from` to workflow status `to`. 
-- Optionally target specific candidates using the `object_refs` filter. 
+Bulk transition candidate objects currently in the latest snapshot from workflow status `from` to workflow status `to`.
+
+- Optionally target specific candidates using the `object_refs` filter.
 - `object_refs` is optional; if omitted, transitions all matching `from` status.
 
 Bidirectional status transition is supported here. For example, objects can be transition from "reviewed" → "awaiting-review" or from "awaiting-review" → "work-in-progress".
 
 Notably, changes to an object's status (e.g., "work-in-progress" → "awaiting-review") will automatically update its release track membership standing (e.g., candidate, staged, member). In the most restrictive (typical) scenario, a candidate object transitioning to the "reviewed" state will trigger a new draft snapshot creation wherein the object is now staged.
-```
+
+Tier transitions preserve selector uniqueness. If legacy state already
+contains the same exact revision in `members` and `candidates`, the transition
+repairs the duplicate and retains the `members` occurrence. A dynamic
+candidate remains `"latest"` if it is promoted to staged.
+
+````
 POST /api/release-tracks/:id/candidates/review
-```
+```/
 
 **Request Body:**
+
 ```json
 {
   "from": "work-in-progress",
   "to": "awaiting-review",
-  "object_refs": [
-    {"id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z"}
-  ]
+  "object_refs": [{ "id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z" }]
 }
-```
+````
 
 ---
 
@@ -568,12 +896,13 @@ GET /api/release-tracks/:id/staged
 ```
 
 **Response Example:**
+
 ```json
 {
   "staged": [
     {
       "object_ref": "attack-pattern--ddd",
-      "object_modified": "2024-01-14T10:00:00Z",
+      "object_modified": "latest",
       "object_name": "Reviewed Technique",
       "object_type": "attack-pattern",
       "status": "reviewed",
@@ -587,11 +916,17 @@ GET /api/release-tracks/:id/staged
 
 ### Promote Candidate Objects To Staged
 
+Promotion conflict policies apply when `staged` contains a different revision
+selector for the same object. An identical selector already present in another
+tier is not a conflict; the operation retains a single occurrence, with
+`members` taking precedence over workflow tiers.
+
 ```
 POST /api/release-tracks/:id/candidates/promote
 ```
 
 **Request Body:**
+
 ```json
 {
   "object_refs": ["attack-pattern--eee"]
@@ -599,6 +934,7 @@ POST /api/release-tracks/:id/candidates/promote
 ```
 
 **Response:**
+
 ```json
 {
   "promoted": [
@@ -613,16 +949,20 @@ POST /api/release-tracks/:id/candidates/promote
 
 ### Demote Staged Objects To Candidates
 
+Demotion follows the same rule: different selectors are handled by
+`promotion_conflicts.into_candidates`, while an identical selector is retained
+in only one tier. The request's `modified` value may be an exact timestamp or
+`"latest"`.
+
 ```
 POST /api/release-tracks/:id/staged/demote
 ```
 
 **Request Body:**
+
 ```json
 {
-  "object_refs": [
-    {"id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z"}
-  ]
+  "object_refs": [{ "id": "attack-pattern--uuid", "modified": "2024-01-15T10:00:00Z" }]
 }
 ```
 
@@ -643,73 +983,132 @@ PUT /api/release-tracks/:id/config
 ```
 
 **Request Body:**
+
 ```json
 {
-  "candidacy_threshold": "work-in-progress" | "awaiting-review" | "reviewed",
-  "auto_promote": true | false
-}
-```
-
----
-
-## Preview & Dry Run
-
-> **Note on `include` Query Parameter:** The `include` query parameter (used on snapshot retrieval endpoints to filter which tiers are returned) is **NOT supported** on bump preview or dry-run operations. Bump previews and dry-runs are intended to show the user exactly what *will* happen when a bump occurs; ad-hoc filters would be misleading because they do not affect the actual release outcome.
-
-### Preview Next Release (Read-Only)
-
-Shows a verbose diff of what will change in the next tagged release without creating any data.
-
-```
-GET /api/release-tracks/:id/bump/preview
-```
-
-**Query Parameters:**
-- `format` - `bundle` | `filesystemstore` | `workbench` (default: `workbench`; `filesystemstore` is not yet implemented)
-
-**Response Example:**
-```json
-{
-  "current_version": "1.1",
-  "next_version": "1.2",
-  "release_preview": {
-    "will_include": [
-      {
-        "ref": "attack-pattern--ddd",
-        "name": "New Technique XYZ",
-        "status": "reviewed",
-        "source": "staged"
-      }
-    ],
-    "will_exclude": [
-      {
-        "ref": "attack-pattern--eee",
-        "name": "WIP Technique",
-        "status": "work-in-progress",
-        "reason": "Does not meet candidacy threshold"
-      }
-    ]
+  "candidacy_threshold": "awaiting-review",
+  "auto_promote": true,
+  "promotion_conflicts": {
+    "into_candidates": "prefer_latest",
+    "candidates_to_staged": "prefer_latest",
+    "staged_to_members": "abort"
+  },
+  "member_sync": {
+    "strategy": "track_latest",
+    "supplant": {
+      "behavior": "replace",
+      "status_policy": "reset"
+    }
   }
 }
 ```
 
-### Dry Run Bump (Returns Exact Output)
+All fields are optional. Configuration updates merge with the latest draft;
+nested `promotion_conflicts` and `member_sync.supplant` values are also
+merged. The same configuration object may be supplied when creating a track.
 
-Performs all bump logic and returns the exact release contents without persisting changes to the database.
+---
+
+## Release Previews
+
+Release previews and commits use the same planner. Preview requests never
+persist data. Representation filters change only the rendered preview; they do
+not change the release plan.
+
+### Preview Next Release (Read-Only)
+
+Returns a before/after delta by default. Use the historical form
+`/snapshots/:modified/release/preview` to target a specific draft.
 
 ```
-POST /api/release-tracks/:id/bump
+GET /api/release-tracks/:id/snapshots/latest/release/preview
 ```
 
-**Request Body:**
+**Query Parameters:**
+
+- `format` - `summary` | `workbench` | `bundle` | `filesystemstore` (default:
+  `summary`; `filesystemstore` returns 501)
+- `increment` - `major` | `minor` (default: `minor`)
+- `version` - explicit `MAJOR.MINOR` version; mutually exclusive with
+  `increment`
+- Supplying both selectors returns `400 Bad Request`; the server never chooses
+  one selector over the other
+- `include` - for `workbench`, selects returned tiers; for `bundle`, selects
+  additional non-member tiers
+- `state`, `stixVersion`, `includeToc` - bundle representation options
+
+**Response Example:**
+
 ```json
 {
-  "type": "minor",
-  "dry_run": true
+  "track_id": "release-track--123",
+  "type": "standard",
+  "source_snapshot_modified": "2024-01-15T16:20:00.000Z",
+  "version": "1.2",
+  "version_bounds": {
+    "lower": { "version": "1.1", "modified": "2024-01-01T12:00:00.000Z" },
+    "upper": null
+  },
+  "releasable": true,
+  "before": { "members_count": 10, "staged_count": 2, "candidates_count": 1 },
+  "after": { "members_count": 12, "staged_count": 0, "candidates_count": 1 },
+  "changes": { "promoted_count": 2 },
+  "conflicts": []
 }
 ```
 
-**Response:** Returns the exact snapshot that would be created, with all objects and metadata.
+`version_bounds` reports the exclusive adjacent tagged releases used by both
+relative and explicit selection. A historical draft can have both a `lower`
+and an `upper` bound.
+
+`format=workbench` returns the complete would-be persisted snapshot.
+`format=bundle` returns its publication-ready STIX bundle. Thus “dry run” is
+not a separate command: it is a release preview with the desired format.
+For a materialized virtual draft, the workbench preview includes the same
+track-ID-keyed `version_history[].component_versions` map that a successful
+release would persist.
+
+For a standard track, `before` is the selected draft before staged members are
+promoted and `after` is the would-be tagged result. Before either summary or
+rendered preview output is produced, every staged `"latest"` selector is
+resolved to the object revision that is latest for that request. The would-be
+members in `format=workbench` and `format=bundle` therefore contain exact
+timestamps. A later commit performs its own resolution and may select a newer
+revision if the object changed after the preview.
+
+For a virtual track, the contents were already resolved and frozen when the
+draft was explicitly created. A virtual draft without
+`composition_resolution` returns `409 Conflict` instead of previewing stale or
+empty members. A materialized draft's release summary compares that persisted
+draft with the most recent tagged snapshot that precedes it:
+
+```json
+{
+  "track_id": "release-track--virtual",
+  "type": "virtual",
+  "source_snapshot_modified": "2024-07-15T10:00:00.000Z",
+  "version": "14.0",
+  "releasable": true,
+  "previous_release": {
+    "version": "13.1",
+    "modified": "2024-01-15T10:00:00.000Z"
+  },
+  "before": { "members_count": 850, "quarantine_count": 2 },
+  "after": { "members_count": 870, "quarantine_count": 0 },
+  "changes": {
+    "new_count": 30,
+    "updated_count": 12,
+    "removed_count": 10,
+    "quarantined_count": 0
+  },
+  "conflicts": []
+}
+```
+
+For the first virtual release, `previous_release` is `null` and the `before`
+counts are zero. Historical draft previews compare against the tagged release
+that chronologically preceded the selected draft, not a later release. Release
+preview and release never re-resolve virtual composition.
 
 ---
 
@@ -717,21 +1116,25 @@ POST /api/release-tracks/:id/bump
 
 ### Update Candidate Version Pin
 
-Updates which version of an object a candidate reference is pinned to. This allows upgrading a candidate to track a newer version of an object, or downgrading to a previous version.
+Updates the revision selector of a candidate reference. Either value may be an
+exact ISO timestamp or `"latest"`, allowing a candidate to switch between a
+specific revision and a moving reference.
 
 ```
 POST /api/release-tracks/:id/candidates/:objectRef/update-version
 ```
 
 **Request Body:**
+
 ```json
 {
-  "old_modified": "2024-01-15T10:00:00Z",
+  "old_modified": "latest",
   "new_modified": "2024-01-20T14:00:00Z"
 }
 ```
 
 **Use Cases:**
+
 - Upgrading a candidate to the latest version of an object
 - Downgrading to a previous stable version
 - Synchronizing with another release track's version
@@ -740,13 +1143,16 @@ POST /api/release-tracks/:id/candidates/:objectRef/update-version
 
 ### List Object Versions in Release Track
 
-Lists all versions of a specific object referenced across all tiers (candidates, staged, members) in the release track.
+Lists all occurrences of a specific object across candidates, staged, and
+members. Candidate and staged occurrences may report `"latest"`; members
+always report an exact timestamp.
 
 ```
 GET /api/release-tracks/:id/objects/:objectRef/versions
 ```
 
 **Response Example:**
+
 ```json
 {
   "object_ref": "attack-pattern--T1234",
@@ -764,6 +1170,22 @@ GET /api/release-tracks/:id/objects/:objectRef/versions
   ]
 }
 ```
+
+### List Tagged Releases Containing an Object
+
+Lists tagged snapshots across all release tracks whose `members` tier directly
+contains the supplied STIX ID. The result spans all revisions and reports the
+exact `object_modified` pin used by each release.
+
+```
+GET /api/release-tracks/objects/:objectRef/releases
+```
+
+Optional query parameters are `type=standard|virtual`, `order=asc|desc`,
+`limit`, and `offset`. Drafts, candidates, staged/quarantined entries, and
+secondary objects added only during bundle export are excluded. See
+[Find Tagged Releases Containing an Object](releases-by-object.md) for the
+complete response contract and semantics.
 
 ---
 
@@ -800,6 +1222,12 @@ Snapshot already has a version assigned.
 
 Invalid version format or not greater than previous versions.
 
+### TaggedSnapshotDeletionError
+
+**Status:** 409 Conflict
+
+Tagged snapshots are immutable and cannot be deleted.
+
 ### NotFoundError
 
 **Status:** 404 Not Found
@@ -810,16 +1238,23 @@ Release track not found.
 
 ## Virtual Release Tracks
 
-Virtual release tracks are computed aggregations of other release tracks. Unlike standard tracks, virtual tracks don't directly manage objects through the candidate → staged → released workflow. Instead, they compose content from multiple "component tracks" based on configurable rules.
+Virtual release tracks are computed aggregations of standard release tracks.
+Unlike standard tracks, virtual tracks don't directly manage objects through
+the candidate → staged → released workflow. Instead, they compose content from
+multiple standard component tracks based on configurable rules.
 
 **Key Characteristics:**
-- Compute contents from component standard or virtual tracks
+
+- Compute contents only from standard component tracks; virtual-track nesting
+  is rejected
+- Are purely compositional and cannot own native members
 - Only reference **tagged snapshots** from component tracks (never drafts)
 - Create snapshots **manually or on schedule** (never event-driven)
 - All snapshots start as **drafts** and must be explicitly tagged
 - Support **resolution strategies** to control which component versions are included
 
 **Resolution Strategies:**
+
 1. `latest_tagged` - Always use the most recent tagged snapshot from component
 2. `specific_version` - Pin to a specific semantic version (e.g., "5.0")
 3. `specific_snapshot` - Pin to a specific snapshot by timestamp
@@ -833,6 +1268,7 @@ POST /api/release-tracks/new
 ```
 
 **Request Body:**
+
 ```json
 {
   "type": "virtual",
@@ -841,116 +1277,261 @@ POST /api/release-tracks/new
   "composition": {
     "component_tracks": [
       {
-        "track_id": "GroupsMonthly--uuid",
+        "track_id": "release-track--uuid",
         "resolution_strategy": "latest_tagged",
+        "priority": 0,
         "filters": {
-          "object_types": ["intrusion-set"]
+          "object_types": ["intrusion-set"],
+          "domains": ["enterprise"]
         }
       }
     ],
     "deduplication": {
-      "strategy": "prefer_latest_modified",
-      "tier_resolution": "highest_tier",
-      "status_resolution": "highest_status"
+      "strategy": "prioritize_latest_object"
     }
   },
   "snapshot_schedule": {
     "mode": "cron",
     "cron": "0 0 1 1,7 *"
+  },
+  "scheduled_materialization": {
+    "schedule_mode": "cron",
+    "scheduled_for": "2027-01-01T00:00:00.000Z"
   }
 }
 ```
 
+`filters.domains` matches the exact pinned revision's canonical
+`x_mitre_domains`. Short names (`enterprise`, `ics`, `mobile`) and STIX names
+ending in `-attack` are equivalent. The comparison is inclusive: any
+intersection between the object's domains and the configured domains includes
+the object. Thus, `["enterprise-attack", "mobile-attack"]` matches either an
+Enterprise or Mobile component filter; `["mobile-attack"]` does not match an
+Enterprise filter. Objects without a matching domain are excluded.
+
+Cross-domain objects retain the complete domain array in every representation.
+The filter selects an exact revision; it does not narrow or rewrite that
+revision for the requested virtual track.
+Current matrix revisions must also persist `x_mitre_domains`. For an exact
+historical matrix revision created before that requirement, the domain can
+still be read from `external_references[].external_id` as a compatibility
+fallback.
+
+`filters.object_types` accepts canonical Workbench STIX type names:
+`attack-pattern`, `campaign`, `course-of-action`, `identity`, `intrusion-set`,
+`malware`, `marking-definition`, `note`, `relationship`, `tool`,
+`x-mitre-analytic`, `x-mitre-asset`, `x-mitre-collection`,
+`x-mitre-data-component`, `x-mitre-data-source`,
+`x-mitre-detection-strategy`, `x-mitre-matrix`, and `x-mitre-tactic`.
+When present, the array must contain at least one unique value. Omit it to
+include all object types. Type filtering preserves each member revision pinned
+by the resolved component snapshot.
+
+`snapshot_schedule` controls virtual draft creation when the server scheduler
+is enabled. Its shape depends on `mode`:
+
+- `manual` accepts only `{ "mode": "manual" }`;
+- `cron` requires a five-field `cron` expression and rejects `dates`;
+- `dates` requires at least one ISO timestamp and rejects `cron`.
+
+Unknown schedule properties return `400 Bad Request`. Standard tracks also
+reject `snapshot_schedule` rather than silently ignoring it.
+
+Cron expressions and explicit dates are interpreted in UTC. Cron occurrences
+run while the scheduler is active; they are not backfilled after downtime.
+Every due date is recovered after restart and creates exactly one draft.
+Failed cron and date occurrences are retried by the scheduler. Scheduled
+drafts include a `scheduled_materialization` object with `schedule_mode` and
+`scheduled_for`. Clients may set the same strict object when creating a
+virtual track. Standard tracks reject it. The value is attached immutably to
+that snapshot and is returned by track listing, snapshot history, latest
+snapshot, and timestamp-selected snapshot GET requests.
+
+Composition, component, filter, and deduplication objects are strict. Unknown
+keys, including the incorrect singular `filters.domain`, return
+`400 Bad Request`. Component selectors are also strategy-specific:
+`latest_tagged` rejects `version` and `snapshot`; `specific_version` requires
+only `version`; and `specific_snapshot` requires only `snapshot`.
+Every component requires a unique, non-negative integer `priority`; lower
+numbers have higher priority. When composition is supplied during creation,
+each referenced track must already exist and must be a standard track. Virtual
+tracks cannot reference other virtual tracks, and unsupported top-level
+properties such as `native_members` return `400 Bad Request`.
+
 ### Update Virtual Track Composition
 
 ```
-PUT /api/release-tracks/:id/composition
+PUT /api/release-tracks/:id/virtual/composition
 ```
 
 **Request Body:**
+
 ```json
 {
   "component_tracks": [
     {
       "track_id": "GroupsMonthly--uuid",
-      "resolution_strategy": "latest_tagged"
+      "resolution_strategy": "latest_tagged",
+      "priority": 0
     },
     {
       "track_id": "TechniquesQuarterly--uuid",
       "resolution_strategy": "specific_version",
-      "version": "2.0"
+      "version": "2.0",
+      "priority": 1
     }
-  ]
+  ],
+  "scheduled_materialization": {
+    "schedule_mode": "dates",
+    "scheduled_for": "2027-07-01T00:00:00.000Z"
+  }
 }
 ```
 
-**Note:** Updating composition creates a new draft snapshot with the new composition rules.
+The same strict composition and selector validation applies to this update
+operation. Invalid fields are rejected rather than removed from the persisted
+configuration. Component track IDs and priorities must each be unique. The
+optional `scheduled_materialization` value uses the same strict shape as
+creation and is persisted on the new pending virtual draft.
+
+**Note:** Updating composition creates a pending draft containing the new
+rules. To prevent stale materialization from being released, the draft has
+empty `members` and `quarantine` arrays and
+`composition_resolution: null`. It cannot be previewed or tagged as a release
+until `POST /api/release-tracks/:id/virtual/snapshots/create` materializes the
+configured composition. Release preview and release return `409 Conflict`
+while the draft is pending.
 
 ### Create Virtual Snapshot
 
 ```
-POST /api/release-tracks/:id/snapshots/create
+POST /api/release-tracks/:id/virtual/snapshots/create
 ```
 
 **Request Body:**
+
 ```json
 {
-  "description": "Q1 2024 snapshot"
+  "description": "Q1 2024 snapshot",
+  "scheduled_materialization": {
+    "schedule_mode": "dates",
+    "scheduled_for": "2027-07-01T00:00:00.000Z"
+  }
 }
 ```
 
+`scheduled_materialization` is optional and follows the same strict,
+virtual-only contract as track creation and composition update.
+
 **Response:**
+
 ```json
 {
-  "stix": {
-    "id": "x-mitre-collection--virtual-uuid",
-    "modified": "2024-03-01T10:00:00Z",
-    "x_mitre_version": null,
-    "type": "virtual"
-  },
+  "id": "release-track--virtual-uuid",
+  "type": "virtual",
+  "modified": "2024-03-01T10:00:00Z",
+  "version": null,
+  "name": "Enterprise ATT&CK",
+  "members": [],
+  "quarantine": [],
   "composition_resolution": {
     "resolved_at": "2024-03-01T10:00:00Z",
     "component_snapshots": [
       {
-        "track_id": "GroupsMonthly--uuid",
+        "track_id": "release-track--groups-monthly",
         "track_name": "Groups Monthly",
-        "resolved_snapshot": "2024-02-15T10:00:00Z",
+        "track_type": "standard",
+        "resolved_snapshot_id": "2024-02-15T10:00:00Z",
         "resolved_version": "5.2",
         "strategy_used": "latest_tagged",
-        "object_count": 47
+        "total_objects_in_source": 47,
+        "objects_after_filter": 47,
+        "objects_contributed": 47
       }
     ],
-    "total_objects": 870,
-    "duplicates_resolved": 0
-  }
-}
-```
-
-### Preview Virtual Snapshot
-
-Preview what a snapshot would contain without creating it:
-
-```
-GET /api/release-tracks/:id/snapshots/preview
-```
-
-**Response:**
-```json
-{
-  "preview": {
-    "would_resolve_to": {
-      "component_snapshots": [...],
-      "total_objects": 870
+    "deduplication": {
+      "total_objects_before": 47,
+      "total_objects_after": 47,
+      "duplicates_found": 0,
+      "conflicts_resolved": []
     },
-    "comparison_to_latest_tagged": {
-      "current_version": "13.1",
-      "new_objects": 12,
-      "updated_objects": 45,
-      "removed_objects": 3
+    "summary": {
+      "total_objects": 47,
+      "quarantined_objects": 0
     }
   }
 }
 ```
+
+The response is the persisted draft. Review it through the shared snapshot
+retrieval endpoints, then use the shared release-preview and release endpoints
+to tag it. There is no separate virtual snapshot-creation preview: the release
+preview is the authoritative comparison and representation of the persisted
+draft that would be tagged. A non-null `composition_resolution` is the
+readiness marker for those shared release operations.
+
+Each resulting `members` and `quarantine` entry contains an exact
+`(object_ref, object_modified)` pair. Virtual materialization preserves exact
+revisions already frozen in the selected tagged component snapshots. It also
+resolves any unresolved legacy component entry before persistence. The virtual
+snapshot never stores `"latest"` and does not inherit a standard component's
+`track_latest` member-sync behavior.
+
+Shared snapshot retrieval returns these persisted fields directly. There is no
+`resolve` query parameter and no `resolved_content` response property;
+retrieval never recomputes virtual composition. As long as the track does not
+acquire a newer snapshot, `/snapshots/latest` selects the same primary revision
+set, and `/snapshots/:modified` addresses that set explicitly.
+
+Virtual snapshot persistence freezes primary membership, not the bundle graph.
+A tagged snapshot may opt into the graph separately through the graph endpoint
+above. The deterministic graph is closed over those exact members; until it is
+created, relationships and secondary objects resolve live. Hard deletes of
+graph-pinned revisions return `409 Conflict`; every STIX-changing PUT returns
+`409` regardless of graph state.
+
+Candidate and staged exports are intentionally live, including exact-selector
+entries, because determinism is guaranteed only for `members`. A `"latest"`
+selector is resolved at request time until release. Tagged standard members
+and all materialized virtual members are exact.
+
+`duplicates_found` counts object IDs contributed by more than one component,
+including repeated contributions of the same exact revision.
+`conflicts_resolved` includes only object IDs for which multiple distinct
+`object_modified` revisions remained after exact-revision collapse. The
+component `objects_contributed` counts partition the surviving `members`, so
+their sum equals `summary.total_objects`. With the `quarantine` strategy,
+identical revisions remain one member and only distinct conflicting revisions
+enter `quarantine`.
+
+### Promote a Quarantined Virtual Revision
+
+```
+POST /api/release-tracks/:id/virtual/quarantine/promote
+```
+
+Select one exact quarantined revision for membership in the latest virtual
+snapshot:
+
+```json
+{
+  "object_ref": "attack-pattern--11111111-1111-4111-8111-111111111111",
+  "object_modified": "2024-02-01T10:00:00Z"
+}
+```
+
+The selected `(object_ref, object_modified)` pair must exist in the latest
+snapshot's `quarantine` tier. A successful request creates a new draft,
+replaces any existing member revision for that object with the selected
+revision, and removes every quarantined alternative with the same
+`object_ref`. The materialized source snapshot remains unchanged and
+retrievable by its `modified` timestamp. Its `composition_resolution` is
+carried forward unchanged as the immutable record of the original component
+resolution.
+
+The endpoint returns `400 Bad Request` for standard tracks or malformed
+requests and `404 Not Found` when the exact selected revision is not
+quarantined.
 
 ---
 
@@ -961,39 +1542,58 @@ GET /api/release-tracks/:id/snapshots/preview
 The following release-track snapshot retrieval endpoints support `include` and
 `format` query parameters:
 
-- `GET /api/release-tracks/:id` (get latest snapshot)
+- `GET /api/release-tracks/:id/snapshots/latest` (get latest snapshot)
 - `GET /api/release-tracks/:id/snapshots/:modified` (get specific snapshot)
 
 The ephemeral bundle endpoint supports `format`, but not tier `include`, because
 it does not read from a persisted release-track snapshot.
 
-**Include Parameter** (controls which tiers are returned):
+**Include Parameter** (workbench format — controls which tiers are returned):
+
 ```
-GET /api/release-tracks/:id                            # Default: all tiers
-GET /api/release-tracks/:id?include=members            # Members tier only
-GET /api/release-tracks/:id?include=staged             # Members and staged tiers
-GET /api/release-tracks/:id?include=candidates         # Members and candidates tiers
-GET /api/release-tracks/:id?include=quarantine         # Members and quarantine tiers
-GET /api/release-tracks/:id?include=all                # All tiers
+GET /api/release-tracks/:id/snapshots/latest                            # Default: all tiers
+GET /api/release-tracks/:id/snapshots/latest?include=members            # Members tier only
+GET /api/release-tracks/:id/snapshots/latest?include=staged             # Members and staged tiers
+GET /api/release-tracks/:id/snapshots/latest?include=candidates         # Members and candidates tiers
+GET /api/release-tracks/:id/snapshots/latest?include=quarantine         # Members and quarantine tiers
+GET /api/release-tracks/:id/snapshots/latest?include=all                # All tiers
+```
+
+**Include Parameter** (bundle format — controls which tiers are hydrated into
+the bundle; members are always included):
+
+```
+GET /api/release-tracks/:id/snapshots/latest?format=bundle                            # Members only
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=staged             # Members + staged
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates         # Members + candidates
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged  # Members + both
+```
+
+**State Parameter** (bundle format only — narrows the tiers selected via
+`include` by workflow status; `reviewed` entries are always included):
+
+```
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates&state=work-in-progress
+GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged&state=work-in-progress,awaiting-review
 ```
 
 **Format Parameter** (controls output format):
+
 ```
-GET /api/release-tracks/:id?format=workbench           # Workbench snapshot with metadata (default)
-GET /api/release-tracks/:id?format=bundle              # Standard STIX 2.1 bundle
-GET /api/release-tracks/:id?format=filesystemstore     # Not implemented; returns 501
+GET /api/release-tracks/:id/snapshots/latest?format=workbench           # Workbench snapshot with metadata (default)
+GET /api/release-tracks/:id/snapshots/latest?format=bundle              # Standard STIX bundle
+GET /api/release-tracks/:id/snapshots/latest?format=filesystemstore     # Not implemented; returns 501
 ```
 
 **Combined Example:**
+
 ```
-GET /api/release-tracks/:id?include=all&format=workbench
+GET /api/release-tracks/:id/snapshots/latest?include=all&format=workbench
 ```
 
-### Bump Operations (Preview & Dry Run)
+### Release preview representations
 
-The `include` query parameter is **NOT supported** on bump preview or dry-run endpoints:
-
-- `GET /api/release-tracks/:id/bump/preview` — only `format` is supported
-- `POST /api/release-tracks/:id/bump` with `dry_run: true` — only `format` is supported (via request body)
-
-These endpoints are designed to show exactly what *will* happen during a release bump. Allowing ad-hoc tier filters would be misleading because they do not affect the actual release outcome.
+`format=summary` describes the release delta. `format=workbench` renders the
+would-be snapshot for the UI, and `format=bundle` renders the publication
+artifact. `include` and bundle filters affect only those representations, not
+what the release command will persist.

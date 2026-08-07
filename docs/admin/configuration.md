@@ -205,18 +205,27 @@ DATABASE_URL=mongodb://attack-workbench-database/attack-workspace
 
 General application settings.
 
-| Option              | Environment Variable | JSON Path               | Type   | Default                     | Description                                               |
-|---------------------|----------------------|-------------------------|--------|-----------------------------|-----------------------------------------------------------|
-| Name                | *(none)*             | `app.name`              | string | `attack-workbench-rest-api` | Application name                                          |
-| Environment         | `NODE_ENV`           | `app.env`               | string | `development`               | Environment name (`development`, `production`, `test`)    |
-| Version             | *(none)*             | `app.version`           | string | *(from package.json)*       | Application version                                       |
-| ATT&CK Spec Version | *(none)*             | `app.attackSpecVersion` | string | *(from package.json)*       | ATT&CK specification version                              |
+| Option              | Environment Variable | JSON Path               | Type   | Default                     | Description                                            |
+| ------------------- | -------------------- | ----------------------- | ------ | --------------------------- | ------------------------------------------------------ |
+| Name                | _(none)_             | `app.name`              | string | `attack-workbench-rest-api` | Application name                                       |
+| Environment         | `NODE_ENV`           | `app.env`               | string | `development`               | Environment name (`development`, `production`, `test`) |
+| Version             | `APP_VERSION`        | `app.version`           | string | _(from package.json)_       | Running application release version                    |
+| Git commit          | `GIT_COMMIT`         | `app.gitCommit`         | string | `unknown`                   | Commit used to produce the running build               |
+| Build date          | `BUILD_DATE`         | `app.buildDate`         | string | `unknown`                   | RFC 3339 timestamp when the build was produced         |
+| ATT&CK Spec Version | _(none)_             | `app.attackSpecVersion` | string | _(from package.json)_       | ATT&CK specification version                           |
 
 **Example:**
 
 ```bash
 NODE_ENV=production
+APP_VERSION=4.20.0-beta.23
+GIT_COMMIT=c2c017c146fae040caba559333b35536bfbd1189
+BUILD_DATE=2026-08-05T15:13:49.915Z
 ```
+
+The published Docker image sets the three build variables automatically from
+the same build arguments used for its OCI image labels. Source deployments can
+set them explicitly; omitted commit and date values are reported as `unknown`.
 
 ### Logging
 
@@ -516,22 +525,23 @@ See sample: [multiple-apikey-services.json](../resources/sample-configurations/m
 
 Background job scheduler configuration.
 
-| Option         | Environment Variable       | JSON Path                        | Type    | Default | Description                          |
-|----------------|----------------------------|----------------------------------|---------|---------|--------------------------------------|
-| Enable         | `ENABLE_SCHEDULER`         | `scheduler.enableScheduler`      | boolean | `true`  | Enable background job scheduler      |
-| Check Interval | `CHECK_WORKBENCH_INTERVAL` | `scheduler.checkWorkbenchInterval` | integer | `10`    | Scheduler check interval in seconds  |
+| Option | Environment Variable | JSON Path | Type | Default | Description |
+|---|---|---|---|---|---|
+| Enable | `ENABLE_SCHEDULER` | `scheduler.enableScheduler` | boolean | `true` | Enable background job scheduler |
+| Virtual-track reconciliation | `VIRTUAL_TRACK_SCHEDULES_CRON` | `scheduler.virtualTrackSchedulesCron` | string | `* * * * *` | Discover and retry persisted virtual snapshot schedules |
 
 **Scheduler Functions:**
 
 - Checks for collection index updates
 - Downloads collection bundles from remote URLs
 - Processes subscription update policies
+- Materializes virtual release-track snapshots from cron and date schedules
 
 **Example:**
 
 ```bash
 ENABLE_SCHEDULER=true
-CHECK_WORKBENCH_INTERVAL=30
+VIRTUAL_TRACK_SCHEDULES_CRON="* * * * *"
 ```
 
 ### Validation

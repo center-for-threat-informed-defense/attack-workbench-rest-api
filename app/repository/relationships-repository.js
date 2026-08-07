@@ -83,7 +83,6 @@ class RelationshipsRepository extends BaseRepository {
 
   async retrieveAllForBundle(options) {
     try {
-      // Build query exactly as original - NO domain filter
       const query = {};
       if (!options.includeRevoked) {
         query['stix.revoked'] = { $in: [null, false] };
@@ -96,8 +95,11 @@ class RelationshipsRepository extends BaseRepository {
           ? { $in: options.state }
           : options.state;
       }
+      if (Array.isArray(options.objectRefs)) {
+        query['stix.source_ref'] = { $in: options.objectRefs };
+        query['stix.target_ref'] = { $in: options.objectRefs };
+      }
 
-      // Use exact same aggregation as original
       const aggregation = [
         { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
         { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
@@ -106,6 +108,90 @@ class RelationshipsRepository extends BaseRepository {
       ];
 
       return await this.model.aggregate(aggregation).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
+   * Retrieve the current revision of relationship lineages that still touch
+   * any object in a bounded graph frontier. The first indexed lookup finds
+   * candidate lineages; the second aggregation deliberately chooses each
+   * lineage's globally latest revision before reapplying the endpoint filter.
+   * This avoids treating an older, once-relevant revision as current.
+   */
+  async retrieveLatestTouchingObjectRefs(objectRefs, options = {}) {
+    if (!Array.isArray(objectRefs) || objectRefs.length === 0) return [];
+
+    try {
+      const endpointQuery = {
+        $or: [
+          { 'stix.source_ref': { $in: objectRefs } },
+          { 'stix.target_ref': { $in: objectRefs } },
+        ],
+      };
+      const candidateIds = await this.model.distinct('stix.id', endpointQuery).exec();
+      if (candidateIds.length === 0) return [];
+
+      const currentQuery = { ...endpointQuery };
+      if (!options.includeRevoked) {
+        currentQuery['stix.revoked'] = { $in: [null, false] };
+      }
+      if (!options.includeDeprecated) {
+        currentQuery['stix.x_mitre_deprecated'] = { $in: [null, false] };
+      }
+
+      return await this.model
+        .aggregate([
+          { $match: { 'stix.id': { $in: candidateIds } } },
+          { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+          { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
+          { $replaceRoot: { newRoot: '$document' } },
+          { $match: currentQuery },
+        ])
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
+   * Retrieve every relationship revision whose stored source or target pin
+   * exactly matches one of the supplied object revisions.
+   *
+   * The caller deliberately receives inactive and superseded relationship
+   * revisions. Deterministic graph capture must choose the newest revision
+   * for an exact endpoint pair before applying active/deprecated filters, or
+   * an older active revision could be resurrected.
+   */
+  async retrieveRevisionsTouchingExactEndpoints(endpointRevisions, options = {}) {
+    if (!Array.isArray(endpointRevisions) || endpointRevisions.length === 0) return [];
+
+    const batchSize = options.batchSize || 250;
+    const revisionsByKey = new Map();
+    try {
+      for (let offset = 0; offset < endpointRevisions.length; offset += batchSize) {
+        const batch = endpointRevisions.slice(offset, offset + batchSize);
+        const exactEndpointQueries = batch.flatMap((entry) => {
+          const objectModified = new Date(entry.object_modified);
+          return [
+            {
+              'workspace.relationship_endpoints.source.object_ref': entry.object_ref,
+              'workspace.relationship_endpoints.source.object_modified': objectModified,
+            },
+            {
+              'workspace.relationship_endpoints.target.object_ref': entry.object_ref,
+              'workspace.relationship_endpoints.target.object_modified': objectModified,
+            },
+          ];
+        });
+        const relationships = await this.model.find({ $or: exactEndpointQueries }).lean().exec();
+        for (const relationship of relationships) {
+          const key = `${relationship.stix.id}::${new Date(relationship.stix.modified).getTime()}`;
+          revisionsByKey.set(key, relationship);
+        }
+      }
+      return [...revisionsByKey.values()];
     } catch (err) {
       throw new DatabaseError(err);
     }

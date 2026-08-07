@@ -276,25 +276,23 @@ describe('Data Components API', function () {
     );
   });
 
-  it('PUT /api/data-components updates a data component', async function () {
-    const originalModified = dataComponent1.stix.modified;
-    const timestamp = new Date().toISOString();
-    dataComponent1.stix.modified = timestamp;
-    dataComponent1.stix.description = 'This is an updated data component.';
-    const body = dataComponent1;
+  it('PUT /api/data-components rejects STIX changes to a persisted revision', async function () {
+    const body = structuredClone(dataComponent1);
+    body.stix.description = 'This is an updated data component.';
     const res = await request(app)
-      .put('/api/data-components/' + dataComponent1.stix.id + '/modified/' + originalModified)
+      .put(
+        '/api/data-components/' +
+          dataComponent1.stix.id +
+          '/modified/' +
+          dataComponent1.stix.modified,
+      )
       .send(body)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(200)
+      .expect(409)
       .expect('Content-Type', /json/);
 
-    // We expect to get the updated data component
-    const dataComponent = res.body;
-    expect(dataComponent).toBeDefined();
-    expect(dataComponent.stix.id).toBe(dataComponent1.stix.id);
-    expect(dataComponent.stix.modified).toBe(dataComponent1.stix.modified);
+    expect(res.body.message).toContain('immutable');
   });
 
   it('POST /api/data-components does not create a data component with the same id and modified date', async function () {

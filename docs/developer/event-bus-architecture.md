@@ -16,7 +16,7 @@ beforeX → X → afterX → emitXEvent
 
 For example:
 - `beforeCreate` → `create` → `afterCreate` → `emitCreatedEvent`
-- `beforeUpdate` → `update` → `afterUpdate` → `emitUpdatedEvent`
+- `beforeUpdate` → immutable-STIX check → metadata update → `afterUpdate`
 - `beforeDelete` → `delete` → `afterDelete` → `emitDeletedEvent`
 
 **Execution Order:**
@@ -105,6 +105,30 @@ Each STIX document has two top-level keys:
 
 ### 4. Event Bus Messaging
 
+The default `EventBus.emit()` method waits for every listener with
+`Promise.allSettled()`, logs individual failures, and returns successful
+listener values. It is appropriate when a listener is advisory or when the
+caller has a separate recovery contract.
+
+Use `EventBus.emitRequired()` when listener-owned writes are part of the
+caller's success contract. It still lets every listener finish, but rejects
+when a listener fails or when fewer than the declared `minimumListeners` are
+registered. The caller must make the failure durable when the originating
+write has already been persisted.
+
+Release-track membership reconciliation is the first required-event workflow:
+
+1. Persist the snapshot mutation.
+2. Create a pending `releaseTrackReconciliations` record.
+3. Call `emitRequired()` for the attack-object and relationship backref
+   owners.
+4. Mark the record completed, or mark it failed and return a structured
+   service error containing its reconciliation ID.
+
+See
+[backref-reconciliation.md](release-tracks/backref-reconciliation.md) and the
+[operator repair procedure](../admin/release-track-reconciliation.md).
+
 **Event Naming Convention:**
 
 ```
@@ -148,7 +172,7 @@ Where:
 | Event | When Emitted | Payload | Use Cases |
 |-------|--------------|---------|-----------|
 | `{type}::created` | After `afterCreate` hook | `{ stixId, document, type, options }` | Audit logging, notifications |
-| `{type}::updated` | After `afterUpdate` hook | `{ stixId, stixModified, document, previousDocument, type }` | Track changes, propagate updates |
+| `{type}::updated` | Legacy/custom service update paths only | `{ stixId, stixModified, document, previousDocument, type }` | Propagate a service-defined STIX update; generic metadata-only PUT does not emit this event |
 | `{type}::deleted` | After `afterDelete` hook | `{ stixId, document, options }` | Cleanup, cascade deletes |
 
 Where `{type}` is the STIX type (e.g., `attack-pattern`, `x-mitre-analytic`, `x-mitre-detection-strategy`).
@@ -160,6 +184,7 @@ Where `{type}` is the STIX type (e.g., `attack-pattern`, `x-mitre-analytic`, `x-
 | `x-mitre-detection-strategy::analytics-referenced` | DetectionStrategiesService | When detection strategy references analytics (create/update) | `{ detectionStrategyId, detectionStrategy, analyticIds }` | AnalyticsService |
 | `x-mitre-detection-strategy::analytics-removed` | DetectionStrategiesService | When analytics removed from detection strategy | `{ detectionStrategyId, analyticIds }` | AnalyticsService |
 | `x-mitre-analytic::parent-changed` | AnalyticsService | When analytic's parent detection strategy changes | `{ analyticId, oldParentId, newParentId, analytic }` | (Future: for cascading updates) |
+| `release-track::contents-changed` | snapshot-service / versioning-service | After a durable reconciliation record is created for any persisted change to a track's latest snapshot (or track/snapshot deletion) | `{ trackId, snapshot, reconciliationId }` (`snapshot` null when the track or its only snapshot was deleted) | AttackObjectsService, RelationshipsService (required listeners that reconcile `workspace.release_tracks` backrefs; see [backref-reconciliation.md](release-tracks/backref-reconciliation.md)) |
 
 ## Workflow Examples
 
@@ -209,45 +234,47 @@ Where `{type}` is the STIX type (e.g., `attack-pattern`, `x-mitre-analytic`, `x-
      - Update analytic's `external_references` with URL: `https://attack.mitre.org/detectionstrategies/DS0001#DA-0001`
      - Save the analytic
 
-### Workflow 2: Update Detection Strategy - Add Analytic
+### Workflow 2: Revise Detection Strategy - Add Analytic
 
-**User Action:** `PUT /api/detection-strategies/{id}/{modified}`
-- Change `x_mitre_analytic_refs` from `[]` to `['x-mitre-analytic--123']`
+**User Action:** `POST /api/detection-strategies`
+- Create a later revision whose `x_mitre_analytic_refs` changes from `[]` to
+  `['x-mitre-analytic--123']`
 
 **Execution Flow:**
 
-1. **DetectionStrategiesService.beforeUpdate(stixId, stixModified, data, existingDocument)**
+1. **DetectionStrategiesService.beforeCreate(data)**
    - Detect change: `oldRefs = []`, `newRefs = ['x-mitre-analytic--123']`
    - Store: `this._addedAnalyticRefs = ['x-mitre-analytic--123']`
    - Rebuild outbound embedded_relationships for new refs
    - Update `data.workspace.embedded_relationships`
 
-2. **BaseService.updateFull()** - Persist document to database
+2. **BaseService.create()** - Persist the new revision
 
-3. **DetectionStrategiesService.afterUpdate(updatedDocument, previousDocument)**
+3. **DetectionStrategiesService.afterCreate(createdDocument)**
    - If `_addedAnalyticRefs` not empty:
      - Emit `x-mitre-detection-strategy::analytics-referenced`
    - Clean up: `delete this._addedAnalyticRefs`
 
-4. **BaseService.emitUpdatedEvent()** - Emit `x-mitre-detection-strategy::updated`
+4. **BaseService.emitCreatedEvent()** - Emit `x-mitre-detection-strategy::created`
 
 5. **AnalyticsService** listener receives event and updates analytics
 
-### Workflow 3: Update Detection Strategy - Remove Analytic
+### Workflow 3: Revise Detection Strategy - Remove Analytic
 
-**User Action:** `PUT /api/detection-strategies/{id}/{modified}`
-- Change `x_mitre_analytic_refs` from `['x-mitre-analytic--123']` to `[]`
+**User Action:** `POST /api/detection-strategies`
+- Create a later revision whose `x_mitre_analytic_refs` changes from
+  `['x-mitre-analytic--123']` to `[]`
 
 **Execution Flow:**
 
-1. **DetectionStrategiesService.beforeUpdate(...)**
+1. **DetectionStrategiesService.beforeCreate(...)**
    - Detect change: `removedRefs = ['x-mitre-analytic--123']`
    - Store: `this._removedAnalyticRefs = ['x-mitre-analytic--123']`
    - Rebuild outbound embedded_relationships (now empty)
 
-2. **BaseService.updateFull()** - Persist document
+2. **BaseService.create()** - Persist the new revision
 
-3. **DetectionStrategiesService.afterUpdate(...)**
+3. **DetectionStrategiesService.afterCreate(...)**
    - If `_removedAnalyticRefs` not empty:
      - Emit `x-mitre-detection-strategy::analytics-removed`
        ```javascript

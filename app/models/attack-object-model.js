@@ -46,6 +46,10 @@ const attackObjectSchema = new mongoose.Schema(attackObjectDefinition, options);
 // This improves the efficiency of queries and enforces uniqueness on this combination of properties
 attackObjectSchema.index({ 'stix.id': 1, 'stix.modified': -1 }, { unique: true });
 
+// Multikey index supporting reverse lookups from release tracks
+// (release-track backref reconciliation queries by workspace.release_tracks.id)
+attackObjectSchema.index({ 'workspace.release_tracks.id': 1 }, { sparse: true });
+
 // Create the model
 const attackObjectModel = mongoose.model('AttackObject', attackObjectSchema);
 

@@ -42,7 +42,7 @@ class EventBus extends EventEmitter {
    * @param {object} payload - Data to pass to event handlers
    * @returns {Promise<void>}
    */
-  async emit(eventName, payload) {
+  async _dispatch(eventName, payload, options = {}) {
     const timestamp = new Date().toISOString();
 
     // Log the event
@@ -51,6 +51,12 @@ class EventBus extends EventEmitter {
     logger.debug(`EventBus: Emitting '${eventName}'`);
 
     const listeners = this.listeners(eventName);
+    if (listeners.length < (options.minimumListeners || 0)) {
+      throw new Error(
+        `Event '${eventName}' requires at least ${options.minimumListeners} listener(s); ` +
+          `found ${listeners.length}`,
+      );
+    }
     if (listeners.length === 0) {
       logger.debug(`EventBus: No listeners for '${eventName}'`);
       return;
@@ -79,10 +85,40 @@ class EventBus extends EventEmitter {
       logger.warn(
         `EventBus: ${failures.length}/${listeners.length} listeners failed for '${eventName}'`,
       );
+      if (options.required) {
+        const error = new AggregateError(
+          failures.map((failure) => failure.reason),
+          `${failures.length}/${listeners.length} required listener(s) failed for '${eventName}'`,
+        );
+        error.eventName = eventName;
+        error.failures = failures.map((failure) => failure.reason);
+        throw error;
+      }
     }
 
     // Return fulfilled handler results for callers that need them (e.g., WorkflowResult)
     return results.filter((r) => r.status === 'fulfilled' && r.value != null).map((r) => r.value);
+  }
+
+  async emit(eventName, payload) {
+    return this._dispatch(eventName, payload);
+  }
+
+  /**
+   * Emit an event whose listener side effects are part of the caller's
+   * success contract. Any listener failure rejects the emission.
+   *
+   * @param {string} eventName
+   * @param {object} payload
+   * @param {object} [options]
+   * @param {number} [options.minimumListeners]
+   * @returns {Promise<Array>}
+   */
+  async emitRequired(eventName, payload, options = {}) {
+    return this._dispatch(eventName, payload, {
+      ...options,
+      required: true,
+    });
   }
 
   /**
