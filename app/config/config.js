@@ -161,6 +161,8 @@ function loadConfig() {
     },
     app: {
       name: {
+        doc: 'Application name reported by the build information endpoint',
+        format: String,
         default: 'attack-workbench-rest-api',
       },
       env: {
@@ -168,7 +170,22 @@ function loadConfig() {
         env: 'NODE_ENV',
       },
       version: {
+        doc: 'Application release version',
+        format: String,
         default: packageJson.version,
+        env: 'APP_VERSION',
+      },
+      gitCommit: {
+        doc: 'Git commit used to build the application',
+        format: String,
+        default: 'unknown',
+        env: 'GIT_COMMIT',
+      },
+      buildDate: {
+        doc: 'Timestamp when the application was built',
+        format: String,
+        default: 'unknown',
+        env: 'BUILD_DATE',
       },
       attackSpecVersion: {
         default: packageJson.attackSpecVersion,

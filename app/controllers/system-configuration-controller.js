@@ -8,7 +8,7 @@ exports.retrieveSystemVersion = function (req, res, next) {
   try {
     const systemVersionInfo = SystemConfigurationService.retrieveSystemVersion();
     logger.debug(
-      `Success: Retrieved system version, version: ${systemVersionInfo.version}, attackSpecVersion: ${systemVersionInfo.attackSpecVersion}`,
+      `Success: Retrieved system version, version: ${systemVersionInfo.version}, gitCommit: ${systemVersionInfo.gitCommit}, buildDate: ${systemVersionInfo.buildDate}, attackSpecVersion: ${systemVersionInfo.attackSpecVersion}`,
     );
     return res.status(200).send(systemVersionInfo);
   } catch (err) {

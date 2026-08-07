@@ -9,6 +9,7 @@ This directory contains supplementary technical documentation for the ATT&CK Wor
 
 Guides for consumers of the REST API — endpoints, workflows, and terminology.
 
+- [Build Information](user/build-information.md): Inspect the running REST API release and build provenance
 - [Revoke Workflow](user/revoke-workflow.md): How to revoke ATT&CK objects via the API
 
 ### Release Tracks
@@ -28,6 +29,7 @@ Guides for consumers of the REST API — endpoints, workflows, and terminology.
 
 Architecture, patterns, and implementation details for contributors.
 
+- [Build Information](developer/build-information.md): Build metadata provenance, runtime configuration, and frontend integration
 - [Data Model](developer/data-model.md): Database schema and STIX object structure
 - [Event Bus Architecture](developer/event-bus-architecture.md): Event-driven architecture for cross-document dependencies
 - [Lifecycle Hooks Guide](developer/lifecycle-hooks-guide.md): Service lifecycle hooks pattern

@@ -1,5 +1,33 @@
 # Release Track TODOs
 
+## Frontend and REST API build information
+
+- [x] Source REST API build metadata from the Docker/runtime build variables,
+      with package/default fallbacks for non-Docker development.
+- [x] Extend the public system-version endpoint and OpenAPI contract with the
+      REST API name, release version, Git commit, and build date.
+- [x] Generate matching frontend metadata into production build artifacts and
+      display frontend plus REST API versions in the navigation footer.
+- [x] Add REST API and frontend regressions for metadata loading, fallbacks,
+      endpoint access, and rendering.
+- [x] Update REST API user/developer/admin docs, frontend docs, and the Bruno
+      collection for the expanded API response.
+- [x] Run focused checks followed by the complete REST API and frontend test
+      suites, then propose conventional commit messages without committing.
+
+Verification (2026-08-07):
+
+- REST API focused system-version (19), configuration (22), and OpenAPI (2)
+  regressions pass; ESLint and whitespace checks also pass.
+- The clean complete REST API suite passes: OpenAPI 2, configuration 22, API
+  1012, middleware 29, and scheduler 10. An earlier run's documented roaming
+  `ECONNRESET` passed in isolation before the clean rerun.
+- The complete frontend suite passes: 166 files and 385 tests. Focused service,
+  footer, and navigation tests (22), ESLint, Prettier, the metadata generator,
+  and a production build with release-like metadata also pass.
+- Proposed REST API commit: `feat(config): expose REST API build information`.
+  Proposed frontend commit: `feat(shell): display component build versions`.
+
 ## Deterministic graph collection identity repair
 
 - [x] Reproduce the incorrect graph collection creator, STIX 2.0 TOC

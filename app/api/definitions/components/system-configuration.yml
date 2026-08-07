@@ -2,13 +2,32 @@ components:
   schemas:
     system-version:
       type: object
+      required:
+        - name
+        - version
+        - gitCommit
+        - buildDate
+        - attackSpecVersion
       properties:
+        name:
+          type: string
+          description: Name of the REST API component
+          example: 'attack-workbench-rest-api'
         version:
           type: string
-          description: Version of the REST API software
+          description: Release version of the running REST API build
+          example: '4.20.0-beta.23'
+        gitCommit:
+          type: string
+          description: Git commit used to produce the running REST API build, or `unknown` when unavailable
+          example: 'c2c017c146fae040caba559333b35536bfbd1189'
+        buildDate:
+          type: string
+          description: RFC 3339 build timestamp, or `unknown` when unavailable
+          example: '2026-08-05T15:13:49.915Z'
         attackSpecVersion:
           type: string
-          description: ATT&CK spec version of the REST API software
+          description: ATT&CK specification version supported by the REST API
 
     allowed-values:
       type: object

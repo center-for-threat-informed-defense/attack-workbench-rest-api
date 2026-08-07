@@ -205,18 +205,27 @@ DATABASE_URL=mongodb://attack-workbench-database/attack-workspace
 
 General application settings.
 
-| Option              | Environment Variable | JSON Path               | Type   | Default                     | Description                                               |
-|---------------------|----------------------|-------------------------|--------|-----------------------------|-----------------------------------------------------------|
-| Name                | *(none)*             | `app.name`              | string | `attack-workbench-rest-api` | Application name                                          |
-| Environment         | `NODE_ENV`           | `app.env`               | string | `development`               | Environment name (`development`, `production`, `test`)    |
-| Version             | *(none)*             | `app.version`           | string | *(from package.json)*       | Application version                                       |
-| ATT&CK Spec Version | *(none)*             | `app.attackSpecVersion` | string | *(from package.json)*       | ATT&CK specification version                              |
+| Option              | Environment Variable | JSON Path               | Type   | Default                     | Description                                            |
+| ------------------- | -------------------- | ----------------------- | ------ | --------------------------- | ------------------------------------------------------ |
+| Name                | _(none)_             | `app.name`              | string | `attack-workbench-rest-api` | Application name                                       |
+| Environment         | `NODE_ENV`           | `app.env`               | string | `development`               | Environment name (`development`, `production`, `test`) |
+| Version             | `APP_VERSION`        | `app.version`           | string | _(from package.json)_       | Running application release version                    |
+| Git commit          | `GIT_COMMIT`         | `app.gitCommit`         | string | `unknown`                   | Commit used to produce the running build               |
+| Build date          | `BUILD_DATE`         | `app.buildDate`         | string | `unknown`                   | RFC 3339 timestamp when the build was produced         |
+| ATT&CK Spec Version | _(none)_             | `app.attackSpecVersion` | string | _(from package.json)_       | ATT&CK specification version                           |
 
 **Example:**
 
 ```bash
 NODE_ENV=production
+APP_VERSION=4.20.0-beta.23
+GIT_COMMIT=c2c017c146fae040caba559333b35536bfbd1189
+BUILD_DATE=2026-08-05T15:13:49.915Z
 ```
+
+The published Docker image sets the three build variables automatically from
+the same build arguments used for its OCI image labels. Source deployments can
+set them explicitly; omitted commit and date values are reported as `unknown`.
 
 ### Logging
 
