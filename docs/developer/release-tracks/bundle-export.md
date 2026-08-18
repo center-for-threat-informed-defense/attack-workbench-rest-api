@@ -148,13 +148,6 @@ STIX version serialization. The pipeline:
    until the graph is deleted; callers then edit the notes and regenerate the
    graph and hashes.
 
-The `20260805150000-repair-release-track-bundle-integrity` forward migration
-applies these invariants to existing graph manifests. It creates or rewrites
-each frozen collection entry with the track-derived ID and current configured
-organization identity, then recomputes both hashes for every linked tagged
-snapshot. Historical draft graphs remain live exports and therefore do not
-retain deterministic hashes.
-
 ### Canonical domains and the legacy graph renderer
 
 Domain membership is object data, not an export projection. A cross-domain

@@ -1,5 +1,29 @@
 # Release Track TODOs
 
+## Remove nightly-only migration compatibility
+
+- [x] Remove regression code that imports the retired beta bundle-integrity
+      migration.
+- [x] Remove canonical-domain correction logic used only to carry flawed beta
+      migration output forward.
+- [x] Remove current documentation for the retired nightly migrations and
+      document the alpha/beta database reset policy.
+- [x] Run the focused migration and current graph-invariant regression specs.
+- [x] Run the complete `npm test` suite and propose a conventional commit
+      message without committing.
+
+Verification (2026-08-18):
+
+- Focused canonical-domain, deterministic-graph, opt-in-graph, and bundle
+  regressions pass (39); ESLint and whitespace checks also pass.
+- Four complete `npm test` attempts reached 1001-1009 passing API tests but
+  each encountered the documented roaming shared-server failure (HTTP parse
+  error, transient 404, `ECONNRESET`, or socket hang-up). Every affected spec
+  passes independently, including techniques conversion (24), software
+  pagination (13), the grouped release-track cases (15), and change capture
+  (10). OpenAPI (2) and configuration (22) passed on every complete attempt.
+- Proposed commit: `chore(migrations): remove nightly compatibility remnants`.
+
 ## Frontend and REST API build information
 
 - [x] Source REST API build metadata from the Docker/runtime build variables,

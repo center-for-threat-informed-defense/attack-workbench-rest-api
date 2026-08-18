@@ -27,7 +27,6 @@
  */
 
 const mongoose = require('mongoose');
-const _ = require('lodash');
 const config = require('../app/config/config');
 const {
   createAutomationRunRecorder,
@@ -200,70 +199,6 @@ function resolveCandidates(documents, domainsByRevision = new Map()) {
   return candidates;
 }
 
-function normalizedRepairStix(stix) {
-  const normalized = JSON.parse(JSON.stringify(stix));
-  delete normalized.modified;
-  delete normalized.x_mitre_domains;
-  delete normalized.x_mitre_attack_spec_version;
-  delete normalized.x_mitre_modified_by_ref;
-  if (normalized.revoked === false) delete normalized.revoked;
-  return normalized;
-}
-
-function isDomainOnlySuccessor(document, predecessor) {
-  return _.isEqual(normalizedRepairStix(document.stix), normalizedRepairStix(predecessor.stix));
-}
-
-function normalizedDomains(value) {
-  return Array.isArray(value) ? [...new Set(value)].sort() : [];
-}
-
-async function latestIncorrectTargetDocuments(db, domainsByRevision) {
-  const latestDocuments = await db
-    .collection('attackObjects')
-    .aggregate(latestTargetDocumentsPipeline())
-    .toArray();
-  const revisions = await db
-    .collection('attackObjects')
-    .find({ 'stix.id': { $in: latestDocuments.map((document) => document.stix.id) } })
-    .sort({ 'stix.id': 1, 'stix.modified': -1 })
-    .toArray();
-  const revisionsById = new Map();
-  for (const revision of revisions) {
-    const lineage = revisionsById.get(revision.stix.id) || [];
-    lineage.push(revision);
-    revisionsById.set(revision.stix.id, lineage);
-  }
-
-  const candidates = [];
-  for (const document of latestDocuments) {
-    let domains = domainsFromCanonicalToc(document, domainsByRevision);
-    let domainSource = 'canonical-collection-toc';
-
-    if (domains.length === 0) {
-      const predecessor = (revisionsById.get(document.stix.id) || [])
-        .slice(1)
-        .find(
-          (revision) =>
-            domainsFromCanonicalToc(revision, domainsByRevision).length > 0 &&
-            isDomainOnlySuccessor(document, revision),
-        );
-      if (!predecessor) continue;
-      domains = domainsFromCanonicalToc(predecessor, domainsByRevision);
-      domainSource = 'canonical-collection-toc-predecessor';
-    }
-
-    if (_.isEqual(normalizedDomains(document.stix.x_mitre_domains), domains)) continue;
-    candidates.push({
-      document,
-      domains,
-      domainSource,
-      lifecycle: isInactive(document) ? 'inactive' : 'active',
-    });
-  }
-  return candidates;
-}
-
 function ensureMongooseUsesClient(client) {
   if (client && mongoose.connection.readyState === 0) {
     mongoose.connection.setClient(client);
@@ -342,7 +277,7 @@ function removeResolvedDomainValidation(workspace) {
   return replacement;
 }
 
-async function repostActive(candidate, recorder, migrationName = MIGRATION_NAME) {
+async function repostActive(candidate, recorder) {
   const { document, domains } = candidate;
   const service = serviceFor(document.stix.type);
   const modified = nextModifiedTimestamp(document.stix.modified);
@@ -350,7 +285,7 @@ async function repostActive(candidate, recorder, migrationName = MIGRATION_NAME)
   const created = await service.create(repost, {
     import: false,
     automationContext: {
-      automationName: migrationName,
+      automationName: MIGRATION_NAME,
       runId: recorder.runId,
     },
   });
@@ -384,7 +319,7 @@ function prepareInactiveClone(candidate) {
   };
 }
 
-async function syncInactiveClone(candidate, result, recorder, migrationName = MIGRATION_NAME) {
+async function syncInactiveClone(candidate, result, recorder) {
   const { document } = candidate;
   // The direct clone is intentionally not presented as a generic create. It
   // still advances any standard track that references this object, matching
@@ -395,23 +330,18 @@ async function syncInactiveClone(candidate, result, recorder, migrationName = MI
     modifiedBy: 'system',
     trigger: document.stix.revoked === true ? 'revocation' : 'new-revision',
     automationContext: {
-      automationName: migrationName,
+      automationName: MIGRATION_NAME,
       runId: recorder.runId,
     },
   });
 }
 
-async function processActiveBatch(
-  candidates,
-  recorder,
-  concurrency,
-  migrationName = MIGRATION_NAME,
-) {
+async function processActiveBatch(candidates, recorder, concurrency) {
   return mapWithConcurrency(candidates, concurrency, async (candidate) => {
     try {
       return {
         candidate,
-        result: await repostActive(candidate, recorder, migrationName),
+        result: await repostActive(candidate, recorder),
       };
     } catch (error) {
       return { candidate, error };
@@ -419,7 +349,7 @@ async function processActiveBatch(
   });
 }
 
-async function processInactiveBatch(db, candidates, recorder, migrationName = MIGRATION_NAME) {
+async function processInactiveBatch(db, candidates, recorder) {
   return mapWithConcurrency(candidates, ACTIVE_CONCURRENCY, async (candidate) => {
     try {
       const result = prepareInactiveClone(candidate);
@@ -428,7 +358,7 @@ async function processInactiveBatch(db, candidates, recorder, migrationName = MI
       // the native driver performing the insert create its own ObjectId.
       const insertResult = await db.collection('attackObjects').insertOne(result.document);
       result.document._id = insertResult.insertedId;
-      await syncInactiveClone(candidate, result, recorder, migrationName);
+      await syncInactiveClone(candidate, result, recorder);
       return { candidate, result };
     } catch (error) {
       return { candidate, error };
@@ -604,11 +534,6 @@ async function countRemainingDomainlessTargets(db) {
   return (await latestDomainlessTargetDocuments(db)).length;
 }
 
-async function countRemainingIncorrectTargets(db) {
-  const domainsByRevision = await buildCanonicalTocDomainIndex(db);
-  return (await latestIncorrectTargetDocuments(db, domainsByRevision)).length;
-}
-
 async function countStaleDomainBypasses(db) {
   return db.collection('validationbypassrules').countDocuments({
     fieldPath: ['x_mitre_domains'],
@@ -625,33 +550,17 @@ async function removeStaleDomainBypasses(db) {
   });
 }
 
-async function run(db, client, options = {}) {
-  const migrationName = options.migrationName || MIGRATION_NAME;
-  const correctIncorrect = options.correctIncorrect === true;
+async function run(db, client) {
   const domainsByRevision = await buildCanonicalTocDomainIndex(db);
-  const domainlessDocuments = correctIncorrect ? [] : await latestDomainlessTargetDocuments(db);
-  const incorrectCandidates = await latestIncorrectTargetDocuments(db, domainsByRevision);
-  const incorrectIds = new Set(incorrectCandidates.map((candidate) => candidate.document.stix.id));
-  const unresolvedDomainless = correctIncorrect
-    ? []
-    : domainlessDocuments.filter(
-        (document) =>
-          !incorrectIds.has(document.stix.id) &&
-          domainsFromCanonicalToc(document, domainsByRevision).length === 0,
-      );
-  const candidates = [
-    ...incorrectCandidates,
-    ...(correctIncorrect
-      ? []
-      : resolveCandidates(
-          domainlessDocuments.filter((document) => !incorrectIds.has(document.stix.id)),
-          domainsByRevision,
-        )),
-  ];
+  const domainlessDocuments = await latestDomainlessTargetDocuments(db);
+  const unresolvedDomainless = domainlessDocuments.filter(
+    (document) => domainsFromCanonicalToc(document, domainsByRevision).length === 0,
+  );
+  const candidates = resolveCandidates(domainlessDocuments, domainsByRevision);
 
   const recorder = await createAutomationRunRecorder(db, {
     automationType: 'migration',
-    name: migrationName,
+    name: MIGRATION_NAME,
     trigger: { source: 'startup', runner: 'migrate-mongo' },
     scope: {
       collections: ['attackObjects', 'validationbypassrules'],
@@ -662,7 +571,6 @@ async function run(db, client, options = {}) {
       domain_source: 'exact-canonical-collection-toc-membership',
       canonical_collection_domains: Object.fromEntries(CANONICAL_COLLECTION_DOMAINS),
       unmapped_policy: 'leave-unchanged-and-retain-validation-bypasses',
-      correct_incorrect_successors: correctIncorrect,
       active_method: 'service-create',
       inactive_method: 'immutable-direct-clone',
       batch_size: BATCH_SIZE,
@@ -714,12 +622,7 @@ async function run(db, client, options = {}) {
         size: batch.length,
         concurrency: ACTIVE_CONCURRENCY,
       });
-      const processed = await processActiveBatch(
-        batch,
-        recorder,
-        ACTIVE_CONCURRENCY,
-        migrationName,
-      );
+      const processed = await processActiveBatch(batch, recorder, ACTIVE_CONCURRENCY);
       await finalizeBatch(db, processed, recorder, counts, failures);
     }
 
@@ -734,7 +637,7 @@ async function run(db, client, options = {}) {
         concurrency: 1,
         stix_types: [...new Set(batch.map((candidate) => candidate.document.stix.type))],
       });
-      const processed = await processActiveBatch(batch, recorder, 1, migrationName);
+      const processed = await processActiveBatch(batch, recorder, 1);
       await finalizeBatch(db, processed, recorder, counts, failures);
     }
 
@@ -745,22 +648,19 @@ async function run(db, client, options = {}) {
         size: batch.length,
         concurrency: ACTIVE_CONCURRENCY,
       });
-      const processed = await processInactiveBatch(db, batch, recorder, migrationName);
+      const processed = await processInactiveBatch(db, batch, recorder);
       await finalizeBatch(db, processed, recorder, counts, failures);
     }
 
     const remainingDomainless = await countRemainingDomainlessTargets(db);
-    const remainingIncorrect = await countRemainingIncorrectTargets(db);
-    const remainingCandidates = remainingIncorrect;
-    if (failures.length > 0 || remainingCandidates > 0) {
+    if (failures.length > 0) {
       const failureSample = failures
         .slice(0, 5)
         .map((failure) => `${failure.stix_id}: ${failure.error}`)
         .join('; ');
       throw new Error(
         `Canonical-domain object repair is incomplete: ${failures.length} failed item(s), ` +
-          `${remainingCandidates} remaining target object(s). Validation bypasses ` +
-          `were retained.${failureSample ? ` Failures: ${failureSample}` : ''}`,
+          `validation bypasses were retained.${failureSample ? ` Failures: ${failureSample}` : ''}`,
       );
     }
 
@@ -774,7 +674,6 @@ async function run(db, client, options = {}) {
 
     verification = {
       remaining_latest_domainless_target_objects: remainingDomainless,
-      remaining_latest_incorrect_domain_objects: remainingIncorrect,
       remaining_domain_validation_bypasses: await countStaleDomainBypasses(db),
     };
 
@@ -817,9 +716,6 @@ async function run(db, client, options = {}) {
       remaining_latest_domainless_target_objects:
         verification.remaining_latest_domainless_target_objects ??
         (await countRemainingDomainlessTargets(db).catch(() => null)),
-      remaining_latest_incorrect_domain_objects:
-        verification.remaining_latest_incorrect_domain_objects ??
-        (await countRemainingIncorrectTargets(db).catch(() => null)),
       remaining_domain_validation_bypasses:
         verification.remaining_domain_validation_bypasses ??
         (await countStaleDomainBypasses(db).catch(() => null)),
@@ -857,14 +753,12 @@ module.exports = {
     TARGET_TYPES,
     chunkItems,
     countRemainingDomainlessTargets,
-    countRemainingIncorrectTargets,
     countStaleDomainBypasses,
     buildCanonicalTocDomainIndex,
     domainsFromCanonicalToc,
     hasCanonicalDomains,
     isInactive,
     latestDomainlessTargetDocuments,
-    latestIncorrectTargetDocuments,
     mapWithConcurrency,
     nextModifiedTimestamp,
     prepareInactiveClone,

@@ -148,6 +148,9 @@ parameter semantics in the `docs { }` block.
 
 ## Gotchas
 
+- Database migrations support stable-release upgrade paths. Alpha and beta
+  databases are ephemeral and should be reset or recreated rather than carried
+  forward by permanent nightly-only migration scripts.
 - STIX version rules: the bundle envelope carries `spec_version` only in STIX
   2.0 (2.1 removed it; each 2.1 *object* declares its own `spec_version`).
   Marking definitions have no `stix.modified`.
