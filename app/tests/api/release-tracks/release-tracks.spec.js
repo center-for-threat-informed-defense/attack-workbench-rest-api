@@ -32,6 +32,7 @@ function buildTechnique(name, description) {
       kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'persistence' }],
       x_mitre_is_subtechnique: false,
       x_mitre_platforms: ['Windows'],
+      x_mitre_version: '1.0',
     },
   };
 }
@@ -74,6 +75,8 @@ describe('Release Tracks API', function () {
     expect(entry).toMatchObject({
       attack_id: object.workspace.attack_id,
       name: object.stix.name,
+      type: object.stix.type,
+      x_mitre_version: object.stix.x_mitre_version,
       description: object.stix.description,
       modified_by_user: {
         username: 'anonymous',

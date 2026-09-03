@@ -101,9 +101,13 @@ endpoint.
    `baseline_reconstruction` fields are gone. `releaseTrackReconciliations`
    holds outstanding backref work only and is normally empty. See the
    collections table in [entities.md](entities.md).
-8. **`include=staged,candidates` is a draft-only preview.** Included tier
-   entries are resolved live and the same closure rule runs over members plus
-   the included entries. Requesting `include` on a tagged snapshot is a `400`.
+9. **Bundles never add workflow tiers.** `include` is a workbench tier
+   selector; `format=bundle` rejects it with `400`. A draft bundle is exactly
+   its inherited manifest, and the release preview (`format=bundle`) is the
+   one live path, resolving the planned members. (An earlier revision of this
+   design kept a draft-only `include=staged,candidates` preview; it was
+   removed on 2026-09-03 because it produced bundles that matched no manifest
+   and duplicated the release preview.)
 
 ## Consequences
 

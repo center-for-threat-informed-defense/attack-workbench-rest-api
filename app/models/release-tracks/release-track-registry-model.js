@@ -3,6 +3,7 @@
 const mongoose = require('mongoose');
 const {
   validateTrackId,
+  validateTrackAlias,
   validateTrackName,
   validateVersion,
   validateCron,
@@ -64,6 +65,9 @@ const releaseTrackRegistryDefinition = {
     validate: validateTrackName,
   },
   description: { type: String },
+  // Optional URL-safe slug accepted wherever the track ID is. Absent (not
+  // null) when unset so the partial unique index ignores the document.
+  alias: { type: String, validate: validateTrackAlias },
 
   // Denormalized for fast listing (updated on each snapshot/tag)
   latest_snapshot_modified: { type: Date },
@@ -107,6 +111,10 @@ const releaseTrackRegistrySchema = new mongoose.Schema(releaseTrackRegistryDefin
 // --- Indexes ---
 
 releaseTrackRegistrySchema.index({ type: 1 });
+releaseTrackRegistrySchema.index(
+  { alias: 1 },
+  { unique: true, partialFilterExpression: { alias: { $type: 'string' } } },
+);
 
 // --- Model creation ---
 

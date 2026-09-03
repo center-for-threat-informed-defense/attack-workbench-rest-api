@@ -4,6 +4,10 @@ components:
       type: object
       description: 'A snapshot document for a release track, containing versioned member objects and workflow tiers'
       properties:
+        alias:
+          type: string
+          nullable: true
+          description: 'The track alias from the registry (workbench responses), or null'
         id:
           type: string
           description: 'The release track ID (STIX identifier format)'
@@ -284,6 +288,14 @@ components:
         name:
           type: string
           description: 'Object name, if found'
+        type:
+          type: string
+          description: 'STIX object type, if found'
+          example: 'attack-pattern'
+        x_mitre_version:
+          type: string
+          description: 'ATT&CK object version of the selected revision, if found'
+          example: '1.2'
         description:
           type: string
           description: 'Object description, if found'
@@ -630,6 +642,13 @@ components:
         description:
           type: string
           description: 'Track description'
+        alias:
+          type: string
+          description: |
+            Optional URL-safe slug (2-64 lowercase letters, digits, and
+            hyphens) accepted wherever the track ID is, on every /api/release-tracks/{id}... path.
+            Unique across tracks; absent when unset.
+          example: 'enterprise-attack'
         latest_snapshot_modified:
           type: string
           format: date-time

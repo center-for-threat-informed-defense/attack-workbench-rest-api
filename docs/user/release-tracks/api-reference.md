@@ -152,13 +152,33 @@ self-contained.
 | `includeRevoked`                    | `true` \| `false`                            | `false`  | Include objects with `revoked: true`                                                                                                                                                                                     |
 
 > [!Note]
-> The ephemeral endpoint does not support the `include` or `state` tier
-> filters because it does not read from a persisted release-track snapshot —
-> it includes all objects in the domain.
+> The ephemeral endpoint does not support the `include` tier selector because
+> it does not read from a persisted release-track snapshot — it includes all
+> objects in the domain.
 
 ---
 
 ## Release Track Management
+
+### Track identifiers and aliases
+
+Every track has a canonical ID of the form `release-track--<uuid>`. A track
+may also carry an **alias**: a URL-safe slug (2–64 lowercase letters, digits,
+and hyphens, starting and ending with a letter or digit) that is unique across
+tracks. Every `/api/release-tracks/:id/...` path accepts either form, so
+`/api/release-tracks/enterprise-attack/snapshots/latest` and
+`/api/release-tracks/release-track--<uuid>/snapshots/latest` are the same
+request. Responses always report the canonical `id`; workbench snapshot
+responses and registry entries also carry `alias` (or `null`).
+
+Aliases are set at creation (`alias` in the create body) or later through
+[Update Metadata](#update-metadata) (`alias: null` clears one). A slug that
+would shadow a static path segment (`new`, `new-from-bundle`, `import`,
+`objects`, `ephemeral`, `latest`) or begins with `release-track` is rejected
+with `400`; an alias already used by another track returns `409`; an unknown
+alias in a path returns `404`. Values that expect a track ID — such as
+`confirm_track_id` on track deletion and `component_tracks[].track_id` in a
+virtual composition — take the canonical ID only.
 
 ### List All Release Tracks
 
@@ -236,6 +256,7 @@ POST /api/release-tracks/new
 ```json
 {
   "name": "Release Track Name",
+  "alias": "release-track-name",
   "description": "Description",
   "snapshot_description": "Context for the initial draft",
   "type": "standard",
@@ -349,6 +370,8 @@ Workbench responses return the release-track snapshot shape. Entries in the `mem
 
 - `attack_id`
 - `name`
+- `type` (STIX object type of the selected revision)
+- `x_mitre_version` (ATT&CK version of the selected revision)
 - `description` (when available)
 - `modified_by_user.name` (display name, or username if display name is missing)
 
@@ -363,13 +386,15 @@ Workbench responses return the release-track snapshot shape. Entries in the `mem
 
 **Additional query parameters for `format=bundle`:**
 
-| Parameter     | Values                                                                    | Description                                                                                                                                                        |
-| ------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `include`     | `staged` and/or `candidates` (comma-separated or repeated)                | Draft-only preview: additional tiers to include alongside members, resolved live. Released snapshots reject it with `400`. (Different semantics from `workbench`.) |
-| `state`       | `work-in-progress` and/or `awaiting-review` (comma-separated or repeated) | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included. Members are unaffected.             |
-| `stixVersion` | `2.0` \| `2.1`                                                            | STIX version the emitted bundle conforms to (default: `2.1`). STIX 2.1 bundles always begin with the `x-mitre-collection` object; STIX 2.0 omits it.               |
+| Parameter     | Values         | Description                                                                                                                                          |
+| ------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stixVersion` | `2.0` \| `2.1` | STIX version the emitted bundle conforms to (default: `2.1`). STIX 2.1 bundles always begin with the `x-mitre-collection` object; STIX 2.0 omits it. |
 
-See [Output Formats](output-formats.md) for details on the bundle structure.
+A bundle always replays the snapshot's sealed content manifest; `include` is
+rejected with `400` for `format=bundle`. Use the
+[release preview](#preview-latest-release) with `format=bundle` to see what
+the next release would ship. See [Output Formats](output-formats.md) for
+details on the bundle structure.
 
 **Examples:**
 
@@ -377,14 +402,8 @@ See [Output Formats](output-formats.md) for details on the bundle structure.
 # Get latest snapshot for the Workbench UI
 GET /api/release-tracks/:id/snapshots/latest
 
-# Get latest snapshot as STIX bundle (members only)
+# Get latest snapshot as STIX bundle (sealed content)
 GET /api/release-tracks/:id/snapshots/latest?format=bundle
-
-# Get latest snapshot as STIX bundle with staged and candidate objects
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged
-
-# Get latest snapshot as STIX bundle with candidates awaiting review
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates&state=awaiting-review
 
 # Get latest snapshot with members and quarantine only
 GET /api/release-tracks/:id/snapshots/latest?include=quarantine
@@ -518,21 +537,28 @@ A user or team may wish to:
 
 - rename a release (e.g., fix a typo like `"Entrprise"` to `"Enterprise"`) or shift the scope/purpose of an existing release track without losing its history (though [cloning](#clone-latest-snapshot) is preferred in this scenario)
 - update the long-lived `description`. Publication metadata for the emitted collection object (identity, markings, collection ID, creation time) lives in the track configuration; see [Publication configuration](#publication-configuration).
+- set or clear the track's [alias](#track-identifiers-and-aliases).
 
 ```
 POST /api/release-tracks/:id/meta
 ```
 
-Creates new snapshot with updated metadata.
+Name and description live on the snapshot, so changing either creates a new
+snapshot with the updated metadata. The alias is registry-only routing
+metadata: an alias-only update changes no snapshot and returns the latest
+snapshot unchanged.
 
 **Request Body:**
 
 ```json
 {
   "name": "Updated Name",
-  "description": "Updated description"
+  "description": "Updated description",
+  "alias": "updated-name"
 }
 ```
+
+Send `"alias": null` to remove an alias.
 
 ### Snapshot content is append-only
 
@@ -661,9 +687,8 @@ GET /api/release-tracks/:id/snapshots/:modified
 - `format` - `workbench` | `bundle` | `filesystemstore` (default: `workbench`; `filesystemstore` is not yet implemented)
 - `include` - `members` | `staged` | `candidates` | `quarantine` | `all` (default: all tiers)
 
-For `format=bundle`, the same additional parameters as
-[Get Latest Snapshot](#get-latest-snapshot) apply: `include` (bundle
-semantics, drafts only), `state`, and `stixVersion`.
+For `format=bundle`, `stixVersion` applies as for
+[Get Latest Snapshot](#get-latest-snapshot); `include` is rejected.
 
 **Example:**
 
@@ -673,9 +698,6 @@ GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z
 
 # Get snapshot from January 15, 2024 as STIX bundle
 GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle
-
-# Historical snapshot as a bundle including staged objects
-GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle&include=staged
 ```
 
 ### Release/Tag Specific Snapshot
@@ -1061,10 +1083,10 @@ GET /api/release-tracks/:id/snapshots/latest/release/preview
   `increment`
 - Supplying both selectors returns `400 Bad Request`; the server never chooses
   one selector over the other
-- `include` - for `workbench`, selects returned tiers; for `bundle`, selects
-  additional non-member tiers
-- `state`, `stixVersion` - bundle representation options; summary previews of
-  standard tracks add `relationships` describing what the release would seal
+- `include` - for `workbench`, selects returned tiers; bundle previews reject
+  it
+- `stixVersion` - bundle representation option; summary previews of standard
+  tracks add `relationships` describing what the release would seal
 
 **Response Example:**
 
@@ -1575,7 +1597,9 @@ The following release-track snapshot retrieval endpoints support `include` and
 - `GET /api/release-tracks/:id/snapshots/:modified` (get specific snapshot)
 
 The ephemeral bundle endpoint supports `format`, but not tier `include`, because
-it does not read from a persisted release-track snapshot.
+it does not read from a persisted release-track snapshot. `include` applies to
+`workbench` responses only; `format=bundle` rejects it because a bundle always
+replays the sealed content manifest.
 
 **Include Parameter** (workbench format — controls which tiers are returned):
 
@@ -1586,24 +1610,6 @@ GET /api/release-tracks/:id/snapshots/latest?include=staged             # Member
 GET /api/release-tracks/:id/snapshots/latest?include=candidates         # Members and candidates tiers
 GET /api/release-tracks/:id/snapshots/latest?include=quarantine         # Members and quarantine tiers
 GET /api/release-tracks/:id/snapshots/latest?include=all                # All tiers
-```
-
-**Include Parameter** (bundle format — controls which tiers are hydrated into
-the bundle; members are always included):
-
-```
-GET /api/release-tracks/:id/snapshots/latest?format=bundle                            # Members only
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=staged             # Members + staged
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates         # Members + candidates
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged  # Members + both
-```
-
-**State Parameter** (bundle format only — narrows the tiers selected via
-`include` by workflow status; `reviewed` entries are always included):
-
-```
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates&state=work-in-progress
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged&state=work-in-progress,awaiting-review
 ```
 
 **Format Parameter** (controls output format):

@@ -19,6 +19,7 @@ const {
   stixIdentifierSchema,
   xMitreVersionSchema,
   createStixIdValidator,
+  trackAliasSchema,
 } = require('./release-track-schemas');
 
 // -----------------------------------------------------------------------------
@@ -29,6 +30,11 @@ const validateTrackId = {
   validator: (v) => releaseTrackIdSchema.safeParse(v).success,
   message: (props) =>
     `"${props.value}" is not a valid release track ID (expected "release-track--<uuid>")`,
+};
+
+const validateTrackAlias = {
+  validator: (v) => v === undefined || trackAliasSchema.safeParse(v).success,
+  message: (props) => `"${props.value}" is not a valid release track alias`,
 };
 
 const validateTrackName = {
@@ -104,6 +110,7 @@ const validateObjectTypesFilter = {
 
 module.exports = {
   validateTrackId,
+  validateTrackAlias,
   validateTrackName,
   validateStixId,
   validateIdentityRef,

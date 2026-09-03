@@ -29,11 +29,12 @@ const reconciliationService = require('./reconciliation-service');
 const contentManifestService = require('./content-manifest-service');
 const publicationService = require('./publication-service');
 const {
-  TrackNotFoundError,
-  NotFoundError,
-  TaggedSnapshotDeletionError,
+  DuplicateIdError,
   HistoricalSnapshotDeletionError,
+  NotFoundError,
   ReleaseConflictError,
+  TaggedSnapshotDeletionError,
+  TrackNotFoundError,
 } = require('../../exceptions');
 
 // =============================================================================
@@ -177,6 +178,7 @@ exports.createTrack = async function createTrack(data) {
   const trackId = `release-track--${uuidv4()}`;
   const now = new Date();
   const trackType = data.type || 'standard';
+  if (data.alias) await assertAliasAvailable(data.alias);
 
   const initialSnapshot = {
     id: trackId,
@@ -207,6 +209,7 @@ exports.createTrack = async function createTrack(data) {
     track_id: trackId,
     type: trackType,
     name: data.name,
+    alias: data.alias || undefined,
     description: data.description,
     latest_snapshot_modified: now,
     snapshot_count: 1,
@@ -218,6 +221,35 @@ exports.createTrack = async function createTrack(data) {
 
   logger.verbose(`SnapshotService: Created ${trackType} track "${data.name}" (${trackId})`);
   return snapshot;
+};
+
+/**
+ * An alias must name at most one track. The partial unique index is the
+ * backstop; this check turns the common case into a descriptive 409.
+ */
+async function assertAliasAvailable(alias, trackId) {
+  const existing = await registryRepo.findByAlias(alias);
+  if (existing && existing.track_id !== trackId) {
+    throw new DuplicateIdError(`Release track alias '${alias}' is already in use`, {
+      details: { alias, track_id: existing.track_id },
+    });
+  }
+}
+
+/**
+ * Resolve an alias to the track ID it names, or null.
+ */
+exports.resolveTrackAlias = async function resolveTrackAlias(alias) {
+  const entry = await registryRepo.findByAlias(alias);
+  return entry?.track_id ?? null;
+};
+
+/**
+ * The alias registered for a track, or null.
+ */
+exports.getTrackAlias = async function getTrackAlias(trackId) {
+  const entry = await registryRepo.findByTrackId(trackId);
+  return entry?.alias ?? null;
 };
 
 // =============================================================================
@@ -509,10 +541,15 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
 /**
  * Update metadata on the latest snapshot (creates a new snapshot clone).
  *
+ * Name and description live on the snapshot and in the registry, so changing
+ * either clones a new draft. The alias is registry-only routing metadata: an
+ * alias-only update leaves the snapshot history untouched and returns the
+ * latest snapshot unchanged.
+ *
  * @param {string} trackId
- * @param {Object} updates - { name?, description? }
+ * @param {Object} updates - { name?, description?, alias? } (alias null clears)
  * @param {string} [_userId]
- * @returns {Promise<Object>} The new snapshot
+ * @returns {Promise<Object>} The new (or, for alias-only updates, latest) snapshot
  */
 // eslint-disable-next-line no-unused-vars
 exports.updateMetadata = async function updateMetadata(trackId, updates, _userId) {
@@ -520,6 +557,11 @@ exports.updateMetadata = async function updateMetadata(trackId, updates, _userId
   const overrides = {};
   if (updates.name !== undefined) overrides.name = updates.name;
   if (updates.description !== undefined) overrides.description = updates.description;
+
+  if (updates.alias !== undefined) {
+    if (updates.alias) await assertAliasAvailable(updates.alias, trackId);
+    await registryRepo.setAlias(trackId, updates.alias);
+  }
 
   // Also update the registry name/description if changed
   const registryUpdates = {};
@@ -530,6 +572,7 @@ exports.updateMetadata = async function updateMetadata(trackId, updates, _userId
     await registryRepo.updateByTrackId(trackId, registryUpdates);
   }
 
+  if (Object.keys(overrides).length === 0) return source;
   return exports.cloneSnapshot(trackId, source, overrides);
 };
 

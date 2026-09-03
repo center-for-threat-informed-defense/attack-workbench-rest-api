@@ -105,6 +105,8 @@ function authoredPin(relationship, side) {
  * @param {Array<string>} [options.extraSupportingRefs] - Identity and marking
  *   definition IDs the collection object itself references, so the bundle
  *   stays self-contained
+ * @param {boolean} [options.relationshipsOnly] - Skip supporting objects and
+ *   LinkById targets; for callers that only compare relationship selection
  * @returns {Promise<{
  *   roots: { entries: Array<Object>, documents: Array<Object> },
  *   relationships: Array<{ relationship: Object, source: Object, target: Object,
@@ -152,6 +154,10 @@ async function resolveClosedGraph(memberEntries, options = {}) {
   relationships.sort((left, right) =>
     left.relationship.stix.id.localeCompare(right.relationship.stix.id),
   );
+
+  if (options.relationshipsOnly) {
+    return { roots, relationships, supportingDocuments: [], linkTargetDocuments: [] };
+  }
 
   const emitted = [...roots.documents, ...relationships.map((candidate) => candidate.relationship)];
   const supportingDocuments = await loadSupportingDocuments(
@@ -751,12 +757,12 @@ async function replay(snapshot) {
 }
 
 /**
- * Resolve the graph live for a member set plus optional extra tier entries.
- * Used by release previews (unsaved planned snapshots) and by draft exports
- * that add workflow tiers. Not deterministic by design.
+ * Resolve the graph live for a snapshot's member set. Used by release previews
+ * of an unsaved planned snapshot, which has nothing sealed yet. Not
+ * deterministic by design.
  */
-async function resolveLive(snapshot, extraEntries = []) {
-  const graph = await resolveClosedGraph([...(snapshot.members || []), ...extraEntries], {
+async function resolveLive(snapshot) {
+  const graph = await resolveClosedGraph(snapshot.members || [], {
     extraSupportingRefs: await publicationSupportingRefs(snapshot),
   });
   return graphFromResolution(graph);
@@ -810,7 +816,9 @@ function relationshipSummary(relationship, source, target, extra = {}) {
  * @param {Array<Object>} members - Member set the release would seal
  */
 async function previewRelationshipChanges(snapshot, members) {
-  const graph = await resolveClosedGraph(members);
+  // Only the relationship selection is compared, so the supporting objects
+  // and LinkById targets a full seal would load are skipped.
+  const graph = await resolveClosedGraph(members, { relationshipsOnly: true });
   const previousEntries = snapshot.content_manifest_id
     ? (await loadEntries(snapshot.content_manifest_id)).filter(
         (entry) => entry.kind === 'relationship',

@@ -8,6 +8,9 @@ const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
+// Every `:id` route accepts either a canonical track ID or a track alias.
+router.param('id', releaseTracksController.resolveTrackId);
+
 // =============================================================================
 // Ephemeral (stateless) bundles
 // =============================================================================

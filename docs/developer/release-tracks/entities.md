@@ -4,15 +4,15 @@ This document tracks new database schemas, interfaces, etc.; as well as changes 
 
 ### Collections at a glance
 
-| Collection | Purpose | Written by | Growth and retention |
-| --- | --- | --- | --- |
-| `releaseTrackRegistry` | One document per track: name, type, denormalized counters, the tagged-release catalogue (`tagged_releases`), the release lock, and virtual schedules. The index that maps a track to its own snapshot collection. | Track create/delete, every snapshot write (counters), release commit and release deletion (catalogue). | One document per track. |
-| `release-track--<uuid>` | The track's snapshots: at most one rolling draft plus every tagged release for a standard track; every materialized draft plus releases for a virtual track. | Snapshot service and release commit. | Bounded by releases plus one draft (standard) or by materializations (virtual). |
-| `releaseTrackContentManifests` | The sealed bill of materials each snapshot references (`content_manifest_id`). Several snapshots share one manifest when their member sets are identical. | Sealed whenever members are written; discarded when no snapshot references it. | Bounded by member-changing writes, not by snapshot count. |
-| `releaseTrackContentManifestEntries` | One exact-revision pointer per object a manifest emits or depends on. The `(object_ref, object_modified)` index is what protects referenced revisions from deletion. | With its manifest. | Roughly members + relationships + a few supporting objects per manifest. |
-| `releaseTrackReconciliations` | Outstanding backref reconciliation work only: a record is created before the `workspace.release_tracks` listeners run and deleted when they succeed, so anything present is pending or failed and needs repair. | Every snapshot write. | Normally empty. |
-| `releaseTrackAuditEvents` | Audit trail for administrator-only destructive operations: `delete_track` and `delete_release`, with actor, confirmation, and outcome. | Those two operations. | Empty until an administrator deletes a track or release. |
-| `virtualTrackScheduleOccurrences` | Durable claims for scheduled virtual materialization (cron or dated schedules) so restarts and duplicate delivery execute each occurrence once. | The scheduler. | One record per scheduled occurrence; empty when no virtual track has a schedule. |
+| Collection                           | Purpose                                                                                                                                                                                                           | Written by                                                                                             | Growth and retention                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `releaseTrackRegistry`               | One document per track: name, type, denormalized counters, the tagged-release catalogue (`tagged_releases`), the release lock, and virtual schedules. The index that maps a track to its own snapshot collection. | Track create/delete, every snapshot write (counters), release commit and release deletion (catalogue). | One document per track.                                                          |
+| `release-track--<uuid>`              | The track's snapshots: at most one rolling draft plus every tagged release for a standard track; every materialized draft plus releases for a virtual track.                                                      | Snapshot service and release commit.                                                                   | Bounded by releases plus one draft (standard) or by materializations (virtual).  |
+| `releaseTrackContentManifests`       | The sealed bill of materials each snapshot references (`content_manifest_id`). Several snapshots share one manifest when their member sets are identical.                                                         | Sealed whenever members are written; discarded when no snapshot references it.                         | Bounded by member-changing writes, not by snapshot count.                        |
+| `releaseTrackContentManifestEntries` | One exact-revision pointer per object a manifest emits or depends on. The `(object_ref, object_modified)` index is what protects referenced revisions from deletion.                                              | With its manifest.                                                                                     | Roughly members + relationships + a few supporting objects per manifest.         |
+| `releaseTrackReconciliations`        | Outstanding backref reconciliation work only: a record is created before the `workspace.release_tracks` listeners run and deleted when they succeed, so anything present is pending or failed and needs repair.   | Every snapshot write.                                                                                  | Normally empty.                                                                  |
+| `releaseTrackAuditEvents`            | Audit trail for administrator-only destructive operations: `delete_track` and `delete_release`, with actor, confirmation, and outcome.                                                                            | Those two operations.                                                                                  | Empty until an administrator deletes a track or release.                         |
+| `virtualTrackScheduleOccurrences`    | Durable claims for scheduled virtual materialization (cron or dated schedules) so restarts and duplicate delivery execute each occurrence once.                                                                   | The scheduler.                                                                                         | One record per scheduled occurrence; empty when no virtual track has a schedule. |
 
 Removed by the sealed-manifest work: the former `releaseTrackGraphManifests`
 and `releaseTrackGraphManifestEntries` collections (renamed in place by the
@@ -69,6 +69,7 @@ collections.
   track_id: "release-track--123",
   type: "standard",
   name: "ATT&CK Enterprise",
+  alias: "enterprise-attack",   // optional; absent when unset
   latest_snapshot_modified: "2024-02-01T10:00:00.000Z",
   latest_tagged_version: "2.0",
   snapshot_count: 47,
@@ -89,6 +90,17 @@ collections.
   ]
 }
 ```
+
+`alias` is an optional URL-safe slug that every `:id` route accepts in place
+of the track ID. It is unique under a partial unique index
+(`{ alias: 1 }`, `alias` of type string), so clearing an alias unsets the
+field rather than writing `null`. Resolution happens once per request in an
+Express `router.param('id')` callback
+([release-tracks-controller.js](../../../app/controllers/release-tracks-controller.js)
+`resolveTrackId`), which rewrites `req.params.id` to the canonical ID before
+any handler runs; services never see aliases. The alias is registry-only:
+snapshots do not store it, and workbench snapshot responses attach it from the
+registry at read time.
 
 `tagged_release_count` is derived from `tagged_releases.length`, and
 `latest_tagged_version` is the highest semantic MAJOR.MINOR version rather

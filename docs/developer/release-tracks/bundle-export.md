@@ -71,7 +71,7 @@ surface was simplified
 | `stixVersion`                          | **Preserved** (default changed to `2.1`)                                                                                                                                                                                                                                                   |
 | `includeRevoked` / `includeDeprecated` | **Preserved** (default `false`)                                                                                                                                                                                                                                                            |
 | `includeMissingAttackId`               | **Renamed** to `includeObjectsWithMissingAttackId` (default `false`)                                                                                                                                                                                                                       |
-| `includeCollectionObject`              | **Renamed** to `includeToc` (default `true`). "TOC" describes what the `x-mitre-collection` object is and avoids overloading "collection". It applies only to STIX 2.1; STIX 2.0 always omits the object.                                                                                   |
+| `includeCollectionObject`              | **Renamed** to `includeToc` (default `true`). "TOC" describes what the `x-mitre-collection` object is and avoids overloading "collection". It applies only to STIX 2.1; STIX 2.0 always omits the object.                                                                                  |
 | `collectionObjectVersion`              | **Removed** — fixed at `0.1`, signifying an ephemerally generated collection not connected to a release track                                                                                                                                                                              |
 | `collectionObjectModified`             | **Removed** — fixed at the current timestamp                                                                                                                                                                                                                                               |
 | `collectionAttackSpecVersion`          | **Removed** — fixed at the global default (`config.app.attackSpecVersion`)                                                                                                                                                                                                                 |
@@ -102,14 +102,13 @@ STIX version serialization. The design is recorded in
    identities and marking definitions, and non-emitted LinkById render
    targets. Export hydrates those pointers and nothing else: no relationship
    query, no domain inference, no "latest" lookup.
-2. **Draft previews** — `include` (values `staged` and/or `candidates`;
-   singular forms accepted) adds workflow tiers to a draft export and `state`
-   (values `work-in-progress` and/or `awaiting-review`) narrows them; entries
-   whose `object_status` is `reviewed` always pass. Because those tiers may
-   hold dynamic `latest` selectors, an `include` export resolves the same
-   closed-member graph live over members plus the included entries instead of
-   replaying. Tagged snapshots reject `include` with `400`. Release previews
-   of an unsaved planned snapshot resolve live the same way.
+2. **Release previews** — a preview of an unsaved planned snapshot has
+   nothing sealed yet, so it resolves the same closed-member graph live over
+   the planned members. This is the only live path. Bundles never add
+   workflow tiers: `include` is a workbench tier selector and `format=bundle`
+   rejects it with `400` (the former draft-only `include`/`state` preview was
+   removed on 2026-09-03 because it produced bundles matching no manifest and
+   duplicated the release preview).
 3. **Supporting objects** — identities and marking definitions referenced by
    emitted objects, plus the identity and markings the collection object
    itself references, are appended so the bundle is self-contained.
@@ -140,9 +139,9 @@ STIX version serialization. The design is recorded in
    - `x_mitre_attack_spec_version`: the deployment's ATT&CK spec version
    - `x_mitre_contents`: every bundle object except marking definitions,
      sorted by `object_ref`
-   Drafts resolve the inheritance rule at export so they preview the current
-   configuration; release commit freezes the resolved values onto the tagged
-   snapshot as `publication`.
+     Drafts resolve the inheritance rule at export so they preview the current
+     configuration; release commit freezes the resolved values onto the tagged
+     snapshot as `publication`.
 7. **Bundle identity and hashes** — a released snapshot stores a stable
    `bundle_id` assigned at commit; drafts derive a UUIDv5 from the track ID
    and snapshot `modified`. The bundle ID therefore changes across snapshots
@@ -266,11 +265,10 @@ the complete SDO boundary, and virtual materialization applies component
 
 Query parameters are validated in the controller with Zod
 ([release-track-schemas.js](../../../app/lib/release-tracks/release-track-schemas.js)).
-The OpenAPI spec declares the parameters loosely (`oneOf` string/array with
-`allowReserved` for the list-valued `include`/`state`) so that both
-comma-separated and repeated-parameter forms reach the Zod layer, which
-normalizes and enforces the enums. Invalid values produce a 400
-`InvalidQueryStringParameterError`.
+The OpenAPI spec declares the parameters loosely so the Zod layer enforces the
+enums. Invalid values, and `include` on a bundle request, produce a 400
+`InvalidQueryStringParameterError`; parameters absent from the OpenAPI spec
+(such as the removed `state`) are rejected by the OpenAPI validator.
 
 Primary revision existence is validated separately in
 `primary-revision-service.js`. This is intentionally a service-layer

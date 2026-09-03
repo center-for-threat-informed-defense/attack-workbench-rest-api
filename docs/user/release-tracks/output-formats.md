@@ -105,9 +105,10 @@ Standard STIX bundle format:
 - Every export replays the snapshot's sealed content manifest: exact member
   revisions, relationships whose source and target are both members (pinned
   to those member revisions), supporting objects, and LinkById targets. No
-  secondary SDO is discovered through a relationship. A draft that adds
-  candidate or staged tiers through `include` is a preview that resolves the
-  same closed graph live; released snapshots reject `include`.
+  secondary SDO is discovered through a relationship, and no workflow tier is
+  ever added: a draft bundle is exactly the manifest it inherited. To see what
+  a release would ship, use the release preview (`.../release/preview?format=bundle`),
+  which resolves the planned members live.
 - Released snapshots carry a stable `bundle_id` and SHA-256 `bundle_hashes`
   for both serializations; repeated downloads are byte-for-byte identical.
   Draft bundles use a deterministic identifier derived from the snapshot.
@@ -123,23 +124,23 @@ Standard STIX bundle format:
 
 **Bundle query parameters** (apply only when `format=bundle`):
 
-| Parameter     | Values                                                              | Default          | Description                                                                                                                                                                            |
-| ------------- | ------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `include`     | `staged`, `candidates` (comma-separated or repeated)                | _(members only)_ | Draft-only preview: additional tiers to include alongside members, resolved live. Released snapshots reject it with `400`.                                                              |
-| `state`       | `work-in-progress`, `awaiting-review` (comma-separated or repeated) | _(no filter)_    | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included, irrespective of this parameter. Members are unaffected. |
-| `stixVersion` | `2.0`, `2.1`                                                        | `2.1`            | STIX version the emitted bundle conforms to. STIX 2.1 bundles always begin with the `x-mitre-collection` object; STIX 2.0 bundles never include it.                                    |
+| Parameter     | Values       | Default | Description                                                                                                                                         |
+| ------------- | ------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stixVersion` | `2.0`, `2.1` | `2.1`   | STIX version the emitted bundle conforms to. STIX 2.1 bundles always begin with the `x-mitre-collection` object; STIX 2.0 bundles never include it. |
+
+`include` is a `workbench` tier selector. Sending it with `format=bundle`
+returns `400`: a bundle always replays the sealed content manifest, so a
+request for staged or candidate objects is refused rather than silently
+answered with members only.
 
 Examples:
 
 ```bash
-# Members only (default)
+# Sealed content (STIX 2.1)
 GET /api/release-tracks/:id/snapshots/latest?format=bundle
 
-# Members + staged objects
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=staged
-
-# Members + candidates and staged objects that are work-in-progress or reviewed
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged&state=work-in-progress
+# What the next release would ship, resolved live over the planned members
+GET /api/release-tracks/:id/snapshots/latest/release/preview?format=bundle
 
 # STIX 2.0 bundle (the table of contents is always omitted)
 GET /api/release-tracks/:id/snapshots/latest?format=bundle&stixVersion=2.0

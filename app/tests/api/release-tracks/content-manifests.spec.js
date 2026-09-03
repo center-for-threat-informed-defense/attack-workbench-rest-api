@@ -371,7 +371,7 @@ describe('Sealed release-track content manifests', function () {
     expect(entries.some((entry) => entry.object_ref === excluded.stix.id)).toBe(false);
   });
 
-  it('treats include as a draft-only preview and rejects it on released snapshots', async function () {
+  it('exports the sealed manifest for drafts and releases alike and rejects include', async function () {
     const member = await post('/api/techniques', technique('Include Member'));
     const candidate = await post('/api/techniques', technique('Include Candidate'));
     const edge = await post('/api/relationships', relationship(member, candidate));
@@ -383,22 +383,20 @@ describe('Sealed release-track content manifests', function () {
       200,
     );
 
-    await authenticated(
-      request(app).get(
-        `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(
-          released.modified,
-        )}?format=bundle&include=candidates`,
-      ),
-    ).expect(400);
+    for (const path of [
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(released.modified)}`,
+      `/api/release-tracks/${track.id}/snapshots/latest`,
+    ]) {
+      await authenticated(request(app).get(`${path}?format=bundle&include=candidates`)).expect(400);
+    }
 
-    const withCandidates = await get(
-      `/api/release-tracks/${track.id}/snapshots/latest?format=bundle&include=candidates`,
-    );
-    const ids = withCandidates.objects.map((object) => object.id);
-    expect(ids).toContain(candidate.stix.id);
-    expect(ids).toContain(edge.stix.id);
-    const membersOnly = await get(`/api/release-tracks/${track.id}/snapshots/latest?format=bundle`);
-    expect(membersOnly.objects.some((object) => object.id === edge.stix.id)).toBe(false);
+    // The draft inherits the release's manifest: the candidate and the edge
+    // that would close over it are absent until the members change.
+    const draft = await get(`/api/release-tracks/${track.id}/snapshots/latest?format=bundle`);
+    const ids = draft.objects.map((object) => object.id);
+    expect(ids).toContain(member.stix.id);
+    expect(ids).not.toContain(candidate.stix.id);
+    expect(ids).not.toContain(edge.stix.id);
   });
 
   it('replaces a release manifest with a source-attested reconstruction only when named', async function () {

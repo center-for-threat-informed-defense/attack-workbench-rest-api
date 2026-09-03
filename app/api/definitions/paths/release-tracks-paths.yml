@@ -238,7 +238,9 @@ paths:
         the initial snapshot and returned by snapshot and track-list GETs.
         `description` is long-lived track metadata. The optional
         `snapshot_description` is a user-authored annotation on the initial
-        draft snapshot and is limited to 4000 characters.
+        draft snapshot and is limited to 4000 characters. `alias` is an
+        optional URL-safe slug (2-64 lowercase letters, digits, and hyphens,
+        unique across tracks) accepted wherever the track ID is.
       tags:
         - 'Release Tracks'
       # Request body validation moved to Zod in controller
@@ -300,7 +302,7 @@ paths:
         - name: id
           in: path
           required: true
-          description: 'Release track ID'
+          description: 'Release track ID or alias'
           schema:
             type: string
         - name: confirm_track_id
@@ -335,10 +337,12 @@ paths:
       summary: 'Update metadata on the latest snapshot'
       operationId: 'release-tracks-update-meta-latest'
       description: |
-        Update name or description on the latest snapshot. Publication
-        markings are configured through the track configuration.
-        Creates a new snapshot clone with updated metadata.
-        Request body validated via Zod in controller.
+        Update name, description, or alias. Name and description live on
+        the snapshot, so changing either creates a new snapshot clone. The
+        alias is registry-only routing metadata (a string sets it, null
+        clears it) and an alias-only update returns the latest snapshot
+        unchanged. Publication markings are configured through the track
+        configuration. Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'
       parameters:
@@ -478,22 +482,12 @@ paths:
             type: string
         - name: include
           in: query
-          allowReserved: true
+          description: |
+            Workbench previews only: which tier arrays to return
+            (members | staged | candidates | quarantine | all). Bundle
+            previews reject it with 400.
           schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
-        - name: state
-          in: query
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
+            type: string
         - name: stixVersion
           in: query
           schema:
@@ -978,7 +972,7 @@ paths:
         - name: id
           in: path
           required: true
-          description: 'Release track ID'
+          description: 'Release track ID or alias'
           schema:
             type: string
         - name: tagged
@@ -1054,24 +1048,18 @@ paths:
         - name: id
           in: path
           required: true
-          description: 'Release track ID'
+          description: 'Release track ID or alias'
           schema:
             type: string
         - name: include
           in: query
           description: |
-            Format-sensitive tier selector. For workbench responses, selects
-            members, staged, candidates, quarantine, or all. For bundle
-            responses, selects staged and/or candidates in addition to members;
-            this is a draft-only preview option that resolves the included
-            tiers live, and tagged snapshots reject it with 400.
-          allowReserved: true
+            Workbench responses only: which tier arrays to return (members,
+            staged, candidates, quarantine, or all; default all). Bundles
+            always replay the snapshot's sealed content manifest and reject
+            include with 400.
           schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
+            type: string
         - name: format
           in: query
           description: 'Output format. filesystemstore is not yet implemented.'
@@ -1082,16 +1070,6 @@ paths:
               - workbench
               - filesystemstore
             default: workbench
-        - name: state
-          in: query
-          description: 'Workflow-status filter for bundle staged/candidate tiers'
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
         - name: stixVersion
           in: query
           description: |
@@ -1146,20 +1124,12 @@ paths:
         - name: include
           in: query
           description: |
-            Format-sensitive tier selector.
-            For format=workbench (default): a single value controlling which tier arrays
-            are returned — members | staged | candidates | quarantine | all (default: all).
-            For format=bundle: a list of additional tiers (staged and/or candidates,
-            comma-separated or repeated) to include alongside members. If omitted, only
-            members are included in the bundle. Including tiers is a draft-only preview
-            option; tagged snapshots reject it with 400.
-          allowReserved: true
+            Workbench responses only: a single value controlling which tier
+            arrays are returned — members | staged | candidates | quarantine |
+            all (default: all). Bundles always replay the snapshot's sealed
+            content manifest and reject include with 400.
           schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
+            type: string
         - name: format
           in: query
           description: 'Output format. filesystemstore is not yet implemented.'
@@ -1170,20 +1140,6 @@ paths:
               - filesystemstore
               - workbench
             default: workbench
-        - name: state
-          in: query
-          description: |
-            Workflow-status filter for the staged/candidate tiers selected via include
-            (bundle format only). Accepts modified-in-place, work-in-progress and/or
-            awaiting-review (comma-separated or repeated). Entries marked reviewed are
-            always included, irrespective of this parameter. Members are unaffected.
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
         - name: stixVersion
           in: query
           description: |
@@ -1486,22 +1442,12 @@ paths:
             type: string
         - name: include
           in: query
-          allowReserved: true
+          description: |
+            Workbench previews only: which tier arrays to return
+            (members | staged | candidates | quarantine | all). Bundle
+            previews reject it with 400.
           schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
-        - name: state
-          in: query
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
+            type: string
         - name: stixVersion
           in: query
           schema:

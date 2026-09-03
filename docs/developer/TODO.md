@@ -114,8 +114,7 @@ Verification (2026-09-02):
   files, and the production `ng build` succeed.
 - Proposed REST commit: `feat(release-tracks): seal snapshot content manifests`.
   Proposed frontend commit: `feat(release-tracks): surface sealed content and
-  publication settings`.
-
+publication settings`.
 
 ### Review follow-ups (2026-09-02)
 
@@ -141,7 +140,7 @@ Verification (2026-09-02):
 - [x] Migration extended in place (unreleased): collection rename, id rewrite,
       header normalization, dead-config removal, completed-reconciliation
       cleanup; dry run stays accurate before the rename.
-Verification (2026-09-02, review follow-ups):
+      Verification (2026-09-02, review follow-ups):
 
 - Backend focused specs pass: manifest migrations 5, destructive authorization
   3, content manifests 10, snapshot history 7, virtual graph integrity 3,
@@ -362,8 +361,8 @@ Verification (2026-08-04):
   Prettier checks pass, and the production build succeeds with existing budget
   warnings.
 - Proposed backend commit: `feat(release-tracks): bound snapshot publication
-  versions`. Proposed frontend commit: `feat(release-tracks): tag snapshots
-  with exact versions`.
+versions`. Proposed frontend commit: `feat(release-tracks): tag snapshots
+with exact versions`.
 
 ## Frontend graph cache lifecycle controls
 
@@ -2634,3 +2633,26 @@ Verification (2026-07-30):
 - [x] Add frontend creation, display, edit, clear, and feedback flows.
 - [x] Add backend and frontend regression coverage.
 - [x] Run focused tests and the complete backend and frontend verification suites.
+
+## Release-track UX and API follow-ups (2026-09-03)
+
+Raised after testing the sealed-manifest work on a restored production
+database.
+
+- [x] Remove bundle `include`/`state`: bundles always replay the sealed
+      manifest; `format=bundle` rejects `include` (400). Frontend Export
+      Latest no longer sends `include=all` for bundles.
+- [x] Workbench tier entries carry `type` and `x_mitre_version` so the
+      release preview no longer downloads the whole object catalogue.
+- [x] Release preview computes relationship changes without loading supporting
+      objects and LinkById targets.
+- [x] Track URL aliases (unique slug per track resolving to the track ID on
+      every `:id` route; set at creation or via `/meta`).
+- [x] Inter-domain relationship report: `GET /api/reports/domain-consistency`
+      (active SROs whose endpoints share no domain; domain-bearing SDOs
+      lacking domains) and a Data Quality page section.
+- [x] Frontend: Delete release only on the most recent release; Preview &
+      Release in-progress state.
+- [x] Frontend: draft-then-tag flow (header keeps only Create Draft; tagging
+      from draft cards), DETAILS tab renamed Board, track deletion in a CONFIG
+      danger zone.

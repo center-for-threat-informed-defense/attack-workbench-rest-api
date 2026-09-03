@@ -132,6 +132,8 @@ function addObjectInfo(entry, resolvedModifiedBySelector, objectsByVersion, user
   if (object) {
     entryWithObjectInfo.attack_id = object.workspace?.attack_id;
     entryWithObjectInfo.name = object.stix?.name;
+    entryWithObjectInfo.type = object.stix?.type;
+    entryWithObjectInfo.x_mitre_version = object.stix?.x_mitre_version;
   }
 
   if (object?.stix?.description !== undefined) {
@@ -210,8 +212,14 @@ async function formatWorkbenchSnapshot(snapshot, options) {
     selectedTiers.flatMap((tierName) => snapshot[tierName] || []),
   );
   const enriched = await addObjectInfoToSnapshot(snapshot);
+  // Registry-derived, read-only: lets clients build alias URLs for the track.
+  enriched.alias = await snapshotService.getTrackAlias(snapshot.id);
   return filterSnapshotTiers(enriched, options?.include);
 }
+
+exports.resolveTrackAlias = function resolveTrackAlias(alias) {
+  return snapshotService.resolveTrackAlias(alias);
+};
 
 // -----------------------------------------------------------------------------
 // Track management  (Phase 1 → snapshot-service)

@@ -76,6 +76,34 @@ const trackNameSchema = z
 const snapshotDescriptionSchema = z.string().trim().max(4000);
 
 // -----------------------------------------------------------------------------
+// Track alias: an optional URL-safe slug accepted wherever a track ID is
+// -----------------------------------------------------------------------------
+
+// Static path segments under /api/release-tracks that an alias must never
+// shadow, plus the canonical ID prefix.
+const RESERVED_TRACK_ALIASES = Object.freeze([
+  'new',
+  'new-from-bundle',
+  'import',
+  'objects',
+  'ephemeral',
+  'latest',
+]);
+
+const trackAliasSchema = z
+  .string()
+  .min(2, { message: 'Release track alias must be at least 2 characters' })
+  .max(64, { message: 'Release track alias must be at most 64 characters' })
+  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])$/, {
+    message:
+      'Release track alias may only contain lowercase letters, digits, and hyphens, and must start and end with a letter or digit',
+  })
+  .refine(
+    (alias) => !RESERVED_TRACK_ALIASES.includes(alias) && !alias.startsWith('release-track'),
+    { message: 'Release track alias is reserved' },
+  );
+
+// -----------------------------------------------------------------------------
 // Cron expression
 // See: https://github.com/colinhacks/zod/issues/4239#issuecomment-3161393771
 // -----------------------------------------------------------------------------
@@ -157,35 +185,6 @@ const formatQuerySchema = z.enum(['bundle', 'filesystemstore', 'workbench']);
 const releasePreviewFormatSchema = z.enum(['summary', 'bundle', 'filesystemstore', 'workbench']);
 
 const includeQuerySchema = z.enum(['members', 'staged', 'candidates', 'quarantine', 'all']);
-
-/**
- * Normalize a query-string value that represents a list. Accepts a repeated
- * parameter (array), a comma-separated string, or a single value, and returns
- * an array of trimmed strings.
- */
-function normalizeQueryArray(value) {
-  const rawValues = Array.isArray(value) ? value : [value];
-  return rawValues
-    .flatMap((entry) => String(entry).split(','))
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
-}
-
-// `include` for format=bundle: which non-member tiers to add to the bundle.
-// Accepts singular or plural tier names; normalized to the plural tier names.
-const bundleIncludeQuerySchema = z.preprocess(
-  (value) =>
-    normalizeQueryArray(value).map((entry) => (entry === 'candidate' ? 'candidates' : entry)),
-  z.array(z.enum(['candidates', 'staged'])).min(1),
-);
-
-// `state` for format=bundle: workflow-status filter applied to the tiers
-// selected via `include`. 'reviewed' is intentionally not a valid filter
-// value — reviewed objects are always included.
-const bundleStateQuerySchema = z.preprocess(
-  (value) => normalizeQueryArray(value),
-  z.array(z.enum(['modified-in-place', 'work-in-progress', 'awaiting-review'])).min(1),
-);
 
 const stixVersionQuerySchema = z.enum(['2.0', '2.1']);
 
@@ -425,6 +424,7 @@ const compositionSchema = z
 const createTrackBodySchema = z
   .object({
     name: trackNameSchema,
+    alias: trackAliasSchema.optional(),
     description: z.string().optional(),
     snapshot_description: snapshotDescriptionSchema.optional(),
     type: trackTypeQuerySchema.default('standard'),
@@ -462,6 +462,8 @@ const createFromBundleBodySchema = z.object({
 const updateMetadataBodySchema = z.object({
   name: trackNameSchema.optional(),
   description: z.string().optional(),
+  // A string sets the alias; null clears it.
+  alias: trackAliasSchema.nullable().optional(),
 });
 
 /** PUT /release-tracks/:id/snapshots/:modified/description */
@@ -647,8 +649,6 @@ module.exports = {
   formatQuerySchema,
   releasePreviewFormatSchema,
   includeQuerySchema,
-  bundleIncludeQuerySchema,
-  bundleStateQuerySchema,
   stixVersionQuerySchema,
   booleanQuerySchema,
   snapshotTaggedQuerySchema,
@@ -670,6 +670,8 @@ module.exports = {
 
   // Request body schemas
   createTrackBodySchema,
+  trackAliasSchema,
+  RESERVED_TRACK_ALIASES,
   createFromBundleBodySchema,
   updateMetadataBodySchema,
   updateSnapshotDescriptionBodySchema,

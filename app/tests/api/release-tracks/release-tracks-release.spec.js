@@ -246,10 +246,14 @@ describe('Release-track release planning and commit API', function () {
       name: revisionB.stix.name,
     });
 
-    const draftBundle = await get(
-      `/api/release-tracks/${track.id}/snapshots/latest` + '?format=bundle&include=staged',
+    // The draft bundle replays the sealed manifest (no members yet); the
+    // release preview bundle resolves the planned members live.
+    const draftBundle = await get(`/api/release-tracks/${track.id}/snapshots/latest?format=bundle`);
+    expect(draftBundle.body.objects.some((object) => object.id === revisionB.stix.id)).toBe(false);
+    const previewBundle = await get(
+      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?format=bundle`,
     );
-    expect(draftBundle.body.objects).toEqual([
+    expect(previewBundle.body.objects).toEqual([
       expect.objectContaining({ type: 'x-mitre-collection' }),
       expect.objectContaining({
         id: revisionB.stix.id,

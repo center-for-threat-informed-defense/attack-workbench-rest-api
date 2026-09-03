@@ -9,9 +9,9 @@
 //   - filesystemstore: Directory structure organized by STIX type
 //
 // Bundle export has exactly one content path: replay the snapshot's sealed
-// content manifest. Two preview variants resolve the same closed-member graph
-// live instead of replaying: release previews of an unsaved planned snapshot,
-// and draft exports that add workflow tiers through `include`.
+// content manifest. The only exception is a release preview of an unsaved
+// planned snapshot, which resolves the same closed-member graph live because
+// nothing has been sealed yet. Workflow tiers are never added to a bundle.
 //
 // This service performs cross-service READS (permitted by the event-driven
 // architecture — see docs/CROSS_SERVICE_READS_PATTERN.md) by querying STIX
@@ -24,11 +24,9 @@
 const { v5: uuidv5 } = require('uuid');
 const logger = require('../../lib/logger');
 const linkById = require('../../lib/linkById');
-const revisionReference = require('../../lib/release-tracks/revision-reference');
 const primaryRevisionService = require('./primary-revision-service');
 const contentManifestService = require('./content-manifest-service');
 const publicationService = require('./publication-service');
-const { BadRequestError } = require('../../exceptions');
 const {
   bundleTransformSchema,
   workbenchTransformSchema,
@@ -91,29 +89,6 @@ function normalizeSourceBundleDefaults(documents, graph) {
   });
 }
 
-/**
- * Select the draft workflow-tier entries requested through `include`,
- * narrowed by `state`, and resolve dynamic selectors to exact revisions.
- */
-async function includedTierEntries(snapshot, options) {
-  const include = options.include || [];
-  const entries = [];
-  for (const tier of ['staged', 'candidates']) {
-    if (!include.includes(tier)) continue;
-    for (const entry of snapshot[tier] || []) {
-      if (
-        options.state &&
-        entry.object_status !== 'reviewed' &&
-        !options.state.includes(entry.object_status)
-      ) {
-        continue;
-      }
-      entries.push({ object_ref: entry.object_ref, object_modified: entry.object_modified });
-    }
-  }
-  return revisionReference.resolveEntries(entries);
-}
-
 function bundleIdFor(snapshot) {
   if (snapshot.bundle_id) return snapshot.bundle_id;
   return `bundle--${uuidv5(
@@ -173,8 +148,8 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
  *
  * Bundle exports (see docs/developer/release-tracks/bundle-export.md):
  *   1. Replay the sealed content manifest (members, closed relationships,
- *      supporting objects, LinkById targets). A release preview or a draft
- *      export with `include` resolves the same closed graph live instead.
+ *      supporting objects, LinkById targets). A release preview of an unsaved
+ *      planned snapshot resolves the same closed graph live instead.
  *   2. Convert LinkById tags to markdown citations
  *   3. Assemble the bundle (STIX version conformance + collection object for
  *      STIX 2.1) via the Zod transform schema
@@ -182,30 +157,15 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
  * @param {Object} snapshot - The raw snapshot document from the dynamic repo
  * @param {string} format - One of: 'bundle', 'filesystemstore'
  * @param {Object} [options] - Additional options
- * @param {Array<string>} [options.include] - Draft-only extra tiers ('staged', 'candidates')
- * @param {Array<string>} [options.state] - Workflow status filter for included tiers
  * @param {string} [options.stixVersion] - '2.0' or '2.1' (default '2.1')
  * @param {boolean} [options.resolveLive] - Resolve the graph live (release previews)
  * @returns {Promise<Object>} The formatted export
  */
 exports.exportSnapshot = async function exportSnapshot(snapshot, format, options = {}) {
   if (format === 'bundle') {
-    const include = options.include || [];
-    if (include.length > 0 && snapshot.version != null) {
-      throw new BadRequestError({
-        message:
-          'Tagged snapshots export members only. The include parameter is a draft preview option.',
-        details: { include },
-      });
-    }
-
-    let graph;
-    if (options.resolveLive || include.length > 0) {
-      const extraEntries = include.length > 0 ? await includedTierEntries(snapshot, options) : [];
-      graph = await contentManifestService.resolveLive(snapshot, extraEntries);
-    } else {
-      graph = await contentManifestService.replay(snapshot);
-    }
+    const graph = options.resolveLive
+      ? await contentManifestService.resolveLive(snapshot)
+      : await contentManifestService.replay(snapshot);
 
     const publication = await publicationService.publicationForExport(snapshot);
     const allObjects = [
