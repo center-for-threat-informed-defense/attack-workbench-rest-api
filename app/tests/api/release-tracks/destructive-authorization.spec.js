@@ -12,6 +12,12 @@ const UserAccount = require('../../../models/user-account-model');
 const ReleaseTrackAuditEvent = require('../../../models/release-tracks/release-track-audit-event-model');
 const auditRepository = require('../../../repository/release-tracks/release-track-audit-event.repository');
 const systemConfigurationService = require('../../../services/system/system-configuration-service');
+const {
+  ReleaseTrackContentManifest,
+} = require('../../../models/release-tracks/release-track-content-manifest-model');
+const { releaseExactMembers } = require('./release-track-test-helpers');
+
+const markingDefinitionId = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
 
 describe('Release-track destructive authorization and audit', function () {
   let app;
@@ -96,6 +102,110 @@ describe('Release-track destructive authorization and audit', function () {
       },
       result: { deleted: true },
     });
+  });
+
+  it('lets only administrators delete the most recent release, with confirmation and audit', async function () {
+    await setRole('admin');
+    const timestamp = new Date().toISOString();
+    const technique = await post(
+      '/api/techniques',
+      {
+        workspace: { workflow: { state: 'work-in-progress' } },
+        stix: {
+          type: 'attack-pattern',
+          spec_version: '2.1',
+          created: timestamp,
+          modified: timestamp,
+          name: 'Release deletion member',
+          description: 'Member for release deletion tests.',
+          kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'execution' }],
+          x_mitre_is_subtechnique: false,
+          x_mitre_domains: ['enterprise-attack'],
+          x_mitre_platforms: ['Windows'],
+          object_marking_refs: [markingDefinitionId],
+        },
+      },
+      201,
+    );
+    const track = await post(
+      '/api/release-tracks/new',
+      { name: 'Release deletion track', type: 'standard' },
+      201,
+    );
+    const first = await releaseExactMembers(app, passportCookie, track.id, [technique], {
+      version: '1.0',
+    });
+    await post(`/api/release-tracks/${track.id}/meta`, { description: 'next' }, 200);
+    const second = await post(
+      `/api/release-tracks/${track.id}/snapshots/latest/release`,
+      { version: '1.1' },
+      200,
+    );
+    const secondPath = `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(
+      second.modified,
+    )}`;
+    const firstPath = `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(
+      first.modified,
+    )}`;
+
+    // Editors cannot delete a release even with the right confirmation.
+    await setRole('editor');
+    await api('delete', secondPath, undefined, 403, { confirm_version: '1.1' });
+
+    await setRole('admin');
+    await api('delete', secondPath, undefined, 400);
+    await api('delete', secondPath, undefined, 400, { confirm_version: '9.9' });
+    expect(await ReleaseTrackAuditEvent.countDocuments({ action: 'delete_release' })).toBe(0);
+    // Only the most recent release can be deleted; the rejected attempt is
+    // audited as failed, like any confirmed destructive request.
+    await api('delete', firstPath, undefined, 409, { confirm_version: '1.0' });
+    expect(
+      await ReleaseTrackAuditEvent.countDocuments({ action: 'delete_release', status: 'failed' }),
+    ).toBe(1);
+
+    await api('delete', secondPath, undefined, 204, { confirm_version: '1.1' });
+
+    await api('get', secondPath, undefined, 404);
+    const remaining = await api(
+      'get',
+      `/api/release-tracks/${track.id}/snapshots/latest`,
+      undefined,
+      200,
+    );
+    expect(remaining.body.version).toBe('1.0');
+    expect(remaining.body.version_history.map((entry) => entry.version)).toEqual(['1.0']);
+    expect(
+      await ReleaseTrackContentManifest.countDocuments({
+        manifest_id: second.content_manifest_id,
+      }),
+    ).toBe(0);
+    const registry = await api('get', '/api/release-tracks', undefined, 200);
+    const entry = registry.body.data.find((candidate) => candidate.track_id === track.id);
+    expect(entry.tagged_release_count).toBe(1);
+    expect(entry.latest_tagged_version).toBe('1.0');
+
+    const event = await ReleaseTrackAuditEvent.findOne({
+      action: 'delete_release',
+      status: 'completed',
+    })
+      .lean()
+      .exec();
+    expect(event).toMatchObject({
+      track_id: track.id,
+      confirmation: '1.1',
+      status: 'completed',
+      request: { snapshot_modified: new Date(second.modified).toISOString() },
+      result: { snapshot_modified: expect.any(Date), version: '1.1', members_count: 1 },
+    });
+
+    // The version is free again and the track keeps working.
+    await post(`/api/release-tracks/${track.id}/meta`, { description: 'again' }, 200);
+    const again = await post(
+      `/api/release-tracks/${track.id}/snapshots/latest/release`,
+      { version: '1.1' },
+      200,
+    );
+    expect(again.version).toBe('1.1');
   });
 
   it('reports an audit-finalization failure without hiding the persisted mutation', async function () {

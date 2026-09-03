@@ -1215,10 +1215,17 @@ paths:
       summary: 'Delete a specific snapshot'
       operationId: 'release-tracks-snapshot-delete'
       description: |
-        Delete the latest untagged draft snapshot by its modified timestamp.
-        Tagged snapshots and historical drafts are immutable and cannot be
-        deleted. Deleting the latest draft reverts the track to its immediately
-        preceding snapshot.
+        Delete the latest untagged draft snapshot by its modified timestamp
+        (editor or higher); the track reverts to its immediately preceding
+        snapshot. Historical drafts have already been pruned.
+
+        An administrator may also delete the track's most recent release by
+        supplying `confirm_version` equal to that snapshot's version. The
+        release's ledger entry is retracted from every remaining snapshot, its
+        content manifest is discarded when nothing else references it, the
+        registry catalogue is reconciled, and a `delete_release` audit event
+        is recorded. A release that is followed by a later release cannot be
+        deleted until the later one is removed.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1232,11 +1239,22 @@ paths:
           required: true
           schema:
             type: string
+        - name: confirm_version
+          in: query
+          description: |
+            Required to delete a release: must equal the release version of
+            the selected snapshot.
+          schema:
+            type: string
       responses:
         '204':
           description: 'Snapshot deleted successfully'
+        '400':
+          description: 'Release confirmation missing or incorrect'
+        '403':
+          description: 'Deleting a release requires an administrator'
         '409':
-          description: 'Cannot delete a tagged snapshot or a historical draft'
+          description: 'The release is not the most recent one, or the draft is not the latest snapshot'
         '404':
           description: 'Snapshot not found'
 

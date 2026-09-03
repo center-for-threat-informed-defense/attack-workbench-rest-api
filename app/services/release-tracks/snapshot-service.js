@@ -751,6 +751,60 @@ exports.deleteTrack = async function deleteTrack(trackId) {
 };
 
 /**
+ * Delete the track's most recent release.
+ *
+ * Only the newest tagged snapshot may be deleted, so the version order of the
+ * remaining releases and the provenance of any later release are never
+ * disturbed. The release's ledger entry is retracted from every remaining
+ * snapshot (the ledger is copied forward into clones), its manifest is
+ * discarded when nothing else references it, and the registry catalogue is
+ * reconciled. Later drafts survive.
+ *
+ * @param {string} trackId
+ * @param {string|Date} modified
+ * @returns {Promise<Object>} The deleted snapshot
+ */
+exports.deleteRelease = async function deleteRelease(trackId, modified) {
+  const snapshot = await exports.getSnapshotByModified(trackId, modified);
+  if (snapshot.version == null) {
+    throw new ReleaseConflictError('The selected snapshot is not a release', {
+      track_id: trackId,
+      snapshot_modified: new Date(snapshot.modified).toISOString(),
+    });
+  }
+  const latestTagged = await dynamicRepo.getLatestTaggedSnapshot(trackId);
+  if (
+    !latestTagged ||
+    new Date(latestTagged.modified).getTime() !== new Date(snapshot.modified).getTime()
+  ) {
+    throw new ReleaseConflictError(
+      'Only the most recent release of a track can be deleted; delete later releases first.',
+      {
+        track_id: trackId,
+        snapshot_modified: new Date(snapshot.modified).toISOString(),
+        version: snapshot.version,
+        latest_version: latestTagged?.version ?? null,
+      },
+    );
+  }
+
+  await dynamicRepo.deleteSnapshot(trackId, snapshot.modified);
+  await dynamicRepo.pullVersionHistory(trackId, snapshot.version);
+  await contentManifestService.discardUnreferenced(trackId, [snapshot.content_manifest_id]);
+  const releaseHistoryService = require('./release-history-service');
+  await releaseHistoryService.reconcileTaggedReleases(trackId);
+  await syncRegistryCounters(trackId);
+
+  const latest = await dynamicRepo.getLatestSnapshot(trackId);
+  await emitContentsChanged(trackId, latest);
+
+  logger.verbose(
+    `SnapshotService: Deleted release v${snapshot.version} (${modified}) from track "${trackId}"`,
+  );
+  return snapshot;
+};
+
+/**
  * Delete a specific snapshot from a track.
  *
  * @param {string} trackId

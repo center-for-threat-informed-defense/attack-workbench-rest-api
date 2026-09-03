@@ -257,11 +257,11 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     await get(`/api/release-tracks/objects/${objectRevisionA.stix.id}/releases?limit=0`, 400);
   });
 
-  it('rejects deletion of a tagged snapshot', async function () {
+  it('requires a typed version confirmation before a release can be deleted', async function () {
     await request(app)
       .delete(`/api/release-tracks/${trackA}/snapshots/${trackATaggedSnapshot.modified}`)
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(409);
+      .expect(400);
   });
 
   it('backfills missing registry refs from authoritative tagged snapshots', async function () {

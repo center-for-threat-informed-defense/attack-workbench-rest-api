@@ -400,6 +400,12 @@ class InvalidVersionError extends CustomError {
   }
 }
 
+class InsufficientRoleError extends CustomError {
+  constructor(requiredRole, options) {
+    super(`This operation requires the ${requiredRole} role`, options);
+  }
+}
+
 class ReleaseConflictError extends CustomError {
   constructor(message, options) {
     super(message || 'Release conflict: promotion aborted due to conflicting objects', options);
@@ -474,6 +480,7 @@ module.exports = {
 
   //** Release track errors */
   ReleaseConflictError,
+  InsufficientRoleError,
   ReleaseContentIntegrityError,
   ReleaseTrackReconciliationError,
   ReleaseTrackAuditError,

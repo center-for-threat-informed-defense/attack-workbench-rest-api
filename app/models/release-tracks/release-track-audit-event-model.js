@@ -9,7 +9,7 @@ const releaseTrackAuditEventSchema = new mongoose.Schema(
     action: {
       type: String,
       required: true,
-      enum: ['delete_track'],
+      enum: ['delete_track', 'delete_release'],
     },
     track_id: { type: String, required: true, validate: validateTrackId },
     status: {

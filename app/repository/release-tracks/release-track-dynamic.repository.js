@@ -457,6 +457,24 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  /**
+   * Remove one release's ledger entry from every snapshot of the track. The
+   * ledger is copied forward into each clone, so deleting a release must
+   * retract it everywhere or the version would stay reserved.
+   */
+  async pullVersionHistory(trackId, version) {
+    try {
+      const Model = this._getModel(trackId);
+      const result = await Model.updateMany(
+        { id: trackId, 'version_history.version': version },
+        { $pull: { version_history: { version } } },
+      ).exec();
+      return result.modifiedCount;
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async deleteOlderDrafts(trackId, modified) {
     try {
       const Model = this._getModel(trackId);

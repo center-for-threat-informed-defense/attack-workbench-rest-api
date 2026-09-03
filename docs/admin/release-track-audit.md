@@ -1,7 +1,9 @@
 # Release-Track Destructive Audit Events
 
-Workbench stores administrator-initiated full-track deletion attempts in
-`releaseTrackAuditEvents`.
+Workbench stores administrator-initiated destructive attempts in
+`releaseTrackAuditEvents`: full-track deletion (`delete_track`) and deletion
+of a track's most recent release (`delete_release`). The collection is empty
+until an administrator performs one of those actions.
 
 Each record contains:
 

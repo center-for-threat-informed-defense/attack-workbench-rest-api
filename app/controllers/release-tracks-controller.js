@@ -661,7 +661,10 @@ exports.reconstructSnapshotManifest = async function reconstructSnapshotManifest
 /** DELETE /api/release-tracks/:id/snapshots/:modified */
 exports.deleteSnapshotByModified = async function deleteSnapshotByModified(req, res, next) {
   try {
-    await releaseTracksService.deleteSnapshot(req.params.id, req.params.modified);
+    await releaseTracksService.deleteSnapshot(req.params.id, req.params.modified, {
+      actor: destructiveActor(req),
+      confirmation: req.query.confirm_version,
+    });
     logger.debug(`Success: Deleted snapshot ${req.params.modified} from track ${req.params.id}`);
     return res.status(204).end();
   } catch (err) {

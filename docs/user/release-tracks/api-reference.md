@@ -783,13 +783,18 @@ rule configured under `config.publication` (see
 
 ```
 DELETE /api/release-tracks/:id/snapshots/:modified
+DELETE /api/release-tracks/:id/snapshots/:modified?confirm_version=1.1
 ```
 
-Deletes the selected snapshot only when it is both the latest snapshot and an
-untagged draft with a predecessor. Deletion reverts the track to that
-predecessor. Standard tracks retain only one rolling draft, so replaced
-untagged timestamps return `404`. Tagged releases and a track's sole snapshot
-return `409 Conflict`.
+Editors may delete the latest untagged draft; the track reverts to the
+preceding snapshot. Administrators may also delete the track's most recent
+release by confirming its version. The release's ledger entry is retracted
+from every remaining snapshot so the version becomes available again, its
+content manifest is discarded when nothing else references it, the registry
+catalogue is reconciled, later drafts are kept, and a `delete_release` audit
+event is recorded. Deleting an older release, or a release followed by a later
+one, returns `409 Conflict`; a missing or wrong confirmation returns `400`;
+a non-administrator receives `403`.
 
 ---
 

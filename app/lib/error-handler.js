@@ -42,6 +42,7 @@ const {
   HistoricalSnapshotDeletionError,
   InvalidVersionError,
   ReleaseConflictError,
+  InsufficientRoleError,
   ReleaseContentIntegrityError,
   ReleaseTrackReconciliationError,
   ReleaseTrackAuditError,
@@ -132,6 +133,12 @@ exports.serviceExceptions = function (err, req, res, next) {
   ) {
     logger.warn('Not found: %s', JSON.stringify(buildErrorResponse(err)));
     return res.status(404).send(buildErrorResponse(err));
+  }
+
+  // Handle 403 Forbidden errors (authenticated but insufficient role)
+  if (err instanceof InsufficientRoleError) {
+    logger.warn('Forbidden: %s', JSON.stringify(buildErrorResponse(err)));
+    return res.status(403).send(buildErrorResponse(err));
   }
 
   // Handle 409 Conflict errors (duplicate resources)

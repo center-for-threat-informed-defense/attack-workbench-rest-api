@@ -14,7 +14,8 @@
 // Phase 6: Export, ephemeral, bundle import        → export-service, ephemeral-service, bundle-import-service
 // =============================================================================
 
-const { BadRequestError, NotImplementedError } = require('../../exceptions');
+const { BadRequestError, InsufficientRoleError, NotImplementedError } = require('../../exceptions');
+const authz = require('../../lib/authz-middleware');
 const {
   compositionSchema,
   snapshotScheduleSchema,
@@ -357,8 +358,42 @@ exports.deleteTrack = function deleteTrack(trackId, actor, confirmation) {
   );
 };
 
-exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
-  return snapshotService.deleteSnapshot(trackId, modified);
+/**
+ * Delete a snapshot. Drafts follow the ordinary editor rules. A release may
+ * only be deleted by an administrator who confirms its version, and the
+ * deletion is recorded as a `delete_release` audit event.
+ */
+exports.deleteSnapshot = async function deleteSnapshot(trackId, modified, options = {}) {
+  const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
+  if (snapshot.version == null) {
+    return snapshotService.deleteSnapshot(trackId, modified);
+  }
+
+  if (options.actor?.role !== authz.userRoles.admin) {
+    throw new InsufficientRoleError('administrator', {
+      details: 'Deleting a release requires an administrator.',
+      track_id: trackId,
+      version: snapshot.version,
+    });
+  }
+  if (options.confirmation !== snapshot.version) {
+    throw new BadRequestError({
+      message: 'Destructive release confirmation is required',
+      details: `Set confirm_version to the exact release version '${snapshot.version}'.`,
+      parameter_name: 'confirm_version',
+      expected_version: snapshot.version,
+    });
+  }
+
+  return destructiveAuditService.execute(
+    {
+      action: 'delete_release',
+      trackId,
+      ...destructiveIdentity(trackId, options.actor, options.confirmation),
+      request: { snapshot_modified: new Date(snapshot.modified).toISOString() },
+    },
+    () => snapshotService.deleteRelease(trackId, modified),
+  );
 };
 
 exports.reconstructSnapshotManifest = function reconstructSnapshotManifest(
