@@ -116,33 +116,23 @@ describe('Relationship endpoint revision pins', function () {
     expect(relationship.stix.x_mitre_target_ref_modified).toBeUndefined();
   });
 
-  it('creates a new SRO revision when an endpoint advances', async function () {
+  it('does not clone the SRO when an endpoint advances; pins remain authoring context', async function () {
     const sourceRevision = cloneForCreate(source);
     sourceRevision.stix.modified = new Date(
       new Date(source.stix.modified).getTime() + 1000,
     ).toISOString();
     sourceRevision.stix.description = 'A newer source revision.';
 
-    const newSource = await post('/api/software', sourceRevision);
+    await post('/api/software', sourceRevision);
     const response = await request(app)
       .get(`/api/relationships/${relationship.stix.id}?versions=all`)
       .set('Accept', 'application/json')
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200);
 
-    expect(response.body).toHaveLength(2);
-    const [latestRelationship, originalRelationship] = response.body;
-    expect(latestRelationship.stix.id).toBe(relationship.stix.id);
-    expect(latestRelationship.stix.modified).not.toBe(originalRelationship.stix.modified);
-    expect(latestRelationship.workspace.relationship_endpoints.source).toEqual({
-      object_ref: source.stix.id,
-      object_modified: newSource.stix.modified,
-    });
-    expect(latestRelationship.workspace.relationship_endpoints.target).toEqual({
-      object_ref: target.stix.id,
-      object_modified: target.stix.modified,
-    });
-    expect(originalRelationship.workspace.relationship_endpoints.source).toEqual({
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0].stix.modified).toBe(relationship.stix.modified);
+    expect(response.body[0].workspace.relationship_endpoints.source).toEqual({
       object_ref: source.stix.id,
       object_modified: source.stix.modified,
     });

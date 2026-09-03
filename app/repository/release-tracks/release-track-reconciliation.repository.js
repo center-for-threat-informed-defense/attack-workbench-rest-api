@@ -44,22 +44,28 @@ class ReleaseTrackReconciliationRepository {
     }
   }
 
+  /**
+   * A completed reconciliation needs no record: the collection holds only
+   * outstanding work (pending or failed attempts) so it stays small and its
+   * contents always mean "repair me". The completed summary is returned to
+   * the caller without being persisted.
+   */
   async complete(reconciliationId, snapshotModified) {
     const now = new Date();
     try {
-      return await ReleaseTrackReconciliation.findOneAndUpdate(
-        { reconciliation_id: reconciliationId },
-        {
-          $set: {
-            status: 'completed',
-            reconciled_snapshot_modified: snapshotModified || null,
-            updated_at: now,
-            completed_at: now,
-            last_error: null,
-          },
-        },
-        { new: true, lean: true },
-      ).exec();
+      const record = await ReleaseTrackReconciliation.findOneAndDelete({
+        reconciliation_id: reconciliationId,
+      })
+        .lean()
+        .exec();
+      return {
+        ...(record || { reconciliation_id: reconciliationId }),
+        status: 'completed',
+        reconciled_snapshot_modified: snapshotModified || null,
+        updated_at: now,
+        completed_at: now,
+        last_error: null,
+      };
     } catch (error) {
       throw new DatabaseError(error);
     }

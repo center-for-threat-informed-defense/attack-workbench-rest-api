@@ -16,7 +16,7 @@ async function generateBundleHashes(snapshot) {
     exportService.exportSnapshot(snapshot, 'bundle', { stixVersion: '2.1' }),
   ]);
   return {
-    manifest_id: snapshot.graph_manifest_id,
+    manifest_id: snapshot.content_manifest_id,
     stix_2_0: hashDownloadPayload(stix20Bundle),
     stix_2_1: hashDownloadPayload(stix21Bundle),
   };

@@ -288,7 +288,8 @@ class ReleaseTrackDynamicRepository {
           type: 1,
           modified: 1,
           version: 1,
-          graph_manifest_id: 1,
+          content_manifest_id: 1,
+          bundle_id: 1,
           bundle_hashes: 1,
           snapshot_description: 1,
           name: 1,
@@ -397,7 +398,12 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
-  async attachGraphManifest(trackId, modified, manifestId) {
+  /**
+   * Replace a tagged snapshot's content manifest. Used by administrative
+   * source-attested reconstruction, which must name the manifest it expects
+   * to replace so a concurrent change is detected.
+   */
+  async replaceContentManifest(trackId, modified, expectedManifestId, manifestId) {
     try {
       const Model = this._getModel(trackId);
       return await Model.findOneAndUpdate(
@@ -405,27 +411,9 @@ class ReleaseTrackDynamicRepository {
           id: trackId,
           modified,
           version: { $type: 'string' },
-          graph_manifest_id: { $exists: false },
+          content_manifest_id: expectedManifestId,
         },
-        { $set: { graph_manifest_id: manifestId } },
-        { new: true, runValidators: true, lean: true },
-      ).exec();
-    } catch (err) {
-      throw new DatabaseError(err);
-    }
-  }
-
-  async detachGraphManifest(trackId, modified, manifestId) {
-    try {
-      const Model = this._getModel(trackId);
-      return await Model.findOneAndUpdate(
-        {
-          id: trackId,
-          modified,
-          version: { $type: 'string' },
-          graph_manifest_id: manifestId,
-        },
-        { $unset: { graph_manifest_id: '', bundle_hashes: '' } },
+        { $set: { content_manifest_id: manifestId }, $unset: { bundle_hashes: '' } },
         { new: true, runValidators: true, lean: true },
       ).exec();
     } catch (err) {
@@ -441,7 +429,7 @@ class ReleaseTrackDynamicRepository {
           id: trackId,
           modified,
           version: { $type: 'string' },
-          graph_manifest_id: manifestId,
+          content_manifest_id: manifestId,
         },
         { $set: { bundle_hashes: bundleHashes } },
         { new: true, runValidators: true, lean: true },
@@ -451,11 +439,32 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  /**
+   * Return the subset of manifest IDs still referenced by any snapshot in the
+   * track. Manifests are shared by reference between a sealing snapshot and
+   * the clones that inherit it.
+   */
+  async findReferencedManifestIds(trackId, manifestIds) {
+    if (!Array.isArray(manifestIds) || manifestIds.length === 0) return [];
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.distinct('content_manifest_id', {
+        id: trackId,
+        content_manifest_id: { $in: manifestIds },
+      }).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async deleteOlderDrafts(trackId, modified) {
     try {
       const Model = this._getModel(trackId);
       const query = { id: trackId, version: null, modified: { $lt: modified } };
-      const snapshots = await Model.find(query).select('modified graph_manifest_id').lean().exec();
+      const snapshots = await Model.find(query)
+        .select('modified content_manifest_id')
+        .lean()
+        .exec();
       if (snapshots.length > 0) {
         await Model.deleteMany({ _id: { $in: snapshots.map((snapshot) => snapshot._id) } }).exec();
       }

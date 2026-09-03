@@ -149,10 +149,15 @@ describe('Release-track release planning and commit API', function () {
     });
 
     const bundle = await get(
-      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?format=bundle&version=2.4&includeToc=false`,
+      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?format=bundle&version=2.4`,
     );
     expect(bundle.body.type).toBe('bundle');
-    expect(bundle.body.objects).toEqual([]);
+    // An empty release still ships the collection object and its publishing
+    // identity so the bundle is self-contained.
+    expect(bundle.body.objects).toEqual([
+      expect.objectContaining({ type: 'x-mitre-collection', x_mitre_version: '2.4' }),
+      expect.objectContaining({ type: 'identity' }),
+    ]);
 
     const unchanged = await get(`/api/release-tracks/${track.id}/snapshots/latest`);
     expect(unchanged.body.version).toBeNull();
@@ -242,14 +247,15 @@ describe('Release-track release planning and commit API', function () {
     });
 
     const draftBundle = await get(
-      `/api/release-tracks/${track.id}/snapshots/latest` +
-        '?format=bundle&include=staged&includeToc=false',
+      `/api/release-tracks/${track.id}/snapshots/latest` + '?format=bundle&include=staged',
     );
     expect(draftBundle.body.objects).toEqual([
+      expect.objectContaining({ type: 'x-mitre-collection' }),
       expect.objectContaining({
         id: revisionB.stix.id,
         modified: revisionB.stix.modified,
       }),
+      expect.objectContaining({ type: 'identity' }),
     ]);
 
     const preview = await get(

@@ -97,7 +97,7 @@ sync strategy determines what workflow action (if any) to take:
 > manually created `"latest"` candidate/staged selector still follows the
 > object by definition.
 > Relationships are deliberately excluded from sync — bundle export pulls
-> active relationships dynamically.
+> relationships: sealed content manifests select them by member closure whenever a snapshot's members are written.
 >
 > **Behavior evolution (2026-07-13):** further change-capture rules, all
 > placement decisions now centralized in the **workflow gate**

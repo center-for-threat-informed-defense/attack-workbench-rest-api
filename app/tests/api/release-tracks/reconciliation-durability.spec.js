@@ -146,14 +146,14 @@ describe('Release-track durable backref reconciliation', function () {
       status: 'completed',
     });
 
+    // Only outstanding work is retained: a repaired reconciliation leaves no
+    // record behind.
     record = await ReleaseTrackReconciliation.findOne({
       reconciliation_id: release.body.reconciliation_id,
     })
       .lean()
       .exec();
-    expect(record.status).toBe('completed');
-    expect(record.attempts).toBe(2);
-    expect(record.completed_at).toBeInstanceOf(Date);
+    expect(record).toBeNull();
 
     stored = await getTechnique(technique);
     expect(stored.workspace.release_tracks).toEqual([

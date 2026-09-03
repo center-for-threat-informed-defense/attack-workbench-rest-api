@@ -278,20 +278,7 @@ router
   .post(
     authn.authenticate,
     authz.requireRole(authz.admin),
-    releaseTracksController.reconstructSnapshotGraph,
-  );
-
-router
-  .route('/release-tracks/:id/snapshots/:modified/graph')
-  .post(
-    authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.createSnapshotGraph,
-  )
-  .delete(
-    authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.deleteSnapshotGraph,
+    releaseTracksController.reconstructSnapshotManifest,
   );
 
 router

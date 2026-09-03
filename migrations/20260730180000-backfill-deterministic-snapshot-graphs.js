@@ -2,13 +2,15 @@
 
 /**
  * Backfill exact endpoint revision pins on the latest revision of each
- * relationship, then reconstruct a baseline graph manifest for every
- * pre-existing release-track snapshot.
+ * relationship and establish the manifest indexes.
  *
- * Historical relationships cannot be reconstructed truthfully because their
- * endpoint revision was not recorded when they were created. Snapshot
- * manifests produced here are therefore explicitly marked as baseline
- * reconstructions of the graph visible at migration time.
+ * This migration originally also reconstructed a baseline graph manifest for
+ * every pre-existing release-track snapshot using the since-retired bounded
+ * graph resolver. That step is superseded by
+ * 20260902120000-seal-release-track-content-manifests.js, which seals a
+ * content manifest for every snapshot that lacks one. The manifest backfill
+ * here is therefore a no-op so databases upgrading from an older stable
+ * release run one algorithm only.
  */
 
 const TRACK_COLLECTION_PATTERN =
@@ -155,83 +157,43 @@ async function findTrackIds(db) {
 async function ensureManifestIndexes(db) {
   await Promise.all([
     db
-      .collection('releaseTrackGraphManifests')
+      .collection('releaseTrackContentManifests')
       .createIndex({ manifest_id: 1 }, { name: 'manifest_id_1', unique: true }),
     db
-      .collection('releaseTrackGraphManifests')
+      .collection('releaseTrackContentManifests')
       .createIndex(
         { track_id: 1, snapshot_modified: 1, state: 1 },
         { name: 'manifest_by_snapshot' },
       ),
     db
-      .collection('releaseTrackGraphManifestEntries')
+      .collection('releaseTrackContentManifestEntries')
       .createIndex(
         { manifest_id: 1, revision_key: 1, kind: 1, tier: 1 },
         { name: 'unique_manifest_entry', unique: true },
       ),
     db
-      .collection('releaseTrackGraphManifestEntries')
+      .collection('releaseTrackContentManifestEntries')
       .createIndex(
         { object_ref: 1, object_modified: 1, manifest_id: 1 },
         { name: 'manifest_revision_protection' },
       ),
     db
-      .collection('releaseTrackGraphManifestEntries')
+      .collection('releaseTrackContentManifestEntries')
       .createIndex({ manifest_id: 1, kind: 1, tier: 1 }, { name: 'manifest_id_1_kind_1_tier_1' }),
   ]);
 }
 
 async function backfillSnapshotManifests(db, options) {
-  const graphManifestService = require('../app/services/release-tracks/graph-manifest-service');
+  // Superseded: sealing every snapshot's content manifest is performed by
+  // 20260902120000-seal-release-track-content-manifests.js.
   const trackIds = await findTrackIds(db);
-  const report = { tracks: trackIds.length, snapshots: 0, manifests_created: 0 };
-
-  await mapWithConcurrency(trackIds, async (trackId) => {
-    const collectionExists = await db
-      .listCollections({ name: trackId }, { nameOnly: true })
-      .hasNext();
-    if (!collectionExists) return;
-
-    const snapshots = await db.collection(trackId).find({}).toArray();
-    report.snapshots += snapshots.length;
-    for (const snapshot of snapshots) {
-      if (snapshot.graph_manifest_id) {
-        const linkedManifest = await db.collection('releaseTrackGraphManifests').findOne({
-          manifest_id: snapshot.graph_manifest_id,
-          state: { $in: ['pending', 'active'] },
-        });
-        if (linkedManifest) {
-          if (!options.dryRun && linkedManifest.state === 'pending') {
-            await graphManifestService.activate(linkedManifest.manifest_id);
-          }
-          continue;
-        }
-      }
-      if (options.dryRun) {
-        report.manifests_created++;
-        continue;
-      }
-
-      const manifestId = await graphManifestService.prepare(snapshot, {
-        baselineReconstruction: true,
-        // Preserve the historical migration's schema-v1 frozen relationship
-        // contract. New opt-in graphs use pointer-only schema v2.
-        schemaVersion: 1,
-      });
-      try {
-        await db
-          .collection(trackId)
-          .updateOne({ _id: snapshot._id }, { $set: { graph_manifest_id: manifestId } });
-        await graphManifestService.activate(manifestId);
-        report.manifests_created++;
-      } catch (err) {
-        await graphManifestService.discard(manifestId);
-        throw err;
-      }
-    }
-  });
-
-  return report;
+  return {
+    tracks: trackIds.length,
+    snapshots: 0,
+    manifests_created: 0,
+    superseded_by: '20260902120000-seal-release-track-content-manifests',
+    dry_run: options.dryRun === true,
+  };
 }
 
 async function run(db, options = {}) {
@@ -262,14 +224,14 @@ module.exports = {
   async up(db) {
     const report = await run(db);
     console.log(
-      `Pinned ${report.relationship_pins_written} active latest relationship revision(s) and ` +
-        `created ${report.manifests_created} baseline snapshot manifest(s)`,
+      `Pinned ${report.relationship_pins_written} active latest relationship revision(s); ` +
+        'snapshot manifest sealing is performed by the content-manifest migration',
     );
   },
 
   async down(db) {
     const baselineManifests = await db
-      .collection('releaseTrackGraphManifests')
+      .collection('releaseTrackContentManifests')
       .find({ baseline_reconstruction: true })
       .project({ manifest_id: 1, track_id: 1, snapshot_modified: 1, _id: 0 })
       .toArray();
@@ -288,10 +250,10 @@ module.exports = {
     const manifestIds = baselineManifests.map((manifest) => manifest.manifest_id);
     if (manifestIds.length > 0) {
       await db
-        .collection('releaseTrackGraphManifestEntries')
+        .collection('releaseTrackContentManifestEntries')
         .deleteMany({ manifest_id: { $in: manifestIds } });
       await db
-        .collection('releaseTrackGraphManifests')
+        .collection('releaseTrackContentManifests')
         .deleteMany({ manifest_id: { $in: manifestIds } });
     }
   },

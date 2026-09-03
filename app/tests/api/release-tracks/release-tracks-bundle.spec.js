@@ -11,15 +11,15 @@
  * Covered behavior:
  *   - Default bundle contains members only, plus referenced identities and
  *     marking definitions (self-contained bundle)
- *   - A deterministic snapshot graph contains active relationships only when
- *     both exact endpoint revisions are members
+ *   - A sealed content manifest contains active relationships only when both
+ *     endpoint IDs are members; releases replay it and drafts inherit it
  *   - `include` adds staged and/or candidate tiers (comma-separated or
  *     repeated, singular or plural tier names)
  *   - `state` narrows the included staged/candidate entries by workflow
  *     status; entries marked 'reviewed' are always included
  *   - `stixVersion` controls bundle/object STIX version conformance
- *   - `includeToc` controls the x-mitre-collection table-of-contents object,
- *     which is derived from the release-track metadata
+ *   - STIX 2.1 bundles always begin with the x-mitre-collection object, which
+ *     is projected from the snapshot and its publication metadata
  *   - LinkById tags are converted to markdown citations
  *   - Invalid `include`/`state` values are rejected with 400
  */
@@ -256,11 +256,6 @@ describe('Release Tracks Bundle Export API', function () {
       secondaryGroup,
     ]);
     taggedModified = tagged.modified;
-    await postAction(
-      `/api/release-tracks/${trackId}/snapshots/${encodeURIComponent(taggedModified)}/graph`,
-      {},
-      201,
-    );
 
     // Candidates (all start as work-in-progress)
     await postAction(`/api/release-tracks/${trackId}/candidates`, {
@@ -323,8 +318,10 @@ describe('Release Tracks Bundle Export API', function () {
     expect(member.workspace).toBeUndefined();
   });
 
-  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle includes a TOC derived from the track metadata', async function () {
+  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle includes a collection object projected from the snapshot', async function () {
     const bundle = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest?format=bundle`);
+    const snapshot = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest`);
+    const trackConfig = await getBundle(`/api/release-tracks/${trackId}/config`);
 
     const toc = bundle.objects[0];
     expect(toc.type).toBe('x-mitre-collection');
@@ -333,15 +330,20 @@ describe('Release Tracks Bundle Export API', function () {
     // This rolling draft belongs to the next release cycle, so it has no
     // snapshot-local description and falls back to the track description.
     expect(toc.description).toBe('Release track bundle export test');
-    // Draft snapshots (version: null) fall back to '0.1'
-    expect(toc.x_mitre_version).toBe('0.1');
+    // Draft snapshots have no publication version, so the key is omitted.
+    expect(toc).not.toHaveProperty('x_mitre_version');
     expect(toc.x_mitre_attack_spec_version).toBe(config.app.attackSpecVersion);
     expect(toc.spec_version).toBe('2.1');
     expect(toc.created_by_ref).toBe(organizationIdentityId);
+    expect(toc.created).toBe(new Date(snapshot.created).toISOString());
+    expect(toc.modified).toBe(new Date(snapshot.modified).toISOString());
 
-    // Marking definitions are tracked in object_marking_refs, everything else
-    // in x_mitre_contents
-    expect(toc.object_marking_refs).toContain(staticMarkingDefinitionId);
+    // Collection markings follow the publication rule. Neither scope
+    // configures markings here, so the object carries the markings referenced
+    // by its contents; everything emitted except marking definitions is
+    // listed in x_mitre_contents
+    expect(trackConfig.publication_resolved.sources.object_marking_refs).toBe('content');
+    expect(toc.object_marking_refs).toEqual([staticMarkingDefinitionId]);
     const contentRefs = toc.x_mitre_contents.map((entry) => entry.object_ref);
     expect(contentRefs).toContain(memberObject.stix.id);
     expect(contentRefs).toContain(includedRelationship.stix.id);
@@ -351,9 +353,7 @@ describe('Release Tracks Bundle Export API', function () {
   });
 
   it('adds only relationships whose endpoints are both selected for the bundle', async function () {
-    const bundle = await getBundle(
-      `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&includeToc=false`,
-    );
+    const bundle = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest?format=bundle`);
     const ids = bundleObjectIds(bundle);
 
     expect(ids).toContain(includedRelationship.stix.id);
@@ -366,7 +366,7 @@ describe('Release Tracks Bundle Export API', function () {
     );
   });
 
-  it('replays exact relationship pointers and protects graph dependencies', async function () {
+  it('replays sealed relationship pointers and protects manifest dependencies', async function () {
     const relationshipUpdate = JSON.parse(JSON.stringify(secondaryRelationship));
     delete relationshipUpdate._id;
     delete relationshipUpdate.__v;
@@ -392,7 +392,7 @@ describe('Release Tracks Bundle Export API', function () {
     const bundle = await getBundle(
       `/api/release-tracks/${trackId}/snapshots/${encodeURIComponent(
         taggedModified,
-      )}?format=bundle&includeToc=false`,
+      )}?format=bundle`,
     );
     const pinnedRelationship = bundle.objects.find(
       (object) => object.id === secondaryRelationship.stix.id,
@@ -429,7 +429,7 @@ describe('Release Tracks Bundle Export API', function () {
       .expect(409);
   });
 
-  it('maps a graph-backed snapshot description onto the collection TOC', async function () {
+  it('maps the release notes onto the collection object of the released snapshot', async function () {
     const bundle = await getBundle(
       `/api/release-tracks/${trackId}/snapshots/${encodeURIComponent(
         taggedModified,
@@ -442,7 +442,7 @@ describe('Release Tracks Bundle Export API', function () {
     });
   });
 
-  it('protects graph dependencies from collection cascade deletion', async function () {
+  it('protects manifest dependencies from collection cascade deletion', async function () {
     const timestamp = new Date().toISOString();
     const collection = await postObject('/api/collections', {
       workspace: {
@@ -457,7 +457,7 @@ describe('Release Tracks Bundle Export API', function () {
         created: timestamp,
         modified: timestamp,
         name: 'Graph protection cascade fixture',
-        description: 'Attempts to cascade-delete a protected graph member.',
+        description: 'Attempts to cascade-delete a protected manifest member.',
         x_mitre_version: '1.0',
         x_mitre_contents: [
           {
@@ -486,12 +486,20 @@ describe('Release Tracks Bundle Export API', function () {
       .expect(200);
   });
 
-  it('GET /api/release-tracks/:id/snapshots/latest?format=bundle&includeToc=false omits the TOC', async function () {
-    const bundle = await getBundle(
+  it('no longer accepts includeToc: the collection object is always present in STIX 2.1', async function () {
+    await getBundle(
       `/api/release-tracks/${trackId}/snapshots/latest?format=bundle&includeToc=false`,
+      400,
     );
-    const tocObjects = bundle.objects.filter((o) => o.type === 'x-mitre-collection');
-    expect(tocObjects.length).toBe(0);
+  });
+
+  it('rejects include on a released snapshot', async function () {
+    await getBundle(
+      `/api/release-tracks/${trackId}/snapshots/${encodeURIComponent(
+        taggedModified,
+      )}?format=bundle&include=candidates`,
+      400,
+    );
   });
 
   it('GET /api/release-tracks/:id/snapshots/latest?format=bundle converts LinkById tags to markdown citations', async function () {

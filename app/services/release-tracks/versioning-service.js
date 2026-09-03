@@ -12,7 +12,9 @@ const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-in
 const revisionReference = require('../../lib/release-tracks/revision-reference');
 const releaseHistoryService = require('./release-history-service');
 const primaryRevisionService = require('./primary-revision-service');
-const graphManifestService = require('./graph-manifest-service');
+const contentManifestService = require('./content-manifest-service');
+const publicationService = require('./publication-service');
+const bundleHashService = require('./bundle-hash-service');
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
 const uuid = require('uuid');
 const logger = require('../../lib/logger');
@@ -300,7 +302,7 @@ async function planLoadedSnapshot(trackId, snapshot, options) {
     ...(releaseInput.staged || []),
   ]);
 
-  return planRelease(
+  const plan = planRelease(
     trackId,
     releaseInput,
     versionHistory,
@@ -308,42 +310,100 @@ async function planLoadedSnapshot(trackId, snapshot, options) {
     new Date(),
     previousTaggedSnapshot,
   );
+
+  // A standard commit seals a fresh manifest over the planned members, so the
+  // preview reports exactly which relationships that seal would add or drop
+  // relative to the draft's inherited manifest. Virtual commits publish the
+  // materialization manifest unchanged.
+  if (!plan.blockingError && snapshot.type === 'standard') {
+    plan.summary.relationships = await contentManifestService.previewRelationshipChanges(
+      snapshot,
+      plan.plannedSnapshot.members,
+    );
+  }
+  return plan;
 }
+
+/**
+ * Freeze publication metadata, assign a stable bundle ID, and store the
+ * SHA-256 hashes of both bundle serializations on a tagged snapshot.
+ *
+ * @param {Object} tagged - The tagged snapshot (already referencing its manifest)
+ * @returns {Promise<Object>} The updated snapshot
+ */
+async function refreshReleaseArtifacts(tagged) {
+  const publication = tagged.publication || (await publicationService.freezePublication(tagged));
+  const bundleId = tagged.bundle_id || `bundle--${uuid.v4()}`;
+  const withArtifacts = await dynamicRepo.updateSnapshot(tagged.id, tagged.modified, {
+    $set: { publication, bundle_id: bundleId },
+  });
+  const current = withArtifacts?.toObject ? withArtifacts.toObject() : withArtifacts;
+  const bundleHashes = await bundleHashService.generateBundleHashes(current);
+  const hashed = await dynamicRepo.attachBundleHashes(
+    tagged.id,
+    tagged.modified,
+    current.content_manifest_id,
+    bundleHashes,
+  );
+  if (!hashed) {
+    throw new ReleaseConflictError('Snapshot changed while its bundle hashes were generated', {
+      track_id: tagged.id,
+      snapshot_modified: new Date(tagged.modified).toISOString(),
+    });
+  }
+  return hashed;
+}
+exports.refreshReleaseArtifacts = refreshReleaseArtifacts;
 
 async function commitPlan(plan) {
   if (plan.blockingError) throw plan.blockingError;
 
-  const obsoleteManifestId = plan.sourceSnapshot.graph_manifest_id;
+  const source = plan.sourceSnapshot;
+  const inheritedManifestId = source.content_manifest_id;
   const unsetOps = {};
-  if (obsoleteManifestId) {
-    unsetOps.graph_manifest_id = '';
-    unsetOps.bundle_hashes = '';
-  }
   if (plan.clearSnapshotDescription) unsetOps.snapshot_description = '';
-  const tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, plan.sourceSnapshot.modified, {
-    version: plan.version,
-    versionHistoryEntry: plan.versionHistoryEntry,
-    additionalOps: plan.additionalOps,
-    // Older deployments attached graphs to drafts. Releasing changes the
-    // member set, so that legacy draft graph cannot describe the release.
-    unsetOps: Object.keys(unsetOps).length ? unsetOps : undefined,
-  });
+
+  // A standard commit is the moment members are finalized, so it seals a
+  // fresh manifest over the planned member set (even when nothing was staged,
+  // so relationships added since the last seal are captured). A virtual
+  // commit publishes the materialization manifest that was reviewed.
+  let sealedManifestId;
+  const setOps = { ...plan.additionalOps };
+  if (source.type === 'standard') {
+    sealedManifestId = await contentManifestService.seal(
+      { ...source, members: plan.plannedSnapshot.members },
+      { reason: 'release' },
+    );
+    setOps.content_manifest_id = sealedManifestId;
+  }
+  setOps.publication = await publicationService.freezePublication(source);
+  setOps.bundle_id = `bundle--${uuid.v4()}`;
+
+  let tagged;
+  try {
+    tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, source.modified, {
+      version: plan.version,
+      versionHistoryEntry: plan.versionHistoryEntry,
+      additionalOps: setOps,
+      unsetOps: Object.keys(unsetOps).length ? unsetOps : undefined,
+    });
+  } catch (err) {
+    await contentManifestService.discard(sealedManifestId);
+    throw err;
+  }
 
   if (!tagged) {
+    await contentManifestService.discard(sealedManifestId);
     await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
     throw new AlreadyReleasedError('(concurrent release)');
   }
 
-  if (obsoleteManifestId) {
-    try {
-      await graphManifestService.discard(obsoleteManifestId);
-    } catch (err) {
-      logger.warn(
-        `VersioningService: Deferred cleanup for obsolete graph manifest ` +
-          `"${obsoleteManifestId}": ${err.message}`,
-      );
-    }
+  if (sealedManifestId) {
+    await contentManifestService.activate(sealedManifestId);
+    await contentManifestService.discardUnreferenced(plan.trackId, [inheritedManifestId]);
   }
+
+  const withArtifacts = await refreshReleaseArtifacts(tagged);
 
   await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
   const latest = await dynamicRepo.getLatestSnapshot(plan.trackId);
@@ -360,7 +420,7 @@ async function commitPlan(plan) {
     );
   }
 
-  return tagged;
+  return withArtifacts;
 }
 
 async function withReleaseLock(trackId, operation) {

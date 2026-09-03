@@ -49,6 +49,12 @@ const validateIdentityRef = {
     `"${props.value}" is not a valid identity reference (expected "identity--<uuid>")`,
 };
 
+const validateCollectionId = {
+  validator: (v) => createStixIdValidator('x-mitre-collection').safeParse(v).success,
+  message: (props) =>
+    `"${props.value}" is not a valid collection identifier (expected "x-mitre-collection--<uuid>")`,
+};
+
 const validateMarkingDefRefs = {
   validator: (v) =>
     v.every((ref) => createStixIdValidator('marking-definition').safeParse(ref).success),
@@ -102,6 +108,7 @@ module.exports = {
   validateStixId,
   validateIdentityRef,
   validateMarkingDefRefs,
+  validateCollectionId,
   validateVersion,
   validateCron,
   validateSnapshotSchedule,

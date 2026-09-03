@@ -361,16 +361,12 @@ exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
   return snapshotService.deleteSnapshot(trackId, modified);
 };
 
-exports.createSnapshotGraph = function createSnapshotGraph(trackId, modified) {
-  return snapshotService.createGraph(trackId, modified);
-};
-
-exports.reconstructSnapshotGraph = function reconstructSnapshotGraph(trackId, modified, plan) {
-  return snapshotService.reconstructGraph(trackId, modified, plan);
-};
-
-exports.deleteSnapshotGraph = function deleteSnapshotGraph(trackId, modified) {
-  return snapshotService.deleteGraph(trackId, modified);
+exports.reconstructSnapshotManifest = function reconstructSnapshotManifest(
+  trackId,
+  modified,
+  plan,
+) {
+  return snapshotService.reconstructManifest(trackId, modified, plan);
 };
 
 // -----------------------------------------------------------------------------
@@ -443,9 +439,9 @@ async function renderReleasePlan(plan, options) {
   if (format === 'bundle') {
     return exportService.exportSnapshot(plan.plannedSnapshot, format, {
       ...options,
-      // Release previews are intentionally live. Determinism begins only if a
-      // caller explicitly creates a graph after the snapshot is tagged.
-      captureGraph: true,
+      // The planned snapshot is unsaved and has no sealed manifest yet, so a
+      // preview resolves the same closed-member graph the commit would seal.
+      resolveLive: true,
     });
   }
   return formatWorkbenchSnapshot(plan.plannedSnapshot, options);

@@ -27,8 +27,9 @@
 //   Subscribes to BaseService CRUD events ({type}::created, {type}::updated)
 //   via the EventBus. When a STIX object is created or updated, this service
 //   checks whether any release track references it and syncs if configured.
-//   Relationships are deliberately not subscribed: bundle export pulls
-//   active relationships dynamically.
+//   Relationships are deliberately not subscribed: they are not tier entries.
+//   Sealed content manifests select relationships closed over members when a
+//   snapshot's members are written.
 // =============================================================================
 
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');

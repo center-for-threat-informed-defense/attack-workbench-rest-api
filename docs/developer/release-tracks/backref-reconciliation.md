@@ -73,10 +73,13 @@ the durable `reconciliation_id`; the release-track mutation may already be
 persisted and must not be retried blindly.
 
 Every attempt is written to `releaseTrackReconciliations` before listeners
-run. Records move through `pending`, `completed`, or `failed` and retain the
-requested snapshot, attempt count, timestamps, and last error. If recording
-completion fails after the listeners succeeded, the record remains pending;
-replaying it is safe because reconciliation is idempotent.
+run and deleted when they succeed, so the collection holds outstanding work
+only: every document is a `pending` or `failed` attempt that still needs
+repair, with the requested snapshot, attempt count, timestamps, and last
+error. If deleting the record fails after the listeners succeeded, it remains
+pending; replaying it is safe because reconciliation is idempotent. The
+repair command (`repairOutstanding`) and the full scan (`reconcileAll`)
+return completed summaries without persisting them.
 
 ## Reconciliation algorithm
 

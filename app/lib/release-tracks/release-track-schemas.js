@@ -261,11 +261,43 @@ const promotionConflictsSchema = z.object({
   staged_to_members: conflictPolicySchema.optional(),
 });
 
+// Publication metadata inheritance. Each attribute either inherits the global
+// system-configuration value or carries an explicit track-scoped override.
+const inheritedIdentitySchema = z.discriminatedUnion('inherit', [
+  z.object({ inherit: z.literal(true) }).strict(),
+  z
+    .object({
+      inherit: z.literal(false),
+      value: createStixIdValidator('identity'),
+    })
+    .strict(),
+]);
+
+const inheritedMarkingRefsSchema = z.discriminatedUnion('inherit', [
+  z.object({ inherit: z.literal(true) }).strict(),
+  z
+    .object({
+      inherit: z.literal(false),
+      value: z.array(createStixIdValidator('marking-definition')),
+    })
+    .strict(),
+]);
+
+const publicationConfigSchema = z
+  .object({
+    collection_id: createStixIdValidator('x-mitre-collection').nullable().optional(),
+    created: z.iso.datetime().nullable().optional(),
+    created_by_ref: inheritedIdentitySchema.optional(),
+    object_marking_refs: inheritedMarkingRefsSchema.optional(),
+  })
+  .strict();
+
 const updateConfigBodySchema = z.object({
   candidacy_threshold: candidacyThresholdSchema.optional(),
   auto_promote: z.boolean().optional(),
   promotion_conflicts: promotionConflictsSchema.optional(),
   member_sync: memberSyncConfigSchema.optional(),
+  publication: publicationConfigSchema.optional(),
 });
 
 // =============================================================================
@@ -396,7 +428,6 @@ const createTrackBodySchema = z
     description: z.string().optional(),
     snapshot_description: snapshotDescriptionSchema.optional(),
     type: trackTypeQuerySchema.default('standard'),
-    object_marking_refs: z.array(stixIdentifierSchema).optional(),
     composition: compositionSchema.optional(),
     snapshot_schedule: snapshotScheduleSchema.optional(),
     scheduled_materialization: scheduledMaterializationSchema.optional(),
@@ -431,7 +462,6 @@ const createFromBundleBodySchema = z.object({
 const updateMetadataBodySchema = z.object({
   name: trackNameSchema.optional(),
   description: z.string().optional(),
-  object_marking_refs: z.array(stixIdentifierSchema).optional(),
 });
 
 /** PUT /release-tracks/:id/snapshots/:modified/description */
@@ -584,6 +614,9 @@ const reconstructSnapshotGraphBodySchema = z
       })
       .strict(),
     entries: z.array(sourceGraphEntrySchema).min(1),
+    // The content manifest the caller expects to replace. Required when the
+    // snapshot's current manifest was not produced from the same attestation.
+    replace_manifest_id: z.string().optional(),
   })
   .strict();
 
@@ -641,6 +674,7 @@ module.exports = {
   updateMetadataBodySchema,
   updateSnapshotDescriptionBodySchema,
   releaseBodySchema,
+  publicationConfigSchema,
   cloneBodySchema,
   addCandidatesBodySchema,
   reviewCandidatesBodySchema,

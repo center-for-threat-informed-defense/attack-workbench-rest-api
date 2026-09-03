@@ -159,6 +159,12 @@ parameter semantics in the `docs { }` block.
 - Legacy endpoints under deprecation (e.g. `GET /api/stix-bundles`) are
   replaced by release-tracks equivalents — check
   `docs/developer/release-tracks/bundle-export.md` before extending them.
+- Release-track bundle export has one content path: replay the snapshot's
+  sealed content manifest (`docs/developer/release-tracks/sealed-content-manifests.md`).
+  Never add live relationship discovery, secondary-SDO expansion, or a
+  deletable "graph cache" to release-track exports; drafts inherit their
+  predecessor's manifest and only member-changing writes seal a new one. The
+  `x-mitre-collection` object is a projection, not a stored object.
 - Historic full-suite flake (fixed 2026-07-10): per-spec-file mongod
   restarts hit "Port already in use", failing a random file's `before` hook
   (visible as `loginAnonymous` 404s). `database-in-memory.js` now reuses one

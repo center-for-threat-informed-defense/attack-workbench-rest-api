@@ -231,12 +231,11 @@ filter and a Mobile filter, while `["mobile-attack"]` is excluded by an
 Enterprise filter. Objects without `x_mitre_domains` are excluded when a
 domain filter is set.
 
-The domain constraint determines the virtual snapshot's exact member set. An
-opt-in deterministic graph is closed over that set, so no relationship can
-pull any secondary SDO into the virtual bundle. Graphless live exports retain
-the compatibility domain check for relationship-discovered secondaries.
-Domainless identities, marking definitions, and other supporting metadata may
-still be included when referenced by an included object.
+The domain constraint determines the virtual snapshot's exact member set. The
+content manifest sealed at materialization is closed over that set, so no
+relationship can pull any secondary SDO into the virtual bundle. Domainless
+identities, marking definitions, and other supporting metadata may still be
+included when referenced by an included object.
 
 `x_mitre_domains` is canonical object data. A cross-domain object has one
 revision containing the complete domain union; Workbench does not create or
@@ -987,9 +986,9 @@ quarantined object counts. Use `format=workbench` or `format=bundle` to inspect
 the literal snapshot or publication artifact that would be tagged. The draft
 must have a non-null `composition_resolution`, proving that its members and
 quarantine tiers were materialized from its current composition.
-Bundle preview resolves the live graph. Tagging does not implicitly create a
-manifest; determinism is a separate opt-in operation on the tagged snapshot:
-`POST /api/release-tracks/:id/snapshots/:modified/graph`.
+Bundle preview resolves the same closed-member graph live. Tagging publishes
+the content manifest sealed at materialization unchanged and freezes the
+collection object's publication metadata.
 
 ### Retrieve a Materialized Virtual Snapshot
 
@@ -1024,14 +1023,12 @@ Consequently, while the track does not acquire a newer snapshot,
 `latest` path segment selects the most recent snapshot; it is not a dynamic
 object-revision selector.
 
-This guarantee also covers `format=bundle` after the tagged snapshot opts into
-a graph manifest. The manifest emits only exact members plus relationships
-whose two exact endpoint revisions are members; supporting objects and LinkById
-render targets are pinned as dependencies. Graphless snapshots resolve the
-legacy bounded graph live.
-Repeated exports may use a different bundle-envelope UUID, but replay the same
-snapshot object graph. See
-[Bundle Export](../../developer/release-tracks/bundle-export.md#closed-member-relationship-consistency-boundary).
+This guarantee also covers `format=bundle`: materialization seals a content
+manifest that emits only exact members plus relationships whose source and
+target are both members; supporting objects and LinkById render targets are
+pinned as dependencies. Released snapshots also carry a stable bundle
+identifier and hashes. See
+[Bundle Export](../../developer/release-tracks/bundle-export.md#sealed-content-manifests).
 
 ## Quarantine Management
 

@@ -7,8 +7,8 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 const {
-  ReleaseTrackGraphManifestEntry,
-} = require('../../../models/release-tracks/release-track-graph-manifest-model');
+  ReleaseTrackContentManifestEntry,
+} = require('../../../models/release-tracks/release-track-content-manifest-model');
 
 const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 const objectRevisions = [];
@@ -77,9 +77,10 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       ...snapshotBase(standardTrack),
       modified: standardTaggedModified,
       version: '1.0',
-      graph_manifest_id: 'release-track-graph-manifest--snapshot-history',
+      content_manifest_id: 'release-track-content-manifest--snapshot-history',
+      bundle_id: 'bundle--snapshot-history',
       bundle_hashes: {
-        manifest_id: 'release-track-graph-manifest--snapshot-history',
+        manifest_id: 'release-track-content-manifest--snapshot-history',
         stix_2_0: 'a'.repeat(64),
         stix_2_1: 'b'.repeat(64),
       },
@@ -92,7 +93,7 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       ],
     });
     const manifestCommon = {
-      manifest_id: 'release-track-graph-manifest--snapshot-history',
+      manifest_id: 'release-track-content-manifest--snapshot-history',
       track_id: standardTrack.id,
       snapshot_modified: standardTaggedModified,
     };
@@ -106,7 +107,7 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       object_modified: objectRevisions[index].modified,
       ...extra,
     });
-    await ReleaseTrackGraphManifestEntry.insertMany([
+    await ReleaseTrackContentManifestEntry.insertMany([
       versionedManifestEntry(0, 'root', { tier: 'members' }),
       versionedManifestEntry(1, 'root', { tier: 'members' }),
       versionedManifestEntry(2, 'secondary'),
@@ -213,20 +214,34 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       candidates_count: 1,
     });
     expect(response.body.data[0]).not.toHaveProperty('quarantine_count');
-    expect(response.body.data[0]).not.toHaveProperty('graph_statistics');
+    // The rolling draft inherits the track-creation manifest, which holds
+    // only the publishing identity as a supporting object.
+    expect(response.body.data[0]).toMatchObject({
+      content_manifest_id: standardTrack.content_manifest_id,
+      content_statistics: {
+        primary_count: 0,
+        secondary_count: 0,
+        relationship_count: 0,
+        supporting_count: 1,
+        link_target_count: 0,
+        total_count: 1,
+      },
+    });
+    expect(response.body.data[0]).not.toHaveProperty('bundle_id');
     expect(response.body.data[1]).toMatchObject({
       modified: standardTaggedModified.toISOString(),
       version: '1.0',
-      graph_manifest_id: 'release-track-graph-manifest--snapshot-history',
+      content_manifest_id: 'release-track-content-manifest--snapshot-history',
+      bundle_id: 'bundle--snapshot-history',
       bundle_hashes: {
-        manifest_id: 'release-track-graph-manifest--snapshot-history',
+        manifest_id: 'release-track-content-manifest--snapshot-history',
         stix_2_0: 'a'.repeat(64),
         stix_2_1: 'b'.repeat(64),
       },
       members_count: 2,
       staged_count: 1,
       candidates_count: 3,
-      graph_statistics: {
+      content_statistics: {
         primary_count: 2,
         secondary_count: 2,
         relationship_count: 1,

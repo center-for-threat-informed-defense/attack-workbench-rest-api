@@ -8,6 +8,7 @@ const {
   validateStixId,
   validateIdentityRef,
   validateMarkingDefRefs,
+  validateCollectionId,
   validateVersion,
   validateObjectTypesFilter,
 } = require('../../lib/release-tracks/release-track-validators');
@@ -239,18 +240,6 @@ const promotionConflictsDefinition = {
 };
 const promotionConflictsSchema = new mongoose.Schema(promotionConflictsDefinition, { _id: false });
 
-const includeSecondaryObjectsDefinition = {
-  enabled: { type: Boolean, default: true },
-  status_threshold: {
-    type: String,
-    enum: ['work-in-progress', 'awaiting-review', 'reviewed'],
-    default: 'reviewed',
-  },
-};
-const includeSecondaryObjectsSchema = new mongoose.Schema(includeSecondaryObjectsDefinition, {
-  _id: false,
-});
-
 // --- Member sync sub-schemas ---
 
 const memberSyncSupplantDefinition = {
@@ -280,6 +269,56 @@ const memberSyncDefinition = {
 };
 const memberSyncSchema = new mongoose.Schema(memberSyncDefinition, { _id: false });
 
+// --- Publication sub-schemas ---
+//
+// Publication metadata follows an inheritance rule: each attribute either
+// inherits the global (system configuration) value or carries an explicit
+// track-scoped override. Collection identity and creation time default to
+// track-derived values and become immutable once the track has a release.
+
+const inheritedIdentityDefinition = {
+  inherit: { type: Boolean, required: true, default: true },
+  value: {
+    type: String,
+    validate: validateIdentityRef,
+  },
+};
+const inheritedIdentitySchema = new mongoose.Schema(inheritedIdentityDefinition, { _id: false });
+
+const inheritedMarkingRefsDefinition = {
+  inherit: { type: Boolean, required: true, default: true },
+  value: {
+    type: [String],
+    default: undefined,
+    validate: validateMarkingDefRefs,
+  },
+};
+const inheritedMarkingRefsSchema = new mongoose.Schema(inheritedMarkingRefsDefinition, {
+  _id: false,
+});
+
+const publicationConfigDefinition = {
+  collection_id: {
+    type: String,
+    validate: validateCollectionId,
+  },
+  created: { type: Date },
+  created_by_ref: { type: inheritedIdentitySchema, default: () => ({ inherit: true }) },
+  object_marking_refs: { type: inheritedMarkingRefsSchema, default: () => ({ inherit: true }) },
+};
+const publicationConfigSchema = new mongoose.Schema(publicationConfigDefinition, { _id: false });
+
+// Values frozen onto a tagged snapshot at release commit. They are the exact
+// inputs used to render the x-mitre-collection object for that release.
+const frozenPublicationDefinition = {
+  collection_id: { type: String, required: true, validate: validateCollectionId },
+  created: { type: Date, required: true },
+  created_by_ref: { type: String, required: true, validate: validateIdentityRef },
+  object_marking_refs: { type: [String], required: true, validate: validateMarkingDefRefs },
+  attack_spec_version: { type: String, required: true },
+};
+const frozenPublicationSchema = new mongoose.Schema(frozenPublicationDefinition, { _id: false });
+
 const configDefinition = {
   candidacy_threshold: {
     type: String,
@@ -287,13 +326,16 @@ const configDefinition = {
     default: 'reviewed',
   },
   auto_promote: { type: Boolean, default: true },
-  include_secondary_objects: { type: includeSecondaryObjectsSchema, default: undefined },
   promotion_conflicts: {
     type: promotionConflictsSchema,
     default: () => ({}),
   },
   member_sync: {
     type: memberSyncSchema,
+    default: () => ({}),
+  },
+  publication: {
+    type: publicationConfigSchema,
     default: () => ({}),
   },
 };
@@ -373,7 +415,13 @@ const releaseTrackSnapshotDefinition = {
     default: null,
     validate: validateVersion,
   },
-  graph_manifest_id: { type: String },
+  // Every snapshot references the sealed content manifest that describes its
+  // exact member graph. Member-changing writes seal a new manifest; other
+  // clones inherit their predecessor's manifest by reference.
+  content_manifest_id: { type: String, required: true },
+  // Release-only fields frozen at commit.
+  publication: { type: frozenPublicationSchema },
+  bundle_id: { type: String },
   bundle_hashes: { type: bundleHashesSchema },
   snapshot_description: {
     type: String,
@@ -391,11 +439,6 @@ const releaseTrackSnapshotDefinition = {
   created_by_ref: {
     type: String,
     validate: validateIdentityRef,
-  },
-  object_marking_refs: {
-    type: [String],
-    default: undefined,
-    validate: validateMarkingDefRefs,
   },
 
   // --- Standard track tiers ---
@@ -483,5 +526,7 @@ module.exports = {
   compositionResolutionSchema,
   scheduledMaterializationSchema,
   configSchema,
+  publicationConfigSchema,
+  frozenPublicationSchema,
   versionHistoryEntrySchema,
 };

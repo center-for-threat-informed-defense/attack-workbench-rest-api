@@ -28,10 +28,13 @@ const releaseTrackReconciliationSchema = new mongoose.Schema(
       required: true,
       enum: ['contents_changed', 'repair', 'full_scan'],
     },
+    // Only outstanding work is stored: a record is created before the
+    // backref listeners run and deleted when they succeed, so every document
+    // in this collection is a reconciliation that still needs repair.
     status: {
       type: String,
       required: true,
-      enum: ['pending', 'completed', 'failed'],
+      enum: ['pending', 'failed'],
       default: 'pending',
     },
     attempts: {

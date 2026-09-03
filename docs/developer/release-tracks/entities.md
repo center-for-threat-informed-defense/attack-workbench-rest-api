@@ -2,6 +2,23 @@
 
 This document tracks new database schemas, interfaces, etc.; as well as changes to any such existing entities.
 
+### Collections at a glance
+
+| Collection | Purpose | Written by | Growth and retention |
+| --- | --- | --- | --- |
+| `releaseTrackRegistry` | One document per track: name, type, denormalized counters, the tagged-release catalogue (`tagged_releases`), the release lock, and virtual schedules. The index that maps a track to its own snapshot collection. | Track create/delete, every snapshot write (counters), release commit and release deletion (catalogue). | One document per track. |
+| `release-track--<uuid>` | The track's snapshots: at most one rolling draft plus every tagged release for a standard track; every materialized draft plus releases for a virtual track. | Snapshot service and release commit. | Bounded by releases plus one draft (standard) or by materializations (virtual). |
+| `releaseTrackContentManifests` | The sealed bill of materials each snapshot references (`content_manifest_id`). Several snapshots share one manifest when their member sets are identical. | Sealed whenever members are written; discarded when no snapshot references it. | Bounded by member-changing writes, not by snapshot count. |
+| `releaseTrackContentManifestEntries` | One exact-revision pointer per object a manifest emits or depends on. The `(object_ref, object_modified)` index is what protects referenced revisions from deletion. | With its manifest. | Roughly members + relationships + a few supporting objects per manifest. |
+| `releaseTrackReconciliations` | Outstanding backref reconciliation work only: a record is created before the `workspace.release_tracks` listeners run and deleted when they succeed, so anything present is pending or failed and needs repair. | Every snapshot write. | Normally empty. |
+| `releaseTrackAuditEvents` | Audit trail for administrator-only destructive operations: `delete_track` and `delete_release`, with actor, confirmation, and outcome. | Those two operations. | Empty until an administrator deletes a track or release. |
+| `virtualTrackScheduleOccurrences` | Durable claims for scheduled virtual materialization (cron or dated schedules) so restarts and duplicate delivery execute each occurrence once. | The scheduler. | One record per scheduled occurrence; empty when no virtual track has a schedule. |
+
+Removed by the sealed-manifest work: the former `releaseTrackGraphManifests`
+and `releaseTrackGraphManifestEntries` collections (renamed in place by the
+2026-09-02 migration), the frozen `collection` manifest entries, and the
+`config.include_secondary_objects` block (secondary objects no longer exist).
+
 ### Release Track
 
 `ReleaseTrack` instances will be tracked as independent MongoDB Collections. The reason for this is because the volume of snapshot permutations is expected to be very high given the frequency of changes that typically occur between releases.
@@ -106,12 +123,27 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
   version: "18.0",  // null if draft release
   snapshot_description: "Why this snapshot matters to our team",
 
+  // Sealed content manifest (every snapshot references one; see
+  // sealed-content-manifests.md). Member-changing writes seal a new
+  // manifest; other clones inherit the predecessor's by reference.
+  content_manifest_id: "release-track-content-manifest--uuid",
+
+  // Release-only fields frozen at commit
+  publication: {
+    collection_id: "x-mitre-collection--uuid",
+    created: "2024-01-01T10:00:00.000Z",
+    created_by_ref: "identity--uuid",
+    object_marking_refs: ["marking-definition--uuid"],
+    attack_spec_version: "3.3.0"
+  },
+  bundle_id: "bundle--uuid",
+  bundle_hashes: { manifest_id: "release-track-content-manifest--uuid", stix_2_0: "…", stix_2_1: "…" },
+
   // Release track metadata
   name: "ATT&CK Enterprise",
   description: "...",
   created: "2024-01-01T10:00:00.000Z", // when the release track was created
-  created_by_ref: "identity--uuid",
-  object_marking_refs: ["marking-definition--uuid"],
+  created_by_ref: "identity--uuid",       // the user account that created the track
 
   // Objects in this snapshot
   members: [
@@ -167,10 +199,6 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
   config: {
     candidacy_threshold: "awaiting-review",  // "work-in-progress" | "awaiting-review" | "reviewed"
     auto_promote: true,                       // Auto-promote reviewed objects to staged
-    include_secondary_objects: {
-      enabled: true,
-      status_threshold: "reviewed"
-    },
     promotion_conflicts: {
       into_candidates: "prefer_latest",       // "always_overwrite" | "always_reject" | "prefer_latest" | "abort"
       candidates_to_staged: "prefer_latest",  // "always_overwrite" | "always_reject" | "prefer_latest"
@@ -184,6 +212,16 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
         behavior: "replace",                 // "replace" | "queue" | "ignore"
         status_policy: "reset"               // "reset" | "preserve"
       }
+    },
+    // Publication metadata for the emitted x-mitre-collection object. Each
+    // attribute inherits the global system configuration unless overridden.
+    // collection_id and created default to track-derived values and become
+    // immutable once the track has a tagged release.
+    publication: {
+      collection_id: "x-mitre-collection--uuid",   // optional override
+      created: "2018-01-17T12:56:55.080Z",         // optional override
+      created_by_ref: { inherit: true },           // or { inherit: false, value: "identity--uuid" }
+      object_marking_refs: { inherit: true }       // or { inherit: false, value: ["marking-definition--uuid"] }
     }
   },
 
@@ -205,11 +243,12 @@ Each release track snapshot will be tracked as an individual MongoDB Document in
 }
 ```
 
-`snapshot_description` is mutable workspace metadata stored directly on the
-snapshot document. It is deliberately separate from the release track's
-long-lived `description`. Editing it does not change `modified`, `version`,
-tier contents, or an attached graph manifest. Rolling edits to the same draft
-preserve its description; the first draft of a new release cycle starts blank.
+`snapshot_description` is stored directly on the snapshot document and is
+deliberately separate from the release track's long-lived `description`. It
+becomes the emitted collection object's `description`. Editing it on a draft
+does not change `modified`, tier contents, or the content manifest; once the
+snapshot is released it is immutable. Rolling edits to the same draft preserve
+its description; the first draft of a new release cycle starts blank.
 
 ### Version History
 
@@ -304,7 +343,6 @@ Virtual release tracks compute their contents by aggregating objects from compon
   description: "Virtual aggregation of Enterprise content across multiple source tracks",
   created: "2024-01-01T10:00:00.000Z",
   created_by_ref: "identity--uuid",
-  object_marking_refs: ["marking-definition--uuid"],
 
   // Objects in this snapshot (Virtual tracks use 2-tier system)
   members: [
@@ -452,16 +490,61 @@ copies the exact member revisions from the selected tagged component
 snapshots, and later component activity cannot change the persisted virtual
 snapshot.
 
-A tagged snapshot may optionally reference an internal schema-v2 member graph
-manifest. `POST /api/release-tracks/:id/snapshots/:modified/graph` closes the
-graph over exact `members` and stores exact-revision pointers for those roots,
-relationships whose two endpoint revisions are members, versioned supporting
-objects, and LinkById targets. Ordinary graphs contain no relationship-added
-secondary SDOs. Only unversioned supporting objects such as marking definitions
-retain a frozen payload. Drafts are always graphless. A tagged snapshot without
-a manifest is exportable, but graph relationships and secondary objects are
-resolved live. Exports that include `candidates` or `staged` are also live even
-when the tagged snapshot has a member manifest.
+Every snapshot references a sealed content manifest (`content_manifest_id`)
+from birth. The manifest closes over exact `members` and stores exact-revision
+pointers for those roots, relationships whose source and target IDs are both
+members (pinned to the member revisions), versioned supporting objects, and
+LinkById targets; only unversioned marking definitions retain a frozen
+payload. No relationship-discovered secondary SDO is ever added. Writes that
+change `members` seal a new manifest; other clones inherit their
+predecessor's. A standard release commit reseals over the planned members;
+a virtual commit publishes the materialization manifest unchanged. See
+[sealed-content-manifests.md](sealed-content-manifests.md).
+
+### Content Manifest Schema
+
+```javascript
+// releaseTrackContentManifests
+{
+  manifest_id: "release-track-content-manifest--uuid",
+  track_id: "release-track--uuid",
+  snapshot_modified: "2024-01-15T16:20:00.000Z", // the write that sealed it
+  state: "active",        // "pending" while entries are written; both protect pointers
+  schema_version: 2,      // 2 = pointer-only; 1 = legacy July 2026 frozen-relationship backfill
+  seal_reason: "release", // track_creation | members_written | release | materialization |
+                          // track_clone | source_reconstruction | migration | legacy_graph
+  source_attestation: {   // source_reconstruction only: the verified bundle the pointers came from
+    kind: "source-bundle", bundle_sha256: "…", collection_id: "x-mitre-collection--…",
+    release: "19.1", domain: "enterprise-attack"
+  },
+  created_at: "2024-01-15T16:20:00.100Z"
+}
+
+// releaseTrackContentManifestEntries (one per exact revision)
+{
+  manifest_id: "release-track-content-manifest--uuid",
+  track_id: "release-track--uuid",
+  snapshot_modified: "2024-01-15T16:20:00.000Z",
+  revision_key: "attack-pattern--aaa::1704880800000",
+  kind: "root",                // root | relationship | supporting | link_target | secondary (legacy)
+  tier: "members",             // root entries only
+  object_ref: "attack-pattern--aaa",
+  object_modified: "2024-01-10T10:00:00.000Z",
+  source: { object_ref, object_modified },  // relationship entries: the member revisions shipped
+  target: { object_ref, object_modified },
+  omitted_optional_defaults: ["revoked"],   // source_reconstruction serialization hints only
+  frozen_stix: { ... }                      // unversioned marking definitions only
+}
+```
+
+`seal_reason` records which write produced the manifest. `migration` marks a
+manifest sealed from the current database by the 2026-09-02 migration rather
+than at the time of the original write, and `legacy_graph` marks a manifest
+created by the retired opt-in graph endpoint; neither is a historically exact
+capture. `source_reconstruction` manifests carry the administrator's
+attestation. `state` exists for crash safety: entries are written and verified
+under a `pending` manifest before the snapshot references it, and replay
+activates a linked pending manifest opportunistically.
 
 The three valid `snapshot_schedule` shapes are:
 

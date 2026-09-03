@@ -1,5 +1,168 @@
 # Release Track TODOs
 
+## Sealed snapshot content manifests (Problem 1)
+
+Design: [release-tracks/sealed-content-manifests.md](release-tracks/sealed-content-manifests.md).
+Decisions confirmed by the developer on 2026-09-02: drop the relationship
+advancement cascade, revert the frontend related-object reset to PUT, keep the
+collection object in every STIX 2.1 bundle including drafts, track-scope
+publication metadata with inherit-from-global as the default, collection
+`modified` = snapshot `modified`, bundle `id` changes per snapshot while the
+collection `id` is constant per track, and production-grade migration.
+
+### Backend (branch `beta`)
+
+- [x] Model: manifest gains `sealed_at`, `seal_reason`; snapshot gains
+      `content_manifest_id` (renamed from `graph_manifest_id`), `publication`,
+      `bundle_id`; `config.publication` with inherit/explicit identity and
+      markings plus optional `collection_id` and `created`; remove top-level
+      `object_marking_refs`.
+- [x] Content manifest service (renamed from graph-manifest-service): seal
+      over exact members with ID-closed relationship selection, supporting and
+      link-target entries, no `secondary`, no predecessor carry-forward;
+      reference-counted discard; legacy schema-v1 reader retained.
+- [x] Snapshot service: seal when `members` is written (create track, clone
+      with members override), inherit otherwise; prune drafts without
+      discarding shared manifests; notes editable on drafts only; remove
+      graph create/delete.
+- [x] Versioning service: standard commit seals over planned members inside
+      the guarded tag update; virtual commit reuses the materialization seal;
+      freeze `publication`, generate `bundle_id`, store hashes; preview
+      reports relationship additions, removals, and stale authored endpoints.
+- [x] Publication resolution: shared resolver for identity and markings
+      (track override or global), collection id and created overrides,
+      immutability after first release, config GET returns resolved values.
+- [x] Export: single replay path; drafts may add live `include` tiers through
+      the same closure rule; tagged + `include` is 400; collection object
+      always present in 2.1, absent in 2.0; drafts omit `x_mitre_version`;
+      remove `includeToc`; bundle id stored for tagged, UUIDv5 for drafts.
+- [x] Relationships: remove `handleEndpointRevisionCreated` and its
+      subscriptions; keep create-time endpoint pinning; drop the exact-endpoint
+      repository query if unused.
+- [x] Routes/controller/OpenAPI: remove graph create/delete; reconstruct
+      accepts `replace_manifest_id`; rename response fields
+      (`content_manifest_id`, `content_statistics`); publication config
+      schema; remove `includeToc` and top-level marking refs.
+- [x] Migration: rename field, seal unsealed tagged snapshots as baseline
+      reconstructions, drafts inherit or seal, migrate track marking refs into
+      `config.publication`, freeze `publication` and `bundle_id` on tagged
+      snapshots, recompute hashes, drop frozen `collection` entries; make the
+      2026-07-30 migration's manifest backfill a no-op; dry-run preview
+      script; regression spec.
+- [x] Tests: content-manifest lifecycle spec (replaces opt-in-graphs),
+      bundle spec updates, no-cascade relationship spec, publication config
+      spec, migration spec, virtual/history/description spec updates; run
+      focused specs then full `npm test`.
+- [x] Docs: bundle-export.md, entities.md, implementation-notes.md, user
+      output-formats/versioning/api-reference/terminology, relationships doc.
+- [x] Bruno: remove graph create/delete requests, update reconstruct,
+      config, snapshot export, and track creation requests.
+- [x] Propose conventional commit messages.
+
+### Frontend (feature branch off `beta`)
+
+- [x] Revert relationship save to update related objects with PUT.
+- [x] Remove bundle cache controls, cache status, and cache statistics; show
+      content statistics, hashes, and bundle id on tagged snapshots.
+- [x] Publication section in track configuration: identity and markings with
+      inherit toggle and resolved-value display; collection id and created
+      overrides editable until first release.
+- [x] Release preview: relationship inventory summary and stale-endpoint
+      warnings.
+- [x] Snapshot notes read-only after release; field renames in classes,
+      connector, and specs; docs update; focused and full frontend
+      verification.
+
+Verification (2026-09-02):
+
+- Backend focused specs pass: content manifests 10, publication config 3,
+  manifest migrations 5, bundle export 19, snapshot descriptions 7, snapshot
+  history 7, virtual graph integrity 3, release planning 23, endpoint pins 3,
+  release tracks 3, attack objects, collection bundles, reconciliation.
+- Three complete `npm test` runs: 1009/1012/1010 API cases passing with the
+  documented roaming shared-server failures only (attack-objects count,
+  collection-bundles 400, reconciliation 400, analytics ECONNRESET, groups
+  timeout); every affected spec passes in isolation. OpenAPI, config,
+  middleware, and scheduler suites pass. `npm run lint` is clean for the
+  changed files (pre-existing findings remain in untouched migrations and
+  `scripts/loadBundle.js`).
+- Restored-production trial (2026-09-02): the first run crashed on
+  `release-track--4bf296be…`, one of eight unregistered collections left by
+  the first v19.1 bootstrap, whose members reference six technique revisions
+  replaced by the platform-ordering repair. The migration now migrates
+  registered tracks only, reports orphans, discards their manifests, and names
+  the failing snapshot, step, and missing references on any other error.
+- The crashed API container kept restarting (`restart: unless-stopped`, 23
+  restarts) on the old image, re-running the unfixed migration and re-creating
+  the four orphan manifests each time; the rebuilt image's idempotent run
+  discards them again. Stop or rebuild the container before judging the
+  database state.
+- After the fix, a dry run against the restore reported 6 tracks, 21
+  snapshots, 7 seals, 1 shared manifest, 4 renames, and 7 orphan collections;
+  applying it sealed and froze exactly that, recomputed 7 hash sets, and a
+  second apply changed nothing. Every released snapshot's stored STIX 2.1
+  hash matches a fresh export and every draft exports with the version key
+  omitted.
+- Design record: `docs/developer/release-tracks/sealed-content-manifests.md`.
+- Follow-up for the developer's v19.1 bootstrap tooling (`.nocommit/`): read
+  `content_manifest_id` instead of `graph_manifest_id`, and replace the
+  delete-then-reconstruct recovery with a single reconstruct request naming
+  `replace_manifest_id`.
+- Frontend (branch `feat/sealed-content-manifests`): focused specs pass
+  (page 53, connector, relationship, preview dialog); the complete vitest
+  suite passes (166 files, 379 tests); `tsc --noEmit`, ESLint on changed
+  files, and the production `ng build` succeed.
+- Proposed REST commit: `feat(release-tracks): seal snapshot content manifests`.
+  Proposed frontend commit: `feat(release-tracks): surface sealed content and
+  publication settings`.
+
+
+### Review follow-ups (2026-09-02)
+
+- [x] Fix the virtual-track config editor crash: the connector's identity and
+      marking getters return functions that must be invoked as methods.
+- [x] Rename the History tab to Releases; drop the per-snapshot "Sealed" chip
+      (every snapshot is sealed, so it carried no information) and label the
+      statistics section "Content".
+- [x] Restore release deletion: administrators may delete the track's most
+      recent release with a typed version confirmation (`confirm_version`);
+      the ledger entry is retracted from every remaining snapshot, the manifest
+      is discarded when unreferenced, the registry is reconciled, and a
+      `delete_release` audit event is recorded. Frontend button on tagged
+      release cards for administrators.
+- [x] Data-model review (KISS): rename manifest storage to
+      `releaseTrackContentManifest*` with `release-track-content-manifest--`
+      ids; drop `resolver_version` and `baseline_reconstruction` in favour of a
+      required `seal_reason`; remove the dead `config.include_secondary_objects`
+      block and its frontend section; keep `releaseTrackReconciliations` as an
+      outstanding-work queue (completed records are deleted, so it is normally
+      empty); keep `releaseTrackAuditEvents` (now used by both destructive
+      actions) and document every collection in `entities.md`.
+- [x] Migration extended in place (unreleased): collection rename, id rewrite,
+      header normalization, dead-config removal, completed-reconciliation
+      cleanup; dry run stays accurate before the rename.
+Verification (2026-09-02, review follow-ups):
+
+- Backend focused specs pass: manifest migrations 5, destructive authorization
+  3, content manifests 10, snapshot history 7, virtual graph integrity 3,
+  reconciliation durability 2, releases by object 8, snapshot immutability 2,
+  backrefs 24; OpenAPI validation passes.
+- Restored production database: dry run reports 131,534 legacy manifest
+  documents to move and 17 headers to normalize; apply completes, all 21
+  snapshots export with matching hashes, storage now lists only
+  `releaseTrackContentManifests`, `releaseTrackContentManifestEntries`,
+  `releaseTrackRegistry`, `releaseTrackReconciliations` (empty), and
+  `releaseTrackAuditEvents`; a second dry run reports nothing left to do.
+- Frontend: focused page and connector specs pass (71); complete suite
+  381 tests with one unrelated save-dialog flake that passes alone; `tsc`,
+  ESLint, Prettier, and the production build are clean.
+- [ ] Recommendation, not implemented: `version_history` is copied into every
+      snapshot document although only the tagged snapshot's own entry is read
+      (`tagMetadataForSnapshot`) and the registry's `tagged_releases` is the
+      catalogue. Storing the entry only on the tagged snapshot would remove the
+      duplication but touches release planning, cloning, and the frontend
+      history view; defer to a dedicated slice.
+
 ## Remove nightly-only migration compatibility
 
 - [x] Remove regression code that imports the retired beta bundle-integrity
@@ -52,6 +215,35 @@ Verification (2026-08-07):
 - Proposed REST API commit: `feat(config): expose REST API build information`.
   Proposed frontend commit: `feat(shell): display component build versions`.
 
+## Targeted v19.1 source-graph recovery
+
+- [x] Add a read-only preflight that targets one exact tagged virtual snapshot,
+      reconstructs its canonical v19.1 pointer plan, and requires every prior
+      immutable baseline repair to already exist.
+- [x] Add a separately confirmed apply mode that replaces only the target
+      snapshot's graph manifest and refuses track replacement or STIX writes.
+- [x] Verify the snapshot members, source-pointer hydration, manifest
+      attestation, and final emitted bundle against the canonical source.
+- [x] Tag future public v19.1 virtual baselines as `19.1` while retaining the
+      internal standard-track baseline tag.
+- [x] Add operator documentation and regression coverage for safety,
+      idempotence, and the incorrect ordinary-manifest recovery scenario.
+- [x] Run focused Python checks followed by the complete `npm test` suite.
+- [x] Propose a conventional commit message without committing unless asked.
+
+Verification (2026-08-05):
+
+- Bootstrap regressions pass: 42 cases covering graph-only no-write preflight,
+  guarded replacement, missing-repair fail-closed behavior, manifest races,
+  and the public `19.1` virtual tag. Ruff, Python compilation, and diff
+  whitespace checks pass.
+- The clean complete REST suite passes under repository-pinned Node 22.14.0:
+  OpenAPI 2, config 21, API 1012, middleware 29, and scheduler 10.
+- Earlier complete runs encountered the documented roaming shared-server
+  failures; each affected bundle, pagination, backref, virtual-graph, and notes
+  spec passed independently before the clean run.
+- Proposed commit: `fix(release-tracks): add targeted v19.1 graph recovery`.
+
 ## Deterministic graph collection identity repair
 
 - [x] Reproduce the incorrect graph collection creator, STIX 2.0 TOC
@@ -79,6 +271,64 @@ Verification (2026-08-05):
   including under the repository-pinned Node 22.14.0 runtime.
 - The developer subsequently confirmed a complete all-green test run.
 - Proposed commit: `fix(release-tracks): repair deterministic bundle integrity`.
+
+## Stateful snapshot collection objects and bundle hashes
+
+- [x] Persist one frozen `x-mitre-collection` entry in every graph manifest,
+      with a track-stable ID, first-manifest `created`, and current-manifest
+      `modified` timestamp.
+- [x] Replay the frozen collection entry and a manifest-stable bundle envelope
+      ID for deterministic STIX 2.0 and STIX 2.1 downloads.
+- [x] Generate SHA-256 hashes from the exact pretty-printed download bytes and
+      store both hashes on graph-backed snapshots with their manifest ID.
+- [x] Reject snapshot-note edits while a graph exists so the frozen collection
+      and hashes remain immutable; require deletion and regeneration to edit.
+- [x] Expose hashes through snapshot responses/OpenAPI and update REST docs,
+      Bruno coverage, and regression tests.
+- [x] Replace frontend bundle prefetch/hashing with server-provided hashes,
+      preserving copy controls and exact download serialization.
+- [x] Run focused and complete REST/frontend verification and propose
+      conventional commit messages without committing unless asked.
+
+Verification (2026-08-04):
+
+- Focused REST graph, description, history, and bundle specs pass, including
+  exact SHA-256 comparisons against both downloaded bundle serializations.
+- The complete REST `npm test` suite passes after the repository's documented
+  roaming harness failures were confirmed in isolation and rerun.
+- The complete frontend suite passes: 165 files and 381 tests. Targeted
+  TypeScript, ESLint, and Prettier checks also pass.
+- Cached-note regression coverage proves the API returns 409 without changing
+  either bundle hash, then permits editing after graph deletion and freezes the
+  revised notes when the graph is recreated.
+- Repeated complete REST runs encountered the documented roaming harness
+  failures in unrelated specs (transient 400/404/ECONNRESET responses); every
+  affected spec passes when rerun in isolation.
+- Proposed REST commit: `feat(release-tracks): persist snapshot bundle hashes`.
+  Proposed frontend commit: `feat(release-tracks): display snapshot bundle hashes`.
+
+## Relationship review-state revision safety
+
+- [x] Reproduce the relationship-save source/target workflow reset and prove it
+      currently uses in-place PUT updates.
+- [x] Reset related SDO workflow state through POST-created revisions so graph-
+      pinned revisions remain immutable.
+- [x] Add frontend regression coverage for request method, WIP transition, and
+      sequential relationship/source/target saves.
+- [x] Update frontend workflow documentation and run focused plus complete
+      frontend verification.
+- [x] Propose a conventional commit message without committing unless asked.
+
+Verification (2026-08-04):
+
+- The focused relationship revision regression passes: 1 case proving ordered
+  relationship/source/target POSTs, WIP resets, and no related-object PUTs.
+- The complete frontend suite passes: 164 files and 377 tests. The production
+  Angular build succeeds with existing bundle/style budget warnings.
+- Prettier and the new regression's ESLint check pass. The legacy relationship
+  class retains its existing unrelated lint findings; the changed transport
+  line introduces none.
+- Proposed frontend commit: `fix(relationships): revise related objects on save`.
 
 ## Snapshot collection descriptions and bounded release versions
 
@@ -132,7 +382,7 @@ Verification (2026-08-03):
   with the local persistent cache temporarily disabled to avoid the documented
   environment-specific native crash; `angular.json` was restored afterward.
 - Proposed frontend commit: `feat(release-tracks): manage snapshot bundle
-  caches`.
+caches`.
 
 ## Source-attested v19.1 graph reconstruction
 
@@ -200,8 +450,63 @@ Verification (2026-08-03):
   placing it in a graph URL; its isolated virtual-graph-integrity spec passes:
   3 cases.
 - Proposed implementation commit: `fix(release-tracks): hydrate historical
-  relationship graphs`. Proposed test-only commit: `test(release-tracks):
-  serialize snapshot timestamps in graph URLs`.
+relationship graphs`. Proposed test-only commit: `test(release-tracks):
+serialize snapshot timestamps in graph URLs`.
+
+### Production bootstrap replacement recovery
+
+- [x] Reproduce the production preflight failure against the restored database.
+- [x] Keep dynamic `latest` workflow selectors out of exact historical-pin
+      compatibility comparisons.
+- [x] Add an explicit, confirmed option to replace only the six exact-name
+      bootstrap tracks, deleting virtual tracks before their standard inputs.
+- [x] Repair six persisted v19.1 technique revisions whose platform arrays
+      contain the correct values in a different order from the source bundles.
+- [x] Run the corrected preflight against the restored production database and
+      complete focused script verification.
+
+Verification (2026-08-04):
+
+- The restored-production preflight completes without treating nine dynamic
+  `latest` candidates as timestamps and inventories all six existing tracks for
+  replacement.
+- It identifies 297 immutable baseline repairs: 291 canonical-domain revisions
+  and six `x_mitre_platforms` ordering revisions.
+- Two replacement applies complete successfully. The second reuses all 297
+  semantic repair revisions, proving restart safety, and all three final bundle
+  comparisons report `identical_excluding_collection: true` with member counts
+  Enterprise 4,815, ICS 503, and Mobile 743.
+- Bootstrap regressions pass: 36 cases. Python Ruff and the read-only production
+  preflight pass.
+
+### Closed-member deterministic relationship graphs
+
+- [x] Reproduce exact-revision leakage when a relationship endpoint pins a
+      different revision of an existing snapshot member.
+- [x] Replace ID-frontier secondary expansion with indexed exact-endpoint
+      relationship selection requiring both endpoint revisions in `members`.
+- [x] Select only the latest relationship revision for each exact endpoint
+      pair, with a later revoked or deprecated revision suppressing older
+      active history.
+- [x] Seed the v19.1 transition from the preceding source-attested manifest so
+      historical relationships without truthful stored endpoint pins remain
+      available while their exact member endpoints survive.
+- [x] Keep schema-v2 relationships pointer-only and reject duplicate emitted
+      STIX revisions or inconsistent relationship lineages.
+- [x] Update release-track documentation and add regression coverage for
+      closed membership, predecessor carry-forward, relationship advancement,
+      and mutation protection.
+- [x] Run focused release-track specs followed by the complete `npm test`
+      suite.
+
+Verification (2026-08-04):
+
+- Closed-member graph regressions pass: 9 opt-in graph cases and 17 bundle
+  cases.
+- The complete release-track directory passes with 187 cases after two roaming
+  harness failures were rerun successfully in isolation (27 cases).
+- Lint and the complete `npm test` suite pass, including OpenAPI,
+  configuration, API, middleware, and scheduler suites.
 
 ## Snapshot-history graph cache statistics
 
@@ -309,7 +614,7 @@ Verification (2026-08-03):
   errors; the shared release-track API type retains one pre-existing
   index-signature violation.
 - Proposed frontend commit: `feat(release-tracks): add deterministic bundle
-  cache controls`.
+cache controls`.
 
 ## Frontend canonical-domain preservation
 
@@ -332,7 +637,7 @@ Verification (2026-08-03):
 - Repository-wide lint remains red on 256 pre-existing errors outside this
   change; no new lint errors remain in the hotfix files.
 - Proposed frontend commit: `fix(stix): preserve canonical domains in
-  editors`.
+editors`.
 
 ## C0028 campaign revision / released virtual-snapshot investigation
 
@@ -372,7 +677,7 @@ Investigation (2026-08-03):
   references; backend campaign regression proving a missing cited source is
   rejected and the corrected revision succeeds with ADM validation enabled.
 - Proposed implementation commit: `fix(campaigns): preserve domains and cited
-  references in revisions`.
+references in revisions`.
 
 Verification (2026-08-03):
 
@@ -2292,6 +2597,7 @@ Links/references between notes and snapshot objects will be one-to-many. A singl
   "stix": "StixObject"
 }
 ```
+
 ## Deterministic v19.1 virtual-track bootstrap graph
 
 - [x] Preserve the materialized virtual snapshot graph when previewing and committing a release.

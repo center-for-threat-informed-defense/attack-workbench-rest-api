@@ -116,8 +116,9 @@ function rejectFilesystemStoreFormat(format, methodName) {
  *   - format=bundle: list of additional tiers ('staged' and/or 'candidates')
  *     to hydrate into the bundle alongside members. Omitted → members only.
  *
- * The `state`, `stixVersion`, and `includeToc` parameters only apply to
- * format=bundle.
+ * The `state` and `stixVersion` parameters only apply to format=bundle.
+ * `include` for bundles is a draft-only preview option; the service rejects it
+ * for tagged snapshots.
  */
 function parseSnapshotQueryParams(query) {
   const format = parseOptionalQueryStrict(query.format, formatQuerySchema, 'workbench', 'format');
@@ -146,12 +147,6 @@ function parseSnapshotQueryParams(query) {
         stixVersionQuerySchema,
         '2.1',
         'stixVersion',
-      ),
-      includeToc: parseOptionalQueryStrict(
-        query.includeToc,
-        booleanQuerySchema,
-        true,
-        'includeToc',
       ),
     };
   }
@@ -197,12 +192,6 @@ function parseReleasePreviewQueryParams(query) {
         stixVersionQuerySchema,
         '2.1',
         'stixVersion',
-      ),
-      includeToc: parseOptionalQueryStrict(
-        query.includeToc,
-        booleanQuerySchema,
-        true,
-        'includeToc',
       ),
     };
   }
@@ -644,54 +633,27 @@ exports.cloneByModified = async function cloneByModified(req, res, next) {
   }
 };
 
-/** POST /api/release-tracks/:id/snapshots/:modified/graph */
-exports.createSnapshotGraph = async function createSnapshotGraph(req, res, next) {
-  try {
-    const result = await releaseTracksService.createSnapshotGraph(
-      req.params.id,
-      req.params.modified,
-    );
-    logger.debug(`Success: Created graph for snapshot ${req.params.modified}`);
-    return res.status(result.created ? 201 : 200).send(result.snapshot);
-  } catch (err) {
-    logger.error('Failed to create snapshot graph: ' + err);
-    return next(err);
-  }
-};
-
 /** POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct */
-exports.reconstructSnapshotGraph = async function reconstructSnapshotGraph(req, res, next) {
+exports.reconstructSnapshotManifest = async function reconstructSnapshotManifest(req, res, next) {
   try {
     const bodyResult = reconstructSnapshotGraphBodySchema.safeParse(req.body);
     if (!bodyResult.success) {
       return next(
         new BadRequestError({
-          message: 'Invalid source graph reconstruction request',
+          message: 'Invalid source manifest reconstruction request',
           details: bodyResult.error.errors,
         }),
       );
     }
-    const result = await releaseTracksService.reconstructSnapshotGraph(
+    const result = await releaseTracksService.reconstructSnapshotManifest(
       req.params.id,
       req.params.modified,
       bodyResult.data,
     );
-    logger.debug(`Success: Reconstructed graph for snapshot ${req.params.modified}`);
+    logger.debug(`Success: Reconstructed content manifest for snapshot ${req.params.modified}`);
     return res.status(result.created ? 201 : 200).send(result.snapshot);
   } catch (err) {
-    logger.error('Failed to reconstruct snapshot graph: ' + err);
-    return next(err);
-  }
-};
-
-/** DELETE /api/release-tracks/:id/snapshots/:modified/graph */
-exports.deleteSnapshotGraph = async function deleteSnapshotGraph(req, res, next) {
-  try {
-    await releaseTracksService.deleteSnapshotGraph(req.params.id, req.params.modified);
-    logger.debug(`Success: Deleted graph for snapshot ${req.params.modified}`);
-    return res.status(204).end();
-  } catch (err) {
-    logger.error('Failed to delete snapshot graph: ' + err);
+    logger.error('Failed to reconstruct snapshot content manifest: ' + err);
     return next(err);
   }
 };

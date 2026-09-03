@@ -92,16 +92,14 @@ the preview or commit request is handled. Only exact revisions are promoted
 into `members`, so the tagged release never contains a dynamic member
 reference.
 
-Releasing does not automatically create a graph manifest. A tagged snapshot
-may subsequently opt into deterministic member-graph retrieval with:
-
-```http
-POST /api/release-tracks/:id/snapshots/:modified/graph
-```
-
-Deleting that manifest with the corresponding `DELETE` operation returns the
-snapshot to live graph resolution. Candidate and staged export additions are
-always resolved live; the determinism guarantee applies only to `members`.
+Releasing a standard track seals a fresh content manifest over the final
+member set, so the relationships shipped are exactly those connecting members
+at the moment of release; the release preview lists the relationships that
+seal would add or remove. Releasing a virtual track publishes the manifest
+sealed at materialization. Release also freezes the collection object's
+publication metadata, assigns a stable bundle identifier, and records SHA-256
+hashes of both bundle serializations. A released snapshot is immutable,
+including its notes.
 
 ### In-Place Tagging Strategy
 
@@ -111,6 +109,8 @@ When you release a snapshot:
 2. `version` is set to the new version
 3. An entry is added to `version_history` for audit trail
 4. The `modified` timestamp **does not change**
+5. For standard tracks, staged objects are promoted into `members` and a
+   content manifest is sealed over the result in the same atomic update
 
 **Why in-place?**
 

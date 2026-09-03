@@ -156,42 +156,50 @@ class RelationshipsRepository extends BaseRepository {
   }
 
   /**
-   * Retrieve every relationship revision whose stored source or target pin
-   * exactly matches one of the supplied object revisions.
+   * Retrieve the newest revision of every relationship lineage whose source
+   * and target IDs are both in the supplied object set, regardless of
+   * lifecycle state. Sealing chooses each lineage's globally latest revision
+   * before applying active/deprecated filters so an older active revision is
+   * never resurrected by a newer inactive one.
    *
-   * The caller deliberately receives inactive and superseded relationship
-   * revisions. Deterministic graph capture must choose the newest revision
-   * for an exact endpoint pair before applying active/deprecated filters, or
-   * an older active revision could be resurrected.
+   * @param {Array<string>} objectRefs - Member STIX IDs
+   * @param {Object} [options]
+   * @param {number} [options.batchSize]
+   * @returns {Promise<Array<Object>>} Lean relationship documents
    */
-  async retrieveRevisionsTouchingExactEndpoints(endpointRevisions, options = {}) {
-    if (!Array.isArray(endpointRevisions) || endpointRevisions.length === 0) return [];
+  async retrieveLatestBetween(objectRefs, options = {}) {
+    if (!Array.isArray(objectRefs) || objectRefs.length === 0) return [];
 
-    const batchSize = options.batchSize || 250;
-    const revisionsByKey = new Map();
+    const batchSize = options.batchSize || 2000;
     try {
-      for (let offset = 0; offset < endpointRevisions.length; offset += batchSize) {
-        const batch = endpointRevisions.slice(offset, offset + batchSize);
-        const exactEndpointQueries = batch.flatMap((entry) => {
-          const objectModified = new Date(entry.object_modified);
-          return [
-            {
-              'workspace.relationship_endpoints.source.object_ref': entry.object_ref,
-              'workspace.relationship_endpoints.source.object_modified': objectModified,
-            },
-            {
-              'workspace.relationship_endpoints.target.object_ref': entry.object_ref,
-              'workspace.relationship_endpoints.target.object_modified': objectModified,
-            },
-          ];
-        });
-        const relationships = await this.model.find({ $or: exactEndpointQueries }).lean().exec();
-        for (const relationship of relationships) {
-          const key = `${relationship.stix.id}::${new Date(relationship.stix.modified).getTime()}`;
-          revisionsByKey.set(key, relationship);
-        }
+      const lineageIds = new Set();
+      for (let offset = 0; offset < objectRefs.length; offset += batchSize) {
+        const batch = objectRefs.slice(offset, offset + batchSize);
+        const ids = await this.model
+          .distinct('stix.id', {
+            'stix.source_ref': { $in: batch },
+            'stix.target_ref': { $in: objectRefs },
+          })
+          .exec();
+        for (const id of ids) lineageIds.add(id);
       }
-      return [...revisionsByKey.values()];
+      if (lineageIds.size === 0) return [];
+
+      const results = [];
+      const allIds = [...lineageIds];
+      for (let offset = 0; offset < allIds.length; offset += batchSize) {
+        const batch = allIds.slice(offset, offset + batchSize);
+        const latest = await this.model
+          .aggregate([
+            { $match: { 'stix.id': { $in: batch } } },
+            { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+            { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
+            { $replaceRoot: { newRoot: '$document' } },
+          ])
+          .exec();
+        results.push(...latest);
+      }
+      return results;
     } catch (err) {
       throw new DatabaseError(err);
     }

@@ -38,6 +38,7 @@
     "test:file": "mocha --timeout 10000 --exit",
     "repair:release-track-backrefs": "node scripts/reconcileReleaseTrackBackrefs.js",
     "preview:deterministic-snapshot-graphs": "node scripts/previewDeterministicSnapshotGraphMigration.js",
+    "preview:content-manifests": "node scripts/previewContentManifestMigration.js",
     "check:lockfile": "bash scripts/check-package-lock.sh"
   },
   "dependencies": {

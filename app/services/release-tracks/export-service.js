@@ -3,11 +3,15 @@
 // =============================================================================
 // Export Service
 //
-// Hydrates STIX object refs (from snapshot members/staged/candidates tiers)
-// into full STIX documents, then formats the output as one of:
+// Renders a snapshot as one of:
 //   - bundle:          Standard STIX 2.0 or 2.1 bundle
 //   - workbench:       Custom format with workflow metadata
 //   - filesystemstore: Directory structure organized by STIX type
+//
+// Bundle export has exactly one content path: replay the snapshot's sealed
+// content manifest. Two preview variants resolve the same closed-member graph
+// live instead of replaying: release previews of an unsaved planned snapshot,
+// and draft exports that add workflow tiers through `include`.
 //
 // This service performs cross-service READS (permitted by the event-driven
 // architecture — see docs/CROSS_SERVICE_READS_PATTERN.md) by querying STIX
@@ -17,17 +21,22 @@
 // app/lib/release-tracks/export-schemas.js for schema definitions.
 // =============================================================================
 
-const config = require('../../config/config');
+const { v5: uuidv5 } = require('uuid');
 const logger = require('../../lib/logger');
 const linkById = require('../../lib/linkById');
+const revisionReference = require('../../lib/release-tracks/revision-reference');
 const primaryRevisionService = require('./primary-revision-service');
-const graphManifestService = require('./graph-manifest-service');
-const systemConfigurationService = require('../system/system-configuration-service');
+const contentManifestService = require('./content-manifest-service');
+const publicationService = require('./publication-service');
+const { BadRequestError } = require('../../exceptions');
 const {
   bundleTransformSchema,
   workbenchTransformSchema,
   filesystemStoreTransformSchema,
 } = require('../../lib/release-tracks/export-schemas');
+
+// Namespace for deterministic draft bundle identifiers.
+const DRAFT_BUNDLE_NAMESPACE = 'c1d8c0a6-6a3d-4f0a-9c9b-4d9d0c8a5f21';
 
 // =============================================================================
 // Hydration
@@ -35,9 +44,6 @@ const {
 
 /**
  * Hydrate an array of tier entries into full STIX documents.
- *
- * Groups entries by STIX type (extracted from the `object_ref` prefix) and
- * batch-queries each repository in parallel via `findManyByIdAndModified`.
  *
  * @param {Array<{object_ref: string, object_modified: string|Date}>} entries
  * @returns {Promise<Array<Object>>} Full Mongoose lean documents ({ stix, workspace, ... })
@@ -52,8 +58,8 @@ exports.hydrateMembers = async function hydrateMembers(entries) {
 
 /**
  * Convert LinkById tags (e.g. "(LinkById: T1234)") in descriptions to
- * markdown citations using only object revisions supplied by the resolved
- * live or persisted graph.
+ * markdown citations using only object revisions supplied by the replayed or
+ * resolved graph.
  *
  * @param {Array<Object>} documents - Hydrated lean documents ({ stix, ... })
  */
@@ -71,17 +77,8 @@ async function convertLinkByIdTags(documents, linkTargetDocuments) {
   }
 }
 
-function requiresLiveGraph(snapshot, options) {
-  return (
-    options.captureGraph ||
-    snapshot.version == null ||
-    !snapshot.graph_manifest_id ||
-    (options.include || []).some((tier) => ['staged', 'candidates'].includes(tier))
-  );
-}
-
 function normalizeSourceBundleDefaults(documents, graph) {
-  if (graph.manifest?.resolver_version !== 'source-bundle-pointer-v2') return documents;
+  if (!graph.sourceOmittedDefaults?.size) return documents;
 
   return documents.map((document) => {
     const normalized = { ...document, stix: { ...document.stix } };
@@ -94,9 +91,35 @@ function normalizeSourceBundleDefaults(documents, graph) {
   });
 }
 
-function bundleIdForManifest(manifest) {
-  const uuid = manifest?.manifest_id?.split('--')[1];
-  return uuid ? `bundle--${uuid}` : undefined;
+/**
+ * Select the draft workflow-tier entries requested through `include`,
+ * narrowed by `state`, and resolve dynamic selectors to exact revisions.
+ */
+async function includedTierEntries(snapshot, options) {
+  const include = options.include || [];
+  const entries = [];
+  for (const tier of ['staged', 'candidates']) {
+    if (!include.includes(tier)) continue;
+    for (const entry of snapshot[tier] || []) {
+      if (
+        options.state &&
+        entry.object_status !== 'reviewed' &&
+        !options.state.includes(entry.object_status)
+      ) {
+        continue;
+      }
+      entries.push({ object_ref: entry.object_ref, object_modified: entry.object_modified });
+    }
+  }
+  return revisionReference.resolveEntries(entries);
+}
+
+function bundleIdFor(snapshot) {
+  if (snapshot.bundle_id) return snapshot.bundle_id;
+  return `bundle--${uuidv5(
+    `${snapshot.id}|${new Date(snapshot.modified).toISOString()}`,
+    DRAFT_BUNDLE_NAMESPACE,
+  )}`;
 }
 
 // =============================================================================
@@ -111,7 +134,7 @@ function bundleIdForManifest(manifest) {
  *
  * @param {Object} snapshot - The raw snapshot document
  * @param {Array<Object>} hydratedObjects - Hydrated lean documents
- * @param {Object} [options] - { stixVersion?, includeToc?, attackSpecVersion? }
+ * @param {Object} [options] - { stixVersion?, publication?, bundleId? }
  */
 exports.formatAsBundle = function formatAsBundle(snapshot, hydratedObjects, options) {
   return bundleTransformSchema.parse({ snapshot, hydratedObjects, options });
@@ -149,49 +172,52 @@ exports.formatAsFilesystemStore = function formatAsFilesystemStore(snapshot, hyd
  * returns the release-track snapshot shape with UI-friendly tier entry details.
  *
  * Bundle exports (see docs/developer/release-tracks/bundle-export.md):
- *   - The same pipeline applies to standard snapshots and materialized virtual
- *     snapshots because both persist exact member revisions.
- *   1. Select tier entries — members always; staged/candidates via
- *      options.include, narrowed by options.state
- *   2. Hydrate entries into full documents
- *   3. Resolve live relationships or replay exact persisted graph pointers
- *   4. Append referenced identities and marking definitions
- *   5. Convert LinkById tags to markdown citations
- *   6. Assemble the bundle (STIX version conformance + optional TOC) via the
- *      Zod transform schema
+ *   1. Replay the sealed content manifest (members, closed relationships,
+ *      supporting objects, LinkById targets). A release preview or a draft
+ *      export with `include` resolves the same closed graph live instead.
+ *   2. Convert LinkById tags to markdown citations
+ *   3. Assemble the bundle (STIX version conformance + collection object for
+ *      STIX 2.1) via the Zod transform schema
  *
  * @param {Object} snapshot - The raw snapshot document from the dynamic repo
  * @param {string} format - One of: 'bundle', 'filesystemstore'
  * @param {Object} [options] - Additional options
- * @param {Array<string>} [options.include] - Extra tiers to include in bundles ('staged', 'candidates')
- * @param {Array<string>} [options.state] - Workflow status filter for included staged/candidates
+ * @param {Array<string>} [options.include] - Draft-only extra tiers ('staged', 'candidates')
+ * @param {Array<string>} [options.state] - Workflow status filter for included tiers
  * @param {string} [options.stixVersion] - '2.0' or '2.1' (default '2.1')
- * @param {boolean} [options.includeToc] - Include the x-mitre-collection TOC object (default true)
+ * @param {boolean} [options.resolveLive] - Resolve the graph live (release previews)
  * @returns {Promise<Object>} The formatted export
  */
 exports.exportSnapshot = async function exportSnapshot(snapshot, format, options = {}) {
   if (format === 'bundle') {
-    // A persisted graph is an opt-in guarantee for members only. Graphless
-    // snapshots and exports that add mutable draft tiers resolve the current
-    // relationship frontier instead of implying determinism they do not have.
-    const graph = requiresLiveGraph(snapshot, options)
-      ? await graphManifestService.replayPlannedSnapshot(snapshot, options)
-      : await graphManifestService.replay(snapshot, options);
-    const allObjects = normalizeSourceBundleDefaults(graph.documents, graph);
-    await convertLinkByIdTags(allObjects, graph.linkTargetDocuments);
-    let createdByRef;
-    if (options.stixVersion !== '2.0' && options.includeToc !== false && !graph.collectionObject) {
-      const organizationIdentity = await systemConfigurationService.retrieveOrganizationIdentity();
-      createdByRef = organizationIdentity.stix.id;
+    const include = options.include || [];
+    if (include.length > 0 && snapshot.version != null) {
+      throw new BadRequestError({
+        message:
+          'Tagged snapshots export members only. The include parameter is a draft preview option.',
+        details: { include },
+      });
     }
+
+    let graph;
+    if (options.resolveLive || include.length > 0) {
+      const extraEntries = include.length > 0 ? await includedTierEntries(snapshot, options) : [];
+      graph = await contentManifestService.resolveLive(snapshot, extraEntries);
+    } else {
+      graph = await contentManifestService.replay(snapshot);
+    }
+
+    const publication = await publicationService.publicationForExport(snapshot);
+    const allObjects = [
+      ...normalizeSourceBundleDefaults(graph.documents, graph),
+      ...(await contentManifestService.ensurePublicationSupport(graph.documents, publication)),
+    ];
+    await convertLinkByIdTags(allObjects, graph.linkTargetDocuments);
 
     return exports.formatAsBundle(snapshot, allObjects, {
       stixVersion: options.stixVersion,
-      includeToc: options.includeToc,
-      attackSpecVersion: config.app.attackSpecVersion,
-      collectionObject: graph.collectionObject,
-      createdByRef,
-      bundleId: bundleIdForManifest(graph.manifest),
+      publication,
+      bundleId: bundleIdFor(snapshot),
     });
   }
 

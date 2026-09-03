@@ -269,10 +269,23 @@ describe('Release Tracks API', function () {
       .expect(201)
       .expect('Content-Type', /json/);
 
-    expect(response.body.config).toEqual(suppliedConfig);
+    expect(response.body.config).toEqual({
+      ...suppliedConfig,
+      // Publication rules default to inheriting the global scope.
+      publication: {
+        created_by_ref: { inherit: true },
+        object_marking_refs: { inherit: true },
+      },
+    });
 
     const persistedSnapshot = await snapshotService.getLatestSnapshot(response.body.id);
-    expect(persistedSnapshot.config).toEqual(suppliedConfig);
+    expect(persistedSnapshot.config).toEqual({
+      ...suppliedConfig,
+      publication: {
+        created_by_ref: { inherit: true },
+        object_marking_refs: { inherit: true },
+      },
+    });
   });
 
   after(async function () {
