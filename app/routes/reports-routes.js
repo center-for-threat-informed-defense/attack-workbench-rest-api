@@ -24,4 +24,12 @@ router
     reportsController.getParallelRelationships,
   );
 
+router
+  .route('/reports/domain-consistency')
+  .get(
+    authn.authenticate,
+    authz.requireRole(authz.visitorOrHigher, authz.readOnlyService),
+    reportsController.getDomainConsistency,
+  );
+
 module.exports = router;

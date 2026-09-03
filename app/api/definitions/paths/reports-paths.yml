@@ -67,6 +67,53 @@ paths:
                 type: string
                 example: 'Unable to get objects with missing LinkById. Server error.'
 
+  /api/reports/domain-consistency:
+    get:
+      summary: 'Get the domain consistency report'
+      operationId: 'reports-get-domain-consistency'
+      description: |
+        Release-track bundles never discover objects through relationships: a
+        relationship ships only when both of its endpoints are members of the
+        same track. This report lists the content that can never be published
+        together as a result. `cross_domain_relationships` are the latest
+        revisions of active relationships whose source and target objects
+        share no `x_mitre_domains` value (each carries the latest
+        `source_object` and `target_object` plus `source_domains` and
+        `target_domains`). `objects_without_domains` are the latest revisions
+        of active domain-bearing ATT&CK objects that declare no domain.
+      tags:
+        - 'Reports'
+      responses:
+        '200':
+          description: 'Cross-domain relationships and objects without domains.'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cross_domain_relationships:
+                    type: array
+                    items:
+                      type: object
+                  objects_without_domains:
+                    type: array
+                    items:
+                      type: object
+                  summary:
+                    type: object
+                    properties:
+                      cross_domain_relationship_count:
+                        type: integer
+                      objects_without_domains_count:
+                        type: integer
+        '500':
+          description: 'Server error'
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'Unable to get the domain consistency report. Server error.'
+
   /api/reports/parallel-relationships:
     get:
       summary: 'Get parallel relationships'

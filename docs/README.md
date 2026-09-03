@@ -11,6 +11,7 @@ Guides for consumers of the REST API — endpoints, workflows, and terminology.
 
 - [Build Information](user/build-information.md): Inspect the running REST API release and build provenance
 - [Revoke Workflow](user/revoke-workflow.md): How to revoke ATT&CK objects via the API
+- [Data Quality Reports](user/data-quality-reports.md): Missing LinkById, parallel relationship, and domain consistency reports under `/api/reports`
 
 ### Release Tracks
 
