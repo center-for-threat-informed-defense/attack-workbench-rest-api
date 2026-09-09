@@ -415,6 +415,10 @@ const releaseTrackSnapshotDefinition = {
     default: null,
     validate: validateVersion,
   },
+  // Standard releases are new snapshots. This pointer keeps the exact draft
+  // that was released reachable so deleting the release rolls back to that
+  // preserved state instead of attempting to reconstruct it.
+  release_source_modified: { type: Date, default: undefined },
   // Every snapshot references the sealed content manifest that describes its
   // exact member graph. Member-changing writes seal a new manifest; other
   // clones inherit their predecessor's manifest by reference.
@@ -487,6 +491,23 @@ releaseTrackSnapshotSchema.index(
     partialFilterExpression: { version: { $type: 'string' } },
   },
 );
+
+releaseTrackSnapshotSchema.index(
+  { id: 1, release_source_modified: 1 },
+  {
+    name: 'unique_standard_release_source',
+    unique: true,
+    partialFilterExpression: {
+      version: { $type: 'string' },
+      release_source_modified: { $type: 'date' },
+    },
+  },
+);
+
+releaseTrackSnapshotSchema.index({
+  'composition_resolution.component_snapshots.track_id': 1,
+  'composition_resolution.component_snapshots.resolved_snapshot_id': 1,
+});
 
 // A scheduled occurrence may materialize at most one snapshot, including
 // after restart recovery or duplicate delivery by multiple scheduler nodes.

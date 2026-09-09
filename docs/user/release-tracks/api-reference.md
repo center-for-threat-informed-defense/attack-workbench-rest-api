@@ -575,7 +575,10 @@ set.
 
 ### Release Latest Snapshot
 
-Converts the latest draft snapshot to a tagged release. Tags the snapshot in-place (does not create new snapshot). Dynamically sets `x_mitre_version` based on the request body options.
+Creates a tagged snapshot from the latest standard-track draft and retains the
+exact source draft as its rollback point. The tagged snapshot has a new
+`modified` timestamp and records the source in `release_source_modified`.
+Virtual-track releases continue to tag their materialized draft in place.
 
 The request may also include an optional `description` (up to 4000 characters)
 to set the tagged snapshot's notes in the same operation:
@@ -593,9 +596,9 @@ to set the tagged snapshot's notes in the same operation:
   `400 Bad Request` rather than choosing one
 - If both are omitted, defaults to a minor release
 - If this is the first release, the version will be `1.0`
-- Relative increments use the nearest chronologically earlier tagged snapshot.
-  The result, or an explicit version, must also be lower than the nearest later
-  tagged snapshot when retroactively releasing a historical draft.
+- Relative increments use the latest tagged release. Releasing a historical
+  standard draft still creates a new release at the current time, so its
+  version must follow the current release lineage.
 
 ```
 POST /api/release-tracks/:id/snapshots/latest/release
@@ -702,13 +705,29 @@ GET /api/release-tracks/:id/snapshots/2024-01-15T16:20:00.000Z?format=bundle
 
 ### Release/Tag Specific Snapshot
 
-Converts a specific draft snapshot to a tagged release. Tags snapshot in-place (does not create new snapshot).
+Releases a specific draft snapshot. Standard tracks create a new tagged
+snapshot and preserve the selected draft; virtual tracks tag the selected
+materialized draft in place.
 
 ```
 POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
 **Request Body:** Same as [Release Latest Snapshot](#release-latest-snapshot).
+
+### Change a Release Version
+
+```
+PUT /api/release-tracks/:id/snapshots/:modified/release
+```
+
+Administrators may correct the `MAJOR.MINOR` version of a tagged snapshot
+without changing its `modified` identity, bundle ID, publication metadata, or
+content. The replacement must remain strictly between the preceding and
+following release versions. Copied version ledgers, the release catalogue,
+bundle hashes, and the audit trail are updated. Virtual snapshots that already
+resolved this release retain their exact `resolved_snapshot_id`; their stored
+`resolved_version` remains the historical label observed at materialization.
 
 ### Clone Specific Snapshot
 
@@ -809,14 +828,16 @@ DELETE /api/release-tracks/:id/snapshots/:modified?confirm_version=1.1
 ```
 
 Editors may delete the latest untagged draft; the track reverts to the
-preceding snapshot. Administrators may also delete the track's most recent
-release by confirming its version. The release's ledger entry is retracted
-from every remaining snapshot so the version becomes available again, its
-content manifest is discarded when nothing else references it, the registry
-catalogue is reconciled, later drafts are kept, and a `delete_release` audit
-event is recorded. Deleting an older release, or a release followed by a later
-one, returns `409 Conflict`; a missing or wrong confirmation returns `400`;
-a non-administrator receives `403`.
+preceding snapshot. Administrators may roll back the most recent standard
+release by confirming its version. The tagged clone is removed, revealing its
+exact preserved source draft; the release ledger and catalogue are reconciled
+and a `delete_release` audit event is recorded. Rollback returns `409 Conflict`
+if any persisted virtual snapshot resolved the exact release (whether through
+`latest_tagged` or an explicit rule), or if the release predates preserved
+source drafts. Deleting an older release also returns `409`; a missing or wrong
+confirmation returns `400`; a non-administrator receives `403`.
+The newest virtual release retains the existing irreversible deletion
+behavior because virtual materializations are still tagged in place.
 
 ---
 
@@ -1095,6 +1116,7 @@ GET /api/release-tracks/:id/snapshots/latest/release/preview
   "track_id": "release-track--123",
   "type": "standard",
   "source_snapshot_modified": "2024-01-15T16:20:00.000Z",
+  "release_snapshot_modified": "2024-02-01T10:00:00.000Z",
   "version": "1.2",
   "version_bounds": {
     "lower": { "version": "1.1", "modified": "2024-01-01T12:00:00.000Z" },
@@ -1108,9 +1130,12 @@ GET /api/release-tracks/:id/snapshots/latest/release/preview
 }
 ```
 
+`release_snapshot_modified` is the new identity a standard release would
+receive; for a virtual release it equals `source_snapshot_modified`.
 `version_bounds` reports the exclusive adjacent tagged releases used by both
-relative and explicit selection. A historical draft can have both a `lower`
-and an `upper` bound.
+relative and explicit selection. A standard release is created at the current
+time, so it ordinarily has no upper bound; a historical virtual draft can have
+both bounds.
 
 `format=workbench` returns the complete would-be persisted snapshot.
 `format=bundle` returns its publication-ready STIX bundle. Thus “dry run” is
@@ -1277,7 +1302,9 @@ Invalid version format or not greater than previous versions.
 
 **Status:** 409 Conflict
 
-Tagged snapshots are immutable and cannot be deleted.
+Tagged contents are immutable. Ordinary draft deletion cannot delete a tagged
+snapshot; administrators use the guarded newest-release rollback described
+above.
 
 ### NotFoundError
 

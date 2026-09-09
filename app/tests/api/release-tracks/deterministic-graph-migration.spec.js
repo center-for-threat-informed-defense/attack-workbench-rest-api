@@ -73,6 +73,17 @@ describe('Release-track manifest migrations', function () {
     return mongoose.connection.db.collection(trackId);
   }
 
+  async function removeModernReleaseSource(trackId, release) {
+    await trackCollection(trackId).deleteOne({
+      modified: new Date(release.release_source_modified),
+      version: null,
+    });
+    await trackCollection(trackId).updateOne(
+      { modified: new Date(release.modified) },
+      { $unset: { release_source_modified: '' } },
+    );
+  }
+
   before('create and then downgrade representative legacy data', async function () {
     const timestamp = new Date().toISOString();
     technique = await post('/api/techniques', {
@@ -125,8 +136,12 @@ describe('Release-track manifest migrations', function () {
       201,
     );
     legacyTrackId = legacyTrack.id;
-    await releaseExactMembers(app, passportCookie, legacyTrackId, [technique, group]);
+    const legacyRelease = await releaseExactMembers(app, passportCookie, legacyTrackId, [
+      technique,
+      group,
+    ]);
     await post(`/api/release-tracks/${legacyTrackId}/meta`, { description: 'draft' }, 200);
+    await removeModernReleaseSource(legacyTrackId, legacyRelease);
     await trackCollection(legacyTrackId).updateMany(
       {},
       {
@@ -150,6 +165,7 @@ describe('Release-track manifest migrations', function () {
     const sealedRelease = await releaseExactMembers(app, passportCookie, sealedTrackId, [
       technique,
     ]);
+    await removeModernReleaseSource(sealedTrackId, sealedRelease);
     sealedManifestId = sealedRelease.content_manifest_id.replace(
       'release-track-content-manifest--',
       'release-track-graph-manifest--',
@@ -219,7 +235,10 @@ describe('Release-track manifest migrations', function () {
       201,
     );
     orphanTrackId = orphanTrack.id;
-    await releaseExactMembers(app, passportCookie, orphanTrackId, [technique]);
+    const orphanRelease = await releaseExactMembers(app, passportCookie, orphanTrackId, [
+      technique,
+    ]);
+    await removeModernReleaseSource(orphanTrackId, orphanRelease);
     await mongoose.connection.db
       .collection('releaseTrackRegistry')
       .deleteOne({ track_id: orphanTrackId });

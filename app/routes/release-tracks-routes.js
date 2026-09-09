@@ -266,6 +266,11 @@ router
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
     releaseTracksController.releaseByModified,
+  )
+  .put(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.retagRelease,
   );
 
 router

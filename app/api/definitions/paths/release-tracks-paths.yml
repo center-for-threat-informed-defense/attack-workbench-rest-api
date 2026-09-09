@@ -389,18 +389,19 @@ paths:
       summary: 'Release the latest snapshot'
       operationId: 'release-tracks-release-latest'
       description: |
-        Immutably tag the latest snapshot with a version. Standard tracks
-        promote staged entries to members. Any staged `object_modified:
+        Publish the latest snapshot with a version. Standard tracks retain the
+        exact draft and create a new tagged snapshot; virtual tracks tag the
+        materialized draft in place. Standard tracks promote staged entries
+        to members. Any staged `object_modified:
         "latest"` selector is resolved to the object's actual latest
         `stix.modified` timestamp during release planning; tagged members
         always contain exact revision timestamps. Supply either `increment`
         (`major` or `minor`) or an explicit `version` in `MAJOR.MINOR` form,
         but never both. Omitting both defaults to a minor increment. An
         optional `description` is stored as snapshot-local release notes.
-        Relative increments use the nearest earlier tagged snapshot. The
-        selected version must be strictly between the nearest earlier and
-        later tagged snapshots; the later bound is relevant to retroactive
-        releases.
+        Relative increments use the latest tagged release. A historical
+        standard draft is published as a new release at the current time and
+        must follow the current version lineage.
       tags:
         - 'Release Tracks'
       parameters:
@@ -878,6 +879,9 @@ paths:
         optional strict scheduled_materialization object to the resulting
         virtual draft. `description` becomes the new snapshot's local notes;
         it does not replace the release track description.
+        Component release locks are held from resolution through persistence.
+        A concurrent release, rollback, retag, or materialization sharing a
+        component may return 409; retry after the competing operation finishes.
       tags:
         - 'Release Tracks'
       parameters:
@@ -905,11 +909,19 @@ paths:
         '400':
           description: 'Track is not virtual or cannot resolve its composition'
         '409':
-          description: 'A resolved component snapshot references missing primary revisions'
+          description: 'A component release lock is busy or a resolved snapshot references missing primary revisions'
           content:
             application/json:
               schema:
-                $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
+                anyOf:
+                  - $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
+                  - type: object
+                    required: [message, track_id]
+                    properties:
+                      message:
+                        type: string
+                      track_id:
+                        type: string
 
   /api/release-tracks/{id}/virtual/quarantine/promote:
     post:
@@ -966,6 +978,8 @@ paths:
         content_manifest_id together with content_statistics counts for
         primary, relationship, supporting, and LinkById entries. Tagged
         summaries also expose bundle_id and bundle_hashes.
+        Standard releases with a preserved source draft also expose
+        release_source_modified, allowing clients to hide that retained draft.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1175,13 +1189,16 @@ paths:
         (editor or higher); the track reverts to its immediately preceding
         snapshot. Historical drafts have already been pruned.
 
-        An administrator may also delete the track's most recent release by
-        supplying `confirm_version` equal to that snapshot's version. The
-        release's ledger entry is retracted from every remaining snapshot, its
-        content manifest is discarded when nothing else references it, the
-        registry catalogue is reconciled, and a `delete_release` audit event
-        is recorded. A release that is followed by a later release cannot be
-        deleted until the later one is removed.
+        An administrator may also roll back the track's most recent standard
+        release by supplying `confirm_version` equal to that snapshot's
+        version. The tagged clone is deleted and its exact preserved source
+        draft becomes available again. The ledger and registry catalogue are
+        reconciled and a `delete_release` audit event is recorded. Rollback is
+        blocked if any persisted virtual snapshot resolved the exact release,
+        if it is followed by a later release, or if it predates preserved
+        source drafts. Virtual releases retain the existing irreversible
+        newest-release deletion behavior because virtual tagging remains
+        in-place.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1210,7 +1227,7 @@ paths:
         '403':
           description: 'Deleting a release requires an administrator'
         '409':
-          description: 'The release is not the most recent one, or the draft is not the latest snapshot'
+          description: 'The release cannot be rolled back, a virtual snapshot depends on it, or the draft is not latest'
         '404':
           description: 'Snapshot not found'
 
@@ -1349,17 +1366,17 @@ paths:
       summary: 'Release a specific snapshot'
       operationId: 'release-tracks-release-by-modified'
       description: |
-        Immutably tag the snapshot selected by the modified timestamp using
-        the same version-selection contract as the latest release operation:
+        Publish the snapshot selected by the modified timestamp using the same
+        version-selection contract as the latest release operation:
         supply `increment` or `version`, never both; omit both for a minor
         increment. Virtual drafts must have composition_resolution from a
         successful materialization. For standard tracks, dynamic staged
         references are resolved to exact object revisions when this release
-        request is handled, including when the selected snapshot is historical.
-        An optional `description` is stored as snapshot-local release notes.
-        Relative increments use the nearest earlier tagged snapshot, and the
-        selected version must be strictly below the nearest later tagged
-        snapshot when one exists.
+        request is handled. Standard tracks retain the selected source draft
+        and create a tagged clone at the current time, including when the
+        selected draft is historical. An optional `description` is stored as
+        snapshot-local release notes. Relative increments use the latest
+        tagged release.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1398,6 +1415,62 @@ paths:
             application/json:
               schema:
                 $ref: '../components/release-tracks.yml#/components/schemas/release-track-reconciliation-error'
+    put:
+      summary: 'Change a release version'
+      operationId: 'release-tracks-release-retag'
+      description: |
+        Administratively replace the semantic version assigned to a tagged
+        snapshot without changing its identity or contents. The new version
+        must remain strictly between the chronologically adjacent releases.
+        Stored bundle hashes and the release catalogue are regenerated.
+        The STIX 2.1 digest changes; STIX 2.0 omits the collection object and
+        its digest is unchanged by a version-only correction. Hashes are
+        prepared before writing and published atomically with the version.
+        Retry the same version after a failure to finish history/catalogue
+        reconciliation; a same-version request repairs derived state.
+        Existing virtual snapshot provenance remains an immutable record of
+        the version that was resolved at materialization time.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - version
+              additionalProperties: false
+              properties:
+                version:
+                  type: string
+                  pattern: '^\d+\.\d+$'
+      responses:
+        '200':
+          description: 'Release version changed successfully'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
+        '400':
+          description: 'Invalid version body or release-lineage violation'
+        '403':
+          description: 'Changing a release version requires an administrator'
+        '404':
+          description: 'Snapshot not found'
+        '409':
+          description: 'Snapshot is a draft or another release operation is in progress'
 
   /api/release-tracks/{id}/snapshots/{modified}/release/preview:
     get:

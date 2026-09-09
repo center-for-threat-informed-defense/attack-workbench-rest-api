@@ -41,6 +41,7 @@ const {
   updateMetadataBodySchema,
   updateSnapshotDescriptionBodySchema,
   releaseBodySchema,
+  retagReleaseBodySchema,
   releaseVersionSelectionSchema,
   cloneBodySchema,
   addCandidatesBodySchema,
@@ -626,6 +627,33 @@ exports.releaseByModified = async function releaseByModified(req, res, next) {
     return res.status(200).send(result);
   } catch (err) {
     logger.error('Failed to release snapshot: ' + err);
+    return next(err);
+  }
+};
+
+/** PUT /api/release-tracks/:id/snapshots/:modified/release */
+exports.retagRelease = async function retagRelease(req, res, next) {
+  try {
+    const bodyResult = retagReleaseBodySchema.safeParse(req.body || {});
+    if (!bodyResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid release version update',
+          details: bodyResult.error.errors,
+        }),
+      );
+    }
+
+    const result = await releaseTracksService.retagRelease(
+      req.params.id,
+      req.params.modified,
+      bodyResult.data.version,
+      destructiveActor(req),
+    );
+    logger.debug(`Success: Changed release version for snapshot ${req.params.modified}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to change release version: ' + err);
     return next(err);
   }
 };

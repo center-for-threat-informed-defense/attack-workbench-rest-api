@@ -43,21 +43,19 @@ length. The dynamic snapshot remains authoritative for its contents.
 
 ### Reconciliation
 
-Tagging is already a two-document workflow: it mutates the snapshot in its
-dynamic collection, then updates the registry. After a successful tag, the
+Tagging is already a two-document workflow: it inserts or updates the release
+in its dynamic collection, then updates the registry. After a successful tag, the
 service reads the track's tagged snapshot metadata and replaces the registry
-projection. Reconciliation rather than `$push` makes the operation idempotent,
-repairs missing entries, and handles retroactive tags.
+projection. Reconciliation rather than `$push` makes the operation idempotent
+and repairs missing entries.
 
 Existing deployments receive the same projection through an idempotent
-database migration. Tagged snapshots are immutable and cannot be deleted;
-deleting a whole track removes both its dynamic collection and registry
-document. Draft-snapshot squashing is orthogonal because it only deletes
-snapshots with `version == null`.
+database migration. Tagged snapshot content is immutable. The newest standard
+release can be rolled back only when its preserved source draft exists and no
+virtual snapshot resolved it. Draft squashing excludes preserved sources.
 
-Version calculation and monotonicity validation must use track-wide tagged
-release metadata. An older draft's embedded `version_history` can predate
-newer tags and is not a safe global ledger for retroactive tagging.
+Version calculation and monotonicity validation use track-wide tagged release
+metadata rather than a draft's copied ledger.
 
 ## Query algorithm
 

@@ -99,11 +99,14 @@ describe('Release-track snapshot descriptions', function () {
     });
 
     expect(released).toMatchObject({
-      modified: track.modified,
       version: '1.0',
       description: 'Stable track description',
       snapshot_description: 'What changed in the first publication.',
     });
+    expect(released.modified).not.toBe(track.modified);
+    expect(new Date(released.release_source_modified).toISOString()).toBe(
+      new Date(track.modified).toISOString(),
+    );
     const originalHashes = released.bundle_hashes;
 
     const conflict = await put(

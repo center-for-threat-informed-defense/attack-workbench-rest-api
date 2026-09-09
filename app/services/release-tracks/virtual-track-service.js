@@ -488,41 +488,59 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
     });
   }
 
-  // Validate component tracks
-  const registryMap = await validateComponentTracks(composition.component_tracks);
-
-  // Resolve composition
-  const { members, quarantined, compositionResolution } = await resolveComposition(
-    source,
-    registryMap,
-  );
-  await primaryRevisionService.assertStoredEntries([...members, ...quarantined]);
-
-  // Build overrides for the new snapshot
-  const overrides = {
-    members,
-    quarantine: quarantined,
-    composition_resolution: compositionResolution,
-    scheduled_materialization: options.scheduledMaterialization,
-    snapshot_description: options.description,
-  };
-
-  let snapshot;
-  try {
-    snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides);
-  } catch (err) {
-    if (!scheduledFor || !(err instanceof DuplicateIdError)) throw err;
-
-    const existing = await dynamicRepo.getSnapshotByScheduledMaterialization(trackId, scheduledFor);
-    if (!existing) throw err;
-    snapshot = existing;
+  // Hold component release locks from resolution through persistence. Rollback
+  // cannot pass its dependency scan while a new dependent is being created.
+  // Sorted acquisition and fail-fast conflicts also release partial lock sets.
+  const componentIds = [
+    ...new Set(composition.component_tracks.map((entry) => entry.track_id)),
+  ].sort();
+  const { withReleaseLock } = require('./versioning-service');
+  async function withComponentLocks(index) {
+    if (index === componentIds.length) return materialize();
+    return withReleaseLock(componentIds[index], () => withComponentLocks(index + 1));
   }
+  return withComponentLocks(0);
 
-  logger.verbose(
-    `VirtualTrackService: Created virtual snapshot for track "${trackId}" ` +
-      `(${members.length} members, ${quarantined.length} quarantined)`,
-  );
-  return snapshot;
+  async function materialize() {
+    // Validate component tracks
+    const registryMap = await validateComponentTracks(composition.component_tracks);
+
+    // Resolve composition
+    const { members, quarantined, compositionResolution } = await resolveComposition(
+      source,
+      registryMap,
+    );
+    await primaryRevisionService.assertStoredEntries([...members, ...quarantined]);
+
+    // Build overrides for the new snapshot
+    const overrides = {
+      members,
+      quarantine: quarantined,
+      composition_resolution: compositionResolution,
+      scheduled_materialization: options.scheduledMaterialization,
+      snapshot_description: options.description,
+    };
+
+    let snapshot;
+    try {
+      snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides);
+    } catch (err) {
+      if (!scheduledFor || !(err instanceof DuplicateIdError)) throw err;
+
+      const existing = await dynamicRepo.getSnapshotByScheduledMaterialization(
+        trackId,
+        scheduledFor,
+      );
+      if (!existing) throw err;
+      snapshot = existing;
+    }
+
+    logger.verbose(
+      `VirtualTrackService: Created virtual snapshot for track "${trackId}" ` +
+        `(${members.length} members, ${quarantined.length} quarantined)`,
+    );
+    return snapshot;
+  }
 };
 
 /**

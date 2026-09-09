@@ -27,6 +27,13 @@ components:
           nullable: true
           description: 'Semantic version (e.g., "1.0", "2.1") if tagged, null for draft snapshots'
           example: '1.0'
+        release_source_modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: |
+            Standard releases only: the exact preserved draft snapshot from
+            which this release snapshot was created.
         content_manifest_id:
           type: string
           readOnly: true
@@ -206,6 +213,11 @@ components:
           type: string
           nullable: true
           description: 'Tagged version, or null for an untagged draft'
+        release_source_modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: 'Standard release source draft timestamp'
         content_manifest_id:
           type: string
           readOnly: true

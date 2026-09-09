@@ -126,6 +126,21 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getReleaseBySourceModified(trackId, sourceModified) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOne({
+        id: trackId,
+        version: { $type: 'string' },
+        release_source_modified: sourceModified,
+      })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async getSnapshotByScheduledMaterialization(trackId, scheduledFor) {
     try {
       const Model = this._getModel(trackId);
@@ -291,6 +306,7 @@ class ReleaseTrackDynamicRepository {
           content_manifest_id: 1,
           bundle_id: 1,
           bundle_hashes: 1,
+          release_source_modified: 1,
           snapshot_description: 1,
           name: 1,
           description: 1,
@@ -329,7 +345,9 @@ class ReleaseTrackDynamicRepository {
           throw new DuplicateReleaseVersionError(trackId, snapshotData.version, { cause: err });
         }
         throw new DuplicateIdError({
-          details: `Snapshot with modified '${snapshotData.modified}' already exists for track '${trackId}'.`,
+          details:
+            `Snapshot uniqueness conflict for track '${trackId}' at modified ` +
+            `'${new Date(snapshotData.modified).toISOString()}': ${JSON.stringify(err.keyValue)}`,
           cause: err,
         });
       }
@@ -375,6 +393,70 @@ class ReleaseTrackDynamicRepository {
       if (err.name === 'MongoServerError' && err.code === 11000) {
         throw new DuplicateReleaseVersionError(trackId, versionData.version, { cause: err });
       }
+      throw new DatabaseError(err);
+    }
+  }
+
+  async retagSnapshotInPlace(trackId, modified, currentVersion, nextVersion, artifacts) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOneAndUpdate(
+        {
+          id: trackId,
+          modified,
+          version: currentVersion,
+          content_manifest_id: artifacts.bundle_hashes.manifest_id,
+        },
+        {
+          $set: {
+            version: nextVersion,
+            'version_history.$[entry].version': nextVersion,
+            ...artifacts,
+          },
+        },
+        {
+          arrayFilters: [
+            {
+              'entry.version': currentVersion,
+              'entry.snapshot_id': new Date(modified),
+            },
+          ],
+          new: true,
+          runValidators: true,
+          lean: true,
+        },
+      ).exec();
+    } catch (err) {
+      if (err.name === 'MongoServerError' && err.code === 11000) {
+        throw new DuplicateReleaseVersionError(trackId, nextVersion, { cause: err });
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
+  async replaceVersionHistoryVersion(trackId, snapshotModified, nextVersion) {
+    try {
+      const Model = this._getModel(trackId);
+      const result = await Model.updateMany(
+        {
+          id: trackId,
+          modified: { $ne: snapshotModified },
+          version_history: {
+            $elemMatch: { snapshot_id: snapshotModified },
+          },
+        },
+        { $set: { 'version_history.$[entry].version': nextVersion } },
+        {
+          arrayFilters: [
+            {
+              'entry.snapshot_id': new Date(snapshotModified),
+            },
+          ],
+          runValidators: true,
+        },
+      ).exec();
+      return result.modifiedCount;
+    } catch (err) {
       throw new DatabaseError(err);
     }
   }
@@ -478,7 +560,16 @@ class ReleaseTrackDynamicRepository {
   async deleteOlderDrafts(trackId, modified) {
     try {
       const Model = this._getModel(trackId);
-      const query = { id: trackId, version: null, modified: { $lt: modified } };
+      const retainedDrafts = await Model.distinct('release_source_modified', {
+        id: trackId,
+        version: { $type: 'string' },
+        release_source_modified: { $type: 'date' },
+      }).exec();
+      const query = {
+        id: trackId,
+        version: null,
+        modified: { $lt: modified, ...(retainedDrafts.length ? { $nin: retainedDrafts } : {}) },
+      };
       const snapshots = await Model.find(query)
         .select('modified content_manifest_id')
         .lean()
@@ -496,6 +587,29 @@ class ReleaseTrackDynamicRepository {
     try {
       const Model = this._getModel(trackId);
       return await Model.findOneAndDelete({ id: trackId, modified }).lean().exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async findSnapshotsResolvingComponent(trackId, componentTrackId, componentSnapshotModified) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.find(
+        {
+          id: trackId,
+          'composition_resolution.component_snapshots': {
+            $elemMatch: {
+              track_id: componentTrackId,
+              resolved_snapshot_id: new Date(componentSnapshotModified),
+            },
+          },
+        },
+        { id: 1, name: 1, modified: 1, version: 1 },
+      )
+        .sort({ modified: 1 })
+        .lean()
+        .exec();
     } catch (err) {
       throw new DatabaseError(err);
     }

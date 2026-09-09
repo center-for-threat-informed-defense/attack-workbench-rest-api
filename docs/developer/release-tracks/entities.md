@@ -7,11 +7,11 @@ This document tracks new database schemas, interfaces, etc.; as well as changes 
 | Collection                           | Purpose                                                                                                                                                                                                           | Written by                                                                                             | Growth and retention                                                             |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | `releaseTrackRegistry`               | One document per track: name, type, denormalized counters, the tagged-release catalogue (`tagged_releases`), the release lock, and virtual schedules. The index that maps a track to its own snapshot collection. | Track create/delete, every snapshot write (counters), release commit and release deletion (catalogue). | One document per track.                                                          |
-| `release-track--<uuid>`              | The track's snapshots: at most one rolling draft plus every tagged release for a standard track; every materialized draft plus releases for a virtual track.                                                      | Snapshot service and release commit.                                                                   | Bounded by releases plus one draft (standard) or by materializations (virtual).  |
+| `release-track--<uuid>`              | The track's snapshots: one active rolling draft, a preserved source draft per tagged standard release, and every tagged release; every materialized draft plus releases for a virtual track.                     | Snapshot service and release commit.                                                                   | Standard tracks grow by two snapshots per release plus one active draft; virtual tracks by materializations. |
 | `releaseTrackContentManifests`       | The sealed bill of materials each snapshot references (`content_manifest_id`). Several snapshots share one manifest when their member sets are identical.                                                         | Sealed whenever members are written; discarded when no snapshot references it.                         | Bounded by member-changing writes, not by snapshot count.                        |
 | `releaseTrackContentManifestEntries` | One exact-revision pointer per object a manifest emits or depends on. The `(object_ref, object_modified)` index is what protects referenced revisions from deletion.                                              | With its manifest.                                                                                     | Roughly members + relationships + a few supporting objects per manifest.         |
 | `releaseTrackReconciliations`        | Outstanding backref reconciliation work only: a record is created before the `workspace.release_tracks` listeners run and deleted when they succeed, so anything present is pending or failed and needs repair.   | Every snapshot write.                                                                                  | Normally empty.                                                                  |
-| `releaseTrackAuditEvents`            | Audit trail for administrator-only destructive operations: `delete_track` and `delete_release`, with actor, confirmation, and outcome.                                                                            | Those two operations.                                                                                  | Empty until an administrator deletes a track or release.                         |
+| `releaseTrackAuditEvents`            | Audit trail for administrator-only track deletion, release rollback, and release retagging (`delete_track`, `delete_release`, `retag_release`).                                                                    | Those operations.                                                                                      | Empty until an administrator performs one of those operations.                   |
 | `virtualTrackScheduleOccurrences`    | Durable claims for scheduled virtual materialization (cron or dated schedules) so restarts and duplicate delivery execute each occurrence once.                                                                   | The scheduler.                                                                                         | One record per scheduled occurrence; empty when no virtual track has a schedule. |
 
 Removed by the sealed-manifest work: the former `releaseTrackGraphManifests`
@@ -262,6 +262,12 @@ does not change `modified`, tier contents, or the content manifest; once the
 snapshot is released it is immutable. Rolling edits to the same draft preserve
 its description; the first draft of a new release cycle starts blank.
 
+For a tagged standard snapshot, `release_source_modified` identifies the exact
+untagged draft from which it was created. The pair is unique within the track.
+Draft pruning excludes these source snapshots, and the UI suppresses them
+while the release exists. Removing the newest release therefore exposes the
+unchanged source draft without reconstructing state from a ledger or manifest.
+
 ### Version History
 
 The `version_history` array tracks all tagged releases in reverse chronological order (newest first):
@@ -287,6 +293,12 @@ This provides:
 - Complete audit trail of tagged releases
 - Attribution for each tagged release
 - Chronological release history
+
+Correcting a release version updates the matching entry identified by
+`snapshot_id`, including copies carried forward into later snapshots. Exact
+snapshot identity, publication metadata, content, and bundle ID do not change;
+the bundle hashes are regenerated because the projected collection version
+does change.
 
 ### Object (SDO/SRO/SMO) Document Schema
 

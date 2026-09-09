@@ -1,5 +1,44 @@
 # Release Track TODOs
 
+## Preserve pre-release drafts and protect virtual dependencies
+
+- [x] Change standard-track release commit from in-place tagging to creation
+      of a new tagged snapshot while retaining the exact source draft.
+- [x] Prevent rolling-draft cleanup from pruning drafts retained as the source
+      of a tagged standard release.
+- [x] Block release deletion when any persisted virtual snapshot resolved the
+      exact standard release snapshot, for implicit or explicit composition.
+- [x] Add a post-hoc release-version update that preserves the snapshot and
+      validates the replacement against adjacent release versions.
+- [x] Reconcile release catalogues, copied version ledgers, bundle hashes,
+      audit records, and current-snapshot backrefs for both operations.
+- [x] Update OpenAPI, user/developer/operator docs, and Bruno requests.
+- [x] Add ADM-valid API regressions and run focused specs, then full `npm test`.
+- [x] Update the frontend release controls, wording, connector, and tests.
+- [x] Propose conventional commit messages without committing.
+
+## Rollback / retag review follow-up
+
+- [x] Coordinate component release locks with virtual materialization.
+- [x] Publish retag hashes atomically with the version and repair derived state on retry.
+- [x] Expose preserved source pointers in snapshot history.
+- [x] Validate deletion confirmation and capture audit identity under the release lock.
+- [x] Add concurrency, failure-recovery, history, and exact-download hash regressions.
+- [x] Update OpenAPI, user/developer docs, and Bruno smoke requests.
+- [x] Run focused specs, full npm test, and lint; propose a commit without committing.
+
+Verification: focused backend group 32 passing, final destructive/retag spec
+16 passing; full `npm test` passes (OpenAPI 2, config 22, API 1033,
+middleware 29, scheduler 10). Backend lint and frontend page/connector tests
+(90) pass. An initial unrelated technique-conversion 404 passed in isolation
+(24) and on the final full run; no unrelated source changes were made.
+
+Proposed commit: `fix(release-tracks): make rollback and retag concurrency-safe`
+
+Coordinate materialization with component release locks, publish retag hashes
+atomically, repair derived state on retry, expose preserved draft pointers,
+and validate destructive confirmation under the audit lock.
+
 ## Sealed snapshot content manifests (Problem 1)
 
 Design: [release-tracks/sealed-content-manifests.md](release-tracks/sealed-content-manifests.md).

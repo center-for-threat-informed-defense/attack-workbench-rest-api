@@ -62,6 +62,21 @@ function normalizeTierSummary(summary) {
   };
 }
 
+async function mapWithConcurrency(items, concurrency, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await mapper(items[index], index);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
+  return results;
+}
+
 /**
  * Recompute and persist denormalized registry counters from actual snapshot data.
  *
@@ -112,6 +127,24 @@ async function emitContentsChanged(trackId, snapshot) {
   await reconciliationService.reconcileContentsChanged(trackId, snapshot);
 }
 exports.emitContentsChanged = emitContentsChanged;
+
+async function findVirtualSnapshotDependents(componentTrackId, componentSnapshotModified) {
+  const virtualTracks = (await registryRepo.findAll({ type: 'virtual' })).data;
+  const matches = await mapWithConcurrency(virtualTracks, 12, async (track) =>
+    dynamicRepo.findSnapshotsResolvingComponent(
+      track.track_id,
+      componentTrackId,
+      componentSnapshotModified,
+    ),
+  );
+  return matches.flat().map((snapshot) => ({
+    track_id: snapshot.id,
+    track_name: snapshot.name,
+    snapshot_modified: snapshot.modified,
+    version: snapshot.version ?? null,
+  }));
+}
+exports.findVirtualSnapshotDependents = findVirtualSnapshotDependents;
 
 /**
  * Seal a manifest for a snapshot that is about to be saved, then persist the
@@ -289,6 +322,7 @@ exports.listSnapshots = async function listSnapshots(trackId, options) {
         content_manifest_id: snapshot.content_manifest_id,
         bundle_id: snapshot.bundle_id,
         bundle_hashes: snapshot.bundle_hashes,
+        release_source_modified: snapshot.release_source_modified,
         snapshot_description: snapshot.snapshot_description,
         content_statistics: snapshot.content_manifest_id
           ? statisticsByManifestId.get(snapshot.content_manifest_id)
@@ -602,6 +636,18 @@ exports.updateSnapshotDescription = async function updateSnapshotDescription(
       version: snapshot.version,
     });
   }
+  const sourceRelease = await dynamicRepo.getReleaseBySourceModified(trackId, snapshot.modified);
+  if (sourceRelease) {
+    throw new ReleaseConflictError(
+      'Snapshot notes cannot change while the draft is retained as a release rollback point.',
+      {
+        track_id: trackId,
+        snapshot_modified: new Date(snapshot.modified).toISOString(),
+        release_version: sourceRelease.version,
+        release_snapshot_modified: new Date(sourceRelease.modified).toISOString(),
+      },
+    );
+  }
 
   const update = description
     ? { $set: { snapshot_description: description } }
@@ -829,6 +875,31 @@ exports.deleteRelease = async function deleteRelease(trackId, modified) {
         latest_version: latestTagged?.version ?? null,
       },
     );
+  }
+
+  if (snapshot.type === 'standard') {
+    if (!snapshot.release_source_modified) {
+      throw new ReleaseConflictError(
+        'This release predates preserved source drafts and cannot be rolled back.',
+        {
+          track_id: trackId,
+          snapshot_modified: new Date(snapshot.modified).toISOString(),
+          version: snapshot.version,
+        },
+      );
+    }
+    const dependents = await findVirtualSnapshotDependents(trackId, snapshot.modified);
+    if (dependents.length > 0) {
+      throw new ReleaseConflictError(
+        'This release cannot be deleted because virtual track snapshots depend on it.',
+        {
+          track_id: trackId,
+          snapshot_modified: new Date(snapshot.modified).toISOString(),
+          version: snapshot.version,
+          dependent_snapshots: dependents,
+        },
+      );
+    }
   }
 
   await dynamicRepo.deleteSnapshot(trackId, snapshot.modified);

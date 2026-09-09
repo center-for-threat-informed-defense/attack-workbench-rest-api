@@ -3,6 +3,13 @@
 const request = require('supertest');
 const { expect } = require('expect');
 const sinon = require('sinon');
+const crypto = require('node:crypto');
+const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
+const registryRepo = require('../../../repository/release-tracks/release-track-registry.repository');
+const snapshotService = require('../../../services/release-tracks/snapshot-service');
+const versioningService = require('../../../services/release-tracks/versioning-service');
+const bundleHashService = require('../../../services/release-tracks/bundle-hash-service');
+const releaseHistoryService = require('../../../services/release-tracks/release-history-service');
 
 const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
@@ -135,7 +142,21 @@ describe('Release-track destructive authorization and audit', function () {
     const first = await releaseExactMembers(app, passportCookie, track.id, [technique], {
       version: '1.0',
     });
-    await post(`/api/release-tracks/${track.id}/meta`, { description: 'next' }, 200);
+    const firstSource = await api(
+      'get',
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(first.release_source_modified)}`,
+      undefined,
+      200,
+    );
+    expect(firstSource.body).toMatchObject({
+      version: null,
+      staged: [expect.objectContaining({ object_ref: technique.stix.id })],
+    });
+    const secondDraft = await post(
+      `/api/release-tracks/${track.id}/meta`,
+      { description: 'next' },
+      200,
+    );
     const second = await post(
       `/api/release-tracks/${track.id}/snapshots/latest/release`,
       { version: '1.1' },
@@ -172,7 +193,9 @@ describe('Release-track destructive authorization and audit', function () {
       undefined,
       200,
     );
-    expect(remaining.body.version).toBe('1.0');
+    expect(remaining.body.modified).toBe(secondDraft.modified);
+    expect(remaining.body.version).toBeNull();
+    expect(remaining.body.description).toBe('next');
     expect(remaining.body.version_history.map((entry) => entry.version)).toEqual(['1.0']);
     expect(
       await ReleaseTrackContentManifest.countDocuments({
@@ -206,6 +229,405 @@ describe('Release-track destructive authorization and audit', function () {
       200,
     );
     expect(again.version).toBe('1.1');
+  });
+
+  it('blocks deletion when implicit or explicit virtual snapshots resolved the release', async function () {
+    await setRole('admin');
+    const component = await post(
+      '/api/release-tracks/new',
+      { name: 'Protected component release', type: 'standard' },
+      201,
+    );
+    const released = await post(
+      `/api/release-tracks/${component.id}/snapshots/latest/release`,
+      { version: '1.0' },
+      200,
+    );
+
+    const virtualSnapshots = [];
+    for (const [name, rule] of [
+      ['Implicit dependent', { resolution_strategy: 'latest_tagged' }],
+      ['Explicit dependent', { resolution_strategy: 'specific_version', version: '1.0' }],
+    ]) {
+      const virtual = await post(
+        '/api/release-tracks/new',
+        {
+          name,
+          type: 'virtual',
+          composition: {
+            component_tracks: [{ track_id: component.id, priority: 1, ...rule }],
+          },
+        },
+        201,
+      );
+      virtualSnapshots.push({
+        trackId: virtual.id,
+        snapshot: await post(`/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 201),
+      });
+    }
+
+    const response = await api(
+      'delete',
+      `/api/release-tracks/${component.id}/snapshots/${encodeURIComponent(released.modified)}`,
+      undefined,
+      409,
+      { confirm_version: '1.0' },
+    );
+    expect(response.body.dependent_snapshots).toHaveLength(2);
+    expect(response.body.dependent_snapshots.map((item) => item.track_name).sort()).toEqual([
+      'Explicit dependent',
+      'Implicit dependent',
+    ]);
+    await api(
+      'get',
+      `/api/release-tracks/${component.id}/snapshots/${encodeURIComponent(released.modified)}`,
+      undefined,
+      200,
+    );
+
+    const retagged = await api(
+      'put',
+      `/api/release-tracks/${component.id}/snapshots/${encodeURIComponent(released.modified)}/release`,
+      { version: '1.1' },
+      200,
+    );
+    expect(retagged.body.version).toBe('1.1');
+    for (const virtual of virtualSnapshots) {
+      const persisted = await api(
+        'get',
+        `/api/release-tracks/${virtual.trackId}/snapshots/${encodeURIComponent(virtual.snapshot.modified)}`,
+        undefined,
+        200,
+      );
+      expect(persisted.body.composition_resolution.component_snapshots[0]).toMatchObject({
+        resolved_version: '1.0',
+        resolved_snapshot_id: released.modified,
+      });
+    }
+  });
+
+  it('lets administrators retag a release within its semantic-version bounds', async function () {
+    await setRole('admin');
+    const track = await post(
+      '/api/release-tracks/new',
+      { name: 'Retag release track', type: 'standard' },
+      201,
+    );
+    const first = await post(
+      `/api/release-tracks/${track.id}/snapshots/latest/release`,
+      { version: '1.0' },
+      200,
+    );
+    await post(`/api/release-tracks/${track.id}/meta`, { description: 'second' }, 200);
+    const second = await post(
+      `/api/release-tracks/${track.id}/snapshots/latest/release`,
+      { version: '2.0' },
+      200,
+    );
+
+    await setRole('editor');
+    await api(
+      'put',
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(second.modified)}/release`,
+      { version: '1.1' },
+      403,
+    );
+
+    await setRole('admin');
+    const retagged = await api(
+      'put',
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(second.modified)}/release`,
+      { version: '1.1' },
+      200,
+    );
+    expect(retagged.body).toMatchObject({
+      modified: second.modified,
+      version: '1.1',
+      bundle_id: second.bundle_id,
+    });
+    expect(retagged.body.bundle_hashes.stix_2_0).toBe(second.bundle_hashes.stix_2_0);
+    expect(retagged.body.bundle_hashes.stix_2_1).not.toBe(second.bundle_hashes.stix_2_1);
+    expect(retagged.body.version_history.map((entry) => entry.version)).toEqual(['1.0', '1.1']);
+
+    const history = await api('get', `/api/release-tracks/${track.id}/snapshots`, undefined, 200);
+    const summary = history.body.data.find((entry) => entry.modified === second.modified);
+    expect(summary.release_source_modified).toBe(second.release_source_modified);
+    expect(summary.bundle_hashes).toEqual(retagged.body.bundle_hashes);
+    for (const stixVersion of ['2.0', '2.1']) {
+      const download = await api(
+        'get',
+        `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(second.modified)}`,
+        undefined,
+        200,
+        { format: 'bundle', stixVersion },
+      );
+      const digest = crypto
+        .createHash('sha256')
+        .update(JSON.stringify(download.body, null, 4))
+        .digest('hex');
+      expect(digest).toBe(summary.bundle_hashes[stixVersion === '2.0' ? 'stix_2_0' : 'stix_2_1']);
+    }
+
+    await api(
+      'put',
+      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(first.modified)}/release`,
+      { version: '1.2' },
+      400,
+    );
+
+    const event = await ReleaseTrackAuditEvent.findOne({
+      action: 'retag_release',
+      status: 'completed',
+    })
+      .lean()
+      .exec();
+    expect(event).toMatchObject({
+      track_id: track.id,
+      confirmation: '2.0',
+      request: { previous_version: '2.0', next_version: '1.1' },
+    });
+  });
+
+  for (const [label, target, method, versionPublished] of [
+    ['hash generation', bundleHashService, 'generateBundleHashes', false],
+    ['copied history', dynamicRepo, 'replaceVersionHistoryVersion', true],
+    ['release catalogue', releaseHistoryService, 'reconcileTaggedReleases', true],
+    ['registry counters', snapshotService, 'syncRegistryCounters', true],
+  ]) {
+    it(`recovers a retag interrupted during ${label}`, async function () {
+      await setRole('admin');
+      const track = await post('/api/release-tracks/new', { name: label, type: 'standard' }, 201);
+      const base = `/api/release-tracks/${track.id}`;
+      const released = await post(`${base}/snapshots/latest/release`, { version: '1.0' });
+      const draft = await post(`${base}/meta`, { description: 'Copied release history' });
+      const path = `${base}/snapshots/${encodeURIComponent(released.modified)}`;
+      const failure = sinon.stub(target, method).rejects(new Error(`Injected ${label} failure`));
+      await api('put', `${path}/release`, { version: '1.1' }, 500);
+      failure.restore();
+      const persisted = await dynamicRepo.getSnapshotByModified(track.id, released.modified);
+      expect(persisted.version).toBe(versionPublished ? '1.1' : '1.0');
+      expect(persisted.bundle_hashes.stix_2_0).toBe(released.bundle_hashes.stix_2_0);
+      if (!versionPublished) expect(persisted.bundle_hashes).toEqual(released.bundle_hashes);
+      const retried = await api('put', `${path}/release`, { version: '1.1' }, 200);
+      expect(retried.body.bundle_hashes.stix_2_1).not.toBe(released.bundle_hashes.stix_2_1);
+      const copied = await dynamicRepo.getSnapshotByModified(track.id, draft.modified);
+      expect(copied.version_history.map((entry) => entry.version)).toEqual(['1.1']);
+      const registry = await registryRepo.findByTrackId(track.id);
+      expect(registry.tagged_releases.map((entry) => entry.version)).toEqual(['1.1']);
+      const events = await ReleaseTrackAuditEvent.find({
+        track_id: track.id,
+        action: 'retag_release',
+      }).lean();
+      expect(events.map((event) => event.status).sort()).toEqual(['completed', 'failed']);
+    });
+  }
+
+  for (const strategy of ['latest_tagged', 'specific_version']) {
+    it(`holds component locks until ${strategy} materialization is persisted`, async function () {
+      await setRole('admin');
+      const component = await post(
+        '/api/release-tracks/new',
+        { name: strategy.replaceAll('_', ' '), type: 'standard' },
+        201,
+      );
+      const base = `/api/release-tracks/${component.id}`;
+      const released = await post(`${base}/snapshots/latest/release`, { version: '1.0' });
+      const virtual = await post(
+        '/api/release-tracks/new',
+        {
+          name: 'Concurrent dependent',
+          type: 'virtual',
+          composition: {
+            component_tracks: [
+              {
+                track_id: component.id,
+                priority: 1,
+                resolution_strategy: strategy,
+                ...(strategy === 'specific_version' ? { version: '1.0' } : {}),
+              },
+            ],
+          },
+        },
+        201,
+      );
+      const path = `${base}/snapshots/${encodeURIComponent(released.modified)}`;
+      const clone = snapshotService.cloneSnapshot;
+      const stub = sinon.stub(snapshotService, 'cloneSnapshot').callsFake(async (...args) => {
+        await api('delete', path, undefined, 409, { confirm_version: '1.0' });
+        return clone(...args);
+      });
+      await post(`/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 201);
+      expect(stub.calledOnce).toBe(true);
+      stub.restore();
+      const blocked = await api('delete', path, undefined, 409, { confirm_version: '1.0' });
+      expect(blocked.body.dependent_snapshots).toHaveLength(1);
+      expect((await registryRepo.findByTrackId(component.id)).release_lock).toBeUndefined();
+    });
+  }
+
+  it('repairs missing hashes on a same-version retry and holds the lock during audit capture', async function () {
+    await setRole('admin');
+    const track = await post(
+      '/api/release-tracks/new',
+      { name: 'Retag repair', type: 'standard' },
+      201,
+    );
+    const base = `/api/release-tracks/${track.id}`;
+    const released = await post(`${base}/snapshots/latest/release`, { version: '1.0' });
+    const path = `${base}/snapshots/${encodeURIComponent(released.modified)}`;
+    await dynamicRepo.updateSnapshot(track.id, released.modified, {
+      $unset: { bundle_hashes: '' },
+    });
+    const create = auditRepository.create;
+    const stub = sinon.stub(auditRepository, 'create').callsFake(async (...args) => {
+      await api('put', `${path}/release`, { version: '1.1' }, 409);
+      return create.apply(auditRepository, args);
+    });
+    const repaired = await api('put', `${path}/release`, { version: '1.0' }, 200);
+    expect(stub.calledOnce).toBe(true);
+    expect(repaired.body.version).toBe('1.0');
+    expect(repaired.body.bundle_hashes).toEqual(released.bundle_hashes);
+    const event = await ReleaseTrackAuditEvent.findOne({
+      track_id: track.id,
+      action: 'retag_release',
+    }).lean();
+    expect(event.request.previous_version).toBe('1.0');
+    expect(event.request.next_version).toBe('1.0');
+  });
+
+  it('does not publish retag hashes if the content manifest changed during export', async function () {
+    await setRole('admin');
+    const track = await post(
+      '/api/release-tracks/new',
+      { name: 'Manifest race', type: 'standard' },
+      201,
+    );
+    const base = `/api/release-tracks/${track.id}`;
+    const released = await post(`${base}/snapshots/latest/release`, { version: '1.0' });
+    const generate = bundleHashService.generateBundleHashes;
+    sinon.stub(bundleHashService, 'generateBundleHashes').callsFake(async (snapshot) => {
+      const hashes = await generate(snapshot);
+      // Simulate administrative manifest replacement after export was read.
+      await dynamicRepo.replaceContentManifest(
+        track.id,
+        released.modified,
+        released.content_manifest_id,
+        track.content_manifest_id,
+      );
+      return hashes;
+    });
+    await api(
+      'put',
+      `${base}/snapshots/${encodeURIComponent(released.modified)}/release`,
+      { version: '1.1' },
+      409,
+    );
+    const current = await dynamicRepo.getSnapshotByModified(track.id, released.modified);
+    expect(current.version).toBe('1.0');
+    expect(current.content_manifest_id).toBe(track.content_manifest_id);
+    expect(current.bundle_hashes).toBeUndefined();
+  });
+
+  it('blocks materialization while rollback holds the component lock', async function () {
+    await setRole('admin');
+    const component = await post(
+      '/api/release-tracks/new',
+      { name: 'Rollback first', type: 'standard' },
+      201,
+    );
+    const base = `/api/release-tracks/${component.id}`;
+    const released = await post(`${base}/snapshots/latest/release`, { version: '1.0' });
+    const virtual = await post(
+      '/api/release-tracks/new',
+      {
+        name: 'Dependent',
+        type: 'virtual',
+        composition: {
+          component_tracks: [
+            { track_id: component.id, priority: 1, resolution_strategy: 'latest_tagged' },
+          ],
+        },
+      },
+      201,
+    );
+    const find = dynamicRepo.findSnapshotsResolvingComponent;
+    sinon.stub(dynamicRepo, 'findSnapshotsResolvingComponent').callsFake(async (...args) => {
+      await api('post', `/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 409);
+      return find.apply(dynamicRepo, args);
+    });
+    await api(
+      'delete',
+      `${base}/snapshots/${encodeURIComponent(released.modified)}`,
+      undefined,
+      204,
+      { confirm_version: '1.0' },
+    );
+    expect((await registryRepo.findByTrackId(component.id)).release_lock).toBeUndefined();
+  });
+
+  it('rechecks confirmation after a retag wins the release lock', async function () {
+    await setRole('admin');
+    const track = await post(
+      '/api/release-tracks/new',
+      { name: 'Confirmation race', type: 'standard' },
+      201,
+    );
+    const base = `/api/release-tracks/${track.id}`;
+    const released = await post(`${base}/snapshots/latest/release`, { version: '1.0' });
+    const path = `${base}/snapshots/${encodeURIComponent(released.modified)}`;
+    const acquire = registryRepo.acquireReleaseLock;
+    const stub = sinon.stub(registryRepo, 'acquireReleaseLock').callsFake(async (...args) => {
+      stub.restore();
+      await api('put', `${path}/release`, { version: '1.1' }, 200);
+      return acquire.apply(registryRepo, args);
+    });
+    const rejected = await api('delete', path, undefined, 400, { confirm_version: '1.0' });
+    expect(rejected.body.expected_version).toBe('1.1');
+    expect((await dynamicRepo.getSnapshotByModified(track.id, released.modified)).version).toBe(
+      '1.1',
+    );
+    const event = await ReleaseTrackAuditEvent.findOne({
+      track_id: track.id,
+      action: 'retag_release',
+    }).lean();
+    expect(event.request.previous_version).toBe('1.0');
+    expect(event.request.next_version).toBe('1.1');
+  });
+
+  it('releases partially acquired component locks after a conflict', async function () {
+    const components = [];
+    for (let i = 0; i < 2; i++) {
+      components.push(
+        await post('/api/release-tracks/new', { name: `Lock ${i}`, type: 'standard' }, 201),
+      );
+    }
+    components.sort((a, b) => a.id.localeCompare(b.id));
+    const virtual = await post(
+      '/api/release-tracks/new',
+      {
+        name: 'Multiple locks',
+        type: 'virtual',
+        composition: {
+          component_tracks: components.map((component, priority) => ({
+            track_id: component.id,
+            priority,
+            resolution_strategy: 'latest_tagged',
+          })),
+        },
+      },
+      201,
+    );
+    await versioningService.withReleaseLock(components[1].id, () =>
+      api('post', `/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 409),
+    );
+    for (const component of components) {
+      expect((await registryRepo.findByTrackId(component.id)).release_lock).toBeUndefined();
+    }
+    // Resolution failure must also unwind the complete lock set.
+    await api('post', `/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 400);
+    for (const component of components) {
+      expect((await registryRepo.findByTrackId(component.id)).release_lock).toBeUndefined();
+    }
   });
 
   it('reports an audit-finalization failure without hiding the persisted mutation', async function () {
