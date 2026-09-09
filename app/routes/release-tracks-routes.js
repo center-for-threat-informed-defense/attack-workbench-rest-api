@@ -274,6 +274,14 @@ router
   );
 
 router
+  .route('/release-tracks/:id/snapshots/:modified/draft')
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.convertReleaseToDraft,
+  );
+
+router
   .route('/release-tracks/:id/snapshots/:modified/clone')
   .post(
     authn.authenticate,

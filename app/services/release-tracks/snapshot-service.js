@@ -852,9 +852,9 @@ exports.deleteTrack = async function deleteTrack(trackId) {
 };
 
 /**
- * Delete the track's most recent release.
+ * Convert the track's most recent release back to a draft.
  *
- * Only the newest tagged snapshot may be deleted, so the version order of the
+ * Only the newest tagged snapshot may be converted, so the version order of the
  * remaining releases and the provenance of any later release are never
  * disturbed. The release's ledger entry is retracted from every remaining
  * snapshot (the ledger is copied forward into clones), its manifest is
@@ -863,9 +863,9 @@ exports.deleteTrack = async function deleteTrack(trackId) {
  *
  * @param {string} trackId
  * @param {string|Date} modified
- * @returns {Promise<Object>} The deleted snapshot
+ * @returns {Promise<Object>} The restored draft snapshot
  */
-exports.deleteRelease = async function deleteRelease(trackId, modified) {
+exports.convertReleaseToDraft = async function convertReleaseToDraft(trackId, modified) {
   const snapshot = await exports.getSnapshotByModified(trackId, modified);
   if (snapshot.version == null) {
     throw new ReleaseConflictError('The selected snapshot is not a release', {
@@ -879,7 +879,7 @@ exports.deleteRelease = async function deleteRelease(trackId, modified) {
     new Date(latestTagged.modified).getTime() !== new Date(snapshot.modified).getTime()
   ) {
     throw new ReleaseConflictError(
-      'Only the most recent release of a track can be deleted; delete later releases first.',
+      'Only the most recent release of a track can be converted to a draft; convert later releases first.',
       {
         track_id: trackId,
         snapshot_modified: new Date(snapshot.modified).toISOString(),
@@ -889,6 +889,7 @@ exports.deleteRelease = async function deleteRelease(trackId, modified) {
     );
   }
 
+  let draft;
   if (snapshot.type === 'standard') {
     if (!snapshot.release_source_modified) {
       throw new ReleaseConflictError(
@@ -900,21 +901,28 @@ exports.deleteRelease = async function deleteRelease(trackId, modified) {
         },
       );
     }
-    const dependents = await findVirtualSnapshotDependents(trackId, snapshot.modified);
-    if (dependents.length > 0) {
-      throw new ReleaseConflictError(
-        'This release cannot be deleted because virtual track snapshots depend on it.',
-        {
-          track_id: trackId,
-          snapshot_modified: new Date(snapshot.modified).toISOString(),
-          version: snapshot.version,
-          dependent_snapshots: dependents,
-        },
-      );
+    draft = await dynamicRepo.getSnapshotByModified(trackId, snapshot.release_source_modified);
+    if (!draft || draft.version != null) {
+      throw new ReleaseConflictError('The preserved source draft is missing or no longer a draft', {
+        track_id: trackId,
+        snapshot_modified: new Date(snapshot.modified).toISOString(),
+      });
     }
   }
+  await assertNoVirtualDependents(trackId, snapshot.modified);
 
-  await dynamicRepo.deleteSnapshot(trackId, snapshot.modified);
+  if (snapshot.type === 'standard') {
+    // The tagged clone is retired; the exact source draft remains untouched.
+    await dynamicRepo.deleteSnapshot(trackId, snapshot.modified);
+  } else {
+    // Virtual tagging was in-place, so conversion keeps identity, manifest,
+    // composition resolution, notes, and immutable creation provenance.
+    await dynamicRepo.updateSnapshot(trackId, snapshot.modified, {
+      $set: { version: null },
+      $unset: { publication: '', bundle_id: '', bundle_hashes: '' },
+    });
+    draft = snapshot;
+  }
   await dynamicRepo.pullVersionHistory(trackId, snapshot.version);
   await contentManifestService.discardUnreferenced(trackId, [snapshot.content_manifest_id]);
   const releaseHistoryService = require('./release-history-service');
@@ -925,10 +933,21 @@ exports.deleteRelease = async function deleteRelease(trackId, modified) {
   await emitContentsChanged(trackId, latest);
 
   logger.verbose(
-    `SnapshotService: Deleted release v${snapshot.version} (${modified}) from track "${trackId}"`,
+    `SnapshotService: Converted release v${snapshot.version} (${modified}) to draft in track "${trackId}"`,
   );
-  return snapshot;
+  return dynamicRepo.getSnapshotByModified(trackId, draft.modified);
 };
+
+async function assertNoVirtualDependents(trackId, modified) {
+  const dependents = await findVirtualSnapshotDependents(trackId, modified);
+  if (dependents.length) {
+    throw new ReleaseConflictError('Virtual track snapshots depend on this snapshot', {
+      track_id: trackId,
+      snapshot_modified: new Date(modified).toISOString(),
+      dependent_snapshots: dependents,
+    });
+  }
+}
 
 /**
  * Delete a specific snapshot from a track.
@@ -951,6 +970,14 @@ exports.deleteSnapshot = async function deleteSnapshot(trackId, modified) {
   if (snapshot.version != null) {
     throw new TaggedSnapshotDeletionError(snapshot.version);
   }
+
+  if (await dynamicRepo.getReleaseBySourceModified(trackId, snapshot.modified)) {
+    throw new ReleaseConflictError('This draft is the preserved source of a tagged release', {
+      track_id: trackId,
+      snapshot_modified: new Date(snapshot.modified).toISOString(),
+    });
+  }
+  await assertNoVirtualDependents(trackId, snapshot.modified);
 
   const latest = await dynamicRepo.getLatestSnapshot(trackId);
   if (!latest || new Date(latest.modified).getTime() !== new Date(snapshot.modified).getTime()) {

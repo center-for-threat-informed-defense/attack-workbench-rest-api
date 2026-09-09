@@ -42,6 +42,7 @@ const {
   updateSnapshotDescriptionBodySchema,
   releaseBodySchema,
   retagReleaseBodySchema,
+  convertReleaseToDraftBodySchema,
   releaseVersionSelectionSchema,
   cloneBodySchema,
   addCandidatesBodySchema,
@@ -713,13 +714,33 @@ exports.reconstructSnapshotManifest = async function reconstructSnapshotManifest
   }
 };
 
+/** POST /api/release-tracks/:id/snapshots/:modified/draft */
+exports.convertReleaseToDraft = async function convertReleaseToDraft(req, res, next) {
+  try {
+    const result = convertReleaseToDraftBodySchema.safeParse(req.body || {});
+    if (!result.success) {
+      throw new BadRequestError({
+        message: 'A valid confirm_version is required to convert a release to a draft',
+      });
+    }
+    const draft = await releaseTracksService.convertReleaseToDraft(
+      req.params.id,
+      req.params.modified,
+      {
+        actor: destructiveActor(req),
+        confirmation: result.data.confirm_version,
+      },
+    );
+    return res.status(200).send(draft);
+  } catch (err) {
+    return next(err);
+  }
+};
+
 /** DELETE /api/release-tracks/:id/snapshots/:modified */
 exports.deleteSnapshotByModified = async function deleteSnapshotByModified(req, res, next) {
   try {
-    await releaseTracksService.deleteSnapshot(req.params.id, req.params.modified, {
-      actor: destructiveActor(req),
-      confirmation: req.query.confirm_version,
-    });
+    await releaseTracksService.deleteSnapshot(req.params.id, req.params.modified);
     logger.debug(`Success: Deleted snapshot ${req.params.modified} from track ${req.params.id}`);
     return res.status(204).end();
   } catch (err) {

@@ -1224,23 +1224,16 @@ paths:
           description: 'Requested format is not yet implemented'
 
     delete:
-      summary: 'Delete a specific snapshot'
+      summary: 'Delete the latest draft snapshot'
       operationId: 'release-tracks-snapshot-delete'
       description: |
         Delete the latest untagged draft snapshot by its modified timestamp
         (editor or higher); the track reverts to its immediately preceding
-        snapshot. Historical drafts have already been pruned.
-
-        An administrator may also roll back the track's most recent standard
-        release by supplying `confirm_version` equal to that snapshot's
-        version. The tagged clone is deleted and its exact preserved source
-        draft becomes available again. The ledger and registry catalogue are
-        reconciled and a `delete_release` audit event is recorded. Rollback is
-        blocked if any persisted virtual snapshot resolved the exact release,
-        if it is followed by a later release, or if it predates preserved
-        source drafts. Virtual releases retain the existing irreversible
-        newest-release deletion behavior because virtual tagging remains
-        in-place.
+        snapshot. Tagged releases cannot be deleted, even by administrators:
+        first use POST /snapshots/{modified}/draft to convert to a draft.
+        Deletion is blocked for historical drafts, the only snapshot, preserved
+        source drafts of tagged releases, and snapshots resolved by downstream
+        virtual snapshots. Checks and deletion share the release lock.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1257,21 +1250,72 @@ paths:
         - name: confirm_version
           in: query
           description: |
-            Required to delete a release: must equal the release version of
-            the selected snapshot.
+            Deprecated compatibility parameter. It does not authorize tagged
+            deletion; tagged snapshots always return 409. Use the draft
+            conversion endpoint instead.
+          deprecated: true
           schema:
             type: string
       responses:
         '204':
           description: 'Snapshot deleted successfully'
-        '400':
-          description: 'Release confirmation missing or incorrect'
-        '403':
-          description: 'Deleting a release requires an administrator'
         '409':
-          description: 'The release cannot be rolled back, a virtual snapshot depends on it, or the draft is not latest'
+          description: 'Snapshot is tagged, protected, the only snapshot, or not the latest draft'
         '404':
           description: 'Snapshot not found'
+
+  /api/release-tracks/{id}/snapshots/{modified}/draft:
+    post:
+      summary: 'Convert the latest tagged release back to a draft'
+      operationId: 'release-tracks-release-to-draft'
+      description: |
+        Administrator-only conversion with exact version confirmation. Standard
+        tracks restore the preserved source draft (whose modified timestamp is
+        returned); virtual releases become drafts in place, preserving their
+        sealed content and composition/creation provenance. Later drafts survive.
+        Only the latest tagged release may be converted. Downstream virtual
+        dependencies block conversion. Release history, catalogue, counters, and
+        backrefs are reconciled and convert_release_to_draft is audited. Draft
+        deletion is a separate operation with its own eligibility checks.
+      tags: ['Release Tracks']
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [confirm_version]
+              properties:
+                confirm_version:
+                  type: string
+                  pattern: '^\d+\.\d+$'
+      responses:
+        '200':
+          description: 'Restored draft snapshot'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
+        '400':
+          description: 'Version confirmation is missing, invalid, or incorrect'
+        '403':
+          description: 'Administrator role required'
+        '404':
+          description: 'Snapshot not found'
+        '409':
+          description: 'Not the latest tagged release, source draft unavailable, downstream dependency, or concurrent operation'
 
   /api/release-tracks/{id}/snapshots/{modified}/clone:
     post:

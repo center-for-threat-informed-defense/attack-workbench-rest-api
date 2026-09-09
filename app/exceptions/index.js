@@ -347,7 +347,10 @@ class ReleaseTrackAuditError extends CustomError {
 
 class TaggedSnapshotDeletionError extends CustomError {
   constructor(version, options) {
-    super(`Tagged snapshot version ${version} cannot be deleted`, options);
+    super(
+      `Tagged snapshot version ${version} cannot be deleted; convert it to a draft first`,
+      options,
+    );
   }
 }
 

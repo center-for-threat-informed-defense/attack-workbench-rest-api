@@ -84,8 +84,9 @@ POST /api/release-tracks/:id/staged/demote
 # Snapshot-specific operations
 GET  /api/release-tracks/:id/snapshots/:modified
 POST /api/release-tracks/:id/snapshots/:modified/clone
-DELETE /api/release-tracks/:id/snapshots/:modified
+DELETE /api/release-tracks/:id/snapshots/:modified # eligible drafts only
 POST /api/release-tracks/:id/snapshots/:modified/release
+POST /api/release-tracks/:id/snapshots/:modified/draft # admin conversion with confirm_version
 POST /api/release-tracks/:id/snapshots/:modified/graph
 POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct # admin recovery
 DELETE /api/release-tracks/:id/snapshots/:modified/graph

@@ -497,6 +497,7 @@ const releaseBodySchema = z
 
 /** PUT /release-tracks/:id/snapshots/:modified/release */
 const retagReleaseBodySchema = z.object({ version: xMitreVersionSchema }).strict();
+const convertReleaseToDraftBodySchema = z.object({ confirm_version: xMitreVersionSchema }).strict();
 
 /** POST /release-tracks/:id/clone */
 const cloneBodySchema = z
@@ -680,6 +681,7 @@ module.exports = {
   updateSnapshotDescriptionBodySchema,
   releaseBodySchema,
   retagReleaseBodySchema,
+  convertReleaseToDraftBodySchema,
   publicationConfigSchema,
   cloneBodySchema,
   addCandidatesBodySchema,

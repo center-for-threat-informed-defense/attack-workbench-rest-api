@@ -1,5 +1,35 @@
 # Release Track TODOs
 
+## Separate tagging, conversion to draft, and draft deletion
+
+- [x] Preserve creation provenance while separating conversion and deletion in the API.
+- [x] Keep admin confirmation, latest/sole-snapshot, dependency, and release-lock guards.
+- [x] Add distinct frontend Convert to draft and Delete draft controls.
+- [x] Update regressions, OpenAPI, user/developer docs, and Bruno requests.
+- [x] Run focused tests, full backend/frontend suites, lint, and build.
+
+Verification (Node 24): backend focused group 76 passing; full `npm test`
+passes (OpenAPI 2, config 22, API 1048, middleware 29, scheduler 10).
+The first full run identified two obsolete DELETE-confirmation expectations,
+which now assert draft-only rejection. Unrelated HTTP/authentication failures
+passed in isolation and in the complete rerun. Backend lint passes.
+Frontend focused tests 108 passing; all 168 files / 425 tests pass, changed-file
+lint passes, and production build succeeds with existing size-budget warnings.
+Logic-specialist review: ROBUST for the scoped state transitions, dependency
+checks, preserved-source protection, publication cleanup, and release-lock use.
+Both main beta checkouts retain the other agent's uncommitted provenance work.
+No commits were created; Bruno conversion/deletion requests are updated.
+
+Accepted commit: `feat(release-tracks): separate draft conversion from snapshot deletion`
+
+Body: Add an explicitly confirmed release-to-draft endpoint and matching UI
+control. Restore guarded draft deletion while preserving source drafts,
+composition provenance, dependency checks, and release serialization.
+
+Snapshot DELETE is draft-only. Convert tagged releases with
+POST /release-tracks/:id/snapshots/:modified/draft and a confirm_version body
+before attempting a separate eligible-draft DELETE.
+
 ## Merge scheduling and rollback branches into local beta (2026-09-09)
 
 - [x] Inspect all worktrees and confirm scheduling branches are already merged.

@@ -14,7 +14,12 @@
 // Phase 6: Export, ephemeral, bundle import        → export-service, ephemeral-service, bundle-import-service
 // =============================================================================
 
-const { BadRequestError, InsufficientRoleError, NotImplementedError } = require('../../exceptions');
+const {
+  BadRequestError,
+  InsufficientRoleError,
+  NotImplementedError,
+  ReleaseConflictError,
+} = require('../../exceptions');
 const authz = require('../../lib/authz-middleware');
 const {
   compositionSchema,
@@ -371,28 +376,38 @@ exports.deleteTrack = function deleteTrack(trackId, actor, confirmation) {
 };
 
 /**
- * Delete a snapshot. Drafts follow the ordinary editor rules. A release may
- * only be deleted by an administrator who confirms its version, and the
- * deletion is recorded as a `delete_release` audit event.
+ * Delete drafts only. Share the release lock with tagging and materialization
+ * so a draft cannot become released between validation and deletion.
  */
-exports.deleteSnapshot = async function deleteSnapshot(trackId, modified, options = {}) {
-  const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
-  if (snapshot.version == null) {
-    return snapshotService.deleteSnapshot(trackId, modified);
-  }
+exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
+  return versioningService.withReleaseLock(trackId, () =>
+    snapshotService.deleteSnapshot(trackId, modified),
+  );
+};
 
+/** Convert the latest tagged release back to a draft, with admin confirmation. */
+exports.convertReleaseToDraft = async function convertReleaseToDraft(
+  trackId,
+  modified,
+  options = {},
+) {
   return versioningService.withReleaseLock(trackId, async () => {
     const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
     if (options.actor?.role !== authz.userRoles.admin) {
       throw new InsufficientRoleError('administrator', {
-        details: 'Deleting a release requires an administrator.',
+        details: 'Converting a release to a draft requires an administrator.',
         track_id: trackId,
         version: snapshot.version,
       });
     }
+    if (snapshot.version == null) {
+      throw new ReleaseConflictError('The selected snapshot is already a draft', {
+        track_id: trackId,
+      });
+    }
     if (options.confirmation !== snapshot.version) {
       throw new BadRequestError({
-        message: 'Destructive release confirmation is required',
+        message: 'Release conversion confirmation is required',
         details: `Set confirm_version to the exact release version '${snapshot.version}'.`,
         parameter_name: 'confirm_version',
         expected_version: snapshot.version,
@@ -401,12 +416,12 @@ exports.deleteSnapshot = async function deleteSnapshot(trackId, modified, option
 
     return destructiveAuditService.execute(
       {
-        action: 'delete_release',
+        action: 'convert_release_to_draft',
         trackId,
         ...destructiveIdentity(trackId, options.actor, options.confirmation),
         request: { snapshot_modified: new Date(snapshot.modified).toISOString() },
       },
-      () => snapshotService.deleteRelease(trackId, modified),
+      () => snapshotService.convertReleaseToDraft(trackId, modified),
     );
   });
 };

@@ -116,6 +116,17 @@ endpoint.
 
 ### Rollback and retag concurrency / recovery
 
+Release conversion is now explicit: `POST /snapshots/:modified/draft` replaces
+the old tagged-snapshot DELETE path. Standard conversion retires the release
+clone and restores its preserved source; virtual conversion clears the tag and
+release-only export fields in place, keeping the manifest and provenance.
+`DELETE /snapshots/:modified` only removes eligible drafts. Both operations
+check downstream virtual dependencies under the release lock. A preserved
+standard source must still exist and be untagged before its release is retired.
+Creation cause and creator describe the original snapshot creation and are
+never rewritten by conversion. Legacy `delete_release` audit entries remain
+valid; new conversions use `convert_release_to_draft`.
+
 Virtual materialization acquires the existing database-backed release locks
 for all component tracks in sorted order, before resolving any release, and
 holds them through snapshot persistence. Partial acquisition and failed

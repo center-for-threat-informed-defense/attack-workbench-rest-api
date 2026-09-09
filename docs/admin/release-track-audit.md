@@ -2,9 +2,14 @@
 
 Workbench stores administrator-initiated destructive attempts in
 `releaseTrackAuditEvents`: full-track deletion (`delete_track`), rollback of a
-track's most recent release (`delete_release`), and release-version correction
+track's most recent release (`convert_release_to_draft`), and release-version correction
 (`retag_release`). The collection is empty until an administrator performs one
 of those actions.
+
+Older `delete_release` events retain their historical meaning. New snapshot
+DELETE requests reject tagged releases; conversion and draft deletion are
+separate operations. Conversion results identify the restored draft timestamp
+and have `version: null`.
 
 Each record contains:
 

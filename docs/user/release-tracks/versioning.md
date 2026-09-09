@@ -74,10 +74,24 @@ second draft is durably stored, the first draft is no longer retrievable.
 
 ### What Does Releasing Do?
 
-The `release` operation **tags an existing snapshot as a release** by assigning
-it a semantic version number (without the patch number). It does **not** create
-a new snapshot. `release` is the command; `tagged` describes the resulting
-snapshot state.
+The `release` operation assigns a semantic version number (without the patch
+number). Standard tracks create a separate tagged snapshot and preserve the
+exact source draft; virtual tracks tag their materialized draft in place.
+`release` is the command; `tagged` describes the resulting snapshot state.
+
+The snapshot lifecycle has three separate operations:
+
+- `POST /release-tracks/:id/snapshots/:modified/release` tags a draft.
+- `POST /release-tracks/:id/snapshots/:modified/draft` converts the newest
+  tagged release back to a draft, with administrator authorization and an exact
+  `confirm_version` in the body. Standard tracks restore the preserved source;
+  virtual tracks retain the snapshot, its content, and composition provenance
+  but clear its tag and publication metadata. Downstream resolved dependencies
+  block conversion.
+- `DELETE /release-tracks/:id/snapshots/:modified` deletes only the newest
+  draft. The sole snapshot, preserved release sources, and resolved components
+  of downstream virtual snapshots cannot be deleted. Tagged releases must
+  first be converted to drafts; administrators cannot bypass this requirement.
 
 This is analogous to Git's tagging system:
 

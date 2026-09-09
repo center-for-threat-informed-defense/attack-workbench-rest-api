@@ -69,6 +69,10 @@ describe('Release-track destructive authorization and audit', function () {
     return (await api('post', path, body, status, query)).body;
   }
 
+  function convert(path, version, status = 200) {
+    return api('post', `${path}/draft`, { confirm_version: version }, status);
+  }
+
   it('requires admin role, exact confirmation, and a durable outcome record', async function () {
     await setRole('admin');
     const track = await post(
@@ -171,20 +175,25 @@ describe('Release-track destructive authorization and audit', function () {
 
     // Editors cannot delete a release even with the right confirmation.
     await setRole('editor');
-    await api('delete', secondPath, undefined, 403, { confirm_version: '1.1' });
+    await convert(secondPath, '1.1', 403);
 
     await setRole('admin');
-    await api('delete', secondPath, undefined, 400);
-    await api('delete', secondPath, undefined, 400, { confirm_version: '9.9' });
-    expect(await ReleaseTrackAuditEvent.countDocuments({ action: 'delete_release' })).toBe(0);
+    await api('post', `${secondPath}/draft`, {}, 400);
+    await convert(secondPath, '9.9', 400);
+    expect(
+      await ReleaseTrackAuditEvent.countDocuments({ action: 'convert_release_to_draft' }),
+    ).toBe(0);
     // Only the most recent release can be deleted; the rejected attempt is
     // audited as failed, like any confirmed destructive request.
-    await api('delete', firstPath, undefined, 409, { confirm_version: '1.0' });
+    await convert(firstPath, '1.0', 409);
     expect(
-      await ReleaseTrackAuditEvent.countDocuments({ action: 'delete_release', status: 'failed' }),
+      await ReleaseTrackAuditEvent.countDocuments({
+        action: 'convert_release_to_draft',
+        status: 'failed',
+      }),
     ).toBe(1);
 
-    await api('delete', secondPath, undefined, 204, { confirm_version: '1.1' });
+    await convert(secondPath, '1.1', 200);
 
     await api('get', secondPath, undefined, 404);
     const remaining = await api(
@@ -208,7 +217,7 @@ describe('Release-track destructive authorization and audit', function () {
     expect(entry.latest_tagged_version).toBe('1.0');
 
     const event = await ReleaseTrackAuditEvent.findOne({
-      action: 'delete_release',
+      action: 'convert_release_to_draft',
       status: 'completed',
     })
       .lean()
@@ -218,7 +227,7 @@ describe('Release-track destructive authorization and audit', function () {
       confirmation: '1.1',
       status: 'completed',
       request: { snapshot_modified: new Date(second.modified).toISOString() },
-      result: { snapshot_modified: expect.any(Date), version: '1.1', members_count: 1 },
+      result: { snapshot_modified: expect.any(Date), version: null, members_count: 1 },
     });
 
     // The version is free again and the track keeps working.
@@ -266,12 +275,10 @@ describe('Release-track destructive authorization and audit', function () {
       });
     }
 
-    const response = await api(
-      'delete',
+    const response = await convert(
       `/api/release-tracks/${component.id}/snapshots/${encodeURIComponent(released.modified)}`,
-      undefined,
+      '1.0',
       409,
-      { confirm_version: '1.0' },
     );
     expect(response.body.dependent_snapshots).toHaveLength(2);
     expect(response.body.dependent_snapshots.map((item) => item.track_name).sort()).toEqual([
@@ -453,13 +460,13 @@ describe('Release-track destructive authorization and audit', function () {
       const path = `${base}/snapshots/${encodeURIComponent(released.modified)}`;
       const clone = snapshotService.cloneSnapshot;
       const stub = sinon.stub(snapshotService, 'cloneSnapshot').callsFake(async (...args) => {
-        await api('delete', path, undefined, 409, { confirm_version: '1.0' });
+        await convert(path, '1.0', 409);
         return clone(...args);
       });
       await post(`/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 201);
       expect(stub.calledOnce).toBe(true);
       stub.restore();
-      const blocked = await api('delete', path, undefined, 409, { confirm_version: '1.0' });
+      const blocked = await convert(path, '1.0', 409);
       expect(blocked.body.dependent_snapshots).toHaveLength(1);
       expect((await registryRepo.findByTrackId(component.id)).release_lock).toBeUndefined();
     });
@@ -555,13 +562,7 @@ describe('Release-track destructive authorization and audit', function () {
       await api('post', `/api/release-tracks/${virtual.id}/virtual/snapshots/create`, {}, 409);
       return find.apply(dynamicRepo, args);
     });
-    await api(
-      'delete',
-      `${base}/snapshots/${encodeURIComponent(released.modified)}`,
-      undefined,
-      204,
-      { confirm_version: '1.0' },
-    );
+    await convert(`${base}/snapshots/${encodeURIComponent(released.modified)}`, '1.0', 200);
     expect((await registryRepo.findByTrackId(component.id)).release_lock).toBeUndefined();
   });
 
@@ -581,7 +582,7 @@ describe('Release-track destructive authorization and audit', function () {
       await api('put', `${path}/release`, { version: '1.1' }, 200);
       return acquire.apply(registryRepo, args);
     });
-    const rejected = await api('delete', path, undefined, 400, { confirm_version: '1.0' });
+    const rejected = await convert(path, '1.0', 400);
     expect(rejected.body.expected_version).toBe('1.1');
     expect((await dynamicRepo.getSnapshotByModified(track.id, released.modified)).version).toBe(
       '1.1',
@@ -628,6 +629,161 @@ describe('Release-track destructive authorization and audit', function () {
     for (const component of components) {
       expect((await registryRepo.findByTrackId(component.id)).release_lock).toBeUndefined();
     }
+  });
+
+  it('rejects tagged DELETE for every role, then permits deleting an eligible restored standard draft', async function () {
+    await setRole('admin');
+    const track = await post(
+      '/api/release-tracks/new',
+      { name: 'Three operations', type: 'standard' },
+      201,
+    );
+    const base = `/api/release-tracks/${track.id}`;
+    const first = await post(`${base}/snapshots/latest/release`, { version: '1.0' });
+    const draft = await post(`${base}/meta`, { description: 'Next cycle' });
+    const released = await post(`${base}/snapshots/latest/release`, { version: '1.1' });
+    const path = `${base}/snapshots/${encodeURIComponent(released.modified)}`;
+    for (const role of ['editor', 'admin']) {
+      await setRole(role);
+      await api('delete', path, undefined, 409);
+      await api('delete', path, undefined, 409, { confirm_version: '1.1' });
+    }
+    await api('delete', `${base}/snapshots/${encodeURIComponent(draft.modified)}`, undefined, 409);
+    const restored = await convert(path, '1.1');
+    expect(restored.body).toMatchObject({
+      modified: draft.modified,
+      version: null,
+    });
+    expect(restored.body.creation_cause).toEqual(draft.creation_cause);
+    expect(restored.body.creation_actor).toEqual(draft.creation_actor);
+    await setRole('editor');
+    await api(
+      'delete',
+      `${base}/snapshots/${encodeURIComponent(restored.body.modified)}`,
+      undefined,
+      204,
+    );
+    const latest = await api('get', `${base}/snapshots/latest`, undefined, 200);
+    expect(latest.body.modified).toBe(first.modified);
+  });
+
+  it('converts virtual releases in place, retaining provenance, before allowing draft deletion', async function () {
+    await setRole('admin');
+    const component = await post(
+      '/api/release-tracks/new',
+      { name: 'Virtual source', type: 'standard' },
+      201,
+    );
+    await post(`/api/release-tracks/${component.id}/snapshots/latest/release`, { version: '1.0' });
+    const virtual = await post(
+      '/api/release-tracks/new',
+      {
+        name: 'Virtual conversion',
+        type: 'virtual',
+        composition: {
+          component_tracks: [
+            { track_id: component.id, priority: 1, resolution_strategy: 'latest_tagged' },
+          ],
+        },
+      },
+      201,
+    );
+    const base = `/api/release-tracks/${virtual.id}`;
+    const draft = await post(
+      `${base}/virtual/snapshots/create`,
+      { description: 'Preserve me' },
+      201,
+    );
+    const release = await post(`${base}/snapshots/latest/release`, { version: '1.0' });
+    const path = `${base}/snapshots/${encodeURIComponent(release.modified)}`;
+    await api('delete', path, undefined, 409);
+    const restored = await convert(path, '1.0');
+    expect(restored.body).toMatchObject({
+      modified: draft.modified,
+      version: null,
+      content_manifest_id: draft.content_manifest_id,
+      composition_resolution: draft.composition_resolution,
+      snapshot_description: draft.snapshot_description,
+      version_history: [],
+    });
+    expect(restored.body.creation_cause).toEqual(draft.creation_cause);
+    expect(restored.body.creation_actor).toEqual(draft.creation_actor);
+    for (const field of ['publication', 'bundle_id', 'bundle_hashes'])
+      expect(restored.body).not.toHaveProperty(field);
+    expect(
+      await ReleaseTrackContentManifest.countDocuments({ manifest_id: draft.content_manifest_id }),
+    ).toBe(1);
+    await convert(path, '1.0', 409);
+    // The same materialized draft can be tagged again, then explicitly converted.
+    await post(`${path}/release`, { version: '1.0' });
+    await convert(path, '1.0');
+    await setRole('editor');
+    await api('delete', path, undefined, 204);
+    expect((await api('get', `${base}/snapshots/latest`, undefined, 200)).body.modified).toBe(
+      virtual.modified,
+    );
+  });
+
+  it('protects draft dependencies, historical drafts, and the only snapshot', async function () {
+    await setRole('admin');
+    const track = await post(
+      '/api/release-tracks/new',
+      { name: 'Protected draft', type: 'standard' },
+      201,
+    );
+    const path = `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(track.modified)}`;
+    await api('delete', path, undefined, 409);
+    const virtual = await post(
+      '/api/release-tracks/new',
+      { name: 'Legacy dependent', type: 'virtual' },
+      201,
+    );
+    // Current composition resolution requires tagged sources. Model a retained
+    // historical dependency on a draft so deletion cannot assume none exist.
+    await dynamicRepo.updateSnapshot(virtual.id, virtual.modified, {
+      $set: {
+        composition_resolution: {
+          resolved_at: new Date(),
+          component_snapshots: [
+            {
+              track_id: track.id,
+              track_name: track.name,
+              track_type: 'standard',
+              resolved_snapshot_id: track.modified,
+              resolved_version: '1.0',
+              strategy_used: 'specific_snapshot',
+              total_objects_in_source: 0,
+              objects_after_filter: 0,
+              objects_contributed: 0,
+            },
+          ],
+        },
+      },
+    });
+    const rejected = await api('delete', path, undefined, 409);
+    expect(rejected.body.dependent_snapshots).toHaveLength(1);
+    await post(`/api/release-tracks/${virtual.id}/meta`, { description: 'new draft' });
+    await api(
+      'delete',
+      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(virtual.modified)}`,
+      undefined,
+      409,
+    );
+  });
+
+  it('does not retire a standard release whose preserved source is missing', async function () {
+    await setRole('admin');
+    const track = await post(
+      '/api/release-tracks/new',
+      { name: 'Missing source', type: 'standard' },
+      201,
+    );
+    const base = `/api/release-tracks/${track.id}`;
+    const released = await post(`${base}/snapshots/latest/release`, { version: '1.0' });
+    await dynamicRepo.deleteSnapshot(track.id, released.release_source_modified);
+    const path = `${base}/snapshots/${encodeURIComponent(released.modified)}`;
+    await convert(path, '1.0', 409);
+    expect((await api('get', path, undefined, 200)).body.version).toBe('1.0');
   });
 
   it('reports an audit-finalization failure without hiding the persisted mutation', async function () {

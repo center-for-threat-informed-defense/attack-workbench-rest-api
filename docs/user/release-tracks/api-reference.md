@@ -59,6 +59,8 @@ GET    /api/release-tracks/:id/snapshots
 GET    /api/release-tracks/:id/snapshots/latest
 GET    /api/release-tracks/:id/snapshots/:modified
 POST   /api/release-tracks/:id/snapshots/:modified/release
+PUT    /api/release-tracks/:id/snapshots/:modified/release
+POST   /api/release-tracks/:id/snapshots/:modified/draft
 POST   /api/release-tracks/:id/snapshots/:modified/clone
 PUT    /api/release-tracks/:id/snapshots/:modified/description
 DELETE /api/release-tracks/:id/snapshots/:modified
@@ -826,24 +828,46 @@ rule configured under `config.publication` (see
   configuration. Release freezes the resolved values onto the tagged snapshot
   as `publication`, so later changes never alter a published release.
 
-### Delete Specific Snapshot
+### Convert a Tagged Release Back to Draft
+
+```http
+POST /api/release-tracks/:id/snapshots/:modified/draft
+Content-Type: application/json
+
+{ "confirm_version": "1.1" }
+```
+
+Administrator-only; returns `200` with the restored draft. Standard releases
+restore their exact preserved source draft, including its original timestamp,
+tiers, manifest, notes, creation cause, and creator. Virtual releases become
+drafts in place: identity, materialized contents, composition provenance,
+notes, and creation attribution remain; release-only publication/bundle/hash
+fields are cleared. Both retract the release ledger entry and reconcile the
+catalogue, counters, and backrefs. The action is audited as
+`convert_release_to_draft`. Later drafts survive and remain current if newer.
+
+Only the most recent tagged release may be converted. Downstream virtual
+dependencies block conversion (`409`), as does a missing preserved standard
+source. Missing/incorrect confirmation returns `400`, and non-administrators
+receive `403`. The confirmation is checked under the release lock.
+
+### Delete a Draft Snapshot
 
 ```
 DELETE /api/release-tracks/:id/snapshots/:modified
-DELETE /api/release-tracks/:id/snapshots/:modified?confirm_version=1.1
 ```
 
 Editors may delete the latest untagged draft; the track reverts to the
-preceding snapshot. Administrators may roll back the most recent standard
-release by confirming its version. The tagged clone is removed, revealing its
-exact preserved source draft; the release ledger and catalogue are reconciled
-and a `delete_release` audit event is recorded. Rollback returns `409 Conflict`
-if any persisted virtual snapshot resolved the exact release (whether through
-`latest_tagged` or an explicit rule), or if the release predates preserved
-source drafts. Deleting an older release also returns `409`; a missing or wrong
-confirmation returns `400`; a non-administrator receives `403`.
-The newest virtual release retains the existing irreversible deletion
-behavior because virtual materializations are still tagged in place.
+preceding snapshot and returns `204`. Tagged snapshots always return `409`,
+even for administrators and even with the deprecated `confirm_version` query
+parameter. Convert the release to a draft first, then delete the returned
+draft timestamp in a separate request.
+
+Deletion also returns `409` for historical drafts, the only remaining
+snapshot, preserved sources of tagged releases, or any draft resolved by a
+downstream virtual snapshot. Thus conversion alone does not guarantee deletion
+eligibility. Deletion and dependency checks share the same release lock as
+tagging and component materialization. A missing snapshot returns `404`.
 
 ---
 

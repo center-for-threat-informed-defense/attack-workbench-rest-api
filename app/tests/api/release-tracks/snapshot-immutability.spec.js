@@ -106,14 +106,14 @@ describe('Release-track snapshot immutability contract', function () {
     );
     expect(reverted.body.modified).toBe(tagged.modified);
 
-    // A release is never deleted by the ordinary draft path: it requires an
-    // administrator's typed version confirmation.
+    // A tagged release must first be converted through the separate draft
+    // operation; DELETE never converts it, even for administrators.
     const taggedDelete = await api(
       'delete',
       `/api/release-tracks/${initial.id}/snapshots/${encodeURIComponent(tagged.modified)}`,
       undefined,
-      400,
+      409,
     );
-    expect(taggedDelete.text).toContain('Destructive release confirmation is required');
+    expect(taggedDelete.text).toContain('convert it to a draft first');
   });
 });
