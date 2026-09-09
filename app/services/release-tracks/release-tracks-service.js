@@ -212,8 +212,12 @@ async function formatWorkbenchSnapshot(snapshot, options) {
     selectedTiers.flatMap((tierName) => snapshot[tierName] || []),
   );
   const enriched = await addObjectInfoToSnapshot(snapshot);
-  // Registry-derived, read-only: lets clients build alias URLs for the track.
-  enriched.alias = await snapshotService.getTrackAlias(snapshot.id);
+  // Registry-derived, read-only metadata used alongside snapshot content.
+  const metadata = await snapshotService.getTrackMetadata(snapshot.id);
+  enriched.alias = metadata.alias;
+  if (snapshot.type === 'virtual') {
+    enriched.snapshot_schedule = metadata.snapshot_schedule || { mode: 'manual' };
+  }
   return filterSnapshotTiers(enriched, options?.include);
 }
 
@@ -537,6 +541,17 @@ exports.updateComposition = function updateComposition(trackId, composition, use
   return virtualTrackService.updateComposition(trackId, compositionResult.data, userId, {
     scheduledMaterialization: validatedScheduledMaterialization,
   });
+};
+
+exports.updateSchedule = function updateSchedule(trackId, schedule) {
+  const scheduleResult = snapshotScheduleSchema.safeParse(schedule);
+  if (!scheduleResult.success) {
+    throw new BadRequestError({
+      message: 'Invalid snapshot schedule',
+      details: scheduleResult.error.errors,
+    });
+  }
+  return virtualTrackService.updateSchedule(trackId, scheduleResult.data);
 };
 
 exports.createVirtualSnapshot = function createVirtualSnapshot(trackId, options) {

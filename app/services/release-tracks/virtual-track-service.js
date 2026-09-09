@@ -459,6 +459,34 @@ exports.updateComposition = async function updateComposition(
 };
 
 /**
+ * Replace the persisted materialization schedule for a virtual track.
+ * The registry is authoritative so schedule changes do not create or mutate a
+ * content snapshot. The scheduler reconciliation task observes the new value.
+ *
+ * @param {string} trackId
+ * @param {Object} schedule
+ * @returns {Promise<{snapshot_schedule: Object}>}
+ */
+exports.updateSchedule = async function updateSchedule(trackId, schedule) {
+  const registry = await registryRepo.findByTrackId(trackId);
+  if (!registry) {
+    throw new TrackNotFoundError(trackId);
+  }
+  if (registry.type !== 'virtual') {
+    throw new BadRequestError({
+      message: 'This operation is only available for virtual release tracks',
+      details: `Track ${trackId} is a ${registry.type} track`,
+    });
+  }
+
+  const updated = await registryRepo.setSnapshotSchedule(trackId, schedule);
+  logger.verbose(
+    `VirtualTrackService: Updated snapshot schedule for track "${trackId}" to ${schedule.mode}`,
+  );
+  return { snapshot_schedule: updated.snapshot_schedule };
+};
+
+/**
  * Create a new virtual snapshot by resolving the composition rules.
  *
  * For each component track:

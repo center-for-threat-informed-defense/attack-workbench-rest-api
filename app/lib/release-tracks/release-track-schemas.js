@@ -685,6 +685,7 @@ module.exports = {
   updateCandidateVersionBodySchema,
   updateConfigBodySchema,
   updateCompositionBodySchema,
+  updateScheduleBodySchema: snapshotScheduleSchema,
   createVirtualSnapshotBodySchema,
   promoteQuarantinedObjectBodySchema,
   reconstructSnapshotGraphBodySchema,

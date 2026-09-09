@@ -861,6 +861,48 @@ paths:
         '400':
           description: 'Track is not virtual or composition is invalid'
 
+  /api/release-tracks/{id}/virtual/schedule:
+    put:
+      summary: 'Update a virtual track snapshot schedule'
+      operationId: 'release-tracks-schedule-update'
+      description: |
+        Replace the registry-backed materialization schedule for a virtual
+        track without creating or mutating a content snapshot. Request bodies
+        are strictly validated via Zod: manual accepts only mode, cron requires
+        one five-field UTC expression, and dates requires at least one ISO UTC
+        timestamp. Scheduler reconciliation observes the replacement on its
+        next configured pass.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 'Snapshot schedule updated successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - snapshot_schedule
+                properties:
+                  snapshot_schedule:
+                    $ref: '../components/release-tracks.yml#/components/schemas/snapshot-schedule'
+        '400':
+          description: 'Track is not virtual or schedule is invalid'
+        '404':
+          description: 'Release track not found'
+
   /api/release-tracks/{id}/virtual/snapshots/create:
     post:
       summary: 'Create a virtual track snapshot'

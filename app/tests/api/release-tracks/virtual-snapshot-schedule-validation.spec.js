@@ -52,6 +52,15 @@ describe('Virtual release-track snapshot schedule validation API', function () {
     return response.body.data[0];
   }
 
+  async function updateSchedule(trackId, snapshotSchedule, status = 200) {
+    return request(app)
+      .put(`/api/release-tracks/${trackId}/virtual/schedule`)
+      .send(snapshotSchedule)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(status);
+  }
+
   it('accepts and persists the fields defined by each schedule mode', async function () {
     const schedules = [
       { mode: 'manual' },
@@ -67,6 +76,65 @@ describe('Virtual release-track snapshot schedule validation API', function () {
       const registryTrack = await getRegistryTrack(created.name);
       expect(registryTrack.snapshot_schedule).toEqual(schedule);
     }
+  });
+
+  it('updates a virtual track schedule without creating a snapshot', async function () {
+    const created = await createTrack({ mode: 'manual' });
+    const trackId = created.body.id;
+    const schedule = { mode: 'cron', cron: '15 9 * * 1,3' };
+
+    const response = await updateSchedule(trackId, schedule);
+
+    expect(response.body.snapshot_schedule).toEqual(schedule);
+    const registryTrack = await getRegistryTrack(created.name);
+    expect(registryTrack.snapshot_schedule).toEqual(schedule);
+    expect(registryTrack.snapshot_count).toBe(1);
+  });
+
+  it('returns the current registry schedule with workbench snapshots', async function () {
+    const created = await createTrack({ mode: 'manual' });
+    const schedule = {
+      mode: 'dates',
+      dates: ['2027-01-15T09:30:00.000Z', '2027-07-15T09:30:00.000Z'],
+    };
+    await updateSchedule(created.body.id, schedule);
+
+    const response = await request(app)
+      .get(`/api/release-tracks/${created.body.id}/snapshots/latest`)
+      .set('Accept', 'application/json')
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
+
+    expect(response.body.snapshot_schedule).toEqual(schedule);
+  });
+
+  it('replaces schedule mode fields instead of retaining stale selectors', async function () {
+    const created = await createTrack({ mode: 'cron', cron: '0 0 * * *' });
+
+    const response = await updateSchedule(created.body.id, { mode: 'manual' });
+
+    expect(response.body.snapshot_schedule).toEqual({ mode: 'manual' });
+    expect(await getRegistryTrack(created.name)).toEqual(
+      expect.objectContaining({ snapshot_schedule: { mode: 'manual' } }),
+    );
+  });
+
+  it('rejects invalid updates and schedule updates on standard tracks', async function () {
+    const virtual = await createTrack({ mode: 'manual' });
+    const standard = await createTrack(undefined, 201, 'standard');
+
+    await updateSchedule(virtual.body.id, { mode: 'cron' }, 400);
+    await updateSchedule(virtual.body.id, { mode: 'manual', cron: '0 0 * * *' }, 400);
+    await updateSchedule(standard.body.id, { mode: 'manual' }, 400);
+    await updateSchedule(
+      'release-track--11111111-1111-4111-8111-111111111111',
+      {
+        mode: 'manual',
+      },
+      404,
+    );
+
+    expect(() => releaseTracksService.updateSchedule(virtual.body.id, { mode: 'cron' })).toThrow();
   });
 
   it('rejects fields that do not apply to manual schedules', async function () {

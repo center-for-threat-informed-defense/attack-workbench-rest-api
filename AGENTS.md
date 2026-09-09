@@ -165,6 +165,9 @@ parameter semantics in the `docs { }` block.
   deletable "graph cache" to release-track exports; drafts inherit their
   predecessor's manifest and only member-changing writes seal a new one. The
   `x-mitre-collection` object is a projection, not a stored object.
+- A virtual track's `snapshot_schedule` is live registry configuration, not
+  historical snapshot state. Schedule changes must update the registry without
+  cloning a draft; Workbench snapshot responses project the current schedule.
 - Historic full-suite flake (fixed 2026-07-10): per-spec-file mongod
   restarts hit "Port already in use", failing a random file's `before` hook
   (visible as `loginAnonymous` 404s). `database-in-memory.js` now reuses one

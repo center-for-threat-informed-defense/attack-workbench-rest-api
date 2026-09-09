@@ -309,6 +309,14 @@ router
     releaseTracksController.updateComposition,
   );
 
+router
+  .route('/release-tracks/:id/virtual/schedule')
+  .put(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.updateSchedule,
+  );
+
 // =============================================================================
 // Delete release track (must be last -- :id is a catch-all param)
 // =============================================================================

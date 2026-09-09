@@ -247,9 +247,12 @@ exports.resolveTrackAlias = async function resolveTrackAlias(alias) {
 /**
  * The alias registered for a track, or null.
  */
-exports.getTrackAlias = async function getTrackAlias(trackId) {
+exports.getTrackMetadata = async function getTrackMetadata(trackId) {
   const entry = await registryRepo.findByTrackId(trackId);
-  return entry?.alias ?? null;
+  return {
+    alias: entry?.alias ?? null,
+    snapshot_schedule: entry?.snapshot_schedule,
+  };
 };
 
 // =============================================================================

@@ -12,6 +12,11 @@ Virtual release tracks are computed aggregations of standard release tracks. The
 - Create snapshots **manually or on schedule** (never event-driven)
 - All snapshots start as **drafts** and must be explicitly tagged
 
+The active schedule is registry metadata rather than historical snapshot
+content. Replace it with `PUT /api/release-tracks/:id/virtual/schedule`; this
+does not create a draft. Workbench-format snapshot responses project the
+current schedule for configuration interfaces.
+
 ## Use Cases
 
 ### Scenario 1: Different Cadences for Different Object Types

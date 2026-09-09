@@ -162,6 +162,25 @@ class ReleaseTrackRegistryRepository {
     }
   }
 
+  async setSnapshotSchedule(trackId, snapshotSchedule) {
+    try {
+      return await this.model
+        .findOneAndUpdate(
+          { track_id: trackId, type: 'virtual' },
+          {
+            $set: {
+              snapshot_schedule: snapshotSchedule,
+              updated_at: new Date(),
+            },
+          },
+          { new: true, runValidators: true, lean: true },
+        )
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async replaceTaggedReleases(trackId, taggedReleases, latestTaggedVersion) {
     try {
       return await this.model
