@@ -96,16 +96,7 @@ components:
           description: 'Component track references (virtual tracks only)'
           $ref: '#/components/schemas/composition'
         composition_resolution:
-          type: object
-          nullable: true
-          description: |
-            Immutable component-resolution provenance for a materialized virtual
-            draft. Null or absent means the virtual composition is configured
-            but has not been materialized and therefore cannot be previewed or
-            released. Duplicate counts include STIX IDs contributed by more than
-            one component, while conflicts include only IDs with genuinely
-            different revisions. Each surviving member is attributed to exactly
-            one component in objects_contributed.
+          $ref: '#/components/schemas/composition-resolution'
         snapshot_schedule:
           readOnly: true
           description: |
@@ -276,7 +267,124 @@ components:
             scheduled_materialization:
               nullable: true
               $ref: '#/components/schemas/scheduled-materialization'
+            composition_resolution:
+              $ref: '#/components/schemas/composition-resolution'
             quarantine_count:
+              type: integer
+              minimum: 0
+
+    composition-resolution:
+      type: object
+      nullable: true
+      readOnly: true
+      description: |
+        Immutable provenance for a materialized virtual snapshot. Each
+        component_snapshots entry names the exact tagged standard-track
+        snapshot used, including its version and creation timestamp. Null or
+        absent means the composition was configured but not materialized.
+        Duplicate counts include STIX IDs contributed by more than one
+        component, while conflicts include only genuinely different revisions.
+        Snapshot-history summaries return resolved_at and component_snapshots;
+        full snapshot responses additionally return deduplication and summary.
+      required:
+        - resolved_at
+        - component_snapshots
+      properties:
+        resolved_at:
+          type: string
+          format: date-time
+          description: 'When the virtual snapshot composition was resolved'
+        component_snapshots:
+          type: array
+          description: 'Exact standard-track snapshots constituting this virtual snapshot'
+          items:
+            type: object
+            required:
+              - track_id
+              - track_name
+              - track_type
+              - resolved_snapshot_id
+              - resolved_version
+              - strategy_used
+              - total_objects_in_source
+              - objects_after_filter
+              - objects_contributed
+            properties:
+              track_id:
+                type: string
+              track_name:
+                type: string
+              track_type:
+                type: string
+                enum:
+                  - standard
+              resolved_snapshot_id:
+                type: string
+                format: date-time
+                description: 'Exact component snapshot timestamp; also identifies when that snapshot was created'
+              resolved_version:
+                type: string
+                description: 'Tagged version of the exact component snapshot'
+              strategy_used:
+                type: string
+                enum:
+                  - latest_tagged
+                  - specific_version
+                  - specific_snapshot
+              filters_applied:
+                type: object
+                additionalProperties: false
+                properties:
+                  object_types:
+                    type: array
+                    items:
+                      type: string
+                  domains:
+                    type: array
+                    items:
+                      type: string
+              total_objects_in_source:
+                type: integer
+                minimum: 0
+              objects_after_filter:
+                type: integer
+                minimum: 0
+              objects_contributed:
+                type: integer
+                minimum: 0
+                description: 'Surviving members attributed to this component after deduplication'
+        deduplication:
+          type: object
+          required:
+            - total_objects_before
+            - total_objects_after
+            - duplicates_found
+            - conflicts_resolved
+          properties:
+            total_objects_before:
+              type: integer
+              minimum: 0
+            total_objects_after:
+              type: integer
+              minimum: 0
+            duplicates_found:
+              type: integer
+              minimum: 0
+            conflicts_resolved:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+        summary:
+          type: object
+          required:
+            - total_objects
+            - quarantined_objects
+          properties:
+            total_objects:
+              type: integer
+              minimum: 0
+            quarantined_objects:
               type: integer
               minimum: 0
 

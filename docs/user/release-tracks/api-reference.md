@@ -459,7 +459,12 @@ The UI groups supporting and LinkById targets together as **Dependencies**.
 Snapshot tier count keys continue to reflect the track type:
 
 - `type: "standard"` adds `staged_count` and `candidates_count`.
-- `type: "virtual"` adds `quarantine_count`.
+- `type: "virtual"` adds `quarantine_count` and the snapshot's immutable
+  `composition_resolution`. Its `component_snapshots` entries identify the
+  exact standard-track snapshot used by track ID, tagged version, and
+  `resolved_snapshot_id` creation timestamp, together with the resolution
+  strategy, filters, source count, filtered count, and final contributed
+  count. An unmaterialized virtual draft returns the field as `null`.
 
 Inapplicable count keys are omitted rather than returned as zero.
 

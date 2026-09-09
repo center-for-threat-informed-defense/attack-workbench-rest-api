@@ -52,6 +52,7 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
   let virtualTrack;
   let standardTaggedModified;
   let standardLatestModified;
+  let virtualResolvedAt;
 
   before(async function () {
     await database.initializeConnection();
@@ -132,11 +133,39 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
 
     const virtualCreated = new Date(virtualTrack.modified);
     const virtualTaggedModified = new Date(virtualCreated.getTime() + 1000);
+    virtualResolvedAt = new Date(virtualCreated.getTime() + 500);
     await dynamicRepo.saveSnapshot(virtualTrack.id, {
       ...snapshotBase(virtualTrack),
       modified: virtualTaggedModified,
       version: '1.0',
       members: [memberEntry(0), memberEntry(1)],
+      composition_resolution: {
+        resolved_at: virtualResolvedAt,
+        component_snapshots: [
+          {
+            track_id: standardTrack.id,
+            track_name: standardTrack.name,
+            track_type: 'standard',
+            resolved_snapshot_id: standardTaggedModified,
+            resolved_version: '1.0',
+            strategy_used: 'latest_tagged',
+            filters_applied: { domains: ['enterprise'] },
+            total_objects_in_source: 2,
+            objects_after_filter: 2,
+            objects_contributed: 2,
+          },
+        ],
+        deduplication: {
+          total_objects_before: 2,
+          total_objects_after: 2,
+          duplicates_found: 0,
+          conflicts_resolved: [],
+        },
+        summary: {
+          total_objects: 2,
+          quarantined_objects: 1,
+        },
+      },
       quarantine: [
         {
           ...memberEntry(2),
@@ -263,7 +292,26 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       version: '1.0',
       members_count: 2,
       quarantine_count: 1,
+      composition_resolution: {
+        resolved_at: virtualResolvedAt.toISOString(),
+        component_snapshots: [
+          {
+            track_id: standardTrack.id,
+            track_name: standardTrack.name,
+            track_type: 'standard',
+            resolved_snapshot_id: standardTaggedModified.toISOString(),
+            resolved_version: '1.0',
+            strategy_used: 'latest_tagged',
+            filters_applied: { domains: ['enterprise'] },
+            total_objects_in_source: 2,
+            objects_after_filter: 2,
+            objects_contributed: 2,
+          },
+        ],
+      },
     });
+    expect(response.body.data[0].composition_resolution).not.toHaveProperty('deduplication');
+    expect(response.body.data[0].composition_resolution).not.toHaveProperty('summary');
     expect(response.body.data[0]).not.toHaveProperty('staged_count');
     expect(response.body.data[0]).not.toHaveProperty('candidates_count');
   });

@@ -696,6 +696,18 @@ materialized, the virtual release still records the version that actually
 produced its frozen contents. Standard release history entries omit this
 virtual-only property.
 
+The snapshot-history endpoint (`GET /api/release-tracks/:id/snapshots`) also
+returns the provenance portion of each virtual snapshot's
+`composition_resolution`: `resolved_at` and `component_snapshots`. This lets
+clients present provenance beside the draft or release it describes rather
+than presenting only the virtual track's current HEAD resolution. In each
+component entry, `resolved_snapshot_id` is the exact component snapshot's
+creation timestamp and stable retrieval key; `resolved_version` names its
+tagged version. The stored source, filtered, and contributed counts belong to
+that materialization and are not recomputed from the component track's current
+state. Full snapshot retrieval additionally returns the deduplication report
+and resolution summary.
+
 **Business Logic:**
 
 1. Validate snapshot exists and is a draft (version === null)

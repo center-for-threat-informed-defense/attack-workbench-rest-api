@@ -263,8 +263,9 @@ exports.getTrackMetadata = async function getTrackMetadata(trackId) {
  * List lightweight summaries of a track's snapshots.
  *
  * Standard summaries expose members/staged/candidates counts. Virtual
- * summaries expose members/quarantine counts. Every summary exposes its
- * content manifest ID and counts by manifest entry role.
+ * summaries expose members/quarantine counts plus their immutable composition
+ * resolution. Every summary exposes its content manifest ID and counts by
+ * manifest entry role.
  *
  * @param {string} trackId
  * @param {Object} options - { tagged?, limit, offset }
@@ -302,9 +303,17 @@ exports.listSnapshots = async function listSnapshots(trackId, options) {
       };
 
       if (snapshot.type === 'virtual') {
+        const compositionResolution = snapshot.composition_resolution;
         return {
           ...common,
           scheduled_materialization: snapshot.scheduled_materialization,
+          composition_resolution:
+            compositionResolution == null
+              ? compositionResolution
+              : {
+                  resolved_at: compositionResolution.resolved_at,
+                  component_snapshots: compositionResolution.component_snapshots,
+                },
           quarantine_count: snapshot.quarantine_count,
         };
       }

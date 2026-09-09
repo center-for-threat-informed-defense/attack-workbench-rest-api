@@ -295,6 +295,7 @@ class ReleaseTrackDynamicRepository {
           name: 1,
           description: 1,
           scheduled_materialization: 1,
+          composition_resolution: 1,
           members_count: { $size: { $ifNull: ['$members', []] } },
           staged_count: { $size: { $ifNull: ['$staged', []] } },
           candidates_count: { $size: { $ifNull: ['$candidates', []] } },

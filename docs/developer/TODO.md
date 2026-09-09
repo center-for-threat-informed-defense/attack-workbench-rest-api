@@ -48,6 +48,45 @@ Verification (2026-09-09):
   `feat(release-tracks): add guided snapshot scheduling`, and
   `docs(release-tracks): add virtual schedule request`.
 
+## Snapshot-scoped virtual composition provenance
+
+- [x] Return each virtual snapshot's immutable `composition_resolution` from
+      snapshot history and declare it in OpenAPI.
+- [x] Add backend regression coverage and update user/API documentation plus
+      the Bruno snapshot-history request.
+- [x] Move the frontend Composition Resolution view from HEAD into each
+      virtual snapshot's Releases card, including exact component version,
+      snapshot timestamp, strategy, filters, and contribution counts.
+- [x] Add frontend regression coverage and update frontend documentation.
+- [x] Replace the dense seven-column provenance table with a responsive
+      component list whose identifiers wrap within their own regions and whose
+      counts use independently wrapping metric labels.
+- [x] Run focused backend/frontend specs, then each repository's complete
+      required verification suite; propose conventional commit messages.
+
+Verification (2026-09-09):
+
+- REST API: snapshot-history spec 7 passing; OpenAPI 2 passing; lint clean;
+  full `npm test` under Node 24 clean (2 OpenAPI, 22 config, 1020 API,
+  29 middleware, 10 scheduler). Node 22 full-suite attempts reproduced the
+  documented roaming HTTP-response flake; every affected spec passed alone.
+- Frontend: release-track page spec 71 passing; full `npm test` 404 passing;
+  application TypeScript compilation clean; changed-file ESLint clean;
+  production build clean with existing bundle/style budget warnings. The
+  repository-wide lint command still reports pre-existing errors outside the
+  changed files.
+- Proposed commits: REST API `feat(release-tracks): expose virtual snapshot
+  provenance`; frontend `feat(release-tracks): scope composition provenance to
+  snapshots`; Bruno `docs(release-tracks): document snapshot composition
+  provenance`.
+
+Post-merge review (2026-09-09): no blocking findings; live registry scheduling
+and historical composition provenance remain separate. Reverified with Node 24:
+7 focused backend tests, 77 focused frontend tests, full backend suite
+(2 OpenAPI, 22 config, 1024 API, 29 middleware, 10 scheduler), and all 411
+frontend tests passed. Backend lint, changed-file frontend lint, and the
+frontend production build passed (bundle/style budget warnings remain).
+
 ## Sealed snapshot content manifests (Problem 1)
 
 Design: [release-tracks/sealed-content-manifests.md](release-tracks/sealed-content-manifests.md).
