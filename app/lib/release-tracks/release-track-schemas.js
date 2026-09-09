@@ -495,6 +495,9 @@ const releaseBodySchema = z
     message: 'increment and version are mutually exclusive',
   });
 
+/** PUT /release-tracks/:id/snapshots/:modified/release */
+const retagReleaseBodySchema = z.object({ version: xMitreVersionSchema }).strict();
+
 /** POST /release-tracks/:id/clone */
 const cloneBodySchema = z
   .object({
@@ -676,6 +679,7 @@ module.exports = {
   updateMetadataBodySchema,
   updateSnapshotDescriptionBodySchema,
   releaseBodySchema,
+  retagReleaseBodySchema,
   publicationConfigSchema,
   cloneBodySchema,
   addCandidatesBodySchema,

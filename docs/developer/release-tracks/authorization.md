@@ -15,6 +15,7 @@ history requires an administrator.
 | Tag a standard or virtual snapshot                                    |      No |                Yes |           Yes |
 | Delete the latest untagged draft snapshot                             |      No |                Yes |           Yes |
 | Delete the track's most recent release                                |      No |                 No |           Yes |
+| Change a tagged release's semantic version                            |      No |                 No |           Yes |
 | Delete an entire track and all snapshot history                       |      No |                 No |           Yes |
 
 Full-track deletion also requires `confirm_track_id` to equal the `:id` path
@@ -24,9 +25,19 @@ deletion shares the snapshot deletion route, so the service checks the
 administrator role itself and answers `403` otherwise. Confirmation runs
 before persistence in both cases.
 
+Release-version correction uses `PUT /snapshots/:modified/release`, is also
+checked in the service, and does not require destructive confirmation because
+it preserves the snapshot. It is serialized with release and rollback and is
+recorded as `retag_release`.
+
+Release deletion re-reads the snapshot and checks `confirm_version` under the
+release lock. Both deletion and retag capture audit identity under that same
+lock, so a competing version correction cannot invalidate confirmation or
+change the version between audit capture and mutation.
+
 ## Audited destructive actions
 
-The `delete_track` and `delete_release` actions create a
+The `delete_track`, `delete_release`, and `retag_release` actions create a
 `releaseTrackAuditEvents` record before the business operation begins.
 
 Each event records the authenticated actor, confirmation value, target track,

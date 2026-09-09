@@ -381,31 +381,34 @@ exports.deleteSnapshot = async function deleteSnapshot(trackId, modified, option
     return snapshotService.deleteSnapshot(trackId, modified);
   }
 
-  if (options.actor?.role !== authz.userRoles.admin) {
-    throw new InsufficientRoleError('administrator', {
-      details: 'Deleting a release requires an administrator.',
-      track_id: trackId,
-      version: snapshot.version,
-    });
-  }
-  if (options.confirmation !== snapshot.version) {
-    throw new BadRequestError({
-      message: 'Destructive release confirmation is required',
-      details: `Set confirm_version to the exact release version '${snapshot.version}'.`,
-      parameter_name: 'confirm_version',
-      expected_version: snapshot.version,
-    });
-  }
+  return versioningService.withReleaseLock(trackId, async () => {
+    const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
+    if (options.actor?.role !== authz.userRoles.admin) {
+      throw new InsufficientRoleError('administrator', {
+        details: 'Deleting a release requires an administrator.',
+        track_id: trackId,
+        version: snapshot.version,
+      });
+    }
+    if (options.confirmation !== snapshot.version) {
+      throw new BadRequestError({
+        message: 'Destructive release confirmation is required',
+        details: `Set confirm_version to the exact release version '${snapshot.version}'.`,
+        parameter_name: 'confirm_version',
+        expected_version: snapshot.version,
+      });
+    }
 
-  return destructiveAuditService.execute(
-    {
-      action: 'delete_release',
-      trackId,
-      ...destructiveIdentity(trackId, options.actor, options.confirmation),
-      request: { snapshot_modified: new Date(snapshot.modified).toISOString() },
-    },
-    () => snapshotService.deleteRelease(trackId, modified),
-  );
+    return destructiveAuditService.execute(
+      {
+        action: 'delete_release',
+        trackId,
+        ...destructiveIdentity(trackId, options.actor, options.confirmation),
+        request: { snapshot_modified: new Date(snapshot.modified).toISOString() },
+      },
+      () => snapshotService.deleteRelease(trackId, modified),
+    );
+  });
 };
 
 exports.reconstructSnapshotManifest = function reconstructSnapshotManifest(
@@ -475,6 +478,33 @@ exports.releaseLatest = function releaseLatest(trackId, options) {
 
 exports.releaseByModified = function releaseByModified(trackId, modified, options) {
   return versioningService.releaseByModified(trackId, modified, options);
+};
+
+exports.retagRelease = async function retagRelease(trackId, modified, nextVersion, actor) {
+  return versioningService.withReleaseLock(trackId, async () => {
+    const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
+    if (actor?.role !== authz.userRoles.admin) {
+      throw new InsufficientRoleError('administrator', {
+        details: 'Changing a release version requires an administrator.',
+        track_id: trackId,
+        version: snapshot.version,
+      });
+    }
+
+    return destructiveAuditService.execute(
+      {
+        action: 'retag_release',
+        trackId,
+        ...destructiveIdentity(trackId, actor, snapshot.version),
+        request: {
+          snapshot_modified: new Date(snapshot.modified).toISOString(),
+          previous_version: snapshot.version,
+          next_version: nextVersion,
+        },
+      },
+      () => versioningService.retagReleaseLocked(trackId, modified, nextVersion),
+    );
+  });
 };
 
 async function renderReleasePlan(plan, options) {

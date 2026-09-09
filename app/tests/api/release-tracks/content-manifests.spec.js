@@ -158,8 +158,8 @@ describe('Sealed release-track content manifests', function () {
       stix_2_0: expect.stringMatching(/^[a-f0-9]{64}$/),
       stix_2_1: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
-    // The initial manifest is no longer referenced by any snapshot.
-    expect(await ReleaseTrackContentManifest.countDocuments({ track_id: track.id })).toBe(1);
+    // The preserved source draft still references its inherited manifest.
+    expect(await ReleaseTrackContentManifest.countDocuments({ track_id: track.id })).toBe(2);
 
     const sealed = await ReleaseTrackContentManifest.findOne({
       manifest_id: released.content_manifest_id,
@@ -485,7 +485,8 @@ describe('Sealed release-track content manifests', function () {
     expect(reconstructed.bundle_id).toBe(released.bundle_id);
     expect(reconstructed.bundle_hashes.manifest_id).toBe(reconstructed.content_manifest_id);
     expect(reconstructed.bundle_hashes.stix_2_1).not.toBe(released.bundle_hashes.stix_2_1);
-    expect(await ReleaseTrackContentManifest.countDocuments({ track_id: track.id })).toBe(1);
+    // Reconstruction replaces only the release manifest; the source draft remains intact.
+    expect(await ReleaseTrackContentManifest.countDocuments({ track_id: track.id })).toBe(2);
     const manifest = await ReleaseTrackContentManifest.findOne({
       manifest_id: reconstructed.content_manifest_id,
     })

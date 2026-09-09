@@ -100,7 +100,7 @@ A **draft release** (or **draft snapshot**) is an untagged snapshot - still in d
 **Characteristics:**
 - No version number assigned
 - Not considered production-ready
-- Can transition from draft to tagged state via tagging (in-place) operation
+- Standard drafts are preserved when a tagged release clone is created
 - May contain candidate, staged, and member objects in various states
 
 **Examples:**
@@ -117,13 +117,15 @@ A **tagged release** (or **tagged snapshot**) is a snapshot that has been marked
 **Technical Definition:**
 - A snapshot where `version !== null`
 - The version follows MAJOR.MINOR format (e.g., "1.0", "2.3", "15.1")
-- Created by performing a tagging operation on a draft release
-- The `stix.modified` timestamp does not change during tagging (in-place operation)
+- Created from a draft release
+- Standard releases receive a new `modified` timestamp and retain a link to
+  their exact source draft; virtual releases are tagged in place
 
 **Characteristics:**
 - Has an explicit version number
 - Considered production-ready and published
-- **Immutable** - cannot be re-tagged or untagged
+- Content is immutable; administrators may correct the semantic version or
+  roll back the newest standard release when no virtual snapshot depends on it
 - Recorded in `version_history` for audit trail
 - Analogous to a Git tag
 
@@ -137,11 +139,11 @@ A **tagged release** (or **tagged snapshot**) is a snapshot that has been marked
 
 ### Tagging Operation
 
-The **tagging operation** marks an existing snapshot as a tagged release by assigning it a version number.
+The **tagging operation** publishes a draft by assigning a version number.
 
 **Technical Definition:**
-- Sets `version` on an existing snapshot (in-place update)
-- Does NOT create a new snapshot (does NOT change `modified`)
+- For standard tracks, creates a tagged snapshot and preserves the source draft
+- For virtual tracks, sets `version` on the materialized snapshot in place
 - Adds an entry to `version_history` for audit trail
 - Can be performed on the latest snapshot or a specific historical snapshot
 

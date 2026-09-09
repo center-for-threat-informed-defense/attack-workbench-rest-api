@@ -497,7 +497,8 @@ describe('Release-track release planning and commit API', function () {
     });
 
     const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {});
-    expect(released.body.modified).toBe(updated.body.modified);
+    expect(released.body.modified).not.toBe(updated.body.modified);
+    expect(released.body.release_source_modified).toBe(updated.body.modified);
     expect(released.body.modified).not.toBe(preview.body.source_snapshot_modified);
     expect(released.body.version).toBe('1.0');
   });
@@ -518,7 +519,8 @@ describe('Release-track release planning and commit API', function () {
     const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {
       version: '3.0',
     });
-    expect(released.body.modified).toBe(replacement.body.modified);
+    expect(released.body.modified).not.toBe(replacement.body.modified);
+    expect(released.body.release_source_modified).toBe(replacement.body.modified);
     expect(released.body.version).toBe('3.0');
   });
 

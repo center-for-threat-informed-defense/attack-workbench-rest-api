@@ -143,14 +143,18 @@ function planRelease(
 
   const normalized = tierRevisionInvariant.normalizeSnapshot(sourceSnapshot);
   const snapshot = normalized.snapshot;
+  const releaseModified =
+    sourceSnapshot.type === 'standard'
+      ? new Date(Math.max(now.getTime(), new Date(sourceSnapshot.modified).getTime() + 1))
+      : sourceSnapshot.modified;
   const version = versionUtils.calculateNextVersion(
     versionHistory,
     options.increment,
     options.version,
-    sourceSnapshot.modified,
+    releaseModified,
   );
-  versionUtils.validateVersionProgression(version, versionHistory, sourceSnapshot.modified);
-  const versionBounds = versionUtils.findVersionBounds(versionHistory, sourceSnapshot.modified);
+  versionUtils.validateVersionProgression(version, versionHistory, releaseModified);
+  const versionBounds = versionUtils.findVersionBounds(versionHistory, releaseModified);
 
   const isVirtual = snapshot.type === 'virtual';
   const before = isVirtual
@@ -197,7 +201,11 @@ function planRelease(
 
   const afterSnapshot = {
     ...snapshot,
+    modified: releaseModified,
     version,
+    ...(sourceSnapshot.type === 'standard'
+      ? { release_source_modified: sourceSnapshot.modified }
+      : {}),
     members: mergedMembers,
     ...(updatesSnapshotDescription && options.description
       ? { snapshot_description: options.description }
@@ -217,7 +225,7 @@ function planRelease(
     version,
     tagged_at: now,
     tagged_by: options.userAccountId || 'system',
-    snapshot_id: sourceSnapshot.modified,
+    snapshot_id: releaseModified,
     summary: {
       ...after,
       promoted_count: blockingError ? 0 : staged.length,
@@ -245,6 +253,7 @@ function planRelease(
       track_id: trackId,
       type: snapshot.type,
       source_snapshot_modified: iso(sourceSnapshot.modified),
+      release_snapshot_modified: iso(releaseModified),
       version,
       version_bounds: {
         lower: versionBounds.lower
@@ -280,6 +289,15 @@ function planRelease(
 }
 
 async function planLoadedSnapshot(trackId, snapshot, options) {
+  if (snapshot.type === 'standard') {
+    const existingRelease = await dynamicRepo.getReleaseBySourceModified(
+      trackId,
+      snapshot.modified,
+    );
+    if (existingRelease) {
+      throw new AlreadyReleasedError(existingRelease.version);
+    }
+  }
   const [versionHistory, previousTaggedSnapshot, resolvedStaged] = await Promise.all([
     releaseHistoryService.getTrackWideVersionHistory(trackId),
     snapshot.type === 'virtual'
@@ -381,12 +399,20 @@ async function commitPlan(plan) {
 
   let tagged;
   try {
-    tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, source.modified, {
-      version: plan.version,
-      versionHistoryEntry: plan.versionHistoryEntry,
-      additionalOps: setOps,
-      unsetOps: Object.keys(unsetOps).length ? unsetOps : undefined,
-    });
+    if (source.type === 'standard') {
+      const releaseSnapshot = { ...plan.plannedSnapshot, ...setOps };
+      delete releaseSnapshot._id;
+      delete releaseSnapshot.__v;
+      if (plan.clearSnapshotDescription) delete releaseSnapshot.snapshot_description;
+      tagged = await dynamicRepo.saveSnapshot(plan.trackId, releaseSnapshot);
+    } else {
+      tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, source.modified, {
+        version: plan.version,
+        versionHistoryEntry: plan.versionHistoryEntry,
+        additionalOps: setOps,
+        unsetOps: Object.keys(unsetOps).length ? unsetOps : undefined,
+      });
+    }
   } catch (err) {
     await contentManifestService.discard(sealedManifestId);
     throw err;
@@ -406,6 +432,9 @@ async function commitPlan(plan) {
   const withArtifacts = await refreshReleaseArtifacts(tagged);
 
   await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
+  if (source.type === 'standard') {
+    await snapshotService.syncRegistryCounters(plan.trackId);
+  }
   const latest = await dynamicRepo.getLatestSnapshot(plan.trackId);
   await snapshotService.emitContentsChanged(plan.trackId, latest);
 
@@ -451,6 +480,7 @@ async function withReleaseLock(trackId, operation) {
 }
 
 exports.planRelease = planRelease;
+exports.withReleaseLock = withReleaseLock;
 exports._private = {
   memberRevisions,
   sameRevisions,
@@ -482,4 +512,56 @@ exports.releaseByModified = async function releaseByModified(trackId, modified, 
   return withReleaseLock(trackId, async () =>
     commitPlan(await exports.planReleaseByModified(trackId, modified, options)),
   );
+};
+
+// The facade holds the release lock across validation, audit capture, and this operation.
+exports.retagReleaseLocked = async function retagReleaseLocked(trackId, modified, nextVersion) {
+  const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
+  if (snapshot.version == null) {
+    throw new ReleaseConflictError('The selected snapshot is not a release', {
+      track_id: trackId,
+      snapshot_modified: iso(snapshot.modified),
+    });
+  }
+  const currentVersion = snapshot.version;
+  const versionHistory = (await releaseHistoryService.getTrackWideVersionHistory(trackId)).filter(
+    (entry) => iso(entry.modified) !== iso(snapshot.modified),
+  );
+  versionUtils.validateVersionProgression(nextVersion, versionHistory, snapshot.modified);
+
+  // Hash the proposed serialization before publishing any change. A failed
+  // export leaves the old release intact; version and artifacts change in one
+  // document update. Same-version retries deliberately replay all side effects.
+  const publication =
+    snapshot.publication || (await publicationService.freezePublication(snapshot));
+  const bundleId = snapshot.bundle_id || `bundle--${uuid.v4()}`;
+  const bundleHashes = await bundleHashService.generateBundleHashes({
+    ...snapshot,
+    version: nextVersion,
+    publication,
+    bundle_id: bundleId,
+  });
+  const retagged = await dynamicRepo.retagSnapshotInPlace(
+    trackId,
+    snapshot.modified,
+    currentVersion,
+    nextVersion,
+    { publication, bundle_id: bundleId, bundle_hashes: bundleHashes },
+  );
+  if (!retagged) {
+    throw new ReleaseConflictError('The release changed while its version was being updated', {
+      track_id: trackId,
+      snapshot_modified: iso(snapshot.modified),
+      expected_version: currentVersion,
+    });
+  }
+
+  await dynamicRepo.replaceVersionHistoryVersion(trackId, snapshot.modified, nextVersion);
+  await releaseHistoryService.reconcileTaggedReleases(trackId);
+  await snapshotService.syncRegistryCounters(trackId);
+
+  logger.verbose(
+    `VersioningService: Changed release ${currentVersion} to ${nextVersion} on track "${trackId}"`,
+  );
+  return retagged;
 };

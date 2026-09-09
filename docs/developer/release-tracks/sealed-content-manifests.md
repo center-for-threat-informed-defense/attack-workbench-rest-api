@@ -88,10 +88,13 @@ endpoint.
    is editable on drafts only. The graph create and delete endpoints are
    removed. The admin-only source-attested reconstruction endpoint remains
    and can replace an existing manifest when the caller names the manifest it
-   expects to replace. The correction path for a mistaken release is
-   deletion: an administrator may delete the track's most recent release with
-   a typed version confirmation, which retracts its ledger entry, discards its
-   manifest when unreferenced, and is audited as `delete_release`.
+   expects to replace. Standard release commit creates a tagged clone and
+   retains its exact source draft. The correction path for a mistaken latest
+   release is rollback: an administrator supplies typed version confirmation,
+   the clone is removed, and the preserved draft becomes active again.
+   Rollback is blocked while any virtual snapshot resolves the release.
+   Version-only corrections preserve content and snapshot identity but
+   regenerate export hashes.
 8. **Storage is named for what it holds.** Manifests live in
    `releaseTrackContentManifests` and `releaseTrackContentManifestEntries`
    with `release-track-content-manifest--` ids. A manifest header carries
@@ -110,6 +113,28 @@ endpoint.
    and duplicated the release preview.)
 
 ## Consequences
+
+### Rollback and retag concurrency / recovery
+
+Virtual materialization acquires the existing database-backed release locks
+for all component tracks in sorted order, before resolving any release, and
+holds them through snapshot persistence. Partial acquisition and failed
+materialization unwind the locks. Contention fails fast with 409. The rollback
+dependency scan therefore cannot miss an in-flight materialization: either
+rollback owns the lock first, or it sees the persisted virtual dependency
+after materialization releases the lock.
+
+Retag prepares both bundle serializations before writing, then atomically
+publishes the version, publication metadata, bundle ID, and hashes on the
+snapshot document. Export failure leaves the old release unchanged. Copied
+version histories are repaired by snapshot identity, not by the previous
+version string; this and catalogue/counter reconciliation run even on
+same-version retries. This makes an interrupted multi-document update
+recoverable without MongoDB transactions. STIX 2.0 bytes do not include the
+release tag, so only the STIX 2.1 digest changes on a version-only correction.
+
+History's repository projection and service summary both expose
+`release_source_modified` so clients can identify retained source drafts.
 
 - Determinism is unconditional: exporting a tagged snapshot replays pointers
   and never queries relationships, and a draft replays its inherited members

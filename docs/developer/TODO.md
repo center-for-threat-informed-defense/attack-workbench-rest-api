@@ -1,5 +1,26 @@
 # Release Track TODOs
 
+## Merge scheduling and rollback branches into local beta (2026-09-09)
+
+- [x] Inspect all worktrees and confirm scheduling branches are already merged.
+- [x] Merge rollback branches and preserve both features in documentation conflicts.
+- [x] Run focused backend/frontend regressions, then full suites and lint/build checks.
+- [x] Complete local merge commits and verify both feature tips are ancestors of beta.
+
+Verification: backend focused group 84 passing; full `npm test` under Node 24
+passes (OpenAPI 2, config 22, API 1037, middleware 29, scheduler 10), and
+backend lint passes. One initial full-run HTTP 404 passed in isolation (23)
+and in the complete rerun. Frontend focused group 100 passing; all 168 test
+files / 416 tests, changed-file lint, and production build pass. The build
+required execution outside the sandbox; existing bundle/style budget warnings
+remain. Only documentation conflicted; both sides' behavior and records are
+preserved. Scheduling branches were already ancestors of beta; uncommitted
+work in the scheduling worktrees and existing untracked files are untouched.
+
+Merge messages: `chore(release-tracks): merge rollback support into beta`
+(backend) and `chore(release-tracks): merge rollback controls into beta`
+(frontend).
+
 ## Virtual release-track schedule configuration
 
 - [x] Fix schedule saves submitting unsupported deduplication fields: remove
@@ -86,6 +107,45 @@ and historical composition provenance remain separate. Reverified with Node 24:
 (2 OpenAPI, 22 config, 1024 API, 29 middleware, 10 scheduler), and all 411
 frontend tests passed. Backend lint, changed-file frontend lint, and the
 frontend production build passed (bundle/style budget warnings remain).
+
+## Preserve pre-release drafts and protect virtual dependencies
+
+- [x] Change standard-track release commit from in-place tagging to creation
+      of a new tagged snapshot while retaining the exact source draft.
+- [x] Prevent rolling-draft cleanup from pruning drafts retained as the source
+      of a tagged standard release.
+- [x] Block release deletion when any persisted virtual snapshot resolved the
+      exact standard release snapshot, for implicit or explicit composition.
+- [x] Add a post-hoc release-version update that preserves the snapshot and
+      validates the replacement against adjacent release versions.
+- [x] Reconcile release catalogues, copied version ledgers, bundle hashes,
+      audit records, and current-snapshot backrefs for both operations.
+- [x] Update OpenAPI, user/developer/operator docs, and Bruno requests.
+- [x] Add ADM-valid API regressions and run focused specs, then full `npm test`.
+- [x] Update the frontend release controls, wording, connector, and tests.
+- [x] Propose conventional commit messages without committing.
+
+## Rollback / retag review follow-up
+
+- [x] Coordinate component release locks with virtual materialization.
+- [x] Publish retag hashes atomically with the version and repair derived state on retry.
+- [x] Expose preserved source pointers in snapshot history.
+- [x] Validate deletion confirmation and capture audit identity under the release lock.
+- [x] Add concurrency, failure-recovery, history, and exact-download hash regressions.
+- [x] Update OpenAPI, user/developer docs, and Bruno smoke requests.
+- [x] Run focused specs, full npm test, and lint; propose a commit without committing.
+
+Verification: focused backend group 32 passing, final destructive/retag spec
+16 passing; full `npm test` passes (OpenAPI 2, config 22, API 1033,
+middleware 29, scheduler 10). Backend lint and frontend page/connector tests
+(90) pass. An initial unrelated technique-conversion 404 passed in isolation
+(24) and on the final full run; no unrelated source changes were made.
+
+Proposed commit: `fix(release-tracks): make rollback and retag concurrency-safe`
+
+Coordinate materialization with component release locks, publish retag hashes
+atomically, repair derived state on retry, expose preserved draft pointers,
+and validate destructive confirmation under the audit lock.
 
 ## Sealed snapshot content manifests (Problem 1)
 

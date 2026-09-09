@@ -101,23 +101,41 @@ publication metadata, assigns a stable bundle identifier, and records SHA-256
 hashes of both bundle serializations. A released snapshot is immutable,
 including its notes.
 
-### In-Place Tagging Strategy
+### Preserved Standard-Track Release Strategy
 
 When you release a snapshot:
 
-1. The **existing** snapshot is updated in-place
-2. `version` is set to the new version
-3. An entry is added to `version_history` for audit trail
-4. The `modified` timestamp **does not change**
-5. For standard tracks, staged objects are promoted into `members` and a
-   content manifest is sealed over the result in the same atomic update
+1. The selected standard draft remains unchanged as the rollback point.
+2. A new tagged snapshot is created with a new `modified` timestamp.
+3. `release_source_modified` points to the exact source draft.
+4. `version` and a matching `version_history` entry are added to the release.
+5. Staged objects are promoted into `members` and a fresh content manifest is
+   sealed over the release.
 
-**Why in-place?**
+Virtual tracks still tag their already-materialized draft in place. Standard
+tracks use a clone because rollback must restore notes, workflow tiers,
+dynamic selectors, and manifest identity exactly as they existed immediately
+before release.
 
-- Avoids duplicate data (no need to copy the entire release track)
-- Clear semantics: tagging is metadata, not a content change
-- Snapshots remain immutable except for the version tag
-- Matches Git's model where tags point to existing commits
+The preserved source draft is hidden from the normal Releases timeline while
+its tagged clone exists. Rolling-draft cleanup does not prune it.
+
+Administrators can correct a tagged snapshot's version with `PUT
+/snapshots/:modified/release`. This preserves snapshot identity and content,
+while enforcing the adjacent semantic-version bounds.
+
+For a version-only correction, the STIX 2.1 SHA-256 changes because the
+collection object contains `x_mitre_version`. The STIX 2.0 SHA-256 stays the
+same: that format omits the collection object. The bundle ID is unchanged.
+Hashes are generated before the version is changed and stored together with
+the new version. If later history or catalogue updates fail, retry the same
+PUT with the same version to finish them; a same-version request repairs
+derived state rather than being a no-op.
+
+Virtual materialization holds the component release locks until its snapshot
+is persisted. Concurrent release, rollback, retag, or materialization on a
+shared component may return `409`; retry after the other operation finishes.
+Once the virtual snapshot exists, rollback is blocked by its dependency.
 
 ### Tagging Endpoints
 
@@ -193,18 +211,16 @@ POST /api/release-tracks/release--123/snapshots/latest/release
 POST /api/release-tracks/:id/snapshots/:modified/release
 ```
 
-Tags a specific snapshot as a tagged release. Can tag retroactively, (i.e., a non-latest snapshot can be tagged), granted no [versioning rules](#versioning-rules) are violated.
+Publishes a specific draft. For a standard track, the server preserves that
+draft and creates a tagged clone at the current time.
 
 **Use Cases:**
 
-- You want to tag snapshot 3, then later also tag snapshot 5
-- You forgot to tag a snapshot and want to mark it retroactively
-- You want to create multiple tagged releases from different development branches
+- You want to release the content of an earlier retained draft
+- You want to pin the operation to a snapshot rather than use `latest`
 
-**Constraint:** The version must be greater than the nearest earlier tagged
-snapshot and less than the nearest later tagged snapshot. Both bounds are
-exclusive. This allows a forgotten historical draft to be tagged without
-breaking the version order of the timeline.
+**Constraint:** A standard release created from an earlier draft is not
+backdated. Its version must be greater than the current latest release.
 
 ## Versioning Rules
 
@@ -219,22 +235,21 @@ Collections use a **two-part versioning scheme** (MAJOR.MINOR), inspired by sema
 
 ### Version Constraints
 
-1. **Chronologically increasing** - Tagged versions increase with snapshot
-   `modified` time. A retroactive tag is exclusively lower- and upper-bounded
-   by its adjacent tagged snapshots.
-2. **Immutable once set** - Once a snapshot has `version` assigned, it cannot be changed
-3. **Cannot re-tag** - A snapshot can only be tagged once (throws `AlreadyReleasedError` if attempted)
+1. **Chronologically increasing** - Tagged versions increase with release
+   snapshot `modified` time.
+2. **Immutable content** - Release contents and identity cannot be changed.
+   Administrators may correct the version within its adjacent bounds.
+3. **Cannot release twice** - A draft already linked to a tagged standard
+   release cannot be released again.
 4. **Valid version format** - Must match `/^\d+\.\d+$/` (MAJOR.MINOR only, no patch component)
 5. **Unique within the track** - Exactly one snapshot may hold a given tagged
    version. If concurrent release requests race for the same version, one
    succeeds and the other receives `409 Conflict` with the conflicting
    `track_id` and `version`.
 
-Relative `minor` and `major` increments are calculated from the nearest
-earlier tagged snapshot, not from the numerically highest tag elsewhere in the
-track. For example, a draft after explicit v19.1 previews as v19.2 for `minor`
-and v20.0 for `major`. A historical draft between v1.0 and v3.0 previews as
-v1.1 or v2.0 and may use any explicit version strictly inside that interval.
+Relative `minor` and `major` increments are calculated from the latest tagged
+release. For example, a track after explicit v19.1 previews as v19.2 for
+`minor` and v20.0 for `major`, even when the selected source draft is older.
 
 ### First Tagged Release
 

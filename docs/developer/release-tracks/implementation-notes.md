@@ -152,8 +152,9 @@ objects; no partial release track points at them.
 `app/lib/release-tracks/tier-revision-invariant.js` owns selector identity
 (`object_ref` + normalized `object_modified`) and normalization.
 Every clone-based mutation passes through `snapshot-service.cloneSnapshot`;
-track cloning uses the same normalizer. Tagging is the one in-place mutation,
-so `versioning-service` normalizes before the atomic tag update. This covers
+track cloning uses the same normalizer. Standard tagging also creates a clone,
+while virtual tagging remains an in-place mutation of its materialized draft.
+`versioning-service` normalizes before either commit. This covers
 candidate adds, manual/automatic promotion, demotion, status transitions,
 candidate pin changes, member sync, direct content replacement, bundle
 import, standard/virtual snapshot creation, and release commits without
@@ -345,6 +346,17 @@ already-frozen draft. Standard release history entries omit the virtual-only
 property. Mongoose validates every map value with the shared release-version
 validator and requires every persisted component resolution to identify its
 tagged `resolved_version`.
+
+Standard release commit assigns a fresh timestamp, stores
+`release_source_modified`, and inserts the tagged clone while retaining the
+source. Release, retag, and rollback share the registry release lock. Rollback
+queries exact virtual provenance (`track_id` + `resolved_snapshot_id`) across
+all virtual snapshot collections and fails closed when any dependent exists;
+this catches both implicit `latest_tagged` and explicit resolution rules.
+
+Retagging preserves `resolved_snapshot_id`. Existing virtual provenance keeps
+the `resolved_version` label observed when it materialized; future explicit
+rules that name an obsolete label must be updated by the caller.
 
 ### Snapshot history reads
 
