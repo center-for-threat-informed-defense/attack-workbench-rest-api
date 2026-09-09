@@ -21,6 +21,11 @@ processed after startup.
 `manual` schedules register no executable work. Operators must call
 `POST /api/release-tracks/:id/virtual/snapshots/create`.
 
+Editors can replace the active schedule through
+`PUT /api/release-tracks/:id/virtual/schedule`. The change is visible
+immediately in track and Workbench-format snapshot responses; executable jobs
+are refreshed on the next `VIRTUAL_TRACK_SCHEDULES_CRON` reconciliation pass.
+
 ## Idempotency and multiple instances
 
 The `virtualTrackScheduleOccurrences` collection stores one durable occurrence

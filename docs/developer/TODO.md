@@ -1,5 +1,53 @@
 # Release Track TODOs
 
+## Virtual release-track schedule configuration
+
+- [x] Fix schedule saves submitting unsupported deduplication fields: remove
+      preferred tier/status controls and compare composition to its initial
+      editable state, including normalized priorities and defaults.
+- [x] Verify server-shaped schedule-only save and strategy-change regressions,
+      full frontend tests, and production build.
+      Focused: 94 passing; full: 167 files / 410 tests passing; production build
+      and changed-file lint pass. Backend schema rejects precisely
+      `tier_resolution`/`status_resolution` and accepts the corrected payload.
+      Proposed commit: `fix(release-tracks): avoid invalid composition updates`.
+      Body: Remove unsupported deduplication controls and compare the edited
+      composition to its initial form state so schedule-only saves skip cloning.
+
+- [x] Add controlled natural-language schedule autocomplete with hourly and
+      15/30-minute presets and guided customization.
+- [x] Verify autocomplete regressions, full frontend suite, and production build.
+      Focused tests: 94 passing; full frontend: 167 files / 410 tests passing;
+      production build, changed-file lint, formatting, and diff checks pass.
+      Proposed commit: `feat(release-tracks): autocomplete schedule presets`.
+      Body: Map selected schedule phrases to deterministic UTC cron expressions
+      and support hourly and 15/30-minute guided customization.
+
+- [x] Review persisted schedule validation, storage, scheduler execution, and
+      existing regression coverage.
+- [x] Add an authenticated virtual-track schedule update endpoint with strict
+      validation and persistence.
+- [x] Add backend regression tests, OpenAPI documentation, user/developer
+      documentation, and Bruno coverage.
+- [x] Add a controlled frontend schedule editor for manual, recurring cron,
+      and explicit-date schedules, without free-text cron entry.
+- [x] Add frontend connector/component regressions and usage documentation.
+- [x] Run focused checks, then the complete backend and frontend suites.
+- [x] Propose conventional commit messages without committing.
+
+Verification (2026-09-09):
+
+- Backend focused schedule/API and scheduler specs: 19 passing; OpenAPI: 2
+  passing; changed-file ESLint clean.
+- Backend complete `npm test`: OpenAPI 2, config 22, API 1024, middleware 29,
+  and scheduler 10 passing.
+- Frontend focused component/connector specs: 92 passing; complete suite: 167
+  files and 408 tests passing; application TypeScript and production build
+  pass; changed-file ESLint has no errors.
+- Proposed commits: `feat(release-tracks): add virtual schedule updates`,
+  `feat(release-tracks): add guided snapshot scheduling`, and
+  `docs(release-tracks): add virtual schedule request`.
+
 ## Sealed snapshot content manifests (Problem 1)
 
 Design: [release-tracks/sealed-content-manifests.md](release-tracks/sealed-content-manifests.md).

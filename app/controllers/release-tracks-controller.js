@@ -50,6 +50,7 @@ const {
   updateCandidateVersionBodySchema,
   updateConfigBodySchema,
   updateCompositionBodySchema,
+  updateScheduleBodySchema,
   createVirtualSnapshotBodySchema,
   promoteQuarantinedObjectBodySchema,
   reconstructSnapshotGraphBodySchema,
@@ -1010,6 +1011,28 @@ exports.updateComposition = async function updateComposition(req, res, next) {
     return res.status(200).send(result);
   } catch (err) {
     logger.error('Failed to update composition: ' + err);
+    return next(err);
+  }
+};
+
+/** PUT /api/release-tracks/:id/virtual/schedule */
+exports.updateSchedule = async function updateSchedule(req, res, next) {
+  try {
+    const bodyResult = updateScheduleBodySchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid snapshot schedule update',
+          details: bodyResult.error.errors,
+        }),
+      );
+    }
+
+    const result = await releaseTracksService.updateSchedule(req.params.id, bodyResult.data);
+    logger.debug(`Success: Updated snapshot schedule for track ${req.params.id}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to update snapshot schedule: ' + err);
     return next(err);
   }
 };

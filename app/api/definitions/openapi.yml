@@ -385,6 +385,9 @@ paths:
   /api/release-tracks/{id}/virtual/composition:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1composition'
 
+  /api/release-tracks/{id}/virtual/schedule:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1schedule'
+
   /api/release-tracks/{id}/virtual/snapshots/create:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1snapshots~1create'
 

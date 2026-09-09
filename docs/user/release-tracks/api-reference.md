@@ -105,6 +105,7 @@ GET    /api/release-tracks/:id/objects/:objectRef/versions
 
 ```
 PUT  /api/release-tracks/:id/virtual/composition
+PUT  /api/release-tracks/:id/virtual/schedule
 POST /api/release-tracks/:id/virtual/snapshots/create
 POST /api/release-tracks/:id/virtual/quarantine/promote
 ```
@@ -1408,6 +1409,23 @@ numbers have higher priority. When composition is supplied during creation,
 each referenced track must already exist and must be a standard track. Virtual
 tracks cannot reference other virtual tracks, and unsupported top-level
 properties such as `native_members` return `400 Bad Request`.
+
+### Update Virtual Track Schedule
+
+```
+PUT /api/release-tracks/:id/virtual/schedule
+```
+
+Replaces a virtual track's persisted `snapshot_schedule` without creating or
+modifying a content snapshot. The body is one of the same strict `manual`,
+`cron`, or `dates` shapes accepted during track creation. The response contains
+the normalized value under `snapshot_schedule`. Standard tracks return
+`400 Bad Request`; unknown tracks return `404 Not Found`.
+
+Workbench-format snapshot responses expose the current registry-backed
+`snapshot_schedule` so configuration clients do not mistake a historical
+snapshot for the active schedule. Scheduler reconciliation applies a saved
+change on its next configured pass.
 
 ### Update Virtual Track Composition
 

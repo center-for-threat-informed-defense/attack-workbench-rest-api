@@ -106,6 +106,13 @@ components:
             one component, while conflicts include only IDs with genuinely
             different revisions. Each surviving member is attributed to exactly
             one component in objects_contributed.
+        snapshot_schedule:
+          readOnly: true
+          description: |
+            Current registry-backed materialization schedule for virtual tracks
+            in Workbench-format responses. It is not historical snapshot data.
+          allOf:
+            - $ref: '#/components/schemas/snapshot-schedule'
         scheduled_materialization:
           nullable: true
           description: |

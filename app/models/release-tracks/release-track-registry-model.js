@@ -87,9 +87,10 @@ const releaseTrackRegistryDefinition = {
     default: undefined,
     validate: {
       validator: function validateRegistrySnapshotSchedule(value) {
+        const trackType = typeof this.getQuery === 'function' ? this.getQuery().type : this.type;
         return (
           value === undefined ||
-          (this.type === 'virtual' && validateSnapshotSchedule.validator(value))
+          (trackType === 'virtual' && validateSnapshotSchedule.validator(value))
         );
       },
       message:
