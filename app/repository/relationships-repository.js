@@ -268,30 +268,79 @@ class RelationshipsRepository extends BaseRepository {
   }
 
   async retrieveParallelRelationships() {
-    const all_relationships = await this.retrieveAll({
-      versions: 'latest',
-      lookupRefs: true,
-    });
-
-    // Create a mapping of rel_key (source_ref--relationship_type--target_ref)
-    // to an array of relationships that share it.
-    let rel_map = new Map();
-    for (const rel of all_relationships) {
-      const rel_key =
-        rel.stix.source_ref + '--' + rel.stix.relationship_type + '--' + rel.stix.target_ref;
-      if (!rel_map.has(rel_key)) {
-        rel_map.set(rel_key, []);
-      }
-      const entry = rel_map.get(rel_key);
-      entry.push(rel);
+    // Keep only compact selection fields through both grouping stages. In
+    // particular, never join endpoint histories for the entire relationship set.
+    const aggregation = [
+      { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+      {
+        $project: {
+          'stix.id': 1,
+          'stix.source_ref': 1,
+          'stix.target_ref': 1,
+          'stix.relationship_type': 1,
+          'stix.revoked': 1,
+          'stix.x_mitre_deprecated': 1,
+        },
+      },
+      { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
+      { $replaceRoot: { newRoot: '$document' } },
+      // Filter after selecting latest revisions so old active revisions cannot reappear.
+      {
+        $match: {
+          'stix.revoked': { $in: [null, false] },
+          'stix.x_mitre_deprecated': { $in: [null, false] },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            source: '$stix.source_ref',
+            type: '$stix.relationship_type',
+            target: '$stix.target_ref',
+          },
+          ids: { $push: '$_id' },
+          count: { $sum: 1 },
+        },
+      },
+      { $match: { count: { $gt: 1 } } },
+      { $unwind: '$ids' },
+      {
+        $lookup: {
+          from: this.model.collection.name,
+          localField: 'ids',
+          foreignField: '_id',
+          as: 'relationship',
+        },
+      },
+      { $unwind: '$relationship' },
+      { $replaceRoot: { newRoot: '$relationship' } },
+      { $sort: { 'stix.id': 1 } },
+    ];
+    for (const endpoint of ['source', 'target']) {
+      aggregation.push({
+        $lookup: {
+          from: 'attackObjects',
+          localField: `stix.${endpoint}_ref`,
+          foreignField: 'stix.id',
+          pipeline: [{ $sort: { 'stix.modified': -1 } }, { $limit: 1 }],
+          as: `${endpoint}_objects`,
+        },
+      });
     }
 
-    // Return only the rel_keys that have more than one item in the array.
-    const parallel_relationships = new Map(
-      [...rel_map.entries()].filter(([, value]) => value.length > 1),
-    );
-
-    return parallel_relationships;
+    const cursor = this.model.aggregate(aggregation).allowDiskUse(true).cursor({ batchSize: 100 });
+    const relationshipMap = new Map();
+    try {
+      for await (const relationship of cursor) {
+        const { source_ref, relationship_type, target_ref } = relationship.stix;
+        const key = `${source_ref}--${relationship_type}--${target_ref}`;
+        if (!relationshipMap.has(key)) relationshipMap.set(key, []);
+        relationshipMap.get(key).push(relationship);
+      }
+    } finally {
+      await cursor.close();
+    }
+    return relationshipMap;
   }
 }
 

@@ -21,10 +21,17 @@ result to one STIX type (`relationship` for relationships only).
 GET /api/reports/parallel-relationships
 ```
 
-Latest relationship revisions grouped by `source_ref--relationship_type--target_ref`
-where more than one relationship shares the key — likely duplicates. The
+Latest active (not revoked or deprecated) relationship revisions grouped by
+`source_ref--relationship_type--target_ref` where more than one relationship
+shares the key — likely duplicates. The
 response is a map from that key to the array of relationships, each carrying
-its latest `source_object` and `target_object`.
+its latest `source_object` and `target_object`. Missing endpoints do not remove
+a duplicate finding; the corresponding endpoint property is omitted. Historical
+revisions of one relationship do not count as separate duplicates.
+
+The report filters duplicates in the database before retrieving endpoint
+details, and loads only the latest endpoint revisions. The response remains
+a single JSON map, with no pagination or incremental delivery.
 
 ## Domain consistency
 

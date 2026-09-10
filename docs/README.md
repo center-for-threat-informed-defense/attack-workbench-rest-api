@@ -31,6 +31,7 @@ Guides for consumers of the REST API — endpoints, workflows, and terminology.
 Architecture, patterns, and implementation details for contributors.
 
 - [Build Information](developer/build-information.md): Build metadata provenance, runtime configuration, and frontend integration
+- [Data Quality Query Design](developer/data-quality-reports.md): Duplicate-report memory amplification, query optimization, and remaining response-size limits
 - [Data Model](developer/data-model.md): Database schema and STIX object structure
 - [Event Bus Architecture](developer/event-bus-architecture.md): Event-driven architecture for cross-document dependencies
 - [Lifecycle Hooks Guide](developer/lifecycle-hooks-guide.md): Service lifecycle hooks pattern

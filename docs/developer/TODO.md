@@ -1,5 +1,31 @@
 # Release Track TODOs
 
+## Duplicate relationship report memory (2026-09-10)
+
+- [x] Trace dashboard request and identify historical endpoint fan-out.
+- [x] Filter duplicates in MongoDB before hydrating relationships and latest endpoints.
+- [x] Add regressions for history, lifecycle filters, missing endpoints, and bounded query output.
+- [x] Run focused specs, full npm test, and lint; document findings and limits.
+
+Verification: focused report + relationship specs 38 passing; full `npm test`
+passes (OpenAPI 2, config 22, API 1051, middleware 29, scheduler 10); lint
+and `git diff --check` pass. Synthetic query output falls from 38,162,701 to
+23,131 serialized bytes; production peak heap has not been measured. See
+[data-quality report design](data-quality-reports.md) for the analysis.
+No API contract change or frontend/Bruno update is needed.
+
+Proposed commit: `fix(reports): reduce duplicate relationship report memory use`
+
+Body: Filter duplicate groups in MongoDB before fetching full relationships,
+limit endpoint lookups to their latest revisions, and consume results through
+a batched cursor. Add history and lifecycle regressions and document remaining
+response-size limits.
+
+Proposed AGENTS.md lesson: Analytical reports should filter findings before
+joining full documents, and latest-endpoint lookups should limit revisions in
+MongoDB rather than discarding history after materialization.
+
+
 ## Snapshot card header hierarchy
 
 - [x] Give snapshot identity and status labels their own full-width header area.
