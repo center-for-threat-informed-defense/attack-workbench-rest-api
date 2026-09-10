@@ -48,6 +48,7 @@ Architecture, patterns, and implementation details for contributors.
 - [Frontend Handoff](developer/FRONTEND_TODO.md): Backend contract changes
   requiring downstream Angular updates
 - [Entities](developer/release-tracks/entities.md): Database schemas and data models
+- [Snapshot Creation Causes](developer/release-tracks/snapshot-creation-causes.md): Persisted creation-cause enum, standard/virtual operation mapping, and historical fallback
 - [Sealed Content Manifests](developer/release-tracks/sealed-content-manifests.md): Why every snapshot seals its bill of materials, how the collection object is projected, and publication inheritance
 - [Backref Reconciliation](developer/release-tracks/backref-reconciliation.md): How `workspace.release_tracks` backrefs stay in sync with snapshots
 - [Member Sync Strategies](developer/release-tracks/member-sync-strategies.md): Automatic tracking of member object revisions

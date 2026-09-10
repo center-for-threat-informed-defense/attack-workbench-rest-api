@@ -395,7 +395,10 @@ exports.createReleaseTrackFromBundle = async function createReleaseTrackFromBund
       );
     }
 
-    const result = await releaseTracksService.createTrackFromBundle(bodyResult.data);
+    const result = await releaseTracksService.createTrackFromBundle(
+      bodyResult.data,
+      req.user?.userAccountId,
+    );
     logger.debug('Success: Created release track from bundle');
     return res.status(201).send(result);
   } catch (err) {
@@ -800,7 +803,11 @@ exports.listCandidates = async function listCandidates(req, res, next) {
 /** DELETE /api/release-tracks/:id/candidates/:objectRef */
 exports.removeCandidate = async function removeCandidate(req, res, next) {
   try {
-    await releaseTracksService.removeCandidate(req.params.id, req.params.objectRef);
+    await releaseTracksService.removeCandidate(
+      req.params.id,
+      req.params.objectRef,
+      req.user?.userAccountId,
+    );
     logger.debug(`Success: Removed candidate ${req.params.objectRef} from track ${req.params.id}`);
     return res.status(204).end();
   } catch (err) {
@@ -878,6 +885,7 @@ exports.updateCandidateVersion = async function updateCandidateVersion(req, res,
       req.params.id,
       req.params.objectRef,
       bodyResult.data,
+      req.user?.userAccountId,
     );
     logger.debug(`Success: Updated version for candidate ${req.params.objectRef}`);
     return res.status(200).send(result);
@@ -1130,6 +1138,7 @@ exports.promoteQuarantinedObject = async function promoteQuarantinedObject(req, 
     const result = await releaseTracksService.promoteQuarantinedObject(
       req.params.id,
       bodyResult.data,
+      req.user?.userAccountId,
     );
     logger.debug(`Success: Promoted quarantined object for track ${req.params.id}`);
     return res.status(200).send(result);

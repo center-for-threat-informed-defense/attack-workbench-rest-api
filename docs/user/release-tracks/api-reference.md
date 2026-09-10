@@ -4,6 +4,22 @@
 
 This document provides the complete API reference for Release Tracks V2 (formerly "Collections V2").
 
+Snapshot latest/timestamp GETs in Workbench format and the snapshot-history
+list return `creation_cause`, a read-only enum identifying the operation that
+created each snapshot. Standard release creation uses `release_tagged`; virtual
+tagging retains the original cause. Historical missing
+values return `unknown`. The [creation-cause reference](../../developer/release-tracks/snapshot-creation-causes.md)
+lists all standard and virtual causes.
+
+`creation_actor` records the invoker independently of the track's original
+`created_by_ref`. Its `kind` is `user`, `system`, or `unknown`. User actors
+persist `user_account_id`; GETs additionally resolve a minimal `user` object
+(`id`, `username`, `displayName`, `name`) for initials/name display. Missing
+or deleted accounts retain their ID but omit `user`. Historical snapshots
+return `{ "kind": "unknown" }`. Clients cannot set either provenance field.
+Scheduled jobs are system actors; human-triggered automatic promotion retains
+the initiating user. Neither field is included in STIX bundle exports.
+
 **Related Documentation:**
 
 - [summary.md](./summary.md) - High-level design summary and problem statement

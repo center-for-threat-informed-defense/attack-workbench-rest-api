@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
 const revisionReference = require('../../lib/release-tracks/revision-reference');
 const {
   validateTrackId,
@@ -427,6 +428,28 @@ const releaseTrackSnapshotDefinition = {
   publication: { type: frozenPublicationSchema },
   bundle_id: { type: String },
   bundle_hashes: { type: bundleHashesSchema },
+  creation_actor: {
+    type: new mongoose.Schema(
+      {
+        kind: { type: String, enum: ['user', 'system', 'unknown'], required: true },
+        user_account_id: {
+          type: String,
+          required: function () {
+            return this.kind === 'user';
+          },
+        },
+      },
+      { _id: false },
+    ),
+    default: () => ({ kind: 'unknown' }),
+    immutable: true,
+  },
+  creation_cause: {
+    type: String,
+    enum: Object.values(CreationCause),
+    default: CreationCause.Unknown,
+    immutable: true,
+  },
   snapshot_description: {
     type: String,
     maxlength: [4000, 'Snapshot description cannot exceed 4000 characters'],

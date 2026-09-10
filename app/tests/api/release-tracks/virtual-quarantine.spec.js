@@ -169,6 +169,8 @@ describe('Virtual release-track quarantine API', function () {
     });
 
     expect(promoted.modified).not.toBe(materialized.modified);
+    expect(promoted.creation_cause).toBe('quarantine_promoted');
+    expect(materialized.creation_cause).toBe('manual_snapshot');
     expect(promoted.version).toBeNull();
     expect(promoted.members).toEqual([
       {

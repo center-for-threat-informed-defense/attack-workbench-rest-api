@@ -308,6 +308,8 @@ class ReleaseTrackDynamicRepository {
           bundle_hashes: 1,
           release_source_modified: 1,
           snapshot_description: 1,
+          creation_cause: { $ifNull: ['$creation_cause', 'unknown'] },
+          creation_actor: { $ifNull: ['$creation_actor', { kind: 'unknown' }] },
           name: 1,
           description: 1,
           scheduled_materialization: 1,

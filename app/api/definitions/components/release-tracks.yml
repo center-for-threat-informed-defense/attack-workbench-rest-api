@@ -1,5 +1,53 @@
 components:
   schemas:
+    snapshot-creation-actor:
+      type: object
+      readOnly: true
+      required: [kind]
+      description: Snapshot invoker, separate from the track creator. Missing historical attribution is unknown. User display data is resolved on GET and omitted if the account no longer exists.
+      properties:
+        kind:
+          type: string
+          enum: [user, system, unknown]
+        user_account_id:
+          type: string
+          description: Persisted invoking user account ID, present for kind=user.
+        user:
+          type: object
+          readOnly: true
+          properties:
+            id:
+              type: string
+            username:
+              type: string
+            displayName:
+              type: string
+            name:
+              type: string
+    snapshot-creation-cause:
+      type: string
+      readOnly: true
+      description: Server-recorded operation that created this snapshot. Standard releases use release_tagged; virtual tagging preserves the cause. Historical snapshots without provenance return unknown.
+      enum:
+        - unknown
+        - track_created
+        - release_tagged
+        - track_cloned
+        - bundle_imported
+        - metadata_updated
+        - configuration_updated
+        - candidates_added
+        - candidate_removed
+        - candidates_reviewed
+        - candidates_promoted
+        - candidate_version_updated
+        - staged_demoted
+        - candidates_auto_promoted
+        - member_synced
+        - composition_updated
+        - manual_snapshot
+        - scheduled_snapshot
+        - quarantine_promoted
     release-track-snapshot:
       type: object
       description: 'A snapshot document for a release track, containing versioned member objects and workflow tiers'
@@ -8,6 +56,10 @@ components:
           type: string
           nullable: true
           description: 'The track alias from the registry (workbench responses), or null'
+        creation_cause:
+          $ref: '#/components/schemas/snapshot-creation-cause'
+        creation_actor:
+          $ref: '#/components/schemas/snapshot-creation-actor'
         id:
           type: string
           description: 'The release track ID (STIX identifier format)'
@@ -229,6 +281,10 @@ components:
         content_statistics:
           $ref: '#/components/schemas/content-statistics'
           description: 'Counts of sealed manifest entries by role'
+        creation_cause:
+          $ref: '#/components/schemas/snapshot-creation-cause'
+        creation_actor:
+          $ref: '#/components/schemas/snapshot-creation-actor'
         snapshot_description:
           type: string
           maxLength: 4000

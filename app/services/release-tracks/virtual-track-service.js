@@ -1,5 +1,7 @@
 'use strict';
 
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+
 // =============================================================================
 // Virtual Track Service
 //
@@ -426,7 +428,7 @@ async function resolveComposition(snapshot, registryMap) {
  *
  * @param {string} trackId
  * @param {Object} composition - The new composition configuration
- * @param {string} [_userId]
+ * @param {string} [userId] - Invoking snapshot creator
  * @param {Object} [options]
  * @param {Object} [options.scheduledMaterialization]
  * @returns {Promise<Object>} The new snapshot
@@ -434,7 +436,7 @@ async function resolveComposition(snapshot, registryMap) {
 exports.updateComposition = async function updateComposition(
   trackId,
   composition,
-  _userId,
+  userId,
   options = {},
 ) {
   const source = await snapshotService.getLatestSnapshot(trackId);
@@ -443,13 +445,18 @@ exports.updateComposition = async function updateComposition(
   // Validate all component tracks
   await validateComponentTracks(composition.component_tracks);
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    composition,
-    members: [],
-    quarantine: [],
-    composition_resolution: null,
-    scheduled_materialization: options.scheduledMaterialization,
-  });
+  const snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      composition,
+      members: [],
+      quarantine: [],
+      composition_resolution: null,
+      scheduled_materialization: options.scheduledMaterialization,
+    },
+    { creationCause: CreationCause.CompositionUpdated, userAccountId: userId },
+  );
 
   logger.verbose(
     `VirtualTrackService: Updated composition for track "${trackId}" ` +
@@ -551,7 +558,13 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
 
     let snapshot;
     try {
-      snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides);
+      snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides, {
+        creationCause: options.scheduledMaterialization
+          ? CreationCause.ScheduledSnapshot
+          : CreationCause.ManualSnapshot,
+        userAccountId:
+          options.userAccountId || (options.scheduledMaterialization ? 'system' : undefined),
+      });
     } catch (err) {
       if (!scheduledFor || !(err instanceof DuplicateIdError)) throw err;
 
@@ -583,7 +596,11 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
  * @param {Object} selection - { object_ref, object_modified }
  * @returns {Promise<Object>} The new draft snapshot
  */
-exports.promoteQuarantinedObject = async function promoteQuarantinedObject(trackId, selection) {
+exports.promoteQuarantinedObject = async function promoteQuarantinedObject(
+  trackId,
+  selection,
+  userId,
+) {
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertVirtualTrack(source);
 
@@ -613,10 +630,15 @@ exports.promoteQuarantinedObject = async function promoteQuarantinedObject(track
   );
   await primaryRevisionService.assertStoredEntries([...members, ...quarantine]);
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    members,
-    quarantine,
-  });
+  const snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      members,
+      quarantine,
+    },
+    { creationCause: CreationCause.QuarantinePromoted, userAccountId: userId },
+  );
 
   logger.verbose(
     `VirtualTrackService: Promoted quarantined revision "${selected.object_ref}" ` +

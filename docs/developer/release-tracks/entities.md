@@ -21,6 +21,16 @@ and `releaseTrackGraphManifestEntries` collections (renamed in place by the
 
 ### Release Track
 
+Every new snapshot persists an immutable `creation_cause` enum describing the
+operation, together with immutable `creation_actor` (`kind`: `user`, `system`,
+or `unknown`; `user_account_id` for user invocations). This is distinct from
+the original track's `created_by_ref`. Workbench GETs resolve safe user display
+metadata for the frontend's initials avatar. The cause identifies the
+operation that created it. Latest/timestamp Workbench responses and snapshot
+history expose it; historical missing values read as `unknown`. See
+[snapshot creation causes](snapshot-creation-causes.md) for the complete
+standard/virtual operation mapping and non-creating operations.
+
 `ReleaseTrack` instances will be tracked as independent MongoDB Collections. The reason for this is because the volume of snapshot permutations is expected to be very high given the frequency of changes that typically occur between releases.
 
 #### Naming Conventions

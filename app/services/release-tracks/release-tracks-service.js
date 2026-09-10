@@ -121,6 +121,32 @@ async function getUsersById(userIds) {
   return usersById;
 }
 
+// Resolve each distinct creator once per response, including paginated history.
+// Keep a missing/deleted user's ID without exposing account security metadata.
+async function addCreationActors(snapshots) {
+  const ids = [
+    ...new Set(
+      snapshots
+        .filter((snapshot) => snapshot.creation_actor?.kind === 'user')
+        .map((snapshot) => snapshot.creation_actor.user_account_id)
+        .filter(Boolean),
+    ),
+  ];
+  const users = await getUsersById(ids);
+  return snapshots.map((snapshot) => {
+    const actor = snapshot.creation_actor || { kind: 'unknown' };
+    snapshot.creation_actor =
+      actor.kind === 'user'
+        ? {
+            kind: actor.kind,
+            user_account_id: actor.user_account_id,
+            user: formatUser(users.get(actor.user_account_id)),
+          }
+        : { kind: actor.kind };
+    return snapshot;
+  });
+}
+
 function selectorKey(entry) {
   return `${entry.object_ref}:${revisionReference.modifiedKey(entry.object_modified)}`;
 }
@@ -217,13 +243,15 @@ async function formatWorkbenchSnapshot(snapshot, options) {
     selectedTiers.flatMap((tierName) => snapshot[tierName] || []),
   );
   const enriched = await addObjectInfoToSnapshot(snapshot);
+  const [attributed] = await addCreationActors([enriched]);
   // Registry-derived, read-only metadata used alongside snapshot content.
   const metadata = await snapshotService.getTrackMetadata(snapshot.id);
   enriched.alias = metadata.alias;
+  enriched.creation_cause = snapshot.creation_cause || 'unknown';
   if (snapshot.type === 'virtual') {
     enriched.snapshot_schedule = metadata.snapshot_schedule || { mode: 'manual' };
   }
-  return filterSnapshotTiers(enriched, options?.include);
+  return filterSnapshotTiers(attributed, options?.include);
 }
 
 exports.resolveTrackAlias = function resolveTrackAlias(alias) {
@@ -303,12 +331,13 @@ exports.createTrack = async function createTrack(data) {
 };
 
 // Phase 6 → bundle-import-service
-exports.createTrackFromBundle = function createTrackFromBundle(bundleData) {
-  return bundleImportService.createTrackFromBundle(bundleData);
+exports.createTrackFromBundle = function createTrackFromBundle(bundleData, userId) {
+  return bundleImportService.createTrackFromBundle(bundleData, userId);
 };
 
-exports.listSnapshots = function listSnapshots(trackId, options) {
-  return snapshotService.listSnapshots(trackId, options);
+exports.listSnapshots = async function listSnapshots(trackId, options) {
+  const result = await snapshotService.listSnapshots(trackId, options);
+  return { ...result, data: await addCreationActors(result.data) };
 };
 
 // eslint-disable-next-line no-unused-vars
@@ -455,8 +484,8 @@ exports.listCandidates = function listCandidates(trackId, options) {
   return standardTrackService.listCandidates(trackId, options);
 };
 
-exports.removeCandidate = function removeCandidate(trackId, objectRef) {
-  return standardTrackService.removeCandidate(trackId, objectRef);
+exports.removeCandidate = function removeCandidate(trackId, objectRef, userId) {
+  return standardTrackService.removeCandidate(trackId, objectRef, userId);
 };
 
 exports.reviewCandidates = function reviewCandidates(trackId, reviewData, userId) {
@@ -467,8 +496,8 @@ exports.promoteCandidates = function promoteCandidates(trackId, objectRefs, user
   return standardTrackService.promoteCandidates(trackId, objectRefs, userId);
 };
 
-exports.updateCandidateVersion = function updateCandidateVersion(trackId, objectRef, data) {
-  return standardTrackService.updateCandidateVersion(trackId, objectRef, data);
+exports.updateCandidateVersion = function updateCandidateVersion(trackId, objectRef, data, userId) {
+  return standardTrackService.updateCandidateVersion(trackId, objectRef, data, userId);
 };
 
 // -----------------------------------------------------------------------------
@@ -610,8 +639,8 @@ exports.createVirtualSnapshot = function createVirtualSnapshot(trackId, options)
   return virtualTrackService.createVirtualSnapshot(trackId, validatedOptions);
 };
 
-exports.promoteQuarantinedObject = function promoteQuarantinedObject(trackId, selection) {
-  return virtualTrackService.promoteQuarantinedObject(trackId, selection);
+exports.promoteQuarantinedObject = function promoteQuarantinedObject(trackId, selection, userId) {
+  return virtualTrackService.promoteQuarantinedObject(trackId, selection, userId);
 };
 
 // -----------------------------------------------------------------------------

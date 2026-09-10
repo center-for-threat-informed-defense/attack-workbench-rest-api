@@ -1,5 +1,8 @@
 'use strict';
 
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+const creationActor = require('../../lib/release-tracks/snapshot-creation-actor');
+
 // =============================================================================
 // Snapshot Service
 //
@@ -207,7 +210,7 @@ exports.listTracks = async function listTracks(options) {
  * @param {Object} data - { name, description?, snapshot_description?, type, userAccountId?, composition?, snapshot_schedule?, scheduled_materialization?, config? }
  * @returns {Promise<Object>} The initial snapshot document
  */
-exports.createTrack = async function createTrack(data) {
+exports.createTrack = async function createTrack(data, options = {}) {
   const trackId = `release-track--${uuidv4()}`;
   const now = new Date();
   const trackType = data.type || 'standard';
@@ -215,6 +218,8 @@ exports.createTrack = async function createTrack(data) {
 
   const initialSnapshot = {
     id: trackId,
+    creation_cause: options.creationCause || CreationCause.TrackCreated,
+    creation_actor: creationActor(data.userAccountId),
     type: trackType,
     modified: now,
     version: null,
@@ -328,6 +333,8 @@ exports.listSnapshots = async function listSnapshots(trackId, options) {
         bundle_hashes: snapshot.bundle_hashes,
         release_source_modified: snapshot.release_source_modified,
         snapshot_description: snapshot.snapshot_description,
+        creation_cause: snapshot.creation_cause || CreationCause.Unknown,
+        creation_actor: snapshot.creation_actor || { kind: 'unknown' },
         content_statistics: snapshot.content_manifest_id
           ? statisticsByManifestId.get(snapshot.content_manifest_id)
           : undefined,
@@ -456,6 +463,9 @@ exports.cloneSnapshot = async function cloneSnapshot(
     }
   }
 
+  // Never inherit provenance or accept it from snapshot overrides.
+  clone.creation_cause = options.creationCause || CreationCause.Unknown;
+  clone.creation_actor = creationActor(options.userAccountId);
   const normalized = tierRevisionInvariant.normalizeSnapshot(clone);
   let saved;
   if (rewritesMembers || !normalized.snapshot.content_manifest_id) {
@@ -532,6 +542,8 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
   delete clone.bundle_id;
   delete clone.bundle_hashes;
   clone.id = newTrackId;
+  clone.creation_cause = CreationCause.TrackCloned;
+  clone.creation_actor = creationActor(options.userAccountId);
   clone.modified = now;
   clone.version = null;
   clone.name = options.name || `${sourceSnapshot.name} (copy)`;
@@ -594,11 +606,11 @@ async function _cloneToNewTrack(sourceSnapshot, options = {}) {
  *
  * @param {string} trackId
  * @param {Object} updates - { name?, description?, alias? } (alias null clears)
- * @param {string} [_userId]
+ * @param {string} [userId] - Invoking snapshot creator
  * @returns {Promise<Object>} The new (or, for alias-only updates, latest) snapshot
  */
-// eslint-disable-next-line no-unused-vars
-exports.updateMetadata = async function updateMetadata(trackId, updates, _userId) {
+
+exports.updateMetadata = async function updateMetadata(trackId, updates, userId) {
   const source = await exports.getLatestSnapshot(trackId);
   const overrides = {};
   if (updates.name !== undefined) overrides.name = updates.name;
@@ -619,7 +631,10 @@ exports.updateMetadata = async function updateMetadata(trackId, updates, _userId
   }
 
   if (Object.keys(overrides).length === 0) return source;
-  return exports.cloneSnapshot(trackId, source, overrides);
+  return exports.cloneSnapshot(trackId, source, overrides, {
+    creationCause: CreationCause.MetadataUpdated,
+    userAccountId: userId,
+  });
 };
 
 /**
@@ -703,11 +718,11 @@ exports.getConfig = async function getConfig(trackId) {
  *
  * @param {string} trackId
  * @param {Object} config - Partial config to merge
- * @param {string} [_userId]
+ * @param {string} [userId] - Invoking snapshot creator
  * @returns {Promise<Object>} The new snapshot
  */
-// eslint-disable-next-line no-unused-vars
-exports.updateConfig = async function updateConfig(trackId, config, _userId) {
+
+exports.updateConfig = async function updateConfig(trackId, config, userId) {
   const source = await exports.getLatestSnapshot(trackId);
   const existing = source.config || {};
 
@@ -745,7 +760,12 @@ exports.updateConfig = async function updateConfig(trackId, config, _userId) {
     );
   }
 
-  return exports.cloneSnapshot(trackId, source, { config: mergedConfig });
+  return exports.cloneSnapshot(
+    trackId,
+    source,
+    { config: mergedConfig },
+    { creationCause: CreationCause.ConfigurationUpdated, userAccountId: userId },
+  );
 };
 
 // =============================================================================

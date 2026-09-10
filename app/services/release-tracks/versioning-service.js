@@ -1,4 +1,6 @@
 'use strict';
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+const creationActor = require('../../lib/release-tracks/snapshot-creation-actor');
 
 // Plans and commits immutable releases from release-track snapshots. Planning
 // is side-effect free; persistence, reconciliation, and events occur only in
@@ -204,7 +206,11 @@ function planRelease(
     modified: releaseModified,
     version,
     ...(sourceSnapshot.type === 'standard'
-      ? { release_source_modified: sourceSnapshot.modified }
+      ? {
+          release_source_modified: sourceSnapshot.modified,
+          creation_cause: CreationCause.ReleaseTagged,
+          creation_actor: creationActor(options.userAccountId || 'system'),
+        }
       : {}),
     members: mergedMembers,
     ...(updatesSnapshotDescription && options.description

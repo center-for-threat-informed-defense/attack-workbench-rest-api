@@ -1,5 +1,7 @@
 'use strict';
 
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+
 // =============================================================================
 // Standard Track Service
 //
@@ -133,7 +135,10 @@ exports.addCandidates = async function addCandidates(trackId, objectRefs, userId
 
   if (newEntries.length === 0) {
     return normalizedSource.removed.length > 0
-      ? snapshotService.cloneSnapshot(trackId, source)
+      ? snapshotService.cloneSnapshot(trackId, source, undefined, {
+          creationCause: CreationCause.CandidatesAdded,
+          userAccountId: userId,
+        })
       : source;
   }
 
@@ -154,16 +159,25 @@ exports.addCandidates = async function addCandidates(trackId, objectRefs, userId
     );
   }
 
-  let snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    candidates: mergedCandidates,
-  });
+  let snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      candidates: mergedCandidates,
+    },
+    { creationCause: CreationCause.CandidatesAdded, userAccountId: userId },
+  );
 
   logger.verbose(
     `StandardTrackService: Added ${newEntries.length} candidate(s) to track "${trackId}"`,
   );
 
   // Evaluate auto-promotion for newly added candidates (Phase 3)
-  const autoPromotedSnapshot = await getWorkflowService().evaluateAutoPromotion(trackId, snapshot);
+  const autoPromotedSnapshot = await getWorkflowService().evaluateAutoPromotion(
+    trackId,
+    snapshot,
+    userId,
+  );
   if (autoPromotedSnapshot) {
     snapshot = autoPromotedSnapshot;
   }
@@ -199,7 +213,7 @@ exports.listCandidates = async function listCandidates(trackId, options = {}) {
  * @returns {Promise<Object>} The new snapshot
  * @throws {NotFoundError} If no candidate with that object_ref exists
  */
-exports.removeCandidate = async function removeCandidate(trackId, objectRef) {
+exports.removeCandidate = async function removeCandidate(trackId, objectRef, userId) {
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertStandardTrack(source);
 
@@ -212,9 +226,14 @@ exports.removeCandidate = async function removeCandidate(trackId, objectRef) {
     });
   }
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    candidates: remaining,
-  });
+  const snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      candidates: remaining,
+    },
+    { creationCause: CreationCause.CandidateRemoved, userAccountId: userId },
+  );
 
   logger.verbose(`StandardTrackService: Removed candidate "${objectRef}" from track "${trackId}"`);
   return snapshot;
@@ -234,7 +253,7 @@ exports.removeCandidate = async function removeCandidate(trackId, objectRef) {
  * @param {string} [userId]
  * @returns {Promise<Object>} The new snapshot
  */
-// eslint-disable-next-line no-unused-vars
+
 exports.reviewCandidates = async function reviewCandidates(trackId, reviewData, userId) {
   const { from, to, object_refs: filterRefs } = reviewData;
 
@@ -269,16 +288,25 @@ exports.reviewCandidates = async function reviewCandidates(trackId, reviewData, 
     };
   });
 
-  let snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    candidates: updatedCandidates,
-  });
+  let snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      candidates: updatedCandidates,
+    },
+    { creationCause: CreationCause.CandidatesReviewed, userAccountId: userId },
+  );
 
   logger.verbose(
     `StandardTrackService: Reviewed candidates "${from}" → "${to}" in track "${trackId}"`,
   );
 
   // Evaluate auto-promotion after status transition (Phase 3)
-  const autoPromotedSnapshot = await getWorkflowService().evaluateAutoPromotion(trackId, snapshot);
+  const autoPromotedSnapshot = await getWorkflowService().evaluateAutoPromotion(
+    trackId,
+    snapshot,
+    userId,
+  );
   if (autoPromotedSnapshot) {
     snapshot = autoPromotedSnapshot;
   }
@@ -353,10 +381,15 @@ exports.promoteCandidates = async function promoteCandidates(trackId, objectRefs
     ...toPromote.filter((c) => rejectedRefs.has(c.object_ref)),
   ];
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    candidates: finalCandidates,
-    staged: mergedStaged,
-  });
+  const snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      candidates: finalCandidates,
+      staged: mergedStaged,
+    },
+    { creationCause: CreationCause.CandidatesPromoted, userAccountId: userId },
+  );
 
   logger.verbose(
     `StandardTrackService: Promoted ${toPromote.length - rejected.length} candidate(s), ` +
@@ -374,7 +407,12 @@ exports.promoteCandidates = async function promoteCandidates(trackId, objectRefs
  * @returns {Promise<Object>} The new snapshot
  * @throws {NotFoundError} If no matching candidate is found
  */
-exports.updateCandidateVersion = async function updateCandidateVersion(trackId, objectRef, data) {
+exports.updateCandidateVersion = async function updateCandidateVersion(
+  trackId,
+  objectRef,
+  data,
+  userId,
+) {
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertStandardTrack(source);
 
@@ -407,9 +445,14 @@ exports.updateCandidateVersion = async function updateCandidateVersion(trackId, 
 
   await primaryRevisionService.assertRequestEntries([updatedEntry]);
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    candidates: updatedCandidates,
-  });
+  const snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      candidates: updatedCandidates,
+    },
+    { creationCause: CreationCause.CandidateVersionUpdated, userAccountId: userId },
+  );
 
   logger.verbose(
     `StandardTrackService: Updated version pin for "${objectRef}" in track "${trackId}"`,
@@ -498,10 +541,15 @@ exports.demoteStaged = async function demoteStaged(trackId, objectRefs, userId) 
     );
   }
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    staged: remainingStaged,
-    candidates: mergedCandidates,
-  });
+  const snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      staged: remainingStaged,
+      candidates: mergedCandidates,
+    },
+    { creationCause: CreationCause.StagedDemoted, userAccountId: userId },
+  );
 
   logger.verbose(
     `StandardTrackService: Demoted ${demotedEntries.length} staged entry/entries in track "${trackId}"`,

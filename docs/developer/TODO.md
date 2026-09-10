@@ -57,6 +57,40 @@ Snapshot DELETE is draft-only. Convert tagged releases with
 POST /release-tracks/:id/snapshots/:modified/draft and a confirm_version body
 before attempting a separate eligible-draft DELETE.
 
+## Snapshot creation provenance and user attribution (2026-09-09)
+
+- [x] Inspect beta and carry forward the prior uncommitted creation-cause work.
+- [x] Persist immutable creation cause and invoking user, including standard release creation.
+- [x] Return safe user display metadata with snapshot GETs and history; show initials avatars.
+- [x] Cover user changes, automation, legacy records, tagging, and spoofing with regressions.
+- [x] Update OpenAPI, user/developer documentation, and Bruno requests.
+- [x] Run focused tests, full suites, lint, and frontend build.
+
+Verification: backend provenance/release/quarantine group 32 passing; final
+provenance spec 7 passing. Complete backend suite under Node 24 passes:
+OpenAPI 2, config 22, API 1044, middleware 29, scheduler 10. Backend lint
+passes. First full-run transient HTTP failures passed in isolation (100)
+and on the complete rerun. Frontend focused tests 97 passing; complete suite
+168 files / 420 tests passing, changed-file lint and production build pass.
+The existing save-dialog timing failure passed in isolation and on full rerun;
+existing bundle/style budget warnings remain. Production build required
+execution outside the sandbox. No test-harness changes were made.
+
+Work is in both main beta checkouts, preserving the newer rollback/composition
+provenance work and unrelated local files. Commit preparation (2026-09-10)
+excludes unrelated working-tree changes, including shared-document formatting.
+
+Commit messages:
+
+- Backend: `feat(release-tracks): record snapshot creation provenance`
+  Body: Persist creation causes and invoking users, distinguish standard
+  release creation, and expose safe creator metadata through snapshot GETs.
+- Frontend: `feat(release-tracks): show snapshot causes and creator avatars`
+  Body: Display snapshot-local creator names and initials, with explicit
+  automation and historical-attribution fallbacks on Releases cards.
+- Bruno: `docs(release-tracks): document snapshot creation attribution`
+  Body: Describe creation cause and actor fields on snapshot GET requests.
+
 ## Merge scheduling and rollback branches into local beta (2026-09-09)
 
 - [x] Inspect all worktrees and confirm scheduling branches are already merged.

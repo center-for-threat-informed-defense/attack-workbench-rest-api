@@ -1,5 +1,7 @@
 'use strict';
 
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+
 // =============================================================================
 // Member Sync Service
 //
@@ -378,10 +380,15 @@ async function processMemberSync(trackId, snapshot, event) {
   }
 
   // Clone snapshot with updated tiers
-  const newSnapshot = await snapshotService.cloneSnapshot(trackId, snapshot, {
-    candidates: newCandidates,
-    staged: newStaged,
-  });
+  const newSnapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    snapshot,
+    {
+      candidates: newCandidates,
+      staged: newStaged,
+    },
+    { creationCause: CreationCause.MemberSynced, userAccountId: modifiedBy || 'system' },
+  );
 
   logger.info(
     `[member-sync] Track ${trackId}: ${trigger} (${mode}) ${objectRef} → ` +
@@ -478,9 +485,8 @@ async function handleStixObjectEvent(payload) {
     newModified: document.stix?.modified,
     oldModified: previousDocument?.stix?.modified,
     trigger: previousDocument ? 'in-place-update' : 'new-revision',
-    // Try to get user from options (create) or from document workflow metadata
-    modifiedBy:
-      options?.userAccountId || document.workspace?.workflow?.created_by_user_account || 'system',
+    // An object's original creator is not necessarily the user editing it.
+    modifiedBy: options?.userAccountId || 'system',
   };
 
   try {
@@ -530,10 +536,7 @@ async function handleStixObjectRevokedEvent(payload) {
     objectRef: stixId,
     newModified: revokedDocument?.stix?.modified,
     trigger: 'revocation',
-    modifiedBy:
-      options?.userAccountId ||
-      revokedDocument?.workspace?.workflow?.created_by_user_account ||
-      'system',
+    modifiedBy: options?.userAccountId || 'system',
   };
 
   try {
@@ -578,7 +581,7 @@ async function handleStixObjectConvertedEvent(payload) {
     objectRef: stixId,
     newModified: document.stix.modified,
     trigger: 'new-revision',
-    modifiedBy: userAccountId || document.workspace?.workflow?.created_by_user_account || 'system',
+    modifiedBy: userAccountId || 'system',
   };
 
   try {
