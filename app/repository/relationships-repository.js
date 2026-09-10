@@ -156,42 +156,50 @@ class RelationshipsRepository extends BaseRepository {
   }
 
   /**
-   * Retrieve every relationship revision whose stored source or target pin
-   * exactly matches one of the supplied object revisions.
+   * Retrieve the newest revision of every relationship lineage whose source
+   * and target IDs are both in the supplied object set, regardless of
+   * lifecycle state. Sealing chooses each lineage's globally latest revision
+   * before applying active/deprecated filters so an older active revision is
+   * never resurrected by a newer inactive one.
    *
-   * The caller deliberately receives inactive and superseded relationship
-   * revisions. Deterministic graph capture must choose the newest revision
-   * for an exact endpoint pair before applying active/deprecated filters, or
-   * an older active revision could be resurrected.
+   * @param {Array<string>} objectRefs - Member STIX IDs
+   * @param {Object} [options]
+   * @param {number} [options.batchSize]
+   * @returns {Promise<Array<Object>>} Lean relationship documents
    */
-  async retrieveRevisionsTouchingExactEndpoints(endpointRevisions, options = {}) {
-    if (!Array.isArray(endpointRevisions) || endpointRevisions.length === 0) return [];
+  async retrieveLatestBetween(objectRefs, options = {}) {
+    if (!Array.isArray(objectRefs) || objectRefs.length === 0) return [];
 
-    const batchSize = options.batchSize || 250;
-    const revisionsByKey = new Map();
+    const batchSize = options.batchSize || 2000;
     try {
-      for (let offset = 0; offset < endpointRevisions.length; offset += batchSize) {
-        const batch = endpointRevisions.slice(offset, offset + batchSize);
-        const exactEndpointQueries = batch.flatMap((entry) => {
-          const objectModified = new Date(entry.object_modified);
-          return [
-            {
-              'workspace.relationship_endpoints.source.object_ref': entry.object_ref,
-              'workspace.relationship_endpoints.source.object_modified': objectModified,
-            },
-            {
-              'workspace.relationship_endpoints.target.object_ref': entry.object_ref,
-              'workspace.relationship_endpoints.target.object_modified': objectModified,
-            },
-          ];
-        });
-        const relationships = await this.model.find({ $or: exactEndpointQueries }).lean().exec();
-        for (const relationship of relationships) {
-          const key = `${relationship.stix.id}::${new Date(relationship.stix.modified).getTime()}`;
-          revisionsByKey.set(key, relationship);
-        }
+      const lineageIds = new Set();
+      for (let offset = 0; offset < objectRefs.length; offset += batchSize) {
+        const batch = objectRefs.slice(offset, offset + batchSize);
+        const ids = await this.model
+          .distinct('stix.id', {
+            'stix.source_ref': { $in: batch },
+            'stix.target_ref': { $in: objectRefs },
+          })
+          .exec();
+        for (const id of ids) lineageIds.add(id);
       }
-      return [...revisionsByKey.values()];
+      if (lineageIds.size === 0) return [];
+
+      const results = [];
+      const allIds = [...lineageIds];
+      for (let offset = 0; offset < allIds.length; offset += batchSize) {
+        const batch = allIds.slice(offset, offset + batchSize);
+        const latest = await this.model
+          .aggregate([
+            { $match: { 'stix.id': { $in: batch } } },
+            { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+            { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
+            { $replaceRoot: { newRoot: '$document' } },
+          ])
+          .exec();
+        results.push(...latest);
+      }
+      return results;
     } catch (err) {
       throw new DatabaseError(err);
     }
@@ -260,30 +268,79 @@ class RelationshipsRepository extends BaseRepository {
   }
 
   async retrieveParallelRelationships() {
-    const all_relationships = await this.retrieveAll({
-      versions: 'latest',
-      lookupRefs: true,
-    });
-
-    // Create a mapping of rel_key (source_ref--relationship_type--target_ref)
-    // to an array of relationships that share it.
-    let rel_map = new Map();
-    for (const rel of all_relationships) {
-      const rel_key =
-        rel.stix.source_ref + '--' + rel.stix.relationship_type + '--' + rel.stix.target_ref;
-      if (!rel_map.has(rel_key)) {
-        rel_map.set(rel_key, []);
-      }
-      const entry = rel_map.get(rel_key);
-      entry.push(rel);
+    // Keep only compact selection fields through both grouping stages. In
+    // particular, never join endpoint histories for the entire relationship set.
+    const aggregation = [
+      { $sort: { 'stix.id': 1, 'stix.modified': -1 } },
+      {
+        $project: {
+          'stix.id': 1,
+          'stix.source_ref': 1,
+          'stix.target_ref': 1,
+          'stix.relationship_type': 1,
+          'stix.revoked': 1,
+          'stix.x_mitre_deprecated': 1,
+        },
+      },
+      { $group: { _id: '$stix.id', document: { $first: '$$ROOT' } } },
+      { $replaceRoot: { newRoot: '$document' } },
+      // Filter after selecting latest revisions so old active revisions cannot reappear.
+      {
+        $match: {
+          'stix.revoked': { $in: [null, false] },
+          'stix.x_mitre_deprecated': { $in: [null, false] },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            source: '$stix.source_ref',
+            type: '$stix.relationship_type',
+            target: '$stix.target_ref',
+          },
+          ids: { $push: '$_id' },
+          count: { $sum: 1 },
+        },
+      },
+      { $match: { count: { $gt: 1 } } },
+      { $unwind: '$ids' },
+      {
+        $lookup: {
+          from: this.model.collection.name,
+          localField: 'ids',
+          foreignField: '_id',
+          as: 'relationship',
+        },
+      },
+      { $unwind: '$relationship' },
+      { $replaceRoot: { newRoot: '$relationship' } },
+      { $sort: { 'stix.id': 1 } },
+    ];
+    for (const endpoint of ['source', 'target']) {
+      aggregation.push({
+        $lookup: {
+          from: 'attackObjects',
+          localField: `stix.${endpoint}_ref`,
+          foreignField: 'stix.id',
+          pipeline: [{ $sort: { 'stix.modified': -1 } }, { $limit: 1 }],
+          as: `${endpoint}_objects`,
+        },
+      });
     }
 
-    // Return only the rel_keys that have more than one item in the array.
-    const parallel_relationships = new Map(
-      [...rel_map.entries()].filter(([, value]) => value.length > 1),
-    );
-
-    return parallel_relationships;
+    const cursor = this.model.aggregate(aggregation).allowDiskUse(true).cursor({ batchSize: 100 });
+    const relationshipMap = new Map();
+    try {
+      for await (const relationship of cursor) {
+        const { source_ref, relationship_type, target_ref } = relationship.stix;
+        const key = `${source_ref}--${relationship_type}--${target_ref}`;
+        if (!relationshipMap.has(key)) relationshipMap.set(key, []);
+        relationshipMap.get(key).push(relationship);
+      }
+    } finally {
+      await cursor.close();
+    }
+    return relationshipMap;
   }
 }
 

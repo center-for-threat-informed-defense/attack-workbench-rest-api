@@ -53,10 +53,10 @@ changes what bundle emission needs to be:
 `GET /api/stix-bundles` is therefore **deprecated** (marked in the OpenAPI
 spec) and will be removed in a future release. Its replacements:
 
-| Legacy usage | Replacement |
-|--------------|-------------|
-| Domain-scoped ad hoc bundle | `GET /api/release-tracks/ephemeral/:domain` |
-| Release/publication bundle | `GET /api/release-tracks/:id/snapshots/latest?format=bundle` (or `/snapshots/:modified?format=bundle`) |
+| Legacy usage                | Replacement                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Domain-scoped ad hoc bundle | `GET /api/release-tracks/ephemeral/:domain`                                                            |
+| Release/publication bundle  | `GET /api/release-tracks/:id/snapshots/latest?format=bundle` (or `/snapshots/:modified?format=bundle`) |
 
 ### Ephemeral endpoint parameter mapping
 
@@ -66,19 +66,19 @@ object-selection logic above is preserved verbatim. The query-parameter
 surface was simplified
 (see [ephemeral-service.js](../../../app/services/release-tracks/ephemeral-service.js)):
 
-| Legacy parameter | Disposition |
-|------------------|-------------|
-| `stixVersion` | **Preserved** (default changed to `2.1`) |
-| `includeRevoked` / `includeDeprecated` | **Preserved** (default `false`) |
-| `includeMissingAttackId` | **Renamed** to `includeObjectsWithMissingAttackId` (default `false`) |
-| `includeCollectionObject` | **Renamed** to `includeToc` (default `true`). "TOC" (table of contents) describes what the `x-mitre-collection` object actually is, and avoids overloading the term "collection". It applies only to STIX 2.1; STIX 2.0 always omits the object. |
-| `collectionObjectVersion` | **Removed** — fixed at `0.1`, signifying an ephemerally generated collection not connected to a release track |
-| `collectionObjectModified` | **Removed** — fixed at the current timestamp |
-| `collectionAttackSpecVersion` | **Removed** — fixed at the global default (`config.app.attackSpecVersion`) |
-| `includeNotes` | **Removed** — notes are Workbench-native objects, not STIX objects, and are never emitted in bundles |
-| `includeDataSources` | **Removed** — data sources are deprecated (ATT&CK Spec v3.3.0) and were marked deprecated/revoked in ATT&CK v18, so their inclusion is governed entirely by `includeDeprecated`/`includeRevoked`. Internally the delegation passes `includeDataSources: true` and lets those flags filter. |
-| `useLegacyMethod` | **Removed** — the pre-v17 code path (`stix-bundles-service-old.js`) is not supported by the new endpoints |
-| `state` | **Removed** — workflow status is now scoped to release tracks; a domain-scoped endpoint has no workflow-status concept |
+| Legacy parameter                       | Disposition                                                                                                                                                                                                                                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `stixVersion`                          | **Preserved** (default changed to `2.1`)                                                                                                                                                                                                                                                   |
+| `includeRevoked` / `includeDeprecated` | **Preserved** (default `false`)                                                                                                                                                                                                                                                            |
+| `includeMissingAttackId`               | **Renamed** to `includeObjectsWithMissingAttackId` (default `false`)                                                                                                                                                                                                                       |
+| `includeCollectionObject`              | **Renamed** to `includeToc` (default `true`). "TOC" describes what the `x-mitre-collection` object is and avoids overloading "collection". It applies only to STIX 2.1; STIX 2.0 always omits the object.                                                                                  |
+| `collectionObjectVersion`              | **Removed** — fixed at `0.1`, signifying an ephemerally generated collection not connected to a release track                                                                                                                                                                              |
+| `collectionObjectModified`             | **Removed** — fixed at the current timestamp                                                                                                                                                                                                                                               |
+| `collectionAttackSpecVersion`          | **Removed** — fixed at the global default (`config.app.attackSpecVersion`)                                                                                                                                                                                                                 |
+| `includeNotes`                         | **Removed** — notes are Workbench-native objects, not STIX objects, and are never emitted in bundles                                                                                                                                                                                       |
+| `includeDataSources`                   | **Removed** — data sources are deprecated (ATT&CK Spec v3.3.0) and were marked deprecated/revoked in ATT&CK v18, so their inclusion is governed entirely by `includeDeprecated`/`includeRevoked`. Internally the delegation passes `includeDataSources: true` and lets those flags filter. |
+| `useLegacyMethod`                      | **Removed** — the pre-v17 code path (`stix-bundles-service-old.js`) is not supported by the new endpoints                                                                                                                                                                                  |
+| `state`                                | **Removed** — workflow status is now scoped to release tracks; a domain-scoped endpoint has no workflow-status concept                                                                                                                                                                     |
 
 Note on the bundle envelope: STIX 2.0 requires `spec_version` on the bundle
 object, while STIX 2.1 removed it (objects declare their own `spec_version`
@@ -93,67 +93,157 @@ Implemented in
 [export-schemas.js](../../../app/lib/release-tracks/export-schemas.js)
 (`bundleTransformSchema`). Standard snapshots and materialized virtual
 snapshots use this same pipeline; virtual composition metadata does not alter
-STIX version serialization. The pipeline:
+STIX version serialization. The design is recorded in
+[sealed-content-manifests.md](sealed-content-manifests.md). The pipeline:
 
-1. **Tier selection** — members are always exported. `include` (values
-   `staged` and/or `candidates`; singular forms accepted) adds tiers.
-   `state` (values `work-in-progress` and/or `awaiting-review`) narrows the
-   added tiers; entries whose `object_status` is `reviewed` always pass the
-   filter, mirroring the fact that members are inherently reviewed. `state`
-   never affects members. `reviewed` is intentionally not a valid `state`
-   value for this reason.
-2. **Graph selection** — a member-only export replays the schema-v2 graph when
-   the tagged snapshot has explicitly opted in. Graphless snapshots resolve a
-   live bounded graph. Any request that includes `staged` or `candidates` is
-   also live; determinism is promised for `members` only.
-3. **Closed member graph** — persisted deterministic graphs emit only exact
-   `members` revisions as graph objects. A relationship is selected only when
-   both of its stored exact endpoint revisions are members; relationships do
-   not pull additional SDOs into the graph. Persisted schema-v2 manifests store
-   exact-revision pointers, not cloned STIX payloads.
-4. **Supporting objects** — referenced identities and marking definitions are
-   appended. Versioned supporting objects use pointers; unversioned marking
-   definitions retain a frozen payload in persisted graphs.
-5. **LinkById conversion** — deterministic replay uses the exact render target
-   pointer captured in the graph. Live resolution uses the current eligible
-   target.
-6. **Assembly** (Zod transform) — notes are dropped, objects are conformed to
+1. **Replay the sealed content manifest** — every snapshot references a
+   manifest from birth. The manifest holds exact-revision pointers for the
+   member roots, the relationships closed over those members, supporting
+   identities and marking definitions, and non-emitted LinkById render
+   targets. Export hydrates those pointers and nothing else: no relationship
+   query, no domain inference, no "latest" lookup.
+2. **Release previews** — a preview of an unsaved planned snapshot has
+   nothing sealed yet, so it resolves the same closed-member graph live over
+   the planned members. This is the only live path. Bundles never add
+   workflow tiers: `include` is a workbench tier selector and `format=bundle`
+   rejects it with `400` (the former draft-only `include`/`state` preview was
+   removed on 2026-09-03 because it produced bundles matching no manifest and
+   duplicated the release preview).
+3. **Supporting objects** — identities and marking definitions referenced by
+   emitted objects, plus the identity and markings the collection object
+   itself references, are appended so the bundle is self-contained.
+4. **LinkById conversion** — uses the exact render target pointers captured in
+   the manifest.
+5. **Assembly** (Zod transform) — notes are dropped, objects are conformed to
    `stixVersion` via the shared `lib/stix-conformance.js` helpers, and the
    bundle envelope is emitted (with `spec_version: "2.0"` only when
    `stixVersion=2.0` — STIX 2.1 removed `spec_version` from the bundle
    object).
-7. **TOC** — for STIX 2.1, unless `includeToc=false`, an
-   `x-mitre-collection` object is prepended. STIX 2.0 always omits this ATT&CK
-   extension object. Graphless 2.1 exports derive it from live snapshot
-   metadata. Graph creation freezes it as a `collection` manifest entry and
-   every member-only 2.1 replay uses that stored value:
-   - `id`: `x-mitre-collection--<track uuid>` — stable across exports of the
-     same track
-   - `created_by_ref`: the configured organization identity's STIX ID
-   - `name`/`object_marking_refs`: from the snapshot metadata
-   - `description`: from `snapshot_description` when present, otherwise the
-     snapshot's long-lived track `description`
-   - `x_mitre_version`: the snapshot's tagged version, or `0.1` for drafts
-   - `created`: the first cached collection object's creation timestamp for
-     the release track
-   - `modified`: the current graph manifest's creation timestamp
-   - `x_mitre_contents`: every bundle object except marking definitions
-     (which are recorded in `object_marking_refs`), sorted by `object_ref`
-8. **Deterministic file identity** — graph-backed member-only bundles use the
-   graph manifest UUID for the bundle envelope ID. After graph creation, the
-   server serializes each STIX version with `JSON.stringify(bundle, null, 4)`,
-   hashes those exact UTF-8 bytes with SHA-256, and stores both digests on the
-   snapshot as `bundle_hashes`. The graph, collection object, notes, and hashes
-   form one immutable cache boundary. Snapshot-note edits return `409 Conflict`
-   until the graph is deleted; callers then edit the notes and regenerate the
-   graph and hashes.
+6. **Collection object** — every STIX 2.1 bundle begins with an
+   `x-mitre-collection` object; STIX 2.0 bundles never contain this ATT&CK
+   extension object. It is a projection, never a stored object:
+   - `id`: `config.publication.collection_id`, defaulting to
+     `x-mitre-collection--<track uuid>`; constant across every snapshot of the
+     track
+   - `created`: `config.publication.created`, defaulting to the track's
+     `created`
+   - `modified`: the snapshot's `modified`
+   - `x_mitre_version`: the tagged version; drafts omit the key
+   - `created_by_ref` and `object_marking_refs`: the publication inheritance
+     rule (track override, else global system configuration). When neither
+     scope configures markings, the object carries the marking definitions
+     referenced by its contents so it never ships unmarked
+   - `name`: the snapshot's track name
+   - `description`: `snapshot_description`, falling back to the track
+     `description`
+   - `x_mitre_attack_spec_version`: the deployment's ATT&CK spec version
+   - `x_mitre_contents`: every bundle object except marking definitions,
+     sorted by `object_ref`
+     Drafts resolve the inheritance rule at export so they preview the current
+     configuration; release commit freezes the resolved values onto the tagged
+     snapshot as `publication`.
+7. **Bundle identity and hashes** — a released snapshot stores a stable
+   `bundle_id` assigned at commit; drafts derive a UUIDv5 from the track ID
+   and snapshot `modified`. The bundle ID therefore changes across snapshots
+   while the collection ID stays constant per track. Release commit serializes
+   each STIX version with `JSON.stringify(bundle, null, 4)`, hashes the exact
+   UTF-8 bytes with SHA-256, and stores both digests on the snapshot as
+   `bundle_hashes` bound to the manifest ID.
 
-The `20260805150000-repair-release-track-bundle-integrity` forward migration
-applies these invariants to existing graph manifests. It creates or rewrites
-each frozen collection entry with the track-derived ID and current configured
-organization identity, then recomputes both hashes for every linked tagged
-snapshot. Historical draft graphs remain live exports and therefore do not
-retain deterministic hashes.
+### Sealed content manifests
+
+`content-manifest-service.js` owns the one graph algorithm
+(`resolveClosedGraph`):
+
+- Roots are the exact `members` revisions; a member set naming two revisions
+  of one STIX ID is rejected.
+- A relationship lineage is a candidate when its `source_ref` and
+  `target_ref` are both member IDs (indexed `$in` queries on the two ref
+  fields, batched). The newest revision of each lineage is chosen first, then
+  discarded if it is revoked, deprecated, or a deprecated pattern, so an older
+  active revision is never resurrected by a newer inactive one. The member
+  revisions become the manifest entry's `source` and `target` pins.
+- No SDO is ever discovered through a relationship. The former `secondary`
+  role survives only in legacy manifests.
+- Supporting identities and marking definitions are pointers (versioned) or
+  frozen payloads (unversioned marking definitions). LinkById targets outside
+  the bundle are non-emitted `link_target` entries.
+
+A manifest is sealed whenever a snapshot's `members` tier is written: track
+creation, release commit, virtual materialization, bundle import, quarantine
+promotion, and track clone. Candidate, staged, config, and metadata clones
+inherit the predecessor's manifest by reference, so manifest storage is
+bounded by member-changing writes rather than by snapshot count. Sealing
+writes a pending manifest and its entries, re-verifies every pointer inside
+that protection window, then saves the snapshot referencing the manifest and
+activates it; a failed save discards the manifest. A manifest is discarded only
+when no snapshot in its track references it.
+
+A standard release commit seals a fresh manifest over the planned member set
+inside the guarded tag update, even when nothing was staged, so relationships
+created since the last seal are captured. The release preview reports exactly
+what that seal would change: `relationships.added`, `relationships.removed`,
+and `relationships.stale_endpoints` (relationships whose authoring-time
+endpoint revision differs from the member revision being shipped). A virtual
+commit publishes the materialization manifest unchanged, because the
+materialized draft is the artifact that was reviewed.
+
+Every relationship revision still records server-controlled exact endpoint
+pins under `workspace.relationship_endpoints` at creation. They are authoring
+context for the stale-endpoint warning and are not emitted. A new endpoint
+revision no longer clones the relationship: exact pairing for a release lives
+in the sealed manifest, so editing an object creates no relationship
+revisions and editing a relationship creates exactly one.
+
+Active and pending manifests protect every exact versioned dependency from
+hard deletion. Persisted STIX content is globally immutable through PUT;
+corrections are new POSTed revisions. Tagged snapshots are immutable including
+their notes.
+
+#### Historical baselines
+
+Baselines whose relationships predate endpoint-pin capture use the admin-only
+`POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct`. Its body
+contains a source-bundle attestation and a decoupled pointer plan, not the
+bundle payload. The server verifies that roots exactly equal tagged members,
+every exact revision exists, each relationship's STIX refs agree with the
+supplied endpoint IDs, the endpoint revisions are included, and required
+supporting objects are present. Because every tagged snapshot already
+references a sealed manifest, the request must name that manifest in
+`replace_manifest_id`; the same attestation is idempotent and any other
+current manifest is rejected. Replacement recomputes the bundle hashes. The
+resulting manifest uses resolver version `source-bundle-pointer-v2`, records
+the attestation, and sets `baseline_reconstruction: true`. Source plans may
+carry `link_target` pointers and narrow `omitted_optional_defaults`
+serialization hints exactly as before.
+
+#### Migration
+
+`20260902120000-seal-release-track-content-manifests.js` upgrades existing
+databases in place: it renames `graph_manifest_id` to `content_manifest_id`,
+seals a `baseline_reconstruction` manifest for every tagged snapshot that had
+none, lets drafts share the manifest of a preceding tagged snapshot with an
+identical member set (or seals them), moves the retired top-level
+`object_marking_refs` into `config.publication.object_marking_refs`, freezes
+`publication` and a `bundle_id` (preserving the manifest-derived envelope ID
+those snapshots exported before) onto tagged snapshots, recomputes
+`bundle_hashes`, and removes frozen `collection` entries. Only tracks in
+`releaseTrackRegistry` are migrated: a dynamic `release-track--*` collection
+without a registry document is an orphan of an interrupted or pre-registry
+deletion whose snapshots routinely point at revisions that no longer exist.
+The migration reports each orphan, discards any manifests it owns so they
+cannot protect stale revisions, and leaves the collection for an operator to
+drop. It also renames the manifest collections from `releaseTrackGraphManifest*`
+to `releaseTrackContentManifest*`, moves manifest ids to the
+`release-track-content-manifest--` prefix, replaces `resolver_version` and
+`baseline_reconstruction` with a required `seal_reason`, removes the retired
+`config.include_secondary_objects` block, and deletes completed
+`releaseTrackReconciliations` records. Preview it with
+`npm run preview:content-manifests`; a failure names the track, snapshot,
+step, and missing references. The earlier
+`20260730180000` migration keeps its relationship-pin backfill but no longer
+creates manifests. Legacy schema-v1 manifests (frozen relationship payloads,
+`secondary` entries) remain replayable.
 
 ### Canonical domains and the legacy graph renderer
 
@@ -162,167 +252,23 @@ object has one revision whose `x_mitre_domains` contains the complete domain
 union. That same revision may appear in multiple domain bundles; its array is
 not narrowed to the domain requested by a particular export.
 
-The legacy and ephemeral graph renderer now preserves every nonempty
+The legacy and ephemeral graph renderer preserves every nonempty
 `x_mitre_domains` array it hydrates. Export-time inference remains only as a
 compatibility fallback for exact historical domainless revisions pinned
 before canonical-domain enforcement, including historical matrix revisions.
 The fallback affects the rendered copy and does not update the stored
-revision. The release-agnostic startup migration creates a canonical
-replacement only when an exact collection TOC entry proves the object's
-domain. Unmapped legacy objects remain unchanged, are reported for follow-up,
-and keep the temporary validation bypasses active. All subsequent content must
-persist canonical domains so virtual composition, snapshot export, and
-ephemeral export observe the same membership.
-
-Because snapshot contents are explicitly curated, primary entries do **not**
-receive the legacy attack-id / deprecated / revoked filters. Graphless and
-candidate/staged exports retain the established live bounded ATT&CK expansion
-rules. A persisted deterministic member graph instead closes over `members`
-and never discovers additional SDO revisions through relationships.
-
-#### Closed-member relationship consistency boundary
-
-Release-track exports distinguish persisted deterministic content from live
-compatibility expansion:
-
-- Primary objects are explicit snapshot tier entries. Members and quarantine
-  record exact `(object_ref, object_modified)` revisions. Standard candidates
-  and staged entries may instead store `"latest"` and are resolved just in
-  time when a draft export includes those tiers.
-- A persisted deterministic graph contains only `members` as graph objects.
-  Relationships, supporting identities/marking definitions, and non-emitted
-  LinkById targets are dependencies, not implicit membership. A relationship
-  endpoint outside `members` causes that relationship to be omitted.
-- Graphless and candidate/staged exports remain live and may use the legacy
-  secondary-object expansion rules. They carry no determinism guarantee.
-
-Tagged standard membership is deterministic because release planning resolves
-staged selectors before promoting them to members. Virtual materialization
-likewise copies exact member revisions from tagged component snapshots and
-never follows a component's later `track_latest` candidate movement.
-When a virtual component declares `filters.domains`, virtual materialization
-uses those filters to choose exact primary members. Deterministic graph capture
-does not perform a second domain-inference pass: the materialized member set is
-the complete SDO boundary. Domainless supporting metadata remains eligible.
-
-Every relationship revision stores server-controlled exact source and target
-pins under `workspace.relationship_endpoints`. These fields identify the
-precise `(object_ref, object_modified)` pair represented by each side of the
-SRO. They are not emitted because bundle output includes only the `stix`
-object. When an endpoint advances, Workbench creates a new SRO revision with
-updated pins rather than rewriting the older SRO.
-
-Snapshots are graphless by default. After tagging, an editor may call
-`POST /api/release-tracks/:id/snapshots/:modified/graph`. The service builds a
-schema-v2 closed-member graph. It rejects duplicate member revisions for one
-STIX ID, selects relationship revisions only when both exact endpoint pins are
-members, writes a pending manifest and decoupled entry rows, rehydrates every
-pointer while those pending rows already protect deletion, then atomically
-attaches the manifest ID to the still-tagged snapshot. Replay can self-activate
-a complete linked pending manifest after an interrupted activation. `DELETE`
-on the same graph resource detaches and removes it. Each manifest also owns one
-frozen `x-mitre-collection` entry. The attached snapshot records SHA-256 values
-for the exact STIX 2.0 and STIX 2.1 browser-download serialization, bound to the
-same manifest ID.
-
-Historical baselines whose relationships predate endpoint-pin capture require
-a different, admin-only path:
-`POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct`. Its body
-contains a source-bundle attestation and a decoupled pointer plan, not the
-bundle payload. The caller must independently verify the named bundle and its
-SHA-256 digest. The server then verifies that roots exactly equal tagged
-members, every exact revision exists, each relationship's STIX refs agree with
-the supplied endpoint IDs, the endpoint revisions are included, and required
-supporting objects are present. Versioned entries are always pointers; only an
-unversioned marking definition may be frozen by value. The resulting manifest
-uses resolver version `source-bundle-pointer-v2`, records the attestation, and
-sets `baseline_reconstruction: true`.
-
-Source plans may contain `link_target` pointers for objects outside the emitted
-domain bundle. They are hydrated for LinkById conversion but are not emitted.
-Active ATT&CK-ID targets are preferred; a unique inactive historical target is
-accepted only when no active v19.1 target exists.
-
-The v19.1 production bootstrap uses this path without importing the published
-bundles. Because each official domain bundle contains one revision per STIX
-ID, it can infer legacy SRO endpoint revisions by joining `source_ref` and
-`target_ref` to those unique objects. Before tagging, the script batch-hydrates
-the entire pointer plan from Workbench and compares its STIX object set with
-the source bundle. This is the missing provenance that live database traversal
-cannot recover after endpoint lineages have advanced. The bootstrap routes
-entity pointers to `attackObjects` and relationship pointers to the dedicated
-`relationships` collection. Its pre-tag comparison mirrors export-time
-LinkById rendering. A pointer may carry a narrow serialization hint when the
-attested source omitted a persisted optional `revoked: false` or
-`x_mitre_remote_support: false` default. Most source objects explicitly emit
-those false values and retain them. True values and every other payload
-difference remain significant. Ordinary release-track exports retain their
-existing serialization.
-
-Ordinary graph creation uses the compound indexes on
-`workspace.relationship_endpoints.{source,target}` rather than scanning all
-relationships. Exact member revisions are queried in bounded batches. A
-candidate survives only when both exact endpoint pairs occur in `members`.
-Candidates are then grouped by relationship lineage and exact endpoint pair;
-the newest revision wins before revoked, deprecated, and obsolete-pattern
-filters run, so an older active revision cannot be resurrected by a newer
-inactive revision.
-
-The immediately preceding tagged graph also seeds relationship candidates
-whose exact endpoints remain members. This creates a provenance chain from a
-source-attested v19.1 baseline, including legacy relationships whose current
-`workspace.relationship_endpoints` metadata cannot be reconstructed
-truthfully. The indexed database query is still performed on every graph so a
-new relationship connecting unchanged members is discovered. Current exact
-relationship revisions override carried history; removed or revised member
-endpoints naturally drop predecessor edges.
-
-Ordinary manifests created by this algorithm use resolver version
-`closed-member-graph-v3`. Existing `bounded-member-graph-v2` manifests are not
-rewritten in place. To repair an affected post-v19.1 graph, preserve the
-source-attested v1.0 baseline, DELETE only the affected later snapshot's graph,
-then POST that graph again. If the tagged snapshot's member pins are already
-correct, deleting the snapshot itself is unnecessary; the recreated graph uses
-v1.0 (or the immediately preceding tagged graph) as its predecessor. Published
-artifacts produced from the removed graph must be regenerated.
-
-Active and pending manifests protect every exact versioned dependency from
-hard deletion. Persisted STIX content is globally immutable through PUT,
-whether or not it is graph-pinned; corrections are new POSTed revisions.
-Schema-v2 relationships therefore need no frozen payload or mutation
-exemption. Legacy schema-v1 manifests still replay their frozen relationship
-payloads. Deleting a graph or track releases protection that no other graph or
-tagged membership needs.
-
-Existing data is upgraded by an idempotent migration. Only the latest
-revision of each legacy relationship can be endpoint-pinned truthfully.
-Pre-existing snapshot manifests are labeled `baseline_reconstruction`
-because they describe the graph visible during migration rather than an
-unknowable historical graph. They must not be represented as historical truth.
-A verified external bundle can reconstruct a historical graph through the
-admin operation above; without such an artifact, exact legacy endpoint
-selection remains unknowable.
-
-Drafts and tagged snapshots without graphs resolve live. Candidate/staged
-exports also resolve live even when the snapshot has a graph, because those
-tiers are expected to move. Release preview is live and release commit does
-not create a graph. Determinism begins only with the explicit tagged-snapshot
-graph operation and applies only to member exports.
-
-The graph and object payload are reproducible, but the bundle is not promised
-to be byte-for-byte identical: the bundle envelope receives a newly generated
-bundle ID. Consumers should compare the emitted STIX object set and revisions,
-not the envelope UUID.
+revision. Release-track exports never infer domains: the sealed member set is
+the complete SDO boundary, and virtual materialization applies component
+`filters.domains` when it selects members.
 
 ### Where validation happens
 
 Query parameters are validated in the controller with Zod
 ([release-track-schemas.js](../../../app/lib/release-tracks/release-track-schemas.js)).
-The OpenAPI spec declares the parameters loosely (`oneOf` string/array with
-`allowReserved` for the list-valued `include`/`state`) so that both
-comma-separated and repeated-parameter forms reach the Zod layer, which
-normalizes and enforces the enums. Invalid values produce a 400
-`InvalidQueryStringParameterError`.
+The OpenAPI spec declares the parameters loosely so the Zod layer enforces the
+enums. Invalid values, and `include` on a bundle request, produce a 400
+`InvalidQueryStringParameterError`; parameters absent from the OpenAPI spec
+(such as the removed `state`) are rejected by the OpenAPI validator.
 
 Primary revision existence is validated separately in
 `primary-revision-service.js`. This is intentionally a service-layer
@@ -331,9 +277,17 @@ release planning also enter through non-controller paths.
 
 ### Regression tests
 
+- [content-manifests.spec.js](../../../app/tests/api/release-tracks/content-manifests.spec.js)
+  — sealing at creation, inheritance through clones, resealing at release,
+  preview inventories, source-attested replacement, draft-only `include`
+- [publication-config.spec.js](../../../app/tests/api/release-tracks/publication-config.spec.js)
+  — publication inheritance, overrides, freezing, and immutability
+- [deterministic-graph-migration.spec.js](../../../app/tests/api/release-tracks/deterministic-graph-migration.spec.js)
+  — the relationship-pin and content-manifest migrations
 - [release-tracks-bundle.spec.js](../../../app/tests/api/release-tracks/release-tracks-bundle.spec.js)
   — snapshot bundle exports (tier selection, state filtering, STIX version
-  conformance, TOC, LinkById, supporting objects, validation errors)
+  conformance, collection object, LinkById, supporting objects, validation
+  errors)
 - [ephemeral-bundle.spec.js](../../../app/tests/api/release-tracks/ephemeral-bundle.spec.js)
   — ephemeral bundles (legacy-parity object selection, parameter mapping,
   TOC defaults, workbench format)

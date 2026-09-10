@@ -126,6 +126,21 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async getReleaseBySourceModified(trackId, sourceModified) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOne({
+        id: trackId,
+        version: { $type: 'string' },
+        release_source_modified: sourceModified,
+      })
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async getSnapshotByScheduledMaterialization(trackId, scheduledFor) {
     try {
       const Model = this._getModel(trackId);
@@ -288,12 +303,17 @@ class ReleaseTrackDynamicRepository {
           type: 1,
           modified: 1,
           version: 1,
-          graph_manifest_id: 1,
+          content_manifest_id: 1,
+          bundle_id: 1,
           bundle_hashes: 1,
+          release_source_modified: 1,
           snapshot_description: 1,
+          creation_cause: { $ifNull: ['$creation_cause', 'unknown'] },
+          creation_actor: { $ifNull: ['$creation_actor', { kind: 'unknown' }] },
           name: 1,
           description: 1,
           scheduled_materialization: 1,
+          composition_resolution: 1,
           members_count: { $size: { $ifNull: ['$members', []] } },
           staged_count: { $size: { $ifNull: ['$staged', []] } },
           candidates_count: { $size: { $ifNull: ['$candidates', []] } },
@@ -328,7 +348,9 @@ class ReleaseTrackDynamicRepository {
           throw new DuplicateReleaseVersionError(trackId, snapshotData.version, { cause: err });
         }
         throw new DuplicateIdError({
-          details: `Snapshot with modified '${snapshotData.modified}' already exists for track '${trackId}'.`,
+          details:
+            `Snapshot uniqueness conflict for track '${trackId}' at modified ` +
+            `'${new Date(snapshotData.modified).toISOString()}': ${JSON.stringify(err.keyValue)}`,
           cause: err,
         });
       }
@@ -378,6 +400,70 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  async retagSnapshotInPlace(trackId, modified, currentVersion, nextVersion, artifacts) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.findOneAndUpdate(
+        {
+          id: trackId,
+          modified,
+          version: currentVersion,
+          content_manifest_id: artifacts.bundle_hashes.manifest_id,
+        },
+        {
+          $set: {
+            version: nextVersion,
+            'version_history.$[entry].version': nextVersion,
+            ...artifacts,
+          },
+        },
+        {
+          arrayFilters: [
+            {
+              'entry.version': currentVersion,
+              'entry.snapshot_id': new Date(modified),
+            },
+          ],
+          new: true,
+          runValidators: true,
+          lean: true,
+        },
+      ).exec();
+    } catch (err) {
+      if (err.name === 'MongoServerError' && err.code === 11000) {
+        throw new DuplicateReleaseVersionError(trackId, nextVersion, { cause: err });
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
+  async replaceVersionHistoryVersion(trackId, snapshotModified, nextVersion) {
+    try {
+      const Model = this._getModel(trackId);
+      const result = await Model.updateMany(
+        {
+          id: trackId,
+          modified: { $ne: snapshotModified },
+          version_history: {
+            $elemMatch: { snapshot_id: snapshotModified },
+          },
+        },
+        { $set: { 'version_history.$[entry].version': nextVersion } },
+        {
+          arrayFilters: [
+            {
+              'entry.snapshot_id': new Date(snapshotModified),
+            },
+          ],
+          runValidators: true,
+        },
+      ).exec();
+      return result.modifiedCount;
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async updateSnapshot(trackId, modified, updateOps) {
     try {
       const Model = this._getModel(trackId);
@@ -397,7 +483,12 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
-  async attachGraphManifest(trackId, modified, manifestId) {
+  /**
+   * Replace a tagged snapshot's content manifest. Used by administrative
+   * source-attested reconstruction, which must name the manifest it expects
+   * to replace so a concurrent change is detected.
+   */
+  async replaceContentManifest(trackId, modified, expectedManifestId, manifestId) {
     try {
       const Model = this._getModel(trackId);
       return await Model.findOneAndUpdate(
@@ -405,27 +496,9 @@ class ReleaseTrackDynamicRepository {
           id: trackId,
           modified,
           version: { $type: 'string' },
-          graph_manifest_id: { $exists: false },
+          content_manifest_id: expectedManifestId,
         },
-        { $set: { graph_manifest_id: manifestId } },
-        { new: true, runValidators: true, lean: true },
-      ).exec();
-    } catch (err) {
-      throw new DatabaseError(err);
-    }
-  }
-
-  async detachGraphManifest(trackId, modified, manifestId) {
-    try {
-      const Model = this._getModel(trackId);
-      return await Model.findOneAndUpdate(
-        {
-          id: trackId,
-          modified,
-          version: { $type: 'string' },
-          graph_manifest_id: manifestId,
-        },
-        { $unset: { graph_manifest_id: '', bundle_hashes: '' } },
+        { $set: { content_manifest_id: manifestId }, $unset: { bundle_hashes: '' } },
         { new: true, runValidators: true, lean: true },
       ).exec();
     } catch (err) {
@@ -441,7 +514,7 @@ class ReleaseTrackDynamicRepository {
           id: trackId,
           modified,
           version: { $type: 'string' },
-          graph_manifest_id: manifestId,
+          content_manifest_id: manifestId,
         },
         { $set: { bundle_hashes: bundleHashes } },
         { new: true, runValidators: true, lean: true },
@@ -451,11 +524,59 @@ class ReleaseTrackDynamicRepository {
     }
   }
 
+  /**
+   * Return the subset of manifest IDs still referenced by any snapshot in the
+   * track. Manifests are shared by reference between a sealing snapshot and
+   * the clones that inherit it.
+   */
+  async findReferencedManifestIds(trackId, manifestIds) {
+    if (!Array.isArray(manifestIds) || manifestIds.length === 0) return [];
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.distinct('content_manifest_id', {
+        id: trackId,
+        content_manifest_id: { $in: manifestIds },
+      }).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
+   * Remove one release's ledger entry from every snapshot of the track. The
+   * ledger is copied forward into each clone, so deleting a release must
+   * retract it everywhere or the version would stay reserved.
+   */
+  async pullVersionHistory(trackId, version) {
+    try {
+      const Model = this._getModel(trackId);
+      const result = await Model.updateMany(
+        { id: trackId, 'version_history.version': version },
+        { $pull: { version_history: { version } } },
+      ).exec();
+      return result.modifiedCount;
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async deleteOlderDrafts(trackId, modified) {
     try {
       const Model = this._getModel(trackId);
-      const query = { id: trackId, version: null, modified: { $lt: modified } };
-      const snapshots = await Model.find(query).select('modified graph_manifest_id').lean().exec();
+      const retainedDrafts = await Model.distinct('release_source_modified', {
+        id: trackId,
+        version: { $type: 'string' },
+        release_source_modified: { $type: 'date' },
+      }).exec();
+      const query = {
+        id: trackId,
+        version: null,
+        modified: { $lt: modified, ...(retainedDrafts.length ? { $nin: retainedDrafts } : {}) },
+      };
+      const snapshots = await Model.find(query)
+        .select('modified content_manifest_id')
+        .lean()
+        .exec();
       if (snapshots.length > 0) {
         await Model.deleteMany({ _id: { $in: snapshots.map((snapshot) => snapshot._id) } }).exec();
       }
@@ -469,6 +590,29 @@ class ReleaseTrackDynamicRepository {
     try {
       const Model = this._getModel(trackId);
       return await Model.findOneAndDelete({ id: trackId, modified }).lean().exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async findSnapshotsResolvingComponent(trackId, componentTrackId, componentSnapshotModified) {
+    try {
+      const Model = this._getModel(trackId);
+      return await Model.find(
+        {
+          id: trackId,
+          'composition_resolution.component_snapshots': {
+            $elemMatch: {
+              track_id: componentTrackId,
+              resolved_snapshot_id: new Date(componentSnapshotModified),
+            },
+          },
+        },
+        { id: 1, name: 1, modified: 1, version: 1 },
+      )
+        .sort({ modified: 1 })
+        .lean()
+        .exec();
     } catch (err) {
       throw new DatabaseError(err);
     }

@@ -8,9 +8,6 @@ const config = require('../../../config/config');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
-const {
-  ReleaseTrackGraphManifestEntry,
-} = require('../../../models/release-tracks/release-track-graph-manifest-model');
 
 describe('Release-track snapshot descriptions', function () {
   let app;
@@ -92,7 +89,7 @@ describe('Release-track snapshot descriptions', function () {
     expect(unchanged.modified).toBe(track.modified);
   });
 
-  it('sets release notes while tagging and permits later annotation edits in place', async function () {
+  it('sets release notes while tagging and rejects later edits on the released snapshot', async function () {
     const track = await createTrack('Snapshot Description Release', {
       description: 'Stable track description',
     });
@@ -102,67 +99,28 @@ describe('Release-track snapshot descriptions', function () {
     });
 
     expect(released).toMatchObject({
-      modified: track.modified,
       version: '1.0',
       description: 'Stable track description',
       snapshot_description: 'What changed in the first publication.',
     });
-
-    const edited = await put(descriptionPath(released), {
-      description: 'Corrected internal release context.',
-    });
-    expect(edited).toMatchObject({
-      modified: track.modified,
-      version: '1.0',
-      snapshot_description: 'Corrected internal release context.',
-    });
-
-    const registry = await get('/api/release-tracks');
-    const registryTrack = registry.data.find((entry) => entry.track_id === track.id);
-    expect(registryTrack.description).toBe('Stable track description');
-  });
-
-  it('rejects cached note edits until the cache is deleted and regenerated', async function () {
-    const track = await createTrack('Snapshot Description Cached', {
-      description: 'Stable fallback description',
-    });
-    const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {
-      version: '1.0',
-      description: 'Initial cached notes.',
-    });
-    const cached = await post(
-      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(released.modified)}/graph`,
-      {},
-      201,
+    expect(released.modified).not.toBe(track.modified);
+    expect(new Date(released.release_source_modified).toISOString()).toBe(
+      new Date(track.modified).toISOString(),
     );
-    const originalHashes = cached.bundle_hashes;
-    const originalCollection = await ReleaseTrackGraphManifestEntry.findOne({
-      manifest_id: cached.graph_manifest_id,
-      kind: 'collection',
-    })
-      .lean()
-      .exec();
+    const originalHashes = released.bundle_hashes;
 
     const conflict = await put(
       descriptionPath(released),
-      { description: 'Corrected cached notes.' },
+      { description: 'Corrected internal release context.' },
       409,
     );
-    expect(conflict.message).toBe('Delete the bundle cache before editing snapshot notes.');
+    expect(conflict.message).toBe('Snapshot notes are immutable once the snapshot is released.');
 
     const unchangedSnapshot = await get(
       `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(released.modified)}`,
     );
-    expect(unchangedSnapshot.snapshot_description).toBe('Initial cached notes.');
+    expect(unchangedSnapshot.snapshot_description).toBe('What changed in the first publication.');
     expect(unchangedSnapshot.bundle_hashes).toEqual(originalHashes);
-
-    const unchangedCollection = await ReleaseTrackGraphManifestEntry.findOne({
-      manifest_id: cached.graph_manifest_id,
-      kind: 'collection',
-    })
-      .lean()
-      .exec();
-    expect(unchangedCollection.frozen_stix).toEqual(originalCollection.frozen_stix);
 
     for (const stixVersion of ['2.0', '2.1']) {
       const bundle = await get(
@@ -179,40 +137,13 @@ describe('Release-track snapshot descriptions', function () {
       if (stixVersion === '2.0') {
         expect(collection).toBeUndefined();
       } else {
-        expect(collection.description).toBe('Initial cached notes.');
+        expect(collection.description).toBe('What changed in the first publication.');
       }
     }
 
-    await api(
-      'delete',
-      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(released.modified)}/graph`,
-      undefined,
-      204,
-    );
-    const edited = await put(descriptionPath(released), {
-      description: 'Corrected cached notes.',
-    });
-    expect(edited.snapshot_description).toBe('Corrected cached notes.');
-    expect(edited).not.toHaveProperty('graph_manifest_id');
-    expect(edited).not.toHaveProperty('bundle_hashes');
-
-    const recached = await post(
-      `/api/release-tracks/${track.id}/snapshots/${encodeURIComponent(released.modified)}/graph`,
-      {},
-      201,
-    );
-    expect(recached.graph_manifest_id).not.toBe(cached.graph_manifest_id);
-    expect(recached.bundle_hashes.stix_2_0).not.toBe(originalHashes.stix_2_0);
-    expect(recached.bundle_hashes.stix_2_1).not.toBe(originalHashes.stix_2_1);
-
-    const regeneratedCollection = await ReleaseTrackGraphManifestEntry.findOne({
-      manifest_id: recached.graph_manifest_id,
-      kind: 'collection',
-    })
-      .lean()
-      .exec();
-    expect(regeneratedCollection.frozen_stix.description).toBe('Corrected cached notes.');
-    expect(regeneratedCollection.frozen_stix.id).toBe(originalCollection.frozen_stix.id);
+    const registry = await get('/api/release-tracks');
+    const registryTrack = registry.data.find((entry) => entry.track_id === track.id);
+    expect(registryTrack.description).toBe('Stable track description');
   });
 
   it('clears existing draft notes when release explicitly supplies an empty description', async function () {

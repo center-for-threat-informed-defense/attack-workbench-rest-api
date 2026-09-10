@@ -1,13 +1,22 @@
 # Release-Track Destructive Audit Events
 
-Workbench stores administrator-initiated full-track deletion attempts in
-`releaseTrackAuditEvents`.
+Workbench stores administrator-initiated destructive attempts in
+`releaseTrackAuditEvents`: full-track deletion (`delete_track`), rollback of a
+track's most recent release (`convert_release_to_draft`), and release-version correction
+(`retag_release`). The collection is empty until an administrator performs one
+of those actions.
+
+Older `delete_release` events retain their historical meaning. New snapshot
+DELETE requests reject tagged releases; conversion and draft deletion are
+separate operations. Conversion results identify the restored draft timestamp
+and have `version: null`.
 
 Each record contains:
 
 - `event_id`, `action`, and `track_id`
 - the authenticated `actor`
-- the exact `confirmation` supplied by the caller
+- the exact destructive `confirmation` supplied by the caller (or the prior
+  version for `retag_release`)
 - a bounded request/result summary
 - `pending`, `completed`, or `failed` status
 - start/finish timestamps and failure detail

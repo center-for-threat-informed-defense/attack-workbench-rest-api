@@ -10,6 +10,9 @@ const login = require('../../shared/login');
 const AttackObject = require('../../../models/attack-object-model');
 const linkById = require('../../../lib/linkById');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
+const {
+  ReleaseTrackContentManifest,
+} = require('../../../models/release-tracks/release-track-content-manifest-model');
 const { releaseExactMembers } = require('./release-track-test-helpers');
 
 const staticMarkingDefinitionId = 'marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9';
@@ -171,18 +174,17 @@ describe('Virtual release-track graph integrity', function () {
     expect(exportedRoot.description).toBe(`See [Active Link Target](${attackReference.url}).`);
   });
 
-  it('keeps virtual drafts and releases graphless until a tagged snapshot opts in', async function () {
+  it('seals virtual materialization and publishes that manifest unchanged at release', async function () {
     const root = await post('/api/techniques', technique('Frozen Virtual Root'));
     const virtual = await createVirtual('Virtual Frozen Release Graph', [root]);
     const draft = await dynamicRepo.getLatestSnapshot(virtual.id);
-    expect(draft.graph_manifest_id).toBeUndefined();
-    await post(
-      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(
-        new Date(draft.modified).toISOString(),
-      )}/graph`,
-      {},
-      409,
-    );
+    expect(draft.content_manifest_id).toBeDefined();
+    const materializationManifest = await ReleaseTrackContentManifest.findOne({
+      manifest_id: draft.content_manifest_id,
+    })
+      .lean()
+      .exec();
+    expect(materializationManifest.seal_reason).toBe('members_written');
 
     const preview = await get(
       `/api/release-tracks/${virtual.id}/snapshots/latest/release/preview` +
@@ -195,40 +197,22 @@ describe('Virtual release-track graph integrity', function () {
       { version: '1.0' },
       200,
     );
-    expect(releasedResponse.graph_manifest_id).toBeUndefined();
-
-    const deterministic = await post(
-      `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(
-        releasedResponse.modified,
-      )}/graph`,
-      {},
-      201,
-    );
-    expect(deterministic.graph_manifest_id).toBeDefined();
+    expect(releasedResponse.content_manifest_id).toBe(draft.content_manifest_id);
+    expect(releasedResponse.publication).toBeDefined();
+    expect(releasedResponse.bundle_id).toMatch(/^bundle--/);
+    expect(releasedResponse.bundle_hashes.manifest_id).toBe(draft.content_manifest_id);
 
     const releasedBundle = await get(
       `/api/release-tracks/${virtual.id}/snapshots/latest?format=bundle`,
     );
+    expect(releasedBundle.id).toBe(releasedResponse.bundle_id);
     expect(releasedBundle.objects.find((object) => object.id === root.stix.id).name).toBe(
       root.stix.name,
     );
-
-    const graphPath = `/api/release-tracks/${virtual.id}/snapshots/${encodeURIComponent(
-      releasedResponse.modified,
-    )}/graph`;
-    await request(app)
-      .delete(graphPath)
-      .set('Accept', 'application/json')
-      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(204);
-    await request(app)
-      .delete(graphPath)
-      .set('Accept', 'application/json')
-      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
-      .expect(204);
-
-    const graphlessRelease = await dynamicRepo.getLatestSnapshot(virtual.id);
-    expect(graphlessRelease.graph_manifest_id).toBeUndefined();
+    expect(releasedBundle.objects[0]).toMatchObject({
+      type: 'x-mitre-collection',
+      x_mitre_version: '1.0',
+    });
   });
 
   after(async function () {

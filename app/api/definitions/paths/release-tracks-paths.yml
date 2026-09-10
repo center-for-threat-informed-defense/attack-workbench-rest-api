@@ -238,7 +238,9 @@ paths:
         the initial snapshot and returned by snapshot and track-list GETs.
         `description` is long-lived track metadata. The optional
         `snapshot_description` is a user-authored annotation on the initial
-        draft snapshot and is limited to 4000 characters.
+        draft snapshot and is limited to 4000 characters. `alias` is an
+        optional URL-safe slug (2-64 lowercase letters, digits, and hyphens,
+        unique across tracks) accepted wherever the track ID is.
       tags:
         - 'Release Tracks'
       # Request body validation moved to Zod in controller
@@ -300,7 +302,7 @@ paths:
         - name: id
           in: path
           required: true
-          description: 'Release track ID'
+          description: 'Release track ID or alias'
           schema:
             type: string
         - name: confirm_track_id
@@ -335,9 +337,12 @@ paths:
       summary: 'Update metadata on the latest snapshot'
       operationId: 'release-tracks-update-meta-latest'
       description: |
-        Update name, description, or object_marking_refs on the latest snapshot.
-        Creates a new snapshot clone with updated metadata.
-        Request body validated via Zod in controller.
+        Update name, description, or alias. Name and description live on
+        the snapshot, so changing either creates a new snapshot clone. The
+        alias is registry-only routing metadata (a string sets it, null
+        clears it) and an alias-only update returns the latest snapshot
+        unchanged. Publication markings are configured through the track
+        configuration. Request body validated via Zod in controller.
       tags:
         - 'Release Tracks'
       parameters:
@@ -384,18 +389,19 @@ paths:
       summary: 'Release the latest snapshot'
       operationId: 'release-tracks-release-latest'
       description: |
-        Immutably tag the latest snapshot with a version. Standard tracks
-        promote staged entries to members. Any staged `object_modified:
+        Publish the latest snapshot with a version. Standard tracks retain the
+        exact draft and create a new tagged snapshot; virtual tracks tag the
+        materialized draft in place. Standard tracks promote staged entries
+        to members. Any staged `object_modified:
         "latest"` selector is resolved to the object's actual latest
         `stix.modified` timestamp during release planning; tagged members
         always contain exact revision timestamps. Supply either `increment`
         (`major` or `minor`) or an explicit `version` in `MAJOR.MINOR` form,
         but never both. Omitting both defaults to a minor increment. An
         optional `description` is stored as snapshot-local release notes.
-        Relative increments use the nearest earlier tagged snapshot. The
-        selected version must be strictly between the nearest earlier and
-        later tagged snapshots; the later bound is relevant to retroactive
-        releases.
+        Relative increments use the latest tagged release. A historical
+        standard draft is published as a new release at the current time and
+        must follow the current version lineage.
       tags:
         - 'Release Tracks'
       parameters:
@@ -477,32 +483,17 @@ paths:
             type: string
         - name: include
           in: query
-          allowReserved: true
+          description: |
+            Workbench previews only: which tier arrays to return
+            (members | staged | candidates | quarantine | all). Bundle
+            previews reject it with 400.
           schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
-        - name: state
-          in: query
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
+            type: string
         - name: stixVersion
           in: query
           schema:
             type: string
             enum: ['2.0', '2.1']
-        - name: includeToc
-          in: query
-          description: 'Include the x-mitre-collection TOC in STIX 2.1 bundle previews; STIX 2.0 always omits it'
-          schema:
-            type: boolean
       responses:
         '200':
           description: 'Release preview generated'
@@ -871,6 +862,48 @@ paths:
         '400':
           description: 'Track is not virtual or composition is invalid'
 
+  /api/release-tracks/{id}/virtual/schedule:
+    put:
+      summary: 'Update a virtual track snapshot schedule'
+      operationId: 'release-tracks-schedule-update'
+      description: |
+        Replace the registry-backed materialization schedule for a virtual
+        track without creating or mutating a content snapshot. Request bodies
+        are strictly validated via Zod: manual accepts only mode, cron requires
+        one five-field UTC expression, and dates requires at least one ISO UTC
+        timestamp. Scheduler reconciliation observes the replacement on its
+        next configured pass.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 'Snapshot schedule updated successfully'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - snapshot_schedule
+                properties:
+                  snapshot_schedule:
+                    $ref: '../components/release-tracks.yml#/components/schemas/snapshot-schedule'
+        '400':
+          description: 'Track is not virtual or schedule is invalid'
+        '404':
+          description: 'Release track not found'
+
   /api/release-tracks/{id}/virtual/snapshots/create:
     post:
       summary: 'Create a virtual track snapshot'
@@ -888,6 +921,9 @@ paths:
         optional strict scheduled_materialization object to the resulting
         virtual draft. `description` becomes the new snapshot's local notes;
         it does not replace the release track description.
+        Component release locks are held from resolution through persistence.
+        A concurrent release, rollback, retag, or materialization sharing a
+        component may return 409; retry after the competing operation finishes.
       tags:
         - 'Release Tracks'
       parameters:
@@ -915,11 +951,19 @@ paths:
         '400':
           description: 'Track is not virtual or cannot resolve its composition'
         '409':
-          description: 'A resolved component snapshot references missing primary revisions'
+          description: 'A component release lock is busy or a resolved snapshot references missing primary revisions'
           content:
             application/json:
               schema:
-                $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
+                anyOf:
+                  - $ref: '../components/release-tracks.yml#/components/schemas/object-revision-error'
+                  - type: object
+                    required: [message, track_id]
+                    properties:
+                      message:
+                        type: string
+                      track_id:
+                        type: string
 
   /api/release-tracks/{id}/virtual/quarantine/promote:
     post:
@@ -972,17 +1016,19 @@ paths:
         ordered by modified timestamp from newest to oldest. Standard snapshot
         summaries contain members, staged, and candidates counts. Virtual
         snapshot summaries contain members and quarantine counts, plus
-        scheduled_materialization when present. Tagged summaries also expose
-        graph_manifest_id when their deterministic member graph has been
-        materialized, together with graph_statistics counts for primary,
-        secondary, relationship, supporting, and LinkById entries.
+        scheduled_materialization when present. Every summary exposes its
+        content_manifest_id together with content_statistics counts for
+        primary, relationship, supporting, and LinkById entries. Tagged
+        summaries also expose bundle_id and bundle_hashes.
+        Standard releases with a preserved source draft also expose
+        release_source_modified, allowing clients to hide that retained draft.
       tags:
         - 'Release Tracks'
       parameters:
         - name: id
           in: path
           required: true
-          description: 'Release track ID'
+          description: 'Release track ID or alias'
           schema:
             type: string
         - name: tagged
@@ -1058,22 +1104,18 @@ paths:
         - name: id
           in: path
           required: true
-          description: 'Release track ID'
+          description: 'Release track ID or alias'
           schema:
             type: string
         - name: include
           in: query
           description: |
-            Format-sensitive tier selector. For workbench responses, selects
-            members, staged, candidates, quarantine, or all. For bundle
-            responses, selects staged and/or candidates in addition to members.
-          allowReserved: true
+            Workbench responses only: which tier arrays to return (members,
+            staged, candidates, quarantine, or all; default all). Bundles
+            always replay the snapshot's sealed content manifest and reject
+            include with 400.
           schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
+            type: string
         - name: format
           in: query
           description: 'Output format. filesystemstore is not yet implemented.'
@@ -1084,16 +1126,6 @@ paths:
               - workbench
               - filesystemstore
             default: workbench
-        - name: state
-          in: query
-          description: 'Workflow-status filter for bundle staged/candidate tiers'
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
         - name: stixVersion
           in: query
           description: |
@@ -1106,12 +1138,6 @@ paths:
               - '2.0'
               - '2.1'
             default: '2.1'
-        - name: includeToc
-          in: query
-          description: 'Include the x-mitre-collection TOC in STIX 2.1 bundle responses; STIX 2.0 bundles never include it'
-          schema:
-            type: boolean
-            default: true
       responses:
         '200':
           description: 'Latest snapshot retrieved successfully'
@@ -1154,19 +1180,12 @@ paths:
         - name: include
           in: query
           description: |
-            Format-sensitive tier selector.
-            For format=workbench (default): a single value controlling which tier arrays
-            are returned — members | staged | candidates | quarantine | all (default: all).
-            For format=bundle: a list of additional tiers (staged and/or candidates,
-            comma-separated or repeated) to include alongside members. If omitted, only
-            members are included in the bundle.
-          allowReserved: true
+            Workbench responses only: a single value controlling which tier
+            arrays are returned — members | staged | candidates | quarantine |
+            all (default: all). Bundles always replay the snapshot's sealed
+            content manifest and reject include with 400.
           schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
+            type: string
         - name: format
           in: query
           description: 'Output format. filesystemstore is not yet implemented.'
@@ -1177,20 +1196,6 @@ paths:
               - filesystemstore
               - workbench
             default: workbench
-        - name: state
-          in: query
-          description: |
-            Workflow-status filter for the staged/candidate tiers selected via include
-            (bundle format only). Accepts modified-in-place, work-in-progress and/or
-            awaiting-review (comma-separated or repeated). Entries marked reviewed are
-            always included, irrespective of this parameter. Members are unaffected.
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
         - name: stixVersion
           in: query
           description: |
@@ -1204,15 +1209,6 @@ paths:
               - '2.0'
               - '2.1'
             default: '2.1'
-        - name: includeToc
-          in: query
-          description: |
-            Whether to include a table-of-contents object (of type `x-mitre-collection`)
-            derived from the release-track metadata (bundle format only).
-            This applies only to STIX 2.1; STIX 2.0 bundles never include it.
-          schema:
-            type: boolean
-            default: true
       responses:
         '200':
           description: 'Snapshot retrieved successfully'
@@ -1228,13 +1224,16 @@ paths:
           description: 'Requested format is not yet implemented'
 
     delete:
-      summary: 'Delete a specific snapshot'
+      summary: 'Delete the latest draft snapshot'
       operationId: 'release-tracks-snapshot-delete'
       description: |
-        Delete the latest untagged draft snapshot by its modified timestamp.
-        Tagged snapshots and historical drafts are immutable and cannot be
-        deleted. Deleting the latest draft reverts the track to its immediately
-        preceding snapshot.
+        Delete the latest untagged draft snapshot by its modified timestamp
+        (editor or higher); the track reverts to its immediately preceding
+        snapshot. Tagged releases cannot be deleted, even by administrators:
+        first use POST /snapshots/{modified}/draft to convert to a draft.
+        Deletion is blocked for historical drafts, the only snapshot, preserved
+        source drafts of tagged releases, and snapshots resolved by downstream
+        virtual snapshots. Checks and deletion share the release lock.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1248,13 +1247,75 @@ paths:
           required: true
           schema:
             type: string
+        - name: confirm_version
+          in: query
+          description: |
+            Deprecated compatibility parameter. It does not authorize tagged
+            deletion; tagged snapshots always return 409. Use the draft
+            conversion endpoint instead.
+          deprecated: true
+          schema:
+            type: string
       responses:
         '204':
           description: 'Snapshot deleted successfully'
         '409':
-          description: 'Cannot delete a tagged snapshot or a historical draft'
+          description: 'Snapshot is tagged, protected, the only snapshot, or not the latest draft'
         '404':
           description: 'Snapshot not found'
+
+  /api/release-tracks/{id}/snapshots/{modified}/draft:
+    post:
+      summary: 'Convert the latest tagged release back to a draft'
+      operationId: 'release-tracks-release-to-draft'
+      description: |
+        Administrator-only conversion with exact version confirmation. Standard
+        tracks restore the preserved source draft (whose modified timestamp is
+        returned); virtual releases become drafts in place, preserving their
+        sealed content and composition/creation provenance. Later drafts survive.
+        Only the latest tagged release may be converted. Downstream virtual
+        dependencies block conversion. Release history, catalogue, counters, and
+        backrefs are reconciled and convert_release_to_draft is audited. Draft
+        deletion is a separate operation with its own eligibility checks.
+      tags: ['Release Tracks']
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [confirm_version]
+              properties:
+                confirm_version:
+                  type: string
+                  pattern: '^\d+\.\d+$'
+      responses:
+        '200':
+          description: 'Restored draft snapshot'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
+        '400':
+          description: 'Version confirmation is missing, invalid, or incorrect'
+        '403':
+          description: 'Administrator role required'
+        '404':
+          description: 'Snapshot not found'
+        '409':
+          description: 'Not the latest tagged release, source draft unavailable, downstream dependency, or concurrent operation'
 
   /api/release-tracks/{id}/snapshots/{modified}/clone:
     post:
@@ -1291,12 +1352,12 @@ paths:
       summary: 'Set or clear a snapshot description'
       operationId: 'release-tracks-snapshot-description-update'
       description: |
-        Replace the user-authored notes on one draft or tagged snapshot.
-        Whitespace is trimmed; an empty string clears the notes. This mutable
-        workspace annotation does not change the snapshot modified timestamp,
-        semantic version, tier contents, or release-track metadata. A snapshot
-        with a graph manifest is immutable and returns 409 until its bundle
-        cache is deleted.
+        Replace the user-authored notes on one draft snapshot. Whitespace is
+        trimmed; an empty string clears the notes. This annotation does not
+        change the snapshot modified timestamp, tier contents, or
+        release-track metadata. The notes become the emitted collection
+        object's description, so a tagged snapshot is immutable and returns
+        409; set release notes through the release request instead.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1338,72 +1399,9 @@ paths:
         '409':
           description: 'Delete the snapshot bundle cache before editing its notes'
 
-  /api/release-tracks/{id}/snapshots/{modified}/graph:
-    post:
-      summary: 'Make a tagged snapshot member graph deterministic'
-      operationId: 'release-tracks-snapshot-graph-create'
-      description: |
-        Resolve the tagged snapshot's members into a deterministic graph and
-        persist exact-revision pointers for its primary objects,
-        relationships, and secondary objects. The referenced revisions are
-        write-protected until the graph is deleted. Draft snapshots cannot
-        have persisted graphs. Repeating this operation for a snapshot that
-        already has a graph is idempotent and returns the existing snapshot.
-      tags:
-        - 'Release Tracks'
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: modified
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: 'The tagged snapshot already had a deterministic graph'
-        '201':
-          description: 'Deterministic member graph created successfully'
-        '404':
-          description: 'Snapshot not found'
-        '409':
-          description: 'The snapshot is untagged, changed concurrently, or references missing revisions'
-
-    delete:
-      summary: 'Remove a tagged snapshot deterministic graph'
-      operationId: 'release-tracks-snapshot-graph-delete'
-      description: |
-        Remove the opt-in deterministic member graph and release its
-        exact-revision deletion protections. Subsequent exports resolve the live
-        graph. This operation is idempotent when no graph exists. Draft
-        snapshots cannot have persisted graphs.
-      tags:
-        - 'Release Tracks'
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: modified
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: 'Deterministic member graph absent after the request'
-        '404':
-          description: 'Snapshot not found'
-        '409':
-          description: 'The snapshot is untagged or its graph changed concurrently'
-
   /api/release-tracks/{id}/snapshots/{modified}/graph/reconstruct:
     post:
-      summary: 'Reconstruct a historical deterministic graph from source-bundle pointers'
+      summary: 'Reconstruct a historical content manifest from source-bundle pointers'
       operationId: 'release-tracks-snapshot-graph-reconstruct'
       description: |
         Administrative recovery operation for a tagged historical snapshot.
@@ -1413,8 +1411,11 @@ paths:
         relationship endpoint pins match the stored relationship, and all
         referenced endpoint and supporting objects are present. Versioned
         objects remain pointer-only; only unversioned marking definitions may
-        carry a frozen payload. Repeating the same attestation is idempotent;
-        an ordinary graph or a different attestation is rejected.
+        carry a frozen payload. Repeating the same attestation is idempotent.
+        Every tagged snapshot already has a sealed content manifest, so the
+        request must name that manifest in `replace_manifest_id` to replace
+        it; a different current manifest is rejected. Replacement recomputes
+        the snapshot's bundle hashes.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1436,32 +1437,32 @@ paths:
               $ref: '../components/release-tracks.yml#/components/schemas/source-graph-reconstruction'
       responses:
         '200':
-          description: 'The tagged snapshot already had a deterministic graph'
+          description: 'The tagged snapshot already references a manifest with this attestation'
         '201':
-          description: 'Source-attested deterministic graph created successfully'
+          description: 'Source-attested content manifest replaced the previous manifest'
         '400':
           description: 'Malformed reconstruction plan'
         '404':
           description: 'Snapshot or exact object revision not found'
         '409':
-          description: 'The snapshot is untagged or the source plan violates graph integrity'
+          description: 'The snapshot is untagged, replace_manifest_id does not match, or the source plan violates graph integrity'
 
   /api/release-tracks/{id}/snapshots/{modified}/release:
     post:
       summary: 'Release a specific snapshot'
       operationId: 'release-tracks-release-by-modified'
       description: |
-        Immutably tag the snapshot selected by the modified timestamp using
-        the same version-selection contract as the latest release operation:
+        Publish the snapshot selected by the modified timestamp using the same
+        version-selection contract as the latest release operation:
         supply `increment` or `version`, never both; omit both for a minor
         increment. Virtual drafts must have composition_resolution from a
         successful materialization. For standard tracks, dynamic staged
         references are resolved to exact object revisions when this release
-        request is handled, including when the selected snapshot is historical.
-        An optional `description` is stored as snapshot-local release notes.
-        Relative increments use the nearest earlier tagged snapshot, and the
-        selected version must be strictly below the nearest later tagged
-        snapshot when one exists.
+        request is handled. Standard tracks retain the selected source draft
+        and create a tagged clone at the current time, including when the
+        selected draft is historical. An optional `description` is stored as
+        snapshot-local release notes. Relative increments use the latest
+        tagged release.
       tags:
         - 'Release Tracks'
       parameters:
@@ -1500,6 +1501,62 @@ paths:
             application/json:
               schema:
                 $ref: '../components/release-tracks.yml#/components/schemas/release-track-reconciliation-error'
+    put:
+      summary: 'Change a release version'
+      operationId: 'release-tracks-release-retag'
+      description: |
+        Administratively replace the semantic version assigned to a tagged
+        snapshot without changing its identity or contents. The new version
+        must remain strictly between the chronologically adjacent releases.
+        Stored bundle hashes and the release catalogue are regenerated.
+        The STIX 2.1 digest changes; STIX 2.0 omits the collection object and
+        its digest is unchanged by a version-only correction. Hashes are
+        prepared before writing and published atomically with the version.
+        Retry the same version after a failure to finish history/catalogue
+        reconciliation; a same-version request repairs derived state.
+        Existing virtual snapshot provenance remains an immutable record of
+        the version that was resolved at materialization time.
+      tags:
+        - 'Release Tracks'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modified
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - version
+              additionalProperties: false
+              properties:
+                version:
+                  type: string
+                  pattern: '^\d+\.\d+$'
+      responses:
+        '200':
+          description: 'Release version changed successfully'
+          content:
+            application/json:
+              schema:
+                $ref: '../components/release-tracks.yml#/components/schemas/release-track-snapshot'
+        '400':
+          description: 'Invalid version body or release-lineage violation'
+        '403':
+          description: 'Changing a release version requires an administrator'
+        '404':
+          description: 'Snapshot not found'
+        '409':
+          description: 'Snapshot is a draft or another release operation is in progress'
 
   /api/release-tracks/{id}/snapshots/{modified}/release/preview:
     get:
@@ -1544,32 +1601,17 @@ paths:
             type: string
         - name: include
           in: query
-          allowReserved: true
+          description: |
+            Workbench previews only: which tier arrays to return
+            (members | staged | candidates | quarantine | all). Bundle
+            previews reject it with 400.
           schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
-        - name: state
-          in: query
-          allowReserved: true
-          schema:
-            oneOf:
-              - type: string
-              - type: array
-                items:
-                  type: string
+            type: string
         - name: stixVersion
           in: query
           schema:
             type: string
             enum: ['2.0', '2.1']
-        - name: includeToc
-          in: query
-          description: 'Include the x-mitre-collection TOC in STIX 2.1 bundle previews; STIX 2.0 always omits it'
-          schema:
-            type: boolean
       responses:
         '200':
           description: 'Release preview generated'

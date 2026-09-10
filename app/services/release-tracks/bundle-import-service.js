@@ -1,5 +1,7 @@
 'use strict';
 
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+
 // =============================================================================
 // Bundle Import Service
 //
@@ -132,7 +134,7 @@ function sortByDependencyOrder(objects) {
  * @param {Object} serviceMap - Type → service mapping
  * @returns {Promise<{imported: boolean, ref: {object_ref: string, object_modified: string}}>}
  */
-async function importObject(stixObj, serviceMap) {
+async function importObject(stixObj, serviceMap, userId) {
   const service = serviceMap[stixObj.type];
   if (!service) {
     throw new BadRequestError({
@@ -183,7 +185,7 @@ async function importObject(stixObj, serviceMap) {
       workspace: {},
     };
 
-    await service.create(data, { import: true });
+    await service.create(data, { import: true, userAccountId: userId });
 
     logger.verbose(`BundleImportService: Imported "${stixObj.type}" "${stixObj.id}"`);
     return { imported: true, ref };
@@ -229,7 +231,7 @@ async function importObject(stixObj, serviceMap) {
  * @param {Object} bundleData - Validated bundle: { type: 'bundle', id, objects }
  * @returns {Promise<Object>} The created track's initial snapshot
  */
-exports.createTrackFromBundle = async function createTrackFromBundle(bundleData) {
+exports.createTrackFromBundle = async function createTrackFromBundle(bundleData, userId) {
   if (!bundleData || !Array.isArray(bundleData.objects) || bundleData.objects.length === 0) {
     throw new BadRequestError({
       message: 'Invalid bundle: must contain at least one object',
@@ -261,7 +263,7 @@ exports.createTrackFromBundle = async function createTrackFromBundle(bundleData)
   let skippedCount = 0;
 
   for (const stixObj of sorted) {
-    const { imported, ref } = await importObject(stixObj, serviceMap);
+    const { imported, ref } = await importObject(stixObj, serviceMap, userId);
     if (ref) {
       importedRefs.push(ref);
     }
@@ -306,17 +308,26 @@ exports.createTrackFromBundle = async function createTrackFromBundle(bundleData)
   // Step 4: Create the release track
   // ------------------------------------------------------------------
 
-  const snapshot = await snapshotService.createTrack({
-    name: trackName,
-    description: trackDescription,
-    type: 'standard',
-  });
+  const snapshot = await snapshotService.createTrack(
+    {
+      name: trackName,
+      description: trackDescription,
+      type: 'standard',
+      userAccountId: userId,
+    },
+    { creationCause: CreationCause.BundleImported, userAccountId: userId },
+  );
 
   // Add members by cloning the initial (empty) snapshot with the member entries
   if (memberEntries.length > 0) {
-    const finalSnapshot = await snapshotService.cloneSnapshot(snapshot.id, snapshot, {
-      members: memberEntries,
-    });
+    const finalSnapshot = await snapshotService.cloneSnapshot(
+      snapshot.id,
+      snapshot,
+      {
+        members: memberEntries,
+      },
+      { creationCause: CreationCause.BundleImported, userAccountId: userId },
+    );
 
     logger.verbose(
       `BundleImportService: Created track "${trackName}" (${snapshot.id}) ` +

@@ -1,5 +1,7 @@
 'use strict';
 
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+
 // =============================================================================
 // Member Sync Service
 //
@@ -27,8 +29,9 @@
 //   Subscribes to BaseService CRUD events ({type}::created, {type}::updated)
 //   via the EventBus. When a STIX object is created or updated, this service
 //   checks whether any release track references it and syncs if configured.
-//   Relationships are deliberately not subscribed: bundle export pulls
-//   active relationships dynamically.
+//   Relationships are deliberately not subscribed: they are not tier entries.
+//   Sealed content manifests select relationships closed over members when a
+//   snapshot's members are written.
 // =============================================================================
 
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
@@ -377,10 +380,15 @@ async function processMemberSync(trackId, snapshot, event) {
   }
 
   // Clone snapshot with updated tiers
-  const newSnapshot = await snapshotService.cloneSnapshot(trackId, snapshot, {
-    candidates: newCandidates,
-    staged: newStaged,
-  });
+  const newSnapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    snapshot,
+    {
+      candidates: newCandidates,
+      staged: newStaged,
+    },
+    { creationCause: CreationCause.MemberSynced, userAccountId: modifiedBy || 'system' },
+  );
 
   logger.info(
     `[member-sync] Track ${trackId}: ${trigger} (${mode}) ${objectRef} → ` +
@@ -477,9 +485,8 @@ async function handleStixObjectEvent(payload) {
     newModified: document.stix?.modified,
     oldModified: previousDocument?.stix?.modified,
     trigger: previousDocument ? 'in-place-update' : 'new-revision',
-    // Try to get user from options (create) or from document workflow metadata
-    modifiedBy:
-      options?.userAccountId || document.workspace?.workflow?.created_by_user_account || 'system',
+    // An object's original creator is not necessarily the user editing it.
+    modifiedBy: options?.userAccountId || 'system',
   };
 
   try {
@@ -529,10 +536,7 @@ async function handleStixObjectRevokedEvent(payload) {
     objectRef: stixId,
     newModified: revokedDocument?.stix?.modified,
     trigger: 'revocation',
-    modifiedBy:
-      options?.userAccountId ||
-      revokedDocument?.workspace?.workflow?.created_by_user_account ||
-      'system',
+    modifiedBy: options?.userAccountId || 'system',
   };
 
   try {
@@ -577,7 +581,7 @@ async function handleStixObjectConvertedEvent(payload) {
     objectRef: stixId,
     newModified: document.stix.modified,
     trigger: 'new-revision',
-    modifiedBy: userAccountId || document.workspace?.workflow?.created_by_user_account || 'system',
+    modifiedBy: userAccountId || 'system',
   };
 
   try {

@@ -780,8 +780,8 @@ class BaseService extends ServiceWithHooks {
    * exempt from this guard.
    */
   static async assertNotGraphPinned(document, operation) {
-    const graphManifestService = require('../release-tracks/graph-manifest-service');
-    const pins = await graphManifestService.findPinsForRevision(
+    const contentManifestService = require('../release-tracks/content-manifest-service');
+    const pins = await contentManifestService.findPinsForRevision(
       document.stix.id,
       document.stix.modified,
     );
@@ -798,8 +798,8 @@ class BaseService extends ServiceWithHooks {
   }
 
   static async assertNoGraphPinnedVersions(stixId, operation) {
-    const graphManifestService = require('../release-tracks/graph-manifest-service');
-    const pins = await graphManifestService.findPinsForObject(stixId);
+    const contentManifestService = require('../release-tracks/content-manifest-service');
+    const pins = await contentManifestService.findPinsForObject(stixId);
     if (pins.length === 0) return;
 
     throw new SnapshotGraphPinnedRevisionError({

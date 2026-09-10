@@ -19,6 +19,7 @@ const {
   stixIdentifierSchema,
   xMitreVersionSchema,
   createStixIdValidator,
+  trackAliasSchema,
 } = require('./release-track-schemas');
 
 // -----------------------------------------------------------------------------
@@ -29,6 +30,11 @@ const validateTrackId = {
   validator: (v) => releaseTrackIdSchema.safeParse(v).success,
   message: (props) =>
     `"${props.value}" is not a valid release track ID (expected "release-track--<uuid>")`,
+};
+
+const validateTrackAlias = {
+  validator: (v) => v === undefined || trackAliasSchema.safeParse(v).success,
+  message: (props) => `"${props.value}" is not a valid release track alias`,
 };
 
 const validateTrackName = {
@@ -47,6 +53,12 @@ const validateIdentityRef = {
   validator: (v) => createStixIdValidator('identity').safeParse(v).success,
   message: (props) =>
     `"${props.value}" is not a valid identity reference (expected "identity--<uuid>")`,
+};
+
+const validateCollectionId = {
+  validator: (v) => createStixIdValidator('x-mitre-collection').safeParse(v).success,
+  message: (props) =>
+    `"${props.value}" is not a valid collection identifier (expected "x-mitre-collection--<uuid>")`,
 };
 
 const validateMarkingDefRefs = {
@@ -98,10 +110,12 @@ const validateObjectTypesFilter = {
 
 module.exports = {
   validateTrackId,
+  validateTrackAlias,
   validateTrackName,
   validateStixId,
   validateIdentityRef,
   validateMarkingDefRefs,
+  validateCollectionId,
   validateVersion,
   validateCron,
   validateSnapshotSchedule,

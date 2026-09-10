@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
 const revisionReference = require('../../lib/release-tracks/revision-reference');
 const {
   validateTrackId,
@@ -8,6 +9,7 @@ const {
   validateStixId,
   validateIdentityRef,
   validateMarkingDefRefs,
+  validateCollectionId,
   validateVersion,
   validateObjectTypesFilter,
 } = require('../../lib/release-tracks/release-track-validators');
@@ -239,18 +241,6 @@ const promotionConflictsDefinition = {
 };
 const promotionConflictsSchema = new mongoose.Schema(promotionConflictsDefinition, { _id: false });
 
-const includeSecondaryObjectsDefinition = {
-  enabled: { type: Boolean, default: true },
-  status_threshold: {
-    type: String,
-    enum: ['work-in-progress', 'awaiting-review', 'reviewed'],
-    default: 'reviewed',
-  },
-};
-const includeSecondaryObjectsSchema = new mongoose.Schema(includeSecondaryObjectsDefinition, {
-  _id: false,
-});
-
 // --- Member sync sub-schemas ---
 
 const memberSyncSupplantDefinition = {
@@ -280,6 +270,56 @@ const memberSyncDefinition = {
 };
 const memberSyncSchema = new mongoose.Schema(memberSyncDefinition, { _id: false });
 
+// --- Publication sub-schemas ---
+//
+// Publication metadata follows an inheritance rule: each attribute either
+// inherits the global (system configuration) value or carries an explicit
+// track-scoped override. Collection identity and creation time default to
+// track-derived values and become immutable once the track has a release.
+
+const inheritedIdentityDefinition = {
+  inherit: { type: Boolean, required: true, default: true },
+  value: {
+    type: String,
+    validate: validateIdentityRef,
+  },
+};
+const inheritedIdentitySchema = new mongoose.Schema(inheritedIdentityDefinition, { _id: false });
+
+const inheritedMarkingRefsDefinition = {
+  inherit: { type: Boolean, required: true, default: true },
+  value: {
+    type: [String],
+    default: undefined,
+    validate: validateMarkingDefRefs,
+  },
+};
+const inheritedMarkingRefsSchema = new mongoose.Schema(inheritedMarkingRefsDefinition, {
+  _id: false,
+});
+
+const publicationConfigDefinition = {
+  collection_id: {
+    type: String,
+    validate: validateCollectionId,
+  },
+  created: { type: Date },
+  created_by_ref: { type: inheritedIdentitySchema, default: () => ({ inherit: true }) },
+  object_marking_refs: { type: inheritedMarkingRefsSchema, default: () => ({ inherit: true }) },
+};
+const publicationConfigSchema = new mongoose.Schema(publicationConfigDefinition, { _id: false });
+
+// Values frozen onto a tagged snapshot at release commit. They are the exact
+// inputs used to render the x-mitre-collection object for that release.
+const frozenPublicationDefinition = {
+  collection_id: { type: String, required: true, validate: validateCollectionId },
+  created: { type: Date, required: true },
+  created_by_ref: { type: String, required: true, validate: validateIdentityRef },
+  object_marking_refs: { type: [String], required: true, validate: validateMarkingDefRefs },
+  attack_spec_version: { type: String, required: true },
+};
+const frozenPublicationSchema = new mongoose.Schema(frozenPublicationDefinition, { _id: false });
+
 const configDefinition = {
   candidacy_threshold: {
     type: String,
@@ -287,13 +327,16 @@ const configDefinition = {
     default: 'reviewed',
   },
   auto_promote: { type: Boolean, default: true },
-  include_secondary_objects: { type: includeSecondaryObjectsSchema, default: undefined },
   promotion_conflicts: {
     type: promotionConflictsSchema,
     default: () => ({}),
   },
   member_sync: {
     type: memberSyncSchema,
+    default: () => ({}),
+  },
+  publication: {
+    type: publicationConfigSchema,
     default: () => ({}),
   },
 };
@@ -373,8 +416,40 @@ const releaseTrackSnapshotDefinition = {
     default: null,
     validate: validateVersion,
   },
-  graph_manifest_id: { type: String },
+  // Standard releases are new snapshots. This pointer keeps the exact draft
+  // that was released reachable so deleting the release rolls back to that
+  // preserved state instead of attempting to reconstruct it.
+  release_source_modified: { type: Date, default: undefined },
+  // Every snapshot references the sealed content manifest that describes its
+  // exact member graph. Member-changing writes seal a new manifest; other
+  // clones inherit their predecessor's manifest by reference.
+  content_manifest_id: { type: String, required: true },
+  // Release-only fields frozen at commit.
+  publication: { type: frozenPublicationSchema },
+  bundle_id: { type: String },
   bundle_hashes: { type: bundleHashesSchema },
+  creation_actor: {
+    type: new mongoose.Schema(
+      {
+        kind: { type: String, enum: ['user', 'system', 'unknown'], required: true },
+        user_account_id: {
+          type: String,
+          required: function () {
+            return this.kind === 'user';
+          },
+        },
+      },
+      { _id: false },
+    ),
+    default: () => ({ kind: 'unknown' }),
+    immutable: true,
+  },
+  creation_cause: {
+    type: String,
+    enum: Object.values(CreationCause),
+    default: CreationCause.Unknown,
+    immutable: true,
+  },
   snapshot_description: {
     type: String,
     maxlength: [4000, 'Snapshot description cannot exceed 4000 characters'],
@@ -391,11 +466,6 @@ const releaseTrackSnapshotDefinition = {
   created_by_ref: {
     type: String,
     validate: validateIdentityRef,
-  },
-  object_marking_refs: {
-    type: [String],
-    default: undefined,
-    validate: validateMarkingDefRefs,
   },
 
   // --- Standard track tiers ---
@@ -445,6 +515,23 @@ releaseTrackSnapshotSchema.index(
   },
 );
 
+releaseTrackSnapshotSchema.index(
+  { id: 1, release_source_modified: 1 },
+  {
+    name: 'unique_standard_release_source',
+    unique: true,
+    partialFilterExpression: {
+      version: { $type: 'string' },
+      release_source_modified: { $type: 'date' },
+    },
+  },
+);
+
+releaseTrackSnapshotSchema.index({
+  'composition_resolution.component_snapshots.track_id': 1,
+  'composition_resolution.component_snapshots.resolved_snapshot_id': 1,
+});
+
 // A scheduled occurrence may materialize at most one snapshot, including
 // after restart recovery or duplicate delivery by multiple scheduler nodes.
 releaseTrackSnapshotSchema.index(
@@ -483,5 +570,7 @@ module.exports = {
   compositionResolutionSchema,
   scheduledMaterializationSchema,
   configSchema,
+  publicationConfigSchema,
+  frozenPublicationSchema,
   versionHistoryEntrySchema,
 };

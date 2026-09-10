@@ -142,9 +142,9 @@ describe('ATT&CK Objects API', function () {
     expect(markingDefinitions.length).toBe(5);
 
     // Placeholder identity, 4 TLP marking definitions, 18 imported collection contents,
-    // 2 collection objects, and the propagated relationship revision pinned to the
-    // second bundle's newer target revision.
-    expect(attackObjects.length).toBe(1 + 4 + 18 + 2 + 1);
+    // and 2 collection objects. A newer endpoint revision no longer clones the
+    // relationship that references it.
+    expect(attackObjects.length).toBe(1 + 4 + 18 + 2);
   });
 
   it('GET /api/attack-objects returns zero objects with an ATT&CK ID that does not exist', async function () {

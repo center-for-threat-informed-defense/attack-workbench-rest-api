@@ -14,7 +14,13 @@
 // Phase 6: Export, ephemeral, bundle import        → export-service, ephemeral-service, bundle-import-service
 // =============================================================================
 
-const { BadRequestError, NotImplementedError } = require('../../exceptions');
+const {
+  BadRequestError,
+  InsufficientRoleError,
+  NotImplementedError,
+  ReleaseConflictError,
+} = require('../../exceptions');
+const authz = require('../../lib/authz-middleware');
 const {
   compositionSchema,
   snapshotScheduleSchema,
@@ -115,6 +121,32 @@ async function getUsersById(userIds) {
   return usersById;
 }
 
+// Resolve each distinct creator once per response, including paginated history.
+// Keep a missing/deleted user's ID without exposing account security metadata.
+async function addCreationActors(snapshots) {
+  const ids = [
+    ...new Set(
+      snapshots
+        .filter((snapshot) => snapshot.creation_actor?.kind === 'user')
+        .map((snapshot) => snapshot.creation_actor.user_account_id)
+        .filter(Boolean),
+    ),
+  ];
+  const users = await getUsersById(ids);
+  return snapshots.map((snapshot) => {
+    const actor = snapshot.creation_actor || { kind: 'unknown' };
+    snapshot.creation_actor =
+      actor.kind === 'user'
+        ? {
+            kind: actor.kind,
+            user_account_id: actor.user_account_id,
+            user: formatUser(users.get(actor.user_account_id)),
+          }
+        : { kind: actor.kind };
+    return snapshot;
+  });
+}
+
 function selectorKey(entry) {
   return `${entry.object_ref}:${revisionReference.modifiedKey(entry.object_modified)}`;
 }
@@ -131,6 +163,8 @@ function addObjectInfo(entry, resolvedModifiedBySelector, objectsByVersion, user
   if (object) {
     entryWithObjectInfo.attack_id = object.workspace?.attack_id;
     entryWithObjectInfo.name = object.stix?.name;
+    entryWithObjectInfo.type = object.stix?.type;
+    entryWithObjectInfo.x_mitre_version = object.stix?.x_mitre_version;
   }
 
   if (object?.stix?.description !== undefined) {
@@ -209,8 +243,20 @@ async function formatWorkbenchSnapshot(snapshot, options) {
     selectedTiers.flatMap((tierName) => snapshot[tierName] || []),
   );
   const enriched = await addObjectInfoToSnapshot(snapshot);
-  return filterSnapshotTiers(enriched, options?.include);
+  const [attributed] = await addCreationActors([enriched]);
+  // Registry-derived, read-only metadata used alongside snapshot content.
+  const metadata = await snapshotService.getTrackMetadata(snapshot.id);
+  enriched.alias = metadata.alias;
+  enriched.creation_cause = snapshot.creation_cause || 'unknown';
+  if (snapshot.type === 'virtual') {
+    enriched.snapshot_schedule = metadata.snapshot_schedule || { mode: 'manual' };
+  }
+  return filterSnapshotTiers(attributed, options?.include);
 }
+
+exports.resolveTrackAlias = function resolveTrackAlias(alias) {
+  return snapshotService.resolveTrackAlias(alias);
+};
 
 // -----------------------------------------------------------------------------
 // Track management  (Phase 1 → snapshot-service)
@@ -285,12 +331,13 @@ exports.createTrack = async function createTrack(data) {
 };
 
 // Phase 6 → bundle-import-service
-exports.createTrackFromBundle = function createTrackFromBundle(bundleData) {
-  return bundleImportService.createTrackFromBundle(bundleData);
+exports.createTrackFromBundle = function createTrackFromBundle(bundleData, userId) {
+  return bundleImportService.createTrackFromBundle(bundleData, userId);
 };
 
-exports.listSnapshots = function listSnapshots(trackId, options) {
-  return snapshotService.listSnapshots(trackId, options);
+exports.listSnapshots = async function listSnapshots(trackId, options) {
+  const result = await snapshotService.listSnapshots(trackId, options);
+  return { ...result, data: await addCreationActors(result.data) };
 };
 
 // eslint-disable-next-line no-unused-vars
@@ -357,20 +404,63 @@ exports.deleteTrack = function deleteTrack(trackId, actor, confirmation) {
   );
 };
 
+/**
+ * Delete drafts only. Share the release lock with tagging and materialization
+ * so a draft cannot become released between validation and deletion.
+ */
 exports.deleteSnapshot = function deleteSnapshot(trackId, modified) {
-  return snapshotService.deleteSnapshot(trackId, modified);
+  return versioningService.withReleaseLock(trackId, () =>
+    snapshotService.deleteSnapshot(trackId, modified),
+  );
 };
 
-exports.createSnapshotGraph = function createSnapshotGraph(trackId, modified) {
-  return snapshotService.createGraph(trackId, modified);
+/** Convert the latest tagged release back to a draft, with admin confirmation. */
+exports.convertReleaseToDraft = async function convertReleaseToDraft(
+  trackId,
+  modified,
+  options = {},
+) {
+  return versioningService.withReleaseLock(trackId, async () => {
+    const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
+    if (options.actor?.role !== authz.userRoles.admin) {
+      throw new InsufficientRoleError('administrator', {
+        details: 'Converting a release to a draft requires an administrator.',
+        track_id: trackId,
+        version: snapshot.version,
+      });
+    }
+    if (snapshot.version == null) {
+      throw new ReleaseConflictError('The selected snapshot is already a draft', {
+        track_id: trackId,
+      });
+    }
+    if (options.confirmation !== snapshot.version) {
+      throw new BadRequestError({
+        message: 'Release conversion confirmation is required',
+        details: `Set confirm_version to the exact release version '${snapshot.version}'.`,
+        parameter_name: 'confirm_version',
+        expected_version: snapshot.version,
+      });
+    }
+
+    return destructiveAuditService.execute(
+      {
+        action: 'convert_release_to_draft',
+        trackId,
+        ...destructiveIdentity(trackId, options.actor, options.confirmation),
+        request: { snapshot_modified: new Date(snapshot.modified).toISOString() },
+      },
+      () => snapshotService.convertReleaseToDraft(trackId, modified),
+    );
+  });
 };
 
-exports.reconstructSnapshotGraph = function reconstructSnapshotGraph(trackId, modified, plan) {
-  return snapshotService.reconstructGraph(trackId, modified, plan);
-};
-
-exports.deleteSnapshotGraph = function deleteSnapshotGraph(trackId, modified) {
-  return snapshotService.deleteGraph(trackId, modified);
+exports.reconstructSnapshotManifest = function reconstructSnapshotManifest(
+  trackId,
+  modified,
+  plan,
+) {
+  return snapshotService.reconstructManifest(trackId, modified, plan);
 };
 
 // -----------------------------------------------------------------------------
@@ -394,8 +484,8 @@ exports.listCandidates = function listCandidates(trackId, options) {
   return standardTrackService.listCandidates(trackId, options);
 };
 
-exports.removeCandidate = function removeCandidate(trackId, objectRef) {
-  return standardTrackService.removeCandidate(trackId, objectRef);
+exports.removeCandidate = function removeCandidate(trackId, objectRef, userId) {
+  return standardTrackService.removeCandidate(trackId, objectRef, userId);
 };
 
 exports.reviewCandidates = function reviewCandidates(trackId, reviewData, userId) {
@@ -406,8 +496,8 @@ exports.promoteCandidates = function promoteCandidates(trackId, objectRefs, user
   return standardTrackService.promoteCandidates(trackId, objectRefs, userId);
 };
 
-exports.updateCandidateVersion = function updateCandidateVersion(trackId, objectRef, data) {
-  return standardTrackService.updateCandidateVersion(trackId, objectRef, data);
+exports.updateCandidateVersion = function updateCandidateVersion(trackId, objectRef, data, userId) {
+  return standardTrackService.updateCandidateVersion(trackId, objectRef, data, userId);
 };
 
 // -----------------------------------------------------------------------------
@@ -434,6 +524,33 @@ exports.releaseByModified = function releaseByModified(trackId, modified, option
   return versioningService.releaseByModified(trackId, modified, options);
 };
 
+exports.retagRelease = async function retagRelease(trackId, modified, nextVersion, actor) {
+  return versioningService.withReleaseLock(trackId, async () => {
+    const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
+    if (actor?.role !== authz.userRoles.admin) {
+      throw new InsufficientRoleError('administrator', {
+        details: 'Changing a release version requires an administrator.',
+        track_id: trackId,
+        version: snapshot.version,
+      });
+    }
+
+    return destructiveAuditService.execute(
+      {
+        action: 'retag_release',
+        trackId,
+        ...destructiveIdentity(trackId, actor, snapshot.version),
+        request: {
+          snapshot_modified: new Date(snapshot.modified).toISOString(),
+          previous_version: snapshot.version,
+          next_version: nextVersion,
+        },
+      },
+      () => versioningService.retagReleaseLocked(trackId, modified, nextVersion),
+    );
+  });
+};
+
 async function renderReleasePlan(plan, options) {
   const format = options.format || 'summary';
   rejectFilesystemStoreFormat(format, 'previewRelease');
@@ -443,9 +560,9 @@ async function renderReleasePlan(plan, options) {
   if (format === 'bundle') {
     return exportService.exportSnapshot(plan.plannedSnapshot, format, {
       ...options,
-      // Release previews are intentionally live. Determinism begins only if a
-      // caller explicitly creates a graph after the snapshot is tagged.
-      captureGraph: true,
+      // The planned snapshot is unsaved and has no sealed manifest yet, so a
+      // preview resolves the same closed-member graph the commit would seal.
+      resolveLive: true,
     });
   }
   return formatWorkbenchSnapshot(plan.plannedSnapshot, options);
@@ -500,6 +617,17 @@ exports.updateComposition = function updateComposition(trackId, composition, use
   });
 };
 
+exports.updateSchedule = function updateSchedule(trackId, schedule) {
+  const scheduleResult = snapshotScheduleSchema.safeParse(schedule);
+  if (!scheduleResult.success) {
+    throw new BadRequestError({
+      message: 'Invalid snapshot schedule',
+      details: scheduleResult.error.errors,
+    });
+  }
+  return virtualTrackService.updateSchedule(trackId, scheduleResult.data);
+};
+
 exports.createVirtualSnapshot = function createVirtualSnapshot(trackId, options) {
   let validatedOptions = options;
   if (options?.scheduledMaterialization !== undefined) {
@@ -511,8 +639,8 @@ exports.createVirtualSnapshot = function createVirtualSnapshot(trackId, options)
   return virtualTrackService.createVirtualSnapshot(trackId, validatedOptions);
 };
 
-exports.promoteQuarantinedObject = function promoteQuarantinedObject(trackId, selection) {
-  return virtualTrackService.promoteQuarantinedObject(trackId, selection);
+exports.promoteQuarantinedObject = function promoteQuarantinedObject(trackId, selection, userId) {
+  return virtualTrackService.promoteQuarantinedObject(trackId, selection, userId);
 };
 
 // -----------------------------------------------------------------------------

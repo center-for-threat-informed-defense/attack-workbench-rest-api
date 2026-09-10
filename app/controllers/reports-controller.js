@@ -25,6 +25,26 @@ exports.getMissingLinkById = async function (req, res) {
 };
 
 /**
+ * Handler for GET /api/reports/domain-consistency
+ * Retrieves active relationships whose endpoints share no domain and
+ * domain-bearing objects that declare no domain.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.getDomainConsistency = async function (req, res) {
+  try {
+    const results = await reportsService.getDomainConsistency();
+    logger.debug(
+      `Success: Retrieved ${results.summary.cross_domain_relationship_count} cross-domain relationship(s) and ${results.summary.objects_without_domains_count} object(s) without domains`,
+    );
+    return res.status(200).send(results);
+  } catch (err) {
+    logger.error('Failed with error: ' + err);
+    return res.status(500).send('Unable to get the domain consistency report. Server error.');
+  }
+};
+
+/**
  * Handler for GET /api/reports/parallel-relationships
  * Retrieves parallel relationships (same source_ref, target_ref, and relationship_type).
  * @param {Object} req - Express request object

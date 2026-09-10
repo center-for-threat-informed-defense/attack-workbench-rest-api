@@ -49,9 +49,7 @@ collection `x_mitre_contents` TOCs. Broad `workspace.collections` appearance
 backrefs are not authoritative because legacy imports also attached them to
 secondary graph objects. Unmappable content is left unchanged and reported;
 the migration retains legacy validation bypasses rather than fabricate
-Enterprise membership. Forward
-migration `20260803190000-correct-canonical-x-mitre-domains.js` corrects
-domain-only successors created by the older inference. See the
+Enterprise membership. See the
 [operator guide](../admin/canonical-domain-migration.md).
 
 ## Database Structure

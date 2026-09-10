@@ -8,6 +8,9 @@ const authz = require('../lib/authz-middleware');
 
 const router = express.Router();
 
+// Every `:id` route accepts either a canonical track ID or a track alias.
+router.param('id', releaseTracksController.resolveTrackId);
+
 // =============================================================================
 // Ephemeral (stateless) bundles
 // =============================================================================
@@ -263,6 +266,19 @@ router
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
     releaseTracksController.releaseByModified,
+  )
+  .put(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.retagRelease,
+  );
+
+router
+  .route('/release-tracks/:id/snapshots/:modified/draft')
+  .post(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.convertReleaseToDraft,
   );
 
 router
@@ -278,20 +294,7 @@ router
   .post(
     authn.authenticate,
     authz.requireRole(authz.admin),
-    releaseTracksController.reconstructSnapshotGraph,
-  );
-
-router
-  .route('/release-tracks/:id/snapshots/:modified/graph')
-  .post(
-    authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.createSnapshotGraph,
-  )
-  .delete(
-    authn.authenticate,
-    authz.requireRole(authz.editorOrHigher),
-    releaseTracksController.deleteSnapshotGraph,
+    releaseTracksController.reconstructSnapshotManifest,
   );
 
 router
@@ -317,6 +320,14 @@ router
     authn.authenticate,
     authz.requireRole(authz.editorOrHigher),
     releaseTracksController.updateComposition,
+  );
+
+router
+  .route('/release-tracks/:id/virtual/schedule')
+  .put(
+    authn.authenticate,
+    authz.requireRole(authz.editorOrHigher),
+    releaseTracksController.updateSchedule,
   );
 
 // =============================================================================

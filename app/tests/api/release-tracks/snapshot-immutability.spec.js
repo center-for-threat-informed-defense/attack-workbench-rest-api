@@ -106,12 +106,14 @@ describe('Release-track snapshot immutability contract', function () {
     );
     expect(reverted.body.modified).toBe(tagged.modified);
 
+    // A tagged release must first be converted through the separate draft
+    // operation; DELETE never converts it, even for administrators.
     const taggedDelete = await api(
       'delete',
       `/api/release-tracks/${initial.id}/snapshots/${encodeURIComponent(tagged.modified)}`,
       undefined,
       409,
     );
-    expect(taggedDelete.text).toContain('Tagged snapshot version 1.0 cannot be deleted');
+    expect(taggedDelete.text).toContain('convert it to a draft first');
   });
 });

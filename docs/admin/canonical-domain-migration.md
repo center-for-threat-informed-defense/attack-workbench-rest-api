@@ -78,22 +78,6 @@ automation audit records are inserted together with stable sequence numbers.
 
 The old revision is never updated or deleted in either path.
 
-### Forward correction for earlier deployments
-
-Migration `20260803190000-correct-canonical-x-mitre-domains.js` repairs
-deployments that already ran the earlier collection-appearance inference. It
-only selects a latest revision when:
-
-- an exact historical predecessor is present in a canonical collection TOC;
-- the latest revision is substantively identical to that predecessor after
-  ignoring the fields controlled by a domain repair; and
-- the latest domain array differs from the predecessor's exact TOC union.
-
-This recognizes migration/bootstrap-generated domain-only successors without
-overwriting a later operator-authored revision that changed substantive STIX
-content. The correction creates another immutable revision through the same
-active/inactive paths described above.
-
 ## Unmapped-object handling
 
 Before creating any object revision, the migration resolves the complete
@@ -142,7 +126,6 @@ above:
 ```javascript
 {
   remaining_latest_domainless_target_objects: 0,
-  remaining_latest_incorrect_domain_objects: 0,
   remaining_domain_validation_bypasses: 0
 }
 ```

@@ -1,5 +1,7 @@
 'use strict';
 
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+
 // =============================================================================
 // Workflow Service
 //
@@ -56,7 +58,7 @@ exports.meetsThreshold = function meetsThreshold(candidateStatus, threshold) {
  * @param {Object} snapshot - The current snapshot (with updated candidates)
  * @returns {Promise<Object|null>} The new snapshot if promotion occurred, null otherwise
  */
-exports.evaluateAutoPromotion = async function evaluateAutoPromotion(trackId, snapshot) {
+exports.evaluateAutoPromotion = async function evaluateAutoPromotion(trackId, snapshot, userId) {
   // Auto-promotion only applies to standard tracks
   if (snapshot.type !== 'standard') {
     return null;
@@ -84,7 +86,7 @@ exports.evaluateAutoPromotion = async function evaluateAutoPromotion(trackId, sn
   );
 
   // Promote qualifying candidates to staged
-  return _promoteToStaged(trackId, snapshot, qualifying);
+  return _promoteToStaged(trackId, snapshot, qualifying, userId);
 };
 
 // =============================================================================
@@ -105,7 +107,7 @@ exports.evaluateAutoPromotion = async function evaluateAutoPromotion(trackId, sn
  * @param {Array<Object>} qualifyingCandidates - Candidates to promote
  * @returns {Promise<Object>} The new snapshot
  */
-async function _promoteToStaged(trackId, snapshot, qualifyingCandidates) {
+async function _promoteToStaged(trackId, snapshot, qualifyingCandidates, userId) {
   const now = new Date();
   const existingCandidates = snapshot.candidates || [];
   const existingStaged = snapshot.staged || [];
@@ -155,10 +157,15 @@ async function _promoteToStaged(trackId, snapshot, qualifyingCandidates) {
   ];
 
   // Clone snapshot with updated tiers
-  const newSnapshot = await snapshotService.cloneSnapshot(trackId, snapshot, {
-    candidates: finalCandidates,
-    staged: mergedStaged,
-  });
+  const newSnapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    snapshot,
+    {
+      candidates: finalCandidates,
+      staged: mergedStaged,
+    },
+    { creationCause: CreationCause.CandidatesAutoPromoted, userAccountId: userId || 'system' },
+  );
 
   logger.verbose(
     `WorkflowService: Auto-promoted ${toPromote.length - rejected.length} candidate(s), ` +

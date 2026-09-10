@@ -19,12 +19,10 @@ whose `version` is a string. Drafts therefore remain unlimited at
 `version: null`, while the database—not an application-level preflight—decides
 which concurrent release may claim a version.
 
-Release tracks are still pre-release, and no shared deployment retains track
-data written under the former non-unique index. Existing personal development
-tracks are therefore reset or recreated instead of establishing a permanent
-upgrade contract for beta data. Once release tracks are formally released,
-future index or persistence changes must include an appropriate migration for
-supported deployments.
+Alpha and beta builds are ephemeral and do not establish a database upgrade
+contract. Development databases created by those builds are reset or recreated
+rather than carried forward by permanent migration scripts. Migrations are
+reserved for upgrade paths between stable releases.
 
 ## Validation Rules
 
@@ -56,11 +54,12 @@ supported deployments.
   uniqueness remains track-wide. Commits acquire a per-track registry lock so
   separate API processes cannot validate and write incompatible tags from the
   same stale bounds; abandoned locks become reclaimable after 15 minutes.
-- Snapshot descriptions are bounded to 4000 characters and are the narrow
-  mutable-metadata exception to snapshot content immutability. They are stored
-  as `snapshot_description` on the selected document and never update the
-  registry or the track-level `description`. Bundle exports map the local value
-  to `x-mitre-collection.description`, falling back to the track description.
+- Snapshot descriptions are bounded to 4000 characters and are editable only
+  on drafts; a released snapshot is immutable including its notes. They are
+  stored as `snapshot_description` on the selected document and never update
+  the registry or the track-level `description`. Bundle exports map the local
+  value to `x-mitre-collection.description`, falling back to the track
+  description.
 
 ### ATT&CK canonical-domain migration
 
@@ -153,8 +152,9 @@ objects; no partial release track points at them.
 `app/lib/release-tracks/tier-revision-invariant.js` owns selector identity
 (`object_ref` + normalized `object_modified`) and normalization.
 Every clone-based mutation passes through `snapshot-service.cloneSnapshot`;
-track cloning uses the same normalizer. Tagging is the one in-place mutation,
-so `versioning-service` normalizes before the atomic tag update. This covers
+track cloning uses the same normalizer. Standard tagging also creates a clone,
+while virtual tagging remains an in-place mutation of its materialized draft.
+`versioning-service` normalizes before either commit. This covers
 candidate adds, manual/automatic promotion, demotion, status transitions,
 candidate pin changes, member sync, direct content replacement, bundle
 import, standard/virtual snapshot creation, and release commits without
@@ -242,15 +242,11 @@ a standard component track.
 
 Snapshot retrieval never re-runs composition, so there is no `resolve` query
 parameter or `resolved_content` response wrapper. Workbench retrieval returns
-the persisted primary membership. Bundle export replays a graph only after a
-tagged snapshot explicitly opts in; otherwise it resolves the current bounded
-graph. Persisted graphs close over exact `members`: relationship revisions
-carry server-controlled exact endpoint pins in
-`workspace.relationship_endpoints` and are included only when both pinned
-revisions are members. Schema-v2 manifests reference those exact revisions
-without emitting the internal fields in STIX output. The preceding tagged
-graph seeds still-valid relationship pointers so source-attested legacy
-provenance can continue into later releases.
+the persisted primary membership. Bundle export always replays the snapshot's sealed content manifest. A
+materialized virtual draft is sealed at materialization and that manifest is
+published unchanged at release; relationship revisions are selected by member
+ID closure and pinned to the member revisions. See
+[sealed-content-manifests.md](sealed-content-manifests.md).
 
 Snapshot schedules use the same strict, mode-discriminated Zod schema at the
 controller and service boundaries. `manual` has no selector field, `cron`
@@ -351,6 +347,17 @@ property. Mongoose validates every map value with the shared release-version
 validator and requires every persisted component resolution to identify its
 tagged `resolved_version`.
 
+Standard release commit assigns a fresh timestamp, stores
+`release_source_modified`, and inserts the tagged clone while retaining the
+source. Release, retag, and rollback share the registry release lock. Rollback
+queries exact virtual provenance (`track_id` + `resolved_snapshot_id`) across
+all virtual snapshot collections and fails closed when any dependent exists;
+this catches both implicit `latest_tagged` and explicit resolution rules.
+
+Retagging preserves `resolved_snapshot_id`. Existing virtual provenance keeps
+the `resolved_version` label observed when it materialized; future explicit
+rules that name an obsolete label must be updated by the caller.
+
 ### Snapshot history reads
 
 Snapshot history is exposed as a nested collection at
@@ -378,13 +385,13 @@ ambiguous. An omitted `tagged` parameter adds no version predicate;
 `tagged=true` matches string versions and `tagged=false` matches null draft
 versions.
 
-For summaries with `graph_manifest_id`, the snapshot service collects all
-manifest IDs from the paginated result and performs one aggregation against
-`releaseTrackGraphManifestEntries`, grouped by `manifest_id` and `kind`. The
-existing `{ manifest_id: 1, kind: 1, tier: 1 }` index supports the match. The
-service fills zero-valued categories for empty graphs and attaches
-`graph_statistics` only to cached snapshots. This keeps history latency to one
-additional bounded query rather than one query per snapshot.
+For `content_statistics`, the snapshot service collects every
+`content_manifest_id` from the paginated result and performs one aggregation
+against `releaseTrackContentManifestEntries`, grouped by `manifest_id` and
+`kind`. The existing `{ manifest_id: 1, kind: 1, tier: 1 }` index supports the
+match, and shared manifests are counted once. The service fills zero-valued
+categories for empty manifests. This keeps history latency to one additional
+bounded query rather than one query per snapshot.
 
 ## Integrating with the Event-Driven Architecture
 

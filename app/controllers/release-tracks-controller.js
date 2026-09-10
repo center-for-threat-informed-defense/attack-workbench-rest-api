@@ -18,14 +18,15 @@ const {
   InvalidQueryStringParameterError,
   BadRequestError,
   NotImplementedError,
+  NotFoundError,
 } = require('../exceptions');
 const {
   domainParamSchema,
   formatQuerySchema,
   releasePreviewFormatSchema,
   includeQuerySchema,
-  bundleIncludeQuerySchema,
-  bundleStateQuerySchema,
+  releaseTrackIdSchema,
+  trackAliasSchema,
   stixVersionQuerySchema,
   booleanQuerySchema,
   snapshotTaggedQuerySchema,
@@ -40,6 +41,8 @@ const {
   updateMetadataBodySchema,
   updateSnapshotDescriptionBodySchema,
   releaseBodySchema,
+  retagReleaseBodySchema,
+  convertReleaseToDraftBodySchema,
   releaseVersionSelectionSchema,
   cloneBodySchema,
   addCandidatesBodySchema,
@@ -49,6 +52,7 @@ const {
   updateCandidateVersionBodySchema,
   updateConfigBodySchema,
   updateCompositionBodySchema,
+  updateScheduleBodySchema,
   createVirtualSnapshotBodySchema,
   promoteQuarantinedObjectBodySchema,
   reconstructSnapshotGraphBodySchema,
@@ -108,16 +112,54 @@ function rejectFilesystemStoreFormat(format, methodName) {
 }
 
 /**
+ * Route parameter resolver for `:id`. A canonical track ID passes through;
+ * any other value is treated as an alias and rewritten to the track ID it
+ * names, so handlers and services only ever see canonical IDs. An unknown
+ * alias is a 404 here rather than falling through, because the model factory
+ * would otherwise bind a collection to the raw value. Resolution runs before
+ * authentication (Express param callbacks precede route handlers), so an
+ * alias's existence is observable without a session; aliases are public
+ * slugs, not secrets.
+ */
+exports.resolveTrackId = async function resolveTrackId(req, res, next, value) {
+  try {
+    if (releaseTrackIdSchema.safeParse(value).success) return next();
+    const trackId = trackAliasSchema.safeParse(value).success
+      ? await releaseTracksService.resolveTrackAlias(value)
+      : null;
+    if (!trackId) {
+      return next(new NotFoundError({ details: `Release track '${value}' not found` }));
+    }
+    req.params.id = trackId;
+    req.releaseTrackAlias = value;
+    return next();
+  } catch (err) {
+    return next(err);
+  }
+};
+
+/**
+ * `include` selects which tier arrays a workbench response returns. A bundle
+ * always replays the snapshot's sealed content manifest, so `include` has no
+ * meaning there and is rejected rather than silently ignored: a caller who
+ * asked for staged or candidate objects must not mistake the members-only
+ * bundle for the preview they requested.
+ */
+function rejectBundleInclude(query) {
+  if (query.include === undefined) return;
+  throw new InvalidQueryStringParameterError({
+    parameterName: 'include',
+    message:
+      'The include parameter applies to format=workbench only; bundles always replay the sealed content manifest.',
+  });
+}
+
+/**
  * Parse common query parameters shared across GET snapshot endpoints.
  *
- * The `include` parameter is format-sensitive:
- *   - format=workbench: single tier name ('members' | 'staged' | 'candidates'
- *     | 'quarantine' | 'all') controlling which tier arrays are returned
- *   - format=bundle: list of additional tiers ('staged' and/or 'candidates')
- *     to hydrate into the bundle alongside members. Omitted → members only.
- *
- * The `state`, `stixVersion`, and `includeToc` parameters only apply to
- * format=bundle.
+ * `include` (workbench only) is a single tier name ('members' | 'staged' |
+ * 'candidates' | 'quarantine' | 'all') controlling which tier arrays are
+ * returned. `stixVersion` applies only to format=bundle.
  */
 function parseSnapshotQueryParams(query) {
   const format = parseOptionalQueryStrict(query.format, formatQuerySchema, 'workbench', 'format');
@@ -132,26 +174,14 @@ function parseSnapshotQueryParams(query) {
   };
 
   if (format === 'bundle') {
+    rejectBundleInclude(query);
     return {
       ...common,
-      include: parseOptionalQueryStrict(
-        query.include,
-        bundleIncludeQuerySchema,
-        undefined,
-        'include',
-      ),
-      state: parseOptionalQueryStrict(query.state, bundleStateQuerySchema, undefined, 'state'),
       stixVersion: parseOptionalQueryStrict(
         query.stixVersion,
         stixVersionQuerySchema,
         '2.1',
         'stixVersion',
-      ),
-      includeToc: parseOptionalQueryStrict(
-        query.includeToc,
-        booleanQuerySchema,
-        true,
-        'includeToc',
       ),
     };
   }
@@ -183,26 +213,14 @@ function parseReleasePreviewQueryParams(query) {
 
   const options = { format, ...versionSelection.data };
   if (format === 'bundle') {
+    rejectBundleInclude(query);
     return {
       ...options,
-      include: parseOptionalQueryStrict(
-        query.include,
-        bundleIncludeQuerySchema,
-        undefined,
-        'include',
-      ),
-      state: parseOptionalQueryStrict(query.state, bundleStateQuerySchema, undefined, 'state'),
       stixVersion: parseOptionalQueryStrict(
         query.stixVersion,
         stixVersionQuerySchema,
         '2.1',
         'stixVersion',
-      ),
-      includeToc: parseOptionalQueryStrict(
-        query.includeToc,
-        booleanQuerySchema,
-        true,
-        'includeToc',
       ),
     };
   }
@@ -377,7 +395,10 @@ exports.createReleaseTrackFromBundle = async function createReleaseTrackFromBund
       );
     }
 
-    const result = await releaseTracksService.createTrackFromBundle(bodyResult.data);
+    const result = await releaseTracksService.createTrackFromBundle(
+      bodyResult.data,
+      req.user?.userAccountId,
+    );
     logger.debug('Success: Created release track from bundle');
     return res.status(201).send(result);
   } catch (err) {
@@ -615,6 +636,33 @@ exports.releaseByModified = async function releaseByModified(req, res, next) {
   }
 };
 
+/** PUT /api/release-tracks/:id/snapshots/:modified/release */
+exports.retagRelease = async function retagRelease(req, res, next) {
+  try {
+    const bodyResult = retagReleaseBodySchema.safeParse(req.body || {});
+    if (!bodyResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid release version update',
+          details: bodyResult.error.errors,
+        }),
+      );
+    }
+
+    const result = await releaseTracksService.retagRelease(
+      req.params.id,
+      req.params.modified,
+      bodyResult.data.version,
+      destructiveActor(req),
+    );
+    logger.debug(`Success: Changed release version for snapshot ${req.params.modified}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to change release version: ' + err);
+    return next(err);
+  }
+};
+
 /** POST /api/release-tracks/:id/snapshots/:modified/clone */
 exports.cloneByModified = async function cloneByModified(req, res, next) {
   try {
@@ -644,54 +692,50 @@ exports.cloneByModified = async function cloneByModified(req, res, next) {
   }
 };
 
-/** POST /api/release-tracks/:id/snapshots/:modified/graph */
-exports.createSnapshotGraph = async function createSnapshotGraph(req, res, next) {
-  try {
-    const result = await releaseTracksService.createSnapshotGraph(
-      req.params.id,
-      req.params.modified,
-    );
-    logger.debug(`Success: Created graph for snapshot ${req.params.modified}`);
-    return res.status(result.created ? 201 : 200).send(result.snapshot);
-  } catch (err) {
-    logger.error('Failed to create snapshot graph: ' + err);
-    return next(err);
-  }
-};
-
 /** POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct */
-exports.reconstructSnapshotGraph = async function reconstructSnapshotGraph(req, res, next) {
+exports.reconstructSnapshotManifest = async function reconstructSnapshotManifest(req, res, next) {
   try {
     const bodyResult = reconstructSnapshotGraphBodySchema.safeParse(req.body);
     if (!bodyResult.success) {
       return next(
         new BadRequestError({
-          message: 'Invalid source graph reconstruction request',
+          message: 'Invalid source manifest reconstruction request',
           details: bodyResult.error.errors,
         }),
       );
     }
-    const result = await releaseTracksService.reconstructSnapshotGraph(
+    const result = await releaseTracksService.reconstructSnapshotManifest(
       req.params.id,
       req.params.modified,
       bodyResult.data,
     );
-    logger.debug(`Success: Reconstructed graph for snapshot ${req.params.modified}`);
+    logger.debug(`Success: Reconstructed content manifest for snapshot ${req.params.modified}`);
     return res.status(result.created ? 201 : 200).send(result.snapshot);
   } catch (err) {
-    logger.error('Failed to reconstruct snapshot graph: ' + err);
+    logger.error('Failed to reconstruct snapshot content manifest: ' + err);
     return next(err);
   }
 };
 
-/** DELETE /api/release-tracks/:id/snapshots/:modified/graph */
-exports.deleteSnapshotGraph = async function deleteSnapshotGraph(req, res, next) {
+/** POST /api/release-tracks/:id/snapshots/:modified/draft */
+exports.convertReleaseToDraft = async function convertReleaseToDraft(req, res, next) {
   try {
-    await releaseTracksService.deleteSnapshotGraph(req.params.id, req.params.modified);
-    logger.debug(`Success: Deleted graph for snapshot ${req.params.modified}`);
-    return res.status(204).end();
+    const result = convertReleaseToDraftBodySchema.safeParse(req.body || {});
+    if (!result.success) {
+      throw new BadRequestError({
+        message: 'A valid confirm_version is required to convert a release to a draft',
+      });
+    }
+    const draft = await releaseTracksService.convertReleaseToDraft(
+      req.params.id,
+      req.params.modified,
+      {
+        actor: destructiveActor(req),
+        confirmation: result.data.confirm_version,
+      },
+    );
+    return res.status(200).send(draft);
   } catch (err) {
-    logger.error('Failed to delete snapshot graph: ' + err);
     return next(err);
   }
 };
@@ -759,7 +803,11 @@ exports.listCandidates = async function listCandidates(req, res, next) {
 /** DELETE /api/release-tracks/:id/candidates/:objectRef */
 exports.removeCandidate = async function removeCandidate(req, res, next) {
   try {
-    await releaseTracksService.removeCandidate(req.params.id, req.params.objectRef);
+    await releaseTracksService.removeCandidate(
+      req.params.id,
+      req.params.objectRef,
+      req.user?.userAccountId,
+    );
     logger.debug(`Success: Removed candidate ${req.params.objectRef} from track ${req.params.id}`);
     return res.status(204).end();
   } catch (err) {
@@ -837,6 +885,7 @@ exports.updateCandidateVersion = async function updateCandidateVersion(req, res,
       req.params.id,
       req.params.objectRef,
       bodyResult.data,
+      req.user?.userAccountId,
     );
     logger.debug(`Success: Updated version for candidate ${req.params.objectRef}`);
     return res.status(200).send(result);
@@ -1023,6 +1072,28 @@ exports.updateComposition = async function updateComposition(req, res, next) {
   }
 };
 
+/** PUT /api/release-tracks/:id/virtual/schedule */
+exports.updateSchedule = async function updateSchedule(req, res, next) {
+  try {
+    const bodyResult = updateScheduleBodySchema.safeParse(req.body);
+    if (!bodyResult.success) {
+      return next(
+        new BadRequestError({
+          message: 'Invalid snapshot schedule update',
+          details: bodyResult.error.errors,
+        }),
+      );
+    }
+
+    const result = await releaseTracksService.updateSchedule(req.params.id, bodyResult.data);
+    logger.debug(`Success: Updated snapshot schedule for track ${req.params.id}`);
+    return res.status(200).send(result);
+  } catch (err) {
+    logger.error('Failed to update snapshot schedule: ' + err);
+    return next(err);
+  }
+};
+
 /** POST /api/release-tracks/:id/virtual/snapshots/create */
 exports.createVirtualSnapshot = async function createVirtualSnapshot(req, res, next) {
   try {
@@ -1067,6 +1138,7 @@ exports.promoteQuarantinedObject = async function promoteQuarantinedObject(req, 
     const result = await releaseTracksService.promoteQuarantinedObject(
       req.params.id,
       bodyResult.data,
+      req.user?.userAccountId,
     );
     logger.debug(`Success: Promoted quarantined object for track ${req.params.id}`);
     return res.status(200).send(result);

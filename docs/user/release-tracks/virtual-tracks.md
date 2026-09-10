@@ -12,6 +12,11 @@ Virtual release tracks are computed aggregations of standard release tracks. The
 - Create snapshots **manually or on schedule** (never event-driven)
 - All snapshots start as **drafts** and must be explicitly tagged
 
+The active schedule is registry metadata rather than historical snapshot
+content. Replace it with `PUT /api/release-tracks/:id/virtual/schedule`; this
+does not create a draft. Workbench-format snapshot responses project the
+current schedule for configuration interfaces.
+
 ## Use Cases
 
 ### Scenario 1: Different Cadences for Different Object Types
@@ -231,12 +236,11 @@ filter and a Mobile filter, while `["mobile-attack"]` is excluded by an
 Enterprise filter. Objects without `x_mitre_domains` are excluded when a
 domain filter is set.
 
-The domain constraint determines the virtual snapshot's exact member set. An
-opt-in deterministic graph is closed over that set, so no relationship can
-pull any secondary SDO into the virtual bundle. Graphless live exports retain
-the compatibility domain check for relationship-discovered secondaries.
-Domainless identities, marking definitions, and other supporting metadata may
-still be included when referenced by an included object.
+The domain constraint determines the virtual snapshot's exact member set. The
+content manifest sealed at materialization is closed over that set, so no
+relationship can pull any secondary SDO into the virtual bundle. Domainless
+identities, marking definitions, and other supporting metadata may still be
+included when referenced by an included object.
 
 `x_mitre_domains` is canonical object data. A cross-domain object has one
 revision containing the complete domain union; Workbench does not create or
@@ -692,6 +696,18 @@ materialized, the virtual release still records the version that actually
 produced its frozen contents. Standard release history entries omit this
 virtual-only property.
 
+The snapshot-history endpoint (`GET /api/release-tracks/:id/snapshots`) also
+returns the provenance portion of each virtual snapshot's
+`composition_resolution`: `resolved_at` and `component_snapshots`. This lets
+clients present provenance beside the draft or release it describes rather
+than presenting only the virtual track's current HEAD resolution. In each
+component entry, `resolved_snapshot_id` is the exact component snapshot's
+creation timestamp and stable retrieval key; `resolved_version` names its
+tagged version. The stored source, filtered, and contributed counts belong to
+that materialization and are not recomputed from the component track's current
+state. Full snapshot retrieval additionally returns the deduplication report
+and resolution summary.
+
 **Business Logic:**
 
 1. Validate snapshot exists and is a draft (version === null)
@@ -987,9 +1003,9 @@ quarantined object counts. Use `format=workbench` or `format=bundle` to inspect
 the literal snapshot or publication artifact that would be tagged. The draft
 must have a non-null `composition_resolution`, proving that its members and
 quarantine tiers were materialized from its current composition.
-Bundle preview resolves the live graph. Tagging does not implicitly create a
-manifest; determinism is a separate opt-in operation on the tagged snapshot:
-`POST /api/release-tracks/:id/snapshots/:modified/graph`.
+Bundle preview resolves the same closed-member graph live. Tagging publishes
+the content manifest sealed at materialization unchanged and freezes the
+collection object's publication metadata.
 
 ### Retrieve a Materialized Virtual Snapshot
 
@@ -1024,14 +1040,12 @@ Consequently, while the track does not acquire a newer snapshot,
 `latest` path segment selects the most recent snapshot; it is not a dynamic
 object-revision selector.
 
-This guarantee also covers `format=bundle` after the tagged snapshot opts into
-a graph manifest. The manifest emits only exact members plus relationships
-whose two exact endpoint revisions are members; supporting objects and LinkById
-render targets are pinned as dependencies. Graphless snapshots resolve the
-legacy bounded graph live.
-Repeated exports may use a different bundle-envelope UUID, but replay the same
-snapshot object graph. See
-[Bundle Export](../../developer/release-tracks/bundle-export.md#closed-member-relationship-consistency-boundary).
+This guarantee also covers `format=bundle`: materialization seals a content
+manifest that emits only exact members plus relationships whose source and
+target are both members; supporting objects and LinkById render targets are
+pinned as dependencies. Released snapshots also carry a stable bundle
+identifier and hashes. See
+[Bundle Export](../../developer/release-tracks/bundle-export.md#sealed-content-manifests).
 
 ## Quarantine Management
 

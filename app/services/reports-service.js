@@ -4,6 +4,33 @@ const attackObjectsRepository = require('../repository/attack-objects-repository
 const relationshipsRepository = require('../repository/relationships-repository');
 const identitiesService = require('./stix/identities-service');
 
+// ATT&CK SDO types whose ADM schema carries x_mitre_domains. Relationships,
+// identities, marking definitions, and notes are not domain-bearing.
+const DOMAIN_BEARING_TYPES = Object.freeze([
+  'attack-pattern',
+  'campaign',
+  'course-of-action',
+  'intrusion-set',
+  'malware',
+  'tool',
+  'x-mitre-analytic',
+  'x-mitre-asset',
+  'x-mitre-data-component',
+  'x-mitre-data-source',
+  'x-mitre-detection-strategy',
+  'x-mitre-matrix',
+  'x-mitre-tactic',
+]);
+
+function domainsOf(document) {
+  const domains = document?.stix?.x_mitre_domains;
+  return Array.isArray(domains) ? domains : [];
+}
+
+function isActive(document) {
+  return !document.stix?.revoked && !document.stix?.x_mitre_deprecated;
+}
+
 /**
  * Service for generating reports on ATT&CK objects and relationships.
  * These are read-only analytical queries that identify potential data quality issues.
@@ -38,6 +65,76 @@ class ReportsService {
     }
 
     return results;
+  }
+
+  /**
+   * Domain consistency: release-track bundles never discover objects through
+   * relationships, so a relationship only ships when both endpoints are members
+   * of the same track. Endpoints that share no x_mitre_domains value, and
+   * domain-bearing objects with no domains at all, are therefore content that
+   * can never be published together and should be fixed at the source.
+   *
+   * Evaluates the latest revision of every active relationship against the
+   * latest revision of each endpoint. A relationship whose endpoint is missing
+   * or has no domains is not reported as cross-domain (the missing-domain
+   * object is listed separately).
+   *
+   * @returns {Promise<{
+   *   cross_domain_relationships: Array<Object>,
+   *   objects_without_domains: Array<Object>,
+   *   summary: { cross_domain_relationship_count: number, objects_without_domains_count: number },
+   * }>}
+   */
+  async getDomainConsistency() {
+    const [relationships, objectsResult] = await Promise.all([
+      relationshipsRepository.retrieveAll({ versions: 'latest' }),
+      attackObjectsRepository.retrieveAll({
+        versions: 'latest',
+        includeRevoked: true,
+        includeDeprecated: true,
+      }),
+    ]);
+    const objects = objectsResult[0]?.documents || [];
+    const latestById = new Map(objects.map((document) => [document.stix.id, document]));
+
+    const crossDomainRelationships = [];
+    for (const relationship of relationships) {
+      const source = latestById.get(relationship.stix.source_ref);
+      const target = latestById.get(relationship.stix.target_ref);
+      if (!source || !target) continue;
+      const sourceDomains = domainsOf(source);
+      const targetDomains = domainsOf(target);
+      if (sourceDomains.length === 0 || targetDomains.length === 0) continue;
+      if (sourceDomains.some((domain) => targetDomains.includes(domain))) continue;
+      crossDomainRelationships.push({
+        ...relationship,
+        source_object: source,
+        target_object: target,
+        source_domains: sourceDomains,
+        target_domains: targetDomains,
+      });
+    }
+
+    const objectsWithoutDomains = objects.filter(
+      (document) =>
+        DOMAIN_BEARING_TYPES.includes(document.stix.type) &&
+        isActive(document) &&
+        domainsOf(document).length === 0,
+    );
+
+    await identitiesService.addCreatedByAndModifiedByIdentitiesToAll([
+      ...crossDomainRelationships,
+      ...objectsWithoutDomains,
+    ]);
+
+    return {
+      cross_domain_relationships: crossDomainRelationships,
+      objects_without_domains: objectsWithoutDomains,
+      summary: {
+        cross_domain_relationship_count: crossDomainRelationships.length,
+        objects_without_domains_count: objectsWithoutDomains.length,
+      },
+    };
   }
 
   /**
@@ -81,3 +178,4 @@ class ReportsService {
 }
 
 module.exports = new ReportsService();
+module.exports.DOMAIN_BEARING_TYPES = DOMAIN_BEARING_TYPES;

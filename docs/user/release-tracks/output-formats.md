@@ -102,66 +102,84 @@ Standard STIX bundle format:
 - Self-contained: identities and marking definitions referenced by the
   exported objects are included automatically
 - `LinkById` tags in descriptions are converted to markdown citations
-- Drafts, graphless tagged snapshots, and every export that includes candidate
-  or staged tiers resolve the bounded graph live. A tagged member-only export
-  is deterministic only after its snapshot opts into a graph manifest. That
-  manifest is closed over exact members: relationships are included only when
-  both exact endpoint revisions are members, and do not add secondary SDOs.
-- Frontends may describe manifest creation as **caching the bundle**. The
-  cache pins the exact member graph for repeatable export; it is not a general
-  performance cache, and candidate or staged additions remain live.
+- Every export replays the snapshot's sealed content manifest: exact member
+  revisions, relationships whose source and target are both members (pinned
+  to those member revisions), supporting objects, and LinkById targets. No
+  secondary SDO is discovered through a relationship, and no workflow tier is
+  ever added: a draft bundle is exactly the manifest it inherited. To see what
+  a release would ship, use the release preview (`.../release/preview?format=bundle`),
+  which resolves the planned members live.
+- Released snapshots carry a stable `bundle_id` and SHA-256 `bundle_hashes`
+  for both serializations; repeated downloads are byte-for-byte identical.
+  Draft bundles use a deterministic identifier derived from the snapshot.
 - Bundle export is fail-closed for primary content. If any selected exact
   revision no longer exists, the server returns HTTP `409` with every missing
   `(object_ref, object_modified)` pair in `missing_references`; it never emits
   a partial bundle. A repository/database failure is returned as a server
   error rather than being mistaken for missing content.
 - Workbench note objects are never included. The snapshot's own
-  `snapshot_description` is publication metadata and becomes the TOC
-  `description`.
+  `snapshot_description` is publication metadata and becomes the collection
+  object's `description`.
 - Suitable for external publication
 
 **Bundle query parameters** (apply only when `format=bundle`):
 
-| Parameter     | Values                                                              | Default          | Description                                                                                                                                                                            |
-| ------------- | ------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `include`     | `staged`, `candidates` (comma-separated or repeated)                | _(members only)_ | Additional tiers to include in the bundle alongside members                                                                                                                            |
-| `state`       | `work-in-progress`, `awaiting-review` (comma-separated or repeated) | _(no filter)_    | Narrows the staged/candidate entries selected via `include` by workflow status. Entries marked `reviewed` are always included, irrespective of this parameter. Members are unaffected. |
-| `stixVersion` | `2.0`, `2.1`                                                        | `2.1`            | STIX version the emitted bundle conforms to                                                                                                                                            |
-| `includeToc`  | `true`, `false`                                                     | `true`           | Include a table-of-contents object (of type `x-mitre-collection`) as the first object in STIX 2.1 bundles. STIX 2.0 bundles never include it.                                          |
+| Parameter     | Values       | Default | Description                                                                                                                                         |
+| ------------- | ------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `stixVersion` | `2.0`, `2.1` | `2.1`   | STIX version the emitted bundle conforms to. STIX 2.1 bundles always begin with the `x-mitre-collection` object; STIX 2.0 bundles never include it. |
+
+`include` is a `workbench` tier selector. Sending it with `format=bundle`
+returns `400`: a bundle always replays the sealed content manifest, so a
+request for staged or candidate objects is refused rather than silently
+answered with members only.
 
 Examples:
 
 ```bash
-# Members only (default)
+# Sealed content (STIX 2.1)
 GET /api/release-tracks/:id/snapshots/latest?format=bundle
 
-# Members + staged objects
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=staged
-
-# Members + candidates and staged objects that are work-in-progress or reviewed
-GET /api/release-tracks/:id/snapshots/latest?format=bundle&include=candidates,staged&state=work-in-progress
+# What the next release would ship, resolved live over the planned members
+GET /api/release-tracks/:id/snapshots/latest/release/preview?format=bundle
 
 # STIX 2.0 bundle (the table of contents is always omitted)
 GET /api/release-tracks/:id/snapshots/latest?format=bundle&stixVersion=2.0
 ```
 
-**The table of contents (TOC) object**
+**The collection object**
 
-By default, STIX 2.1 bundles begin with an `x-mitre-collection` object that
-acts as a table of contents. STIX 2.0 bundles omit this ATT&CK extension object
-regardless of `includeToc`. The STIX 2.1 object is derived from the
-release-track metadata:
+Every STIX 2.1 bundle begins with an `x-mitre-collection` object, the bundle's
+bill of materials. Downstream consumers (the TAXII server among them) read it
+from the emitted bundle, so it is always present in STIX 2.1 output. STIX 2.0
+bundles omit this ATT&CK extension object. The object is projected from the
+snapshot and the track's publication configuration:
 
-- `id` — stable per track (reuses the track UUID)
-- `created_by_ref` — the deployment's configured organization identity
-- `name` — from the release track snapshot
-- `description` — from the snapshot's `snapshot_description`; falls back to
-  the long-lived track `description` when no snapshot-local value is set
-- `x_mitre_version` — the snapshot's tagged version, or `0.1` for draft snapshots
-- `modified` — the snapshot's modified timestamp
+- `id` — the track's configured `publication.collection_id`, defaulting to a
+  value derived from the track UUID; constant across every snapshot of the
+  track
+- `created` — the track's configured `publication.created`, defaulting to the
+  track creation time
+- `modified` — the snapshot's `modified` timestamp
+- `x_mitre_version` — the tagged version. Draft bundles omit the key: a draft
+  has no publication version, and a placeholder would collide with a real
+  first release. Draft bundles are therefore previews that do not conform to
+  the ATT&CK specification's required-field rule.
+- `created_by_ref` — the track's publication identity, inheriting the
+  deployment's organization identity unless the track overrides it
+- `object_marking_refs` — the track's publication markings, inheriting the
+  deployment's default marking definitions unless the track overrides them.
+  When neither scope configures markings, the object carries the marking
+  definitions referenced by its contents.
+- `name` — the release track name
+- `description` — the snapshot's `snapshot_description`; falls back to the
+  long-lived track `description` when no snapshot-local value is set
 - `x_mitre_attack_spec_version` — the deployment's default ATT&CK spec version
-- `x_mitre_contents` — every object in the bundle (marking definitions are
-  recorded in `object_marking_refs` instead)
+- `x_mitre_contents` — every object in the bundle except marking definitions
+
+Release commit freezes the resolved identity, markings, collection ID,
+creation time, and spec version onto the released snapshot, so later
+configuration changes never alter a published release. See
+[Publication configuration](api-reference.md#publication-configuration).
 
 ### Format: `filesystemstore` (Not Implemented)
 

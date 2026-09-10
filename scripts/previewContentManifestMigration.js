@@ -1,0 +1,22 @@
+'use strict';
+
+const mongoose = require('mongoose');
+const database = require('../app/lib/database-connection');
+const migration = require('../migrations/20260902120000-seal-release-track-content-manifests');
+
+async function main() {
+  await database.initializeConnection();
+  const report = await migration._private.run(mongoose.connection.db, {
+    dryRun: true,
+  });
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+}
+
+main()
+  .catch((err) => {
+    process.stderr.write(`${err.stack || err.message}\n`);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await mongoose.disconnect();
+  });

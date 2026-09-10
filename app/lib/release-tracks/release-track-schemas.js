@@ -76,6 +76,34 @@ const trackNameSchema = z
 const snapshotDescriptionSchema = z.string().trim().max(4000);
 
 // -----------------------------------------------------------------------------
+// Track alias: an optional URL-safe slug accepted wherever a track ID is
+// -----------------------------------------------------------------------------
+
+// Static path segments under /api/release-tracks that an alias must never
+// shadow, plus the canonical ID prefix.
+const RESERVED_TRACK_ALIASES = Object.freeze([
+  'new',
+  'new-from-bundle',
+  'import',
+  'objects',
+  'ephemeral',
+  'latest',
+]);
+
+const trackAliasSchema = z
+  .string()
+  .min(2, { message: 'Release track alias must be at least 2 characters' })
+  .max(64, { message: 'Release track alias must be at most 64 characters' })
+  .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])$/, {
+    message:
+      'Release track alias may only contain lowercase letters, digits, and hyphens, and must start and end with a letter or digit',
+  })
+  .refine(
+    (alias) => !RESERVED_TRACK_ALIASES.includes(alias) && !alias.startsWith('release-track'),
+    { message: 'Release track alias is reserved' },
+  );
+
+// -----------------------------------------------------------------------------
 // Cron expression
 // See: https://github.com/colinhacks/zod/issues/4239#issuecomment-3161393771
 // -----------------------------------------------------------------------------
@@ -158,35 +186,6 @@ const releasePreviewFormatSchema = z.enum(['summary', 'bundle', 'filesystemstore
 
 const includeQuerySchema = z.enum(['members', 'staged', 'candidates', 'quarantine', 'all']);
 
-/**
- * Normalize a query-string value that represents a list. Accepts a repeated
- * parameter (array), a comma-separated string, or a single value, and returns
- * an array of trimmed strings.
- */
-function normalizeQueryArray(value) {
-  const rawValues = Array.isArray(value) ? value : [value];
-  return rawValues
-    .flatMap((entry) => String(entry).split(','))
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
-}
-
-// `include` for format=bundle: which non-member tiers to add to the bundle.
-// Accepts singular or plural tier names; normalized to the plural tier names.
-const bundleIncludeQuerySchema = z.preprocess(
-  (value) =>
-    normalizeQueryArray(value).map((entry) => (entry === 'candidate' ? 'candidates' : entry)),
-  z.array(z.enum(['candidates', 'staged'])).min(1),
-);
-
-// `state` for format=bundle: workflow-status filter applied to the tiers
-// selected via `include`. 'reviewed' is intentionally not a valid filter
-// value — reviewed objects are always included.
-const bundleStateQuerySchema = z.preprocess(
-  (value) => normalizeQueryArray(value),
-  z.array(z.enum(['modified-in-place', 'work-in-progress', 'awaiting-review'])).min(1),
-);
-
 const stixVersionQuerySchema = z.enum(['2.0', '2.1']);
 
 // Boolean query parameters arrive as strings ('true'/'false') unless the
@@ -261,11 +260,43 @@ const promotionConflictsSchema = z.object({
   staged_to_members: conflictPolicySchema.optional(),
 });
 
+// Publication metadata inheritance. Each attribute either inherits the global
+// system-configuration value or carries an explicit track-scoped override.
+const inheritedIdentitySchema = z.discriminatedUnion('inherit', [
+  z.object({ inherit: z.literal(true) }).strict(),
+  z
+    .object({
+      inherit: z.literal(false),
+      value: createStixIdValidator('identity'),
+    })
+    .strict(),
+]);
+
+const inheritedMarkingRefsSchema = z.discriminatedUnion('inherit', [
+  z.object({ inherit: z.literal(true) }).strict(),
+  z
+    .object({
+      inherit: z.literal(false),
+      value: z.array(createStixIdValidator('marking-definition')),
+    })
+    .strict(),
+]);
+
+const publicationConfigSchema = z
+  .object({
+    collection_id: createStixIdValidator('x-mitre-collection').nullable().optional(),
+    created: z.iso.datetime().nullable().optional(),
+    created_by_ref: inheritedIdentitySchema.optional(),
+    object_marking_refs: inheritedMarkingRefsSchema.optional(),
+  })
+  .strict();
+
 const updateConfigBodySchema = z.object({
   candidacy_threshold: candidacyThresholdSchema.optional(),
   auto_promote: z.boolean().optional(),
   promotion_conflicts: promotionConflictsSchema.optional(),
   member_sync: memberSyncConfigSchema.optional(),
+  publication: publicationConfigSchema.optional(),
 });
 
 // =============================================================================
@@ -393,10 +424,10 @@ const compositionSchema = z
 const createTrackBodySchema = z
   .object({
     name: trackNameSchema,
+    alias: trackAliasSchema.optional(),
     description: z.string().optional(),
     snapshot_description: snapshotDescriptionSchema.optional(),
     type: trackTypeQuerySchema.default('standard'),
-    object_marking_refs: z.array(stixIdentifierSchema).optional(),
     composition: compositionSchema.optional(),
     snapshot_schedule: snapshotScheduleSchema.optional(),
     scheduled_materialization: scheduledMaterializationSchema.optional(),
@@ -431,7 +462,8 @@ const createFromBundleBodySchema = z.object({
 const updateMetadataBodySchema = z.object({
   name: trackNameSchema.optional(),
   description: z.string().optional(),
-  object_marking_refs: z.array(stixIdentifierSchema).optional(),
+  // A string sets the alias; null clears it.
+  alias: trackAliasSchema.nullable().optional(),
 });
 
 /** PUT /release-tracks/:id/snapshots/:modified/description */
@@ -462,6 +494,10 @@ const releaseBodySchema = z
   .refine((value) => !(value.increment && value.version), {
     message: 'increment and version are mutually exclusive',
   });
+
+/** PUT /release-tracks/:id/snapshots/:modified/release */
+const retagReleaseBodySchema = z.object({ version: xMitreVersionSchema }).strict();
+const convertReleaseToDraftBodySchema = z.object({ confirm_version: xMitreVersionSchema }).strict();
 
 /** POST /release-tracks/:id/clone */
 const cloneBodySchema = z
@@ -584,6 +620,9 @@ const reconstructSnapshotGraphBodySchema = z
       })
       .strict(),
     entries: z.array(sourceGraphEntrySchema).min(1),
+    // The content manifest the caller expects to replace. Required when the
+    // snapshot's current manifest was not produced from the same attestation.
+    replace_manifest_id: z.string().optional(),
   })
   .strict();
 
@@ -614,8 +653,6 @@ module.exports = {
   formatQuerySchema,
   releasePreviewFormatSchema,
   includeQuerySchema,
-  bundleIncludeQuerySchema,
-  bundleStateQuerySchema,
   stixVersionQuerySchema,
   booleanQuerySchema,
   snapshotTaggedQuerySchema,
@@ -637,10 +674,15 @@ module.exports = {
 
   // Request body schemas
   createTrackBodySchema,
+  trackAliasSchema,
+  RESERVED_TRACK_ALIASES,
   createFromBundleBodySchema,
   updateMetadataBodySchema,
   updateSnapshotDescriptionBodySchema,
   releaseBodySchema,
+  retagReleaseBodySchema,
+  convertReleaseToDraftBodySchema,
+  publicationConfigSchema,
   cloneBodySchema,
   addCandidatesBodySchema,
   reviewCandidatesBodySchema,
@@ -649,6 +691,7 @@ module.exports = {
   updateCandidateVersionBodySchema,
   updateConfigBodySchema,
   updateCompositionBodySchema,
+  updateScheduleBodySchema: snapshotScheduleSchema,
   createVirtualSnapshotBodySchema,
   promoteQuarantinedObjectBodySchema,
   reconstructSnapshotGraphBodySchema,

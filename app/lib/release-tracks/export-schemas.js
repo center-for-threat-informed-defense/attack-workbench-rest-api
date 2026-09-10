@@ -38,7 +38,6 @@ const snapshotSchema = z.looseObject({
   snapshot_description: z.string().optional(),
   created: z.date().or(z.string()).optional(),
   created_by_ref: z.string().optional(),
-  object_marking_refs: z.array(z.string()).optional(),
   modified: z.date().or(z.string()),
   members: z.array(tierEntrySchema).default([]),
   staged: z.array(tierEntrySchema).optional(),
@@ -50,16 +49,20 @@ const hydratedObjectSchema = z.looseObject({
   workspace: z.looseObject({}).optional(),
 });
 
+const publicationSchema = z.looseObject({
+  collection_id: z.string(),
+  created: z.date().or(z.string()),
+  created_by_ref: z.string(),
+  object_marking_refs: z.array(z.string()),
+  attack_spec_version: z.string(),
+});
+
 const exportOptionsSchema = z
   .looseObject({
     include: z.array(z.enum(['staged', 'candidates'])).optional(),
     state: z.array(z.enum(['work-in-progress', 'awaiting-review'])).optional(),
     stixVersion: z.enum(['2.0', '2.1']).default('2.1'),
-    includeToc: z.boolean().default(true),
-    attackSpecVersion: z.string().optional(),
-    collectionObject: z.looseObject({}).optional(),
-    collectionId: z.string().optional(),
-    createdByRef: z.string().optional(),
+    publication: publicationSchema.optional(),
     bundleId: z.string().optional(),
   })
   .optional()
@@ -94,54 +97,66 @@ function buildTierLookup(snapshot) {
 }
 
 // -----------------------------------------------------------------------------
-// Helper: Build the x-mitre-collection table-of-contents (TOC) object
+// Helper: Build the x-mitre-collection object
 //
-// The x-mitre-collection object is effectively a table of contents for the
-// bundle. For release-track exports it is derived from the track/snapshot
-// metadata rather than from user-supplied query parameters:
-//   - id: stable per track (reuses the track UUID)
-//   - x_mitre_version: the snapshot's tagged version, or '0.1' for drafts
-//   - modified: the snapshot's modified timestamp
-//   - x_mitre_contents: every bundle object except marking definitions,
-//     which are recorded in object_marking_refs instead
+// The collection object is the bundle's bill of materials. It is a projection
+// of the snapshot and its publication metadata, never a stored object:
+//   - id, created, created_by_ref, object_marking_refs, and
+//     x_mitre_attack_spec_version come from the resolved (draft) or frozen
+//     (tagged) publication values
+//   - modified is the snapshot's modified timestamp
+//   - x_mitre_version is the tagged version; drafts omit the key because a
+//     draft has no publication version and a placeholder would collide with a
+//     legitimate first release
+//   - x_mitre_contents lists every bundle object except marking definitions
+//   - object_marking_refs falls back to the marking definitions referenced by
+//     the bundle's contents when neither the track nor the global scope
+//     configures any, so the object never ships without markings
 // -----------------------------------------------------------------------------
 
-function buildTocObject(snapshot, bundleObjects, options) {
-  const trackUuid = snapshot.id.split('--')[1];
+function buildCollectionObject(snapshot, bundleObjects, options) {
+  const publication = options.publication || {};
+  const created = publication.created || snapshot.created || snapshot.modified;
+  const configuredMarkingRefs = publication.object_marking_refs || [];
+  const contentMarkingRefs = [
+    ...new Set(
+      bundleObjects
+        .filter((bundleObject) => bundleObject.type === 'marking-definition')
+        .map((bundleObject) => bundleObject.id),
+    ),
+  ].sort();
 
-  const tocObject = {
+  const collectionObject = {
     type: 'x-mitre-collection',
-    id: options.collectionId || `x-mitre-collection--${trackUuid}`,
-    x_mitre_attack_spec_version: options.attackSpecVersion,
+    id: publication.collection_id || `x-mitre-collection--${snapshot.id.split('--')[1]}`,
+    x_mitre_attack_spec_version: publication.attack_spec_version,
     name: snapshot.name,
-    x_mitre_version: snapshot.version || '0.1',
+    ...(snapshot.version ? { x_mitre_version: snapshot.version } : {}),
     description: snapshot.snapshot_description ?? snapshot.description,
-    created_by_ref: options.createdByRef || snapshot.created_by_ref || '',
-    created: options.created || snapshot.created || snapshot.modified,
-    modified: options.modified || snapshot.modified,
+    created_by_ref: publication.created_by_ref || '',
+    created: new Date(created).toISOString(),
+    modified: new Date(snapshot.modified).toISOString(),
     x_mitre_contents: [],
-    object_marking_refs: [],
+    object_marking_refs:
+      configuredMarkingRefs.length > 0 ? [...configuredMarkingRefs] : contentMarkingRefs,
   };
 
   for (const bundleObject of bundleObjects) {
-    if (bundleObject.type === 'marking-definition') {
-      tocObject.object_marking_refs.push(bundleObject.id);
-    } else {
-      tocObject.x_mitre_contents.push({
-        object_ref: bundleObject.id,
-        object_modified: bundleObject.modified,
-      });
-    }
+    if (bundleObject.type === 'marking-definition') continue;
+    collectionObject.x_mitre_contents.push({
+      object_ref: bundleObject.id,
+      object_modified: bundleObject.modified,
+    });
   }
 
   if (options.stixVersion === '2.1') {
-    tocObject.spec_version = '2.1';
+    collectionObject.spec_version = '2.1';
   }
 
   // Sort x_mitre_contents by id for deterministic output
-  tocObject.x_mitre_contents.sort((x, y) => x.object_ref.localeCompare(y.object_ref));
+  collectionObject.x_mitre_contents.sort((x, y) => x.object_ref.localeCompare(y.object_ref));
 
-  return tocObject;
+  return collectionObject;
 }
 
 // -----------------------------------------------------------------------------
@@ -155,24 +170,17 @@ function buildTocObject(snapshot, bundleObjects, options) {
 //     the requested STIX version. The bundle envelope carries spec_version
 //     only for STIX 2.0 — the STIX 2.1 specification removed spec_version
 //     from the bundle object (objects declare their own spec_version).
-//   - includeToc (default true): prepend an x-mitre-collection object derived
-//     from the snapshot metadata for STIX 2.1; STIX 2.0 always omits it
-//   - attackSpecVersion: x_mitre_attack_spec_version for the TOC object
+//   - publication: resolved or frozen collection metadata. STIX 2.1 bundles
+//     always begin with the x-mitre-collection object; STIX 2.0 bundles never
+//     contain this ATT&CK extension object.
+//   - bundleId: stable envelope identifier
 //
 // Notes are Workbench-native objects, not STIX objects, so they are never
 // included in emitted bundles.
 // -----------------------------------------------------------------------------
 
 const bundleTransformSchema = exportInputSchema.transform((input) => {
-  const {
-    stixVersion,
-    includeToc,
-    attackSpecVersion,
-    collectionObject,
-    collectionId,
-    createdByRef,
-    bundleId,
-  } = input.options;
+  const { stixVersion, publication, bundleId } = input.options;
 
   const objects = input.hydratedObjects
     .map((doc) => doc.stix)
@@ -182,19 +190,13 @@ const bundleTransformSchema = exportInputSchema.transform((input) => {
     conformToStixVersion(stixObject, stixVersion);
   }
 
-  // x-mitre-collection is a STIX 2.1 ATT&CK extension object. It must never be
-  // emitted in a STIX 2.0 bundle, even when includeToc retains its default.
-  if (includeToc && stixVersion === '2.1') {
-    const tocObject = collectionObject
-      ? structuredClone(collectionObject)
-      : buildTocObject(input.snapshot, objects, {
-          stixVersion,
-          attackSpecVersion,
-          collectionId,
-          createdByRef,
-        });
-    conformToStixVersion(tocObject, stixVersion);
-    objects.unshift(tocObject);
+  if (stixVersion === '2.1') {
+    const collectionObject = buildCollectionObject(input.snapshot, objects, {
+      stixVersion,
+      publication,
+    });
+    conformToStixVersion(collectionObject, stixVersion);
+    objects.unshift(collectionObject);
   }
 
   return {
@@ -290,5 +292,5 @@ module.exports = {
 
   // Helpers (exported for testing)
   buildTierLookup,
-  buildTocObject,
+  buildCollectionObject,
 };

@@ -457,7 +457,6 @@ describe('Canonical ATT&CK domain migration', function () {
     });
     expect(report.verification).toEqual({
       remaining_latest_domainless_target_objects: 0,
-      remaining_latest_incorrect_domain_objects: 0,
       remaining_domain_validation_bypasses: 0,
     });
 
@@ -524,35 +523,6 @@ describe('Canonical ATT&CK domain migration', function () {
     expect(auditItems.map((item) => item.sequence)).toEqual(
       Array.from({ length: 13 }, (_, index) => index + 1),
     );
-  });
-
-  it('corrects a previously generated domain-only successor from its exact TOC predecessor', async function () {
-    const latest = await mongoose.connection.db
-      .collection('attackObjects')
-      .findOne({ 'stix.id': campaignFixture.id }, { sort: { 'stix.modified': -1 } });
-    const incorrect = structuredClone(latest);
-    delete incorrect._id;
-    incorrect.stix.modified = new Date(new Date(latest.stix.modified).getTime() + 1);
-    incorrect.stix.x_mitre_domains = ['enterprise-attack', 'ics-attack'];
-    incorrect.stix.x_mitre_modified_by_ref = 'identity--ffffffff-ffff-4fff-8fff-ffffffffffff';
-    await mongoose.connection.db.collection('attackObjects').insertOne(incorrect);
-
-    const report = await migration._private.run(migrationDb, migrationClient, {
-      migrationName: 'test-correct-canonical-x-mitre-domains',
-      correctIncorrect: true,
-    });
-    expect(report.counts).toMatchObject({
-      scanned_candidates: 1,
-      active_reposts: 1,
-      updated: 1,
-      failed: 0,
-    });
-    expect(report.verification.remaining_latest_incorrect_domain_objects).toBe(0);
-
-    const corrected = await mongoose.connection.db
-      .collection('attackObjects')
-      .findOne({ 'stix.id': campaignFixture.id }, { sort: { 'stix.modified': -1 } });
-    expect(corrected.stix.x_mitre_domains).toEqual(['enterprise-attack']);
   });
 
   it('is idempotent after canonical revisions and bypass removal are complete', async function () {

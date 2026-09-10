@@ -1,5 +1,7 @@
 'use strict';
 
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+
 // =============================================================================
 // Virtual Track Service
 //
@@ -426,7 +428,7 @@ async function resolveComposition(snapshot, registryMap) {
  *
  * @param {string} trackId
  * @param {Object} composition - The new composition configuration
- * @param {string} [_userId]
+ * @param {string} [userId] - Invoking snapshot creator
  * @param {Object} [options]
  * @param {Object} [options.scheduledMaterialization]
  * @returns {Promise<Object>} The new snapshot
@@ -434,7 +436,7 @@ async function resolveComposition(snapshot, registryMap) {
 exports.updateComposition = async function updateComposition(
   trackId,
   composition,
-  _userId,
+  userId,
   options = {},
 ) {
   const source = await snapshotService.getLatestSnapshot(trackId);
@@ -443,19 +445,52 @@ exports.updateComposition = async function updateComposition(
   // Validate all component tracks
   await validateComponentTracks(composition.component_tracks);
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    composition,
-    members: [],
-    quarantine: [],
-    composition_resolution: null,
-    scheduled_materialization: options.scheduledMaterialization,
-  });
+  const snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      composition,
+      members: [],
+      quarantine: [],
+      composition_resolution: null,
+      scheduled_materialization: options.scheduledMaterialization,
+    },
+    { creationCause: CreationCause.CompositionUpdated, userAccountId: userId },
+  );
 
   logger.verbose(
     `VirtualTrackService: Updated composition for track "${trackId}" ` +
       `(${composition.component_tracks.length} component track(s))`,
   );
   return snapshot;
+};
+
+/**
+ * Replace the persisted materialization schedule for a virtual track.
+ * The registry is authoritative so schedule changes do not create or mutate a
+ * content snapshot. The scheduler reconciliation task observes the new value.
+ *
+ * @param {string} trackId
+ * @param {Object} schedule
+ * @returns {Promise<{snapshot_schedule: Object}>}
+ */
+exports.updateSchedule = async function updateSchedule(trackId, schedule) {
+  const registry = await registryRepo.findByTrackId(trackId);
+  if (!registry) {
+    throw new TrackNotFoundError(trackId);
+  }
+  if (registry.type !== 'virtual') {
+    throw new BadRequestError({
+      message: 'This operation is only available for virtual release tracks',
+      details: `Track ${trackId} is a ${registry.type} track`,
+    });
+  }
+
+  const updated = await registryRepo.setSnapshotSchedule(trackId, schedule);
+  logger.verbose(
+    `VirtualTrackService: Updated snapshot schedule for track "${trackId}" to ${schedule.mode}`,
+  );
+  return { snapshot_schedule: updated.snapshot_schedule };
 };
 
 /**
@@ -488,41 +523,65 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
     });
   }
 
-  // Validate component tracks
-  const registryMap = await validateComponentTracks(composition.component_tracks);
-
-  // Resolve composition
-  const { members, quarantined, compositionResolution } = await resolveComposition(
-    source,
-    registryMap,
-  );
-  await primaryRevisionService.assertStoredEntries([...members, ...quarantined]);
-
-  // Build overrides for the new snapshot
-  const overrides = {
-    members,
-    quarantine: quarantined,
-    composition_resolution: compositionResolution,
-    scheduled_materialization: options.scheduledMaterialization,
-    snapshot_description: options.description,
-  };
-
-  let snapshot;
-  try {
-    snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides);
-  } catch (err) {
-    if (!scheduledFor || !(err instanceof DuplicateIdError)) throw err;
-
-    const existing = await dynamicRepo.getSnapshotByScheduledMaterialization(trackId, scheduledFor);
-    if (!existing) throw err;
-    snapshot = existing;
+  // Hold component release locks from resolution through persistence. Rollback
+  // cannot pass its dependency scan while a new dependent is being created.
+  // Sorted acquisition and fail-fast conflicts also release partial lock sets.
+  const componentIds = [
+    ...new Set(composition.component_tracks.map((entry) => entry.track_id)),
+  ].sort();
+  const { withReleaseLock } = require('./versioning-service');
+  async function withComponentLocks(index) {
+    if (index === componentIds.length) return materialize();
+    return withReleaseLock(componentIds[index], () => withComponentLocks(index + 1));
   }
+  return withComponentLocks(0);
 
-  logger.verbose(
-    `VirtualTrackService: Created virtual snapshot for track "${trackId}" ` +
-      `(${members.length} members, ${quarantined.length} quarantined)`,
-  );
-  return snapshot;
+  async function materialize() {
+    // Validate component tracks
+    const registryMap = await validateComponentTracks(composition.component_tracks);
+
+    // Resolve composition
+    const { members, quarantined, compositionResolution } = await resolveComposition(
+      source,
+      registryMap,
+    );
+    await primaryRevisionService.assertStoredEntries([...members, ...quarantined]);
+
+    // Build overrides for the new snapshot
+    const overrides = {
+      members,
+      quarantine: quarantined,
+      composition_resolution: compositionResolution,
+      scheduled_materialization: options.scheduledMaterialization,
+      snapshot_description: options.description,
+    };
+
+    let snapshot;
+    try {
+      snapshot = await snapshotService.cloneSnapshot(trackId, source, overrides, {
+        creationCause: options.scheduledMaterialization
+          ? CreationCause.ScheduledSnapshot
+          : CreationCause.ManualSnapshot,
+        userAccountId:
+          options.userAccountId || (options.scheduledMaterialization ? 'system' : undefined),
+      });
+    } catch (err) {
+      if (!scheduledFor || !(err instanceof DuplicateIdError)) throw err;
+
+      const existing = await dynamicRepo.getSnapshotByScheduledMaterialization(
+        trackId,
+        scheduledFor,
+      );
+      if (!existing) throw err;
+      snapshot = existing;
+    }
+
+    logger.verbose(
+      `VirtualTrackService: Created virtual snapshot for track "${trackId}" ` +
+        `(${members.length} members, ${quarantined.length} quarantined)`,
+    );
+    return snapshot;
+  }
 };
 
 /**
@@ -537,7 +596,11 @@ exports.createVirtualSnapshot = async function createVirtualSnapshot(trackId, op
  * @param {Object} selection - { object_ref, object_modified }
  * @returns {Promise<Object>} The new draft snapshot
  */
-exports.promoteQuarantinedObject = async function promoteQuarantinedObject(trackId, selection) {
+exports.promoteQuarantinedObject = async function promoteQuarantinedObject(
+  trackId,
+  selection,
+  userId,
+) {
   const source = await snapshotService.getLatestSnapshot(trackId);
   assertVirtualTrack(source);
 
@@ -567,10 +630,15 @@ exports.promoteQuarantinedObject = async function promoteQuarantinedObject(track
   );
   await primaryRevisionService.assertStoredEntries([...members, ...quarantine]);
 
-  const snapshot = await snapshotService.cloneSnapshot(trackId, source, {
-    members,
-    quarantine,
-  });
+  const snapshot = await snapshotService.cloneSnapshot(
+    trackId,
+    source,
+    {
+      members,
+      quarantine,
+    },
+    { creationCause: CreationCause.QuarantinePromoted, userAccountId: userId },
+  );
 
   logger.verbose(
     `VirtualTrackService: Promoted quarantined revision "${selected.object_ref}" ` +

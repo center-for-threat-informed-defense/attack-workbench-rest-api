@@ -84,8 +84,9 @@ POST /api/release-tracks/:id/staged/demote
 # Snapshot-specific operations
 GET  /api/release-tracks/:id/snapshots/:modified
 POST /api/release-tracks/:id/snapshots/:modified/clone
-DELETE /api/release-tracks/:id/snapshots/:modified
+DELETE /api/release-tracks/:id/snapshots/:modified # eligible drafts only
 POST /api/release-tracks/:id/snapshots/:modified/release
+POST /api/release-tracks/:id/snapshots/:modified/draft # admin conversion with confirm_version
 POST /api/release-tracks/:id/snapshots/:modified/graph
 POST /api/release-tracks/:id/snapshots/:modified/graph/reconstruct # admin recovery
 DELETE /api/release-tracks/:id/snapshots/:modified/graph
@@ -100,16 +101,19 @@ We borrow heavily concepts from git. Snapshots are sort of like commits and tagg
 - Every supported modification creates a replacement draft snapshot
 - Identified by `stix.modified` timestamp
 - Immutable once created
-- Standard tracks retain one rolling untagged draft; tagged releases remain historical
+- Standard tracks retain one active rolling draft plus the hidden source draft
+  for each tagged release; tagged releases remain historical
 - May be a **draft release** (untagged) or **tagged release** (has version number)
 
 **Tagged Releases** (like Git tags)
 
 - Snapshots are tagged with `version`, which when exported/retrieved as a STIX bundle, will be expressed as `x_mitre_version`. Draft snapshots are denoted by the fact that their `version` key is set to `null`.
 - Uses MAJOR.MINOR versioning (not MAJOR.MINOR.PATCH), as specified by the [`x_mitre_version` ADM schema](https://github.com/mitre-attack/attack-data-model/blob/f249442b3588de9cca84b819d480306b106d2c1f/src/schemas/common/property-schemas/attack-versioning.ts#L21:L26)
-- Snapshots are tagged in-place (no duplicate data)
+- Standard releases are tagged clones with exact rollback drafts; virtual
+  releases are tagged in place
 - When a snapshot is tagged/released, an event is captured in its `version_history` array
-- Once a snapshot is tagged, it cannot be re-tagged. Tagged snapshots are **immutable**.
+- Tagged content is **immutable**. Administrators may correct a release label
+  within semantic-version lineage constraints.
 
 ### 3. Three-Tier Workflow Integration with Version Pinning
 

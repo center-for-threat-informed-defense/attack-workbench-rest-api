@@ -49,8 +49,8 @@ operation, then release the new snapshot.
 
 **HTTP Status:** 409 Conflict
 
-Tagged snapshots are immutable release records. Create or modify a draft
-snapshot instead; deleting an entire release track remains a separate
+Convert the latest release with `POST /snapshots/:modified/draft` first, then
+delete the returned draft if eligible; deleting an entire release track remains a separate
 track-level operation.
 
 ### HistoricalSnapshotDeletionError

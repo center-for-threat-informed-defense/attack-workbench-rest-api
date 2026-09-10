@@ -1,5 +1,455 @@
 # Release Track TODOs
 
+## Duplicate relationship report memory (2026-09-10)
+
+- [x] Trace dashboard request and identify historical endpoint fan-out.
+- [x] Filter duplicates in MongoDB before hydrating relationships and latest endpoints.
+- [x] Add regressions for history, lifecycle filters, missing endpoints, and bounded query output.
+- [x] Run focused specs, full npm test, and lint; document findings and limits.
+
+Verification: focused report + relationship specs 38 passing; full `npm test`
+passes (OpenAPI 2, config 22, API 1051, middleware 29, scheduler 10); lint
+and `git diff --check` pass. Synthetic query output falls from 38,162,701 to
+23,131 serialized bytes; production peak heap has not been measured. See
+[data-quality report design](data-quality-reports.md) for the analysis.
+No API contract change or frontend/Bruno update is needed.
+
+Proposed commit: `fix(reports): reduce duplicate relationship report memory use`
+
+Body: Filter duplicate groups in MongoDB before fetching full relationships,
+limit endpoint lookups to their latest revisions, and consume results through
+a batched cursor. Add history and lifecycle regressions and document remaining
+response-size limits.
+
+Proposed AGENTS.md lesson: Analytical reports should filter findings before
+joining full documents, and latest-endpoint lookups should limit revisions in
+MongoDB rather than discarding history after materialization.
+
+
+## Snapshot card header hierarchy
+
+- [x] Give snapshot identity and status labels their own full-width header area.
+- [x] Move controls below metadata; remove redundant draft copy and style tagged timestamps as metadata pills.
+- [x] Verify template regressions, responsive layouts, frontend suite, lint, and build.
+
+Accepted lifecycle work committed without a breaking marker: backend e9fd8562,
+frontend 880c49e0, Bruno a9b8a97. Other provenance changes remain uncommitted.
+
+UI verification: component spec 87 passing; full frontend suite 168 files /
+428 tests passing. Changed-file lint, formatting, and production build pass
+(existing bundle/style budget warnings remain). Isolated Angular-rendered
+headers with compiled styles were visually checked in headless Chrome at
+1400, 900, 390, and 320px: Latest stays in the title row, controls remain below
+metadata, and neither draft nor tagged header overflows. Timestamp pills use
+existing MITRE theme tokens with readable light/dark foregrounds.
+
+Backend lifecycle assertion verification: 20 passing; full suite passes
+(OpenAPI 2, config 22, API 1048, middleware 29, scheduler 10), and lint passes.
+A transient content-manifest HTTP 404 passed in isolation (10 tests) and on
+the complete rerun. No unrelated test-harness changes were made.
+
+Header refinements approved for commit on 2026-09-10:
+`fix(release-tracks): clarify snapshot card headers`
+Body: Separate snapshot identity and status from controls, remove redundant
+draft subtitles, and present snapshot/tagging timestamps as metadata pills.
+
+## Separate tagging, conversion to draft, and draft deletion
+
+- [x] Preserve creation provenance while separating conversion and deletion in the API.
+- [x] Keep admin confirmation, latest/sole-snapshot, dependency, and release-lock guards.
+- [x] Add distinct frontend Convert to draft and Delete draft controls.
+- [x] Update regressions, OpenAPI, user/developer docs, and Bruno requests.
+- [x] Run focused tests, full backend/frontend suites, lint, and build.
+
+Verification (Node 24): backend focused group 76 passing; full `npm test`
+passes (OpenAPI 2, config 22, API 1048, middleware 29, scheduler 10).
+The first full run identified two obsolete DELETE-confirmation expectations,
+which now assert draft-only rejection. Unrelated HTTP/authentication failures
+passed in isolation and in the complete rerun. Backend lint passes.
+Frontend focused tests 108 passing; all 168 files / 425 tests pass, changed-file
+lint passes, and production build succeeds with existing size-budget warnings.
+Logic-specialist review: ROBUST for the scoped state transitions, dependency
+checks, preserved-source protection, publication cleanup, and release-lock use.
+Both main beta checkouts retain the other agent's uncommitted provenance work.
+No commits were created; Bruno conversion/deletion requests are updated.
+
+Accepted commit: `feat(release-tracks): separate draft conversion from snapshot deletion`
+
+Body: Add an explicitly confirmed release-to-draft endpoint and matching UI
+control. Restore guarded draft deletion while preserving source drafts,
+composition provenance, dependency checks, and release serialization.
+
+Snapshot DELETE is draft-only. Convert tagged releases with
+POST /release-tracks/:id/snapshots/:modified/draft and a confirm_version body
+before attempting a separate eligible-draft DELETE.
+
+## Snapshot creation provenance and user attribution (2026-09-09)
+
+- [x] Inspect beta and carry forward the prior uncommitted creation-cause work.
+- [x] Persist immutable creation cause and invoking user, including standard release creation.
+- [x] Return safe user display metadata with snapshot GETs and history; show initials avatars.
+- [x] Cover user changes, automation, legacy records, tagging, and spoofing with regressions.
+- [x] Update OpenAPI, user/developer documentation, and Bruno requests.
+- [x] Run focused tests, full suites, lint, and frontend build.
+
+Verification: backend provenance/release/quarantine group 32 passing; final
+provenance spec 7 passing. Complete backend suite under Node 24 passes:
+OpenAPI 2, config 22, API 1044, middleware 29, scheduler 10. Backend lint
+passes. First full-run transient HTTP failures passed in isolation (100)
+and on the complete rerun. Frontend focused tests 97 passing; complete suite
+168 files / 420 tests passing, changed-file lint and production build pass.
+The existing save-dialog timing failure passed in isolation and on full rerun;
+existing bundle/style budget warnings remain. Production build required
+execution outside the sandbox. No test-harness changes were made.
+
+Work is in both main beta checkouts, preserving the newer rollback/composition
+provenance work and unrelated local files. Commit preparation (2026-09-10)
+excludes unrelated working-tree changes, including shared-document formatting.
+
+Commit messages:
+
+- Backend: `feat(release-tracks): record snapshot creation provenance`
+  Body: Persist creation causes and invoking users, distinguish standard
+  release creation, and expose safe creator metadata through snapshot GETs.
+- Frontend: `feat(release-tracks): show snapshot causes and creator avatars`
+  Body: Display snapshot-local creator names and initials, with explicit
+  automation and historical-attribution fallbacks on Releases cards.
+- Bruno: `docs(release-tracks): document snapshot creation attribution`
+  Body: Describe creation cause and actor fields on snapshot GET requests.
+
+## Merge scheduling and rollback branches into local beta (2026-09-09)
+
+- [x] Inspect all worktrees and confirm scheduling branches are already merged.
+- [x] Merge rollback branches and preserve both features in documentation conflicts.
+- [x] Run focused backend/frontend regressions, then full suites and lint/build checks.
+- [x] Complete local merge commits and verify both feature tips are ancestors of beta.
+
+Verification: backend focused group 84 passing; full `npm test` under Node 24
+passes (OpenAPI 2, config 22, API 1037, middleware 29, scheduler 10), and
+backend lint passes. One initial full-run HTTP 404 passed in isolation (23)
+and in the complete rerun. Frontend focused group 100 passing; all 168 test
+files / 416 tests, changed-file lint, and production build pass. The build
+required execution outside the sandbox; existing bundle/style budget warnings
+remain. Only documentation conflicted; both sides' behavior and records are
+preserved. Scheduling branches were already ancestors of beta; uncommitted
+work in the scheduling worktrees and existing untracked files are untouched.
+
+Merge messages: `chore(release-tracks): merge rollback support into beta`
+(backend) and `chore(release-tracks): merge rollback controls into beta`
+(frontend).
+
+## Virtual release-track schedule configuration
+
+- [x] Fix schedule saves submitting unsupported deduplication fields: remove
+      preferred tier/status controls and compare composition to its initial
+      editable state, including normalized priorities and defaults.
+- [x] Verify server-shaped schedule-only save and strategy-change regressions,
+      full frontend tests, and production build.
+      Focused: 94 passing; full: 167 files / 410 tests passing; production build
+      and changed-file lint pass. Backend schema rejects precisely
+      `tier_resolution`/`status_resolution` and accepts the corrected payload.
+      Proposed commit: `fix(release-tracks): avoid invalid composition updates`.
+      Body: Remove unsupported deduplication controls and compare the edited
+      composition to its initial form state so schedule-only saves skip cloning.
+
+- [x] Add controlled natural-language schedule autocomplete with hourly and
+      15/30-minute presets and guided customization.
+- [x] Verify autocomplete regressions, full frontend suite, and production build.
+      Focused tests: 94 passing; full frontend: 167 files / 410 tests passing;
+      production build, changed-file lint, formatting, and diff checks pass.
+      Proposed commit: `feat(release-tracks): autocomplete schedule presets`.
+      Body: Map selected schedule phrases to deterministic UTC cron expressions
+      and support hourly and 15/30-minute guided customization.
+
+- [x] Review persisted schedule validation, storage, scheduler execution, and
+      existing regression coverage.
+- [x] Add an authenticated virtual-track schedule update endpoint with strict
+      validation and persistence.
+- [x] Add backend regression tests, OpenAPI documentation, user/developer
+      documentation, and Bruno coverage.
+- [x] Add a controlled frontend schedule editor for manual, recurring cron,
+      and explicit-date schedules, without free-text cron entry.
+- [x] Add frontend connector/component regressions and usage documentation.
+- [x] Run focused checks, then the complete backend and frontend suites.
+- [x] Propose conventional commit messages without committing.
+
+Verification (2026-09-09):
+
+- Backend focused schedule/API and scheduler specs: 19 passing; OpenAPI: 2
+  passing; changed-file ESLint clean.
+- Backend complete `npm test`: OpenAPI 2, config 22, API 1024, middleware 29,
+  and scheduler 10 passing.
+- Frontend focused component/connector specs: 92 passing; complete suite: 167
+  files and 408 tests passing; application TypeScript and production build
+  pass; changed-file ESLint has no errors.
+- Proposed commits: `feat(release-tracks): add virtual schedule updates`,
+  `feat(release-tracks): add guided snapshot scheduling`, and
+  `docs(release-tracks): add virtual schedule request`.
+
+## Snapshot-scoped virtual composition provenance
+
+- [x] Return each virtual snapshot's immutable `composition_resolution` from
+      snapshot history and declare it in OpenAPI.
+- [x] Add backend regression coverage and update user/API documentation plus
+      the Bruno snapshot-history request.
+- [x] Move the frontend Composition Resolution view from HEAD into each
+      virtual snapshot's Releases card, including exact component version,
+      snapshot timestamp, strategy, filters, and contribution counts.
+- [x] Add frontend regression coverage and update frontend documentation.
+- [x] Replace the dense seven-column provenance table with a responsive
+      component list whose identifiers wrap within their own regions and whose
+      counts use independently wrapping metric labels.
+- [x] Run focused backend/frontend specs, then each repository's complete
+      required verification suite; propose conventional commit messages.
+
+Verification (2026-09-09):
+
+- REST API: snapshot-history spec 7 passing; OpenAPI 2 passing; lint clean;
+  full `npm test` under Node 24 clean (2 OpenAPI, 22 config, 1020 API,
+  29 middleware, 10 scheduler). Node 22 full-suite attempts reproduced the
+  documented roaming HTTP-response flake; every affected spec passed alone.
+- Frontend: release-track page spec 71 passing; full `npm test` 404 passing;
+  application TypeScript compilation clean; changed-file ESLint clean;
+  production build clean with existing bundle/style budget warnings. The
+  repository-wide lint command still reports pre-existing errors outside the
+  changed files.
+- Proposed commits: REST API `feat(release-tracks): expose virtual snapshot
+  provenance`; frontend `feat(release-tracks): scope composition provenance to
+  snapshots`; Bruno `docs(release-tracks): document snapshot composition
+  provenance`.
+
+Post-merge review (2026-09-09): no blocking findings; live registry scheduling
+and historical composition provenance remain separate. Reverified with Node 24:
+7 focused backend tests, 77 focused frontend tests, full backend suite
+(2 OpenAPI, 22 config, 1024 API, 29 middleware, 10 scheduler), and all 411
+frontend tests passed. Backend lint, changed-file frontend lint, and the
+frontend production build passed (bundle/style budget warnings remain).
+
+## Preserve pre-release drafts and protect virtual dependencies
+
+- [x] Change standard-track release commit from in-place tagging to creation
+      of a new tagged snapshot while retaining the exact source draft.
+- [x] Prevent rolling-draft cleanup from pruning drafts retained as the source
+      of a tagged standard release.
+- [x] Block release deletion when any persisted virtual snapshot resolved the
+      exact standard release snapshot, for implicit or explicit composition.
+- [x] Add a post-hoc release-version update that preserves the snapshot and
+      validates the replacement against adjacent release versions.
+- [x] Reconcile release catalogues, copied version ledgers, bundle hashes,
+      audit records, and current-snapshot backrefs for both operations.
+- [x] Update OpenAPI, user/developer/operator docs, and Bruno requests.
+- [x] Add ADM-valid API regressions and run focused specs, then full `npm test`.
+- [x] Update the frontend release controls, wording, connector, and tests.
+- [x] Propose conventional commit messages without committing.
+
+## Rollback / retag review follow-up
+
+- [x] Coordinate component release locks with virtual materialization.
+- [x] Publish retag hashes atomically with the version and repair derived state on retry.
+- [x] Expose preserved source pointers in snapshot history.
+- [x] Validate deletion confirmation and capture audit identity under the release lock.
+- [x] Add concurrency, failure-recovery, history, and exact-download hash regressions.
+- [x] Update OpenAPI, user/developer docs, and Bruno smoke requests.
+- [x] Run focused specs, full npm test, and lint; propose a commit without committing.
+
+Verification: focused backend group 32 passing, final destructive/retag spec
+16 passing; full `npm test` passes (OpenAPI 2, config 22, API 1033,
+middleware 29, scheduler 10). Backend lint and frontend page/connector tests
+(90) pass. An initial unrelated technique-conversion 404 passed in isolation
+(24) and on the final full run; no unrelated source changes were made.
+
+Proposed commit: `fix(release-tracks): make rollback and retag concurrency-safe`
+
+Coordinate materialization with component release locks, publish retag hashes
+atomically, repair derived state on retry, expose preserved draft pointers,
+and validate destructive confirmation under the audit lock.
+
+## Sealed snapshot content manifests (Problem 1)
+
+Design: [release-tracks/sealed-content-manifests.md](release-tracks/sealed-content-manifests.md).
+Decisions confirmed by the developer on 2026-09-02: drop the relationship
+advancement cascade, revert the frontend related-object reset to PUT, keep the
+collection object in every STIX 2.1 bundle including drafts, track-scope
+publication metadata with inherit-from-global as the default, collection
+`modified` = snapshot `modified`, bundle `id` changes per snapshot while the
+collection `id` is constant per track, and production-grade migration.
+
+### Backend (branch `beta`)
+
+- [x] Model: manifest gains `sealed_at`, `seal_reason`; snapshot gains
+      `content_manifest_id` (renamed from `graph_manifest_id`), `publication`,
+      `bundle_id`; `config.publication` with inherit/explicit identity and
+      markings plus optional `collection_id` and `created`; remove top-level
+      `object_marking_refs`.
+- [x] Content manifest service (renamed from graph-manifest-service): seal
+      over exact members with ID-closed relationship selection, supporting and
+      link-target entries, no `secondary`, no predecessor carry-forward;
+      reference-counted discard; legacy schema-v1 reader retained.
+- [x] Snapshot service: seal when `members` is written (create track, clone
+      with members override), inherit otherwise; prune drafts without
+      discarding shared manifests; notes editable on drafts only; remove
+      graph create/delete.
+- [x] Versioning service: standard commit seals over planned members inside
+      the guarded tag update; virtual commit reuses the materialization seal;
+      freeze `publication`, generate `bundle_id`, store hashes; preview
+      reports relationship additions, removals, and stale authored endpoints.
+- [x] Publication resolution: shared resolver for identity and markings
+      (track override or global), collection id and created overrides,
+      immutability after first release, config GET returns resolved values.
+- [x] Export: single replay path; drafts may add live `include` tiers through
+      the same closure rule; tagged + `include` is 400; collection object
+      always present in 2.1, absent in 2.0; drafts omit `x_mitre_version`;
+      remove `includeToc`; bundle id stored for tagged, UUIDv5 for drafts.
+- [x] Relationships: remove `handleEndpointRevisionCreated` and its
+      subscriptions; keep create-time endpoint pinning; drop the exact-endpoint
+      repository query if unused.
+- [x] Routes/controller/OpenAPI: remove graph create/delete; reconstruct
+      accepts `replace_manifest_id`; rename response fields
+      (`content_manifest_id`, `content_statistics`); publication config
+      schema; remove `includeToc` and top-level marking refs.
+- [x] Migration: rename field, seal unsealed tagged snapshots as baseline
+      reconstructions, drafts inherit or seal, migrate track marking refs into
+      `config.publication`, freeze `publication` and `bundle_id` on tagged
+      snapshots, recompute hashes, drop frozen `collection` entries; make the
+      2026-07-30 migration's manifest backfill a no-op; dry-run preview
+      script; regression spec.
+- [x] Tests: content-manifest lifecycle spec (replaces opt-in-graphs),
+      bundle spec updates, no-cascade relationship spec, publication config
+      spec, migration spec, virtual/history/description spec updates; run
+      focused specs then full `npm test`.
+- [x] Docs: bundle-export.md, entities.md, implementation-notes.md, user
+      output-formats/versioning/api-reference/terminology, relationships doc.
+- [x] Bruno: remove graph create/delete requests, update reconstruct,
+      config, snapshot export, and track creation requests.
+- [x] Propose conventional commit messages.
+
+### Frontend (feature branch off `beta`)
+
+- [x] Revert relationship save to update related objects with PUT.
+- [x] Remove bundle cache controls, cache status, and cache statistics; show
+      content statistics, hashes, and bundle id on tagged snapshots.
+- [x] Publication section in track configuration: identity and markings with
+      inherit toggle and resolved-value display; collection id and created
+      overrides editable until first release.
+- [x] Release preview: relationship inventory summary and stale-endpoint
+      warnings.
+- [x] Snapshot notes read-only after release; field renames in classes,
+      connector, and specs; docs update; focused and full frontend
+      verification.
+
+Verification (2026-09-02):
+
+- Backend focused specs pass: content manifests 10, publication config 3,
+  manifest migrations 5, bundle export 19, snapshot descriptions 7, snapshot
+  history 7, virtual graph integrity 3, release planning 23, endpoint pins 3,
+  release tracks 3, attack objects, collection bundles, reconciliation.
+- Three complete `npm test` runs: 1009/1012/1010 API cases passing with the
+  documented roaming shared-server failures only (attack-objects count,
+  collection-bundles 400, reconciliation 400, analytics ECONNRESET, groups
+  timeout); every affected spec passes in isolation. OpenAPI, config,
+  middleware, and scheduler suites pass. `npm run lint` is clean for the
+  changed files (pre-existing findings remain in untouched migrations and
+  `scripts/loadBundle.js`).
+- Restored-production trial (2026-09-02): the first run crashed on
+  `release-track--4bf296be…`, one of eight unregistered collections left by
+  the first v19.1 bootstrap, whose members reference six technique revisions
+  replaced by the platform-ordering repair. The migration now migrates
+  registered tracks only, reports orphans, discards their manifests, and names
+  the failing snapshot, step, and missing references on any other error.
+- The crashed API container kept restarting (`restart: unless-stopped`, 23
+  restarts) on the old image, re-running the unfixed migration and re-creating
+  the four orphan manifests each time; the rebuilt image's idempotent run
+  discards them again. Stop or rebuild the container before judging the
+  database state.
+- After the fix, a dry run against the restore reported 6 tracks, 21
+  snapshots, 7 seals, 1 shared manifest, 4 renames, and 7 orphan collections;
+  applying it sealed and froze exactly that, recomputed 7 hash sets, and a
+  second apply changed nothing. Every released snapshot's stored STIX 2.1
+  hash matches a fresh export and every draft exports with the version key
+  omitted.
+- Design record: `docs/developer/release-tracks/sealed-content-manifests.md`.
+- Follow-up for the developer's v19.1 bootstrap tooling (`.nocommit/`): read
+  `content_manifest_id` instead of `graph_manifest_id`, and replace the
+  delete-then-reconstruct recovery with a single reconstruct request naming
+  `replace_manifest_id`.
+- Frontend (branch `feat/sealed-content-manifests`): focused specs pass
+  (page 53, connector, relationship, preview dialog); the complete vitest
+  suite passes (166 files, 379 tests); `tsc --noEmit`, ESLint on changed
+  files, and the production `ng build` succeed.
+- Proposed REST commit: `feat(release-tracks): seal snapshot content manifests`.
+  Proposed frontend commit: `feat(release-tracks): surface sealed content and
+publication settings`.
+
+### Review follow-ups (2026-09-02)
+
+- [x] Fix the virtual-track config editor crash: the connector's identity and
+      marking getters return functions that must be invoked as methods.
+- [x] Rename the History tab to Releases; drop the per-snapshot "Sealed" chip
+      (every snapshot is sealed, so it carried no information) and label the
+      statistics section "Content".
+- [x] Restore release deletion: administrators may delete the track's most
+      recent release with a typed version confirmation (`confirm_version`);
+      the ledger entry is retracted from every remaining snapshot, the manifest
+      is discarded when unreferenced, the registry is reconciled, and a
+      `delete_release` audit event is recorded. Frontend button on tagged
+      release cards for administrators.
+- [x] Data-model review (KISS): rename manifest storage to
+      `releaseTrackContentManifest*` with `release-track-content-manifest--`
+      ids; drop `resolver_version` and `baseline_reconstruction` in favour of a
+      required `seal_reason`; remove the dead `config.include_secondary_objects`
+      block and its frontend section; keep `releaseTrackReconciliations` as an
+      outstanding-work queue (completed records are deleted, so it is normally
+      empty); keep `releaseTrackAuditEvents` (now used by both destructive
+      actions) and document every collection in `entities.md`.
+- [x] Migration extended in place (unreleased): collection rename, id rewrite,
+      header normalization, dead-config removal, completed-reconciliation
+      cleanup; dry run stays accurate before the rename.
+      Verification (2026-09-02, review follow-ups):
+
+- Backend focused specs pass: manifest migrations 5, destructive authorization
+  3, content manifests 10, snapshot history 7, virtual graph integrity 3,
+  reconciliation durability 2, releases by object 8, snapshot immutability 2,
+  backrefs 24; OpenAPI validation passes.
+- Restored production database: dry run reports 131,534 legacy manifest
+  documents to move and 17 headers to normalize; apply completes, all 21
+  snapshots export with matching hashes, storage now lists only
+  `releaseTrackContentManifests`, `releaseTrackContentManifestEntries`,
+  `releaseTrackRegistry`, `releaseTrackReconciliations` (empty), and
+  `releaseTrackAuditEvents`; a second dry run reports nothing left to do.
+- Frontend: focused page and connector specs pass (71); complete suite
+  381 tests with one unrelated save-dialog flake that passes alone; `tsc`,
+  ESLint, Prettier, and the production build are clean.
+- [ ] Recommendation, not implemented: `version_history` is copied into every
+      snapshot document although only the tagged snapshot's own entry is read
+      (`tagMetadataForSnapshot`) and the registry's `tagged_releases` is the
+      catalogue. Storing the entry only on the tagged snapshot would remove the
+      duplication but touches release planning, cloning, and the frontend
+      history view; defer to a dedicated slice.
+
+## Remove nightly-only migration compatibility
+
+- [x] Remove regression code that imports the retired beta bundle-integrity
+      migration.
+- [x] Remove canonical-domain correction logic used only to carry flawed beta
+      migration output forward.
+- [x] Remove current documentation for the retired nightly migrations and
+      document the alpha/beta database reset policy.
+- [x] Run the focused migration and current graph-invariant regression specs.
+- [x] Run the complete `npm test` suite and propose a conventional commit
+      message without committing.
+
+Verification (2026-08-18):
+
+- Focused canonical-domain, deterministic-graph, opt-in-graph, and bundle
+  regressions pass (39); ESLint and whitespace checks also pass.
+- Four complete `npm test` attempts reached 1001-1009 passing API tests but
+  each encountered the documented roaming shared-server failure (HTTP parse
+  error, transient 404, `ECONNRESET`, or socket hang-up). Every affected spec
+  passes independently, including techniques conversion (24), software
+  pagination (13), the grouped release-track cases (15), and change capture
+  (10). OpenAPI (2) and configuration (22) passed on every complete attempt.
+- Proposed commit: `chore(migrations): remove nightly compatibility remnants`.
+
 ## Frontend and REST API build information
 
 - [x] Source REST API build metadata from the Docker/runtime build variables,
@@ -28,6 +478,35 @@ Verification (2026-08-07):
 - Proposed REST API commit: `feat(config): expose REST API build information`.
   Proposed frontend commit: `feat(shell): display component build versions`.
 
+## Targeted v19.1 source-graph recovery
+
+- [x] Add a read-only preflight that targets one exact tagged virtual snapshot,
+      reconstructs its canonical v19.1 pointer plan, and requires every prior
+      immutable baseline repair to already exist.
+- [x] Add a separately confirmed apply mode that replaces only the target
+      snapshot's graph manifest and refuses track replacement or STIX writes.
+- [x] Verify the snapshot members, source-pointer hydration, manifest
+      attestation, and final emitted bundle against the canonical source.
+- [x] Tag future public v19.1 virtual baselines as `19.1` while retaining the
+      internal standard-track baseline tag.
+- [x] Add operator documentation and regression coverage for safety,
+      idempotence, and the incorrect ordinary-manifest recovery scenario.
+- [x] Run focused Python checks followed by the complete `npm test` suite.
+- [x] Propose a conventional commit message without committing unless asked.
+
+Verification (2026-08-05):
+
+- Bootstrap regressions pass: 42 cases covering graph-only no-write preflight,
+  guarded replacement, missing-repair fail-closed behavior, manifest races,
+  and the public `19.1` virtual tag. Ruff, Python compilation, and diff
+  whitespace checks pass.
+- The clean complete REST suite passes under repository-pinned Node 22.14.0:
+  OpenAPI 2, config 21, API 1012, middleware 29, and scheduler 10.
+- Earlier complete runs encountered the documented roaming shared-server
+  failures; each affected bundle, pagination, backref, virtual-graph, and notes
+  spec passed independently before the clean run.
+- Proposed commit: `fix(release-tracks): add targeted v19.1 graph recovery`.
+
 ## Deterministic graph collection identity repair
 
 - [x] Reproduce the incorrect graph collection creator, STIX 2.0 TOC
@@ -55,6 +534,64 @@ Verification (2026-08-05):
   including under the repository-pinned Node 22.14.0 runtime.
 - The developer subsequently confirmed a complete all-green test run.
 - Proposed commit: `fix(release-tracks): repair deterministic bundle integrity`.
+
+## Stateful snapshot collection objects and bundle hashes
+
+- [x] Persist one frozen `x-mitre-collection` entry in every graph manifest,
+      with a track-stable ID, first-manifest `created`, and current-manifest
+      `modified` timestamp.
+- [x] Replay the frozen collection entry and a manifest-stable bundle envelope
+      ID for deterministic STIX 2.0 and STIX 2.1 downloads.
+- [x] Generate SHA-256 hashes from the exact pretty-printed download bytes and
+      store both hashes on graph-backed snapshots with their manifest ID.
+- [x] Reject snapshot-note edits while a graph exists so the frozen collection
+      and hashes remain immutable; require deletion and regeneration to edit.
+- [x] Expose hashes through snapshot responses/OpenAPI and update REST docs,
+      Bruno coverage, and regression tests.
+- [x] Replace frontend bundle prefetch/hashing with server-provided hashes,
+      preserving copy controls and exact download serialization.
+- [x] Run focused and complete REST/frontend verification and propose
+      conventional commit messages without committing unless asked.
+
+Verification (2026-08-04):
+
+- Focused REST graph, description, history, and bundle specs pass, including
+  exact SHA-256 comparisons against both downloaded bundle serializations.
+- The complete REST `npm test` suite passes after the repository's documented
+  roaming harness failures were confirmed in isolation and rerun.
+- The complete frontend suite passes: 165 files and 381 tests. Targeted
+  TypeScript, ESLint, and Prettier checks also pass.
+- Cached-note regression coverage proves the API returns 409 without changing
+  either bundle hash, then permits editing after graph deletion and freezes the
+  revised notes when the graph is recreated.
+- Repeated complete REST runs encountered the documented roaming harness
+  failures in unrelated specs (transient 400/404/ECONNRESET responses); every
+  affected spec passes when rerun in isolation.
+- Proposed REST commit: `feat(release-tracks): persist snapshot bundle hashes`.
+  Proposed frontend commit: `feat(release-tracks): display snapshot bundle hashes`.
+
+## Relationship review-state revision safety
+
+- [x] Reproduce the relationship-save source/target workflow reset and prove it
+      currently uses in-place PUT updates.
+- [x] Reset related SDO workflow state through POST-created revisions so graph-
+      pinned revisions remain immutable.
+- [x] Add frontend regression coverage for request method, WIP transition, and
+      sequential relationship/source/target saves.
+- [x] Update frontend workflow documentation and run focused plus complete
+      frontend verification.
+- [x] Propose a conventional commit message without committing unless asked.
+
+Verification (2026-08-04):
+
+- The focused relationship revision regression passes: 1 case proving ordered
+  relationship/source/target POSTs, WIP resets, and no related-object PUTs.
+- The complete frontend suite passes: 164 files and 377 tests. The production
+  Angular build succeeds with existing bundle/style budget warnings.
+- Prettier and the new regression's ESLint check pass. The legacy relationship
+  class retains its existing unrelated lint findings; the changed transport
+  line introduces none.
+- Proposed frontend commit: `fix(relationships): revise related objects on save`.
 
 ## Snapshot collection descriptions and bounded release versions
 
@@ -88,8 +625,8 @@ Verification (2026-08-04):
   Prettier checks pass, and the production build succeeds with existing budget
   warnings.
 - Proposed backend commit: `feat(release-tracks): bound snapshot publication
-  versions`. Proposed frontend commit: `feat(release-tracks): tag snapshots
-  with exact versions`.
+versions`. Proposed frontend commit: `feat(release-tracks): tag snapshots
+with exact versions`.
 
 ## Frontend graph cache lifecycle controls
 
@@ -108,7 +645,7 @@ Verification (2026-08-03):
   with the local persistent cache temporarily disabled to avoid the documented
   environment-specific native crash; `angular.json` was restored afterward.
 - Proposed frontend commit: `feat(release-tracks): manage snapshot bundle
-  caches`.
+caches`.
 
 ## Source-attested v19.1 graph reconstruction
 
@@ -176,8 +713,63 @@ Verification (2026-08-03):
   placing it in a graph URL; its isolated virtual-graph-integrity spec passes:
   3 cases.
 - Proposed implementation commit: `fix(release-tracks): hydrate historical
-  relationship graphs`. Proposed test-only commit: `test(release-tracks):
-  serialize snapshot timestamps in graph URLs`.
+relationship graphs`. Proposed test-only commit: `test(release-tracks):
+serialize snapshot timestamps in graph URLs`.
+
+### Production bootstrap replacement recovery
+
+- [x] Reproduce the production preflight failure against the restored database.
+- [x] Keep dynamic `latest` workflow selectors out of exact historical-pin
+      compatibility comparisons.
+- [x] Add an explicit, confirmed option to replace only the six exact-name
+      bootstrap tracks, deleting virtual tracks before their standard inputs.
+- [x] Repair six persisted v19.1 technique revisions whose platform arrays
+      contain the correct values in a different order from the source bundles.
+- [x] Run the corrected preflight against the restored production database and
+      complete focused script verification.
+
+Verification (2026-08-04):
+
+- The restored-production preflight completes without treating nine dynamic
+  `latest` candidates as timestamps and inventories all six existing tracks for
+  replacement.
+- It identifies 297 immutable baseline repairs: 291 canonical-domain revisions
+  and six `x_mitre_platforms` ordering revisions.
+- Two replacement applies complete successfully. The second reuses all 297
+  semantic repair revisions, proving restart safety, and all three final bundle
+  comparisons report `identical_excluding_collection: true` with member counts
+  Enterprise 4,815, ICS 503, and Mobile 743.
+- Bootstrap regressions pass: 36 cases. Python Ruff and the read-only production
+  preflight pass.
+
+### Closed-member deterministic relationship graphs
+
+- [x] Reproduce exact-revision leakage when a relationship endpoint pins a
+      different revision of an existing snapshot member.
+- [x] Replace ID-frontier secondary expansion with indexed exact-endpoint
+      relationship selection requiring both endpoint revisions in `members`.
+- [x] Select only the latest relationship revision for each exact endpoint
+      pair, with a later revoked or deprecated revision suppressing older
+      active history.
+- [x] Seed the v19.1 transition from the preceding source-attested manifest so
+      historical relationships without truthful stored endpoint pins remain
+      available while their exact member endpoints survive.
+- [x] Keep schema-v2 relationships pointer-only and reject duplicate emitted
+      STIX revisions or inconsistent relationship lineages.
+- [x] Update release-track documentation and add regression coverage for
+      closed membership, predecessor carry-forward, relationship advancement,
+      and mutation protection.
+- [x] Run focused release-track specs followed by the complete `npm test`
+      suite.
+
+Verification (2026-08-04):
+
+- Closed-member graph regressions pass: 9 opt-in graph cases and 17 bundle
+  cases.
+- The complete release-track directory passes with 187 cases after two roaming
+  harness failures were rerun successfully in isolation (27 cases).
+- Lint and the complete `npm test` suite pass, including OpenAPI,
+  configuration, API, middleware, and scheduler suites.
 
 ## Snapshot-history graph cache statistics
 
@@ -285,7 +877,7 @@ Verification (2026-08-03):
   errors; the shared release-track API type retains one pre-existing
   index-signature violation.
 - Proposed frontend commit: `feat(release-tracks): add deterministic bundle
-  cache controls`.
+cache controls`.
 
 ## Frontend canonical-domain preservation
 
@@ -308,7 +900,7 @@ Verification (2026-08-03):
 - Repository-wide lint remains red on 256 pre-existing errors outside this
   change; no new lint errors remain in the hotfix files.
 - Proposed frontend commit: `fix(stix): preserve canonical domains in
-  editors`.
+editors`.
 
 ## C0028 campaign revision / released virtual-snapshot investigation
 
@@ -348,7 +940,7 @@ Investigation (2026-08-03):
   references; backend campaign regression proving a missing cited source is
   rejected and the corrected revision succeeds with ADM validation enabled.
 - Proposed implementation commit: `fix(campaigns): preserve domains and cited
-  references in revisions`.
+references in revisions`.
 
 Verification (2026-08-03):
 
@@ -2268,6 +2860,7 @@ Links/references between notes and snapshot objects will be one-to-many. A singl
   "stix": "StixObject"
 }
 ```
+
 ## Deterministic v19.1 virtual-track bootstrap graph
 
 - [x] Preserve the materialized virtual snapshot graph when previewing and committing a release.
@@ -2304,3 +2897,26 @@ Verification (2026-07-30):
 - [x] Add frontend creation, display, edit, clear, and feedback flows.
 - [x] Add backend and frontend regression coverage.
 - [x] Run focused tests and the complete backend and frontend verification suites.
+
+## Release-track UX and API follow-ups (2026-09-03)
+
+Raised after testing the sealed-manifest work on a restored production
+database.
+
+- [x] Remove bundle `include`/`state`: bundles always replay the sealed
+      manifest; `format=bundle` rejects `include` (400). Frontend Export
+      Latest no longer sends `include=all` for bundles.
+- [x] Workbench tier entries carry `type` and `x_mitre_version` so the
+      release preview no longer downloads the whole object catalogue.
+- [x] Release preview computes relationship changes without loading supporting
+      objects and LinkById targets.
+- [x] Track URL aliases (unique slug per track resolving to the track ID on
+      every `:id` route; set at creation or via `/meta`).
+- [x] Inter-domain relationship report: `GET /api/reports/domain-consistency`
+      (active SROs whose endpoints share no domain; domain-bearing SDOs
+      lacking domains) and a Data Quality page section.
+- [x] Frontend: Delete release only on the most recent release; Preview &
+      Release in-progress state.
+- [x] Frontend: draft-then-tag flow (header keeps only Create Draft; tagging
+      from draft cards), DETAILS tab renamed Board, track deletion in a CONFIG
+      danger zone.

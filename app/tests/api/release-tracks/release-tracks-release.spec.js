@@ -149,10 +149,15 @@ describe('Release-track release planning and commit API', function () {
     });
 
     const bundle = await get(
-      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?format=bundle&version=2.4&includeToc=false`,
+      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?format=bundle&version=2.4`,
     );
     expect(bundle.body.type).toBe('bundle');
-    expect(bundle.body.objects).toEqual([]);
+    // An empty release still ships the collection object and its publishing
+    // identity so the bundle is self-contained.
+    expect(bundle.body.objects).toEqual([
+      expect.objectContaining({ type: 'x-mitre-collection', x_mitre_version: '2.4' }),
+      expect.objectContaining({ type: 'identity' }),
+    ]);
 
     const unchanged = await get(`/api/release-tracks/${track.id}/snapshots/latest`);
     expect(unchanged.body.version).toBeNull();
@@ -241,15 +246,20 @@ describe('Release-track release planning and commit API', function () {
       name: revisionB.stix.name,
     });
 
-    const draftBundle = await get(
-      `/api/release-tracks/${track.id}/snapshots/latest` +
-        '?format=bundle&include=staged&includeToc=false',
+    // The draft bundle replays the sealed manifest (no members yet); the
+    // release preview bundle resolves the planned members live.
+    const draftBundle = await get(`/api/release-tracks/${track.id}/snapshots/latest?format=bundle`);
+    expect(draftBundle.body.objects.some((object) => object.id === revisionB.stix.id)).toBe(false);
+    const previewBundle = await get(
+      `/api/release-tracks/${track.id}/snapshots/latest/release/preview?format=bundle`,
     );
-    expect(draftBundle.body.objects).toEqual([
+    expect(previewBundle.body.objects).toEqual([
+      expect.objectContaining({ type: 'x-mitre-collection' }),
       expect.objectContaining({
         id: revisionB.stix.id,
         modified: revisionB.stix.modified,
       }),
+      expect.objectContaining({ type: 'identity' }),
     ]);
 
     const preview = await get(
@@ -487,7 +497,8 @@ describe('Release-track release planning and commit API', function () {
     });
 
     const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {});
-    expect(released.body.modified).toBe(updated.body.modified);
+    expect(released.body.modified).not.toBe(updated.body.modified);
+    expect(released.body.release_source_modified).toBe(updated.body.modified);
     expect(released.body.modified).not.toBe(preview.body.source_snapshot_modified);
     expect(released.body.version).toBe('1.0');
   });
@@ -508,7 +519,8 @@ describe('Release-track release planning and commit API', function () {
     const released = await post(`/api/release-tracks/${track.id}/snapshots/latest/release`, {
       version: '3.0',
     });
-    expect(released.body.modified).toBe(replacement.body.modified);
+    expect(released.body.modified).not.toBe(replacement.body.modified);
+    expect(released.body.release_source_modified).toBe(replacement.body.modified);
     expect(released.body.version).toBe('3.0');
   });
 

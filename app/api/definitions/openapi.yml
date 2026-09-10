@@ -385,6 +385,9 @@ paths:
   /api/release-tracks/{id}/virtual/composition:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1composition'
 
+  /api/release-tracks/{id}/virtual/schedule:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1schedule'
+
   /api/release-tracks/{id}/virtual/snapshots/create:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1virtual~1snapshots~1create'
 
@@ -412,14 +415,14 @@ paths:
   /api/release-tracks/{id}/snapshots/{modified}/description:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1description'
 
-  /api/release-tracks/{id}/snapshots/{modified}/graph:
-    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1graph'
-
   /api/release-tracks/{id}/snapshots/{modified}/graph/reconstruct:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1graph~1reconstruct'
 
   /api/release-tracks/{id}/snapshots/{modified}/release:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1release'
+
+  /api/release-tracks/{id}/snapshots/{modified}/draft:
+    $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1draft'
 
   /api/release-tracks/{id}/snapshots/{modified}/release/preview:
     $ref: 'paths/release-tracks-paths.yml#/paths/~1api~1release-tracks~1{id}~1snapshots~1{modified}~1release~1preview'
@@ -511,6 +514,9 @@ paths:
 
   /api/reports/parallel-relationships:
     $ref: 'paths/reports-paths.yml#/paths/~1api~1reports~1parallel-relationships'
+
+  /api/reports/domain-consistency:
+    $ref: 'paths/reports-paths.yml#/paths/~1api~1reports~1domain-consistency'
 
   # Health Checks
   /api/health/ping:

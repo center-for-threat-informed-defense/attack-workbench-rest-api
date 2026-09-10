@@ -136,6 +136,14 @@ When commits are pushed to a release branch (main, next, etc.), semantic-release
 
 Pre-release branches (alpha, beta) will generate pre-release versions with appropriate suffixes.
 
+### Pre-release database compatibility
+
+Alpha and beta builds do not provide a persistent database upgrade contract.
+Their schemas and stored data may change rapidly, so developers should reset or
+recreate pre-release databases instead of adding long-lived migrations solely
+to carry nightly data forward. Database migrations are reserved for supported
+upgrade paths between stable releases.
+
 ## Docker Image Publishing
 
 The project publishes Docker images to the GitHub Container Registry (ghcr.io) with these tags:

@@ -7,8 +7,8 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 const {
-  ReleaseTrackGraphManifestEntry,
-} = require('../../../models/release-tracks/release-track-graph-manifest-model');
+  ReleaseTrackContentManifestEntry,
+} = require('../../../models/release-tracks/release-track-content-manifest-model');
 
 const markingDefinitionId = 'marking-definition--fa42a846-8d90-4e51-bc29-71d5b4802168';
 const objectRevisions = [];
@@ -52,6 +52,7 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
   let virtualTrack;
   let standardTaggedModified;
   let standardLatestModified;
+  let virtualResolvedAt;
 
   before(async function () {
     await database.initializeConnection();
@@ -77,9 +78,10 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       ...snapshotBase(standardTrack),
       modified: standardTaggedModified,
       version: '1.0',
-      graph_manifest_id: 'release-track-graph-manifest--snapshot-history',
+      content_manifest_id: 'release-track-content-manifest--snapshot-history',
+      bundle_id: 'bundle--snapshot-history',
       bundle_hashes: {
-        manifest_id: 'release-track-graph-manifest--snapshot-history',
+        manifest_id: 'release-track-content-manifest--snapshot-history',
         stix_2_0: 'a'.repeat(64),
         stix_2_1: 'b'.repeat(64),
       },
@@ -92,7 +94,7 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       ],
     });
     const manifestCommon = {
-      manifest_id: 'release-track-graph-manifest--snapshot-history',
+      manifest_id: 'release-track-content-manifest--snapshot-history',
       track_id: standardTrack.id,
       snapshot_modified: standardTaggedModified,
     };
@@ -106,7 +108,7 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       object_modified: objectRevisions[index].modified,
       ...extra,
     });
-    await ReleaseTrackGraphManifestEntry.insertMany([
+    await ReleaseTrackContentManifestEntry.insertMany([
       versionedManifestEntry(0, 'root', { tier: 'members' }),
       versionedManifestEntry(1, 'root', { tier: 'members' }),
       versionedManifestEntry(2, 'secondary'),
@@ -131,11 +133,39 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
 
     const virtualCreated = new Date(virtualTrack.modified);
     const virtualTaggedModified = new Date(virtualCreated.getTime() + 1000);
+    virtualResolvedAt = new Date(virtualCreated.getTime() + 500);
     await dynamicRepo.saveSnapshot(virtualTrack.id, {
       ...snapshotBase(virtualTrack),
       modified: virtualTaggedModified,
       version: '1.0',
       members: [memberEntry(0), memberEntry(1)],
+      composition_resolution: {
+        resolved_at: virtualResolvedAt,
+        component_snapshots: [
+          {
+            track_id: standardTrack.id,
+            track_name: standardTrack.name,
+            track_type: 'standard',
+            resolved_snapshot_id: standardTaggedModified,
+            resolved_version: '1.0',
+            strategy_used: 'latest_tagged',
+            filters_applied: { domains: ['enterprise'] },
+            total_objects_in_source: 2,
+            objects_after_filter: 2,
+            objects_contributed: 2,
+          },
+        ],
+        deduplication: {
+          total_objects_before: 2,
+          total_objects_after: 2,
+          duplicates_found: 0,
+          conflicts_resolved: [],
+        },
+        summary: {
+          total_objects: 2,
+          quarantined_objects: 1,
+        },
+      },
       quarantine: [
         {
           ...memberEntry(2),
@@ -213,20 +243,34 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       candidates_count: 1,
     });
     expect(response.body.data[0]).not.toHaveProperty('quarantine_count');
-    expect(response.body.data[0]).not.toHaveProperty('graph_statistics');
+    // The rolling draft inherits the track-creation manifest, which holds
+    // only the publishing identity as a supporting object.
+    expect(response.body.data[0]).toMatchObject({
+      content_manifest_id: standardTrack.content_manifest_id,
+      content_statistics: {
+        primary_count: 0,
+        secondary_count: 0,
+        relationship_count: 0,
+        supporting_count: 1,
+        link_target_count: 0,
+        total_count: 1,
+      },
+    });
+    expect(response.body.data[0]).not.toHaveProperty('bundle_id');
     expect(response.body.data[1]).toMatchObject({
       modified: standardTaggedModified.toISOString(),
       version: '1.0',
-      graph_manifest_id: 'release-track-graph-manifest--snapshot-history',
+      content_manifest_id: 'release-track-content-manifest--snapshot-history',
+      bundle_id: 'bundle--snapshot-history',
       bundle_hashes: {
-        manifest_id: 'release-track-graph-manifest--snapshot-history',
+        manifest_id: 'release-track-content-manifest--snapshot-history',
         stix_2_0: 'a'.repeat(64),
         stix_2_1: 'b'.repeat(64),
       },
       members_count: 2,
       staged_count: 1,
       candidates_count: 3,
-      graph_statistics: {
+      content_statistics: {
         primary_count: 2,
         secondary_count: 2,
         relationship_count: 1,
@@ -248,7 +292,26 @@ describe('GET /api/release-tracks/:id/snapshots', function () {
       version: '1.0',
       members_count: 2,
       quarantine_count: 1,
+      composition_resolution: {
+        resolved_at: virtualResolvedAt.toISOString(),
+        component_snapshots: [
+          {
+            track_id: standardTrack.id,
+            track_name: standardTrack.name,
+            track_type: 'standard',
+            resolved_snapshot_id: standardTaggedModified.toISOString(),
+            resolved_version: '1.0',
+            strategy_used: 'latest_tagged',
+            filters_applied: { domains: ['enterprise'] },
+            total_objects_in_source: 2,
+            objects_after_filter: 2,
+            objects_contributed: 2,
+          },
+        ],
+      },
     });
+    expect(response.body.data[0].composition_resolution).not.toHaveProperty('deduplication');
+    expect(response.body.data[0].composition_resolution).not.toHaveProperty('summary');
     expect(response.body.data[0]).not.toHaveProperty('staged_count');
     expect(response.body.data[0]).not.toHaveProperty('candidates_count');
   });

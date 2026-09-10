@@ -1,9 +1,65 @@
 components:
   schemas:
+    snapshot-creation-actor:
+      type: object
+      readOnly: true
+      required: [kind]
+      description: Snapshot invoker, separate from the track creator. Missing historical attribution is unknown. User display data is resolved on GET and omitted if the account no longer exists.
+      properties:
+        kind:
+          type: string
+          enum: [user, system, unknown]
+        user_account_id:
+          type: string
+          description: Persisted invoking user account ID, present for kind=user.
+        user:
+          type: object
+          readOnly: true
+          properties:
+            id:
+              type: string
+            username:
+              type: string
+            displayName:
+              type: string
+            name:
+              type: string
+    snapshot-creation-cause:
+      type: string
+      readOnly: true
+      description: Server-recorded operation that created this snapshot. Standard releases use release_tagged; virtual tagging preserves the cause. Historical snapshots without provenance return unknown.
+      enum:
+        - unknown
+        - track_created
+        - release_tagged
+        - track_cloned
+        - bundle_imported
+        - metadata_updated
+        - configuration_updated
+        - candidates_added
+        - candidate_removed
+        - candidates_reviewed
+        - candidates_promoted
+        - candidate_version_updated
+        - staged_demoted
+        - candidates_auto_promoted
+        - member_synced
+        - composition_updated
+        - manual_snapshot
+        - scheduled_snapshot
+        - quarantine_promoted
     release-track-snapshot:
       type: object
       description: 'A snapshot document for a release track, containing versioned member objects and workflow tiers'
       properties:
+        alias:
+          type: string
+          nullable: true
+          description: 'The track alias from the registry (workbench responses), or null'
+        creation_cause:
+          $ref: '#/components/schemas/snapshot-creation-cause'
+        creation_actor:
+          $ref: '#/components/schemas/snapshot-creation-actor'
         id:
           type: string
           description: 'The release track ID (STIX identifier format)'
@@ -23,24 +79,38 @@ components:
           nullable: true
           description: 'Semantic version (e.g., "1.0", "2.1") if tagged, null for draft snapshots'
           example: '1.0'
-        graph_manifest_id:
+        release_source_modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: |
+            Standard releases only: the exact preserved draft snapshot from
+            which this release snapshot was created.
+        content_manifest_id:
           type: string
           readOnly: true
           description: |
-            Server-controlled identifier for an opt-in deterministic member
-            graph on a tagged snapshot. Absent on drafts and graphless tagged
-            snapshots. Clients should treat this value as opaque.
+            Server-controlled identifier of the sealed content manifest that
+            describes this snapshot's exact member graph. Present on every
+            snapshot; clients should treat this value as opaque.
+        publication:
+          $ref: '#/components/schemas/frozen-publication'
+        bundle_id:
+          type: string
+          readOnly: true
+          description: |
+            Stable STIX bundle envelope identifier assigned when the snapshot
+            was released. Drafts derive a deterministic identifier at export.
         bundle_hashes:
           $ref: '#/components/schemas/bundle-hashes'
         snapshot_description:
           type: string
           maxLength: 4000
           description: |
-            User-authored, snapshot-local notes. Editors may change this
-            workspace annotation without changing the snapshot identity or
-            release tag while no pinned member graph exists. Cached snapshots
-            reject note edits until their graph is deleted and regenerated;
-            graphless exports fall back to the track description when absent.
+            User-authored, snapshot-local notes emitted as the collection
+            object's description. Editable on drafts; immutable once the
+            snapshot is released. Exports fall back to the track description
+            when absent.
         name:
           type: string
           pattern: '^[a-zA-Z0-9 &]+$'
@@ -57,11 +127,6 @@ components:
           type: string
           description: 'STIX ID of the user who created the track'
           example: 'identity--12345678-1234-1234-1234-123456789012'
-        object_marking_refs:
-          type: array
-          items:
-            type: string
-          description: 'STIX marking definition references'
         members:
           type: array
           description: 'Released objects (promoted from staged during tagging)'
@@ -90,16 +155,14 @@ components:
           description: 'Component track references (virtual tracks only)'
           $ref: '#/components/schemas/composition'
         composition_resolution:
-          type: object
-          nullable: true
+          $ref: '#/components/schemas/composition-resolution'
+        snapshot_schedule:
+          readOnly: true
           description: |
-            Immutable component-resolution provenance for a materialized virtual
-            draft. Null or absent means the virtual composition is configured
-            but has not been materialized and therefore cannot be previewed or
-            released. Duplicate counts include STIX IDs contributed by more than
-            one component, while conflicts include only IDs with genuinely
-            different revisions. Each surviving member is attributed to exactly
-            one component in objects_contributed.
+            Current registry-backed materialization schedule for virtual tracks
+            in Workbench-format responses. It is not historical snapshot data.
+          allOf:
+            - $ref: '#/components/schemas/snapshot-schedule'
         scheduled_materialization:
           nullable: true
           description: |
@@ -116,10 +179,10 @@ components:
           items:
             $ref: '#/components/schemas/version-history-entry'
 
-    graph-statistics:
+    content-statistics:
       type: object
       readOnly: true
-      description: 'Counts of exact revision pointers by role in a materialized snapshot graph'
+      description: 'Counts of exact revision pointers by role in a sealed content manifest'
       required:
         - primary_count
         - secondary_count
@@ -135,15 +198,15 @@ components:
         secondary_count:
           type: integer
           minimum: 0
-          description: 'Source-attested historical non-member objects; zero for ordinary closed-member graphs'
+          description: 'Legacy source-attested historical non-member objects; zero for sealed closed-member manifests'
         relationship_count:
           type: integer
           minimum: 0
-          description: 'Relationships connecting objects in the resolved graph'
+          description: 'Relationships whose source and target are both members'
         supporting_count:
           type: integer
           minimum: 0
-          description: 'Supporting identities and marking definitions required by cached objects'
+          description: 'Supporting identities and marking definitions required by emitted objects'
         link_target_count:
           type: integer
           minimum: 0
@@ -158,8 +221,8 @@ components:
       readOnly: true
       description: |
         SHA-256 digests of the exact UTF-8, four-space-indented JSON files
-        downloaded for a deterministic snapshot. The manifest ID binds the
-        digests to the cached graph that produced them.
+        downloaded for a released snapshot. The manifest ID binds the digests
+        to the sealed content manifest that produced them.
       required:
         - manifest_id
         - stix_2_0
@@ -200,26 +263,35 @@ components:
           type: string
           nullable: true
           description: 'Tagged version, or null for an untagged draft'
-        graph_manifest_id:
+        release_source_modified:
+          type: string
+          format: date-time
+          readOnly: true
+          description: 'Standard release source draft timestamp'
+        content_manifest_id:
           type: string
           readOnly: true
-          description: |
-            Opaque identifier for the tagged snapshot's deterministic member
-            graph. Omitted when the snapshot has not been materialized.
+          description: "Opaque identifier of the snapshot's sealed content manifest"
+        bundle_id:
+          type: string
+          readOnly: true
+          description: 'Stable bundle envelope identifier of a released snapshot'
         bundle_hashes:
           $ref: '#/components/schemas/bundle-hashes'
-        graph_statistics:
-          $ref: '#/components/schemas/graph-statistics'
-          description: |
-            High-level statistics for the materialized graph. Omitted when the
-            snapshot does not reference a graph manifest.
+        content_statistics:
+          $ref: '#/components/schemas/content-statistics'
+          description: 'Counts of sealed manifest entries by role'
+        creation_cause:
+          $ref: '#/components/schemas/snapshot-creation-cause'
+        creation_actor:
+          $ref: '#/components/schemas/snapshot-creation-actor'
         snapshot_description:
           type: string
           maxLength: 4000
           description: |
             User-authored notes attached only to this snapshot and mapped to
-            x-mitre-collection.description during bundle export. Notes cannot
-            be changed while the snapshot has a deterministic graph cache.
+            x-mitre-collection.description during bundle export. Editable on
+            drafts; immutable once released.
         name:
           type: string
         description:
@@ -263,7 +335,124 @@ components:
             scheduled_materialization:
               nullable: true
               $ref: '#/components/schemas/scheduled-materialization'
+            composition_resolution:
+              $ref: '#/components/schemas/composition-resolution'
             quarantine_count:
+              type: integer
+              minimum: 0
+
+    composition-resolution:
+      type: object
+      nullable: true
+      readOnly: true
+      description: |
+        Immutable provenance for a materialized virtual snapshot. Each
+        component_snapshots entry names the exact tagged standard-track
+        snapshot used, including its version and creation timestamp. Null or
+        absent means the composition was configured but not materialized.
+        Duplicate counts include STIX IDs contributed by more than one
+        component, while conflicts include only genuinely different revisions.
+        Snapshot-history summaries return resolved_at and component_snapshots;
+        full snapshot responses additionally return deduplication and summary.
+      required:
+        - resolved_at
+        - component_snapshots
+      properties:
+        resolved_at:
+          type: string
+          format: date-time
+          description: 'When the virtual snapshot composition was resolved'
+        component_snapshots:
+          type: array
+          description: 'Exact standard-track snapshots constituting this virtual snapshot'
+          items:
+            type: object
+            required:
+              - track_id
+              - track_name
+              - track_type
+              - resolved_snapshot_id
+              - resolved_version
+              - strategy_used
+              - total_objects_in_source
+              - objects_after_filter
+              - objects_contributed
+            properties:
+              track_id:
+                type: string
+              track_name:
+                type: string
+              track_type:
+                type: string
+                enum:
+                  - standard
+              resolved_snapshot_id:
+                type: string
+                format: date-time
+                description: 'Exact component snapshot timestamp; also identifies when that snapshot was created'
+              resolved_version:
+                type: string
+                description: 'Tagged version of the exact component snapshot'
+              strategy_used:
+                type: string
+                enum:
+                  - latest_tagged
+                  - specific_version
+                  - specific_snapshot
+              filters_applied:
+                type: object
+                additionalProperties: false
+                properties:
+                  object_types:
+                    type: array
+                    items:
+                      type: string
+                  domains:
+                    type: array
+                    items:
+                      type: string
+              total_objects_in_source:
+                type: integer
+                minimum: 0
+              objects_after_filter:
+                type: integer
+                minimum: 0
+              objects_contributed:
+                type: integer
+                minimum: 0
+                description: 'Surviving members attributed to this component after deduplication'
+        deduplication:
+          type: object
+          required:
+            - total_objects_before
+            - total_objects_after
+            - duplicates_found
+            - conflicts_resolved
+          properties:
+            total_objects_before:
+              type: integer
+              minimum: 0
+            total_objects_after:
+              type: integer
+              minimum: 0
+            duplicates_found:
+              type: integer
+              minimum: 0
+            conflicts_resolved:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+        summary:
+          type: object
+          required:
+            - total_objects
+            - quarantined_objects
+          properties:
+            total_objects:
+              type: integer
+              minimum: 0
+            quarantined_objects:
               type: integer
               minimum: 0
 
@@ -282,6 +471,14 @@ components:
         name:
           type: string
           description: 'Object name, if found'
+        type:
+          type: string
+          description: 'STIX object type, if found'
+          example: 'attack-pattern'
+        x_mitre_version:
+          type: string
+          description: 'ATT&CK object version of the selected revision, if found'
+          example: '1.2'
         description:
           type: string
           description: 'Object description, if found'
@@ -375,6 +572,10 @@ components:
       type: object
       description: 'Release track configuration'
       properties:
+        publication:
+          $ref: '#/components/schemas/publication-config'
+        publication_resolved:
+          $ref: '#/components/schemas/publication-resolved'
         auto_promote:
           type: boolean
           description: 'Whether to automatically promote candidates that meet the threshold'
@@ -624,6 +825,13 @@ components:
         description:
           type: string
           description: 'Track description'
+        alias:
+          type: string
+          description: |
+            Optional URL-safe slug (2-64 lowercase letters, digits, and
+            hyphens) accepted wherever the track ID is, on every /api/release-tracks/{id}... path.
+            Unique across tracks; absent when unset.
+          example: 'enterprise-attack'
         latest_snapshot_modified:
           type: string
           format: date-time
@@ -855,6 +1063,116 @@ components:
           minItems: 1
           items:
             $ref: '#/components/schemas/source-graph-entry'
+        replace_manifest_id:
+          type: string
+          description: |
+            The content manifest currently attached to the snapshot that this
+            reconstruction replaces. Required unless that manifest already
+            carries the same source attestation.
+
+    inherited-identity:
+      type: object
+      additionalProperties: false
+      required:
+        - inherit
+      description: |
+        Publication identity rule. inherit=true uses the organization identity
+        from system configuration; inherit=false uses value.
+      properties:
+        inherit:
+          type: boolean
+        value:
+          type: string
+          description: 'STIX identity ID used when inherit is false'
+
+    inherited-marking-refs:
+      type: object
+      additionalProperties: false
+      required:
+        - inherit
+      description: |
+        Publication marking rule. inherit=true uses the default marking
+        definitions from system configuration; inherit=false uses value.
+      properties:
+        inherit:
+          type: boolean
+        value:
+          type: array
+          items:
+            type: string
+          description: 'Marking definition IDs used when inherit is false'
+
+    publication-config:
+      type: object
+      additionalProperties: false
+      description: |
+        Track-scoped publication metadata for the emitted x-mitre-collection
+        object. Collection identity and creation time default to values
+        derived from the track and become immutable once the track has a
+        tagged release. Identity and markings inherit from the global scope
+        unless overridden.
+      properties:
+        collection_id:
+          type: string
+          nullable: true
+          description: 'Explicit collection object ID; null or absent derives it from the track UUID'
+        created:
+          type: string
+          format: date-time
+          nullable: true
+          description: 'Explicit collection created timestamp; null or absent uses the track creation time'
+        created_by_ref:
+          $ref: '#/components/schemas/inherited-identity'
+        object_marking_refs:
+          $ref: '#/components/schemas/inherited-marking-refs'
+
+    publication-resolved:
+      type: object
+      readOnly: true
+      description: |
+        The publication values currently in effect for the latest snapshot and
+        the scope each one was resolved from (track, global, or derived).
+      properties:
+        collection_id:
+          type: string
+        created:
+          type: string
+          format: date-time
+        created_by_ref:
+          type: string
+        object_marking_refs:
+          type: array
+          items:
+            type: string
+        attack_spec_version:
+          type: string
+        sources:
+          type: object
+          additionalProperties:
+            type: string
+            enum:
+              - track
+              - global
+              - derived
+
+    frozen-publication:
+      type: object
+      readOnly: true
+      description: 'Publication values frozen onto a released snapshot at commit time'
+      properties:
+        collection_id:
+          type: string
+        created:
+          type: string
+          format: date-time
+        created_by_ref:
+          type: string
+        object_marking_refs:
+          type: array
+          items:
+            type: string
+        attack_spec_version:
+          type: string
 
     source-graph-entry:
       type: object

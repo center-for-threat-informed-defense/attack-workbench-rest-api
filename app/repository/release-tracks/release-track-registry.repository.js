@@ -20,8 +20,48 @@ class ReleaseTrackRegistryRepository {
       return saved.toObject();
     } catch (err) {
       if (err.name === 'MongoServerError' && err.code === 11000) {
+        if (err.keyPattern?.alias) {
+          throw new DuplicateIdError(`Release track alias '${data.alias}' is already in use`, {
+            details: { alias: data.alias },
+          });
+        }
         throw new DuplicateIdError({
           details: `Release track with id '${data.track_id}' already exists.`,
+        });
+      }
+      throw new DatabaseError(err);
+    }
+  }
+
+  async findByAlias(alias) {
+    try {
+      return await this.model.findOne({ alias }).lean().exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
+   * Set (string) or clear (null) a track's alias. Clearing unsets the field so
+   * the partial unique index ignores the document.
+   */
+  async setAlias(trackId, alias) {
+    const updated_at = new Date();
+    const update = alias
+      ? { $set: { alias, updated_at } }
+      : { $set: { updated_at }, $unset: { alias: '' } };
+    try {
+      return await this.model
+        .findOneAndUpdate({ track_id: trackId }, update, {
+          new: true,
+          runValidators: true,
+          lean: true,
+        })
+        .exec();
+    } catch (err) {
+      if (err.name === 'MongoServerError' && err.code === 11000) {
+        throw new DuplicateIdError(`Release track alias '${alias}' is already in use`, {
+          details: { alias },
         });
       }
       throw new DatabaseError(err);
@@ -116,6 +156,25 @@ class ReleaseTrackRegistryRepository {
         .select('track_id name snapshot_schedule')
         .sort({ track_id: 1 })
         .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  async setSnapshotSchedule(trackId, snapshotSchedule) {
+    try {
+      return await this.model
+        .findOneAndUpdate(
+          { track_id: trackId, type: 'virtual' },
+          {
+            $set: {
+              snapshot_schedule: snapshotSchedule,
+              updated_at: new Date(),
+            },
+          },
+          { new: true, runValidators: true, lean: true },
+        )
         .exec();
     } catch (err) {
       throw new DatabaseError(err);

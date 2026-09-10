@@ -1,4 +1,6 @@
 'use strict';
+const CreationCause = require('../../lib/release-tracks/snapshot-creation-causes');
+const creationActor = require('../../lib/release-tracks/snapshot-creation-actor');
 
 // Plans and commits immutable releases from release-track snapshots. Planning
 // is side-effect free; persistence, reconciliation, and events occur only in
@@ -12,7 +14,9 @@ const tierRevisionInvariant = require('../../lib/release-tracks/tier-revision-in
 const revisionReference = require('../../lib/release-tracks/revision-reference');
 const releaseHistoryService = require('./release-history-service');
 const primaryRevisionService = require('./primary-revision-service');
-const graphManifestService = require('./graph-manifest-service');
+const contentManifestService = require('./content-manifest-service');
+const publicationService = require('./publication-service');
+const bundleHashService = require('./bundle-hash-service');
 const registryRepo = require('../../repository/release-tracks/release-track-registry.repository');
 const uuid = require('uuid');
 const logger = require('../../lib/logger');
@@ -141,14 +145,18 @@ function planRelease(
 
   const normalized = tierRevisionInvariant.normalizeSnapshot(sourceSnapshot);
   const snapshot = normalized.snapshot;
+  const releaseModified =
+    sourceSnapshot.type === 'standard'
+      ? new Date(Math.max(now.getTime(), new Date(sourceSnapshot.modified).getTime() + 1))
+      : sourceSnapshot.modified;
   const version = versionUtils.calculateNextVersion(
     versionHistory,
     options.increment,
     options.version,
-    sourceSnapshot.modified,
+    releaseModified,
   );
-  versionUtils.validateVersionProgression(version, versionHistory, sourceSnapshot.modified);
-  const versionBounds = versionUtils.findVersionBounds(versionHistory, sourceSnapshot.modified);
+  versionUtils.validateVersionProgression(version, versionHistory, releaseModified);
+  const versionBounds = versionUtils.findVersionBounds(versionHistory, releaseModified);
 
   const isVirtual = snapshot.type === 'virtual';
   const before = isVirtual
@@ -195,7 +203,15 @@ function planRelease(
 
   const afterSnapshot = {
     ...snapshot,
+    modified: releaseModified,
     version,
+    ...(sourceSnapshot.type === 'standard'
+      ? {
+          release_source_modified: sourceSnapshot.modified,
+          creation_cause: CreationCause.ReleaseTagged,
+          creation_actor: creationActor(options.userAccountId || 'system'),
+        }
+      : {}),
     members: mergedMembers,
     ...(updatesSnapshotDescription && options.description
       ? { snapshot_description: options.description }
@@ -215,7 +231,7 @@ function planRelease(
     version,
     tagged_at: now,
     tagged_by: options.userAccountId || 'system',
-    snapshot_id: sourceSnapshot.modified,
+    snapshot_id: releaseModified,
     summary: {
       ...after,
       promoted_count: blockingError ? 0 : staged.length,
@@ -243,6 +259,7 @@ function planRelease(
       track_id: trackId,
       type: snapshot.type,
       source_snapshot_modified: iso(sourceSnapshot.modified),
+      release_snapshot_modified: iso(releaseModified),
       version,
       version_bounds: {
         lower: versionBounds.lower
@@ -278,6 +295,15 @@ function planRelease(
 }
 
 async function planLoadedSnapshot(trackId, snapshot, options) {
+  if (snapshot.type === 'standard') {
+    const existingRelease = await dynamicRepo.getReleaseBySourceModified(
+      trackId,
+      snapshot.modified,
+    );
+    if (existingRelease) {
+      throw new AlreadyReleasedError(existingRelease.version);
+    }
+  }
   const [versionHistory, previousTaggedSnapshot, resolvedStaged] = await Promise.all([
     releaseHistoryService.getTrackWideVersionHistory(trackId),
     snapshot.type === 'virtual'
@@ -300,7 +326,7 @@ async function planLoadedSnapshot(trackId, snapshot, options) {
     ...(releaseInput.staged || []),
   ]);
 
-  return planRelease(
+  const plan = planRelease(
     trackId,
     releaseInput,
     versionHistory,
@@ -308,44 +334,113 @@ async function planLoadedSnapshot(trackId, snapshot, options) {
     new Date(),
     previousTaggedSnapshot,
   );
+
+  // A standard commit seals a fresh manifest over the planned members, so the
+  // preview reports exactly which relationships that seal would add or drop
+  // relative to the draft's inherited manifest. Virtual commits publish the
+  // materialization manifest unchanged.
+  if (!plan.blockingError && snapshot.type === 'standard') {
+    plan.summary.relationships = await contentManifestService.previewRelationshipChanges(
+      snapshot,
+      plan.plannedSnapshot.members,
+    );
+  }
+  return plan;
 }
+
+/**
+ * Freeze publication metadata, assign a stable bundle ID, and store the
+ * SHA-256 hashes of both bundle serializations on a tagged snapshot.
+ *
+ * @param {Object} tagged - The tagged snapshot (already referencing its manifest)
+ * @returns {Promise<Object>} The updated snapshot
+ */
+async function refreshReleaseArtifacts(tagged) {
+  const publication = tagged.publication || (await publicationService.freezePublication(tagged));
+  const bundleId = tagged.bundle_id || `bundle--${uuid.v4()}`;
+  const withArtifacts = await dynamicRepo.updateSnapshot(tagged.id, tagged.modified, {
+    $set: { publication, bundle_id: bundleId },
+  });
+  const current = withArtifacts?.toObject ? withArtifacts.toObject() : withArtifacts;
+  const bundleHashes = await bundleHashService.generateBundleHashes(current);
+  const hashed = await dynamicRepo.attachBundleHashes(
+    tagged.id,
+    tagged.modified,
+    current.content_manifest_id,
+    bundleHashes,
+  );
+  if (!hashed) {
+    throw new ReleaseConflictError('Snapshot changed while its bundle hashes were generated', {
+      track_id: tagged.id,
+      snapshot_modified: new Date(tagged.modified).toISOString(),
+    });
+  }
+  return hashed;
+}
+exports.refreshReleaseArtifacts = refreshReleaseArtifacts;
 
 async function commitPlan(plan) {
   if (plan.blockingError) throw plan.blockingError;
 
-  const obsoleteManifestId = plan.sourceSnapshot.graph_manifest_id;
+  const source = plan.sourceSnapshot;
+  const inheritedManifestId = source.content_manifest_id;
   const unsetOps = {};
-  if (obsoleteManifestId) {
-    unsetOps.graph_manifest_id = '';
-    unsetOps.bundle_hashes = '';
-  }
   if (plan.clearSnapshotDescription) unsetOps.snapshot_description = '';
-  const tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, plan.sourceSnapshot.modified, {
-    version: plan.version,
-    versionHistoryEntry: plan.versionHistoryEntry,
-    additionalOps: plan.additionalOps,
-    // Older deployments attached graphs to drafts. Releasing changes the
-    // member set, so that legacy draft graph cannot describe the release.
-    unsetOps: Object.keys(unsetOps).length ? unsetOps : undefined,
-  });
+
+  // A standard commit is the moment members are finalized, so it seals a
+  // fresh manifest over the planned member set (even when nothing was staged,
+  // so relationships added since the last seal are captured). A virtual
+  // commit publishes the materialization manifest that was reviewed.
+  let sealedManifestId;
+  const setOps = { ...plan.additionalOps };
+  if (source.type === 'standard') {
+    sealedManifestId = await contentManifestService.seal(
+      { ...source, members: plan.plannedSnapshot.members },
+      { reason: 'release' },
+    );
+    setOps.content_manifest_id = sealedManifestId;
+  }
+  setOps.publication = await publicationService.freezePublication(source);
+  setOps.bundle_id = `bundle--${uuid.v4()}`;
+
+  let tagged;
+  try {
+    if (source.type === 'standard') {
+      const releaseSnapshot = { ...plan.plannedSnapshot, ...setOps };
+      delete releaseSnapshot._id;
+      delete releaseSnapshot.__v;
+      if (plan.clearSnapshotDescription) delete releaseSnapshot.snapshot_description;
+      tagged = await dynamicRepo.saveSnapshot(plan.trackId, releaseSnapshot);
+    } else {
+      tagged = await dynamicRepo.tagSnapshotInPlace(plan.trackId, source.modified, {
+        version: plan.version,
+        versionHistoryEntry: plan.versionHistoryEntry,
+        additionalOps: setOps,
+        unsetOps: Object.keys(unsetOps).length ? unsetOps : undefined,
+      });
+    }
+  } catch (err) {
+    await contentManifestService.discard(sealedManifestId);
+    throw err;
+  }
 
   if (!tagged) {
+    await contentManifestService.discard(sealedManifestId);
     await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
     throw new AlreadyReleasedError('(concurrent release)');
   }
 
-  if (obsoleteManifestId) {
-    try {
-      await graphManifestService.discard(obsoleteManifestId);
-    } catch (err) {
-      logger.warn(
-        `VersioningService: Deferred cleanup for obsolete graph manifest ` +
-          `"${obsoleteManifestId}": ${err.message}`,
-      );
-    }
+  if (sealedManifestId) {
+    await contentManifestService.activate(sealedManifestId);
+    await contentManifestService.discardUnreferenced(plan.trackId, [inheritedManifestId]);
   }
 
+  const withArtifacts = await refreshReleaseArtifacts(tagged);
+
   await releaseHistoryService.reconcileTaggedReleases(plan.trackId);
+  if (source.type === 'standard') {
+    await snapshotService.syncRegistryCounters(plan.trackId);
+  }
   const latest = await dynamicRepo.getLatestSnapshot(plan.trackId);
   await snapshotService.emitContentsChanged(plan.trackId, latest);
 
@@ -360,7 +455,7 @@ async function commitPlan(plan) {
     );
   }
 
-  return tagged;
+  return withArtifacts;
 }
 
 async function withReleaseLock(trackId, operation) {
@@ -391,6 +486,7 @@ async function withReleaseLock(trackId, operation) {
 }
 
 exports.planRelease = planRelease;
+exports.withReleaseLock = withReleaseLock;
 exports._private = {
   memberRevisions,
   sameRevisions,
@@ -422,4 +518,56 @@ exports.releaseByModified = async function releaseByModified(trackId, modified, 
   return withReleaseLock(trackId, async () =>
     commitPlan(await exports.planReleaseByModified(trackId, modified, options)),
   );
+};
+
+// The facade holds the release lock across validation, audit capture, and this operation.
+exports.retagReleaseLocked = async function retagReleaseLocked(trackId, modified, nextVersion) {
+  const snapshot = await snapshotService.getSnapshotByModified(trackId, modified);
+  if (snapshot.version == null) {
+    throw new ReleaseConflictError('The selected snapshot is not a release', {
+      track_id: trackId,
+      snapshot_modified: iso(snapshot.modified),
+    });
+  }
+  const currentVersion = snapshot.version;
+  const versionHistory = (await releaseHistoryService.getTrackWideVersionHistory(trackId)).filter(
+    (entry) => iso(entry.modified) !== iso(snapshot.modified),
+  );
+  versionUtils.validateVersionProgression(nextVersion, versionHistory, snapshot.modified);
+
+  // Hash the proposed serialization before publishing any change. A failed
+  // export leaves the old release intact; version and artifacts change in one
+  // document update. Same-version retries deliberately replay all side effects.
+  const publication =
+    snapshot.publication || (await publicationService.freezePublication(snapshot));
+  const bundleId = snapshot.bundle_id || `bundle--${uuid.v4()}`;
+  const bundleHashes = await bundleHashService.generateBundleHashes({
+    ...snapshot,
+    version: nextVersion,
+    publication,
+    bundle_id: bundleId,
+  });
+  const retagged = await dynamicRepo.retagSnapshotInPlace(
+    trackId,
+    snapshot.modified,
+    currentVersion,
+    nextVersion,
+    { publication, bundle_id: bundleId, bundle_hashes: bundleHashes },
+  );
+  if (!retagged) {
+    throw new ReleaseConflictError('The release changed while its version was being updated', {
+      track_id: trackId,
+      snapshot_modified: iso(snapshot.modified),
+      expected_version: currentVersion,
+    });
+  }
+
+  await dynamicRepo.replaceVersionHistoryVersion(trackId, snapshot.modified, nextVersion);
+  await releaseHistoryService.reconcileTaggedReleases(trackId);
+  await snapshotService.syncRegistryCounters(trackId);
+
+  logger.verbose(
+    `VersioningService: Changed release ${currentVersion} to ${nextVersion} on track "${trackId}"`,
+  );
+  return retagged;
 };

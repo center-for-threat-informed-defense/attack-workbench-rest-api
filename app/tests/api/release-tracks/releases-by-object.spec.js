@@ -257,7 +257,7 @@ describe('GET /api/release-tracks/objects/:objectRef/releases', function () {
     await get(`/api/release-tracks/objects/${objectRevisionA.stix.id}/releases?limit=0`, 400);
   });
 
-  it('rejects deletion of a tagged snapshot', async function () {
+  it('rejects direct deletion of a tagged release', async function () {
     await request(app)
       .delete(`/api/release-tracks/${trackA}/snapshots/${trackATaggedSnapshot.modified}`)
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)

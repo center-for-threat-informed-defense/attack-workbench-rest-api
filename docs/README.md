@@ -11,6 +11,7 @@ Guides for consumers of the REST API — endpoints, workflows, and terminology.
 
 - [Build Information](user/build-information.md): Inspect the running REST API release and build provenance
 - [Revoke Workflow](user/revoke-workflow.md): How to revoke ATT&CK objects via the API
+- [Data Quality Reports](user/data-quality-reports.md): Missing LinkById, parallel relationship, and domain consistency reports under `/api/reports`
 
 ### Release Tracks
 
@@ -30,6 +31,7 @@ Guides for consumers of the REST API — endpoints, workflows, and terminology.
 Architecture, patterns, and implementation details for contributors.
 
 - [Build Information](developer/build-information.md): Build metadata provenance, runtime configuration, and frontend integration
+- [Data Quality Query Design](developer/data-quality-reports.md): Duplicate-report memory amplification, query optimization, and remaining response-size limits
 - [Data Model](developer/data-model.md): Database schema and STIX object structure
 - [Event Bus Architecture](developer/event-bus-architecture.md): Event-driven architecture for cross-document dependencies
 - [Lifecycle Hooks Guide](developer/lifecycle-hooks-guide.md): Service lifecycle hooks pattern
@@ -47,6 +49,8 @@ Architecture, patterns, and implementation details for contributors.
 - [Frontend Handoff](developer/FRONTEND_TODO.md): Backend contract changes
   requiring downstream Angular updates
 - [Entities](developer/release-tracks/entities.md): Database schemas and data models
+- [Snapshot Creation Causes](developer/release-tracks/snapshot-creation-causes.md): Persisted creation-cause enum, standard/virtual operation mapping, and historical fallback
+- [Sealed Content Manifests](developer/release-tracks/sealed-content-manifests.md): Why every snapshot seals its bill of materials, how the collection object is projected, and publication inheritance
 - [Backref Reconciliation](developer/release-tracks/backref-reconciliation.md): How `workspace.release_tracks` backrefs stay in sync with snapshots
 - [Member Sync Strategies](developer/release-tracks/member-sync-strategies.md): Automatic tracking of member object revisions
 - [Error Handling](developer/release-tracks/error-handling.md): Error handling patterns
@@ -64,7 +68,6 @@ Configuration, deployment, and identity provider setup.
 - [Release-Track Membership Reconciliation](admin/release-track-reconciliation.md): Inspect and repair durable object-backref protection failures
 - [Release-Track Destructive Audit Events](admin/release-track-audit.md): Inspect administrator track-deletion attempts
 - [Release-Track Deterministic Graph Migration](admin/release-track-graph-migration.md): Preview and operate the relationship-pin and snapshot-manifest backfill
-- [Release-Track Bundle Integrity Migration](admin/release-track-bundle-integrity-migration.md): Repair frozen collection identities and deterministic bundle hashes
 - [ATT&CK Canonical-Domain Migration](admin/canonical-domain-migration.md): Understand the release-agnostic startup repair, inactive-revision handling, strict validation, and verification procedure
 
 ### Authentication
