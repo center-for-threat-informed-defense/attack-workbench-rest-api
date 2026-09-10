@@ -1,5 +1,32 @@
 # Release Track TODOs
 
+## Snapshot card header hierarchy
+
+- [x] Give snapshot identity and status labels their own full-width header area.
+- [x] Move controls below metadata; remove redundant draft copy and style tagged timestamps as metadata pills.
+- [x] Verify template regressions, responsive layouts, frontend suite, lint, and build.
+
+Accepted lifecycle work committed without a breaking marker: backend e9fd8562,
+frontend 880c49e0, Bruno a9b8a97. Other provenance changes remain uncommitted.
+
+UI verification: component spec 87 passing; full frontend suite 168 files /
+428 tests passing. Changed-file lint, formatting, and production build pass
+(existing bundle/style budget warnings remain). Isolated Angular-rendered
+headers with compiled styles were visually checked in headless Chrome at
+1400, 900, 390, and 320px: Latest stays in the title row, controls remain below
+metadata, and neither draft nor tagged header overflows. Timestamp pills use
+existing MITRE theme tokens with readable light/dark foregrounds.
+
+Backend lifecycle assertion verification: 20 passing; full suite passes
+(OpenAPI 2, config 22, API 1048, middleware 29, scheduler 10), and lint passes.
+A transient content-manifest HTTP 404 passed in isolation (10 tests) and on
+the complete rerun. No unrelated test-harness changes were made.
+
+Header refinements approved for commit on 2026-09-10:
+`fix(release-tracks): clarify snapshot card headers`
+Body: Separate snapshot identity and status from controls, remove redundant
+draft subtitles, and present snapshot/tagging timestamps as metadata pills.
+
 ## Separate tagging, conversion to draft, and draft deletion
 
 - [x] Preserve creation provenance while separating conversion and deletion in the API.
