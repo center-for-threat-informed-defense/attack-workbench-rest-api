@@ -31,6 +31,15 @@ endpoint.
    clone, and track creation. Snapshots produced by candidate, staged, config,
    and metadata clones inherit the predecessor's manifest by reference. A
    manifest is deleted only when no snapshot in its track references it.
+   Before admission, `reviewed-state-service.ensureReviewed` verifies that
+   every selected exact revision exists. It applies full ADM validation to
+   active revisions, but exempts revisions with `revoked === true` or
+   `x_mitre_deprecated === true`, matching the import lifecycle policy.
+   This exception does not filter members or rewrite STIX: inactive member
+   revisions remain manifest roots and are retained in snapshot exports.
+   Membership invariants, manifest sealing/replay, and pin protection are
+   unchanged. The shared gate covers virtual materialization and release
+   commit, so inactive historical content is not rejected at a later tag step.
 2. **One graph algorithm.** Roots are the exact `members` revisions. A
    relationship is selected when its `source_ref` and `target_ref` are both
    member IDs; the newest revision of each relationship lineage is chosen and
