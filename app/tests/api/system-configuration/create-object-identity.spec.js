@@ -129,6 +129,8 @@ describe('Create Object with Organization Identity API', function () {
     expect(newIdentity.stix.id).toBeDefined();
     expect(newIdentity.stix.created).toBeDefined();
     expect(newIdentity.stix.modified).toBeDefined();
+    expect(newIdentity.stix.created_by_ref).toBeUndefined();
+    expect(newIdentity.stix.x_mitre_modified_by_ref).toBeUndefined();
   });
 
   it('POST /api/config/organization-identity sets the organization identity', async function () {
@@ -144,10 +146,12 @@ describe('Create Object with Organization Identity API', function () {
       .expect(204);
   });
 
-  it('POST /api/tactics creates a new version of the tactic', async function () {
+  it('POST /api/tactics preserves creation provenance after the organization identity changes', async function () {
     const tactic2 = cloneForCreate(tactic1);
     const timestamp = new Date().toISOString();
     tactic2.stix.modified = timestamp;
+    tactic2.stix.created = timestamp;
+    tactic2.stix.created_by_ref = newIdentity.stix.id;
     const body = tactic2;
     const res = await request(app)
       .post('/api/tactics')
@@ -162,12 +166,26 @@ describe('Create Object with Organization Identity API', function () {
     expect(tactic).toBeDefined();
     expect(tactic.stix).toBeDefined();
     expect(tactic.stix.id).toBeDefined();
-    expect(tactic.stix.created).toBeDefined();
+    expect(tactic.stix.created).toBe(tactic1.stix.created);
     expect(tactic.stix.modified).toBeDefined();
     expect(tactic.stix.created_by_ref).toBeDefined();
     expect(tactic.stix.x_mitre_modified_by_ref).toBeDefined();
     expect(tactic.stix.created_by_ref).toBe(placeholderIdentity.stix.id);
     expect(tactic.stix.x_mitre_modified_by_ref).toBe(newIdentity.stix.id); // Should match the new identity
+  });
+
+  it('POST /api/tactics stamps brand-new objects with the active organization identity', async function () {
+    const body = cloneForCreate(tactic1);
+    delete body.stix.id;
+    const res = await request(app)
+      .post('/api/tactics')
+      .send(body)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201);
+
+    expect(res.body.stix.id).not.toBe(tactic1.stix.id);
+    expect(res.body.stix.created_by_ref).toBe(newIdentity.stix.id);
+    expect(res.body.stix.x_mitre_modified_by_ref).toBe(newIdentity.stix.id);
   });
 
   after(async function () {

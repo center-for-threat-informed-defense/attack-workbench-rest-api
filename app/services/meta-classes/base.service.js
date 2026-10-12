@@ -104,8 +104,8 @@ class BaseService extends ServiceWithHooks {
   }
 
   /**
-   * Whether create() should stamp created_by_ref and x_mitre_modified_by_ref
-   * with the active organization identity.
+   * Whether create() should stamp a new object's created_by_ref and each
+   * authoring revision's x_mitre_modified_by_ref with the active organization identity.
    *
    * Most ATT&CK objects are attributed to an organization identity. Identity
    * objects themselves opt out so first-time setup can create the placeholder
@@ -362,10 +362,10 @@ class BaseService extends ServiceWithHooks {
    *
    * Note: Fields like `created_by_ref`, `x_mitre_modified_by_ref`, and `object_marking_refs`
    * are intentionally NOT here — they are only server-controlled in certain contexts
-   * (e.g., new objects only, specific STIX types) or use merge semantics (marking definitions).
+   * (e.g., authoring revisions, specific STIX types) or use merge semantics (marking definitions).
    * Their handling remains in the existing composition logic of create() and updateFull().
    *
-   * Future additions: 'id', 'created', 'modified' (when server takes control of these)
+   * Existing-object created timestamps are preserved during create() composition.
    */
   static ALWAYS_STRIPPED_STIX_FIELDS = ['x_mitre_attack_spec_version', 'revoked'];
 
@@ -655,14 +655,24 @@ class BaseService extends ServiceWithHooks {
       ? await this.retrieveOrganizationIdentityRef()
       : null;
 
-    // Check for an existing object (may differ from existingVersion if stix.id was just generated)
+    // The stored latest revision is authoritative for creation provenance and lifecycle state.
     let existingObject;
     if (data.stix.id) {
       existingObject = await this.repository.retrieveLatestByStixId(data.stix.id);
     }
 
     if (existingObject) {
-      // New version of an existing object — carry forward revoked status, set modified_by
+      // Carry forward the latest revision's creation provenance and revoked status.
+      // This prevents new drift; it does not recover provenance from older revisions.
+      data.stix.created =
+        existingObject.stix.created instanceof Date
+          ? existingObject.stix.created.toISOString()
+          : existingObject.stix.created;
+      if (existingObject.stix.created_by_ref !== undefined) {
+        data.stix.created_by_ref = existingObject.stix.created_by_ref;
+      } else {
+        delete data.stix.created_by_ref;
+      }
       data.stix.revoked = existingObject.stix.revoked ?? false;
       if (organizationIdentityRef) {
         data.stix.x_mitre_modified_by_ref = organizationIdentityRef;

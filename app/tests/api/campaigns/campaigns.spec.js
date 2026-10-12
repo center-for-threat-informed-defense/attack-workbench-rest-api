@@ -6,6 +6,7 @@ const { cloneForCreate } = require('../../shared/clone-for-create');
 const database = require('../../../lib/database-in-memory');
 const databaseConfiguration = require('../../../lib/database-configuration');
 const Campaign = require('../../../models/campaign-model');
+const campaignsService = require('../../../services/stix/campaigns-service');
 const markingDefinitionService = require('../../../services/stix/marking-definitions-service');
 const systemConfigurationService = require('../../../services/system/system-configuration-service');
 
@@ -460,6 +461,123 @@ describe('Campaigns API', function () {
     expect(Array.isArray(campaigns)).toBe(true);
     expect(campaigns.length).toBe(0);
   });
+
+  for (const provenance of ['omitted', 'tampered']) {
+    it(`POST /api/campaigns preserves stored creation provenance when ${provenance}`, async function () {
+      const originalBody = cloneForCreate(initialObjectData);
+      originalBody.stix.created = '2020-01-01T00:00:00.000Z';
+      originalBody.stix.modified = originalBody.stix.created;
+      const original = await request(app)
+        .post('/api/campaigns')
+        .send(originalBody)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(201);
+
+      const revision = cloneForCreate(original.body);
+      revision.stix.modified = '2020-02-01T00:00:00.000Z';
+      revision.stix.description = 'An edited campaign.';
+      if (provenance === 'omitted') {
+        delete revision.stix.created;
+        delete revision.stix.created_by_ref;
+      } else {
+        revision.stix.created = revision.stix.modified;
+        revision.stix.created_by_ref = initialObjectData.stix.created_by_ref;
+        expect(revision.stix.created_by_ref).not.toBe(original.body.stix.created_by_ref);
+      }
+
+      const saved = await request(app)
+        .post('/api/campaigns')
+        .send(revision)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(201);
+      expect(saved.body.stix.created).toBe(original.body.stix.created);
+      expect(saved.body.stix.created_by_ref).toBe(original.body.stix.created_by_ref);
+      expect(saved.body.stix.modified).toBe(revision.stix.modified);
+      expect(saved.body.stix.description).toBe(revision.stix.description);
+
+      const persisted = await request(app)
+        .get(`/api/campaigns/${saved.body.stix.id}/modified/${saved.body.stix.modified}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      expect(persisted.body.stix).toEqual(saved.body.stix);
+
+      const historical = await request(app)
+        .get(`/api/campaigns/${original.body.stix.id}/modified/${original.body.stix.modified}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      expect(historical.body.stix).toEqual(original.body.stix);
+    });
+  }
+
+  for (const latestCreator of ['present', 'absent']) {
+    it(`preserves source provenance on import and uses only the latest revision with creator ${latestCreator}`, async function () {
+      const original = await request(app)
+        .post('/api/campaigns')
+        .send({
+          ...cloneForCreate(initialObjectData),
+          stix: {
+            ...initialObjectData.stix,
+            created: '2020-01-01T00:00:00.000Z',
+            modified: '2020-01-01T00:00:00.000Z',
+          },
+        })
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(201);
+
+      // Import may contain divergent provenance. Preserve it, without repairing history.
+      const imported = {
+        workspace: { workflow: { state: 'work-in-progress' } },
+        stix: {
+          ...original.body.stix,
+          created: '2020-02-01T00:00:00.000Z',
+          modified: '2020-03-01T00:00:00.000Z',
+        },
+      };
+      if (latestCreator === 'present') {
+        imported.stix.created_by_ref = initialObjectData.stix.created_by_ref;
+      } else {
+        delete imported.stix.created_by_ref;
+      }
+      await campaignsService.create(structuredClone(imported), {
+        import: true,
+        validateContents: true,
+      });
+      const importedRevision = await request(app)
+        .get(`/api/campaigns/${imported.stix.id}/modified/${imported.stix.modified}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      expect(importedRevision.body.stix).toEqual(imported.stix);
+
+      // A stale client supplies the original creator even when the latest has none.
+      const revision = cloneForCreate(original.body);
+      revision.stix.modified = '2020-04-01T00:00:00.000Z';
+      const saved = await request(app)
+        .post('/api/campaigns')
+        .send(revision)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(201);
+      expect(saved.body.stix.created).toBe(imported.stix.created);
+      expect(saved.body.stix.created_by_ref).toBe(imported.stix.created_by_ref);
+      if (latestCreator === 'absent') {
+        expect(saved.body.stix).not.toHaveProperty('created_by_ref');
+      }
+      expect(saved.body.stix.modified).toBe(revision.stix.modified);
+      expect(saved.body.stix.x_mitre_modified_by_ref).toBe(
+        original.body.stix.x_mitre_modified_by_ref,
+      );
+
+      const persisted = await request(app)
+        .get(`/api/campaigns/${saved.body.stix.id}/modified/${saved.body.stix.modified}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      expect(persisted.body.stix).toEqual(saved.body.stix);
+      const historical = await request(app)
+        .get(`/api/campaigns/${original.body.stix.id}/modified/${original.body.stix.modified}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      expect(historical.body.stix).toEqual(original.body.stix);
+    });
+  }
 
   after(async function () {
     await database.closeConnection();
