@@ -170,4 +170,6 @@ module.exports = Object.freeze({
   // Listeners reconcile workspace.release_tracks backrefs on their own documents.
   RELEASE_TRACK_CONTENTS_CHANGED: 'release-track::contents-changed',
   RELEASE_TRACK_OBJECTS_REVIEWED: 'release-track::objects-reviewed',
+  RELEASE_TRACK_OBJECT_DELETION_REQUESTED: 'release-track::object-deletion-requested',
+  RELEASE_TRACK_OBJECT_DELETION_COMPLETED: 'release-track::object-deletion-completed',
 });

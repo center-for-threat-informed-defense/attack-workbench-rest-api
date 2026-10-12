@@ -35,6 +35,7 @@ const WorkflowResult = require('../../lib/workflow-result');
 const graphWriteLock = require('../../lib/graph-write-lock');
 const lifecycle = require('../stix/lifecycle-service');
 const EventBus = require('../../lib/event-bus');
+const Events = require('../../lib/event-constants');
 // Import required repositories
 const systemConfigurationRepository = require('../../repository/system-configurations-repository');
 const identitiesRepository = require('../../repository/identities-repository');
@@ -1181,6 +1182,30 @@ class BaseService extends ServiceWithHooks {
     }
   }
 
+  async _prepareReleaseTrackDeletion(stixId, stixModified) {
+    // Standalone service callers need the same required listener as HTTP
+    // requests. The listener owns all release-track writes.
+    require('../release-tracks/object-deletion-service');
+    const hasSurvivingVersions =
+      stixModified !== undefined && (await this.repository.hasOtherVersions(stixId, stixModified));
+    const backrefTrackIds = await this.repository.distinctReleaseTrackIds(stixId);
+    const results = await EventBus.emitRequired(
+      Events.RELEASE_TRACK_OBJECT_DELETION_REQUESTED,
+      { stixId, stixModified, hasSurvivingVersions, backrefTrackIds },
+      { minimumListeners: 1 },
+    );
+    return results.flatMap((result) => result.dynamicLatestTrackIds || []);
+  }
+
+  async _completeReleaseTrackDeletion(trackIds) {
+    if (trackIds.length === 0) return;
+    await EventBus.emitRequired(
+      Events.RELEASE_TRACK_OBJECT_DELETION_COMPLETED,
+      { trackIds },
+      { minimumListeners: 1 },
+    );
+  }
+
   // TODO rename to deleteVersionByStixId and repurpose the existing name for deleting by the document's unique _id
   async deleteVersionById(stixId, stixModified) {
     if (!graphWriteLock.isHeld()) {
@@ -1201,13 +1226,16 @@ class BaseService extends ServiceWithHooks {
     // Members-pinned revisions are released content — they must never be
     // deleted (the track's member entry would silently dangle).
     const existing = await this.repository.retrieveOneByVersion(stixId, stixModified);
-    if (!existing) {
-      return null;
+    if (existing) {
+      await BaseService.assertNotMemberPinned(existing, 'deleted');
+      await BaseService.assertNotGraphPinned(existing, 'deleted');
     }
-    await BaseService.assertNotMemberPinned(existing, 'deleted');
-    await BaseService.assertNotGraphPinned(existing, 'deleted');
+    const trackIds = await this._prepareReleaseTrackDeletion(stixId, stixModified);
 
     const document = await this.repository.findOneAndDelete(stixId, stixModified);
+    // Dynamic selectors must move to the surviving latest revision only after
+    // persistence. Also run on retries whose previous delete already succeeded.
+    await this._completeReleaseTrackDeletion(trackIds);
 
     if (!document) {
       //Note: document is null if not found
@@ -1383,6 +1411,8 @@ class BaseService extends ServiceWithHooks {
     const memberPinned = await this.repository.retrieveMemberPinnedVersionsLean(stixId);
     await BaseService.assertNoMemberPinnedVersions(stixId, memberPinned, 'deleted');
     await BaseService.assertNoGraphPinnedVersions(stixId, 'deleted');
+
+    await this._prepareReleaseTrackDeletion(stixId);
 
     const result = await this.repository.deleteMany(stixId);
     if (result.deletedCount > 0) {

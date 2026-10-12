@@ -504,6 +504,43 @@ class ReleaseTrackDynamicRepository {
   }
 
   /**
+   * Workflow selectors are mutable metadata, including on historical snapshots.
+   * Never change snapshot identity, members, or sealed content while retracting
+   * references to an object that is about to be deleted.
+   */
+  async removeWorkflowObjectReferences(trackId, stixId, stixModified, hasSurvivingVersions) {
+    try {
+      const Model = this._getModel(trackId);
+      const pull = {};
+      for (const tier of ['candidates', 'staged', 'quarantine']) {
+        const selector = { object_ref: stixId };
+        if (stixModified !== undefined) {
+          const modified = new Date(stixModified);
+          // Quarantine entries always use exact revisions, unlike the two
+          // standard-track workflow tiers, which also allow dynamic selectors.
+          selector.object_modified =
+            hasSurvivingVersions || tier === 'quarantine'
+              ? modified
+              : { $in: [modified, 'latest'] };
+        }
+        pull[tier] = selector;
+      }
+      return await Model.updateMany(
+        {
+          id: trackId,
+          $or: Object.entries(pull).map(([tier, selector]) => ({
+            [tier]: { $elemMatch: selector },
+          })),
+        },
+        { $pull: pull },
+        { runValidators: true },
+      ).exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
+  /**
    * Replace a tagged snapshot's content manifest. Used by administrative
    * source-attested reconstruction, which must name the manifest it expects
    * to replace so a concurrent change is detected.
