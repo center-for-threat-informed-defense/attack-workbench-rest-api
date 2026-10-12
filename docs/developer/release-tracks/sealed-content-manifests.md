@@ -81,9 +81,8 @@ endpoint.
    the materialization manifest unchanged, because the materialized draft is
    the artifact that was reviewed. Commit also stores a stable `bundle_id`
    and SHA-256 hashes of both serializations on the tagged snapshot. Draft
-   bundles use a deterministic UUIDv5 derived from the track ID and snapshot
-   `modified`; the bundle ID changes across snapshots while the collection ID
-   stays constant per track.
+   bundles generate a random UUIDv4 for each export; repeated draft exports
+   have different bundle IDs while the collection ID stays constant per track.
 7. **Tagged snapshots are immutable including notes.** `snapshot_description`
    is editable on drafts only. The graph create and delete endpoints are
    removed. The admin-only source-attested reconstruction endpoint remains
