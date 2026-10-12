@@ -1,8 +1,7 @@
 # Standalone Docker Installation
 
-The ATT&CK Workbench Frontend project includes a `docker-compose.yml` file that can be used to install all of the ATT&CK Workbench components as part of a Docker Compose installation.
-
-This document describes an alternate method of installing the ATT&CK Workbench REST API service in a Docker container without using Docker Compose.
+This guide covers standalone Docker commands. For a complete Workbench deployment
+with Docker Compose, use the [deployment repository](https://github.com/mitre-attack/attack-workbench-deployment).
 
 ## Create a Docker Image for the REST API
 

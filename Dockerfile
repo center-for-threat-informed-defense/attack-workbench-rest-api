@@ -33,17 +33,13 @@ ENV APP_VERSION=${VERSION} \
 
 FROM base AS dev
 
-# Install all dependencies, including file-watching development tools.
+# Install development dependencies.
 RUN npm ci
 
 # Copy app source
 COPY . .
-RUN mkdir -p /usr/src/app-seed && \
-    cp -R app /usr/src/app-seed/app && \
-    cp -R bin /usr/src/app-seed/bin && \
-    cp -R resources /usr/src/app-seed/resources
 
-CMD [ "sh", "-c", "if [ ! -f app/index.js ]; then cp -R /usr/src/app-seed/app/. app/; fi; if [ ! -f bin/www ]; then cp -R /usr/src/app-seed/bin/. bin/; fi; if [ ! -d resources ] || [ -z \"$(ls -A resources 2>/dev/null)\" ]; then mkdir -p resources && cp -R /usr/src/app-seed/resources/. resources/; fi; exec npm run start:dev" ]
+CMD [ "node", "./bin/www" ]
 
 FROM base AS production
 
