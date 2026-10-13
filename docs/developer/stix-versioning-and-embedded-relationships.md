@@ -23,12 +23,14 @@ workspace metadata.
 - Each version is a complete, independent document
 - Versions are linked by sharing the same `stix.id`
 - Authoring revisions preserve `stix.created` and `stix.created_by_ref` from the
-  stored latest revision, regardless of whether the client omits or changes them.
-  `x_mitre_modified_by_ref` identifies the current editing organization; changing
-  that organization does not change the original creator.
-- Missing provenance in the latest stored revision is not reconstructed from older
-  history or filled with the current organization. This preservation rule prevents
-  new loss; it does not repair existing content.
+  latest stored revision, regardless of whether the client omits or changes them.
+- Missing provenance remains missing. Ordinary authoring does not consult older
+  history or backfill existing objects with the current organization identity.
+  Recovery is separate from this prevention rule.
+- `x_mitre_modified_by_ref` identifies the current editing organization; changing
+  that organization does not overwrite an existing creator.
+- Only the new revision is written; intermediate history remains unchanged. Normal
+  lifecycle hooks, ADM validation, and release-track synchronization still apply.
 - Bundle imports follow a separate source-preserving path and retain the source
   object's creation provenance rather than applying authoring defaults.
 

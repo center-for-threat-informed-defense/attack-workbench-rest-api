@@ -104,7 +104,7 @@ class BaseService extends ServiceWithHooks {
   }
 
   /**
-   * Whether create() should stamp a new object's created_by_ref and each
+   * Whether create() should stamp new or missing created_by_ref and each
    * authoring revision's x_mitre_modified_by_ref with the active organization identity.
    *
    * Most ATT&CK objects are attributed to an organization identity. Identity
@@ -549,10 +549,8 @@ class BaseService extends ServiceWithHooks {
     // Determine if this is a new object or a new version of an existing object
     let existingVersion = null;
     if (data.stix?.id) {
-      // TODO change this to repository's get latest method - there should be a method for that
-      const existingVersions = await this.repository.retrieveAllById(data.stix.id);
-      if (existingVersions?.length > 0) {
-        existingVersion = existingVersions[0];
+      existingVersion = await this.repository.retrieveLatestByStixIdLean(data.stix.id);
+      if (existingVersion) {
         logger.debug(
           `Found existing version(s) with stix.id: ${data.stix.id}, will reuse attack_id: ${existingVersion.workspace?.attack_id}`,
         );
@@ -655,15 +653,9 @@ class BaseService extends ServiceWithHooks {
       ? await this.retrieveOrganizationIdentityRef()
       : null;
 
-    // The stored latest revision is authoritative for creation provenance and lifecycle state.
-    let existingObject;
-    if (data.stix.id) {
-      existingObject = await this.repository.retrieveLatestByStixId(data.stix.id);
-    }
-
+    const existingObject = existingVersion;
     if (existingObject) {
-      // Carry forward the latest revision's creation provenance and revoked status.
-      // This prevents new drift; it does not recover provenance from older revisions.
+      // Preserve the latest revision's creation provenance; do not repair history.
       data.stix.created =
         existingObject.stix.created instanceof Date
           ? existingObject.stix.created.toISOString()

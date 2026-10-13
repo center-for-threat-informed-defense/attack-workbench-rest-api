@@ -9,6 +9,7 @@ const login = require('../../shared/login');
 const { cloneForCreate } = require('../../shared/clone-for-create');
 const Software = require('../../../models/software-model');
 const Technique = require('../../../models/technique-model');
+const relationshipsService = require('../../../services/stix/relationships-service');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -703,6 +704,48 @@ describe('Relationships API', function () {
     expect(relationships).toBeDefined();
     expect(Array.isArray(relationships)).toBe(true);
     expect(relationships.length).toBe(0);
+  });
+
+  it('ordinary POST preserves latest relationship provenance without recovering older values', async function () {
+    const original = {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: structuredClone(relationship1a.stix),
+    };
+    original.stix.created = '2019-01-01T00:00:00.000Z';
+    original.stix.modified = '2020-01-01T00:00:00.000Z';
+    await relationshipsService.create(structuredClone(original), {
+      import: true,
+      validateContents: true,
+    });
+    const intermediate = structuredClone(original);
+    intermediate.stix.modified = '2021-01-01T00:00:00.000Z';
+    intermediate.stix.created = intermediate.stix.modified;
+    delete intermediate.stix.created_by_ref;
+    await relationshipsService.create(structuredClone(intermediate), {
+      import: true,
+      validateContents: true,
+    });
+
+    const revision = cloneForCreate(intermediate);
+    revision.stix.modified = '2022-01-01T00:00:00.000Z';
+    revision.stix.created = original.stix.created;
+    revision.stix.created_by_ref = original.stix.created_by_ref;
+    const saved = await request(app)
+      .post('/api/relationships')
+      .send(revision)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201);
+    expect(saved.body.stix.created).toBe(intermediate.stix.created);
+    expect(saved.body.stix).not.toHaveProperty('created_by_ref');
+    expect(saved.body.stix.source_ref).toBe(intermediate.stix.source_ref);
+    expect(saved.body.stix.target_ref).toBe(intermediate.stix.target_ref);
+    for (const historical of [original, intermediate]) {
+      const stored = await request(app)
+        .get(`/api/relationships/${historical.stix.id}/modified/${historical.stix.modified}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      expect(stored.body.stix).toEqual(historical.stix);
+    }
   });
 
   after(async function () {

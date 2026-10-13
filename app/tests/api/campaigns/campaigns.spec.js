@@ -510,7 +510,7 @@ describe('Campaigns API', function () {
   }
 
   for (const latestCreator of ['present', 'absent']) {
-    it(`preserves source provenance on import and uses only the latest revision with creator ${latestCreator}`, async function () {
+    it(`preserves imported latest provenance without recovery when creator is ${latestCreator}`, async function () {
       const original = await request(app)
         .post('/api/campaigns')
         .send({
@@ -518,7 +518,7 @@ describe('Campaigns API', function () {
           stix: {
             ...initialObjectData.stix,
             created: '2020-01-01T00:00:00.000Z',
-            modified: '2020-01-01T00:00:00.000Z',
+            modified: '2020-01-15T00:00:00.000Z',
           },
         })
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
@@ -531,6 +531,7 @@ describe('Campaigns API', function () {
           ...original.body.stix,
           created: '2020-02-01T00:00:00.000Z',
           modified: '2020-03-01T00:00:00.000Z',
+          aliases: ['Imported campaign alias'],
         },
       };
       if (latestCreator === 'present') {
@@ -548,14 +549,28 @@ describe('Campaigns API', function () {
         .expect(200);
       expect(importedRevision.body.stix).toEqual(imported.stix);
 
-      // A stale client supplies the original creator even when the latest has none.
-      const revision = cloneForCreate(original.body);
+      const track = await request(app)
+        .post('/api/release-tracks/new')
+        .send({ name: `Campaign provenance ${latestCreator}`, type: 'standard' })
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(201);
+      await request(app)
+        .post(`/api/release-tracks/${track.body.id}/candidates`)
+        .send({ object_refs: [{ id: imported.stix.id, modified: imported.stix.modified }] })
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+
+      // Clone latest authored content; the ordinary POST composes provenance.
+      const revision = cloneForCreate(importedRevision.body);
       revision.stix.modified = '2020-04-01T00:00:00.000Z';
+      revision.stix.created = original.body.stix.created;
+      revision.stix.created_by_ref = original.body.stix.created_by_ref;
       const saved = await request(app)
         .post('/api/campaigns')
         .send(revision)
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(201);
+      expect(saved.body.stix.aliases).toEqual([imported.stix.name, ...imported.stix.aliases]);
       expect(saved.body.stix.created).toBe(imported.stix.created);
       expect(saved.body.stix.created_by_ref).toBe(imported.stix.created_by_ref);
       if (latestCreator === 'absent') {
@@ -576,6 +591,24 @@ describe('Campaigns API', function () {
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(200);
       expect(historical.body.stix).toEqual(original.body.stix);
+      const intermediate = await request(app)
+        .get(`/api/campaigns/${imported.stix.id}/modified/${imported.stix.modified}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      expect(intermediate.body.stix).toEqual(imported.stix);
+      const history = await request(app)
+        .get(`/api/campaigns/${imported.stix.id}?versions=all`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      expect(history.body).toHaveLength(3);
+      expect(saved.body.workspace.release_tracks).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: track.body.id, tier: 'candidates' }),
+        ]),
+      );
+      expect(
+        (intermediate.body.workspace.release_tracks || []).map((entry) => entry.id),
+      ).not.toContain(track.body.id);
     });
   }
 

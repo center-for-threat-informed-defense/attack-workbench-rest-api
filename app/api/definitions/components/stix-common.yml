@@ -39,8 +39,9 @@ components:
           type: string
           format: date-time
           description: >-
-            Creation timestamp. On authoring POSTs for an existing object, the
-            server preserves this value from the stored latest revision.
+            Creation timestamp. Authoring POSTs for an existing object preserve
+            the value from the latest stored revision and ignore client overrides.
+            Earlier revisions are not consulted for recovery.
             Bundle imports retain the source value.
         modified:
           type: string
@@ -49,10 +50,10 @@ components:
           type: string
           example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
           description: >-
-            Original creator identity. Authoring revisions preserve this value,
-            including its absence, from the stored latest revision rather than
-            accepting a client override or attributing creation to the current
-            editing organization. Bundle imports retain source attribution.
+            Original creator identity. Authoring revisions preserve the value,
+            including its absence, from the latest stored revision and ignore
+            client overrides. Existing objects are not backfilled with the current
+            organization identity. Bundle imports retain source attribution.
         revoked:
           type: boolean
           example: false
