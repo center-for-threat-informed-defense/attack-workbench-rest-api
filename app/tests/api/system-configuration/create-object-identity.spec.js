@@ -175,7 +175,7 @@ describe('Create Object with Organization Identity API', function () {
     expect(tactic.stix.x_mitre_modified_by_ref).toBe(newIdentity.stix.id); // Should match the new identity
   });
 
-  it('POST does not backfill an existing object with the current organization identity', async function () {
+  it('POST leaves an omitted creator absent and initializes only an explicit creator', async function () {
     const imported = {
       workspace: { workflow: { state: 'work-in-progress' } },
       stix: structuredClone(tactic1.stix),
@@ -192,7 +192,6 @@ describe('Create Object with Organization Identity API', function () {
     const revision = cloneForCreate(imported);
     revision.stix.modified = '2021-01-01T00:00:00.000Z';
     revision.stix.created = revision.stix.modified;
-    revision.stix.created_by_ref = placeholderIdentity.stix.id;
     const saved = await request(app)
       .post('/api/tactics')
       .send(revision)
@@ -206,6 +205,58 @@ describe('Create Object with Organization Identity API', function () {
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(200);
     expect(historical.body.stix).toEqual(imported.stix);
+
+    const explicitRevision = cloneForCreate(saved.body);
+    explicitRevision.stix.modified = '2022-01-01T00:00:00.000Z';
+    explicitRevision.stix.created = explicitRevision.stix.modified;
+    explicitRevision.stix.created_by_ref = placeholderIdentity.stix.id;
+    const initialized = await request(app)
+      .post('/api/tactics')
+      .send(explicitRevision)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201);
+    expect(initialized.body.stix.created).toBe(imported.stix.created);
+    expect(initialized.body.stix.created_by_ref).toBe(placeholderIdentity.stix.id);
+    expect(initialized.body.stix.x_mitre_modified_by_ref).toBe(newIdentity.stix.id);
+    const previous = await request(app)
+      .get(`/api/tactics/${saved.body.stix.id}/modified/${saved.body.stix.modified}`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
+    expect(previous.body.stix).toEqual(saved.body.stix);
+  });
+
+  it('POST rejects an invalid explicit creator when the latest creator is absent', async function () {
+    const imported = {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: structuredClone(tactic1.stix),
+    };
+    imported.stix.id = `x-mitre-tactic--${uuid.v4()}`;
+    imported.stix.created = '2019-01-01T00:00:00.000Z';
+    imported.stix.modified = '2020-01-01T00:00:00.000Z';
+    delete imported.stix.created_by_ref;
+    await tacticsService.create(structuredClone(imported), {
+      import: true,
+      validateContents: true,
+    });
+
+    const revision = cloneForCreate(imported);
+    revision.stix.modified = '2021-01-01T00:00:00.000Z';
+    revision.stix.created_by_ref = 'not-an-identity-reference';
+    const rejected = await request(app)
+      .post('/api/tactics')
+      .send(revision)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(400);
+    expect(rejected.body.message).toBe('ADM validation failed');
+    expect(rejected.body.details).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: ['created_by_ref'] })]),
+    );
+    const history = await request(app)
+      .get(`/api/tactics/${imported.stix.id}?versions=all`)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(200);
+    expect(history.body).toHaveLength(1);
+    expect(history.body[0].stix).toEqual(imported.stix);
   });
 
   it('POST identity revisions still opt out of organization attribution', async function () {

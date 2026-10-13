@@ -509,8 +509,12 @@ describe('Campaigns API', function () {
     });
   }
 
-  for (const latestCreator of ['present', 'absent']) {
-    it(`preserves imported latest provenance without recovery when creator is ${latestCreator}`, async function () {
+  for (const [latestCreator, suppliedCreator] of [
+    ['present', 'explicit'],
+    ['absent', 'omitted'],
+    ['absent', 'explicit'],
+  ]) {
+    it(`uses latest provenance with ${latestCreator} stored creator and ${suppliedCreator} input`, async function () {
       const original = await request(app)
         .post('/api/campaigns')
         .send({
@@ -551,7 +555,7 @@ describe('Campaigns API', function () {
 
       const track = await request(app)
         .post('/api/release-tracks/new')
-        .send({ name: `Campaign provenance ${latestCreator}`, type: 'standard' })
+        .send({ name: `Campaign provenance ${latestCreator} ${suppliedCreator}`, type: 'standard' })
         .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
         .expect(201);
       await request(app)
@@ -564,7 +568,11 @@ describe('Campaigns API', function () {
       const revision = cloneForCreate(importedRevision.body);
       revision.stix.modified = '2020-04-01T00:00:00.000Z';
       revision.stix.created = original.body.stix.created;
-      revision.stix.created_by_ref = original.body.stix.created_by_ref;
+      if (suppliedCreator === 'explicit') {
+        revision.stix.created_by_ref = original.body.stix.created_by_ref;
+      } else {
+        delete revision.stix.created_by_ref;
+      }
       const saved = await request(app)
         .post('/api/campaigns')
         .send(revision)
@@ -572,8 +580,11 @@ describe('Campaigns API', function () {
         .expect(201);
       expect(saved.body.stix.aliases).toEqual([imported.stix.name, ...imported.stix.aliases]);
       expect(saved.body.stix.created).toBe(imported.stix.created);
-      expect(saved.body.stix.created_by_ref).toBe(imported.stix.created_by_ref);
-      if (latestCreator === 'absent') {
+      if (latestCreator === 'present') {
+        expect(saved.body.stix.created_by_ref).toBe(imported.stix.created_by_ref);
+      } else if (suppliedCreator === 'explicit') {
+        expect(saved.body.stix.created_by_ref).toBe(revision.stix.created_by_ref);
+      } else {
         expect(saved.body.stix).not.toHaveProperty('created_by_ref');
       }
       expect(saved.body.stix.modified).toBe(revision.stix.modified);

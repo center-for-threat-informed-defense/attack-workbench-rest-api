@@ -104,7 +104,7 @@ class BaseService extends ServiceWithHooks {
   }
 
   /**
-   * Whether create() should stamp new or missing created_by_ref and each
+   * Whether create() should stamp brand-new objects' created_by_ref and each
    * authoring revision's x_mitre_modified_by_ref with the active organization identity.
    *
    * Most ATT&CK objects are attributed to an organization identity. Identity
@@ -655,15 +655,13 @@ class BaseService extends ServiceWithHooks {
 
     const existingObject = existingVersion;
     if (existingObject) {
-      // Preserve the latest revision's creation provenance; do not repair history.
+      // Preserve latest creation provenance; only an absent creator may be explicitly set.
       data.stix.created =
         existingObject.stix.created instanceof Date
           ? existingObject.stix.created.toISOString()
           : existingObject.stix.created;
       if (existingObject.stix.created_by_ref !== undefined) {
         data.stix.created_by_ref = existingObject.stix.created_by_ref;
-      } else {
-        delete data.stix.created_by_ref;
       }
       data.stix.revoked = existingObject.stix.revoked ?? false;
       if (organizationIdentityRef) {

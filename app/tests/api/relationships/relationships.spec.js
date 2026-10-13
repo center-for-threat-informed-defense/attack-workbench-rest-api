@@ -706,7 +706,7 @@ describe('Relationships API', function () {
     expect(relationships.length).toBe(0);
   });
 
-  it('ordinary POST preserves latest relationship provenance without recovering older values', async function () {
+  it('ordinary POST initializes an explicit missing relationship creator without recovering older dates', async function () {
     const original = {
       workspace: { workflow: { state: 'work-in-progress' } },
       stix: structuredClone(relationship1a.stix),
@@ -736,7 +736,7 @@ describe('Relationships API', function () {
       .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
       .expect(201);
     expect(saved.body.stix.created).toBe(intermediate.stix.created);
-    expect(saved.body.stix).not.toHaveProperty('created_by_ref');
+    expect(saved.body.stix.created_by_ref).toBe(revision.stix.created_by_ref);
     expect(saved.body.stix.source_ref).toBe(intermediate.stix.source_ref);
     expect(saved.body.stix.target_ref).toBe(intermediate.stix.target_ref);
     for (const historical of [original, intermediate]) {
