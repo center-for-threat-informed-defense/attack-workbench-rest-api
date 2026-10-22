@@ -13,6 +13,9 @@ Before testing, ensure you have:
 
 ## Verification Steps
 
+For details on configuring REST API configuration files and container logging,
+see the [deployment configuration guide](https://github.com/mitre-attack/attack-workbench-deployment/blob/main/docs/configuration.md#rest-api-configuration-files).
+
 ### Step 1: Check REST API Logs
 
 When the REST API starts, it should log information about the authentication configuration.

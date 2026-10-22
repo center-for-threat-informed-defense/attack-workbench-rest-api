@@ -38,12 +38,22 @@ components:
         created:
           type: string
           format: date-time
+          description: >-
+            Creation timestamp. Authoring POSTs for an existing object preserve
+            the value from the latest stored revision and ignore client overrides.
+            Earlier revisions are not consulted for recovery.
+            Bundle imports retain the source value.
         modified:
           type: string
           format: date-time
         created_by_ref:
           type: string
           example: 'identity--6444f546-6900-4456-b3b1-015c88d70dab'
+          description: >-
+            Original creator identity. Authoring revisions preserve the value,
+            including its absence, from the latest stored revision and ignore
+            client overrides. Existing objects are not backfilled with the current
+            organization identity. Bundle imports retain source attribution.
         revoked:
           type: boolean
           example: false

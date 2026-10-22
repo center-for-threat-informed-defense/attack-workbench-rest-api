@@ -143,8 +143,8 @@ STIX version serialization. The design is recorded in
      configuration; release commit freezes the resolved values onto the tagged
      snapshot as `publication`.
 7. **Bundle identity and hashes** — a released snapshot stores a stable
-   `bundle_id` assigned at commit; drafts derive a UUIDv5 from the track ID
-   and snapshot `modified`. The bundle ID therefore changes across snapshots
+   `bundle_id` assigned at commit; drafts generate a random UUIDv4 for each
+   export. Repeated draft exports therefore have different bundle IDs,
    while the collection ID stays constant per track. Release commit serializes
    each STIX version with `JSON.stringify(bundle, null, 4)`, hashes the exact
    UTF-8 bytes with SHA-256, and stores both digests on the snapshot as

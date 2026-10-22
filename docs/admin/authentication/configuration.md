@@ -89,6 +89,11 @@ docker compose restart rest-api
 npm start
 ```
 
+For Docker Compose environment-file changes, recreate the container with
+`docker compose up -d --force-recreate rest-api` to load the updated environment.
+See the [deployment configuration guide](https://github.com/mitre-attack/attack-workbench-deployment/blob/main/docs/configuration.md#rest-api-configuration-files)
+for configuration file locations and details on applying changes.
+
 ### Step 4: Verify Configuration Load
 
 Check the REST API logs during startup to confirm the configuration was loaded successfully:

@@ -141,13 +141,40 @@ clone or an explicit contents-changed reconciliation then moves that dynamic
 backref to the newly latest revision without rewriting the stored selector
 (see `member-sync-strategies.md`).
 
+## Object deletion
+
+`BaseService.deleteById` and `deleteVersionById` run under the shared graph
+write lock. Existing member and content-manifest guards execute before any
+workflow cleanup. The required `release-track::object-deletion-requested`
+event delegates writes to `object-deletion-service`.
+
+The listener scans the registry in bounded keyset pages and retracts matching
+candidate, staged, and quarantine entries from all snapshots, not just the
+latest snapshot or tracks named by derived backrefs. Cleanup updates workflow
+arrays in place; it does not clone snapshots, change timestamps or release
+versions, or modify members and sealed manifests.
+
+Object-wide deletion removes all workflow references to the STIX ID.
+Version deletion removes exact references to that revision and removes
+dynamic `"latest"` references only when no other revision survives. Affected
+tracks are reconciled before object persistence is deleted. After deletion,
+the required `release-track::object-deletion-completed` event reconciles tracks
+whose latest snapshots retain dynamic selectors, moving their backrefs to the
+surviving latest revision.
+
+Cleanup and reconciliation failures propagate instead of becoming successful
+deletes. Pre-delete failures leave the object intact, although workflow
+cleanup in earlier tracks may already have persisted. Post-delete
+reconciliation failures use the existing durable repair records. Cleanup is
+idempotent and also runs when a retried delete finds the object or revision
+already missing; the endpoint's not-found response remains unchanged.
+
 ## Known limitations
 
-- **Deleted-then-recreated revisions.** If an object revision document is
-  deleted while pinned by a track, the backref disappears with the document
-  and the track keeps a dangling pin (pre-existing behavior). If an identical
-  revision is later re-created, its backref is restored on the next
-  contents-changed event for that track, not immediately.
+- **Existing dangling workflow references.** Deploying the deletion fix does
+  not scan or rewrite existing snapshots. Repeating object-wide deletion
+  retracts that ID's stale workflow references even when the object is already
+  missing. Backref reconciliation alone does not remove snapshot references.
 - **Historical snapshots.** Backrefs describe only the *latest* snapshot per
   track. Delete guards do not trust that derived view: they query every
   registered track's tagged snapshots and graph manifests for the exact

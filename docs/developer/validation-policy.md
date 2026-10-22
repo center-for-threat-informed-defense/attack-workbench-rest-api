@@ -130,6 +130,14 @@ orchestrates publication; repositories only retrieve revisions and save results.
 `assertNoAdmErrors` in `app/lib/adm-validation.js` provides the common ADM rejection
 contract while callers retain their evaluation phases and import behavior.
 
+Release-track admission routes retired revisions through this same evaluator;
+it must not skip validation based directly on retirement flags. This preserves
+administrator exemption scopes and enabled states, along with the collector's
+matching-rule evidence. Admission validates the whole batch before changing
+workflow state or snapshot membership. Later preview and publication operations
+capture their own current policy, so an earlier exemption does not authorize a
+release after the applicable rules have been disabled.
+
 `validation-policy-repository` owns conditional reconciliation claims, lease
 renewals, checkpoints, completion, failure, retry and recovery-intent writes.
 `validation-diagnostics-repository` owns bounded revision scans and guarded

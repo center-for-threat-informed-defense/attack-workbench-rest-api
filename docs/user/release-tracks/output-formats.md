@@ -111,7 +111,8 @@ Standard STIX bundle format:
   which resolves the planned members live.
 - Released snapshots carry a stable `bundle_id` and SHA-256 `bundle_hashes`
   for both serializations; repeated downloads are byte-for-byte identical.
-  Draft bundles use a deterministic identifier derived from the snapshot.
+  Draft bundles generate a new random UUIDv4 identifier for each export;
+  their bundle IDs are not stable across repeated downloads.
 - Bundle export is fail-closed for primary content. If any selected exact
   revision no longer exists, the server returns HTTP `409` with every missing
   `(object_ref, object_modified)` pair in `missing_references`; it never emits
