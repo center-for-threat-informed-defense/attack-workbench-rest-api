@@ -31,6 +31,16 @@ endpoint.
    clone, and track creation. Snapshots produced by candidate, staged, config,
    and metadata clones inherit the predecessor's manifest by reference. A
    manifest is deleted only when no snapshot in its track references it.
+   Before admission, `reviewed-state-service.ensureReviewed` verifies that
+   every selected exact revision exists. It evaluates revisions under the
+   canonical policy: matching enabled retirement exemptions skip ADM, while
+   all other revisions use the full reviewed schema and error-bypass rules.
+   Disabling or narrowing those exemptions restores ordinary ADM admission
+   requirements. Exemption does not filter members or rewrite STIX: inactive member
+   revisions remain manifest roots and are retained in snapshot exports.
+   Membership invariants, manifest sealing/replay, and pin protection are
+   unchanged. Virtual materialization and release commit each use the current
+   policy, so later policy changes can affect admission at the tag step.
 2. **One graph algorithm.** Roots are the exact `members` revisions. A
    relationship is selected when its `source_ref` and `target_ref` are both
    member IDs; the newest revision of each relationship lineage is chosen and
@@ -81,9 +91,8 @@ endpoint.
    the materialization manifest unchanged, because the materialized draft is
    the artifact that was reviewed. Commit also stores a stable `bundle_id`
    and SHA-256 hashes of both serializations on the tagged snapshot. Draft
-   bundles use a deterministic UUIDv5 derived from the track ID and snapshot
-   `modified`; the bundle ID changes across snapshots while the collection ID
-   stays constant per track.
+   bundles generate a random UUIDv4 for each export; repeated draft exports
+   have different bundle IDs while the collection ID stays constant per track.
 7. **Tagged snapshots are immutable including notes.** `snapshot_description`
    is editable on drafts only. The graph create and delete endpoints are
    removed. The admin-only source-attested reconstruction endpoint remains

@@ -10,6 +10,8 @@ const databaseConfiguration = require('../../../lib/database-configuration');
 const login = require('../../shared/login');
 const dynamicRepo = require('../../../repository/release-tracks/release-track-dynamic.repository');
 const snapshotService = require('../../../services/release-tracks/snapshot-service');
+const AttackObject = require('../../../models/attack-object-model');
+const policyRepository = require('../../../repository/validation-policy-repository');
 
 function campaign(complete = true) {
   return {
@@ -87,6 +89,220 @@ describe('Legacy reviewed state on release-track admission', function () {
     });
     return track;
   }
+
+  async function archivedObject(kind) {
+    const isTechnique = kind === 'revoked';
+    const path = isTechnique ? '/api/techniques' : '/api/mitigations';
+    const object = await post(
+      path,
+      {
+        workspace: { workflow: { state: 'work-in-progress' } },
+        stix: {
+          type: isTechnique ? 'attack-pattern' : 'course-of-action',
+          spec_version: '2.1',
+          name: `Archived ${kind} admission`,
+          description: 'Historical content retained in release-track membership.',
+          x_mitre_domains: ['enterprise-attack'],
+          object_marking_refs: ['marking-definition--613f2e26-407d-48c7-9eca-b8e91df99dc9'],
+          x_mitre_version: '1.0',
+          ...(isTechnique
+            ? {
+                x_mitre_is_subtechnique: false,
+                x_mitre_platforms: ['Windows'],
+                kill_chain_phases: [{ kill_chain_name: 'mitre-attack', phase_name: 'persistence' }],
+              }
+            : {}),
+        },
+      },
+      201,
+    );
+    // Model imported historical revisions without relaxing API creation validation.
+    await AttackObject.collection.updateOne(
+      { 'stix.id': object.stix.id, 'stix.modified': new Date(object.stix.modified) },
+      {
+        $set: {
+          'stix.revoked': kind !== 'deprecated',
+          'stix.x_mitre_deprecated': kind !== 'revoked',
+          ...(isTechnique
+            ? { 'stix.x_mitre_platforms': ['Office 365'] }
+            : { 'stix.external_references.0.external_id': 'T1174' }),
+        },
+      },
+    );
+    return {
+      path,
+      object: await get(`${path}/${object.stix.id}/modified/${object.stix.modified}`),
+    };
+  }
+
+  for (const kind of ['revoked', 'deprecated', 'revoked-and-deprecated']) {
+    it(`retains ${kind} legacy content through staging, virtual materialization, release and export`, async function () {
+      const { path, object } = await archivedObject(kind);
+      const reference = { object_ref: object.stix.id, object_modified: object.stix.modified };
+      const component = await createTrack([object]);
+      await post(`/api/release-tracks/${component.id}/candidates/promote`, {
+        object_refs: [object.stix.id],
+      });
+      const staged = await get(`/api/release-tracks/${component.id}/snapshots/latest`);
+      expect(staged.staged).toEqual([expect.objectContaining(reference)]);
+      const stored = await get(`${path}/${object.stix.id}/modified/${object.stix.modified}`);
+      expect(stored.stix).toEqual(object.stix);
+      expect(stored.workspace.workflow).toEqual({
+        ...object.workspace.workflow,
+        state: 'reviewed',
+      });
+      const componentRelease = await post(
+        `/api/release-tracks/${component.id}/snapshots/latest/release`,
+        {},
+      );
+      expect(componentRelease.members).toEqual([reference]);
+      const virtual = await post(
+        '/api/release-tracks/new',
+        {
+          name: `Virtual ${kind} ${randomUUID()}`.replaceAll('-', ''),
+          type: 'virtual',
+          composition: {
+            component_tracks: [
+              { track_id: component.id, resolution_strategy: 'latest_preview', priority: 1 },
+            ],
+            deduplication: { strategy: 'prioritize_latest_object' },
+          },
+        },
+        201,
+      );
+      const draft = await post(
+        `/api/release-tracks/${virtual.id}/virtual/snapshots/create`,
+        {},
+        201,
+      );
+      expect(draft.members).toEqual([reference]);
+      const released = await post(`/api/release-tracks/${virtual.id}/snapshots/latest/release`, {});
+      expect(released.members).toEqual([reference]);
+      expect(released.content_manifest_id).toBe(draft.content_manifest_id);
+      for (const snapshot of [draft, released]) {
+        const bundle = await get(
+          `/api/release-tracks/${virtual.id}/snapshots/${snapshot.modified}?format=bundle`,
+        );
+        expect(bundle.objects.find((entry) => entry.id === object.stix.id)).toEqual(object.stix);
+      }
+      await request(app)
+        .delete(`${path}/${object.stix.id}/modified/${object.stix.modified}`)
+        .set('Cookie', cookie)
+        .expect(409);
+
+      // The same legacy fields remain invalid on active content. A failed
+      // materialization must not replace the snapshot or its sealed manifest.
+      await AttackObject.collection.updateOne(
+        { 'stix.id': object.stix.id, 'stix.modified': new Date(object.stix.modified) },
+        { $set: { 'stix.revoked': false, 'stix.x_mitre_deprecated': false } },
+      );
+      const before = await snapshotService.getLatestSnapshot(virtual.id);
+      const rejected = await post(
+        `/api/release-tracks/${virtual.id}/virtual/snapshots/create`,
+        {},
+        400,
+      );
+      expect(rejected.details).toContainEqual(
+        expect.objectContaining({
+          ...reference,
+          path:
+            kind === 'revoked'
+              ? ['x_mitre_platforms', 0]
+              : ['external_references', 0, 'external_id'],
+        }),
+      );
+      expect(await snapshotService.getLatestSnapshot(virtual.id)).toEqual(before);
+    });
+  }
+
+  for (const kind of ['revoked', 'deprecated']) {
+    for (const policyChange of ['disabled', 'different type']) {
+      it(`rejects ${kind} admission atomically when its exemption is ${policyChange}`, async function () {
+        const { path, object } = await archivedObject(kind);
+        const valid = await post('/api/campaigns', campaign(), 201);
+        const track = await createTrack([valid, object]);
+        const before = await snapshotService.getLatestSnapshot(track.id);
+        const baseline = (await policyRepository.readPolicy()).rules;
+        const exemption = baseline.find((rule) => rule.retirementStatus === kind);
+        const promotion = `/api/release-tracks/${track.id}/candidates/promote`;
+        const body = { object_refs: [valid.stix.id, object.stix.id] };
+        try {
+          await policyRepository.mutateRules(() => ({
+            rules: baseline.map((rule) =>
+              rule === exemption
+                ? {
+                    ...rule,
+                    ...(policyChange === 'disabled'
+                      ? { enabled: false }
+                      : { stixTypes: ['malware'] }),
+                  }
+                : rule,
+            ),
+          }));
+          const rejected = await post(`${promotion}?exemptionReport=summary`, body, 400);
+          expect(rejected.details).toContainEqual(
+            expect.objectContaining({
+              object_ref: object.stix.id,
+              object_modified: object.stix.modified,
+              path:
+                kind === 'revoked'
+                  ? ['x_mitre_platforms', 0]
+                  : ['external_references', 0, 'external_id'],
+            }),
+          );
+          expect(rejected.exemptionReport.evaluatedScope.byOutcome.invalid).toBe(1);
+          expect(rejected.exemptionReport.reportedExemptRevisions).toBe(0);
+          expect(await snapshotService.getLatestSnapshot(track.id)).toEqual(before);
+          for (const [endpoint, original] of [
+            [path, object],
+            ['/api/campaigns', valid],
+          ]) {
+            const stored = await get(
+              `${endpoint}/${original.stix.id}/modified/${original.stix.modified}`,
+            );
+            expect(stored.stix).toEqual(original.stix);
+            expect(stored.workspace.workflow).toEqual(original.workspace.workflow);
+          }
+
+          // A matching type-scoped policy permits retry and reports the actual rule.
+          await policyRepository.mutateRules(() => ({
+            rules: baseline.map((rule) =>
+              rule === exemption ? { ...rule, stixTypes: [object.stix.type] } : rule,
+            ),
+          }));
+          const admitted = await post(`${promotion}?exemptionReport=summary`, body);
+          expect(admitted.exemptionReport.reportedExemptRevisions).toBe(1);
+          expect(admitted.exemptionReport.byRule).toContainEqual(
+            expect.objectContaining({ ruleId: String(exemption._id) }),
+          );
+          const stored = await get(`${path}/${object.stix.id}/modified/${object.stix.modified}`);
+          expect(stored.stix).toEqual(object.stix);
+          expect(stored.workspace.workflow.state).toBe('reviewed');
+        } finally {
+          await policyRepository.mutateRules(() => ({ rules: baseline }));
+        }
+      });
+    }
+  }
+
+  it('rejects a missing inactive revision before admission without falling back to another version', async function () {
+    const { object } = await archivedObject('deprecated');
+    const track = await createTrack([object]);
+    const before = await snapshotService.getLatestSnapshot(track.id);
+    await AttackObject.collection.updateOne(
+      { 'stix.id': object.stix.id, 'stix.modified': new Date(object.stix.modified) },
+      { $set: { 'stix.modified': new Date(new Date(object.stix.modified).getTime() + 1000) } },
+    );
+    const rejected = await post(
+      `/api/release-tracks/${track.id}/candidates/promote`,
+      { object_refs: [object.stix.id] },
+      409,
+    );
+    expect(rejected.missing_references).toEqual([
+      { object_ref: object.stix.id, object_modified: object.stix.modified },
+    ]);
+    expect(await snapshotService.getLatestSnapshot(track.id)).toEqual(before);
+  });
 
   it('rejects an incomplete staged batch without reviewing its valid companion', async function () {
     const valid = await post('/api/campaigns', campaign(), 201);

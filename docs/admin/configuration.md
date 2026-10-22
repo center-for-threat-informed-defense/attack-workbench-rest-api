@@ -30,8 +30,15 @@ JSON configuration files, or a combination of both.
     - [Collection Indexes](#collection-indexes)
     - [Configuration Files](#configuration-files)
       - [Allowed Values](#allowed-values)
+        - [Initialization and the JSON file](#initialization-and-the-json-file)
+        - [Managing a configuration](#managing-a-configuration)
+        - [Adding values](#adding-values)
+        - [ADM version and enforcement](#adm-version-and-enforcement)
+        - [Legacy invalid settings](#legacy-invalid-settings)
+        - [API](#api)
       - [Static Marking Definitions](#static-marking-definitions)
     - [ATT\&CK Specific](#attck-specific)
+  - [STIX graph-write exclusion](#stix-graph-write-exclusion)
   - [Additional Resources](#additional-resources)
 
 ---
@@ -110,6 +117,10 @@ JSON configuration files are recommended for complex configurations, especially 
    ```bash
    JSON_CONFIG_PATH=/path/to/config.json
    ```
+
+The API reads the JSON file during startup. Restart the process after changing
+the file. For container configuration and restart procedures, see the
+[deployment configuration guide](https://github.com/mitre-attack/attack-workbench-deployment/blob/main/docs/configuration.md#rest-api-configuration-files).
 
 ### Configuration Precedence
 
@@ -856,6 +867,14 @@ rules. Their one-time seed marker prevents restart from undoing edits, enabling
 disabled rules, or recreating deleted defaults. Custom overlapping rules are
 allowed; any enabled match grants exemption. A disabled rule does not cancel
 another enabled rule.
+
+These rules also govern release-track admission, preview and publication.
+Retirement flags do not bypass a disabled or nonmatching policy. To require ADM
+validation of retired revisions, disable or narrow every applicable exemption;
+a revision with both retirement flags remains exempt while either matching rule
+is enabled. Subsequent operations use the updated policy, while previously
+published content remains unchanged. Optional validation reports identify the
+rules that actually granted an exemption.
 
 The canonical policy stores rules and pending reevaluation intent atomically.
 Saving a change advances policy revision and evaluation generation; it does not

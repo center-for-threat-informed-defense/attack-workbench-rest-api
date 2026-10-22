@@ -29,17 +29,28 @@ The three workflow states tracked per release track:
 
 Admission to `staged` or `members` now also uses the existing revision-global
 `workspace.workflow.state`. Before writing the tier transition, the API
-validates the selected object revisions as `reviewed`, using the existing ADM
-configuration and validation bypass rules. If validation succeeds, it sets
-only their legacy workflow state to `reviewed`. STIX content, `stix.modified`,
-and other workflow metadata are unchanged. Protected `static` objects retain
-their state.
+evaluates the selected object revisions as `reviewed` under the operation's
+canonical validation policy. Enabled object-exemption rules can exempt
+revisions with `stix.revoked === true` or `stix.x_mitre_deprecated === true`;
+new policies enable both exemptions for all types. Disabling or narrowing
+every applicable exemption restores full ADM validation and configured
+error-bypass handling for those revisions. Exemption is recorded as `exempt`,
+not ADM conformance, and optional validation reports identify matching rules.
+Inactive revisions are not removed from membership or exports.
+Every selected revision must still exist, and snapshot membership and sealed
+manifest integrity checks remain enforced.
+
+After the batch passes admission, the API sets only the selected revisions'
+legacy workflow state to `reviewed`, including inactive revisions. STIX
+content, `stix.modified`, and other workflow metadata are unchanged. Protected
+`static` objects retain their state.
 
 This applies to explicit and automatic staging, snapshot member writes,
-track cloning, and release commits. A release commit checks every planned
-member, including legacy members that were never marked reviewed. Candidates
-alone do not change legacy state. Lowering the candidacy threshold does not
-relax this ADM check. Disabling ADM validation globally still disables it here.
+track cloning, virtual snapshot materialization, and release commits. A release
+commit checks every planned member's existence and evaluates its current policy,
+including legacy members that were never marked reviewed. Candidates alone do
+not change legacy state. Lowering the candidacy threshold does not relax this
+ADM check. Disabling ADM validation globally still disables it here.
 
 An ADM failure returns HTTP `400` with revision-specific `details` and prevents
 the staged/member admission. No object in the rejected validation batch is

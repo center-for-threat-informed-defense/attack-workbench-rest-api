@@ -187,6 +187,16 @@ class BaseRepository extends AbstractRepository {
     }
   }
 
+  async hasOtherVersions(stixId, modified) {
+    try {
+      return Boolean(
+        await this.model.exists({ 'stix.id': stixId, 'stix.modified': { $ne: modified } }).exec(),
+      );
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async retrieveAllById(stixId) {
     try {
       // .lean() bypasses Mongoose toJSON/toObject transforms, so .select()
@@ -697,13 +707,15 @@ class BaseRepository extends AbstractRepository {
   }
 
   /**
-   * Return every release-track ID present in denormalized object backrefs.
-   * Used only by administrative full-scan repair so deleted tracks with stale
-   * backrefs are included alongside registry-backed tracks.
+   * Return release-track IDs present in denormalized object backrefs.
+   * An optional STIX ID bounds deletion retry cleanup to the affected object;
+   * administrative full-scan repair omits it to include all stale backrefs.
    */
-  async distinctReleaseTrackIds() {
+  async distinctReleaseTrackIds(stixId) {
     try {
-      return await this.model.distinct('workspace.release_tracks.id').exec();
+      return await this.model
+        .distinct('workspace.release_tracks.id', stixId ? { 'stix.id': stixId } : {})
+        .exec();
     } catch (err) {
       throw new DatabaseError(err);
     }

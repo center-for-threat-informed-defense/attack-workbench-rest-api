@@ -9,6 +9,7 @@ const login = require('../../shared/login');
 const { cloneForCreate } = require('../../shared/clone-for-create');
 const Software = require('../../../models/software-model');
 const Technique = require('../../../models/technique-model');
+const relationshipsService = require('../../../services/stix/relationships-service');
 
 const logger = require('../../../lib/logger');
 logger.level = 'debug';
@@ -300,10 +301,12 @@ describe('Relationships API', function () {
   });
 
   let relationship1b;
-  it('POST /api/relationships should create a new version of a relationship with a duplicate stix.id but different stix.modified date', async function () {
+  it('POST /api/relationships preserves creation provenance omitted from a new revision', async function () {
     relationship1b = cloneForCreate(relationship1a);
     const timestamp = new Date().toISOString();
     relationship1b.stix.modified = timestamp;
+    delete relationship1b.stix.created;
+    delete relationship1b.stix.created_by_ref;
     const body = relationship1b;
     const res = await request(app)
       .post('/api/relationships')
@@ -316,13 +319,20 @@ describe('Relationships API', function () {
     // We expect to get the created relationship
     const relationship = res.body;
     expect(relationship).toBeDefined();
+    expect(relationship.stix.created).toBe(relationship1a.stix.created);
+    expect(relationship.stix.created_by_ref).toBe(relationship1a.stix.created_by_ref);
+    expect(relationship.stix.modified).toBe(timestamp);
+    relationship1b = relationship;
   });
 
   let relationship1c;
-  it('POST /api/relationships should create a new version of a relationship with a duplicate stix.id but different stix.modified date', async function () {
+  it('POST /api/relationships ignores tampered creation provenance on a new revision', async function () {
     relationship1c = cloneForCreate(relationship1a);
     const timestamp = new Date().toISOString();
     relationship1c.stix.modified = timestamp;
+    relationship1c.stix.created = timestamp;
+    relationship1c.stix.created_by_ref = initialObjectData.stix.created_by_ref;
+    expect(relationship1c.stix.created_by_ref).not.toBe(relationship1a.stix.created_by_ref);
     const body = relationship1c;
     const res = await request(app)
       .post('/api/relationships')
@@ -335,6 +345,10 @@ describe('Relationships API', function () {
     // We expect to get the created relationship
     const relationship = res.body;
     expect(relationship).toBeDefined();
+    expect(relationship.stix.created).toBe(relationship1a.stix.created);
+    expect(relationship.stix.created_by_ref).toBe(relationship1a.stix.created_by_ref);
+    expect(relationship.stix.modified).toBe(timestamp);
+    relationship1c = relationship;
   });
 
   it('GET /api/relationships returns the latest added relationship', async function () {
@@ -690,6 +704,48 @@ describe('Relationships API', function () {
     expect(relationships).toBeDefined();
     expect(Array.isArray(relationships)).toBe(true);
     expect(relationships.length).toBe(0);
+  });
+
+  it('ordinary POST initializes an explicit missing relationship creator without recovering older dates', async function () {
+    const original = {
+      workspace: { workflow: { state: 'work-in-progress' } },
+      stix: structuredClone(relationship1a.stix),
+    };
+    original.stix.created = '2019-01-01T00:00:00.000Z';
+    original.stix.modified = '2020-01-01T00:00:00.000Z';
+    await relationshipsService.create(structuredClone(original), {
+      import: true,
+      validateContents: true,
+    });
+    const intermediate = structuredClone(original);
+    intermediate.stix.modified = '2021-01-01T00:00:00.000Z';
+    intermediate.stix.created = intermediate.stix.modified;
+    delete intermediate.stix.created_by_ref;
+    await relationshipsService.create(structuredClone(intermediate), {
+      import: true,
+      validateContents: true,
+    });
+
+    const revision = cloneForCreate(intermediate);
+    revision.stix.modified = '2022-01-01T00:00:00.000Z';
+    revision.stix.created = original.stix.created;
+    revision.stix.created_by_ref = original.stix.created_by_ref;
+    const saved = await request(app)
+      .post('/api/relationships')
+      .send(revision)
+      .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+      .expect(201);
+    expect(saved.body.stix.created).toBe(intermediate.stix.created);
+    expect(saved.body.stix.created_by_ref).toBe(revision.stix.created_by_ref);
+    expect(saved.body.stix.source_ref).toBe(intermediate.stix.source_ref);
+    expect(saved.body.stix.target_ref).toBe(intermediate.stix.target_ref);
+    for (const historical of [original, intermediate]) {
+      const stored = await request(app)
+        .get(`/api/relationships/${historical.stix.id}/modified/${historical.stix.modified}`)
+        .set('Cookie', `${passportCookie.name}=${passportCookie.value}`)
+        .expect(200);
+      expect(stored.body.stix).toEqual(historical.stix);
+    }
   });
 
   after(async function () {

@@ -296,7 +296,9 @@ describe('Release Tracks Bundle Export API', function () {
     const bundle = await getBundle(`/api/release-tracks/${trackId}/snapshots/latest?format=bundle`);
 
     expect(bundle.type).toBe('bundle');
-    expect(bundle.id).toMatch(/^bundle--/);
+    expect(bundle.id).toMatch(
+      /^bundle--[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
     // STIX 2.1 removed spec_version from the bundle object
     expect(bundle.spec_version).toBeUndefined();
 

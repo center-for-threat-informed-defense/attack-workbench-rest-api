@@ -1062,6 +1062,64 @@ describe('Quiet opt-in validation reports', function () {
     ).body;
     expect(JSON.stringify(exported)).not.toContain('exemptionReport');
   });
+  it('reports overlapping retirement exemptions on review and rechecks policy before release', async () => {
+    const object = (await call('post', '/api/groups', group()).expect(201)).body;
+    await Model.collection.updateOne(
+      { 'stix.id': object.stix.id },
+      { $set: { 'stix.revoked': true } },
+    );
+    const track = (
+      await call('post', '/api/release-tracks/new', {
+        name: `Retired ${randomUUID().replaceAll('-', '')}`,
+        type: 'standard',
+      }).expect(201)
+    ).body;
+    await call('post', `/api/release-tracks/${track.id}/candidates`, {
+      object_refs: [{ id: object.stix.id, modified: object.stix.modified }],
+    }).expect(200);
+    const reviewed = (
+      await call(
+        'post',
+        `/api/release-tracks/${track.id}/candidates/promote?exemptionReport=details`,
+        { object_refs: [object.stix.id] },
+      ).expect(200)
+    ).body;
+    expect(reviewed.exemptionReport.reportedExemptRevisions).toBe(1);
+    expect(reviewed.exemptionReport.ruleApplications).toBe(2);
+    expect(reviewed.exemptionReport.details.map((entry) => entry.ruleId).sort()).toEqual(
+      [deprecated, revoked].sort(),
+    );
+    await rules.updateById(revoked, {
+      ...baseline.find((rule) => String(rule._id) === revoked),
+      enabled: false,
+    });
+    const publication = `/api/release-tracks/${track.id}/snapshots/latest/release`;
+    const preview = (
+      await call('get', `${publication}/preview?exemptionReport=details`).expect(200)
+    ).body;
+    expect(preview.exemptionReport.ruleApplications).toBe(1);
+    expect(preview.exemptionReport.details[0]).toMatchObject({
+      ruleId: deprecated,
+      phase: 'preflight',
+    });
+    await rules.updateById(deprecated, {
+      ...baseline.find((rule) => String(rule._id) === deprecated),
+      enabled: false,
+    });
+    const historyPath = `/api/release-tracks/${track.id}/snapshots`;
+    const history = (await call('get', historyPath).expect(200)).body;
+    const before = await Model.collection.findOne({ 'stix.id': object.stix.id });
+    const rejected = (
+      await call('post', `${publication}?exemptionReport=details`, { version: '1.0' }).expect(400)
+    ).body;
+    expect(rejected.message).toBe('ADM validation failed');
+    expect(rejected.exemptionReport.evaluatedScope.byOutcome).toEqual({ invalid: 1 });
+    expect(rejected.exemptionReport.reportedExemptRevisions).toBe(0);
+    expect(rejected.exemptionReport.state).toBe('partial');
+    expect(await Model.collection.findOne({ 'stix.id': object.stix.id })).toEqual(before);
+    expect((await call('get', historyPath).expect(200)).body).toEqual(history);
+  });
+
   it('captures revoke preflight once per exact revision/rule', async () => {
     const primary = (await call('post', '/api/groups', group()).expect(201)).body;
     const replacement = (await call('post', '/api/groups', group()).expect(201)).body;

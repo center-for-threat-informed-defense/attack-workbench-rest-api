@@ -225,6 +225,11 @@ describe('Runtime allowed values API', function () {
   });
 
   it('adds, toggles and removes options for multiple object types without broadening other scopes', async function () {
+    // Start with the option absent, regardless of the bundled seed defaults.
+    const seededRule = await getRule(platformRule);
+    await api('put', ruleUrl(seededRule), {
+      values: seededRule.values.filter(({ value }) => value !== 'Network Devices'),
+    });
     const initial = (await api('get', rules)).body;
     const rule = initial.find((item) => sameRule(item, platformRule));
     const option = {

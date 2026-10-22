@@ -22,6 +22,20 @@ workspace metadata.
 - Builds a **temporal version chain** of immutable snapshots
 - Each version is a complete, independent document
 - Versions are linked by sharing the same `stix.id`
+- Authoring revisions preserve `stix.created` and `stix.created_by_ref` from the
+  latest stored revision, regardless of whether the client omits or changes them.
+- Missing provenance remains missing. Ordinary authoring does not consult older
+  history or backfill existing objects with the current organization identity.
+  Recovery is separate from this prevention rule.
+- `x_mitre_modified_by_ref` identifies the current editing organization. Ordinary
+  authoring cannot replace the latest stored creator. The explicit organization
+  identity configuration workflow can create new revisions that update creators
+  in the organization's provenance chain; subsequent authoring preserves those
+  new stored values. Historical revisions retain their original provenance.
+- Only the new revision is written; intermediate history remains unchanged. Normal
+  lifecycle hooks, ADM validation, and release-track synchronization still apply.
+- Bundle imports follow a separate source-preserving path and retain the source
+  object's creation provenance rather than applying authoring defaults.
 
 **Example:**
 ```javascript
@@ -85,9 +99,10 @@ PUT /api/data-components/x-mitre-data-component--123/modified/2024-01-01T00:00:0
 }
 ```
 
-To correct a description, name, relationship endpoint, or any other STIX field,
+To correct authored content such as a description, name, or relationship endpoint,
 POST a complete new revision with the same `stix.id` and a later
-`stix.modified` timestamp.
+`stix.modified` timestamp. Creation provenance remains server-controlled as
+described above; ordinary authoring POSTs cannot override it.
 
 **Use Case:** review and other workspace-only state that is not exported.
 
