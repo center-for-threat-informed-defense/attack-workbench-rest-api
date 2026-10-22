@@ -236,7 +236,6 @@ describe('Sealed release-track content manifests', function () {
       draftBundle.objects.find((object) => object.id === originalRelationship.stix.id).modified,
     ).toBe(originalRelationship.stix.modified);
     expect(draftBundle.id).not.toBe(released.bundle_id);
-    expect((await bundle(track.id, draft.modified)).id).toBe(draftBundle.id);
   });
 
   it('reseals at commit so relationships added between releases ship and previews report them', async function () {

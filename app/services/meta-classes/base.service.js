@@ -35,6 +35,7 @@ const WorkflowResult = require('../../lib/workflow-result');
 const graphWriteLock = require('../../lib/graph-write-lock');
 const lifecycle = require('../stix/lifecycle-service');
 const EventBus = require('../../lib/event-bus');
+const Events = require('../../lib/event-constants');
 // Import required repositories
 const systemConfigurationRepository = require('../../repository/system-configurations-repository');
 const identitiesRepository = require('../../repository/identities-repository');
@@ -103,8 +104,8 @@ class BaseService extends ServiceWithHooks {
   }
 
   /**
-   * Whether create() should stamp created_by_ref and x_mitre_modified_by_ref
-   * with the active organization identity.
+   * Whether create() should stamp brand-new objects' created_by_ref and each
+   * authoring revision's x_mitre_modified_by_ref with the active organization identity.
    *
    * Most ATT&CK objects are attributed to an organization identity. Identity
    * objects themselves opt out so first-time setup can create the placeholder
@@ -361,10 +362,10 @@ class BaseService extends ServiceWithHooks {
    *
    * Note: Fields like `created_by_ref`, `x_mitre_modified_by_ref`, and `object_marking_refs`
    * are intentionally NOT here — they are only server-controlled in certain contexts
-   * (e.g., new objects only, specific STIX types) or use merge semantics (marking definitions).
+   * (e.g., authoring revisions, specific STIX types) or use merge semantics (marking definitions).
    * Their handling remains in the existing composition logic of create() and updateFull().
    *
-   * Future additions: 'id', 'created', 'modified' (when server takes control of these)
+   * Existing-object created timestamps are preserved during create() composition.
    */
   static ALWAYS_STRIPPED_STIX_FIELDS = ['x_mitre_attack_spec_version', 'revoked'];
 
@@ -548,10 +549,8 @@ class BaseService extends ServiceWithHooks {
     // Determine if this is a new object or a new version of an existing object
     let existingVersion = null;
     if (data.stix?.id) {
-      // TODO change this to repository's get latest method - there should be a method for that
-      const existingVersions = await this.repository.retrieveAllById(data.stix.id);
-      if (existingVersions?.length > 0) {
-        existingVersion = existingVersions[0];
+      existingVersion = await this.repository.retrieveLatestByStixIdLean(data.stix.id);
+      if (existingVersion) {
         logger.debug(
           `Found existing version(s) with stix.id: ${data.stix.id}, will reuse attack_id: ${existingVersion.workspace?.attack_id}`,
         );
@@ -654,14 +653,16 @@ class BaseService extends ServiceWithHooks {
       ? await this.retrieveOrganizationIdentityRef()
       : null;
 
-    // Check for an existing object (may differ from existingVersion if stix.id was just generated)
-    let existingObject;
-    if (data.stix.id) {
-      existingObject = await this.repository.retrieveLatestByStixId(data.stix.id);
-    }
-
+    const existingObject = existingVersion;
     if (existingObject) {
-      // New version of an existing object — carry forward revoked status, set modified_by
+      // Preserve latest creation provenance; only an absent creator may be explicitly set.
+      data.stix.created =
+        existingObject.stix.created instanceof Date
+          ? existingObject.stix.created.toISOString()
+          : existingObject.stix.created;
+      if (existingObject.stix.created_by_ref !== undefined) {
+        data.stix.created_by_ref = existingObject.stix.created_by_ref;
+      }
       data.stix.revoked = existingObject.stix.revoked ?? false;
       if (organizationIdentityRef) {
         data.stix.x_mitre_modified_by_ref = organizationIdentityRef;
@@ -1181,6 +1182,30 @@ class BaseService extends ServiceWithHooks {
     }
   }
 
+  async _prepareReleaseTrackDeletion(stixId, stixModified) {
+    // Standalone service callers need the same required listener as HTTP
+    // requests. The listener owns all release-track writes.
+    require('../release-tracks/object-deletion-service');
+    const hasSurvivingVersions =
+      stixModified !== undefined && (await this.repository.hasOtherVersions(stixId, stixModified));
+    const backrefTrackIds = await this.repository.distinctReleaseTrackIds(stixId);
+    const results = await EventBus.emitRequired(
+      Events.RELEASE_TRACK_OBJECT_DELETION_REQUESTED,
+      { stixId, stixModified, hasSurvivingVersions, backrefTrackIds },
+      { minimumListeners: 1 },
+    );
+    return results.flatMap((result) => result.dynamicLatestTrackIds || []);
+  }
+
+  async _completeReleaseTrackDeletion(trackIds) {
+    if (trackIds.length === 0) return;
+    await EventBus.emitRequired(
+      Events.RELEASE_TRACK_OBJECT_DELETION_COMPLETED,
+      { trackIds },
+      { minimumListeners: 1 },
+    );
+  }
+
   // TODO rename to deleteVersionByStixId and repurpose the existing name for deleting by the document's unique _id
   async deleteVersionById(stixId, stixModified) {
     if (!graphWriteLock.isHeld()) {
@@ -1201,13 +1226,16 @@ class BaseService extends ServiceWithHooks {
     // Members-pinned revisions are released content — they must never be
     // deleted (the track's member entry would silently dangle).
     const existing = await this.repository.retrieveOneByVersion(stixId, stixModified);
-    if (!existing) {
-      return null;
+    if (existing) {
+      await BaseService.assertNotMemberPinned(existing, 'deleted');
+      await BaseService.assertNotGraphPinned(existing, 'deleted');
     }
-    await BaseService.assertNotMemberPinned(existing, 'deleted');
-    await BaseService.assertNotGraphPinned(existing, 'deleted');
+    const trackIds = await this._prepareReleaseTrackDeletion(stixId, stixModified);
 
     const document = await this.repository.findOneAndDelete(stixId, stixModified);
+    // Dynamic selectors must move to the surviving latest revision only after
+    // persistence. Also run on retries whose previous delete already succeeded.
+    await this._completeReleaseTrackDeletion(trackIds);
 
     if (!document) {
       //Note: document is null if not found
@@ -1383,6 +1411,8 @@ class BaseService extends ServiceWithHooks {
     const memberPinned = await this.repository.retrieveMemberPinnedVersionsLean(stixId);
     await BaseService.assertNoMemberPinnedVersions(stixId, memberPinned, 'deleted');
     await BaseService.assertNoGraphPinnedVersions(stixId, 'deleted');
+
+    await this._prepareReleaseTrackDeletion(stixId);
 
     const result = await this.repository.deleteMany(stixId);
     if (result.deletedCount > 0) {

@@ -81,11 +81,22 @@ Release tracks are never blind to changes in the objects they pin:
   a track. Create corrections and deprecations as new POST revisions. PUT is
   limited to non-exported `workspace` metadata and does not trigger revision
   sync.
-- **Graph and membership pins protect deletion.** Exact revisions in tagged
-  membership or an active/pending opt-in graph cannot be hard-deleted. The
-  guard checks authoritative tagged snapshots and graph entries rather than
-  relying only on `workspace.release_tracks`. A revision remains protected
-  even if a derived backref is temporarily absent.
+- **Graph and membership pins protect deletion.** Member-pinned revisions and
+  exact revisions in sealed content manifests cannot be hard-deleted. The
+  guard checks authoritative tagged snapshots and manifests as well as current
+  member backrefs. Historical tagged membership and manifest pins remain
+  protected even if a derived backref is temporarily absent.
+- **Permitted deletion retracts workflow references.** Deleting an object
+  removes its candidate, staged, and quarantine entries from every snapshot
+  of every registered track, including historical snapshots. This changes
+  workflow metadata only: snapshot timestamps, release versions, members,
+  and sealed manifests remain unchanged. Candidate membership alone does not
+  prevent deletion, but another track's member or manifest pin still can.
+- **Version deletion preserves surviving selectors.** Deleting one revision
+  removes its exact workflow references. Dynamic `"latest"` selectors remain
+  when another revision exists, and their backrefs move to the surviving
+  latest revision. Deleting the final revision also removes those dynamic
+  selectors.
 - **Revoking a tracked object queues the revoked revision.** The revoke
   workflow creates one new revision of the revoked object
   (`revoked: true`); revision sync enrolls it as a candidate in tracks where

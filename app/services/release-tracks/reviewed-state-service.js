@@ -28,17 +28,21 @@ async function ensureReviewed(entries) {
       object_ref: document.stix.id,
       object_modified: new Date(document.stix.modified).toISOString(),
     };
-    const result = await attackObjectsService.validateComposedObject(
-      {
-        // MongoDB dates, including type-specific dates, must reach ADM as strings.
-        // Validate a copy; never replace stored STIX with the parsed schema output.
-        stix: JSON.parse(JSON.stringify(document.stix)),
-        workspace: { workflow: { state: 'reviewed' } },
-      },
-      { bypassRules },
-    );
-    errors.push(...result.errors.map((issue) => ({ ...issue, ...reference })));
-    warnings.push(...result.warnings.map((issue) => ({ ...issue, ...reference })));
+    // Match import policy for historical inactive content. Existence was checked
+    // above; admission still retains the revision and updates its legacy state.
+    if (document.stix.revoked !== true && document.stix.x_mitre_deprecated !== true) {
+      const result = await attackObjectsService.validateComposedObject(
+        {
+          // MongoDB dates, including type-specific dates, must reach ADM as strings.
+          // Validate a copy; never replace stored STIX with the parsed schema output.
+          stix: JSON.parse(JSON.stringify(document.stix)),
+          workspace: { workflow: { state: 'reviewed' } },
+        },
+        { bypassRules },
+      );
+      errors.push(...result.errors.map((issue) => ({ ...issue, ...reference })));
+      warnings.push(...result.warnings.map((issue) => ({ ...issue, ...reference })));
+    }
     reviewedEntries.push(reference);
   }
 

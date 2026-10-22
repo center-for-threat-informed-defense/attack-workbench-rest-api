@@ -1,4 +1,4 @@
-FROM node:22
+FROM node:22 AS base
 
 # Define build arguments
 ARG VERSION=dev
@@ -26,15 +26,27 @@ WORKDIR /usr/src/app
 # where available (npm@5+)
 COPY package*.json ./
 
-# Install the app dependencies
-RUN npm ci --only=production
-
-# Copy app source
-COPY . .
-
 # Set version as environment variable for runtime access
 ENV APP_VERSION=${VERSION} \
     GIT_COMMIT=${REVISION} \
     BUILD_DATE=${BUILDTIME}
+
+FROM base AS dev
+
+# Install development dependencies.
+RUN npm ci
+
+# Copy app source
+COPY . .
+
+CMD [ "node", "./bin/www" ]
+
+FROM base AS production
+
+# Install the app dependencies
+RUN npm ci --omit=dev
+
+# Copy app source
+COPY . .
 
 CMD [ "npm", "start" ]

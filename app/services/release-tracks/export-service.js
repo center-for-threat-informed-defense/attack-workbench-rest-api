@@ -21,7 +21,7 @@
 // app/lib/release-tracks/export-schemas.js for schema definitions.
 // =============================================================================
 
-const { v5: uuidv5 } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 const logger = require('../../lib/logger');
 const linkById = require('../../lib/linkById');
 const primaryRevisionService = require('./primary-revision-service');
@@ -32,9 +32,6 @@ const {
   workbenchTransformSchema,
   filesystemStoreTransformSchema,
 } = require('../../lib/release-tracks/export-schemas');
-
-// Namespace for deterministic draft bundle identifiers.
-const DRAFT_BUNDLE_NAMESPACE = 'c1d8c0a6-6a3d-4f0a-9c9b-4d9d0c8a5f21';
 
 // =============================================================================
 // Hydration
@@ -91,10 +88,7 @@ function normalizeSourceBundleDefaults(documents, graph) {
 
 function bundleIdFor(snapshot) {
   if (snapshot.bundle_id) return snapshot.bundle_id;
-  return `bundle--${uuidv5(
-    `${snapshot.id}|${new Date(snapshot.modified).toISOString()}`,
-    DRAFT_BUNDLE_NAMESPACE,
-  )}`;
+  return `bundle--${uuidv4()}`;
 }
 
 // =============================================================================
