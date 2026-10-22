@@ -128,6 +128,20 @@ class ReleaseTrackRegistryRepository {
     }
   }
 
+  async findTrackBatch(afterTrackId) {
+    try {
+      return await this.model
+        .find(afterTrackId ? { track_id: { $gt: afterTrackId } } : {})
+        .select({ _id: 0, track_id: 1 })
+        .sort({ track_id: 1 })
+        .limit(100)
+        .lean()
+        .exec();
+    } catch (err) {
+      throw new DatabaseError(err);
+    }
+  }
+
   async findVirtualTrackBatch(afterTrackId) {
     return this.model
       .find({

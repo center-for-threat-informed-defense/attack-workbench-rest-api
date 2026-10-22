@@ -72,6 +72,24 @@ backrefs for tracks that no longer exist are removed.
 The command prints JSON and exits nonzero if any track still fails. Preserve
 failed records and command output for incident review.
 
+## Dangling workflow references after object deletion
+
+Object deletion retracts candidate, staged, and quarantine references across
+snapshot history before deleting stored revisions. It does not remove members
+or sealed-manifest pins; those continue to block deletion.
+
+For an object already deleted by an older server, repeating its object-wide
+DELETE runs the same idempotent workflow cleanup. The endpoint may still
+return `404` because the object itself is absent; verify the affected latest
+and historical snapshot GETs afterward. This is a targeted write to workflow
+metadata, not a read-time workaround. Deployment alone performs no repair.
+
+The backref repair commands above synchronize derived object metadata; they
+do not remove dangling references from snapshot arrays. If a deletion returns
+a reconciliation failure, inspect the object and snapshot state before
+retrying: workflow cleanup may already be persisted, and post-delete
+reconciliation can fail after the revision has been deleted.
+
 ## Known crash window
 
 Snapshot persistence and reconciliation-record creation do not share a MongoDB
